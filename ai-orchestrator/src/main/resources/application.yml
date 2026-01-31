@@ -1,0 +1,55 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ai-orchestrator
+
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:your-api-key-here}
+      chat:
+        options:
+          model: claude-sonnet-4-20250514
+          max-tokens: 2048
+          temperature: 0.8
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:mystic}
+    password: ${RABBITMQ_PASSWORD:mystic123}
+    virtual-host: ${RABBITMQ_VHOST:mystic}
+    listener:
+      simple:
+        prefetch: 1
+        concurrency: 2
+        max-concurrency: 5
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:mystic123}
+      timeout: 5000ms
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.uuid}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.mysticai.orchestrator: DEBUG
+    org.springframework.ai: DEBUG

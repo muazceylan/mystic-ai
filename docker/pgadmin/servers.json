@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Mystic AI - PostgreSQL",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "mystic",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpass"
+    }
+  }
+}

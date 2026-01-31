@@ -1,0 +1,110 @@
+{
+  "rabbit_version": "3.13.0",
+  "users": [
+    {
+      "name": "mystic",
+      "password_hash": "mystic123",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "mystic"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "mystic",
+      "vhost": "mystic",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "mystic.ai.exchange",
+      "vhost": "mystic",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false
+    },
+    {
+      "name": "mystic.readings.exchange",
+      "vhost": "mystic",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false
+    }
+  ],
+  "queues": [
+    {
+      "name": "ai.interpretation.queue",
+      "vhost": "mystic",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 3600000
+      }
+    },
+    {
+      "name": "tarot.reading.queue",
+      "vhost": "mystic",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "astrology.reading.queue",
+      "vhost": "mystic",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "vision.analysis.queue",
+      "vhost": "mystic",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notification.queue",
+      "vhost": "mystic",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "mystic.ai.exchange",
+      "vhost": "mystic",
+      "destination": "ai.interpretation.queue",
+      "destination_type": "queue",
+      "routing_key": "ai.interpret.#"
+    },
+    {
+      "source": "mystic.readings.exchange",
+      "vhost": "mystic",
+      "destination": "tarot.reading.queue",
+      "destination_type": "queue",
+      "routing_key": "tarot"
+    },
+    {
+      "source": "mystic.readings.exchange",
+      "vhost": "mystic",
+      "destination": "astrology.reading.queue",
+      "destination_type": "queue",
+      "routing_key": "astrology"
+    },
+    {
+      "source": "mystic.readings.exchange",
+      "vhost": "mystic",
+      "destination": "vision.analysis.queue",
+      "destination_type": "queue",
+      "routing_key": "vision"
+    }
+  ]
+}
