@@ -1,5 +1,7 @@
 package com.mysticai.auth.security;
 
+import com.mysticai.auth.entity.User;
+import com.mysticai.auth.repository.UserRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -23,6 +25,12 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
 
+    private final UserRepository userRepository;
+
+    public JwtTokenProvider(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -42,12 +50,34 @@ public class JwtTokenProvider {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
-        return Jwts.builder()
+        // Get user ID from database
+        Long userId = userRepository.findByUsername(username)
+                .map(User::getId)
+                .orElse(null);
+
+        return generateToken(userId, username, null, expiration);
+    }
+
+    public String generateToken(Long userId, String username, String email) {
+        return generateToken(userId, username, email, jwtExpiration);
+    }
+
+    private String generateToken(Long userId, String username, String email, long expiration) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expiration);
+
+        var builder = Jwts.builder()
                 .subject(username)
+                .claim("userId", userId)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
+                .signWith(getSigningKey());
+
+        if (email != null) {
+            builder.claim("email", email);
+        }
+
+        return builder.compact();
     }
 
     public String getUsernameFromToken(String token) {
@@ -57,6 +87,15 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+    }
+
+    public Long getUserIdFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.get("userId", Long.class);
     }
 
     public boolean validateToken(String token) {

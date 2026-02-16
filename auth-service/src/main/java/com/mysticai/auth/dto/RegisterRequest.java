@@ -4,6 +4,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
+
 public record RegisterRequest(
         @NotBlank(message = "Username is required")
         @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
@@ -18,6 +20,19 @@ public record RegisterRequest(
         String password,
 
         String firstName,
-        String lastName
+        String lastName,
+
+        LocalDate birthDate,
+        String birthTime,
+        String birthLocation,
+
+        String birthCountry,
+        String birthCity,
+        Boolean birthTimeUnknown,
+        String timezone,
+        String gender,
+        String maritalStatus,
+        String focusPoint,
+        String zodiacSign
 ) {
 }

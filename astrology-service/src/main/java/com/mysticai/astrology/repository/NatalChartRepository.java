@@ -7,12 +7,17 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository for NatalChart entity.
+ */
 @Repository
 public interface NatalChartRepository extends JpaRepository<NatalChart, Long> {
 
-    List<NatalChart> findByUserIdOrderByCreatedAtDesc(Long userId);
+    Optional<NatalChart> findByUserId(String userId);
 
-    Optional<NatalChart> findFirstByUserIdOrderByCreatedAtDesc(Long userId);
+    List<NatalChart> findAllByUserId(String userId);
 
-    boolean existsByUserId(Long userId);
+    Optional<NatalChart> findFirstByUserIdOrderByCalculatedAtDesc(String userId);
+
+    boolean existsByUserId(String userId);
 }

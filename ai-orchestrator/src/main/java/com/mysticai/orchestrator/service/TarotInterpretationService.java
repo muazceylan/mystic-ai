@@ -5,12 +5,14 @@ import com.mysticai.orchestrator.dto.TarotInterpretationRequest;
 import com.mysticai.orchestrator.dto.TarotInterpretationResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.anthropic.AnthropicChatModel;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,8 +23,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TarotInterpretationService {
 
-    private final AnthropicChatModel chatModel;
+    private final ChatClient chatClient;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final MockInterpretationService mockInterpretationService;
+
+    @Value("${spring.ai.openai.chat.options.model:llama-3.3-70b-versatile}")
+    private String modelName;
 
     private static final String SYSTEM_PROMPT = """
             Sen Tarotoo, kadim bilgeliğin ve gizemli sanatların ustası bir tarot yorumcususun.
@@ -62,7 +68,14 @@ public class TarotInterpretationService {
         ));
 
         log.debug("Sending prompt to AI model...");
-        String interpretation = chatModel.call(prompt).getResult().getOutput().getContent();
+        String interpretation;
+        try {
+            interpretation = chatClient.prompt(prompt).call().content();
+        } catch (Exception e) {
+            log.warn("AI API call failed for tarot reading {}, using mock fallback: {}",
+                    request.readingId(), e.getMessage());
+            interpretation = mockInterpretationService.generateTarotFallback();
+        }
         log.info("Interpretation generated for reading: {}", request.readingId());
 
         TarotInterpretationResponse response = new TarotInterpretationResponse(
@@ -70,7 +83,7 @@ public class TarotInterpretationService {
                 request.userId(),
                 interpretation,
                 LocalDateTime.now(),
-                "claude-3-5-sonnet"
+                modelName
         );
 
         cacheInterpretation(response);

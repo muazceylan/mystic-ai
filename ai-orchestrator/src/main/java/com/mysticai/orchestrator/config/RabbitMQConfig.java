@@ -11,12 +11,31 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
+    public static final String AI_EXCHANGE = "ai.exchange";
+    public static final String AI_REQUESTS_QUEUE = "ai.requests.queue";
+
+    // Routing keys
+    public static final String AI_REQUEST_ROUTING_KEY = "ai.request";
+    public static final String AI_RESPONSE_ROUTING_KEY = "ai.response";
+
+    // Legacy queue names (for backward compatibility)
     public static final String AI_INTERPRETATION_QUEUE = "ai.interpretation.queue";
-    public static final String AI_EXCHANGE = "mystic.ai.exchange";
     public static final String AI_ROUTING_KEY = "ai.interpret.tarot";
 
     public static final String NOTIFICATION_QUEUE = "notification.queue";
     public static final String NOTIFICATION_ROUTING_KEY = "ai.notify";
+
+    @Bean
+    public DirectExchange aiExchange() {
+        return new DirectExchange(AI_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Queue aiRequestsQueue() {
+        return QueueBuilder.durable(AI_REQUESTS_QUEUE)
+                .withArgument("x-message-ttl", 86400000) // 24 hours
+                .build();
+    }
 
     @Bean
     public Queue aiInterpretationQueue() {
@@ -26,15 +45,23 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public TopicExchange aiExchange() {
-        return new TopicExchange(AI_EXCHANGE);
+    public Binding aiRequestsBinding(Queue aiRequestsQueue, DirectExchange aiExchange) {
+        return BindingBuilder
+                .bind(aiRequestsQueue)
+                .to(aiExchange)
+                .with(AI_REQUEST_ROUTING_KEY);
     }
 
     @Bean
-    public Binding aiInterpretationBinding(Queue aiInterpretationQueue, TopicExchange aiExchange) {
+    public TopicExchange legacyAiExchange() {
+        return new TopicExchange("mystic.ai.exchange");
+    }
+
+    @Bean
+    public Binding aiInterpretationBinding(Queue aiInterpretationQueue, TopicExchange legacyAiExchange) {
         return BindingBuilder
                 .bind(aiInterpretationQueue)
-                .to(aiExchange)
+                .to(legacyAiExchange)
                 .with("ai.interpret.#");
     }
 

@@ -1,0 +1,72 @@
+name: mysticai_mobile
+description: Mystic AI - Flutter Mobile & Web Application
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.1
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.5
+  
+  # Networking
+  dio: ^5.4.0
+  retrofit: ^4.0.1
+  
+  # WebSocket
+  stomp_dart_client: ^3.0.1
+  web_socket_channel: ^3.0.3
+  
+  # Storage
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^10.0.0
+  
+  # UI
+  google_fonts: ^8.0.0
+  shimmer: ^3.0.0
+  flutter_animate: ^4.3.0
+  lottie: ^3.0.0
+  
+  # Utilities
+  intl: ^0.20.2
+  json_annotation: ^4.8.1
+  freezed_annotation: ^2.4.1
+  get_it: ^9.2.0
+  injectable: ^2.3.2
+  logger: ^2.0.2+1
+  
+  # Image
+  image_picker: ^1.0.7
+  cached_network_image: ^3.3.1
+  
+  # Platform
+  universal_platform: ^1.0.0+1
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  
+  # Code Generation
+  build_runner: ^2.4.8
+  retrofit_generator: ^9.1.0
+  json_serializable: ^6.7.1
+  freezed: ^2.4.7
+  injectable_generator: ^2.4.1
+  source_gen: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/animations/
+    - assets/fonts/

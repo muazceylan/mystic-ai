@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_USER: mystic
       POSTGRES_PASSWORD: mystic123
-      POSTGRES_MULTIPLE_DATABASES: mystic_auth,mystic_tarot,mystic_astrology,mystic_vision
+      POSTGRES_MULTIPLE_DATABASES: mystic_auth,mystic_tarot,mystic_astrology,mystic_numerology,mystic_dream,mystic_oracle,mystic_notification,mystic_vision
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/01-init-dbs.sh:ro
@@ -41,7 +41,6 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./docker/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
-      - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -154,6 +153,22 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+    networks:
+      - mystic-network
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  # ==========================================
+  # Zipkin - Distributed Tracing
+  # ==========================================
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: mystic-zipkin
+    environment:
+      STORAGE_TYPE: mem
+    ports:
+      - "9411:9411"
     networks:
       - mystic-network
     profiles:

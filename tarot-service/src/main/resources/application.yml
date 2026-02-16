@@ -46,6 +46,7 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: true
+    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
     instance-id: ${spring.application.name}:${random.uuid}
 
 management:

@@ -1,0 +1,95 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: notification-service
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/mystic_notification
+    username: ${DB_USER:mystic}
+    password: ${DB_PASSWORD:mystic123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:mystic}
+    password: ${RABBITMQ_PASSWORD:mystic123}
+    virtual-host: ${RABBITMQ_VHOST:mystic}
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 10
+        default-requeue-rejected: false
+
+  # WebSocket Configuration
+  websocket:
+    stomp:
+      relay:
+        enabled: false
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+# Management / Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    rabbitmq:
+      enabled: true
+    db:
+      enabled: true
+
+# Logging
+logging:
+  level:
+    com.mysticai.notification: INFO
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.amqp: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{traceId:-},%X{spanId:-}] %-5level %logger{36} - %msg%n"
+
+# Custom Properties
+notification:
+  websocket:
+    endpoint: /ws
+    allowed-origins: "*"
+    user-destination-prefix: /user
+    application-destination-prefix: /app
+    topic-prefix: /topic

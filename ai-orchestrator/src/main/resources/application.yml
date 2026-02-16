@@ -6,11 +6,12 @@ spring:
     name: ai-orchestrator
 
   ai:
-    anthropic:
-      api-key: ${ANTHROPIC_API_KEY:your-api-key-here}
+    openai:
+      base-url: https://api.groq.com/openai
+      api-key: ${GROQ_API_KEY}
       chat:
         options:
-          model: claude-sonnet-4-20250514
+          model: llama-3.3-70b-versatile
           max-tokens: 2048
           temperature: 0.8
 
@@ -41,6 +42,7 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: true
+    ip-address: ${EUREKA_INSTANCE_IP:127.0.0.1}
     instance-id: ${spring.application.name}:${random.uuid}
 
 management:

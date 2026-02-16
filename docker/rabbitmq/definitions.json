@@ -3,8 +3,7 @@
   "users": [
     {
       "name": "mystic",
-      "password_hash": "mystic123",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "password": "mystic123",
       "tags": "administrator"
     }
   ],

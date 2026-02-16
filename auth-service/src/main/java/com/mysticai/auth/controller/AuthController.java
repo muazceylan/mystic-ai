@@ -26,4 +26,25 @@ public class AuthController {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/check-email")
+    public ResponseEntity<CheckEmailResponse> checkEmail(@Valid @RequestBody CheckEmailRequest request) {
+        boolean available = authService.isEmailAvailable(request.email());
+        return ResponseEntity.ok(new CheckEmailResponse(available,
+                available ? "Email is available" : "Email already exists"));
+    }
+
+    @PostMapping("/social-login")
+    public ResponseEntity<LoginResponse> socialLogin(@Valid @RequestBody SocialLoginRequest request) {
+        LoginResponse response = authService.socialLogin(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UserDTO> updateProfile(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody UpdateProfileRequest request) {
+        UserDTO updated = authService.updateProfile(userId, request);
+        return ResponseEntity.ok(updated);
+    }
 }

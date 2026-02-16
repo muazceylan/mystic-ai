@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Mystic AI",
+    "slug": "mystic-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mysticai.app",
+      "usesAppleSignIn": true
+    },
+    "android": {
+      "package": "com.mysticai.app.test"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-apple-authentication"
+    ],
+    "scheme": "mystic-ai",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

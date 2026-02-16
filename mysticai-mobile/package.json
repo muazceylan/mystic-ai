@@ -1,0 +1,43 @@
+{
+  "name": "mystic-ai-mobile",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "build:web": "expo export:web"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.22.3",
+    "axios": "^1.6.8",
+    "expo": "~50.0.0",
+    "expo-apple-authentication": "^8.0.8",
+    "expo-auth-session": "~5.4.0",
+    "expo-constants": "~15.4.0",
+    "expo-crypto": "~12.8.1",
+    "expo-haptics": "~12.8.1",
+    "expo-linking": "~6.2.0",
+    "expo-router": "~3.4.0",
+    "expo-status-bar": "~1.11.0",
+    "nativewind": "^4.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.73.6",
+    "react-native-mmkv": "^2.12.2",
+    "react-native-reanimated": "~3.6.0",
+    "react-native-safe-area-context": "4.8.2",
+    "react-native-screens": "~3.29.0",
+    "react-native-vector-icons": "^10.0.0",
+    "react-native-web": "~0.19.0",
+    "tailwindcss": "^3.4.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~18.2.0",
+    "typescript": "^5.1.0"
+  },
+  "private": true
+}

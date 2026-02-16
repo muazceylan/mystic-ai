@@ -30,6 +30,11 @@ build/
 *.swo
 *~
 
+# AI / Tool configs
+.ai/
+.claude/
+.kilocode/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -46,6 +51,28 @@ application-local.properties
 
 # Docker
 docker-compose.override.yml
+
+# Uploads
+uploads/
+
+# Node.js / React Native
+node_modules/
+.expo/
+mysticai-mobile/dist/
+*.tsbuildinfo
+
+# iOS
+mysticai-mobile/ios/Pods/
+
+# Android
+mysticai-mobile/android/app/debug.keystore
+mysticai-mobile/android/.gradle/
+mysticai-mobile/android/app/build/
+
+# Flutter (legacy)
+mysticai-mobile/.dart_tool/
+mysticai-mobile/build/
+*.g.dart
 
 # Misc
 *.class

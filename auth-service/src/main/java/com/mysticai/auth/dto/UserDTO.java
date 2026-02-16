@@ -1,5 +1,6 @@
 package com.mysticai.auth.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -9,6 +10,18 @@ public record UserDTO(
         String email,
         String firstName,
         String lastName,
+        String name,
+        LocalDate birthDate,
+        String birthTime,
+        String birthLocation,
+        String birthCountry,
+        String birthCity,
+        Boolean birthTimeUnknown,
+        String timezone,
+        String gender,
+        String maritalStatus,
+        String focusPoint,
+        String zodiacSign,
         Set<String> roles,
         boolean enabled,
         LocalDateTime createdAt,
@@ -28,58 +41,51 @@ public record UserDTO(
         private String email;
         private String firstName;
         private String lastName;
+        private String name;
+        private LocalDate birthDate;
+        private String birthTime;
+        private String birthLocation;
+        private String birthCountry;
+        private String birthCity;
+        private Boolean birthTimeUnknown;
+        private String timezone;
+        private String gender;
+        private String maritalStatus;
+        private String focusPoint;
+        private String zodiacSign;
         private Set<String> roles;
         private boolean enabled;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
-        public UserDTOBuilder id(Long id) {
-            this.id = id;
-            return this;
-        }
-
-        public UserDTOBuilder username(String username) {
-            this.username = username;
-            return this;
-        }
-
-        public UserDTOBuilder email(String email) {
-            this.email = email;
-            return this;
-        }
-
-        public UserDTOBuilder firstName(String firstName) {
-            this.firstName = firstName;
-            return this;
-        }
-
-        public UserDTOBuilder lastName(String lastName) {
-            this.lastName = lastName;
-            return this;
-        }
-
-        public UserDTOBuilder roles(Set<String> roles) {
-            this.roles = roles;
-            return this;
-        }
-
-        public UserDTOBuilder enabled(boolean enabled) {
-            this.enabled = enabled;
-            return this;
-        }
-
-        public UserDTOBuilder createdAt(LocalDateTime createdAt) {
-            this.createdAt = createdAt;
-            return this;
-        }
-
-        public UserDTOBuilder updatedAt(LocalDateTime updatedAt) {
-            this.updatedAt = updatedAt;
-            return this;
-        }
+        public UserDTOBuilder id(Long id) { this.id = id; return this; }
+        public UserDTOBuilder username(String username) { this.username = username; return this; }
+        public UserDTOBuilder email(String email) { this.email = email; return this; }
+        public UserDTOBuilder firstName(String firstName) { this.firstName = firstName; return this; }
+        public UserDTOBuilder lastName(String lastName) { this.lastName = lastName; return this; }
+        public UserDTOBuilder name(String name) { this.name = name; return this; }
+        public UserDTOBuilder birthDate(LocalDate birthDate) { this.birthDate = birthDate; return this; }
+        public UserDTOBuilder birthTime(String birthTime) { this.birthTime = birthTime; return this; }
+        public UserDTOBuilder birthLocation(String birthLocation) { this.birthLocation = birthLocation; return this; }
+        public UserDTOBuilder birthCountry(String birthCountry) { this.birthCountry = birthCountry; return this; }
+        public UserDTOBuilder birthCity(String birthCity) { this.birthCity = birthCity; return this; }
+        public UserDTOBuilder birthTimeUnknown(Boolean birthTimeUnknown) { this.birthTimeUnknown = birthTimeUnknown; return this; }
+        public UserDTOBuilder timezone(String timezone) { this.timezone = timezone; return this; }
+        public UserDTOBuilder gender(String gender) { this.gender = gender; return this; }
+        public UserDTOBuilder maritalStatus(String maritalStatus) { this.maritalStatus = maritalStatus; return this; }
+        public UserDTOBuilder focusPoint(String focusPoint) { this.focusPoint = focusPoint; return this; }
+        public UserDTOBuilder zodiacSign(String zodiacSign) { this.zodiacSign = zodiacSign; return this; }
+        public UserDTOBuilder roles(Set<String> roles) { this.roles = roles; return this; }
+        public UserDTOBuilder enabled(boolean enabled) { this.enabled = enabled; return this; }
+        public UserDTOBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        public UserDTOBuilder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public UserDTO build() {
-            return new UserDTO(id, username, email, firstName, lastName, roles, enabled, createdAt, updatedAt);
+            return new UserDTO(id, username, email, firstName, lastName, name,
+                    birthDate, birthTime, birthLocation,
+                    birthCountry, birthCity, birthTimeUnknown, timezone,
+                    gender, maritalStatus, focusPoint, zodiacSign,
+                    roles, enabled, createdAt, updatedAt);
         }
     }
 }

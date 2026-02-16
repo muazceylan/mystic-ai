@@ -1,0 +1,353 @@
+import { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios/dist/browser/axios.cjs';
+import OnboardingBackground from '../../components/OnboardingBackground';
+import { useOnboardingStore } from '../../store/useOnboardingStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { COUNTRIES } from '../../constants/index';
+import { login as loginApi, register, updateProfile } from '../../services/auth';
+
+const COLORS = {
+  background: '#F9F7FB',
+  text: '#1E1E1E',
+  subtext: '#7A7A7A',
+  border: '#E6E1EA',
+  primary: '#9D4EDD',
+  primarySoft: '#F1E8FD',
+  disabled: '#E5E5E5',
+  disabledText: '#B5B5B5',
+};
+
+type Choice = 'analyze' | 'skip' | null;
+
+export default function NatalChartScreen() {
+  const onboarding = useOnboardingStore();
+  const storeLogin = useAuthStore((state) => state.login);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const setUser = useAuthStore((state) => state.setUser);
+  const [choice, setChoice] = useState<Choice>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const birthLocation = useMemo(() => {
+    const countryName =
+      COUNTRIES.find((country) => country.code === onboarding.birthCountry)?.name ||
+      onboarding.birthCountry;
+    const cityName = onboarding.birthCity || onboarding.birthCityManual;
+    return [countryName, cityName].filter(Boolean).join(', ');
+  }, [onboarding.birthCountry, onboarding.birthCity, onboarding.birthCityManual]);
+
+  const buildRegisterPayload = () => {
+    const birthDate = onboarding.birthDate
+      ? [
+          onboarding.birthDate.getFullYear(),
+          String(onboarding.birthDate.getMonth() + 1).padStart(2, '0'),
+          String(onboarding.birthDate.getDate()).padStart(2, '0'),
+        ].join('-')
+      : null;
+
+    const email = onboarding.email.trim();
+
+    return {
+      username: email.toLowerCase(),
+      email,
+      password: onboarding.password,
+      firstName: onboarding.firstName,
+      lastName: onboarding.lastName,
+      birthDate,
+      birthTime: onboarding.birthTimeUnknown ? null : onboarding.birthTime,
+      birthLocation,
+      birthCountry: onboarding.birthCountry,
+      birthCity: onboarding.birthCity || onboarding.birthCityManual,
+      birthTimeUnknown: onboarding.birthTimeUnknown,
+      timezone: onboarding.timezone,
+      gender: onboarding.gender,
+      maritalStatus: onboarding.maritalStatus,
+      focusPoint: onboarding.focusPoint,
+      zodiacSign: onboarding.zodiacSign,
+    };
+  };
+
+  const handleRegisterAndLogin = async () => {
+    const payload = buildRegisterPayload();
+
+    await register(payload);
+
+    const loginResponse = await loginApi({
+      username: payload.username,
+      password: payload.password,
+    });
+
+    const { accessToken, refreshToken, user } = loginResponse.data;
+    storeLogin(accessToken, refreshToken, user);
+  };
+
+  const handleProfileUpdate = async () => {
+    const birthDate = onboarding.birthDate
+      ? [
+          onboarding.birthDate.getFullYear(),
+          String(onboarding.birthDate.getMonth() + 1).padStart(2, '0'),
+          String(onboarding.birthDate.getDate()).padStart(2, '0'),
+        ].join('-')
+      : undefined;
+
+    const profileData = {
+      firstName: onboarding.firstName || undefined,
+      lastName: onboarding.lastName || undefined,
+      birthDate: birthDate || undefined,
+      birthTime: onboarding.birthTimeUnknown ? null : onboarding.birthTime || undefined,
+      birthLocation,
+      birthCountry: onboarding.birthCountry || undefined,
+      birthCity: onboarding.birthCity || onboarding.birthCityManual || undefined,
+      birthTimeUnknown: onboarding.birthTimeUnknown,
+      timezone: onboarding.timezone || undefined,
+      gender: onboarding.gender || undefined,
+      maritalStatus: onboarding.maritalStatus || undefined,
+      focusPoint: onboarding.focusPoint || undefined,
+      zodiacSign: onboarding.zodiacSign || undefined,
+    };
+
+    const res = await updateProfile(profileData);
+    setUser(res.data);
+  };
+
+  const handleContinue = async () => {
+    if (!choice || isGenerating) return;
+
+    setErrorMessage(null);
+    setIsGenerating(true);
+
+    try {
+      if (isAuthenticated) {
+        // Social login user — already authenticated, just update profile
+        await handleProfileUpdate();
+      } else {
+        // Email registration user — register then login
+        await handleRegisterAndLogin();
+      }
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const message =
+          typeof error.response?.data?.message === 'string'
+            ? error.response?.data?.message.toLowerCase()
+            : '';
+
+        if (status === 409 || message.includes('already exists')) {
+          router.replace({
+            pathname: '/(auth)/email-register',
+            params: {
+              error: 'Bu e-posta zaten kayıtlı. Lütfen giriş yapın.',
+            },
+          });
+          return;
+        }
+      }
+
+      setErrorMessage('Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <OnboardingBackground />
+
+      <View style={styles.content}>
+        <TouchableOpacity
+          style={[styles.optionCard, choice === 'analyze' && styles.optionSelected]}
+          onPress={() => setChoice('analyze')}
+        >
+          <Ionicons
+            name="chatbubble-ellipses"
+            size={20}
+            color={choice === 'analyze' ? COLORS.primary : COLORS.subtext}
+          />
+          <View style={styles.optionTextContainer}>
+            <Text style={[styles.optionTitle, choice === 'analyze' && styles.optionTitleSelected]}>
+              Doğum Haritamı Analiz Et
+            </Text>
+            <Text style={styles.optionSubtitle}>
+              Henüz yeniyim, gezegenlerimi ve evlerimi öğrenmek istiyorum
+            </Text>
+          </View>
+          {choice === 'analyze' && (
+            <View style={styles.checkBadge}>
+              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.optionCard, choice === 'skip' && styles.optionSelected]}
+          onPress={() => setChoice('skip')}
+        >
+          <Ionicons name="home" size={20} color={choice === 'skip' ? COLORS.primary : COLORS.subtext} />
+          <View style={styles.optionTextContainer}>
+            <Text style={[styles.optionTitle, choice === 'skip' && styles.optionTitleSelected]}>
+              Uygulamaya Geç
+            </Text>
+            <Text style={styles.optionSubtitle}>
+              Astroloji tecrübem var, uygulamaya geçmek istiyorum
+            </Text>
+          </View>
+          {choice === 'skip' && (
+            <View style={styles.checkBadge}>
+              <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+      </View>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.outlineButton} onPress={() => router.back()}>
+          <Text style={styles.outlineText}>Geri</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.primaryButton, (!choice || isGenerating) && styles.primaryDisabled]}
+          disabled={!choice || isGenerating}
+          onPress={handleContinue}
+        >
+          {isGenerating ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={[styles.primaryText, (!choice || isGenerating) && styles.primaryTextDisabled]}>
+              Devam Et
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {isGenerating && (
+        <View style={styles.syncOverlay}>
+          <ActivityIndicator color={COLORS.primary} />
+          <Text style={styles.syncText}>Haritanız yıldızlarla senkronize ediliyor...</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 24,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 16,
+  },
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  optionSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primarySoft,
+  },
+  optionTextContainer: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  optionTitleSelected: {
+    color: COLORS.primary,
+  },
+  optionSubtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    color: COLORS.subtext,
+  },
+  checkBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    color: '#E54B4B',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingBottom: 32,
+  },
+  outlineButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  outlineText: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  primaryButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  primaryDisabled: {
+    backgroundColor: COLORS.disabled,
+  },
+  primaryText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  primaryTextDisabled: {
+    color: COLORS.disabledText,
+  },
+  syncOverlay: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 100,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  syncText: {
+    fontSize: 12,
+    color: COLORS.subtext,
+  },
+});

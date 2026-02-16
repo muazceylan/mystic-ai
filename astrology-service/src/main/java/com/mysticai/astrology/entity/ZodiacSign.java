@@ -16,7 +16,26 @@ public enum ZodiacSign {
     CAPRICORN("Oğlak", "♑", "Toprak", "22 Aralık - 19 Ocak"),
     AQUARIUS("Kova", "♒", "Hava", "20 Ocak - 18 Şubat"),
     PISCES("Balık", "♓", "Su", "19 Şubat - 20 Mart"),
-    UNKNOWN("Bilinmiyor", "?", "Bilinmiyor", "");
+    UNKNOWN("Bilinmiyor","?","Bilinmiyor","");
+
+    public static ZodiacSign fromDate(int month, int day) {
+        return switch (month) {
+            case 1 -> (day <= 19) ? CAPRICORN : AQUARIUS;
+            case 2 -> (day <= 18) ? AQUARIUS : PISCES;
+            case 3 -> (day <= 20) ? PISCES : ARIES;
+            case 4 -> (day <= 19) ? ARIES : TAURUS;
+            case 5 -> (day <= 20) ? TAURUS : GEMINI;
+            case 6 -> (day <= 20) ? GEMINI : CANCER;
+            case 7 -> (day <= 22) ? CANCER : LEO;
+            case 8 -> (day <= 22) ? LEO : VIRGO;
+            case 9 -> (day <= 22) ? VIRGO : LIBRA;
+            case 10 -> (day <= 22) ? LIBRA : SCORPIO;
+            case 11 -> (day <= 21) ? SCORPIO : SAGITTARIUS;
+            case 12 -> (day <= 21) ? SAGITTARIUS : CAPRICORN;
+            default -> UNKNOWN;
+        };
+    }
+
 
     private final String turkishName;
     private final String symbol;
