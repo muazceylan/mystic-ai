@@ -1,0 +1,209 @@
+import { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Switch,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '../store/useAuthStore';
+import OnboardingBackground from '../components/OnboardingBackground';
+import { dreamService } from '../services/dream.service';
+
+const COLORS = {
+  background: '#F9F7FB',
+  text: '#1E1E1E',
+  subtext: '#7A7A7A',
+  border: '#E6E1EA',
+  primary: '#9D4EDD',
+  primarySoft: '#F1E8FD',
+};
+
+const STORAGE_KEY = 'mysticai_notification_prefs';
+
+interface NotifPrefs {
+  dailySkyBrief: boolean;
+  dreamReminder: boolean;
+  cosmicOpportunity: boolean;
+}
+
+const DEFAULT_PREFS: NotifPrefs = {
+  dailySkyBrief: true,
+  dreamReminder: true,
+  cosmicOpportunity: false,
+};
+
+const NOTIF_ITEMS = [
+  {
+    id: 'dailySkyBrief' as keyof NotifPrefs,
+    title: 'Günlük Gökyüzü Özeti',
+    subtitle: 'Her sabah 08:00\'de günlük kozmik özet',
+    icon: 'partly-sunny-outline',
+  },
+  {
+    id: 'dreamReminder' as keyof NotifPrefs,
+    title: 'Rüya Hatırlatıcısı',
+    subtitle: 'Her gece 23:00\'de rüya kaydetmeyi hatırlat',
+    icon: 'moon-outline',
+  },
+  {
+    id: 'cosmicOpportunity' as keyof NotifPrefs,
+    title: 'Kozmik Fırsat Uyarıları',
+    subtitle: 'Önemli gezegen geçişleri ve fırsatlar',
+    icon: 'sparkles-outline',
+  },
+];
+
+export default function NotificationsSettingsScreen() {
+  const user = useAuthStore((s) => s.user);
+  const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
+      if (raw) {
+        try { setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(raw) }); } catch {}
+      }
+      setLoaded(true);
+    });
+  }, []);
+
+  const updatePref = async (key: keyof NotifPrefs, value: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+
+    // Register/update push token when enabling any notification
+    if (value && user?.id) {
+      try {
+        const { default: Notifications } = await import('expo-notifications');
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          const tokenData = await Notifications.getExpoPushTokenAsync();
+          await dreamService.registerPushToken(user.id, tokenData.data, 'ios');
+        }
+      } catch {
+        // Silently fail — permissions not granted or push unavailable
+      }
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <OnboardingBackground />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Bildirimler</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.hint}>
+          Almak istediğiniz bildirimleri seçin. Ayarlar bu cihaza özeldir.
+        </Text>
+
+        <View style={styles.card}>
+          {NOTIF_ITEMS.map((item, index) => (
+            <View
+              key={item.id}
+              style={[styles.row, index > 0 && styles.rowBorder]}
+            >
+              <View style={styles.rowLeft}>
+                <View style={styles.iconWrap}>
+                  <Ionicons name={item.icon as any} size={18} color={COLORS.primary} />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle}>{item.title}</Text>
+                  <Text style={styles.rowSub}>{item.subtitle}</Text>
+                </View>
+              </View>
+              {loaded && (
+                <Switch
+                  value={prefs[item.id]}
+                  onValueChange={(v) => updatePref(item.id, v)}
+                  trackColor={{ false: '#DDD', true: '#C8A8F5' }}
+                  thumbColor={prefs[item.id] ? COLORS.primary : '#FFFFFF'}
+                  ios_backgroundColor="#DDD"
+                />
+              )}
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.footnote}>
+          Sistem bildirimleri cihaz ayarlarından da yönetilebilir.
+        </Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
+  hint: {
+    fontSize: 13,
+    color: COLORS.subtext,
+    lineHeight: 19,
+    marginBottom: 20,
+    backgroundColor: COLORS.primarySoft,
+    padding: 12,
+    borderRadius: 10,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  rowBorder: { borderTopWidth: 1, borderTopColor: COLORS.border },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 12 },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowText: { flex: 1 },
+  rowTitle: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  rowSub: { fontSize: 12, color: COLORS.subtext, marginTop: 2 },
+  footnote: { fontSize: 12, color: COLORS.subtext, textAlign: 'center', marginTop: 16, lineHeight: 18 },
+});
