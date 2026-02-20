@@ -17,7 +17,7 @@ public class NatalChart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(name = "user_id", columnDefinition = "VARCHAR(255)")
     private String userId;
     private String name;
@@ -29,6 +29,9 @@ public class NatalChart {
     private String sunSign;
     private String moonSign;
     private String risingSign;
+    private Double ascendantDegree;
+    private Double mcDegree;
+    private Double utcOffset;
     @Column(name = "planet_positions_json", columnDefinition = "TEXT")
     private String planetPositionsJson;
     @Column(name = "house_placements_json", columnDefinition = "TEXT")

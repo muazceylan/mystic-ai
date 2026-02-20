@@ -45,7 +45,6 @@ Astroloji, tarot, numeroloji, ruya yorumu ve daha fazlasini yapay zeka ile birle
 |--------|------|----------|
 | **API Gateway** | 8080 | Tek giris noktasi, JWT filtreleme, dinamik yonlendirme |
 | **Auth Service** | 8081 | Kullanici kayit, giris, sosyal login, profil yonetimi |
-| **Tarot Service** | 8082 | Kart secim algoritmalari ve yorum kutuphanesi |
 | **Astrology Service** | 8083 | Dogum haritasi hesaplama (Gunes, Ay, Yukselen) |
 | **AI Orchestrator** | 8084 | LLM gateway, prompt zenginlestirme, model secimi |
 | **Numerology Service** | 8085 | Isim ve dogum tarihine gore kader sayisi analizi |
@@ -104,7 +103,6 @@ cd ai-orchestrator && mvn spring-boot:run
 
 # 3. Business servisler
 cd astrology-service && mvn spring-boot:run
-cd tarot-service && mvn spring-boot:run
 cd dream-service && mvn spring-boot:run
 cd numerology-service && mvn spring-boot:run
 cd vision-service && mvn spring-boot:run
@@ -155,7 +153,7 @@ Temel degiskenler:
 
 Her servisin kendi PostgreSQL veritabani vardir:
 
-`mystic_auth`, `mystic_tarot`, `mystic_astrology`, `mystic_dream`, `mystic_oracle`, `mystic_notification`, `mystic_vision`, `mystic_numerology`
+`mystic_auth`, `mystic_astrology`, `mystic_dream`, `mystic_oracle`, `mystic_notification`, `mystic_vision`, `mystic_numerology`
 
 ## Monitoring (Opsiyonel)
 
@@ -202,7 +200,6 @@ mystic-ai/
 ├── auth-service/           # Kimlik dogrulama servisi
 ├── ai-orchestrator/        # AI model yonetimi
 ├── astrology-service/      # Astroloji servisi
-├── tarot-service/          # Tarot servisi
 ├── dream-service/          # Ruya yorumu servisi
 ├── numerology-service/     # Numeroloji servisi
 ├── oracle-service/         # Sentez servisi

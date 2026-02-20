@@ -1,5 +1,6 @@
 package com.mysticai.notification.listener;
 
+import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.notification.entity.Notification;
 import com.mysticai.notification.service.WebSocketNotificationService;
 import com.mysticai.common.event.AiAnalysisResponseEvent;
@@ -51,14 +52,15 @@ public class AiResponseListener {
      * Map AiAnalysisEvent.AnalysisType to Notification.AnalysisType.
      */
     private Notification.AnalysisType mapAnalysisType(
-            com.mysticai.common.event.AiAnalysisEvent.AnalysisType type) {
+            AiAnalysisEvent.AnalysisType type) {
         return switch (type) {
-            case INTERPRETATION -> Notification.AnalysisType.DREAM;
+            case INTERPRETATION,DREAM_SYNTHESIS,MONTHLY_DREAM_STORY,SYMBOL_MEANING,COLLECTIVE_PULSE_REASON -> Notification.AnalysisType.DREAM;
             case PREDICTION -> Notification.AnalysisType.TAROT;
             case GUIDANCE -> Notification.AnalysisType.ASTROLOGY;
             case SUMMARY -> Notification.AnalysisType.NUMEROLOGY;
             case NATAL_CHART -> Notification.AnalysisType.NATAL_CHART;
-            case SWOT, PERIODIC, VISION -> Notification.AnalysisType.ORACLE;
+            case SWOT, PERIODIC, VISION, LUCKY_DATES, WEEKLY_SWOT -> Notification.AnalysisType.ORACLE;
+            case RELATIONSHIP_ANALYSIS -> Notification.AnalysisType.COMPATIBILITY;
         };
     }
 
@@ -73,6 +75,7 @@ public class AiResponseListener {
             case NUMEROLOGY -> "Numeroloji Hesaplamaniz Hazir!";
             case NATAL_CHART -> "Dogum Haritaniz Olusturuldu!";
             case ORACLE -> "Gunun Sirri Hazir!";
+            case COMPATIBILITY -> "Uyum Analiziniz Tamamlandi!";
         };
     }
 
@@ -87,6 +90,7 @@ public class AiResponseListener {
             case NUMEROLOGY -> "Numeroloji hesaplamaniz hazir. Sayilarin gizemini kesfedin!";
             case NATAL_CHART -> "Dogum haritaniz olusturuldu. Kaderinizi ogrenmek icin tiklayin!";
             case ORACLE -> "Gunun sirri hazir. Bugun sizin icin ne getiriyor?";
+            case COMPATIBILITY -> "Uyum analiziniz hazir. Kozmik baglantinizi kesfedin!";
         };
     }
 }

@@ -53,6 +53,7 @@ export interface UpdateProfilePayload {
   maritalStatus?: string;
   focusPoint?: string;
   zodiacSign?: string;
+  preferredLanguage?: string;
 }
 
 export const register = (payload: RegisterPayload) =>
@@ -63,6 +64,9 @@ export const login = (payload: { username: string; password: string }) =>
 
 export const checkEmail = (email: string) =>
   api.post<CheckEmailResponse>(`${AUTH_BASE}/check-email`, { email });
+
+export const checkEmailGet = (email: string) =>
+  api.get<CheckEmailResponse>(`${AUTH_BASE}/check-email`, { params: { email } });
 
 export const socialLogin = (provider: string, idToken: string) =>
   api.post<SocialLoginResponse>(`${AUTH_BASE}/social-login`, { provider, idToken });

@@ -36,7 +36,7 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
       toValue: 1,
       duration: 500,
       delay: index * 200,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
 
     // Pulse loop

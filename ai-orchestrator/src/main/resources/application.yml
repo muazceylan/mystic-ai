@@ -26,6 +26,7 @@ spring:
         prefetch: 1
         concurrency: 2
         max-concurrency: 5
+        missing-queues-fatal: false
 
   data:
     redis:
@@ -33,6 +34,21 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:mystic123}
       timeout: 5000ms
+
+# ── AI Provider Fallback Chain ───────────────────────────────────────────────
+# Chain for complex tasks (natal chart, dreams, monthly story):
+#   Groq llama-3.3-70b → Gemini 1.5 Flash → Groq mixtral-8x7b → Groq llama-3.1-8b
+# Chain for simple tasks (SWOT, symbol meaning, sky pulse):
+#   Groq llama-3.1-8b  → Gemini 1.5 Flash → Groq mixtral-8x7b
+ai:
+  groq:
+    api-key: ${GROQ_API_KEY}
+    base-url: https://api.groq.com/openai/v1
+  gemini:
+    # Set GEMINI_API_KEY env var to enable Google Gemini fallback (free tier, high RPM)
+    api-key: ${GEMINI_API_KEY:}
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    model: gemini-1.5-flash
 
 eureka:
   client:

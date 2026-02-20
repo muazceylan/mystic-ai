@@ -29,7 +29,6 @@ public class AggregateOpenApiConfig {
         
         // Manually add service API docs
         urls.add(createSwaggerUrl("auth-service", "Auth Service"));
-        urls.add(createSwaggerUrl("tarot-service", "Tarot Service"));
         urls.add(createSwaggerUrl("astrology-service", "Astrology Service"));
         urls.add(createSwaggerUrl("numerology-service", "Numerology Service"));
         urls.add(createSwaggerUrl("dream-service", "Dream Service"));

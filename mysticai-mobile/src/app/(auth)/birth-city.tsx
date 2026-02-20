@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { CITIES, COUNTRIES } from '../../constants/index';
+import { CITIES, COUNTRIES, DISTRICTS } from '../../constants/index';
 
 const COLORS = {
   background: '#F9F7FB',
@@ -16,40 +17,72 @@ const COLORS = {
   disabledText: '#B5B5B5',
 };
 
+type ScreenView = 'city-list' | 'district-list' | 'summary';
+
 export default function BirthCityScreen() {
   const store = useOnboardingStore();
-  const [search, setSearch] = useState('');
-  const [showList, setShowList] = useState(!store.birthCity && !store.birthCityManual);
+
+  const hasCity = Boolean(store.birthCity || store.birthCityManual);
+  const [view, setView] = useState<ScreenView>(hasCity ? 'summary' : 'city-list');
+  const [citySearch, setCitySearch] = useState('');
+  const [districtSearch, setDistrictSearch] = useState('');
+  const [pendingCity, setPendingCity] = useState<{ name: string; timezone: string } | null>(null);
 
   const cities = CITIES[store.birthCountry] || CITIES.default;
-  const countryName = useMemo(() => {
-    return COUNTRIES.find((c) => c.code === store.birthCountry)?.name || 'Ülke';
-  }, [store.birthCountry]);
-
-  const filteredCities = cities.filter((city) =>
-    city.name.toLowerCase().includes(search.toLowerCase())
+  const countryName = useMemo(
+    () => COUNTRIES.find((c) => c.code === store.birthCountry)?.name || 'Ülke',
+    [store.birthCountry]
   );
 
-  const handleSelect = (city: typeof cities[0]) => {
+  const filteredCities = cities.filter((c) =>
+    c.name.toLowerCase().includes(citySearch.toLowerCase())
+  );
+
+  const districtList = pendingCity ? (DISTRICTS[pendingCity.name] ?? []) : [];
+  const filteredDistricts = districtList.filter((d) =>
+    d.toLowerCase().includes(districtSearch.toLowerCase())
+  );
+
+  // City selected → save it, then open district list if available
+  const handleCitySelect = (city: typeof cities[0]) => {
     store.setBirthCity(city.name);
     store.setTimezone(city.timezone);
-    setShowList(false);
+    store.setBirthDistrict(''); // reset district when city changes
+    const districts = DISTRICTS[city.name];
+    if (districts && districts.length > 0) {
+      setPendingCity(city);
+      setDistrictSearch('');
+      setView('district-list');
+    } else {
+      setPendingCity(null);
+      setView('summary');
+    }
   };
 
-  const handleCloseList = () => {
-    if (store.birthCity || store.birthCityManual) {
-      setShowList(false);
-      return;
-    }
+  // District selected
+  const handleDistrictSelect = (district: string) => {
+    store.setBirthDistrict(district);
+    setView('summary');
+  };
+
+  // Skip district
+  const handleSkipDistrict = () => {
+    store.setBirthDistrict('');
+    setView('summary');
+  };
+
+  const handleCloseCityList = () => {
+    if (hasCity) { setView('summary'); return; }
     router.back();
   };
 
-  if (showList) {
+  // ─── City list view ──────────────────────────────────────────────────────────
+  if (view === 'city-list') {
     return (
       <View style={listStyles.container}>
         <View style={listStyles.header}>
-          <Text style={listStyles.headerTitle}>Lokasyon seç</Text>
-          <TouchableOpacity onPress={handleCloseList}>
+          <Text style={listStyles.headerTitle}>Şehir Seç</Text>
+          <TouchableOpacity onPress={handleCloseCityList}>
             <Ionicons name="close" size={22} color={COLORS.subtext} />
           </TouchableOpacity>
         </View>
@@ -60,13 +93,14 @@ export default function BirthCityScreen() {
           <Text style={listStyles.separator}>|</Text>
           <TextInput
             style={listStyles.searchInput}
-            placeholder="Şehir Seç"
+            placeholder="Şehir ara..."
             placeholderTextColor={COLORS.disabledText}
-            value={search}
-            onChangeText={setSearch}
+            value={citySearch}
+            onChangeText={setCitySearch}
+            autoFocus
           />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
+          {citySearch.length > 0 && (
+            <TouchableOpacity onPress={() => setCitySearch('')}>
               <Ionicons name="close" size={18} color={COLORS.disabledText} />
             </TouchableOpacity>
           )}
@@ -77,8 +111,9 @@ export default function BirthCityScreen() {
           keyExtractor={(item) => item.name}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity style={listStyles.listItem} onPress={() => handleSelect(item)}>
+            <TouchableOpacity style={listStyles.listItem} onPress={() => handleCitySelect(item)}>
               <Text style={listStyles.listItemText}>{item.name}</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.disabledText} />
             </TouchableOpacity>
           )}
           ListEmptyComponent={<Text style={listStyles.emptyText}>Şehir bulunamadı</Text>}
@@ -87,8 +122,58 @@ export default function BirthCityScreen() {
     );
   }
 
-  const locationLabel = store.birthCity || store.birthCityManual
-    ? `${countryName}, ${store.birthCity || store.birthCityManual}`
+  // ─── District list view ──────────────────────────────────────────────────────
+  if (view === 'district-list') {
+    return (
+      <View style={listStyles.container}>
+        <View style={listStyles.header}>
+          <TouchableOpacity onPress={() => setView('city-list')} style={{ padding: 2 }}>
+            <Ionicons name="arrow-back" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+          <Text style={[listStyles.headerTitle, { flex: 1, marginLeft: 8 }]}>
+            {pendingCity?.name} — İlçe Seç
+          </Text>
+          <TouchableOpacity onPress={handleSkipDistrict}>
+            <Text style={listStyles.skipText}>Atla</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={listStyles.searchContainer}>
+          <Ionicons name="search" size={18} color={COLORS.disabledText} />
+          <TextInput
+            style={listStyles.searchInput}
+            placeholder="İlçe ara..."
+            placeholderTextColor={COLORS.disabledText}
+            value={districtSearch}
+            onChangeText={setDistrictSearch}
+            autoFocus
+          />
+          {districtSearch.length > 0 && (
+            <TouchableOpacity onPress={() => setDistrictSearch('')}>
+              <Ionicons name="close" size={18} color={COLORS.disabledText} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <FlatList
+          data={filteredDistricts}
+          keyExtractor={(item) => item}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={listStyles.listItem} onPress={() => handleDistrictSelect(item)}>
+              <Text style={listStyles.listItemText}>{item}</Text>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={<Text style={listStyles.emptyText}>İlçe bulunamadı</Text>}
+        />
+      </View>
+    );
+  }
+
+  // ─── Summary view ────────────────────────────────────────────────────────────
+  const cityLabel = store.birthCity || store.birthCityManual || '';
+  const locationLabel = cityLabel
+    ? `${countryName}, ${cityLabel}${store.birthDistrict ? `, ${store.birthDistrict}` : ''}`
     : 'Ülke, Şehir';
   const canContinue = Boolean(store.birthCity || store.birthCityManual);
 
@@ -102,9 +187,26 @@ export default function BirthCityScreen() {
           Doğduğunuz ülke, il ve ilçeyi seçebilirsiniz.
         </Text>
 
-        <TouchableOpacity style={styles.input} onPress={() => setShowList(true)}>
+        <TouchableOpacity style={styles.input} onPress={() => { setCitySearch(''); setView('city-list'); }}>
           <Text style={[styles.inputText, !canContinue && styles.placeholder]}>{locationLabel}</Text>
         </TouchableOpacity>
+
+        {canContinue && !store.birthDistrict && (DISTRICTS[store.birthCity] ?? []).length > 0 && (
+          <TouchableOpacity
+            style={styles.districtHint}
+            onPress={() => {
+              const city = cities.find(c => c.name === store.birthCity);
+              if (city) {
+                setPendingCity(city);
+                setDistrictSearch('');
+                setView('district-list');
+              }
+            }}
+          >
+            <Ionicons name="location-outline" size={14} color={COLORS.primary} />
+            <Text style={styles.districtHintText}>İlçe seçmek ister misiniz? (isteğe bağlı)</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -143,6 +245,12 @@ const listStyles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
+  skipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+    paddingHorizontal: 4,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,6 +282,9 @@ const listStyles = StyleSheet.create({
     color: COLORS.text,
   },
   listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#EFEFEF',
@@ -228,6 +339,18 @@ const styles = StyleSheet.create({
   placeholder: {
     color: COLORS.disabledText,
   },
+  districtHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 6,
+  },
+  districtHintText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
   footer: {
     flexDirection: 'row',
     gap: 12,
@@ -237,7 +360,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -249,7 +372,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: COLORS.primary,

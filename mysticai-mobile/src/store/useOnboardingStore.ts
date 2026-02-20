@@ -7,7 +7,7 @@ export interface OnboardingData {
   email: string;
   password: string;
   confirmPassword: string;
-  
+
   // Birth info
   birthDate: Date | null;
   birthTime: string; // HH:mm format
@@ -15,15 +15,16 @@ export interface OnboardingData {
   birthCountry: string;
   birthCity: string;
   birthCityManual: string;
+  birthDistrict: string;
   timezone: string;
-  
+
   // Personal info
   gender: string;
   maritalStatus: string;
-  
+
   // Intentions
-  focusPoint: string;
-  
+  focusPoints: string[];
+
   // Calculated
   zodiacSign: string;
 }
@@ -35,28 +36,30 @@ interface OnboardingStore extends OnboardingData {
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setConfirmPassword: (confirmPassword: string) => void;
-  
+
   setBirthDate: (date: Date | null) => void;
   setBirthTime: (time: string) => void;
   setBirthTimeUnknown: (unknown: boolean) => void;
   setBirthCountry: (country: string) => void;
   setBirthCity: (city: string) => void;
   setBirthCityManual: (city: string) => void;
+  setBirthDistrict: (district: string) => void;
   setTimezone: (timezone: string) => void;
-  
+
   setGender: (gender: string) => void;
   setMaritalStatus: (status: string) => void;
-  setFocusPoint: (focus: string) => void;
+  toggleFocusPoint: (id: string) => void;
+  setFocusPoints: (points: string[]) => void;
   setZodiacSign: (sign: string) => void;
-  
+
   // Validation
   isEmailValid: () => boolean;
   isPasswordValid: () => boolean;
   isFormValid: () => boolean;
-  
+
   // Data export
-  getRegisterData: () => Partial<OnboardingData>;
-  
+  getRegisterData: () => Partial<OnboardingData & { focusPoint: string }>;
+
   // Reset
   reset: () => void;
 }
@@ -67,18 +70,19 @@ const initialState: OnboardingData = {
   email: '',
   password: '',
   confirmPassword: '',
-  
+
   birthDate: null,
   birthTime: '12:00',
   birthTimeUnknown: false,
   birthCountry: '',
   birthCity: '',
   birthCityManual: '',
+  birthDistrict: '',
   timezone: 'Europe/Istanbul',
-  
+
   gender: '',
   maritalStatus: '',
-  focusPoint: '',
+  focusPoints: [],
   zodiacSign: '',
 };
 
@@ -90,30 +94,39 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   setEmail: (email) => set({ email }),
   setPassword: (password) => set({ password }),
   setConfirmPassword: (confirmPassword) => set({ confirmPassword }),
-  
+
   setBirthDate: (birthDate) => set({ birthDate }),
   setBirthTime: (birthTime) => set({ birthTime }),
   setBirthTimeUnknown: (birthTimeUnknown) => set({ birthTimeUnknown }),
   setBirthCountry: (birthCountry) => set({ birthCountry }),
   setBirthCity: (birthCity) => set({ birthCity }),
   setBirthCityManual: (birthCityManual) => set({ birthCityManual }),
+  setBirthDistrict: (birthDistrict) => set({ birthDistrict }),
   setTimezone: (timezone) => set({ timezone }),
-  
+
   setGender: (gender) => set({ gender }),
   setMaritalStatus: (maritalStatus) => set({ maritalStatus }),
-  setFocusPoint: (focusPoint) => set({ focusPoint }),
+  toggleFocusPoint: (id) => set((state) => {
+    const current = state.focusPoints;
+    if (current.includes(id)) {
+      return { focusPoints: current.filter((p) => p !== id) };
+    }
+    if (current.length >= 3) return state;
+    return { focusPoints: [...current, id] };
+  }),
+  setFocusPoints: (focusPoints) => set({ focusPoints }),
   setZodiacSign: (zodiacSign) => set({ zodiacSign }),
-  
+
   isEmailValid: () => {
     const { email } = get();
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   },
-  
+
   isPasswordValid: () => {
     const { password } = get();
     return password.length >= 8;
   },
-  
+
   isFormValid: () => {
     const state = get();
     return (
@@ -126,10 +139,10 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       state.birthCountry.length > 0 &&
       (state.birthCity.length > 0 || state.birthCityManual.length > 0) &&
       state.gender.length > 0 &&
-      state.focusPoint.length > 0
+      state.focusPoints.length > 0
     );
   },
-  
+
   getRegisterData: () => {
     const state = get();
     return {
@@ -140,14 +153,14 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       birthTime: state.birthTimeUnknown ? null : state.birthTime,
       birthTimeUnknown: state.birthTimeUnknown,
       birthCountry: state.birthCountry,
-      birthCity: state.birthCity || state.birthCityManual,
+      birthCity: (state.birthCity || state.birthCityManual) + (state.birthDistrict ? `, ${state.birthDistrict}` : ''),
       timezone: state.timezone,
       gender: state.gender,
       maritalStatus: state.maritalStatus,
-      focusPoint: state.focusPoint,
+      focusPoint: state.focusPoints.join(','),
       zodiacSign: state.zodiacSign,
     };
   },
-  
+
   reset: () => set(initialState),
 }));

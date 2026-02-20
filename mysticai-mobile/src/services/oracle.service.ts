@@ -5,6 +5,7 @@ export interface DailySecret {
   numerologyInsight: string | null;
   astrologyInsight: string | null;
   dreamInsight: string | null;
+  dailyVibe: string | null;
   generatedAt: string;
   message: string | null;
 }
@@ -14,6 +15,8 @@ const ORACLE_BASE = '/api/v1/oracle';
 export const fetchDailySecret = (params?: {
   name?: string;
   birthDate?: string;
+  maritalStatus?: string;
+  focusPoint?: string;
 }) =>
   api.get<DailySecret>(`${ORACLE_BASE}/daily-secret`, { params });
 

@@ -18,10 +18,6 @@ public class RabbitMQConfig {
     public static final String AI_REQUEST_ROUTING_KEY = "ai.request";
     public static final String AI_RESPONSE_ROUTING_KEY = "ai.response";
 
-    // Legacy queue names (for backward compatibility)
-    public static final String AI_INTERPRETATION_QUEUE = "ai.interpretation.queue";
-    public static final String AI_ROUTING_KEY = "ai.interpret.tarot";
-
     public static final String NOTIFICATION_QUEUE = "notification.queue";
     public static final String NOTIFICATION_ROUTING_KEY = "ai.notify";
 
@@ -38,31 +34,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue aiInterpretationQueue() {
-        return QueueBuilder.durable(AI_INTERPRETATION_QUEUE)
-                .withArgument("x-message-ttl", 3600000)
-                .build();
-    }
-
-    @Bean
     public Binding aiRequestsBinding(Queue aiRequestsQueue, DirectExchange aiExchange) {
         return BindingBuilder
                 .bind(aiRequestsQueue)
                 .to(aiExchange)
                 .with(AI_REQUEST_ROUTING_KEY);
-    }
-
-    @Bean
-    public TopicExchange legacyAiExchange() {
-        return new TopicExchange("mystic.ai.exchange");
-    }
-
-    @Bean
-    public Binding aiInterpretationBinding(Queue aiInterpretationQueue, TopicExchange legacyAiExchange) {
-        return BindingBuilder
-                .bind(aiInterpretationQueue)
-                .to(legacyAiExchange)
-                .with("ai.interpret.#");
     }
 
     @Bean

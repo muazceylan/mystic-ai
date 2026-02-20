@@ -13,6 +13,7 @@ public record PlanetaryAspect(
 
     public enum AspectType {
         CONJUNCTION("Kavuşum", "☌", 0, 8),
+        SEXTILE("Altıgen", "⚹", 60, 6),
         SQUARE("Kare", "□", 90, 8),
         TRINE("Üçgen", "△", 120, 8),
         OPPOSITION("Karşıt", "☍", 180, 8);

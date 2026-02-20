@@ -29,6 +29,7 @@ public record AiAnalysisEvent(
 
     public enum SourceService {
         DREAM,
+        @Deprecated
         TAROT,
         ASTROLOGY,
         NUMEROLOGY,
@@ -43,6 +44,13 @@ public record AiAnalysisEvent(
         SWOT,
         PERIODIC,
         NATAL_CHART,
-        VISION
+        VISION,
+        LUCKY_DATES,
+        WEEKLY_SWOT,
+        DREAM_SYNTHESIS,
+        MONTHLY_DREAM_STORY,
+        SYMBOL_MEANING,
+        COLLECTIVE_PULSE_REASON,
+        RELATIONSHIP_ANALYSIS
     }
 }

@@ -30,6 +30,8 @@ export const PLANET_TURKISH: Record<string, string> = {
   Uranus: 'Uranüs',
   Neptune: 'Neptün',
   Pluto: 'Plüton',
+  Chiron: 'Kiron',
+  NorthNode: 'Kuzey Düğümü',
 };
 
 export const PLANET_DESCRIPTIONS: Record<string, { governs: string; meaning: string }> = {
@@ -72,6 +74,14 @@ export const PLANET_DESCRIPTIONS: Record<string, { governs: string; meaning: str
   Pluto: {
     governs: 'Dönüşüm, güç, yeniden doğuş',
     meaning: 'Plüton burcun, derin dönüşümlerin ve gizli güçlerin kaynağını gösterir.',
+  },
+  Chiron: {
+    governs: 'Yaralı şifacı, şifa, öğretmenlik',
+    meaning: 'Kiron burcun, en derin yaranı ve başkalarına şifa verme potansiyelini gösterir.',
+  },
+  NorthNode: {
+    governs: 'Kader, ruhsal evrim, yaşam dersi',
+    meaning: 'Kuzey Düğümü burcun, bu yaşamda öğrenmen gereken dersi ve kadersel yönelimini belirler.',
   },
 };
 

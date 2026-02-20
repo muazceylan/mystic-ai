@@ -27,6 +27,7 @@ export interface UserProfile {
   maritalStatus?: string;
   focusPoint?: string;
   zodiacSign?: string;
+  preferredLanguage?: string;
   roles?: string[];
   enabled?: boolean;
   createdAt?: string;

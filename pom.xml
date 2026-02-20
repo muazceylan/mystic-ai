@@ -24,7 +24,6 @@
         <module>service-registry</module>
         <module>api-gateway</module>
         <module>auth-service</module>
-        <module>tarot-service</module>
         <module>astrology-service</module>
         <module>ai-orchestrator</module>
         <module>numerology-service</module>

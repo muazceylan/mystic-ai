@@ -37,12 +37,12 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="tarot"
+        name="calendar"
         options={{
-          title: 'Tarot',
+          title: 'Planlayıcı',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'cards' : 'cards-outline'}
+              name={focused ? 'calendar' : 'calendar-outline'}
               size={24}
               color={color}
             />
@@ -56,6 +56,32 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'moon' : 'moon-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="dream-book"
+        options={{
+          title: 'Rüya Kitabı',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'journal' : 'journal-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="compatibility"
+        options={{
+          title: 'Uyum',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'heart-circle' : 'heart-circle-outline'}
               size={24}
               color={color}
             />

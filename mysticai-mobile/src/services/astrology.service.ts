@@ -17,7 +17,7 @@ export interface HousePlacement {
   ruler: string;
 }
 
-export type AspectType = 'CONJUNCTION' | 'SQUARE' | 'TRINE' | 'OPPOSITION';
+export type AspectType = 'CONJUNCTION' | 'SEXTILE' | 'SQUARE' | 'TRINE' | 'OPPOSITION';
 
 export interface PlanetaryAspect {
   planet1: string;
@@ -55,6 +55,40 @@ export interface NatalChartRequest {
   birthLocation: string;
 }
 
+export interface SkyPulseResponse {
+  moonSign: string;
+  moonSignTurkish: string;
+  moonSignSymbol: string;
+  moonPhase: string;
+  retrogradePlanets: string[];
+  dailyVibe: string;
+  date: string;
+}
+
+export interface SwotPoint {
+  category: string;
+  headline: string;
+  subtext: string;
+  intensity: number;
+  quickTip: string;
+}
+
+export interface FlashInsight {
+  type: 'ALERT' | 'FORTUNE';
+  headline: string;
+  detail: string;
+}
+
+export interface WeeklySwotResponse {
+  strength: SwotPoint;
+  weakness: SwotPoint;
+  opportunity: SwotPoint;
+  threat: SwotPoint;
+  flashInsight: FlashInsight;
+  weekStart: string;
+  weekEnd: string;
+}
+
 const ASTROLOGY_BASE = '/api/v1/astrology';
 
 export const calculateNatalChart = (request: NatalChartRequest) =>
@@ -65,6 +99,12 @@ export const fetchLatestNatalChart = (userId: number) =>
 
 export const fetchNatalChartById = (chartId: number) =>
   api.get<NatalChartResponse>(`${ASTROLOGY_BASE}/natal-chart/${chartId}`);
+
+export const fetchSkyPulse = () =>
+  api.get<SkyPulseResponse>(`${ASTROLOGY_BASE}/sky-pulse`);
+
+export const fetchWeeklySwot = (userId: number) =>
+  api.get<WeeklySwotResponse>(`${ASTROLOGY_BASE}/weekly-swot`, { params: { userId } });
 
 export const checkAstrologyHealth = async (): Promise<boolean> => {
   try {

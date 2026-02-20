@@ -4,17 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { FOCUS_POINTS } from '../../constants/index';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-};
+import { COLORS } from '../../constants/colors';
 
 const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   career: 'briefcase',
@@ -27,6 +17,8 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function FocusPointScreen() {
   const store = useOnboardingStore();
+  const isMaxSelected = store.focusPoints.length >= 3;
+  const canContinue = store.focusPoints.length > 0;
 
   return (
     <View style={styles.container}>
@@ -35,24 +27,39 @@ export default function FocusPointScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Odak Noktan?</Text>
         <Text style={styles.subtitle}>
-          Bu hayatta odak noktanın hangisi olduğunu düşünüyorsun?
+          Bu hayatta odak noktanin hangisi oldugunu dusunuyorsun?
+        </Text>
+        <Text style={styles.selectionHint}>
+          En fazla 3 secim yapabilirsiniz ({store.focusPoints.length}/3)
         </Text>
 
         <View style={styles.grid}>
           {FOCUS_POINTS.map((point) => {
-            const selected = store.focusPoint === point.id;
+            const selected = store.focusPoints.includes(point.id);
+            const dimmed = !selected && isMaxSelected;
             return (
               <TouchableOpacity
                 key={point.id}
-                style={[styles.card, selected && styles.cardSelected]}
-                onPress={() => store.setFocusPoint(point.id)}
+                style={[
+                  styles.card,
+                  selected && styles.cardSelected,
+                  dimmed && styles.cardDimmed,
+                ]}
+                onPress={() => store.toggleFocusPoint(point.id)}
+                disabled={dimmed}
               >
                 <Ionicons
                   name={ICON_MAP[point.id] || 'sparkles'}
                   size={20}
-                  color={selected ? COLORS.primary : COLORS.subtext}
+                  color={selected ? COLORS.primary : dimmed ? COLORS.disabledText : COLORS.subtext}
                 />
-                <Text style={[styles.cardText, selected && styles.cardTextSelected]}>
+                <Text
+                  style={[
+                    styles.cardText,
+                    selected && styles.cardTextSelected,
+                    dimmed && styles.cardTextDimmed,
+                  ]}
+                >
                   {point.title}
                 </Text>
               </TouchableOpacity>
@@ -66,11 +73,11 @@ export default function FocusPointScreen() {
           <Text style={styles.outlineText}>Geri</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.primaryButton, !store.focusPoint && styles.primaryDisabled]}
-          disabled={!store.focusPoint}
+          style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
+          disabled={!canContinue}
           onPress={() => router.push('/natal-chart')}
         >
-          <Text style={[styles.primaryText, !store.focusPoint && styles.primaryTextDisabled]}>
+          <Text style={[styles.primaryText, !canContinue && styles.primaryTextDisabled]}>
             Devam Et
           </Text>
         </TouchableOpacity>
@@ -100,6 +107,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.subtext,
     textAlign: 'center',
+    marginBottom: 6,
+  },
+  selectionHint: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
     marginBottom: 22,
   },
   grid: {
@@ -125,6 +138,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primarySoft,
   },
+  cardDimmed: {
+    opacity: 0.4,
+  },
   cardText: {
     fontSize: 14,
     fontWeight: '600',
@@ -132,6 +148,9 @@ const styles = StyleSheet.create({
   },
   cardTextSelected: {
     color: COLORS.primary,
+  },
+  cardTextDimmed: {
+    color: COLORS.disabledText,
   },
   footer: {
     flexDirection: 'row',
@@ -142,7 +161,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -154,7 +173,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: COLORS.primary,

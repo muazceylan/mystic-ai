@@ -22,6 +22,7 @@ public record UserDTO(
         String maritalStatus,
         String focusPoint,
         String zodiacSign,
+        String preferredLanguage,
         Set<String> roles,
         boolean enabled,
         LocalDateTime createdAt,
@@ -53,6 +54,7 @@ public record UserDTO(
         private String maritalStatus;
         private String focusPoint;
         private String zodiacSign;
+        private String preferredLanguage;
         private Set<String> roles;
         private boolean enabled;
         private LocalDateTime createdAt;
@@ -75,6 +77,7 @@ public record UserDTO(
         public UserDTOBuilder maritalStatus(String maritalStatus) { this.maritalStatus = maritalStatus; return this; }
         public UserDTOBuilder focusPoint(String focusPoint) { this.focusPoint = focusPoint; return this; }
         public UserDTOBuilder zodiacSign(String zodiacSign) { this.zodiacSign = zodiacSign; return this; }
+        public UserDTOBuilder preferredLanguage(String preferredLanguage) { this.preferredLanguage = preferredLanguage; return this; }
         public UserDTOBuilder roles(Set<String> roles) { this.roles = roles; return this; }
         public UserDTOBuilder enabled(boolean enabled) { this.enabled = enabled; return this; }
         public UserDTOBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
@@ -84,7 +87,7 @@ public record UserDTO(
             return new UserDTO(id, username, email, firstName, lastName, name,
                     birthDate, birthTime, birthLocation,
                     birthCountry, birthCity, birthTimeUnknown, timezone,
-                    gender, maritalStatus, focusPoint, zodiacSign,
+                    gender, maritalStatus, focusPoint, zodiacSign, preferredLanguage,
                     roles, enabled, createdAt, updatedAt);
         }
     }

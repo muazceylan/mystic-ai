@@ -12,6 +12,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -24,6 +25,7 @@ public class AstrologyService {
 
     private final NatalChartRepository natalChartRepository;
     private final NatalChartCalculator natalChartCalculator;
+    private final TransitCalculator transitCalculator;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
@@ -39,7 +41,7 @@ public class AstrologyService {
         double latitude = coords[0];
         double longitude = coords[1];
 
-        // Calculate all positions
+        // Calculate all positions (SwissEph high-precision)
         List<PlanetPosition> planets = natalChartCalculator.calculatePlanetPositions(
                 request.birthDate(), birthTime, latitude, longitude);
         List<HousePlacement> houses = natalChartCalculator.calculateHouses(
@@ -47,6 +49,12 @@ public class AstrologyService {
         String sunSign = natalChartCalculator.calculateSunSign(request.birthDate());
         String moonSign = natalChartCalculator.calculateMoonSign(request.birthDate());
         String risingSign = natalChartCalculator.calculateAscendant(
+                request.birthDate(), birthTime, latitude, longitude);
+
+        // Get Ascendant and MC degrees for SWOT aspect calculations
+        double ascendantDegree = natalChartCalculator.getAscendantDegree(
+                request.birthDate(), birthTime, latitude, longitude);
+        double mcDegree = natalChartCalculator.getMcDegree(
                 request.birthDate(), birthTime, latitude, longitude);
 
         // Calculate planetary aspects
@@ -79,6 +87,9 @@ public class AstrologyService {
                 .sunSign(sunSign)
                 .moonSign(moonSign)
                 .risingSign(risingSign)
+                .ascendantDegree(ascendantDegree)
+                .mcDegree(mcDegree)
+                .utcOffset(natalChartCalculator.getTurkeyUtcOffset(request.birthDate(), birthTime))
                 .planetPositionsJson(planetJson)
                 .housePlacementsJson(houseJson)
                 .aspectsJson(aspectsJson)
@@ -97,15 +108,24 @@ public class AstrologyService {
     private void sendToAiOrchestrator(NatalChart chart, List<PlanetPosition> planets,
                                       List<HousePlacement> houses, List<PlanetaryAspect> aspects) {
         try {
+            // Build current transit summary for AI context
+            List<PlanetPosition> currentTransits = transitCalculator.calculateTransitPositions(LocalDate.now());
+            List<String> transitSummary = currentTransits.stream()
+                    .map(t -> t.planet() + " " + t.sign() + " " + t.degree() + "°"
+                            + (t.retrograde() ? " (R)" : ""))
+                    .toList();
+
             String payload = objectMapper.writeValueAsString(new NatalChartAiPayload(
                     chart.getId(),
                     chart.getName(),
                     chart.getSunSign(),
                     chart.getMoonSign(),
                     chart.getRisingSign(),
+                    chart.getAscendantDegree() != null ? chart.getAscendantDegree() : 0.0,
                     planets,
                     houses,
-                    aspects
+                    aspects,
+                    transitSummary
             ));
 
             com.mysticai.common.event.AiAnalysisEvent event =
@@ -207,8 +227,10 @@ public class AstrologyService {
             String sunSign,
             String moonSign,
             String risingSign,
+            double ascendantDegree,
             List<PlanetPosition> planets,
             List<HousePlacement> houses,
-            List<PlanetaryAspect> aspects
+            List<PlanetaryAspect> aspects,
+            List<String> currentTransitSummary
     ) {}
 }

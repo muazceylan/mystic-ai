@@ -18,5 +18,6 @@ public record UpdateProfileRequest(
         String gender,
         String maritalStatus,
         String focusPoint,
-        String zodiacSign
+        String zodiacSign,
+        String preferredLanguage
 ) {}

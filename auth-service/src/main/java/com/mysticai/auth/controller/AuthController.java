@@ -3,6 +3,7 @@ package com.mysticai.auth.controller;
 import com.mysticai.auth.dto.*;
 import com.mysticai.auth.service.AuthService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,13 @@ public class AuthController {
     @PostMapping("/check-email")
     public ResponseEntity<CheckEmailResponse> checkEmail(@Valid @RequestBody CheckEmailRequest request) {
         boolean available = authService.isEmailAvailable(request.email());
+        return ResponseEntity.ok(new CheckEmailResponse(available,
+                available ? "Email is available" : "Email already exists"));
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<CheckEmailResponse> checkEmailGet(@RequestParam @Email String email) {
+        boolean available = authService.isEmailAvailable(email);
         return ResponseEntity.ok(new CheckEmailResponse(available,
                 available ? "Email is available" : "Email already exists"));
     }

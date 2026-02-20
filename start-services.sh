@@ -7,7 +7,6 @@ echo "🧹 Eski process'ler temizleniyor..."
 pkill -f "service-registry" || true
 pkill -f "auth-service" || true
 pkill -f "ai-orchestrator" || true
-pkill -f "tarot-service" || true
 pkill -f "astrology-service" || true
 pkill -f "numerology-service" || true
 pkill -f "dream-service" || true
@@ -37,10 +36,6 @@ sleep 5
 echo "🤖 AI Orchestrator..."
 nohup java -jar ai-orchestrator/target/ai-orchestrator-*.jar > logs/ai.log 2>&1 &
 sleep 5
-
-# 3. Business Services
-echo "🃏 Tarot Service..."
-nohup java -jar tarot-service/target/tarot-service-*.jar > logs/tarot.log 2>&1 &
 
 echo "⭐ Astrology Service..."
 nohup java -jar astrology-service/target/astrology-service-*.jar > logs/astrology.log 2>&1 &

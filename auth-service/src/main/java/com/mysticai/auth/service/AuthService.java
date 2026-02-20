@@ -176,6 +176,7 @@ public class AuthService {
         if (request.maritalStatus() != null) user.setMaritalStatus(request.maritalStatus());
         if (request.focusPoint() != null) user.setFocusPoint(request.focusPoint());
         if (request.zodiacSign() != null) user.setZodiacSign(request.zodiacSign());
+        if (request.preferredLanguage() != null) user.setPreferredLanguage(request.preferredLanguage());
 
         User saved = userRepository.save(user);
         return toUserDTO(saved);
@@ -207,6 +208,7 @@ public class AuthService {
                 .maritalStatus(user.getMaritalStatus())
                 .focusPoint(user.getFocusPoint())
                 .zodiacSign(user.getZodiacSign())
+                .preferredLanguage(user.getPreferredLanguage())
                 .roles(user.getRoles())
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt())

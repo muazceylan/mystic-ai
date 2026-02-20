@@ -33,6 +33,20 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:mystic123}
 
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 26MB
+
+  task:
+    scheduling:
+      pool:
+        size: 4
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
 eureka:
   client:
     service-url:
@@ -49,6 +63,13 @@ management:
     web:
       exposure:
         include: health,info
+
+groq:
+  api-key: ${GROQ_API_KEY}
+  base-url: ${GROQ_BASE_URL:https://api.groq.com/openai}
+
+ai-orchestrator:
+  url: ${AI_ORCHESTRATOR_URL:http://localhost:8084}
 
 logging:
   level:

@@ -11,6 +11,7 @@ public record OracleResponse(
         String numerologyInsight,
         String astrologyInsight,
         String dreamInsight,
+        String dailyVibe,
         LocalDateTime generatedAt,
         String message
 ) {
@@ -20,8 +21,8 @@ public record OracleResponse(
         }
     }
 
-    public OracleResponse(String secret, String numerologyInsight, String astrologyInsight, 
-                         String dreamInsight, String message) {
-        this(secret, numerologyInsight, astrologyInsight, dreamInsight, LocalDateTime.now(), message);
+    public OracleResponse(String secret, String numerologyInsight, String astrologyInsight,
+                          String dreamInsight, String dailyVibe, String message) {
+        this(secret, numerologyInsight, astrologyInsight, dreamInsight, dailyVibe, LocalDateTime.now(), message);
     }
 }

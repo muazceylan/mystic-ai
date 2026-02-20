@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,233 +10,341 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios/dist/browser/axios.cjs';
+import { useForm, Controller } from 'react-hook-form';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { checkEmail } from '../../services/auth';
+import { checkEmailGet } from '../../services/auth';
+import { COLORS } from '../../constants/colors';
 
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-  error: '#E54B4B',
-};
+interface FormValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'error';
 
 export default function EmailRegisterScreen() {
   const store = useOnboardingStore();
   const params = useLocalSearchParams<{ error?: string }>();
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isChecking, setIsChecking] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setError,
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: {
+      firstName: store.firstName,
+      lastName: store.lastName,
+      email: store.email,
+      password: store.password,
+      confirmPassword: store.confirmPassword,
+    },
+  });
+
+  const watchedEmail = watch('email');
+  const watchedPassword = watch('password');
 
   useEffect(() => {
     if (params.error) {
-      setErrors((prev) => ({
-        ...prev,
-        email: decodeURIComponent(params.error),
-      }));
+      setError('email', { message: decodeURIComponent(params.error) });
     }
   }, [params.error]);
 
-  const validateFields = () => {
-    const newErrors: { [key: string]: string } = {};
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (!store.firstName.trim()) {
-      newErrors.firstName = 'Ad gereklidir';
-    }
-    if (!store.lastName.trim()) {
-      newErrors.lastName = 'Soyad gereklidir';
-    }
-    if (!store.email.trim()) {
-      newErrors.email = 'E-posta gereklidir';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(store.email)) {
-      newErrors.email = 'Geçerli bir e-posta adresi giriniz';
-    }
-    if (!store.password.trim()) {
-      newErrors.password = 'Şifre gereklidir';
-    } else if (store.password.length < 8) {
-      newErrors.password = 'Şifre en az 8 karakter olmalıdır';
-    }
-    if (store.password !== store.confirmPassword) {
-      newErrors.confirmPassword = 'Şifreler eşleşmiyor';
-    }
-
-    setErrors(newErrors);
-    return newErrors;
-  };
-
-  const checkEmailAvailability = async (email: string) => {
-    try {
-      const response = await checkEmail(email);
-      const { available, exists } = response.data || {};
-
-      if (available === false || exists === true) {
-        return false;
-      }
-      return true;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const message =
-          typeof error.response?.data?.message === 'string'
-            ? error.response?.data?.message.toLowerCase()
-            : '';
-
-        if (status === 409 || message.includes('email already exists')) {
-          return false;
-        }
-
-        if (status === 404) {
-          return true;
-        }
-      }
-      throw error;
-    }
-  };
-
-  const validateAndSubmit = async () => {
-    if (isChecking) return;
-
-    const validationErrors = validateFields();
-    if (Object.keys(validationErrors).length > 0) {
+    const email = watchedEmail?.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailStatus('idle');
       return;
     }
 
-    setIsChecking(true);
+    setEmailStatus('checking');
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const response = await checkEmailGet(email);
+        const { available } = response.data || {};
+        setEmailStatus(available ? 'available' : 'taken');
+      } catch {
+        setEmailStatus('error');
+      }
+    }, 600);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [watchedEmail]);
+
+  const onSubmit = async (data: FormValues) => {
+    if (isSubmitting) return;
+
+    store.setFirstName(data.firstName.trim());
+    store.setLastName(data.lastName.trim());
+    store.setEmail(data.email.trim());
+    store.setPassword(data.password);
+    store.setConfirmPassword(data.confirmPassword);
+
+    setIsSubmitting(true);
 
     try {
- /*     const isAvailable = await checkEmailAvailability(store.email.trim());
-      if (!isAvailable) {
-        setErrors((prev) => ({
-          ...prev,
-          email: 'Bu e-posta zaten kayıtlı. Lütfen giriş yapın.',
-        }));
+      if (emailStatus === 'taken') {
+        setError('email', {
+          message: 'Bu e-posta zaten kayitli. Lutfen giris yapin.',
+        });
         return;
-      } */
+      }
 
       router.push('/birth-date');
-    } catch (error) {
-      setErrors((prev) => ({
-        ...prev,
-        email: 'E-posta kontrolü yapılamadı. Lütfen tekrar deneyin.',
-      }));
+    } catch {
+      setError('email', {
+        message: 'E-posta kontrolu yapilamadi. Lutfen tekrar deneyin.',
+      });
     } finally {
-      setIsChecking(false);
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <OnboardingBackground />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+  const renderEmailFeedback = () => {
+    if (emailStatus === 'checking') {
+      return (
+        <View style={styles.emailFeedback}>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+          <Text style={styles.emailFeedbackText}>Kontrol ediliyor...</Text>
+        </View>
+      );
+    }
+    if (emailStatus === 'available') {
+      return (
+        <View style={styles.emailFeedback}>
+          <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+          <Text style={[styles.emailFeedbackText, { color: COLORS.success }]}>
+            Kullanilabilir
+          </Text>
+        </View>
+      );
+    }
+    if (emailStatus === 'taken') {
+      return (
+        <View style={styles.emailFeedback}>
+          <Ionicons name="close-circle" size={16} color={COLORS.error} />
+          <TouchableOpacity onPress={() => router.replace('/login')}>
+            <Text style={[styles.emailFeedbackText, { color: COLORS.error }]}>
+              Bu e-posta zaten kayitli, giris yapmak ister misin?
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Kayıt Ol</Text>
         </View>
+      );
+    }
+    return null;
+  };
 
-        <Text style={styles.sectionTitle}>Kişisel Bilgiler</Text>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Ad</Text>
-          <TextInput
-            style={[styles.input, errors.firstName && styles.inputError]}
-            placeholder="Adınız"
-            placeholderTextColor={COLORS.disabledText}
-            value={store.firstName}
-            onChangeText={store.setFirstName}
-          />
-          {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Soyad</Text>
-          <TextInput
-            style={[styles.input, errors.lastName && styles.inputError]}
-            placeholder="Soyadınız"
-            placeholderTextColor={COLORS.disabledText}
-            value={store.lastName}
-            onChangeText={store.setLastName}
-          />
-          {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>E-posta</Text>
-          <TextInput
-            style={[styles.input, errors.email && styles.inputError]}
-            placeholder="E-posta adresiniz"
-            placeholderTextColor={COLORS.disabledText}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={store.email}
-            onChangeText={store.setEmail}
-          />
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Şifre</Text>
-          <TextInput
-            style={[styles.input, errors.password && styles.inputError]}
-            placeholder="Şifreniz (en az 8 karakter)"
-            placeholderTextColor={COLORS.disabledText}
-            secureTextEntry
-            value={store.password}
-            onChangeText={store.setPassword}
-          />
-          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Şifre Tekrar</Text>
-          <TextInput
-            style={[styles.input, errors.confirmPassword && styles.inputError]}
-            placeholder="Şifrenizi tekrar girin"
-            placeholderTextColor={COLORS.disabledText}
-            secureTextEntry
-            value={store.confirmPassword}
-            onChangeText={store.setConfirmPassword}
-          />
-          {errors.confirmPassword && (
-            <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-          )}
-        </View>
-
-        <TouchableOpacity
-          style={[styles.continueButton, isChecking && styles.continueButtonDisabled]}
-          onPress={validateAndSubmit}
-          disabled={isChecking}
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <OnboardingBackground />
+      <KeyboardAvoidingView
+        style={styles.flex1}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {isChecking ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.continueButtonText}>Kayıt Ol</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+            </TouchableOpacity>
+            <Text style={styles.title}>Kayit Ol</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>Kisisel Bilgiler</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Ad</Text>
+            <Controller
+              control={control}
+              name="firstName"
+              rules={{ required: 'Ad gereklidir' }}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.firstName && styles.inputError]}
+                  placeholder="Adiniz"
+                  placeholderTextColor={COLORS.disabledText}
+                  value={value}
+                  onChangeText={(text) => {
+                    onChange(text);
+                    store.setFirstName(text);
+                  }}
+                />
+              )}
+            />
+            {errors.firstName && (
+              <Text style={styles.errorText}>{errors.firstName.message}</Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Soyad</Text>
+            <Controller
+              control={control}
+              name="lastName"
+              rules={{ required: 'Soyad gereklidir' }}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.lastName && styles.inputError]}
+                  placeholder="Soyadiniz"
+                  placeholderTextColor={COLORS.disabledText}
+                  value={value}
+                  onChangeText={(text) => {
+                    onChange(text);
+                    store.setLastName(text);
+                  }}
+                />
+              )}
+            />
+            {errors.lastName && (
+              <Text style={styles.errorText}>{errors.lastName.message}</Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>E-posta</Text>
+            <Controller
+              control={control}
+              name="email"
+              rules={{
+                required: 'E-posta gereklidir',
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: 'Gecerli bir e-posta adresi giriniz',
+                },
+              }}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="E-posta adresiniz"
+                  placeholderTextColor={COLORS.disabledText}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={(text) => {
+                    onChange(text);
+                    store.setEmail(text);
+                  }}
+                />
+              )}
+            />
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email.message}</Text>
+            )}
+            {!errors.email && renderEmailFeedback()}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sifre</Text>
+            <Controller
+              control={control}
+              name="password"
+              rules={{
+                required: 'Sifre gereklidir',
+                minLength: {
+                  value: 8,
+                  message: 'Sifre en az 8 karakter olmalidir',
+                },
+              }}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.password && styles.inputError]}
+                  placeholder="Sifreniz (en az 8 karakter)"
+                  placeholderTextColor={COLORS.disabledText}
+                  secureTextEntry
+                  value={value}
+                  onChangeText={(text) => {
+                    onChange(text);
+                    store.setPassword(text);
+                  }}
+                />
+              )}
+            />
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password.message}</Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sifre Tekrar</Text>
+            <Controller
+              control={control}
+              name="confirmPassword"
+              rules={{
+                required: 'Sifre tekrari gereklidir',
+                validate: (value) =>
+                  value === watchedPassword || 'Sifreler eslesmiyor',
+              }}
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.confirmPassword && styles.inputError]}
+                  placeholder="Sifrenizi tekrar girin"
+                  placeholderTextColor={COLORS.disabledText}
+                  secureTextEntry
+                  value={value}
+                  onChangeText={(text) => {
+                    onChange(text);
+                    store.setConfirmPassword(text);
+                  }}
+                />
+              )}
+            />
+            {errors.confirmPassword && (
+              <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>
+            )}
+          </View>
+
+          {/* Button INSIDE ScrollView so it scrolls into view above keyboard */}
+          <View style={styles.buttonWrapper}>
+            <TouchableOpacity
+              style={[styles.continueButton, isSubmitting && styles.continueButtonDisabled]}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.continueButtonText}>Kayit Ol</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
+  flex1: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 32,
+    paddingTop: 20,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -283,10 +391,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  emailFeedback: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  emailFeedbackText: {
+    fontSize: 12,
+    color: COLORS.subtext,
+  },
+  buttonWrapper: {
+    marginTop: 20,
+    marginBottom: 40,
+  },
   continueButton: {
-    marginTop: 8,
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
   },

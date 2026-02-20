@@ -35,6 +35,14 @@ export const ASPECT_GLOSSARY: Record<AspectType, GlossaryEntry> = {
       'Kare acisindaki gezegenler birbirleriyle surekli bir mucadele halindedir ve seni harekete gecmeye zorlar. ' +
       'Zorlayici olsa da, kare acilari hayattaki en buyuk buyume ve gelisim kaynaklarindan biridir.',
   },
+  SEXTILE: {
+    term: 'Altigen',
+    shortDesc: 'Firsat ve isbirligi',
+    longDesc:
+      'Altigen acisi, iki gezegenin birbirinden 60 derece uzakta olmasi durumudur. Bu aci, firsatlar ve olumlu isbirlikleri temsil eder. ' +
+      'Ucgen kadar zahmetsiz olmasa da, biraz caba ile harika sonuclar dogurabilen bir enerji tasir. ' +
+      'Altigen acisi, hayatinda yeni kapilar acan ve sosyal baglantilari guclendiren uyumlu bir acidir.',
+  },
 };
 
 // ── Hook Text Helpers ──────────────────────────────────────────────────────
@@ -72,6 +80,7 @@ const GENERIC_HOOKS: Record<AspectType, string> = {
   OPPOSITION: 'Bu iki guc arasindaki denge arayisi, sana derin bir farkindalik kazandiriyor.',
   TRINE: 'Bu dogal uyum, senin icin kolay ve akici bir enerji kaynagi olusturuyor.',
   SQUARE: 'Bu gerilim seni surekli gelistiren guclu bir motivasyon kaynagi.',
+  SEXTILE: 'Bu firsat acisi, biraz cabayla harika sonuclar doguracak bir enerji tasiyor.',
 };
 
 function makePairKey(p1: string, p2: string): PlanetPairKey {
@@ -93,5 +102,5 @@ export function getAspectHookText(
 }
 
 export function isHarmoniousAspect(type: AspectType): boolean {
-  return type === 'TRINE' || type === 'CONJUNCTION';
+  return type === 'TRINE' || type === 'CONJUNCTION' || type === 'SEXTILE';
 }

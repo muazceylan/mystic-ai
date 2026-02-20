@@ -37,13 +37,17 @@ public class GlobalExceptionHandler {
             IllegalArgumentException ex,
             HttpServletRequest request
     ) {
+        String message = ex.getMessage();
+        boolean isNotFound = message != null && message.toLowerCase().contains("not found");
+        HttpStatus status = isNotFound ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
+
         ErrorResponse error = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
-                ex.getMessage(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
                 request.getRequestURI()
         );
-        return ResponseEntity.badRequest().body(error);
+        return ResponseEntity.status(status).body(error);
     }
 
     @ExceptionHandler(Exception.class)

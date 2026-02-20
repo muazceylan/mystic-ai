@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,15 +12,26 @@ import {
   RefreshControl,
   ActivityIndicator,
   Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import ServiceStatus from '../../components/ServiceStatus';
+import CollectivePulseWidget from '../../components/CollectivePulseWidget';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useNatalChartStore } from '../../store/useNatalChartStore';
-import { getZodiacInfo } from '../../constants/zodiac';
+import { useOnboardingStore } from '../../store/useOnboardingStore';
+import {
+  fetchSkyPulse,
+  fetchLatestNatalChart,
+  fetchWeeklySwot,
+  NatalChartResponse,
+  SkyPulseResponse,
+  WeeklySwotResponse,
+  SwotPoint,
+} from '../../services/astrology.service';
 import { DailySecret, fetchDailySecret } from '../../services/oracle.service';
+import { useNatalChartStore } from '../../store/useNatalChartStore';
 
 const COLORS = {
   background: '#F9F7FB',
@@ -30,13 +41,12 @@ const COLORS = {
   primary: '#9D4EDD',
   primarySoft: '#F1E8FD',
   accent: '#2E4A9C',
-  accentSoft: '#E6EDFF',
   green: '#3FA46A',
   red: '#C04A4A',
 };
 
 const SERVICE_SLIDES = [
-  { id: 'tarot', title: 'Tarot Fali', emoji: '🃏' },
+  { id: 'planner', title: 'Kozmik Planlayici', emoji: '📅' },
   { id: 'dream', title: 'Ruya Analizi', emoji: '🌙' },
   { id: 'numerology', title: 'Numeroloji', emoji: '🔢' },
   { id: 'weekly', title: 'Haftanin Analizi', emoji: '📅' },
@@ -44,38 +54,269 @@ const SERVICE_SLIDES = [
   { id: 'name', title: 'Isim Analizi', emoji: '🧿' },
 ];
 
-const FALLBACK_QUOTES = [
-  'Yildizlar seninle konusmak icin dogru zamani bekliyor...',
-  'Evrenin sana bir mesaji var, sabret ve dinle.',
-  'Icindeki isik, disaridaki karanliktan her zaman gucludur.',
-  'Bugun yeni bir baslangic icin mukemmel bir gun.',
-  'Kalbinin sesini dinle, o her zaman dogru yolu bilir.',
+const DAILY_VIBE_FALLBACKS = [
+  'Bugun acele etmeden ilerle; dogru an seni bulacak.',
+  'Kucuk bir karar gunun ritmini tamamen degistirebilir.',
+  'Sessiz bir an yakala, cevaplar orada netlesecek.',
+  'Kalbini hafifleten secenegi sec; gun onunla acilacak.',
 ];
 
-const WEEKLY_TABS = [
-  { id: 'msastro', title: "Mysticten", subtitle: '(Sana ozel)' },
-  { id: 'mine', title: "Uzmanımızdan" },
+const RETRO_CAUTION_MAP: Record<string, string> = {
+  'Merkür': 'Sözleşme ve önemli kararları ertele; mesajlar yanlış anlaşılabilir.',
+  'Venüs': 'Duygusal kararlar için acele etme; eski ilişkiler gündeme gelebilir.',
+  'Mars': 'Agresif hamlelerden kaçın; enerjiyi savunmaya ve planlamaya yönelt.',
+  'Jüpiter': 'Aşırı iyimserlikten sakın; büyük risk almadan önce iki kez düşün.',
+  'Satürn': 'Yapılar test ediliyor; sabırlı ol ve mevcut taahhütlere sadık kal.',
+  'Uranüs': 'Ani değişimlere karşı hazırlıklı ol; esnekliğini koru.',
+  'Neptün': 'Yanıltıcı durumlar olabilir; sezgine güven ama netlik ara.',
+  'Plüton': 'Derin dönüşümler sürüyor; kontrol edemeyeceklerini bırak.',
+};
+
+const ACTION_MAP: Record<string, Record<'lucky' | 'mixed' | 'caution', string[]>> = {
+  ask: {
+    lucky: ['Kalbinde sakladığın o sözü bugün söyleyebilirsin.', 'Bağı güçlendiren beklenmedik bir jest yap.'],
+    mixed: ['Duygusal konuşmaları dikkatli yönet; sabırlı ol.', 'Sezgine güven ama hızlı karar verme.'],
+    caution: ['Hassas ilişki konularını bugün ertelemeyi düşün.', 'Dinlemeye odaklan, konuşmaya değil.'],
+  },
+  para: {
+    lucky: ['Ertelediğin finansal adımı bugün atmak için doğru an.', 'Kısa vadeli yatırım için iyi bir gün.'],
+    mixed: ['Mali kararlar alırken iki kez kontrol et.', 'Fırsatları değerlendir ama büyük risk alma.'],
+    caution: ['Büyük harcama ve yatırım kararlarını birkaç güne ertele.', 'Mevcut finansal düzeni gözden geçir.'],
+  },
+  kariyer: {
+    lucky: ['Liderlik gösterebileceğin bir konuda söz al.', 'Fark yaratacak projeye bugün başla.'],
+    mixed: ['Mevcut projeleri güçlendir; yenilerini planlamaya başla.', 'Takım içi iletişimi güçlendir.'],
+    caution: ['Müzakere ve pazarlıkları ertele; zemin hazırlamaya odaklan.', 'Hızlı değil, doğru adım at.'],
+  },
+  aile: {
+    lucky: ['Aile içi eski bir gerilimi yumuşatmak için bugün konuş.', 'Sevdiklerinle kaliteli zaman planla.'],
+    mixed: ['Ev içi konuşmalarda kelimelerine dikkat et.', 'Dinlemeye öncelik ver.'],
+    caution: ['Ev içi hassas konuları bugün ertelemeyi düşün.', 'Sabırlı ve anlayışlı bir tutum benimse.'],
+  },
+  arkadaslik: {
+    lucky: ['Samimi bir bağlantı kurmak için harika bir gün.', 'Uzun süredir görmediğin birine ulaş.'],
+    mixed: ['Sosyal planları esnek tut; değişebilirler.', 'Yüzeysel değil, derin bağlantılara odaklan.'],
+    caution: ['Sosyal anlaşmazlıklardan kaçın; bugün dinleyici ol.', 'Yeni taahhütler almadan önce düşün.'],
+  },
+  ticaret: {
+    lucky: ['İş birliği teklifi için doğru an.', 'Müzakere masasında güçlü bir pozisyondasın.'],
+    mixed: ['Sözleşme detaylarını dikkatlice incele.', 'Ticari kararları aceleci verme.'],
+    caution: ['Sözleşme imzalamayı ertele; koşulları yeniden değerlendir.', 'İş ortaklarının niyetlerini sorgula.'],
+  },
+  genel: {
+    lucky: ['Uzun süredir ertelediğin adımı bugün atmak için iyi bir an.', 'Yeni bağlantılar ve fırsatlar için alan aç.'],
+    mixed: ['Kararları aceleci verme; bir adım geri çekil, değerlendir.', 'Enerjiyi odaklı tut; dağıtma.'],
+    caution: ['Bugün gözlemci kal; hamleni yarına sakla.', 'Mevcut durumu stabilize et, büyütme.'],
+  },
+};
+
+const SECRET_PATTERNS_BY_FOCUS: Record<string, string[]> = {
+  ask: [
+    'bugun bir kelimenin tonu, sandigindan daha derin bir yakinlasma baslatabilir.',
+    'kisa bir mesajlasma, uzun suredir bekledigin duygusal netligi acabilir.',
+  ],
+  para: [
+    'kucuk bir harcama karari, bu hafta buyuk rahatlik getirecek bir duzene donebilir.',
+    'gun icinde duyacagin bir fikir, gelirini sade bir sekilde guclendirebilir.',
+  ],
+  kariyer: [
+    'bugun atilan kucuk bir adim, bir ust seviyeye gecisin kapisini aralayabilir.',
+    'gunun ortasinda gelecek bir geri bildirim, yonunu netlestirmen icin isaret olabilir.',
+  ],
+  aile: [
+    'ev icindeki kisa bir konusma, uzun suredir biriken bir konuyu yumusatabilir.',
+    'bugun gosterecegin minik bir ilgi, aile baglarini beklediginden hizli guclendirebilir.',
+  ],
+  arkadaslik: [
+    'bugun kuracagin samimi bir baglanti, haftanin en guclu destegi olabilir.',
+    'kisa bir bulusma plani, uzun zamandir eksik kalan aidiyet hissini canlandirabilir.',
+  ],
+  ticaret: [
+    'gun icindeki bir tanisma, sandigindan daha verimli bir is birligine donebilir.',
+    'kucuk bir pazarlikta sakin kalman, tahminden daha iyi bir sonuc getirebilir.',
+  ],
+  genel: [
+    'bugun fark etmedigin bir isaret senin icin tekrar edecek; ikinciyi kacirma.',
+    'gun icinde kisa bir duraklama, uzun suredir bekledigin netligi getirecek.',
+  ],
+};
+
+const SWOT_ITEMS: Array<{
+  id: 'strength' | 'weakness' | 'opportunity' | 'threat';
+  title: string;
+  icon: string;
+  accent: string;
+  surface: string;
+}> = [
+  { id: 'strength', title: 'ICSEL GUC', icon: '⚡', accent: '#7C4DFF', surface: '#F1EAFF' },
+  { id: 'opportunity', title: 'ALTIN FIRSAT', icon: '✨', accent: '#009F73', surface: '#E9F8F2' },
+  { id: 'threat', title: 'KRITIK UYARI', icon: '🚫', accent: '#E14B4B', surface: '#FFEDEF' },
+  { id: 'weakness', title: 'ENERJI KAYBI', icon: '⚠️', accent: '#E08A00', surface: '#FFF4E8' },
 ];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SLIDE_WIDTH = SCREEN_WIDTH - 48;
+const HORIZONTAL_PADDING = 20;
+const SLIDE_GAP = 0;
+const SLIDE_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
+const SLIDE_SNAP = SLIDE_WIDTH + SLIDE_GAP;
+
+function getMoonPhaseIcon(phase: string): string {
+  if (phase.includes('Yeni Ay')) return '🌑';
+  if (phase.includes('Hilal') && phase.includes('Buyuyen')) return '🌒';
+  if (phase.includes('Ilk Dordun')) return '🌓';
+  if (phase.includes('Sisken') && phase.includes('Buyuyen')) return '🌔';
+  if (phase.includes('Dolunay')) return '🌕';
+  if (phase.includes('Sisken') && phase.includes('Kuculen')) return '🌖';
+  if (phase.includes('Son Dordun')) return '🌗';
+  if (phase.includes('Hilal') && phase.includes('Kuculen')) return '🌘';
+  return '🌙';
+}
+
+function hashSeed(seed: string): number {
+  return seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+}
+
+function normalizeFocus(rawFocus: string | null | undefined): string {
+  const focus = (rawFocus ?? '').toLowerCase().trim();
+  if (!focus) return 'genel';
+  if (focus.includes('ask')) return 'ask';
+  if (focus.includes('para')) return 'para';
+  if (focus.includes('kariyer')) return 'kariyer';
+  if (focus.includes('aile')) return 'aile';
+  if (focus.includes('arkadas')) return 'arkadaslik';
+  if (focus.includes('ticaret')) return 'ticaret';
+  return 'genel';
+}
+
+function resolveRelationshipTone(maritalStatus: string | null | undefined): string {
+  const status = (maritalStatus ?? '').toLowerCase();
+  if (status.includes('evli')) return 'iliski dengesinde';
+  if (status.includes('bekar')) return 'kalp alaninda';
+  if (status.includes('iliski')) return 'bag kurma enerjisinde';
+  return 'gunun akisinda';
+}
+
+function buildCuriousSecret(
+  name: string,
+  daySeed: number,
+  focusKey: string,
+  maritalStatus: string,
+  secretSeed?: string | null
+): string {
+  const seedBase = `${name}-${daySeed}-${secretSeed ?? ''}`;
+  const score = hashSeed(seedBase);
+  const patterns = SECRET_PATTERNS_BY_FOCUS[focusKey] ?? SECRET_PATTERNS_BY_FOCUS.genel;
+  return `${name}, ${resolveRelationshipTone(maritalStatus)} ${patterns[score % patterns.length]}`;
+}
+
+function buildDailyComment(base: string, focusKey: string, maritalStatus: string): string {
+  const focusLead: Record<string, string> = {
+    ask: 'Ask alaninda',
+    para: 'Maddi duzende',
+    kariyer: 'Kariyer tarafinda',
+    aile: 'Aile iliskilerinde',
+    arkadaslik: 'Sosyal baglarda',
+    ticaret: 'Is akisinda',
+    genel: 'Bugunun akisi',
+  };
+
+  const lead = focusLead[focusKey] ?? focusLead.genel;
+  return `${lead} ${resolveRelationshipTone(maritalStatus)}, ${base.toLowerCase()}`;
+}
+
+function getFocusLabel(focusKey: string): string {
+  const labels: Record<string, string> = {
+    ask: 'ask',
+    para: 'para',
+    kariyer: 'kariyer',
+    aile: 'aile',
+    arkadaslik: 'sosyal baglar',
+    ticaret: 'ticaret',
+    genel: 'yasam',
+  };
+  return labels[focusKey] ?? labels.genel;
+}
+
+function normalizeAiCopy(value: string | null | undefined): string {
+  if (!value) return '';
+
+  return value
+    .replace(/\s+/g, ' ')
+    .replace(/\b\d+\s*(°|derece|orb|ev|house|yasam yolu|yasam yolunda)\b/gi, '')
+    .replace(/\b(kare|ucgen|kavusum|karsit|retrograde|retro)\b/gi, '')
+    .replace(/[,:;]\s*$/g, '')
+    .trim();
+}
+
+function toSingleSentence(value: string, fallback: string, maxLength = 160): string {
+  const normalized = normalizeAiCopy(value);
+  const parts = normalized.split(/[.!?]/).map((part) => part.trim()).filter(Boolean);
+  let sentence = parts[0] || fallback;
+  if (sentence.length > maxLength) {
+    sentence = sentence.slice(0, maxLength).replace(/\s+\S*$/, '').trim();
+  }
+  return sentence.endsWith('.') ? sentence : `${sentence}.`;
+}
+
+function dedupeLines(lines: string[]): string[] {
+  const seen = new Set<string>();
+  return lines.filter((line) => {
+    const key = line.toLowerCase();
+    if (!line || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
-  const chart = useNatalChartStore((s) => s.chart);
+  const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
+  const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
+  const cachedChart = useNatalChartStore((s) => s.chart);
+  const setCachedChart = useNatalChartStore((s) => s.setChart);
+  const isChartStale = useNatalChartStore((s) => s.isStale);
   const router = useRouter();
   const sliderRef = useRef<FlatList<(typeof SERVICE_SLIDES)[0]>>(null);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [activeWeeklyTab, setActiveWeeklyTab] = useState('msastro');
 
-  // Daily Secret state
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [expandedSwotId, setExpandedSwotId] = useState<string | null>(null);
+
   const [dailySecret, setDailySecret] = useState<DailySecret | null>(null);
   const [secretLoading, setSecretLoading] = useState(true);
   const [secretError, setSecretError] = useState(false);
+
+  const [skyPulse, setSkyPulse] = useState<SkyPulseResponse | null>(null);
+  const [skyPulseLoading, setSkyPulseLoading] = useState(true);
+  const [skyPulseError, setSkyPulseError] = useState(false);
+
+  const [weeklySwot, setWeeklySwot] = useState<WeeklySwotResponse | null>(null);
+  const [weeklyLoading, setWeeklyLoading] = useState(true);
+  const [weeklyError, setWeeklyError] = useState(false);
+  const [natalChart, setNatalChart] = useState<NatalChartResponse | null>(cachedChart);
+
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fade-in animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const moonGlow = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(moonGlow, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(moonGlow, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [moonGlow]);
 
   const loadDailySecret = useCallback(async () => {
     try {
@@ -83,13 +324,14 @@ export default function HomeScreen() {
       const response = await fetchDailySecret({
         name: user?.name ?? (`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || undefined),
         birthDate: user?.birthDate ?? undefined,
+        maritalStatus: user?.maritalStatus ?? onboardingMaritalStatus ?? undefined,
+        focusPoint: user?.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? undefined,
       });
       setDailySecret(response.data);
-      // Trigger fade-in
       fadeAnim.setValue(0);
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 500,
         useNativeDriver: true,
       }).start();
     } catch {
@@ -97,26 +339,82 @@ export default function HomeScreen() {
     } finally {
       setSecretLoading(false);
     }
-  }, [user]);
+  }, [fadeAnim, user]);
+
+  const loadSkyPulse = useCallback(async () => {
+    try {
+      setSkyPulseError(false);
+      const res = await fetchSkyPulse();
+      setSkyPulse(res.data);
+    } catch {
+      setSkyPulseError(true);
+    } finally {
+      setSkyPulseLoading(false);
+    }
+  }, []);
+
+  const loadWeeklySwot = useCallback(async () => {
+    if (!user?.id) {
+      setWeeklySwot(null);
+      setWeeklyLoading(false);
+      return;
+    }
+
+    try {
+      setWeeklyError(false);
+      const res = await fetchWeeklySwot(user.id);
+      setWeeklySwot(res.data);
+    } catch {
+      setWeeklyError(true);
+    } finally {
+      setWeeklyLoading(false);
+    }
+  }, [user?.id]);
+
+  const loadNatalChart = useCallback(async () => {
+    if (!user?.id) {
+      setNatalChart(null);
+      return;
+    }
+
+    if (cachedChart && cachedChart.userId === user.id && !isChartStale()) {
+      setNatalChart(cachedChart);
+      return;
+    }
+
+    try {
+      const response = await fetchLatestNatalChart(user.id);
+      setNatalChart(response.data);
+      setCachedChart(response.data);
+    } catch {
+      if (cachedChart && cachedChart.userId === user.id) {
+        setNatalChart(cachedChart);
+      }
+    }
+  }, [cachedChart, isChartStale, setCachedChart, user?.id]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setSecretLoading(true);
-    await loadDailySecret();
+    setSkyPulseLoading(true);
+    setWeeklyLoading(true);
+    await Promise.all([loadDailySecret(), loadSkyPulse(), loadWeeklySwot(), loadNatalChart()]);
     setRefreshing(false);
-  }, [loadDailySecret]);
+  }, [loadDailySecret, loadSkyPulse, loadWeeklySwot, loadNatalChart]);
 
   useEffect(() => {
     loadDailySecret();
-  }, [loadDailySecret]);
+    loadSkyPulse();
+    loadWeeklySwot();
+    loadNatalChart();
+  }, [loadDailySecret, loadSkyPulse, loadWeeklySwot, loadNatalChart]);
 
-  // Auto-slide
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveSlide((prev) => {
         const next = (prev + 1) % SERVICE_SLIDES.length;
         sliderRef.current?.scrollToOffset({
-          offset: next * SLIDE_WIDTH,
+          offset: next * SLIDE_SNAP,
           animated: true,
         });
         return next;
@@ -126,17 +424,130 @@ export default function HomeScreen() {
   }, []);
 
   const handleSliderScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / SLIDE_WIDTH);
+    const index = Math.round(event.nativeEvent.contentOffset.x / SLIDE_SNAP);
     setActiveSlide(index);
   };
 
-  const today = new Date();
-  const dateLabel = today.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
-  const name = user?.firstName || 'Misafir';
-  const fallbackQuote = FALLBACK_QUOTES[today.getDate() % FALLBACK_QUOTES.length];
+  const firstName = user?.firstName || '';
+  const lastName = user?.lastName || '';
+  const fullName = `${firstName} ${lastName}`.trim() || user?.name || 'Misafir';
+  const name = firstName || fullName;
+  const daySeed = new Date().getDay() + new Date().getDate();
+  const selectedFocus = user?.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? '';
+  const focusKey = normalizeFocus(selectedFocus);
+  const activeMaritalStatus = user?.maritalStatus || onboardingMaritalStatus || '';
 
-  // Extract insight for the message block
-  const secretText = dailySecret?.secret || null;
+  const aiInsightLines = useMemo(() => {
+    return dedupeLines(
+      [
+        normalizeAiCopy(dailySecret?.message),
+        normalizeAiCopy(dailySecret?.astrologyInsight),
+        normalizeAiCopy(dailySecret?.dreamInsight),
+        normalizeAiCopy(dailySecret?.numerologyInsight),
+        normalizeAiCopy(dailySecret?.secret),
+      ].filter(Boolean)
+    );
+  }, [
+    dailySecret?.astrologyInsight,
+    dailySecret?.dreamInsight,
+    dailySecret?.message,
+    dailySecret?.numerologyInsight,
+    dailySecret?.secret,
+  ]);
+
+  const secretText = useMemo(() => {
+    if (secretError) {
+      return toSingleSentence(
+        buildCuriousSecret(name, daySeed, focusKey, activeMaritalStatus, null),
+        `${name}, bugun sezgine guven.`,
+        110
+      );
+    }
+    return toSingleSentence(
+      dailySecret?.secret || dailySecret?.message || '',
+      buildCuriousSecret(name, daySeed, focusKey, activeMaritalStatus, dailySecret?.secret ?? null),
+      110
+    );
+  }, [activeMaritalStatus, dailySecret?.message, dailySecret?.secret, daySeed, focusKey, name, secretError]);
+
+  const dailyVibeText = useMemo(() => {
+    if (dailySecret?.dailyVibe) return dailySecret.dailyVibe;
+    const fallback = DAILY_VIBE_FALLBACKS[daySeed % DAILY_VIBE_FALLBACKS.length];
+    return buildDailyComment(fallback, focusKey, activeMaritalStatus);
+  }, [activeMaritalStatus, dailySecret?.dailyVibe, daySeed, focusKey]);
+
+  const transitDigest = useMemo(() => {
+    const focusLabel = getFocusLabel(focusKey);
+    const moonSign = skyPulse?.moonSignTurkish ?? '';
+    const risingSign = natalChart?.risingSign ?? '';
+    const sunSign = natalChart?.sunSign ?? '';
+    const identityTag = [sunSign, risingSign, moonSign].filter(Boolean).slice(0, 2).join(' - ');
+    const retrogrades = skyPulse?.retrogradePlanets ?? [];
+    const moonPhase = skyPulse?.moonPhase ?? '';
+
+    // Planetary energy assessment
+    const hasCriticalRetro = retrogrades.some((p) => p.includes('Merkür') || p.includes('Mars'));
+    const isDolunay = moonPhase.includes('Dolunay') || moonPhase.includes('Son Dördün');
+    const energyType: 'lucky' | 'mixed' | 'caution' =
+      hasCriticalRetro || retrogrades.length >= 3
+        ? 'caution'
+        : retrogrades.length > 0 || isDolunay
+          ? 'mixed'
+          : 'lucky';
+
+    const energyLabel =
+      energyType === 'caution'
+        ? `${retrogrades.slice(0, 2).join(' ve ')} retroda — temkinli, hesaplı ilerle`
+        : energyType === 'mixed' && retrogrades.length > 0
+          ? `${retrogrades[0]} retroda — bu alanda geri adım at ve gözden geçir`
+          : isDolunay
+            ? `${moonPhase} — duygular yoğun, farkındalıklı kal`
+            : moonPhase
+              ? `${moonPhase} enerjisi — gezegenler bugün seni destekliyor`
+              : 'Gezegenler bugün seni destekliyor — hamlelerini yap';
+
+    // Caution items from retrograde planets
+    const cautionItems: string[] = [];
+    for (const planet of retrogrades) {
+      for (const [key, msg] of Object.entries(RETRO_CAUTION_MAP)) {
+        if (planet.includes(key)) { cautionItems.push(msg); break; }
+      }
+    }
+    if (cautionItems.length === 0 && isDolunay) {
+      cautionItems.push('Dolunay duygularını yoğunlaştırır — dürtüsel kararlardan uzak dur.');
+    }
+
+    // Action items from focus + energy
+    const actionItems: string[] = (ACTION_MAP[focusKey] ?? ACTION_MAP.genel)[energyType] ?? [];
+
+    const headlineSource = aiInsightLines[0] || dailyVibeText;
+    const dynamicTitle = identityTag
+      ? `${identityTag} etkisi: ${toSingleSentence(headlineSource, headlineSource, 78).replace(/\.$/, '')}`
+      : toSingleSentence(headlineSource, headlineSource, 78).replace(/\.$/, '');
+
+    return {
+      title: dynamicTitle,
+      energyType,
+      energyLabel,
+      cautionItems: cautionItems.slice(0, 3),
+      actionItems: actionItems.slice(0, 2),
+    };
+  }, [
+    aiInsightLines,
+    dailyVibeText,
+    focusKey,
+    natalChart,
+    skyPulse?.moonSignTurkish,
+    skyPulse?.retrogradePlanets,
+    skyPulse?.moonPhase,
+  ]);
+
+  const swotDataMap: Record<string, SwotPoint | undefined> = {
+    strength: weeklySwot?.strength,
+    weakness: weeklySwot?.weakness,
+    opportunity: weeklySwot?.opportunity,
+    threat: weeklySwot?.threat,
+  };
 
   return (
     <View style={styles.container}>
@@ -154,7 +565,6 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Header */}
         <View style={styles.headerRow}>
           <View style={styles.profileBlock}>
             <View style={styles.avatar}>
@@ -170,29 +580,97 @@ export default function HomeScreen() {
               <Ionicons name="sparkles" size={18} color={COLORS.subtext} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="share-social" size={18} color={COLORS.subtext} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
               <Ionicons name="notifications" size={18} color={COLORS.subtext} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="chatbubble" size={18} color={COLORS.subtext} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Service Status */}
-        <ServiceStatus />
+        <Text style={styles.greetingText}>Merhaba {fullName}, bugun haritanda neler var bakalim.</Text>
 
-        {/* Service Slider */}
+        <View style={styles.transitSection}>
+          <Text style={styles.transitSectionTitle}>Bugünün Transitleri</Text>
+          <View style={styles.transitCard}>
+            {/* Başlık */}
+            <View style={styles.transitHeadlineRow}>
+              <View style={[
+                styles.transitDot,
+                {
+                  backgroundColor:
+                    transitDigest.energyType === 'lucky' ? '#11A773'
+                    : transitDigest.energyType === 'caution' ? '#C04A4A'
+                    : '#E08A00',
+                },
+              ]} />
+              <Text style={styles.transitHeadline}>{transitDigest.title}</Text>
+            </View>
+
+            {/* Gezegen Enerji Bandı */}
+            <View style={[
+              styles.energyBand,
+              {
+                backgroundColor:
+                  transitDigest.energyType === 'lucky' ? '#E6F7F1'
+                  : transitDigest.energyType === 'caution' ? '#FDECEA'
+                  : '#FFF4E0',
+              },
+            ]}>
+              <Text style={styles.energyBandIcon}>
+                {transitDigest.energyType === 'lucky' ? '🟢' : transitDigest.energyType === 'caution' ? '🔴' : '🟡'}
+              </Text>
+              <Text style={[
+                styles.energyBandText,
+                {
+                  color:
+                    transitDigest.energyType === 'lucky' ? '#0D6E49'
+                    : transitDigest.energyType === 'caution' ? '#7B2020'
+                    : '#7A4A00',
+                },
+              ]}>
+                {transitDigest.energyLabel}
+              </Text>
+            </View>
+
+            {/* Günün Enerjisi */}
+            <Text style={styles.transitDailyLabel}>Günün Enerjisi</Text>
+            <Text style={styles.transitDailyText}>{dailyVibeText}</Text>
+
+            {/* Bugün Yapabileceklerin */}
+            {transitDigest.actionItems.length > 0 && (
+              <View style={styles.transitDetailBox}>
+                <Text style={styles.transitBoxLabel}>⚡ Bugün Yapabileceklerin</Text>
+                {transitDigest.actionItems.map((line) => (
+                  <View key={line} style={styles.transitPointRow}>
+                    <Text style={styles.transitPointMark}>›</Text>
+                    <Text style={styles.transitPointText}>{line}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Dikkat Noktaları */}
+            {transitDigest.cautionItems.length > 0 && (
+              <View style={[styles.transitDetailBox, styles.transitCautionBox]}>
+                <Text style={[styles.transitBoxLabel, { color: '#9B3232' }]}>⚠️ Dikkat Noktaları</Text>
+                {transitDigest.cautionItems.map((line) => (
+                  <View key={line} style={styles.transitPointRow}>
+                    <Text style={[styles.transitPointMark, { color: '#9B3232' }]}>›</Text>
+                    <Text style={[styles.transitPointText, { color: '#5C1A1A' }]}>{line}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
         <FlatList
           ref={sliderRef}
           data={SERVICE_SLIDES}
           keyExtractor={(item) => item.id}
           horizontal
-          pagingEnabled
+          pagingEnabled={false}
           showsHorizontalScrollIndicator={false}
-          snapToInterval={SLIDE_WIDTH}
+          snapToInterval={SLIDE_SNAP}
+          snapToAlignment="start"
           decelerationRate="fast"
           onMomentumScrollEnd={handleSliderScrollEnd}
           contentContainerStyle={styles.sliderContainer}
@@ -212,126 +690,124 @@ export default function HomeScreen() {
 
         <View style={styles.sliderDots}>
           {SERVICE_SLIDES.map((item, index) => (
-            <View
-              key={item.id}
-              style={[styles.dot, index === activeSlide && styles.dotActive]}
-            />
+            <View key={item.id} style={[styles.dot, index === activeSlide && styles.dotActive]} />
           ))}
         </View>
 
-        {/* Daily Wisdom Card */}
         <View style={styles.wisdomCard}>
           <View style={styles.wisdomHeader}>
             <Ionicons name="eye" size={16} color={COLORS.primary} />
             <Text style={styles.wisdomTitle}>Gunun Sirri</Text>
+            <View style={styles.wisdomBadge}>
+              <Text style={styles.wisdomBadgeText}>Kisisel Mesaj</Text>
+            </View>
           </View>
 
           {secretLoading ? (
             <View style={styles.wisdomLoading}>
               <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.wisdomLoadingText}>Yildizlar okunuyor...</Text>
+              <Text style={styles.wisdomLoadingText}>Mesaj hazirlaniyor...</Text>
             </View>
           ) : (
             <Animated.View style={{ opacity: fadeAnim }}>
-              <Text style={styles.wisdomIntro}>
-                Iyi gunler {name}, {dateLabel} gunu icin,
-              </Text>
-              <Text style={styles.wisdomText}>
-                {secretError ? fallbackQuote : secretText || fallbackQuote}
-              </Text>
-
-              {dailySecret?.astrologyInsight && (
-                <View style={styles.insightRow}>
-                  <Ionicons name="planet" size={13} color={COLORS.primary} />
-                  <Text style={styles.insightText} numberOfLines={2}>
-                    {dailySecret.astrologyInsight}
-                  </Text>
-                </View>
-              )}
-              {chart?.risingSign && (
-                <View style={styles.insightRow}>
-                  <Ionicons name="planet" size={13} color={COLORS.accent} />
-                  <Text style={styles.insightText} numberOfLines={2}>
-                    {getZodiacInfo(chart.risingSign).symbol} {getZodiacInfo(chart.risingSign).name} Yukseleni olarak bugun kozmik enerjilere acik ol.
-                  </Text>
-                </View>
-              )}
-              {dailySecret?.numerologyInsight && (
-                <View style={styles.insightRow}>
-                  <Ionicons name="calculator" size={13} color={COLORS.primary} />
-                  <Text style={styles.insightText} numberOfLines={2}>
-                    {dailySecret.numerologyInsight}
-                  </Text>
-                </View>
-              )}
-
-              {secretError && (
-                <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-                  <Ionicons name="refresh" size={14} color={COLORS.primary} />
-                  <Text style={styles.retryText}>Tekrar dene</Text>
-                </TouchableOpacity>
-              )}
+              <Text style={styles.wisdomText}>{secretText}</Text>
             </Animated.View>
           )}
         </View>
 
-        {/* Note block */}
-        <View style={styles.noteBlock}>
-          <View style={styles.dottedLine} />
-          <Ionicons name="arrow-down" size={18} color={COLORS.subtext} />
-          <TouchableOpacity style={styles.noteButton}>
-            <Text style={styles.noteButtonText}>Gelecege not birak</Text>
+        {skyPulseLoading ? (
+          <View style={[styles.skyPulseCard, styles.skyPulseCenter]}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.skyPulseLoadingText}>Gokyuzu okunuyor...</Text>
+          </View>
+        ) : skyPulseError || !skyPulse ? (
+          <TouchableOpacity style={[styles.skyPulseCard, styles.skyPulseCenter]} onPress={loadSkyPulse}>
+            <Ionicons name="cloud-offline-outline" size={20} color={COLORS.subtext} />
+            <Text style={styles.skyPulseLoadingText}>Gokyuzu verisi yuklenemedi</Text>
           </TouchableOpacity>
-        </View>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/calendar')}
+            style={styles.skyPulseCard}
+          >
+            <View style={styles.skyPulseLeft}>
+              <Animated.Text
+                style={[
+                  styles.skyPulseMoonIcon,
+                  {
+                    opacity: moonGlow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
+                    transform: [{ scale: moonGlow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }],
+                  },
+                ]}
+              >
+                {getMoonPhaseIcon(skyPulse.moonPhase)}
+              </Animated.Text>
+            </View>
+            <View style={styles.skyPulseRight}>
+              <Text style={styles.skyPulseSign}>
+                {skyPulse.moonSignSymbol} {skyPulse.moonSignTurkish}
+              </Text>
+              <Text style={styles.skyPulsePhase}>{skyPulse.moonPhase}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.primary} style={{ opacity: 0.6 }} />
+          </TouchableOpacity>
+        )}
 
-        {/* Weekly comment */}
-        <Text style={styles.weeklyHeading}>Haftalik mistik yorum</Text>
-        <Text style={styles.weeklySubheading}>
-          {today.getDate()}-{today.getDate() + 6}{' '}
-          {today.toLocaleDateString('tr-TR', { month: 'long' })} haftasi yorumunuz
-        </Text>
+        {/* Collective Dream Pulse Widget */}
+        <CollectivePulseWidget onPress={() => router.push('/(tabs)/dreams')} />
 
-        <View style={styles.weeklyCard}>
-          <View style={styles.weeklyTabs}>
-            {WEEKLY_TABS.map((tab) => {
-              const selected = activeWeeklyTab === tab.id;
+        <ServiceStatus />
+
+        <View style={styles.swotSection}>
+          <Text style={styles.swotSectionTitle}>Haritanda bu hafta</Text>
+
+          {weeklyLoading ? (
+            <View style={styles.swotLoadingCard}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.swotLoadingText}>SWOT analizi yukleniyor...</Text>
+            </View>
+          ) : weeklyError || !weeklySwot ? (
+            <TouchableOpacity style={styles.swotLoadingCard} onPress={loadWeeklySwot}>
+              <Ionicons name="refresh" size={16} color={COLORS.primary} />
+              <Text style={styles.swotLoadingText}>SWOT analizi alinmadi, tekrar dene</Text>
+            </TouchableOpacity>
+          ) : (
+            SWOT_ITEMS.map((item) => {
+              const swotPoint = swotDataMap[item.id];
+              const isExpanded = expandedSwotId === item.id;
               return (
                 <TouchableOpacity
-                  key={tab.id}
-                  style={[styles.weeklyTab, selected && styles.weeklyTabSelected]}
-                  onPress={() => setActiveWeeklyTab(tab.id)}
+                  key={item.id}
+                  style={[styles.swotCard, { backgroundColor: item.surface, borderColor: `${item.accent}55` }]}
+                  activeOpacity={0.85}
+                  onPress={() => setExpandedSwotId((prev) => (prev === item.id ? null : item.id))}
                 >
-                  <Text style={[styles.weeklyTabText, selected && styles.weeklyTabTextSelected]}>
-                    {tab.title}
-                  </Text>
-                  {tab.subtitle && (
-                    <Text style={styles.weeklyTabSubtitle}>{tab.subtitle}</Text>
+                  <View style={styles.swotCardHeader}>
+                    <View style={styles.swotCardHeadLeft}>
+                      <Text style={styles.swotCardIcon}>{item.icon}</Text>
+                      <Text style={[styles.swotCardTitle, { color: item.accent }]}>{item.title}</Text>
+                    </View>
+                    <Ionicons
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={item.accent}
+                    />
+                  </View>
+
+                  <Text style={styles.swotCardHeadlineDark}>{swotPoint?.headline ?? 'Bu alan bu hafta aktif.'}</Text>
+                  <Text style={styles.swotCardSub}>{swotPoint?.subtext ?? 'Detaylari acmak icin karti sec.'}</Text>
+
+                  {isExpanded && swotPoint && (
+                    <View style={styles.swotCardBody}>
+                      <Text style={styles.swotCardTip}>Ipuclari: {swotPoint.quickTip}</Text>
+                    </View>
                   )}
+                  <View style={[styles.swotCardBar, { backgroundColor: item.accent }]} />
                 </TouchableOpacity>
               );
-            })}
-          </View>
-
-          <View style={styles.weeklySigns}>
-            <View style={styles.signItem}>
-              <Ionicons name="sparkles" size={14} color={COLORS.subtext} />
-              <Text style={styles.signText}>
-                {chart ? getZodiacInfo(chart.sunSign).name : (user?.zodiacSign || 'Burcu yok')}
-              </Text>
-            </View>
-            <View style={styles.signItem}>
-              <Ionicons name="arrow-up" size={14} color={COLORS.subtext} />
-              <Text style={styles.signText}>
-                {chart ? getZodiacInfo(chart.risingSign).name : 'Yukselen'}
-              </Text>
-            </View>
-            <View style={styles.signItem}>
-              <Ionicons name="moon" size={14} color={COLORS.subtext} />
-              <Text style={styles.signText}>
-                {chart ? getZodiacInfo(chart.moonSign).name : 'Ay'}
-              </Text>
-            </View>
-          </View>
+            })
+          )}
         </View>
       </ScrollView>
     </View>
@@ -392,15 +868,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sliderContainer: {
-    paddingHorizontal: 24,
+  greetingText: {
+    marginHorizontal: 20,
+    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2E2E3D',
+  },
+  skyPulseCard: {
+    marginHorizontal: 20,
     marginTop: 10,
+    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(157, 78, 221, 0.25)',
+    gap: 12,
+  },
+  skyPulseLeft: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(157, 78, 221, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skyPulseMoonIcon: {
+    fontSize: 26,
+  },
+  skyPulseRight: {
+    flex: 1,
+    gap: 2,
+  },
+  skyPulseSign: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  skyPulsePhase: {
+    fontSize: 11,
+    color: COLORS.subtext,
+    fontStyle: 'italic',
+  },
+  skyPulseCenter: {
+    justifyContent: 'center',
+  },
+  skyPulseLoadingText: {
+    fontSize: 12,
+    color: COLORS.subtext,
+    fontStyle: 'italic',
+  },
+  sliderContainer: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    marginTop: 12,
   },
   sliderCard: {
     width: SLIDE_WIDTH,
-    height: 38,
+    height: 50,
     backgroundColor: COLORS.accent,
-    borderRadius: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#3C55A8',
+    shadowColor: '#2E4A9C',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    elevation: 3,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -411,14 +947,15 @@ const styles = StyleSheet.create({
   },
   sliderText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
   sliderDots: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 6,
     marginTop: 10,
+    marginBottom: 2,
   },
   dot: {
     width: 6,
@@ -430,22 +967,145 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     width: 14,
   },
-
-  // Daily Wisdom Card
-  wisdomCard: {
-    marginTop: 18,
+  transitSection: {
     marginHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    marginTop: 8,
+  },
+  transitSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#5A4D6F',
+    marginBottom: 8,
+  },
+  transitCard: {
+    backgroundColor: '#F5ECFF',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1.5,
+    borderColor: '#D0B2F0',
+    shadowColor: '#8F58D8',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  transitHeadlineRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  transitDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 10,
+    marginTop: 4,
+  },
+  transitHeadline: {
+    flex: 1,
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '800',
+    color: '#235C4C',
+  },
+  energyBand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  energyBandIcon: {
+    fontSize: 14,
+  },
+  energyBandText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  transitDailyLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7E4BCF',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  transitDailyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#1F1F2A',
+    marginBottom: 10,
+  },
+  transitDetailBox: {
+    backgroundColor: '#EDE0F8',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#D0B8EA',
+    gap: 6,
+    marginBottom: 8,
+  },
+  transitCautionBox: {
+    backgroundColor: '#FDECEA',
+    borderColor: '#F5BFBF',
+  },
+  transitBoxLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5A2D8A',
+    marginBottom: 4,
+  },
+  transitPointRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  transitPointMark: {
+    marginRight: 6,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#5A2D8A',
+    fontWeight: '700',
+  },
+  transitPointText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#292934',
+  },
+  wisdomCard: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    backgroundColor: '#FFF8EA',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#F2D9A8',
   },
   wisdomHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  wisdomBadge: {
+    marginLeft: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#F0E6FF',
+    borderWidth: 1,
+    borderColor: '#D8C1F5',
+  },
+  wisdomBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#7E4BCF',
   },
   wisdomTitle: {
     fontSize: 13,
@@ -454,147 +1114,108 @@ const styles = StyleSheet.create({
   },
   wisdomLoading: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
     gap: 8,
   },
   wisdomLoadingText: {
     fontSize: 12,
     color: COLORS.subtext,
-    fontStyle: 'italic',
-  },
-  wisdomIntro: {
-    fontSize: 12,
-    color: COLORS.subtext,
-    marginBottom: 8,
   },
   wisdomText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text,
-    lineHeight: 22,
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#362713',
+    lineHeight: 30,
   },
-  insightRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: 12,
-    color: COLORS.subtext,
-    lineHeight: 17,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    gap: 4,
-    marginTop: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: COLORS.primarySoft,
-  },
-  retryText: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-
-  // Note block
-  noteBlock: {
-    marginTop: 16,
-    alignItems: 'center',
-    gap: 10,
-  },
-  dottedLine: {
-    height: 22,
-    borderLeftWidth: 1,
-    borderStyle: 'dotted',
-    borderColor: COLORS.border,
-  },
-  noteButton: {
-    backgroundColor: '#EFEAF7',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  noteButtonText: {
-    fontSize: 13,
-    color: COLORS.text,
-    fontWeight: '600',
-  },
-
-  // Weekly
-  weeklyHeading: {
-    marginTop: 18,
-    textAlign: 'center',
-    fontSize: 14,
-    color: COLORS.subtext,
-    fontWeight: '600',
-  },
-  weeklySubheading: {
-    marginTop: 6,
-    textAlign: 'center',
-    fontSize: 13,
-    color: COLORS.subtext,
-  },
-  weeklyCard: {
-    marginTop: 12,
+  swotSection: {
+    marginTop: 14,
     marginHorizontal: 20,
-    backgroundColor: COLORS.primarySoft,
-    borderRadius: 16,
-    padding: 12,
-  },
-  weeklyTabs: {
-    flexDirection: 'row',
     gap: 10,
   },
-  weeklyTab: {
-    flex: 1,
+  swotSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  swotLoadingCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
-  },
-  weeklyTabSelected: {
-    backgroundColor: '#DCD5F5',
-    borderColor: '#DCD5F5',
-  },
-  weeklyTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  weeklyTabTextSelected: {
-    color: COLORS.primary,
-  },
-  weeklyTabSubtitle: {
-    marginTop: 2,
-    fontSize: 10,
-    color: COLORS.subtext,
-  },
-  weeklySigns: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#D6CFE3',
-  },
-  signItem: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  swotLoadingText: {
+    color: COLORS.subtext,
+    fontSize: 12,
+  },
+  swotCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#DED4EC',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  swotCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  swotCardHeadLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  swotCardIcon: {
+    fontSize: 18,
+  },
+  swotCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  swotCardHeadlineDark: {
+    marginTop: 10,
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: '#1E1E1E',
+  },
+  swotCardSub: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#5B5B68',
+    lineHeight: 18,
+  },
+  swotCardBody: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#D7CCE8',
+    paddingTop: 10,
     gap: 6,
   },
-  signText: {
+  swotCardHeadline: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  swotCardDetail: {
     fontSize: 12,
     color: COLORS.subtext,
+    lineHeight: 18,
+  },
+  swotCardTip: {
+    fontSize: 12,
+    color: COLORS.text,
+  },
+  swotCardBar: {
+    marginTop: 10,
+    height: 4,
+    borderRadius: 999,
   },
 });

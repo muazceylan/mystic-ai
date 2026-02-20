@@ -1,11 +1,13 @@
 {
   "expo": {
     "name": "Mystic AI",
-    "slug": "mystic-ai",
+    "slug": "mystic",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mysticai.app",
@@ -21,6 +23,15 @@
     "scheme": "mystic-ai",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ae6fd7e4-2d11-45f8-828c-d916782b852f"
+      }
+    },
+    "owner": "mystic-apis-organization"
   }
 }

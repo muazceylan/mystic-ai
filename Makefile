@@ -60,8 +60,6 @@ run-gateway: ## Run API Gateway - Port 8080
 run-auth: ## Run Auth Service - Port 8081
 	cd auth-service && mvn spring-boot:run
 
-run-tarot: ## Run Tarot Service - Port 8082
-	cd tarot-service && mvn spring-boot:run
 
 run-astrology: ## Run Astrology Service - Port 8083
 	cd astrology-service && mvn spring-boot:run

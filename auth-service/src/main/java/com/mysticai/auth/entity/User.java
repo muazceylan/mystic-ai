@@ -78,11 +78,15 @@ public class User {
     @Column(name = "marital_status", length = 30)
     private String maritalStatus;
 
-    @Column(name = "focus_point", length = 50)
+    @Column(name = "focus_point", length = 200)
     private String focusPoint;
 
     @Column(name = "zodiac_sign", length = 50)
     private String zodiacSign;
+
+    @Column(name = "preferred_language", length = 5)
+    @Builder.Default
+    private String preferredLanguage = "tr";
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))

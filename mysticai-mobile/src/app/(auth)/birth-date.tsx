@@ -1,38 +1,35 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import OnboardingBackground from '../../components/OnboardingBackground';
+import CalendarPicker from '../../components/CalendarPicker';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { getZodiacSign } from '../../constants/index';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-};
+import { COLORS } from '../../constants/colors';
 
 export default function BirthDateScreen() {
   const store = useOnboardingStore();
   const [showPicker, setShowPicker] = useState(false);
-  const [tempDate, setTempDate] = useState(new Date());
+  const [tempDate, setTempDate] = useState<Date | null>(store.birthDate);
 
   const handleConfirm = () => {
-    store.setBirthDate(tempDate);
-    const zodiac = getZodiacSign(tempDate.getMonth() + 1, tempDate.getDate());
-    store.setZodiacSign(zodiac);
+    if (tempDate) {
+      store.setBirthDate(tempDate);
+      const zodiac = getZodiacSign(tempDate.getMonth() + 1, tempDate.getDate());
+      store.setZodiacSign(zodiac);
+    }
     setShowPicker(false);
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('tr-TR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    const day = date.getDate();
+    const months = [
+      'Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran',
+      'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik',
+    ];
+    return `${day} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   const canContinue = Boolean(store.birthDate);
@@ -42,15 +39,21 @@ export default function BirthDateScreen() {
       <OnboardingBackground />
 
       <View style={styles.content}>
-        <Text style={styles.title}>Doğum Tarihiniz?</Text>
+        <Text style={styles.title}>Dogum Tarihiniz?</Text>
         <Text style={styles.subtitle}>
-          Sizi analiz edebilmem için doğum tarihinizi giriniz
+          Sizi analiz edebilmem icin dogum tarihinizi giriniz
         </Text>
 
         <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
+          <Ionicons name="calendar-outline" size={20} color={store.birthDate ? COLORS.primary : COLORS.disabledText} />
           <Text style={[styles.inputText, !store.birthDate && styles.placeholder]}>
-            {store.birthDate ? formatDate(store.birthDate) : 'Gün / Ay / Yıl'}
+            {store.birthDate ? formatDate(store.birthDate) : 'Tarih secin'}
           </Text>
+          {store.birthDate && (
+            <Animated.View entering={FadeIn.duration(300)}>
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+            </Animated.View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -69,63 +72,62 @@ export default function BirthDateScreen() {
         </TouchableOpacity>
       </View>
 
-      {showPicker && (
-        <View style={styles.pickerModal}>
-          <View style={styles.pickerContent}>
-            <Text style={styles.pickerTitle}>Tarih Seçin</Text>
-            <View style={styles.dateRow}>
-              <TextInput
-                style={styles.dateInput}
-                value={tempDate.getDate().toString().padStart(2, '0')}
-                onChangeText={(text) => {
-                  const newDate = new Date(tempDate);
-                  newDate.setDate(parseInt(text, 10) || 1);
-                  setTempDate(newDate);
-                }}
-                keyboardType="number-pad"
-                maxLength={2}
-                placeholder="GG"
-                placeholderTextColor={COLORS.disabledText}
-              />
-              <Text style={styles.dateSeparator}>/</Text>
-              <TextInput
-                style={styles.dateInput}
-                value={(tempDate.getMonth() + 1).toString().padStart(2, '0')}
-                onChangeText={(text) => {
-                  const newDate = new Date(tempDate);
-                  newDate.setMonth(parseInt(text, 10) - 1);
-                  setTempDate(newDate);
-                }}
-                keyboardType="number-pad"
-                maxLength={2}
-                placeholder="AA"
-                placeholderTextColor={COLORS.disabledText}
-              />
-              <Text style={styles.dateSeparator}>/</Text>
-              <TextInput
-                style={styles.dateInput}
-                value={tempDate.getFullYear().toString()}
-                onChangeText={(text) => {
-                  const newDate = new Date(tempDate);
-                  newDate.setFullYear(parseInt(text, 10) || new Date().getFullYear());
-                  setTempDate(newDate);
-                }}
-                keyboardType="number-pad"
-                maxLength={4}
-                placeholder="YYYY"
-                placeholderTextColor={COLORS.disabledText}
-              />
+      {/* Material Design 3 style calendar modal */}
+      <Modal visible={showPicker} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {/* M3 Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalLabel}>Tarih secin</Text>
+              <Text style={styles.modalSelectedDate}>
+                {tempDate ? formatDate(tempDate) : 'Henuz secilmedi'}
+              </Text>
             </View>
 
-            <TouchableOpacity style={styles.pickerPrimaryButton} onPress={handleConfirm}>
-              <Text style={styles.pickerPrimaryText}>Tamam</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.pickerSecondaryButton} onPress={() => setShowPicker(false)}>
-              <Text style={styles.pickerSecondaryText}>İptal</Text>
-            </TouchableOpacity>
+            <View style={styles.modalDivider} />
+
+            {/* Calendar */}
+            <ScrollView
+              style={styles.calendarScroll}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <CalendarPicker
+                selectedDate={tempDate}
+                onSelect={setTempDate}
+                maximumDate={new Date()}
+                minimumDate={new Date(1920, 0, 1)}
+              />
+            </ScrollView>
+
+            <View style={styles.modalDivider} />
+
+            {/* M3 Action buttons */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalTextButton}
+                onPress={() => setShowPicker(false)}
+              >
+                <Text style={styles.modalTextButtonLabel}>Iptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalTextButton, !tempDate && styles.modalTextButtonDisabled]}
+                onPress={handleConfirm}
+                disabled={!tempDate}
+              >
+                <Text
+                  style={[
+                    styles.modalTextButtonLabel,
+                    !tempDate && styles.modalTextButtonLabelDisabled,
+                  ]}
+                >
+                  Tamam
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }
@@ -161,8 +163,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   inputText: {
+    flex: 1,
     fontSize: 16,
     color: COLORS.text,
   },
@@ -178,7 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -190,7 +196,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
     backgroundColor: COLORS.primary,
@@ -206,74 +212,73 @@ const styles = StyleSheet.create({
   primaryTextDisabled: {
     color: COLORS.disabledText,
   },
-  pickerModal: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  // M3 Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
-  pickerContent: {
+  modalCard: {
+    width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    width: '82%',
+    borderRadius: 28,
+    overflow: 'hidden',
+    maxHeight: '85%',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
   },
-  pickerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  modalHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.subtext,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  modalSelectedDate: {
+    fontSize: 22,
+    fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 16,
-    textAlign: 'center',
   },
-  dateRow: {
+  modalDivider: {
+    height: 1,
+    backgroundColor: '#E6E1EA',
+  },
+  calendarScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  modalActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
   },
-  dateInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
+  modalTextButton: {
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: COLORS.text,
-    textAlign: 'center',
-    width: 60,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
-  dateSeparator: {
-    color: COLORS.subtext,
-    fontSize: 18,
-    marginHorizontal: 6,
+  modalTextButtonDisabled: {
+    opacity: 0.4,
   },
-  pickerPrimaryButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  pickerPrimaryText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  pickerSecondaryButton: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  pickerSecondaryText: {
-    color: COLORS.subtext,
+  modalTextButtonLabel: {
     fontSize: 14,
     fontWeight: '600',
+    color: COLORS.primary,
+  },
+  modalTextButtonLabelDisabled: {
+    color: COLORS.disabledText,
   },
 });

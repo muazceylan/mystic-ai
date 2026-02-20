@@ -35,11 +35,13 @@ public class OracleController {
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader(value = "X-Username", required = false) String username,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String birthDate) {
-        
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String maritalStatus,
+            @RequestParam(required = false) String focusPoint) {
+
         log.info("Daily secret requested for user: {} ({})", userId, username);
-        
-        return oracleService.getDailySecret(userId, name, birthDate)
+
+        return oracleService.getDailySecret(userId, name, birthDate, maritalStatus, focusPoint)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }

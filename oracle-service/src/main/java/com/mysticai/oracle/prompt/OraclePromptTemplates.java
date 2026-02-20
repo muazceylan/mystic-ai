@@ -45,12 +45,18 @@ public class OraclePromptTemplates {
         }
         prompt.append("\\n");
         
-        // Current Transits
+        // Current Sky Data
         prompt.append("## GUNCEL GOKYUZU TRANSITLERI\\n");
-        if (request.currentTransits() != null && !request.currentTransits().isEmpty()) {
-            prompt.append(request.currentTransits()).append("\\n");
+        if (request.moonPhase() != null) {
+            prompt.append("- Ay Evresi: ").append(request.moonPhase()).append("\\n");
+        }
+        if (request.moonSignToday() != null) {
+            prompt.append("- Ay Burcu: ").append(request.moonSignToday()).append("\\n");
+        }
+        if (request.retrogradePlanets() != null && !request.retrogradePlanets().isEmpty()) {
+            prompt.append("- Retrograd Gezegenler: ").append(String.join(", ", request.retrogradePlanets())).append("\\n");
         } else {
-            prompt.append("(Bugun icin ozel transit bilgisi mevcut degil)\\n");
+            prompt.append("(Bugun aktif retrograd gezegen yok)\\n");
         }
         prompt.append("\\n");
         

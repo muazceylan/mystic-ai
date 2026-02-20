@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.dto.*;
 import com.mysticai.astrology.entity.ZodiacSign;
 import com.mysticai.astrology.service.AstrologyService;
+import com.mysticai.astrology.service.LuckyDatesService;
+import com.mysticai.astrology.service.SkyPulseService;
+import com.mysticai.astrology.service.WeeklySwotService;
 import com.mysticai.common.event.AiAnalysisEvent;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,9 @@ import java.util.UUID;
 public class AstrologyController {
 
     private final AstrologyService astrologyService;
+    private final LuckyDatesService luckyDatesService;
+    private final SkyPulseService skyPulseService;
+    private final WeeklySwotService weeklySwotService;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
@@ -161,6 +167,51 @@ public class AstrologyController {
                 "correlationId", event.correlationId(),
                 "status", "PROCESSING"
         ));
+    }
+
+    /**
+     * Calculate lucky dates for a goal category based on natal chart and transits
+     */
+    @PostMapping("/lucky-dates")
+    public ResponseEntity<LuckyDatesResponse> calculateLuckyDates(
+            @Valid @RequestBody LuckyDatesRequest request
+    ) {
+        LuckyDatesResponse response = luckyDatesService.calculateLuckyDates(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Get all lucky dates results for a user
+     */
+    @GetMapping("/lucky-dates/user/{userId}")
+    public ResponseEntity<List<LuckyDatesResponse>> getLuckyDatesByUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(luckyDatesService.getLuckyDatesByUser(userId));
+    }
+
+    /**
+     * Poll for lucky dates AI completion by correlationId
+     */
+    @GetMapping("/lucky-dates/{correlationId}")
+    public ResponseEntity<LuckyDatesResponse> getLuckyDatesByCorrelationId(
+            @PathVariable UUID correlationId
+    ) {
+        return ResponseEntity.ok(luckyDatesService.getLuckyDatesByCorrelationId(correlationId));
+    }
+
+    /**
+     * Get weekly SWOT analysis based on user's natal chart and current transits
+     */
+    @GetMapping("/weekly-swot")
+    public ResponseEntity<WeeklySwotResponse> getWeeklySwot(@RequestParam Long userId) {
+        return ResponseEntity.ok(weeklySwotService.getWeeklySwot(userId));
+    }
+
+    /**
+     * Get today's Sky Pulse - moon sign, phase, retrogrades, and daily vibe
+     */
+    @GetMapping("/sky-pulse")
+    public ResponseEntity<SkyPulseResponse> getSkyPulse() {
+        return ResponseEntity.ok(skyPulseService.getSkyPulse());
     }
 
     /**

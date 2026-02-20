@@ -33,7 +33,6 @@
 | :--- | :--- | :--- |
 | **API Gateway** | `8080` | Tek giriş noktası, JWT Filtreleme, Dinamik Routing |
 | **Auth Service** | `8081` | Manuel & Sosyal Kayıt/Giriş, Profil ve Role Yönetimi |
-| **Tarot Service** | `8082` | Kart seçim algoritmaları ve anlam kütüphanesi |
 | **Astrology Service** | `8083` | Natal Chart hesaplama (Güneş, Ay, Yükselen konumları) |
 | **AI Orchestrator** | `8084` | LLM Gateway. Prompt zenginleştirme ve AI Model seçimi |
 | **Numerology Service** | `8085` | İsim ve doğum tarihi tabanlı kader sayısı analizleri |
@@ -117,7 +116,6 @@ docker exec -it mystic-postgres psql -U mystic -l
 
 # Beklenen veritabanları:
 # - mystic_auth
-# - mystic_tarot
 # - mystic_astrology
 # - mystic_dream
 # - mystic_oracle
@@ -160,7 +158,6 @@ java -jar ai-orchestrator/target/ai-orchestrator-*.jar &
 sleep 5
 
 # 4. Diğer servisler (paralel başlatılabilir)
-java -jar tarot-service/target/tarot-service-*.jar &
 java -jar astrology-service/target/astrology-service-*.jar &
 java -jar numerology-service/target/numerology-service-*.jar &
 java -jar dream-service/target/dream-service-*.jar &
@@ -187,7 +184,6 @@ echo "🧹 Eski process'ler temizleniyor..."
 pkill -f "service-registry" || true
 pkill -f "auth-service" || true
 pkill -f "ai-orchestrator" || true
-pkill -f "tarot-service" || true
 pkill -f "astrology-service" || true
 pkill -f "numerology-service" || true
 pkill -f "dream-service" || true
@@ -217,10 +213,6 @@ sleep 5
 echo "🤖 AI Orchestrator..."
 nohup java -jar ai-orchestrator/target/ai-orchestrator-*.jar > logs/ai.log 2>&1 &
 sleep 5
-
-# 3. Business Services
-echo "🃏 Tarot Service..."
-nohup java -jar tarot-service/target/tarot-service-*.jar > logs/tarot.log 2>&1 &
 
 echo "⭐ Astrology Service..."
 nohup java -jar astrology-service/target/astrology-service-*.jar > logs/astrology.log 2>&1 &
@@ -269,7 +261,7 @@ mkdir -p logs
 docker-compose up -d
 
 # Veya sadece backend servisleri
-docker-compose up -d service-registry auth-service ai-orchestrator tarot-service astrology-service numerology-service dream-service oracle-service notification-service vision-service api-gateway
+docker-compose up -d service-registry auth-service ai-orchestrator astrology-service numerology-service dream-service oracle-service notification-service vision-service api-gateway
 
 # Logları izle
 docker-compose logs -f api-gateway
@@ -294,7 +286,6 @@ docker-compose logs -f api-gateway
 ├──────────────┼────────┼─────────────────────────────────────┤
 │ API Gateway  │ 8080   │ Ana API Girişi                      │
 │ Auth         │ 8081   │ JWT Authentication                  │
-│ Tarot        │ 8082   │ Tarot Card Reading                  │
 │ Astrology    │ 8083   │ Natal Chart & Horoscope             │
 │ AI Orchestr. │ 8084   │ AI Interpretation Engine            │
 │ Numerology   │ 8085   │ Pythagorean Numerology              │

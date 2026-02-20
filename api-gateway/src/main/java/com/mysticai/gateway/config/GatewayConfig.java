@@ -15,13 +15,21 @@ public class GatewayConfig {
                 .route("auth-service", r -> r
                         .path("/api/auth/**")
                         .uri("lb://auth-service"))
-                // Tarot Service
-                .route("tarot-service", r -> r
-                        .path("/api/tarot/**")
-                        .uri("lb://tarot-service"))
                 // Astrology Service
                 .route("astrology-service", r -> r
                         .path("/api/v1/astrology/**")
+                        .uri("lb://astrology-service"))
+                // Dream Journal (hosted in astrology-service)
+                .route("dream-journal", r -> r
+                        .path("/api/v1/dreams/**")
+                        .uri("lb://astrology-service"))
+                // Saved People (hosted in astrology-service)
+                .route("saved-people", r -> r
+                        .path("/api/v1/people/**")
+                        .uri("lb://astrology-service"))
+                // Synastry (hosted in astrology-service)
+                .route("synastry", r -> r
+                        .path("/api/v1/synastry/**")
                         .uri("lb://astrology-service"))
                 // Numerology Service
                 .route("numerology-service", r -> r
@@ -55,9 +63,6 @@ public class GatewayConfig {
                 .route("auth-service-docs", r -> r
                         .path("/auth-service/v3/api-docs")
                         .uri("lb://auth-service/v3/api-docs"))
-                .route("tarot-service-docs", r -> r
-                        .path("/tarot-service/v3/api-docs")
-                        .uri("lb://tarot-service/v3/api-docs"))
                 .route("astrology-service-docs", r -> r
                         .path("/astrology-service/v3/api-docs")
                         .uri("lb://astrology-service/v3/api-docs"))

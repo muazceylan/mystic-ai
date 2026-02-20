@@ -1,10 +1,44 @@
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useMemo } from 'react';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import OnboardingProgressBar from '../../components/OnboardingProgressBar';
+
+const ONBOARDING_STEPS = [
+  'email-register',
+  'birth-date',
+  'birth-time',
+  'birth-country',
+  'birth-city',
+  'gender',
+  'marital-status',
+  'focus-point',
+  'natal-chart',
+];
 
 export default function AuthLayout() {
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
+
+  const stepInfo = useMemo(() => {
+    const screenName = pathname.split('/').pop() || '';
+    const index = ONBOARDING_STEPS.indexOf(screenName);
+    if (index === -1) return null;
+    return { current: index + 1, total: ONBOARDING_STEPS.length };
+  }, [pathname]);
+
   return (
     <>
       <StatusBar style="dark" />
+      {stepInfo && (
+        <View style={{ paddingTop: insets.top, backgroundColor: '#F9F7FB' }}>
+          <OnboardingProgressBar
+            currentStep={stepInfo.current}
+            totalSteps={stepInfo.total}
+          />
+        </View>
+      )}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -12,6 +46,7 @@ export default function AuthLayout() {
             backgroundColor: '#F9F7FB',
           },
           animation: 'slide_from_right',
+          animationDuration: 250,
         }}
       >
         <Stack.Screen name="welcome" />
