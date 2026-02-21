@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import OnboardingBackground from '../components/OnboardingBackground';
 import { COLORS } from '../constants/colors';
+import { SafeScreen } from '../components/ui';
 
 const FAQ = [
   {
@@ -43,8 +44,9 @@ export default function HelpScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -110,7 +112,8 @@ export default function HelpScreen() {
 
         <Text style={styles.version}>Mystic AI v1.0.0 · destek@mystic.ai</Text>
       </ScrollView>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

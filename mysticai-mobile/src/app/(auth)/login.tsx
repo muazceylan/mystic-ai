@@ -15,6 +15,7 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useAuthStore } from '../../store/useAuthStore';
 import { login as loginApi } from '../../services/auth';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 export default function LoginScreen() {
   const storeLogin = useAuthStore((s) => s.login);
@@ -50,11 +51,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <OnboardingBackground />
+    <SafeScreen>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <OnboardingBackground />
 
       <TouchableOpacity
         style={styles.backButton}
@@ -143,7 +145,8 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeScreen>
   );
 }
 

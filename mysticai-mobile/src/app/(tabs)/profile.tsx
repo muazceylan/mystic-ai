@@ -17,6 +17,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { getZodiacSign } from '../../constants/index';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
 
@@ -109,9 +110,10 @@ export default function ProfileScreen() {
   const S = makeStyles(colors);
 
   return (
-    <View style={S.container}>
-      <OnboardingBackground />
-      <ScrollView
+    <SafeScreen edges={['top', 'left', 'right']}>
+      <View style={S.container}>
+        <OnboardingBackground />
+        <ScrollView
         style={S.scroll}
         contentContainerStyle={S.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -227,6 +229,7 @@ export default function ProfileScreen() {
         <Text style={S.versionText}>{t('profile.version')}</Text>
       </ScrollView>
     </View>
+    </SafeScreen>
   );
 }
 

@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import OnboardingBackground from '../components/OnboardingBackground';
 import { COLORS } from '../constants/colors';
+import { SafeScreen } from '../components/ui';
 
 const PLAN_FEATURES = [
   'Sınırsız Natal Haritası Yorumu',
@@ -52,10 +53,11 @@ export default function PremiumScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      {/* Header */}
+        {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -144,7 +146,8 @@ export default function PremiumScreen() {
           Apple App Store veya Google Play üzerinden yönetilebilir.
         </Text>
       </ScrollView>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

@@ -33,6 +33,7 @@ import {
 import { DailySecret, fetchDailySecret } from '../../services/oracle.service';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { COLORS } from '../../constants/colors';
+import { ErrorStateCard, SafeScreen } from '../../components/ui';
 
 const SERVICE_SLIDES = [
   { id: 'planner', title: 'Kozmik Planlayici', emoji: '📅' },
@@ -143,11 +144,15 @@ const SWOT_ITEMS: Array<{
   { id: 'weakness', title: 'ENERJI KAYBI', icon: '⚠️', accent: COLORS.warning, surface: COLORS.neutralBg },
 ];
 
+const SUMMARY_MAX_CHARS = 90;
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 20;
 const SLIDE_GAP = 0;
 const SLIDE_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
 const SLIDE_SNAP = SLIDE_WIDTH + SLIDE_GAP;
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<typeof SERVICE_SLIDES[0]>);
 
 function getMoonPhaseIcon(phase: string): string {
   if (phase.includes('Yeni Ay')) return '🌑';
@@ -266,9 +271,12 @@ export default function HomeScreen() {
   const isChartStale = useNatalChartStore((s) => s.isStale);
   const router = useRouter();
   const sliderRef = useRef<FlatList<(typeof SERVICE_SLIDES)[0]>>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [expandedSwotId, setExpandedSwotId] = useState<string | null>(null);
+  const [transitExpanded, setTransitExpanded] = useState(false);
+  const [wisdomExpanded, setWisdomExpanded] = useState(false);
 
   const [dailySecret, setDailySecret] = useState<DailySecret | null>(null);
   const [secretLoading, setSecretLoading] = useState(true);
@@ -539,10 +547,11 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen edges={['top', 'left', 'right']}>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <ScrollView
+        <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -629,39 +638,58 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            {/* Günün Enerjisi */}
-            <Text style={styles.transitDailyLabel}>Günün Enerjisi</Text>
-            <Text style={styles.transitDailyText}>{dailyVibeText}</Text>
-
-            {/* Bugün Yapabileceklerin */}
-            {transitDigest.actionItems.length > 0 && (
-              <View style={styles.transitDetailBox}>
-                <Text style={styles.transitBoxLabel}>⚡ Bugün Yapabileceklerin</Text>
-                {transitDigest.actionItems.map((line) => (
-                  <View key={line} style={styles.transitPointRow}>
-                    <Text style={styles.transitPointMark}>›</Text>
-                    <Text style={styles.transitPointText}>{line}</Text>
+            {/* Özet-detay pattern: Günün Enerjisi, Yapabilecekler, Dikkat Noktaları */}
+            {transitExpanded ? (
+              <>
+                <Text style={styles.transitDailyLabel}>Günün Enerjisi</Text>
+                <Text style={styles.transitDailyText}>{dailyVibeText}</Text>
+                {transitDigest.actionItems.length > 0 && (
+                  <View style={styles.transitDetailBox}>
+                    <Text style={styles.transitBoxLabel}>⚡ Bugün Yapabileceklerin</Text>
+                    {transitDigest.actionItems.map((line) => (
+                      <View key={line} style={styles.transitPointRow}>
+                        <Text style={styles.transitPointMark}>›</Text>
+                        <Text style={styles.transitPointText}>{line}</Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
-            )}
-
-            {/* Dikkat Noktaları */}
-            {transitDigest.cautionItems.length > 0 && (
-              <View style={[styles.transitDetailBox, styles.transitCautionBox]}>
-                <Text style={[styles.transitBoxLabel, { color: COLORS.cautionText }]}>⚠️ Dikkat Noktaları</Text>
-                {transitDigest.cautionItems.map((line) => (
-                  <View key={line} style={styles.transitPointRow}>
-                    <Text style={[styles.transitPointMark, { color: COLORS.cautionText }]}>›</Text>
-                    <Text style={[styles.transitPointText, { color: COLORS.cautionTextDark }]}>{line}</Text>
+                )}
+                {transitDigest.cautionItems.length > 0 && (
+                  <View style={[styles.transitDetailBox, styles.transitCautionBox]}>
+                    <Text style={[styles.transitBoxLabel, { color: COLORS.cautionText }]}>⚠️ Dikkat Noktaları</Text>
+                    {transitDigest.cautionItems.map((line) => (
+                      <View key={line} style={styles.transitPointRow}>
+                        <Text style={[styles.transitPointMark, { color: COLORS.cautionText }]}>›</Text>
+                        <Text style={[styles.transitPointText, { color: COLORS.cautionTextDark }]}>{line}</Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
+                )}
+                <TouchableOpacity
+                  onPress={() => setTransitExpanded(false)}
+                  style={styles.detailCta}
+                  accessibilityLabel="Detayları gizle"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.detailCtaText}>Detayları Gizle</Text>
+                  <Ionicons name="chevron-up" size={16} color={COLORS.primary} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                onPress={() => setTransitExpanded(true)}
+                style={styles.detailCta}
+                accessibilityLabel="Detayları göster"
+                accessibilityRole="button"
+              >
+                <Text style={styles.detailCtaText}>Detayları Göster</Text>
+                <Ionicons name="chevron-down" size={16} color={COLORS.primary} />
+              </TouchableOpacity>
             )}
           </View>
         </View>
 
-        <FlatList
+        <AnimatedFlatList
           ref={sliderRef}
           data={SERVICE_SLIDES}
           keyExtractor={(item) => item.id}
@@ -671,22 +699,47 @@ export default function HomeScreen() {
           snapToInterval={SLIDE_SNAP}
           snapToAlignment="start"
           decelerationRate="fast"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
           onMomentumScrollEnd={handleSliderScrollEnd}
           contentContainerStyle={styles.sliderContainer}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              activeOpacity={item.id === 'natal' ? 0.7 : 1}
-              onPress={() => {
-                if (item.id === 'natal') router.push('/(tabs)/natal-chart');
-              }}
-              style={styles.sliderCard}
-              accessibilityLabel={item.title}
-              accessibilityRole="button"
-            >
-              <Text style={styles.sliderEmoji}>{item.emoji}</Text>
-              <Text style={styles.sliderText}>{item.title}</Text>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item, index }) => {
+            const inputRange = [
+              (index - 1) * SLIDE_SNAP,
+              index * SLIDE_SNAP,
+              (index + 1) * SLIDE_SNAP,
+            ];
+            const scale = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.9, 1, 0.9],
+              extrapolate: 'clamp',
+            });
+            const opacity = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.65, 1, 0.65],
+              extrapolate: 'clamp',
+            });
+            return (
+              <Animated.View
+                style={[styles.sliderCardWrapper, { transform: [{ scale }], opacity }]}
+              >
+                <TouchableOpacity
+                  activeOpacity={item.id === 'natal' ? 0.7 : 1}
+                  onPress={() => {
+                    if (item.id === 'natal') router.push('/(tabs)/natal-chart');
+                  }}
+                  style={styles.sliderCard}
+                  accessibilityLabel={item.title}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.sliderEmoji}>{item.emoji}</Text>
+                  <Text style={styles.sliderText}>{item.title}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          }}
         />
 
         <View style={styles.sliderDots}>
@@ -709,9 +762,32 @@ export default function HomeScreen() {
               <ActivityIndicator size="small" color={COLORS.primary} />
               <Text style={styles.wisdomLoadingText}>Mesaj hazirlaniyor...</Text>
             </View>
+          ) : secretError ? (
+            <ErrorStateCard
+              message="Kişisel mesaj yüklenemedi. Bağlantı sorunu olabilir — tekrar deneyebilirsin."
+              onRetry={loadDailySecret}
+              accessibilityLabel="Günün sırrını tekrar yükle"
+            />
           ) : (
             <Animated.View style={{ opacity: fadeAnim }}>
-              <Text style={styles.wisdomText}>{secretText}</Text>
+              <Text style={styles.wisdomText}>
+                {wisdomExpanded || secretText.length <= SUMMARY_MAX_CHARS
+                  ? secretText
+                  : `${secretText.slice(0, SUMMARY_MAX_CHARS).trim()}...`}
+              </Text>
+              {secretText.length > SUMMARY_MAX_CHARS && (
+                <TouchableOpacity
+                  onPress={() => setWisdomExpanded((e) => !e)}
+                  style={styles.detailCta}
+                  accessibilityLabel={wisdomExpanded ? 'Detayları gizle' : 'Detayları göster'}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.detailCtaText}>
+                    {wisdomExpanded ? 'Detayları Gizle' : 'Detayları Göster'}
+                  </Text>
+                  <Ionicons name={wisdomExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.primary} />
+                </TouchableOpacity>
+              )}
             </Animated.View>
           )}
         </View>
@@ -722,15 +798,14 @@ export default function HomeScreen() {
             <Text style={styles.skyPulseLoadingText}>Gokyuzu okunuyor...</Text>
           </View>
         ) : skyPulseError || !skyPulse ? (
-          <TouchableOpacity
-            style={[styles.skyPulseCard, styles.skyPulseCenter]}
-            onPress={loadSkyPulse}
-            accessibilityLabel="Gökyüzü verisini tekrar yükle"
-            accessibilityRole="button"
-          >
-            <Ionicons name="cloud-offline-outline" size={20} color={COLORS.subtext} />
-            <Text style={styles.skyPulseLoadingText}>Gokyuzu verisi yuklenemedi</Text>
-          </TouchableOpacity>
+          <View style={[styles.skyPulseCard, styles.skyPulseCenter]}>
+            <ErrorStateCard
+              message="Gökyüzü verisi alınamadı. Ay fazı ve gezegen bilgisi yüklenemedi."
+              onRetry={loadSkyPulse}
+              variant="compact"
+              accessibilityLabel="Gökyüzü verisini tekrar yükle"
+            />
+          </View>
         ) : (
           <TouchableOpacity
             activeOpacity={0.85}
@@ -776,15 +851,14 @@ export default function HomeScreen() {
               <Text style={styles.swotLoadingText}>SWOT analizi yukleniyor...</Text>
             </View>
           ) : weeklyError || !weeklySwot ? (
-            <TouchableOpacity
-              style={styles.swotLoadingCard}
-              onPress={loadWeeklySwot}
-              accessibilityLabel="SWOT analizini tekrar yükle"
-              accessibilityRole="button"
-            >
-              <Ionicons name="refresh" size={16} color={COLORS.primary} />
-              <Text style={styles.swotLoadingText}>SWOT analizi alinmadi, tekrar dene</Text>
-            </TouchableOpacity>
+            <View style={styles.swotLoadingCard}>
+              <ErrorStateCard
+                message="Haftalık enerji analizi yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."
+                onRetry={loadWeeklySwot}
+                variant="compact"
+                accessibilityLabel="SWOT analizini tekrar yükle"
+              />
+            </View>
           ) : (
             SWOT_ITEMS.map((item) => {
               const swotPoint = swotDataMap[item.id];
@@ -811,7 +885,9 @@ export default function HomeScreen() {
                   </View>
 
                   <Text style={styles.swotCardHeadlineDark}>{swotPoint?.headline ?? 'Bu alan bu hafta aktif.'}</Text>
-                  <Text style={styles.swotCardSub}>{swotPoint?.subtext ?? 'Detaylari acmak icin karti sec.'}</Text>
+                  <Text style={styles.swotCardSub}>
+                    {swotPoint?.subtext ?? (isExpanded ? 'Detayları Gizle' : 'Detayları Göster')}
+                  </Text>
 
                   {isExpanded && swotPoint && (
                     <View style={styles.swotCardBody}>
@@ -826,6 +902,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </View>
+    </SafeScreen>
   );
 }
 
@@ -939,6 +1016,12 @@ const styles = StyleSheet.create({
   sliderContainer: {
     paddingHorizontal: HORIZONTAL_PADDING,
     marginTop: 12,
+  },
+  sliderCardWrapper: {
+    width: SLIDE_WIDTH,
+    marginRight: SLIDE_GAP,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sliderCard: {
     width: SLIDE_WIDTH,
@@ -1092,6 +1175,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: COLORS.text,
+  },
+  detailCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 8,
+    minHeight: 44,
+  },
+  detailCtaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   wisdomCard: {
     marginHorizontal: 20,

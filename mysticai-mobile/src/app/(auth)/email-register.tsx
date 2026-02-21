@@ -10,7 +10,6 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
@@ -18,6 +17,12 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { checkEmailGet } from '../../services/auth';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
+
+/** Ad/soyad için geçerli karakterler: harfler (Türkçe dahil), boşluk, tire, kesme */
+function maskNameInput(value: string): string {
+  return value.replace(/[^\p{L}\s\-']/gu, '');
+}
 
 interface FormValues {
   firstName: string;
@@ -154,7 +159,7 @@ export default function EmailRegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeScreen>
       <OnboardingBackground />
       <KeyboardAvoidingView
         style={styles.flex1}
@@ -185,7 +190,10 @@ export default function EmailRegisterScreen() {
             <Controller
               control={control}
               name="firstName"
-              rules={{ required: 'Ad gereklidir' }}
+              rules={{
+                required: 'Ad gereklidir',
+                validate: (v) => v.trim().length > 0 || 'Ad gereklidir',
+              }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.firstName && styles.inputError]}
@@ -193,8 +201,9 @@ export default function EmailRegisterScreen() {
                   placeholderTextColor={COLORS.disabledText}
                   value={value}
                   onChangeText={(text) => {
-                    onChange(text);
-                    store.setFirstName(text);
+                    const masked = maskNameInput(text);
+                    onChange(masked);
+                    store.setFirstName(masked);
                   }}
                 />
               )}
@@ -209,7 +218,10 @@ export default function EmailRegisterScreen() {
             <Controller
               control={control}
               name="lastName"
-              rules={{ required: 'Soyad gereklidir' }}
+              rules={{
+                required: 'Soyad gereklidir',
+                validate: (v) => v.trim().length > 0 || 'Soyad gereklidir',
+              }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.lastName && styles.inputError]}
@@ -217,8 +229,9 @@ export default function EmailRegisterScreen() {
                   placeholderTextColor={COLORS.disabledText}
                   value={value}
                   onChangeText={(text) => {
-                    onChange(text);
-                    store.setLastName(text);
+                    const masked = maskNameInput(text);
+                    onChange(masked);
+                    store.setLastName(masked);
                   }}
                 />
               )}
@@ -339,7 +352,7 @@ export default function EmailRegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }
 

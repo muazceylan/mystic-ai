@@ -22,6 +22,9 @@ interface DreamStore {
   pulseLoading: boolean;
   storyLoading: boolean;
   error: string | null;
+  analyticsError: string | null;
+  pulseError: string | null;
+  storyError: string | null;
 
   fetchDreams: (userId: number) => Promise<void>;
   fetchSymbols: (userId: number) => Promise<void>;
@@ -51,6 +54,9 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   pulseLoading: false,
   storyLoading: false,
   error: null,
+  analyticsError: null,
+  pulseError: null,
+  storyError: null,
 
   fetchDreams: async (userId) => {
     set({ loading: true, error: null });
@@ -129,32 +135,32 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   },
 
   fetchAnalytics: async (userId) => {
-    set({ analyticsLoading: true });
+    set({ analyticsLoading: true, analyticsError: null });
     try {
       const analytics = await dreamService.getAnalytics(userId);
       set({ analytics, analyticsLoading: false });
-    } catch {
-      set({ analyticsLoading: false });
+    } catch (e: any) {
+      set({ analyticsError: e?.message ?? 'Rüya analizi yüklenemedi', analyticsLoading: false });
     }
   },
 
   fetchCollectivePulse: async () => {
-    set({ pulseLoading: true });
+    set({ pulseLoading: true, pulseError: null });
     try {
       const collectivePulse = await dreamService.getCollectivePulse();
       set({ collectivePulse, pulseLoading: false });
-    } catch {
-      set({ pulseLoading: false });
+    } catch (e: any) {
+      set({ pulseError: e?.message ?? 'Kolektif nabız yüklenemedi', pulseLoading: false });
     }
   },
 
   fetchMonthlyStory: async (userId, year, month) => {
-    set({ storyLoading: true });
+    set({ storyLoading: true, storyError: null });
     try {
       const monthlyStory = await dreamService.getMonthlyStory(userId, year, month);
       set({ monthlyStory, storyLoading: false });
-    } catch {
-      set({ storyLoading: false });
+    } catch (e: any) {
+      set({ storyError: e?.message ?? 'Aylık hikâye yüklenemedi', storyLoading: false });
     }
   },
 

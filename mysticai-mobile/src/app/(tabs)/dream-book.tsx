@@ -23,8 +23,10 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useDreamStore } from '../../store/useDreamStore';
+import { ErrorStateCard } from '../../components/ui';
 import type { DreamEntryResponse } from '../../services/dream.service';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 const MONTHS_TR = [
   '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -33,7 +35,7 @@ const MONTHS_TR = [
 
 export default function DreamBookScreen() {
   const user = useAuthStore(s => s.user);
-  const { dreams, monthlyStory, storyLoading, generateMonthlyStory, fetchMonthlyStory, pollStoryUntilComplete } =
+  const { dreams, monthlyStory, storyLoading, storyError, generateMonthlyStory, fetchMonthlyStory, pollStoryUntilComplete } =
     useDreamStore();
 
   const now = new Date();
@@ -142,8 +144,9 @@ export default function DreamBookScreen() {
   });
 
   return (
-    <LinearGradient colors={[COLORS.background, COLORS.surfaceMuted]} style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+    <SafeScreen edges={['top', 'left', 'right']}>
+      <LinearGradient colors={[COLORS.background, COLORS.surfaceMuted]} style={styles.root}>
+        <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <Animated.View entering={FadeIn.duration(600)} style={styles.headerBlock}>
           <Animated.Text style={[styles.moonGlyph, glowStyle]}>📖</Animated.Text>
@@ -178,7 +181,13 @@ export default function DreamBookScreen() {
 
         {/* Story Card */}
         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.storyCard}>
-          {storyLoading || generating ? (
+          {storyError && !storyLoading ? (
+            <ErrorStateCard
+              message={storyError}
+              onRetry={() => userId && fetchMonthlyStory(userId, year, month)}
+              accessibilityLabel="Aylık hikâyeyi tekrar yükle"
+            />
+          ) : storyLoading || generating ? (
             <View style={styles.loadingBlock}>
               <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={styles.loadingText}>
@@ -301,7 +310,8 @@ export default function DreamBookScreen() {
           </Text>
         </Animated.View>
       </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

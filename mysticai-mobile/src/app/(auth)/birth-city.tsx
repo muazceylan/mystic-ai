@@ -7,6 +7,7 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { CITIES, COUNTRIES, DISTRICTS } from '../../constants/index';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 type ScreenView = 'city-list' | 'district-list' | 'summary';
 
@@ -70,7 +71,8 @@ export default function BirthCityScreen() {
   // ─── City list view ──────────────────────────────────────────────────────────
   if (view === 'city-list') {
     return (
-      <View style={listStyles.container}>
+      <SafeScreen>
+        <View style={listStyles.container}>
         <View style={listStyles.header}>
           <Text style={listStyles.headerTitle}>Şehir Seç</Text>
           <TouchableOpacity
@@ -124,14 +126,16 @@ export default function BirthCityScreen() {
           )}
           ListEmptyComponent={<Text style={listStyles.emptyText}>Şehir bulunamadı</Text>}
         />
-      </View>
+        </View>
+      </SafeScreen>
     );
   }
 
   // ─── District list view ──────────────────────────────────────────────────────
   if (view === 'district-list') {
     return (
-      <View style={listStyles.container}>
+      <SafeScreen>
+        <View style={listStyles.container}>
         <View style={listStyles.header}>
           <TouchableOpacity
             onPress={() => setView('city-list')}
@@ -191,7 +195,8 @@ export default function BirthCityScreen() {
           )}
           ListEmptyComponent={<Text style={listStyles.emptyText}>İlçe bulunamadı</Text>}
         />
-      </View>
+        </View>
+      </SafeScreen>
     );
   }
 
@@ -203,11 +208,12 @@ export default function BirthCityScreen() {
   const canContinue = Boolean(store.birthCity || store.birthCityManual);
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Doğum Yeriniz?</Text>
+        <View style={styles.content}>
+          <Text style={styles.title}>Doğum Yeriniz?</Text>
         <Text style={styles.subtitle}>
           Doğduğunuz ülke, il ve ilçeyi seçebilirsiniz.
         </Text>
@@ -248,7 +254,8 @@ export default function BirthCityScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

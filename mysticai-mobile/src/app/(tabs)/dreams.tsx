@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useDreamStore } from '../../store/useDreamStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { ErrorStateCard, SafeScreen } from '../../components/ui';
 import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
 import type { DreamEntryResponse } from '../../services/dream.service';
@@ -63,7 +64,7 @@ const isToday = (d: Date) =>
 export default function DreamsScreen() {
   const { user }        = useAuthStore();
   const {
-    dreams, symbols, loading, submitting, transcribing,
+    dreams, symbols, loading, submitting, transcribing, error,
     fetchDreams, fetchSymbols, submitDream, transcribeAudio,
     deleteDream, pollUntilComplete,
   } = useDreamStore();
@@ -555,9 +556,9 @@ export default function DreamsScreen() {
 
   // ─── Screen ───────────────────────────────────────────────────────
   return (
-    <LinearGradient colors={[COLORS.background, COLORS.surfaceMuted, COLORS.background]} style={styles.container}>
-
-      {/* Header */}
+    <SafeScreen edges={['top', 'left', 'right']}>
+      <LinearGradient colors={[COLORS.background, COLORS.surfaceMuted, COLORS.background]} style={styles.container}>
+        {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Rüya Günlüğü</Text>
@@ -643,7 +644,16 @@ export default function DreamsScreen() {
               <Text style={styles.centerText}>Rüyalar yükleniyor…</Text>
             </View>
           )}
-          {!loading && dreams.length === 0 && (
+          {!loading && error && (
+            <View style={styles.centerBox}>
+              <ErrorStateCard
+                message={error}
+                onRetry={() => fetchDreams(userId)}
+                accessibilityLabel="Rüyaları tekrar yükle"
+              />
+            </View>
+          )}
+          {!loading && !error && dreams.length === 0 && (
             <View style={styles.emptyBox}>
               <Text style={styles.emptyEmoji}>🌙</Text>
               <Text style={styles.emptyTitle}>Henüz rüya kaydın yok</Text>
@@ -658,11 +668,12 @@ export default function DreamsScreen() {
               </TouchableOpacity>
             </View>
           )}
-          {!loading && dreams.map(d => renderCard(d))}
+          {!loading && !error && dreams.map(d => renderCard(d))}
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
     </LinearGradient>
+    </SafeScreen>
   );
 }
 

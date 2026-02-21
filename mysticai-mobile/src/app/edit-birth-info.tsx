@@ -22,6 +22,7 @@ import { updateProfile } from '../services/auth';
 import { calculateNatalChart } from '../services/astrology.service';
 import { getZodiacSign } from '../constants/index';
 import { COLORS } from '../constants/colors';
+import { SafeScreen } from '../components/ui';
 
 const TURKISH_MONTHS = [
   'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -108,10 +109,11 @@ export default function EditBirthInfoScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      {/* Header */}
+        {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -334,7 +336,8 @@ export default function EditBirthInfoScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

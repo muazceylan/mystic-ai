@@ -25,6 +25,7 @@ import {
   fetchLuckyDatesByCorrelationId,
 } from '../../services/lucky-dates.service';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 interface CategoryOption {
   key: GoalCategory;
@@ -171,8 +172,9 @@ export default function CalendarScreen() {
   // No natal chart state
   if (!chart) {
     return (
-      <View style={styles.container}>
-        <OnboardingBackground />
+      <SafeScreen edges={['top', 'left', 'right']}>
+        <View style={styles.container}>
+          <OnboardingBackground />
         <View style={styles.emptyContainer}>
           <Ionicons name="planet-outline" size={64} color={COLORS.primary} />
           <Text style={styles.emptyTitle}>Do\u011Fum Haritan\u0131z Gerekli</Text>
@@ -188,7 +190,8 @@ export default function CalendarScreen() {
             <Text style={styles.emptyButtonText}>Do\u011Fum Haritas\u0131 Olu\u015Ftur</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </SafeScreen>
     );
   }
 
@@ -245,10 +248,11 @@ export default function CalendarScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen edges={['top', 'left', 'right']}>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
           <Ionicons name="calendar" size={22} color={COLORS.primary} />
@@ -330,9 +334,19 @@ export default function CalendarScreen() {
               {currentResult.status === 'COMPLETED' && currentResult.aiInterpretation ? (
                 <Text style={styles.aiText}>{currentResult.aiInterpretation}</Text>
               ) : currentResult.status === 'FAILED' ? (
-                <Text style={styles.aiErrorText}>
-                  Kozmik yorum olu\u015Fturulurken bir sorun ya\u015Fand\u0131.
-                </Text>
+                <View style={styles.aiErrorBlock}>
+                  <Text style={styles.aiErrorText}>
+                    Kozmik yorum olu\u015Fturulurken bir sorun ya\u015Fand\u0131. Yeniden deneyebilirsin.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.aiRetryButton}
+                    onPress={fetchDates}
+                    accessibilityLabel="Kozmik yorumu tekrar dene"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.aiRetryButtonText}>Tekrar Dene</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <View style={styles.aiLoading}>
                   <ActivityIndicator size="small" color={COLORS.accent} />
@@ -345,7 +359,8 @@ export default function CalendarScreen() {
           </Animated.View>
         ) : null}
       </ScrollView>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 
@@ -605,10 +620,28 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     lineHeight: 22,
   },
+  aiErrorBlock: {
+    gap: 12,
+    marginTop: 4,
+  },
   aiErrorText: {
     fontSize: 13,
     color: COLORS.red,
     fontStyle: 'italic',
+  },
+  aiRetryButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  aiRetryButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   aiLoading: {
     flexDirection: 'row',

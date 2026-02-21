@@ -8,6 +8,7 @@ import CalendarPicker from '../../components/CalendarPicker';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { getZodiacSign } from '../../constants/index';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 export default function BirthDateScreen() {
   const store = useOnboardingStore();
@@ -35,10 +36,11 @@ export default function BirthDateScreen() {
   const canContinue = Boolean(store.birthDate);
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         <Text style={styles.title}>Dogum Tarihiniz?</Text>
         <Text style={styles.subtitle}>
           Sizi analiz edebilmem icin dogum tarihinizi giriniz
@@ -145,6 +147,7 @@ export default function BirthDateScreen() {
         </View>
       </Modal>
     </View>
+    </SafeScreen>
   );
 }
 

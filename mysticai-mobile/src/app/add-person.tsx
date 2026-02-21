@@ -21,6 +21,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useSynastryStore } from '../store/useSynastryStore';
 import { COUNTRIES, CITIES, DISTRICTS } from '../constants/index';
 import { COLORS } from '../constants/colors';
+import { SafeScreen } from '../components/ui';
 
 const TURKISH_MONTHS = [
   'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -179,11 +180,12 @@ export default function AddPersonScreen() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <OnboardingBackground />
+    <SafeScreen>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <OnboardingBackground />
 
       {/* Header */}
       <View style={styles.header}>
@@ -642,7 +644,8 @@ export default function AddPersonScreen() {
           />
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeScreen>
   );
 }
 

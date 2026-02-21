@@ -10,13 +10,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useDreamStore } from '../store/useDreamStore';
 import { COLORS } from '../constants/colors';
+import { ErrorStateCard } from './ui';
 
 interface Props {
   onPress?: () => void;
 }
 
 export default function CollectivePulseWidget({ onPress }: Props) {
-  const { collectivePulse, pulseLoading, fetchCollectivePulse } = useDreamStore();
+  const { collectivePulse, pulseLoading, pulseError, fetchCollectivePulse } = useDreamStore();
 
   useEffect(() => {
     fetchCollectivePulse();
@@ -52,6 +53,13 @@ export default function CollectivePulseWidget({ onPress }: Props) {
             <ActivityIndicator size="small" color={COLORS.pulseTitle} />
             <Text style={styles.loadingText}>Kolektif nabız okunuyor...</Text>
           </View>
+        ) : pulseError ? (
+          <ErrorStateCard
+            message={pulseError}
+            onRetry={fetchCollectivePulse}
+            variant="compact"
+            accessibilityLabel="Kolektif nabzı tekrar yükle"
+          />
         ) : !collectivePulse || collectivePulse.topSymbols.length === 0 ? (
           <Text style={styles.emptyText}>Henüz veri yok. İlk rüyayı kaydet!</Text>
         ) : (

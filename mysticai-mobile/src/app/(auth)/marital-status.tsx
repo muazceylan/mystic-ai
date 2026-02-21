@@ -5,15 +5,17 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { MARITAL_STATUS_OPTIONS } from '../../constants/index';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 export default function MaritalStatusScreen() {
   const store = useOnboardingStore();
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         <Text style={styles.title}>Medeni Haliniz</Text>
         <Text style={styles.subtitle}>Size daha iyi rehberlik edebilmemiz için</Text>
 
@@ -66,7 +68,8 @@ export default function MaritalStatusScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

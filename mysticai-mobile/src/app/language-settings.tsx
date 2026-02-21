@@ -12,6 +12,7 @@ import { i18n, LANGUAGE_STORAGE_KEY } from '../i18n';
 import { useAuthStore } from '../store/useAuthStore';
 import { updateProfile } from '../services/auth';
 import OnboardingBackground from '../components/OnboardingBackground';
+import { SafeScreen } from '../components/ui';
 
 const LANGUAGES = [
   { id: 'tr', titleKey: 'language.turkish', subtitleKey: 'language.turkishDesc', flag: '🇹🇷' },
@@ -52,8 +53,9 @@ export default function LanguageSettingsScreen() {
   const S = makeStyles(colors);
 
   return (
-    <View style={S.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={S.container}>
+        <OnboardingBackground />
       <View style={S.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -114,7 +116,8 @@ export default function LanguageSettingsScreen() {
           <Text style={S.noteText}>{t('language.aiNote')}</Text>
         </View>
       </ScrollView>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

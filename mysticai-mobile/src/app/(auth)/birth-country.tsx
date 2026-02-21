@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { COUNTRIES } from '../../constants/index';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 export default function BirthCountryScreen() {
   const store = useOnboardingStore();
@@ -20,8 +21,9 @@ export default function BirthCountryScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <SafeScreen>
+      <View style={styles.container}>
+        <View style={styles.header}>
         <Text style={styles.headerTitle}>Lokasyon seç</Text>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -60,7 +62,8 @@ export default function BirthCountryScreen() {
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>Ülke bulunamadı</Text>}
       />
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

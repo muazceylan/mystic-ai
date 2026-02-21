@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,6 +17,7 @@ import { useSynastryStore } from '../../store/useSynastryStore';
 import { RelationshipType, SavedPersonResponse } from '../../services/synastry.service';
 import { COLORS } from '../../constants/colors';
 import i18n from '../../i18n';
+import { ErrorStateCard, SafeScreen } from '../../components/ui';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,6 +99,7 @@ export default function CompatibilityScreen() {
     currentSynastry,
     isLoadingPeople,
     isAnalyzing,
+    error,
     loadSavedPeople,
     analyze,
     pollSynastry,
@@ -143,7 +144,7 @@ export default function CompatibilityScreen() {
   const showResults = currentSynastry?.status === 'COMPLETED';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Uyum Analizi</Text>
@@ -169,6 +170,13 @@ export default function CompatibilityScreen() {
 
           {isLoadingPeople ? (
             <ActivityIndicator color={COLORS.primary} style={{ marginTop: 16 }} />
+          ) : error ? (
+            <ErrorStateCard
+              message={error}
+              onRetry={() => user?.id && loadSavedPeople(user.id)}
+              style={{ marginTop: 16 }}
+              accessibilityLabel="Kişileri tekrar yükle"
+            />
           ) : savedPeople.length === 0 ? (
             <TouchableOpacity
               style={styles.emptyPeopleCard}
@@ -394,14 +402,17 @@ export default function CompatibilityScreen() {
         {/* Failed state */}
         {currentSynastry?.status === 'FAILED' && (
           <View style={styles.errorCard}>
-            <Ionicons name="cloud-offline-outline" size={32} color={COLORS.error} />
-            <Text style={styles.errorText}>Analiz tamamlanamadı. Tekrar deneyin.</Text>
+            <ErrorStateCard
+              message="Uyum analizi tamamlanamadı. Sunucu yanıt vermedi veya işlem zaman aşımına uğradı."
+              onRetry={handleAnalyze}
+              accessibilityLabel="Analizi tekrar dene"
+            />
           </View>
         )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
-    </SafeAreaView>
+    </SafeScreen>
   );
 }
 

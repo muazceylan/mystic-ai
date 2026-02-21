@@ -5,6 +5,7 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { FOCUS_POINTS } from '../../constants/index';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   career: 'briefcase',
@@ -21,10 +22,11 @@ export default function FocusPointScreen() {
   const canContinue = store.focusPoints.length > 0;
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         <Text style={styles.title}>Odak Noktan?</Text>
         <Text style={styles.subtitle}>
           Bu hayatta odak noktanin hangisi oldugunu dusunuyorsun?
@@ -91,7 +93,8 @@ export default function FocusPointScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

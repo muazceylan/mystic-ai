@@ -6,6 +6,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 export default function BirthTimeScreen() {
   const store = useOnboardingStore();
@@ -18,9 +19,8 @@ export default function BirthTimeScreen() {
   const minuteRef = useRef<TextInput>(null);
 
   const handleConfirm = () => {
-    const h = parseInt(tempHour, 10);
-    const m = parseInt(tempMinute, 10);
-    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return;
+    const h = Math.min(23, Math.max(0, parseInt(tempHour, 10) || 0));
+    const m = Math.min(59, Math.max(0, parseInt(tempMinute, 10) || 0));
     store.setBirthTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
     store.setBirthTimeUnknown(false);
     setHasPicked(true);
@@ -38,15 +38,16 @@ export default function BirthTimeScreen() {
     return !isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59;
   };
 
-  const canContinue = true;
+  const canContinue = store.birthTimeUnknown || (hasPicked && isValidInput());
   const displayValue =
     !store.birthTimeUnknown && hasPicked ? formatTime(store.birthTime) : 'SS:DD';
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         <Text style={styles.title}>Dogum Saatiniz?</Text>
         <Text style={styles.subtitle}>
           Dogum saatiniz yukselen burcunuzu bulmam icin onemlidir.
@@ -132,8 +133,10 @@ export default function BirthTimeScreen() {
                   value={tempHour}
                   onChangeText={(text) => {
                     const cleaned = text.replace(/[^0-9]/g, '').slice(0, 2);
-                    setTempHour(cleaned);
-                    if (cleaned.length === 2) minuteRef.current?.focus();
+                    const num = parseInt(cleaned, 10);
+                    const clamped = num > 23 ? '23' : cleaned;
+                    setTempHour(clamped);
+                    if (clamped.length === 2) minuteRef.current?.focus();
                   }}
                   keyboardType="number-pad"
                   maxLength={2}
@@ -153,7 +156,9 @@ export default function BirthTimeScreen() {
                   value={tempMinute}
                   onChangeText={(text) => {
                     const cleaned = text.replace(/[^0-9]/g, '').slice(0, 2);
-                    setTempMinute(cleaned);
+                    const num = parseInt(cleaned, 10);
+                    const clamped = num > 59 ? '59' : cleaned;
+                    setTempMinute(clamped);
                   }}
                   keyboardType="number-pad"
                   maxLength={2}
@@ -198,6 +203,7 @@ export default function BirthTimeScreen() {
         </View>
       </Modal>
     </View>
+    </SafeScreen>
   );
 }
 

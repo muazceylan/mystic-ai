@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { socialLogin } from '../../services/auth';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 export default function WelcomeScreen() {
   const storeLogin = useAuthStore((s) => s.login);
@@ -92,10 +93,11 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.titleArea}>
+        <View style={styles.titleArea}>
         <Text style={styles.heading}>Hoş Geldiniz</Text>
         <Text style={styles.subheading}>Yıldızlarınızla tanışmaya hazır mısınız?</Text>
       </View>
@@ -160,7 +162,8 @@ export default function WelcomeScreen() {
           <Text style={styles.footerLink}>Kayıt Ol</Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

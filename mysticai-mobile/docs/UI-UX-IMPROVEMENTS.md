@@ -10,15 +10,15 @@ Bu doküman, repo içindeki hızlı değerlendirmeye dayanarak önerilen tüm UI
 1. [x] Kontrast ve metin kontrast testleri — düşük kontrastlı metinleri güncelle (AA uyumu).
 2. [x] Touch target standartları — tüm ikon ve butonları en az 44×44 px yap, accessibilityLabel ekle.
 3. [x] Skeleton / placeholder yükleyiciler — DailySecret, SkyPulse, SWOT için.
-4. [ ] Hata durumları — her fetch için kullanıcıya retry CTA ve kısa açıklama göster.
+4. [x] Hata durumları — her fetch için kullanıcıya retry CTA ve kısa açıklama göster.
 5. [x] `src/constants/colors.ts` üzerinden inline renkleri centralize et.
 
 ## Orta Vadeli (Medium effort)
 1. [x] Tasarım tokenları (renk, tipografi, spacing, radius) oluşturulması.
 2. [x] Atomic UI kütüphanesi: Button, IconButton, Card, Badge, Skeleton, ListItem.
-3. [x] Onboarding UX iyileştirmeleri: adım göstergeci (OnboardingProgressBar), yardımcı metin — input mask & validation kaldı.
-4. [ ] Metinler için özet-detay pattern: ana ekranda kısa özet + "Detayları Göster" ile genişletme.
-5. [ ] Slider görsel odaklama: aktif slide için scale/opacity animasyonu.
+3. [x] Onboarding UX iyileştirmeleri: adım göstergeci (OnboardingProgressBar), yardımcı metin, input mask & validation.
+4. [x] Metinler için özet-detay pattern: ana ekranda kısa özet + "Detayları Göster" ile genişletme.
+5. [x] Slider görsel odaklama: aktif slide için scale/opacity animasyonu.
 
 ## Uzun Vadeli (Higher effort)
 1. Offline-first ve cache stratejisi (MMKV / TanStack Query integration).
@@ -71,14 +71,14 @@ Bu doküman, repo içindeki hızlı değerlendirmeye dayanarak önerilen tüm UI
 ## Kalan İşler — Önem Sırası (Devam)
 
 ### 1. Kritik (Önce yapılacak)
-- [ ] **Hata durumları** — Her fetch için retry CTA ve kısa açıklama (kullanıcı deneyimi için kritik)
+- [x] **Hata durumları** — Her fetch için retry CTA ve kısa açıklama (kullanıcı deneyimi için kritik)
 
 ### 2. Yüksek Öncelik
-- [ ] **Metin özet-detay pattern** — Ana ekranda kısa özet + "Detayları Göster" (okunabilirlik, CTA belirginliği)
-- [ ] **Onboarding validation** — Input mask & validation tamamlanması
+- [x] **Metin özet-detay pattern** — Ana ekranda kısa özet + "Detayları Göster" (okunabilirlik, CTA belirginliği)
+- [x] **Onboarding validation** — Input mask & validation tamamlanması
 
 ### 3. Orta Öncelik
-- [ ] **Slider görsel odaklama** — Aktif slide için scale/opacity animasyonu
+- [x] **Slider görsel odaklama** — Aktif slide için scale/opacity animasyonu
 
 ### 4. Uzun Vadeli
 - [ ] Offline-first ve cache stratejisi (MMKV / TanStack Query)

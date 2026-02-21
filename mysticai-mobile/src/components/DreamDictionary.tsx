@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import { SymbolInsight } from '../services/dream.service';
 import { useDreamStore } from '../store/useDreamStore';
+import { ErrorStateCard } from './ui';
 import { COLORS } from '../constants/colors';
 
 const HOUSE_COLORS: Record<string, string> = {
@@ -39,7 +40,7 @@ interface Props {
 }
 
 export default function DreamDictionary({ userId }: Props) {
-  const { analytics, analyticsLoading, fetchAnalytics } = useDreamStore();
+  const { analytics, analyticsLoading, analyticsError, fetchAnalytics } = useDreamStore();
   const [selectedSymbol, setSelectedSymbol] = useState<SymbolInsight | null>(null);
   const [meaning, setMeaning] = useState<SymbolMeaning | null>(null);
   const [meaningLoading, setMeaningLoading] = useState(false);
@@ -152,6 +153,13 @@ export default function DreamDictionary({ userId }: Props) {
           <ActivityIndicator size="large" color={COLORS.violetLight} />
           <Text style={styles.loadingText}>Semboller analiz ediliyor...</Text>
         </View>
+      ) : analyticsError ? (
+        <ErrorStateCard
+          message={analyticsError}
+          onRetry={() => fetchAnalytics(userId)}
+          variant="compact"
+          accessibilityLabel="Rüya analizini tekrar yükle"
+        />
       ) : symbols.length === 0 ? (
         <View style={styles.emptyBlock}>
           <Text style={styles.emptyIcon}>🔮</Text>
@@ -220,6 +228,15 @@ export default function DreamDictionary({ userId }: Props) {
                   </View>
                 ) : meaning ? (
                   <View style={styles.meaningBlock}>
+                    {meaning.universal === 'Anlam yüklenemedi.' ? (
+                      <ErrorStateCard
+                        message="Sembol anlamı yüklenemedi. Bağlantı sorunu olabilir."
+                        onRetry={() => selectedSymbol && fetchMeaning(selectedSymbol)}
+                        variant="compact"
+                        accessibilityLabel="Sembol anlamını tekrar yükle"
+                      />
+                    ) : (
+                      <>
                     <View style={styles.meaningSection}>
                       <Text style={styles.meaningSectionTitle}>🌍 Evrensel Anlam</Text>
                       <Text style={styles.meaningSectionText}>{meaning.universal}</Text>
@@ -232,6 +249,8 @@ export default function DreamDictionary({ userId }: Props) {
                       <Text style={[styles.meaningSectionTitle, { color: COLORS.gold }]}>✦ Senin İçin Mesaj</Text>
                       <Text style={[styles.meaningSectionText, { color: COLORS.white }]}>{meaning.personal}</Text>
                     </View>
+                      </>
+                    )}
                   </View>
                 ) : null}
               </ScrollView>

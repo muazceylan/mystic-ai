@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { COUNTRIES } from '../../constants/index';
 import { login as loginApi, register, updateProfile } from '../../services/auth';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 type Choice = 'analyze' | 'skip' | null;
 
@@ -144,10 +145,11 @@ export default function NatalChartScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         <TouchableOpacity
           style={[styles.optionCard, choice === 'analyze' && styles.optionSelected]}
           onPress={() => setChoice('analyze')}
@@ -231,7 +233,8 @@ export default function NatalChartScreen() {
           <Text style={styles.syncText}>Haritanız yıldızlarla senkronize ediliyor...</Text>
         </View>
       )}
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../components/OnboardingBackground';
 import { COLORS } from '../constants/colors';
+import { SafeScreen } from '../components/ui';
 
 const SECTIONS = [
   {
@@ -29,8 +30,9 @@ const SECTIONS = [
 
 export default function PrivacyScreen() {
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -69,7 +71,8 @@ export default function PrivacyScreen() {
           <Text style={styles.linkBtnText}>destek@mystic.ai</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

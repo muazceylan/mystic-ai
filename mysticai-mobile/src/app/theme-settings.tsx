@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../components/OnboardingBackground';
+import { SafeScreen } from '../components/ui';
 import { COLORS } from '../constants/colors';
 
 const THEMES: { id: ThemeMode; titleKey: string; subtitleKey: string; icon: string }[] = [
@@ -25,8 +26,9 @@ export default function ThemeSettingsScreen() {
   const S = makeStyles(colors);
 
   return (
-    <View style={S.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={S.container}>
+        <OnboardingBackground />
       <View style={S.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -94,7 +96,8 @@ export default function ThemeSettingsScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

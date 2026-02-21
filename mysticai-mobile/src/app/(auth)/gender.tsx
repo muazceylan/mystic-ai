@@ -5,6 +5,7 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { GENDER_OPTIONS } from '../../constants/index';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   female: 'female',
@@ -16,10 +17,11 @@ export default function GenderScreen() {
   const store = useOnboardingStore();
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         <Text style={styles.title}>Cinsiyetin</Text>
         <Text style={styles.subtitle}>Cinsiyetinizi sonra değiştiremezsiniz</Text>
 
@@ -78,7 +80,8 @@ export default function GenderScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 

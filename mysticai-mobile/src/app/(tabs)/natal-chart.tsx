@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import {
@@ -26,6 +25,7 @@ import CosmicHotspotCard from '../../components/Astrology/CosmicHotspotCard';
 import AspectBottomSheet from '../../components/Astrology/AspectBottomSheet';
 import StaggeredAiText from '../../components/Astrology/StaggeredAiText';
 import { COLORS } from '../../constants/colors';
+import { SafeScreen } from '../../components/ui';
 
 // ─── Planet Symbols (Unicode astro glyphs) ──────────────────────────────
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -285,14 +285,14 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'loading') {
     return (
-      <SafeAreaView style={s.container} edges={['top']}>
+      <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
         <View style={s.center}>
           <ActivityIndicator size="large" color={COLORS.violet} />
           <Animated.View style={[s.skelLine, { width: 180, opacity: pulseAnim }]} />
           <Animated.View style={[s.skelLine, { width: 120, opacity: pulseAnim }]} />
           <Text style={s.loadingText}>Haritaniz yukleniyor...</Text>
         </View>
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
@@ -301,7 +301,7 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'calculating') {
     return (
-      <SafeAreaView style={s.container} edges={['top']}>
+      <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
         <View style={s.center}>
           <Animated.Text
             style={[
@@ -327,7 +327,7 @@ export default function NatalChartTab() {
           <Text style={s.calcTitle}>Yildizlar Hesaplaniyor...</Text>
           <Text style={s.calcSub}>Bu islem birkac saniye surebilir</Text>
         </View>
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
@@ -336,7 +336,7 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'error') {
     return (
-      <SafeAreaView style={s.container} edges={['top']}>
+      <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
         <View style={s.center}>
           <View style={s.errorIcon}>
             <Ionicons name="alert-circle-outline" size={32} color={COLORS.redBright} />
@@ -352,7 +352,7 @@ export default function NatalChartTab() {
             <Text style={s.retryBtnText}>Tekrar Dene</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </SafeScreen>
     );
   }
 
@@ -365,7 +365,7 @@ export default function NatalChartTab() {
   const userName = chart?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '';
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.scrollContent}
@@ -592,7 +592,7 @@ export default function NatalChartTab() {
         aspect={selectedAspect}
         onClose={closeAspectSheet}
       />
-    </SafeAreaView>
+    </SafeScreen>
   );
 }
 

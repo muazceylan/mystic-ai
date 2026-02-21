@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/useAuthStore';
 import OnboardingBackground from '../components/OnboardingBackground';
+import { SafeScreen } from '../components/ui';
 import { dreamService } from '../services/dream.service';
 import { COLORS } from '../constants/colors';
 
@@ -87,8 +88,9 @@ export default function NotificationsSettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <OnboardingBackground />
+    <SafeScreen>
+      <View style={styles.container}>
+        <OnboardingBackground />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -139,7 +141,8 @@ export default function NotificationsSettingsScreen() {
           Sistem bildirimleri cihaz ayarlarından da yönetilebilir.
         </Text>
       </ScrollView>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 
