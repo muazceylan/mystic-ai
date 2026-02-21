@@ -56,23 +56,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dreams"
         options={{
-          title: t('tabs.dreams'),
+          title: t('tabs.dream'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'moon' : 'moon-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="dream-book"
-        options={{
-          title: t('tabs.dreamBook'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'journal' : 'journal-outline'}
               size={24}
               color={color}
             />
@@ -90,6 +77,7 @@ export default function TabsLayout() {
               color={color}
             />
           ),
+          tabBarButton: () => null,
         }}
       />
       <Tabs.Screen

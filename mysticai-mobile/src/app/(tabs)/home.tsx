@@ -42,6 +42,7 @@ const SERVICE_SLIDE_IDS = [
   { id: 'numerology', key: 'home.numerology', emoji: '🔢' },
   { id: 'weekly', key: 'home.weeklyAnalysis', emoji: '📅' },
   { id: 'natal', key: 'home.birthChart', emoji: '⭐' },
+  { id: 'compatibility', key: 'home.compatibility', emoji: '💕' },
   { id: 'name', key: 'home.nameAnalysis', emoji: '🧿' },
 ];
 
@@ -555,6 +556,7 @@ export default function HomeScreen() {
     else if (itemId === 'natal') router.push('/(tabs)/natal-chart');
     else if (itemId === 'numerology') router.push('/numerology');
     else if (itemId === 'name') router.push('/name-analysis');
+    else if (itemId === 'compatibility') router.push('/(tabs)/compatibility');
     else if (itemId === 'weekly') scrollViewRef.current?.scrollTo({ y: swotYRef.current, animated: true });
   }, []);
 

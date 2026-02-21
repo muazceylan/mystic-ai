@@ -113,6 +113,7 @@
     "weeklyAnalysis": "Weekly Analysis",
     "birthChart": "Birth Chart",
     "nameAnalysis": "Name Analysis",
+    "compatibility": "Compatibility",
     "strength": "Inner Strength",
     "opportunity": "Golden Opportunity",
     "threat": "Critical Warning",
@@ -194,6 +195,7 @@
     "journal": "Journal",
     "compose": "Write",
     "dictionary": "Dictionary",
+    "book": "My Book",
     "addDream": "Add My First Dream",
     "noDreams": "No dream entries yet",
     "noDreamsHint": "Tap the + button to record your first dream",
@@ -230,8 +232,7 @@
   "tabs": {
     "home": "Home",
     "calendar": "Planner",
-    "dreams": "Dreams",
-    "dreamBook": "Dream Book",
+    "dream": "Dream",
     "compatibility": "Compatibility",
     "natalChart": "My Chart",
     "profile": "Profile"

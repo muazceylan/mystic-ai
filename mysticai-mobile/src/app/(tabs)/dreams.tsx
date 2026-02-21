@@ -8,6 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import * as Notifications from 'expo-notifications';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withTiming, withSequence,
@@ -22,8 +24,14 @@ import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
 import type { DreamEntryResponse } from '../../services/dream.service';
 import { useTheme } from '../../context/ThemeContext';
+import { COLORS } from '../../constants/colors';
 
-type Tab      = 'journal' | 'compose' | 'dictionary';
+const MONTHS_TR = [
+  '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+];
+
+type Tab      = 'journal' | 'compose' | 'dictionary' | 'book';
 type RecState = 'idle' | 'recording' | 'transcribing' | 'done';
 
 // ─── JSON-leak guard ──────────────────────────────────────────────
@@ -71,6 +79,8 @@ export default function DreamsScreen() {
     dreams, symbols, loading, submitting, transcribing, error,
     fetchDreams, fetchSymbols, submitDream, transcribeAudio,
     deleteDream, pollUntilComplete,
+    monthlyStory, storyLoading, storyError, generateMonthlyStory,
+    fetchMonthlyStory, pollStoryUntilComplete,
   } = useDreamStore();
 
   // ── Tab / compose state ───────────────────────────────────────────
@@ -88,6 +98,14 @@ export default function DreamsScreen() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [speakingId, setSpeakingId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ── Dream book state ─────────────────────────────────────────────
+  const now = new Date();
+  const [bookYear, setBookYear] = useState(now.getFullYear());
+  const [bookMonth, setBookMonth] = useState(now.getMonth() + 1);
+  const [generating, setGenerating] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [bookRefreshing, setBookRefreshing] = useState(false);
 
   // ── Refs ──────────────────────────────────────────────────────────
   const recordingRef  = useRef<Audio.Recording | null>(null);
@@ -260,6 +278,85 @@ export default function DreamsScreen() {
     await Promise.all([fetchDreams(userId), fetchSymbols(userId)]);
     setRefreshing(false);
   }, [userId]);
+
+  // ─── Dream book handlers ──────────────────────────────────────────
+  const yearMonthLabel = `${MONTHS_TR[bookMonth]} ${bookYear}`;
+  const monthDreams = dreams.filter(d => {
+    if (!d.dreamDate) return false;
+    const [y, m] = d.dreamDate.split('-').map(Number);
+    return y === bookYear && m === bookMonth;
+  });
+
+  useEffect(() => {
+    if (userId && tab === 'book') {
+      fetchMonthlyStory(userId, bookYear, bookMonth);
+    }
+  }, [userId, tab, bookYear, bookMonth]);
+
+  const handleBookGenerate = async () => {
+    if (!userId) return;
+    setGenerating(true);
+    try {
+      await generateMonthlyStory(userId, bookYear, bookMonth);
+      pollStoryUntilComplete(userId, bookYear, bookMonth);
+    } catch {
+      Alert.alert(t('common.error'), t('dreams.storyError'));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleBookRefresh = async () => {
+    if (!userId) return;
+    setBookRefreshing(true);
+    try {
+      await generateMonthlyStory(userId, bookYear, bookMonth, true);
+      pollStoryUntilComplete(userId, bookYear, bookMonth);
+    } catch {
+      Alert.alert(t('common.error'), t('dreams.storyRefreshError'));
+    } finally {
+      setBookRefreshing(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!monthlyStory?.story) return;
+    setPdfExporting(true);
+    try {
+      const html = buildPdfHtml(monthlyStory.story, yearMonthLabel, monthlyStory.dominantSymbols, monthDreams);
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Rüya Kitabım – ${yearMonthLabel}`,
+        });
+      } else {
+        Alert.alert(t('dreams.pdfReady'), t('dreams.pdfReadyMessage'));
+      }
+    } catch {
+      Alert.alert(t('common.error'), t('dreams.pdfError'));
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
+  const prevBookMonth = () => {
+    if (bookMonth === 1) { setBookMonth(12); setBookYear(y => y - 1); }
+    else setBookMonth(m => m - 1);
+  };
+  const nextBookMonth = () => {
+    const nextM = bookMonth === 12 ? 1 : bookMonth + 1;
+    const nextY = bookMonth === 12 ? bookYear + 1 : bookYear;
+    if (nextY > now.getFullYear() || (nextY === now.getFullYear() && nextM > now.getMonth() + 1)) return;
+    setBookMonth(nextM);
+    if (bookMonth === 12) setBookYear(y => y + 1);
+  };
+  const isCurrentOrPastBook = !(bookYear > now.getFullYear() ||
+    (bookYear === now.getFullYear() && bookMonth > now.getMonth() + 1));
+  const isPending = monthlyStory?.status === 'PENDING';
+  const isCompleted = monthlyStory?.status === 'COMPLETED';
+  const isEmpty = !monthlyStory || monthlyStory.status === 'EMPTY';
 
   // ─── Dream card ───────────────────────────────────────────────────
   const renderCard = (dream: DreamEntryResponse) => {
@@ -558,6 +655,123 @@ export default function DreamsScreen() {
     </Animated.ScrollView>
   );
 
+  // ─── Dream book tab ───────────────────────────────────────────────
+  const renderBook = () => (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.bookScroll}>
+      <View style={styles.bookHeaderBlock}>
+        <Text style={styles.bookMoonGlyph}>📖</Text>
+        <Text style={styles.bookHeaderTitle}>{t('dreams.book')}</Text>
+        <Text style={styles.bookHeaderSub}>{t('dreams.dreamBookSubtitle')}</Text>
+      </View>
+
+      <View style={styles.monthPicker}>
+        <TouchableOpacity onPress={prevBookMonth} style={styles.monthArrow} accessibilityLabel="Önceki ay" accessibilityRole="button">
+          <Ionicons name="chevron-back" size={20} color={colors.goldDark} />
+        </TouchableOpacity>
+        <Text style={styles.monthLabel}>{yearMonthLabel}</Text>
+        <TouchableOpacity
+          onPress={nextBookMonth}
+          style={[styles.monthArrow, !isCurrentOrPastBook && styles.monthArrowDisabled]}
+          disabled={!isCurrentOrPastBook}
+          accessibilityLabel="Sonraki ay"
+          accessibilityRole="button"
+        >
+          <Ionicons name="chevron-forward" size={20} color={isCurrentOrPastBook ? colors.goldDark : colors.subtext} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.storyCard}>
+        {storyError && !storyLoading ? (
+          <ErrorStateCard
+            message={storyError}
+            onRetry={() => userId && fetchMonthlyStory(userId, bookYear, bookMonth)}
+            accessibilityLabel="Aylık hikâyeyi tekrar yükle"
+          />
+        ) : storyLoading || generating ? (
+          <View style={styles.loadingBlock}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>{generating ? 'Hikâye yazılıyor...' : 'Yükleniyor...'}</Text>
+            <Text style={styles.loadingSubText}>Ay mevsiminizin hikâyesi kalemle şekilleniyor...</Text>
+          </View>
+        ) : isPending ? (
+          <View style={styles.loadingBlock}>
+            <ActivityIndicator size="large" color={colors.goldDark} />
+            <Text style={styles.loadingText}>Yapay zeka yazıyor...</Text>
+            <Text style={styles.loadingSubText}>Birkaç saniye daha, bilinçaltı imgeleriniz sıraya diziliyor...</Text>
+          </View>
+        ) : isCompleted && monthlyStory?.story ? (
+          <>
+            {monthlyStory.dominantSymbols?.length > 0 && (
+              <View style={styles.symbolsSection}>
+                <Text style={styles.sectionLabel}>✦ Dönemin Sembolleri</Text>
+                <View style={styles.symbolsRow}>
+                  {monthlyStory.dominantSymbols.slice(0, 6).map(sym => (
+                    <View key={sym} style={styles.symChip}>
+                      <Text style={styles.symChipText}>{sym.charAt(0).toUpperCase() + sym.slice(1)}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+            <View style={styles.countBadge}>
+              <Ionicons name="moon-outline" size={13} color={colors.goldDark} />
+              <Text style={styles.countText}>{monthlyStory.dreamCount} rüya • {yearMonthLabel}</Text>
+            </View>
+            <Text style={styles.storyText}>{monthlyStory.story}</Text>
+            <View style={styles.exportRow}>
+              <TouchableOpacity
+                style={styles.refreshBtn}
+                onPress={handleBookRefresh}
+                disabled={bookRefreshing}
+                accessibilityLabel="Hikâyeyi yenile"
+                accessibilityRole="button"
+              >
+                {bookRefreshing ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="refresh-outline" size={18} color={colors.primary} />}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.exportBtn, { flex: 1 }]}
+                onPress={handleExportPdf}
+                disabled={pdfExporting}
+                accessibilityLabel="PDF olarak indir"
+                accessibilityRole="button"
+              >
+                {pdfExporting ? <ActivityIndicator size="small" color={colors.white} /> : <Ionicons name="download-outline" size={16} color={colors.white} />}
+                <Text style={styles.exportBtnText}>{pdfExporting ? 'PDF Hazırlanıyor...' : 'PDF Olarak İndir'}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : isEmpty ? (
+          <View style={styles.emptyBlock}>
+            <Text style={styles.emptyIcon}>🌑</Text>
+            <Text style={styles.emptyTitle}>{yearMonthLabel} henüz boş</Text>
+            <Text style={styles.emptySub}>Bu aya ait rüyalar kaydedildiğinde aylık hikâyen yazılabilir.</Text>
+            <TouchableOpacity style={styles.generateBtn} onPress={handleBookGenerate} disabled={storyLoading} accessibilityLabel="Hikâyeyi oluştur" accessibilityRole="button">
+              <Ionicons name="sparkles" size={15} color={colors.white} />
+              <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.emptyBlock}>
+            <Text style={styles.emptyIcon}>✨</Text>
+            <Text style={styles.emptyTitle}>Hikâye hazır değil</Text>
+            <Text style={styles.emptySub}>{yearMonthLabel} ayının rüya yolculuğunu yapay zeka ile anlat.</Text>
+            <TouchableOpacity style={styles.generateBtn} onPress={handleBookGenerate} disabled={generating || storyLoading} accessibilityLabel="Hikâyeyi oluştur" accessibilityRole="button">
+              {generating ? <ActivityIndicator size="small" color={colors.white} /> : <Ionicons name="sparkles" size={15} color={colors.white} />}
+              <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.infoCard}>
+        <Ionicons name="information-circle-outline" size={15} color={colors.subtext} />
+        <Text style={styles.infoText}>
+          Her ay sonunda yapay zeka, rüyalarını Jungçu psikoloji ve astroloji perspektifiyle şiirsel bir hikâyeye dönüştürür. PDF'i indirebilir veya paylaşabilirsin.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+
   // ─── Screen ───────────────────────────────────────────────────────
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
@@ -565,8 +779,8 @@ export default function DreamsScreen() {
         {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Rüya Günlüğü</Text>
-          <Text style={styles.headerSub}>Bilinçaltının kozmik şifresi</Text>
+          <Text style={styles.headerTitle}>{t('tabs.dream')}</Text>
+          <Text style={styles.headerSub}>{t('dreams.subtitle')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.addBtn, tab === 'compose' && styles.addBtnClose]}
@@ -587,20 +801,29 @@ export default function DreamsScreen() {
           <TouchableOpacity
             style={[styles.tabBtn, tab === 'journal' && styles.tabBtnActive]}
             onPress={() => setTab('journal')}
-            accessibilityLabel="Günlük sekmesi"
+            accessibilityLabel={t('dreams.journal')}
             accessibilityRole="tab"
           >
             <Ionicons name="book-outline" size={14} color={tab === 'journal' ? colors.primary : colors.subtext} />
-            <Text style={[styles.tabBtnText, tab === 'journal' && styles.tabBtnTextActive]}>Günlük</Text>
+            <Text style={[styles.tabBtnText, tab === 'journal' && styles.tabBtnTextActive]}>{t('dreams.journal')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tabBtn, tab === 'dictionary' && styles.tabBtnActive]}
             onPress={() => setTab('dictionary')}
-            accessibilityLabel="Sözlük sekmesi"
+            accessibilityLabel={t('dreams.dictionary')}
             accessibilityRole="tab"
           >
             <Ionicons name="library-outline" size={14} color={tab === 'dictionary' ? colors.primary : colors.subtext} />
-            <Text style={[styles.tabBtnText, tab === 'dictionary' && styles.tabBtnTextActive]}>Sözlük</Text>
+            <Text style={[styles.tabBtnText, tab === 'dictionary' && styles.tabBtnTextActive]}>{t('dreams.dictionary')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, tab === 'book' && styles.tabBtnActive]}
+            onPress={() => setTab('book')}
+            accessibilityLabel={t('dreams.book')}
+            accessibilityRole="tab"
+          >
+            <Ionicons name="journal-outline" size={14} color={tab === 'book' ? colors.primary : colors.subtext} />
+            <Text style={[styles.tabBtnText, tab === 'book' && styles.tabBtnTextActive]}>{t('dreams.book')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -624,6 +847,9 @@ export default function DreamsScreen() {
 
       {/* ── COMPOSE TAB ── */}
       {tab === 'compose' && renderCompose()}
+
+      {/* ── BOOK TAB ── */}
+      {tab === 'book' && renderBook()}
 
       {/* ── DICTIONARY TAB ── */}
       {tab === 'dictionary' && (
@@ -812,6 +1038,41 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   tabBtnText: { fontSize: 13, fontWeight: '600', color: C.subtext },
   tabBtnTextActive: { color: C.primary },
 
+  // Dream book tab
+  bookScroll: { paddingTop: 24, paddingBottom: 40 },
+  bookHeaderBlock: { alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 },
+  bookMoonGlyph: { fontSize: 44, marginBottom: 8 },
+  bookHeaderTitle: { fontSize: 26, fontWeight: '800', color: C.goldDark, letterSpacing: 1.5, textAlign: 'center' },
+  bookHeaderSub: { fontSize: 13, color: C.subtext, marginTop: 4, fontStyle: 'italic', textAlign: 'center' },
+  monthPicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginHorizontal: 20, marginBottom: 16, backgroundColor: C.surface, borderRadius: 14, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
+  monthArrow: { padding: 6 },
+  monthArrowDisabled: { opacity: 0.3 },
+  monthLabel: { fontSize: 17, fontWeight: '700', color: C.text, minWidth: 140, textAlign: 'center' },
+  storyCard: { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, shadowColor: C.primary, shadowOpacity: 0.2, shadowOffset: { width: 0, height: 8 }, shadowRadius: 16, elevation: 4, minHeight: 200 },
+  loadingBlock: { alignItems: 'center', paddingVertical: 30, gap: 12 },
+  loadingText: { fontSize: 16, fontWeight: '600', color: C.text },
+  loadingSubText: { fontSize: 12, color: C.subtext, fontStyle: 'italic', textAlign: 'center', paddingHorizontal: 20 },
+  symbolsSection: { marginBottom: 12 },
+  sectionLabel: { fontSize: 10, fontWeight: '700', color: C.goldDark, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 },
+  symbolsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  symChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(200,168,75,0.12)', borderWidth: 1, borderColor: 'rgba(200,168,75,0.3)' },
+  symChipText: { fontSize: 12, color: C.goldDark, fontWeight: '600' },
+  countBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 },
+  countText: { fontSize: 12, color: C.subtext, fontStyle: 'italic' },
+  storyText: { fontSize: 15, lineHeight: 26, color: C.text, marginBottom: 20 },
+  exportRow: { flexDirection: 'row', gap: 8, marginTop: 4, alignItems: 'center' },
+  refreshBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1.5, borderColor: C.primary, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(157,78,221,0.07)' },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20 },
+  exportBtnText: { color: C.white, fontSize: 14, fontWeight: '700' },
+  emptyBlock: { alignItems: 'center', paddingVertical: 24, gap: 10 },
+  emptyIcon: { fontSize: 36 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  emptySub: { fontSize: 12, color: C.subtext, textAlign: 'center', paddingHorizontal: 16, lineHeight: 18 },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.gold, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 22, marginTop: 6 },
+  generateBtnText: { color: C.text, fontSize: 14, fontWeight: '800' },
+  infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginHorizontal: 20, marginTop: 14, backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.border },
+  infoText: { flex: 1, fontSize: 12, color: C.subtext, lineHeight: 18 },
+
   // Card
   card:       { backgroundColor:C.surface, borderRadius:16, padding:15,
                 marginBottom:11, borderWidth:1, borderColor:C.border },
@@ -851,4 +1112,73 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   bulletRow:    { flexDirection:'row', gap:7, alignItems:'flex-start' },
   bulletText:   { flex:1, fontSize:13, lineHeight:20 },
 });
+}
+
+function buildPdfHtml(story: string, period: string, symbols: string[], entries: DreamEntryResponse[]): string {
+  const symbolBadges = (symbols ?? [])
+    .map(s => `<span class="badge">${s.charAt(0).toUpperCase() + s.slice(1)}</span>`)
+    .join(' ');
+
+  const dreamRows = entries
+    .sort((a, b) => (a.dreamDate ?? '').localeCompare(b.dreamDate ?? ''))
+    .map((d, i) => {
+      const dateLabel = new Date(d.dreamDate ?? '').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+      return `<div class="dream-entry">
+        <div class="dream-date">📅 ${i + 1}. Rüya — ${dateLabel}</div>
+        <div class="dream-text">${(d.text ?? '').replace(/\n/g, '<br/>')}</div>
+      </div>`;
+    }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Lora', Georgia, serif;
+    background: linear-gradient(135deg, ${COLORS.pdfBgStart} 0%, ${COLORS.pdfBgEnd} 100%);
+    color: ${COLORS.pdfText};
+    min-height: 100vh;
+    padding: 60px 50px;
+  }
+  .header { text-align: center; margin-bottom: 36px; border-bottom: 1px solid rgba(200,168,75,0.4); padding-bottom: 24px; }
+  .title { font-family: 'Cinzel', serif; font-size: 32px; color: ${COLORS.pdfGold}; letter-spacing: 3px; text-transform: uppercase; }
+  .period { font-size: 16px; color: ${COLORS.pdfViolet}; margin-top: 8px; font-style: italic; }
+  .glyph { font-size: 48px; margin-bottom: 12px; }
+  .symbols { margin: 20px 0; text-align: center; }
+  .badge {
+    display: inline-block;
+    background: rgba(200,168,75,0.15);
+    border: 1px solid rgba(200,168,75,0.35);
+    color: ${COLORS.pdfGold};
+    border-radius: 20px;
+    padding: 4px 12px;
+    margin: 4px;
+    font-size: 13px;
+  }
+  .section-label { font-family: 'Cinzel', serif; font-size: 11px; color: ${COLORS.pdfSection}; text-transform: uppercase; letter-spacing: 2px; text-align: center; margin-bottom: 10px; }
+  .story { font-size: 16px; line-height: 2; color: ${COLORS.pdfStory}; text-align: justify; margin: 24px 0; background: rgba(255,255,255,0.03); border-left: 3px solid ${COLORS.pdfGold}; padding: 20px 24px; border-radius: 4px; }
+  .dreams-section { margin-top: 40px; }
+  .dreams-title { font-family: 'Cinzel', serif; font-size: 14px; color: ${COLORS.pdfGold}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; border-bottom: 1px solid rgba(200,168,75,0.25); padding-bottom: 8px; }
+  .dream-entry { margin-bottom: 18px; padding: 14px 18px; background: rgba(255,255,255,0.04); border-left: 2px solid rgba(124,77,255,0.5); border-radius: 4px; }
+  .dream-date { font-size: 11px; color: ${COLORS.pdfDreamDate}; font-family: 'Cinzel', serif; letter-spacing: 1px; margin-bottom: 6px; }
+  .dream-text { font-size: 14px; line-height: 1.8; color: ${COLORS.pdfDreamText}; }
+  .footer { text-align: center; margin-top: 40px; font-size: 12px; color: ${COLORS.pdfFooter}; font-style: italic; border-top: 1px solid rgba(200,168,75,0.2); padding-top: 16px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="glyph">📖</div>
+    <div class="title">Rüya Kitabım</div>
+    <div class="period">${period} — Bilinçaltı Yolculuğu</div>
+  </div>
+  ${symbolBadges ? `<div class="section-label">✦ Dönemin Sembolleri</div><div class="symbols">${symbolBadges}</div>` : ''}
+  <div class="section-label" style="margin-top:24px">✦ Kozmik Yorum</div>
+  <div class="story">${story.replace(/\n/g, '<br/>')}</div>
+  ${dreamRows ? `<div class="dreams-section"><div class="dreams-title">📋 Bu Aydaki Rüyalarım (${entries.length} Adet)</div>${dreamRows}</div>` : ''}
+  <div class="footer">Mystic AI tarafından oluşturuldu • ${period}</div>
+</body>
+</html>`;
 }

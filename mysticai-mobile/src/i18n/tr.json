@@ -113,6 +113,7 @@
     "weeklyAnalysis": "Haftanın Analizi",
     "birthChart": "Doğum Haritası",
     "nameAnalysis": "İsim Analizi",
+    "compatibility": "Uyum",
     "strength": "İçsel Güç",
     "opportunity": "Altın Fırsat",
     "threat": "Kritik Uyarı",
@@ -195,6 +196,7 @@
     "journal": "Günlük",
     "compose": "Yaz",
     "dictionary": "Sözlük",
+    "book": "Kitabım",
     "addDream": "İlk Rüyamı Ekle",
     "noDreams": "Henüz rüya kaydın yok",
     "noDreamsHint": "İlk rüyanı kaydetmek için + butonuna dokun",
@@ -231,8 +233,7 @@
   "tabs": {
     "home": "Ana Sayfa",
     "calendar": "Planlayıcı",
-    "dreams": "Rüyalar",
-    "dreamBook": "Rüya Kitabı",
+    "dream": "Rüya",
     "compatibility": "Uyum",
     "natalChart": "Haritam",
     "profile": "Profil"
