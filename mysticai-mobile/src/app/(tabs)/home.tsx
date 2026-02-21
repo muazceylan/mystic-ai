@@ -276,6 +276,8 @@ export default function HomeScreen() {
   const [expandedSwotId, setExpandedSwotId] = useState<string | null>(null);
   const [transitExpanded, setTransitExpanded] = useState(false);
   const [wisdomExpanded, setWisdomExpanded] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const swotYRef = useRef(0);
 
   const [dailySecret, setDailySecret] = useState<DailySecret | null>(null);
   const [secretLoading, setSecretLoading] = useState(true);
@@ -547,12 +549,22 @@ export default function HomeScreen() {
     threat: weeklySwot?.threat,
   };
 
+  const handleServiceSlidePress = useCallback((itemId: string) => {
+    if (itemId === 'planner') router.push('/(tabs)/calendar');
+    else if (itemId === 'dream') router.push('/(tabs)/dreams');
+    else if (itemId === 'natal') router.push('/(tabs)/natal-chart');
+    else if (itemId === 'numerology') router.push('/numerology');
+    else if (itemId === 'name') router.push('/name-analysis');
+    else if (itemId === 'weekly') scrollViewRef.current?.scrollTo({ y: swotYRef.current, animated: true });
+  }, []);
+
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={S.container}>
         <OnboardingBackground />
 
         <ScrollView
+        ref={scrollViewRef}
         style={S.scroll}
         contentContainerStyle={S.scrollContent}
         refreshControl={
@@ -565,19 +577,26 @@ export default function HomeScreen() {
         }
       >
         <View style={S.headerRow}>
-          <View style={S.profileBlock}>
+          <TouchableOpacity
+            style={S.profileBlock}
+            onPress={() => router.push('/(tabs)/profile')}
+            activeOpacity={0.7}
+            accessibilityLabel={t('home.profileBlock')}
+            accessibilityRole="button"
+          >
             <View style={S.avatar}>
               <Ionicons name="person" size={16} color={colors.subtext} />
             </View>
             <View>
-              <Text style={S.profileTitle}>Profilim</Text>
+              <Text style={S.profileTitle}>{t('home.profileTitle')}</Text>
               <Text style={S.profileSubtitle}>LV. 2 (%15)</Text>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={S.headerIcons}>
             <TouchableOpacity
               style={S.iconButton}
-              accessibilityLabel="Özellikler"
+              onPress={() => router.push('/premium')}
+              accessibilityLabel={t('home.features')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
@@ -585,7 +604,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={S.iconButton}
-              accessibilityLabel="Bildirimler"
+              onPress={() => router.push('/notifications-settings')}
+              accessibilityLabel={t('home.notifications')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
@@ -594,10 +614,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Text style={S.greetingText}>Merhaba {fullName}, bugun haritanda neler var bakalim.</Text>
+        <Text style={S.greetingText}>{t('home.greetingFull', { name: fullName })}</Text>
 
         <View style={S.transitSection}>
-          <Text style={S.transitSectionTitle}>Bugünün Transitleri</Text>
+          <Text style={S.transitSectionTitle}>{t('home.transitTitle')}</Text>
           <View style={S.transitCard}>
             {/* Başlık */}
             <View style={S.transitHeadlineRow}>
@@ -642,11 +662,11 @@ export default function HomeScreen() {
             {/* Özet-detay pattern: Günün Enerjisi, Yapabilecekler, Dikkat Noktaları */}
             {transitExpanded ? (
               <>
-                <Text style={S.transitDailyLabel}>Günün Enerjisi</Text>
+                <Text style={S.transitDailyLabel}>{t('home.transitDailyEnergy')}</Text>
                 <Text style={S.transitDailyText}>{dailyVibeText}</Text>
                 {transitDigest.actionItems.length > 0 && (
                   <View style={S.transitDetailBox}>
-                    <Text style={S.transitBoxLabel}>⚡ Bugün Yapabileceklerin</Text>
+                    <Text style={S.transitBoxLabel}>⚡ {t('home.transitActionItems')}</Text>
                     {transitDigest.actionItems.map((line) => (
                       <View key={line} style={S.transitPointRow}>
                         <Text style={S.transitPointMark}>›</Text>
@@ -657,7 +677,7 @@ export default function HomeScreen() {
                 )}
                 {transitDigest.cautionItems.length > 0 && (
                   <View style={[S.transitDetailBox, S.transitCautionBox]}>
-                    <Text style={[S.transitBoxLabel, { color: colors.cautionText }]}>⚠️ Dikkat Noktaları</Text>
+                    <Text style={[S.transitBoxLabel, { color: colors.cautionText }]}>⚠️ {t('home.transitCautionItems')}</Text>
                     {transitDigest.cautionItems.map((line) => (
                       <View key={line} style={S.transitPointRow}>
                         <Text style={[S.transitPointMark, { color: colors.cautionText }]}>›</Text>
@@ -669,10 +689,10 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   onPress={() => setTransitExpanded(false)}
                   style={S.detailCta}
-                  accessibilityLabel="Detayları gizle"
+                  accessibilityLabel={t('home.hideDetails')}
                   accessibilityRole="button"
                 >
-                  <Text style={S.detailCtaText}>Detayları Gizle</Text>
+                  <Text style={S.detailCtaText}>{t('home.hideDetails')}</Text>
                   <Ionicons name="chevron-up" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </>
@@ -680,10 +700,10 @@ export default function HomeScreen() {
               <TouchableOpacity
                 onPress={() => setTransitExpanded(true)}
                 style={S.detailCta}
-                accessibilityLabel="Detayları göster"
+                accessibilityLabel={t('home.showDetails')}
                 accessibilityRole="button"
               >
-                <Text style={S.detailCtaText}>Detayları Göster</Text>
+                <Text style={S.detailCtaText}>{t('home.showDetails')}</Text>
                 <Ionicons name="chevron-down" size={16} color={colors.primary} />
               </TouchableOpacity>
             )}
@@ -727,10 +747,8 @@ export default function HomeScreen() {
                 style={[S.sliderCardWrapper, { transform: [{ scale }], opacity }]}
               >
                 <TouchableOpacity
-                  activeOpacity={item.id === 'natal' ? 0.7 : 1}
-                  onPress={() => {
-                    if (item.id === 'natal') router.push('/(tabs)/natal-chart');
-                  }}
+                  activeOpacity={0.7}
+                  onPress={() => handleServiceSlidePress(item.id)}
                   style={S.sliderCard}
                   accessibilityLabel={item.title}
                   accessibilityRole="button"
@@ -752,20 +770,20 @@ export default function HomeScreen() {
         <View style={S.wisdomCard}>
           <View style={S.wisdomHeader}>
             <Ionicons name="eye" size={16} color={colors.primary} />
-            <Text style={S.wisdomTitle}>Gunun Sirri</Text>
+            <Text style={S.wisdomTitle}>{t('home.dailySecret')}</Text>
             <View style={S.wisdomBadge}>
-              <Text style={S.wisdomBadgeText}>Kisisel Mesaj</Text>
+              <Text style={S.wisdomBadgeText}>{t('home.personalMessage')}</Text>
             </View>
           </View>
 
           {secretLoading ? (
             <View style={S.wisdomLoading}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={S.wisdomLoadingText}>Mesaj hazirlaniyor...</Text>
+              <Text style={S.wisdomLoadingText}>{t('home.secretLoading')}</Text>
             </View>
           ) : secretError ? (
             <ErrorStateCard
-              message="Kişisel mesaj yüklenemedi. Bağlantı sorunu olabilir — tekrar deneyebilirsin."
+              message={t('home.secretError')}
               onRetry={loadDailySecret}
               accessibilityLabel="Günün sırrını tekrar yükle"
             />
@@ -780,11 +798,11 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   onPress={() => setWisdomExpanded((e) => !e)}
                   style={S.detailCta}
-                  accessibilityLabel={wisdomExpanded ? 'Detayları gizle' : 'Detayları göster'}
+                  accessibilityLabel={wisdomExpanded ? t('home.hideDetails') : t('home.showDetails')}
                   accessibilityRole="button"
                 >
                   <Text style={S.detailCtaText}>
-                    {wisdomExpanded ? 'Detayları Gizle' : 'Detayları Göster'}
+                    {wisdomExpanded ? t('home.hideDetails') : t('home.showDetails')}
                   </Text>
                   <Ionicons name={wisdomExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary} />
                 </TouchableOpacity>
@@ -796,15 +814,15 @@ export default function HomeScreen() {
         {skyPulseLoading ? (
           <View style={[S.skyPulseCard, S.skyPulseCenter]}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={S.skyPulseLoadingText}>Gokyuzu okunuyor...</Text>
+            <Text style={S.skyPulseLoadingText}>{t('home.skyPulseLoading')}</Text>
           </View>
         ) : skyPulseError || !skyPulse ? (
           <View style={[S.skyPulseCard, S.skyPulseCenter]}>
             <ErrorStateCard
-              message="Gökyüzü verisi alınamadı. Ay fazı ve gezegen bilgisi yüklenemedi."
+              message={t('home.skyPulseError')}
               onRetry={loadSkyPulse}
               variant="compact"
-              accessibilityLabel="Gökyüzü verisini tekrar yükle"
+              accessibilityLabel={t('home.skyPulseRetry')}
             />
           </View>
         ) : (
@@ -843,8 +861,11 @@ export default function HomeScreen() {
 
         <ServiceStatus />
 
-        <View style={S.swotSection}>
-          <Text style={S.swotSectionTitle}>Haritanda bu hafta</Text>
+        <View
+          style={S.swotSection}
+          onLayout={(e) => { swotYRef.current = e.nativeEvent.layout.y; }}
+        >
+          <Text style={S.swotSectionTitle}>{t('home.swotSectionTitle')}</Text>
 
           {weeklyLoading ? (
             <View style={S.swotLoadingCard}>

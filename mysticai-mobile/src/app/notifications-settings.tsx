@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,7 +133,7 @@ export default function NotificationsSettingsScreen() {
         const { status } = await Notifications.requestPermissionsAsync();
         if (status === 'granted') {
           const tokenData = await Notifications.getExpoPushTokenAsync();
-          await dreamService.registerPushToken(user.id, tokenData.data, 'ios');
+          await dreamService.registerPushToken(user.id, tokenData.data, Platform.OS);
         }
       } catch {
         // Silently fail — permissions not granted or push unavailable

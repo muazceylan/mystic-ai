@@ -31,9 +31,10 @@ public class GatewayConfig {
                 .route("synastry", r -> r
                         .path("/api/v1/synastry/**")
                         .uri("lb://astrology-service"))
-                // Numerology Service
+                // Numerology Service (rewrite /api/numerology → /api/v1/numerology)
                 .route("numerology-service", r -> r
                         .path("/api/numerology/**")
+                        .filters(f -> f.rewritePath("/api/numerology(?<segment>/?.*)", "/api/v1/numerology${segment}"))
                         .uri("lb://numerology-service"))
                 // Dream Service
                 .route("dream-service", r -> r
