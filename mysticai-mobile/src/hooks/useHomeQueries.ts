@@ -10,6 +10,24 @@ import {
 import { fetchDailySecret, DailySecret } from '../services/oracle.service';
 import { queryKeys } from '../lib/queryKeys';
 
+/** ms until midnight local time (min 5 min) */
+function msUntilMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return Math.max(midnight.getTime() - now.getTime(), 5 * 60 * 1000);
+}
+
+/** ms until end of Sunday 23:59:59 local time (min 1h) */
+function msUntilEndOfWeek(): number {
+  const now = new Date();
+  const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+  const endOfSunday = new Date(now);
+  endOfSunday.setDate(now.getDate() + daysUntilSunday);
+  endOfSunday.setHours(23, 59, 59, 999);
+  return Math.max(endOfSunday.getTime() - now.getTime(), 60 * 60 * 1000);
+}
+
 export type { DailySecret, SkyPulseResponse, WeeklySwotResponse, NatalChartResponse };
 
 interface DailySecretParams {
@@ -32,7 +50,7 @@ export function useDailySecret(params: DailySecretParams | null) {
       return res.data;
     },
     enabled: !!params,
-    staleTime: 1000 * 60 * 15, // 15 dakika - günlük sır günde bir kez değişir
+    staleTime: msUntilMidnight(), // gece yarısına kadar geçerli
   });
 }
 
@@ -56,7 +74,7 @@ export function useWeeklySwot(userId: number | undefined) {
       return res.data;
     },
     enabled: !!userId,
-    staleTime: 1000 * 60 * 60 * 6, // 6 saat - haftalık swot
+    staleTime: msUntilEndOfWeek(), // pazar sonu 23:59'a kadar geçerli
   });
 }
 

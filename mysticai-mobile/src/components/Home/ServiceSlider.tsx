@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
-  Animated,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
@@ -30,41 +29,31 @@ interface ServiceSliderProps {
 }
 
 export function ServiceSlider({ slides, onScrollToSwot }: ServiceSliderProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const sliderRef = useRef<FlatList<SlideItem>>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const [activeSlide, setActiveSlide] = useState(0);
   const isPausedByUserRef = useRef(false);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeIndexRef = useRef(0);
 
   const scheduleResume = useCallback(() => {
     if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
     resumeTimeoutRef.current = setTimeout(() => {
       isPausedByUserRef.current = false;
-      resumeTimeoutRef.current = null;
     }, IDLE_RESUME_MS);
   }, []);
 
   const pauseAutoScroll = useCallback(() => {
     isPausedByUserRef.current = true;
-    if (resumeTimeoutRef.current) {
-      clearTimeout(resumeTimeoutRef.current);
-      resumeTimeoutRef.current = null;
-    }
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (isPausedByUserRef.current) return;
-      setActiveSlide((prev) => {
-        const next = (prev + 1) % slides.length;
-        sliderRef.current?.scrollToOffset({
-          offset: next * SLIDE_SNAP,
-          animated: true,
-        });
-        return next;
-      });
+      const next = (activeIndexRef.current + 1) % slides.length;
+      activeIndexRef.current = next;
+      sliderRef.current?.scrollToOffset({ offset: next * SLIDE_SNAP, animated: true });
     }, AUTO_ADVANCE_MS);
     return () => {
       clearInterval(interval);
@@ -72,13 +61,9 @@ export function ServiceSlider({ slides, onScrollToSwot }: ServiceSliderProps) {
     };
   }, [slides.length]);
 
-  const handleScrollBeginDrag = useCallback(() => {
-    pauseAutoScroll();
-  }, [pauseAutoScroll]);
-
   const handleScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / SLIDE_SNAP);
-    setActiveSlide(index);
+    activeIndexRef.current = index;
     scheduleResume();
   }, [scheduleResume]);
 
@@ -94,107 +79,71 @@ export function ServiceSlider({ slides, onScrollToSwot }: ServiceSliderProps) {
     else if (itemId === 'weekly') onScrollToSwot();
   }, [router, onScrollToSwot, pauseAutoScroll, scheduleResume]);
 
-  const S = makeStyles(colors);
+  const glassBg = isDark
+    ? 'rgba(139, 92, 246, 0.08)'
+    : 'rgba(139, 92, 246, 0.06)';
+  const glassBorder = isDark
+    ? 'rgba(139, 92, 246, 0.22)'
+    : 'rgba(139, 92, 246, 0.18)';
 
   return (
-    <>
-      <Animated.FlatList
-        ref={sliderRef}
-        data={slides}
-        keyExtractor={(item) => item.id}
-        horizontal
-        pagingEnabled={false}
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={SLIDE_SNAP}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: true }
-        )}
-        onScrollBeginDrag={handleScrollBeginDrag}
-        onMomentumScrollEnd={handleScrollEnd}
-        contentContainerStyle={S.sliderContainer}
-        renderItem={({ item, index }) => {
-          const inputRange = [
-            (index - 1) * SLIDE_SNAP,
-            index * SLIDE_SNAP,
-            (index + 1) * SLIDE_SNAP,
-          ];
-          const scale = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.9, 1, 0.9],
-            extrapolate: 'clamp',
-          });
-          const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.65, 1, 0.65],
-            extrapolate: 'clamp',
-          });
-          return (
-            <Animated.View
-              style={[S.sliderCardWrapper, { transform: [{ scale }], opacity }]}
-            >
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => handlePress(item.id)}
-                style={S.sliderCard}
-                accessibilityLabel={item.title}
-                accessibilityRole="button"
-              >
-                <Text style={S.sliderEmoji}>{item.emoji}</Text>
-                <Text style={S.sliderText}>{item.title}</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          );
-        }}
-      />
-
-      <View style={S.sliderDots}>
-        {slides.map((_, index) => (
-          <View key={index} style={[S.dot, index === activeSlide && S.dotActive]} />
-        ))}
-      </View>
-    </>
+    <FlatList
+      ref={sliderRef}
+      data={slides}
+      keyExtractor={(item) => item.id}
+      horizontal
+      pagingEnabled={false}
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={SLIDE_SNAP}
+      snapToAlignment="start"
+      decelerationRate="fast"
+      onScrollBeginDrag={pauseAutoScroll}
+      onMomentumScrollEnd={handleScrollEnd}
+      contentContainerStyle={styles.container}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          activeOpacity={0.68}
+          onPress={() => handlePress(item.id)}
+          style={[styles.chip, { backgroundColor: glassBg, borderColor: glassBorder }]}
+          accessibilityLabel={item.title}
+          accessibilityRole="button"
+        >
+          <Text style={styles.chipEmoji}>{item.emoji}</Text>
+          <Text style={[styles.chipText, { color: colors.text }]} numberOfLines={1}>
+            {item.title}
+          </Text>
+        </TouchableOpacity>
+      )}
+    />
   );
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
-  return StyleSheet.create({
-    sliderContainer: { paddingHorizontal: HORIZONTAL_PADDING, marginTop: SPACING.md },
-    sliderCardWrapper: {
-      width: SLIDE_WIDTH,
-      marginRight: SLIDE_GAP,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    sliderCard: {
-      width: SLIDE_WIDTH,
-      height: 50,
-      backgroundColor: C.accent,
-      borderRadius: SPACING.mdLg,
-      borderWidth: 1,
-      borderColor: C.accent,
-      shadowColor: C.accent,
-      shadowOpacity: 0.18,
-      shadowOffset: { width: 0, height: SPACING.xsSm },
-      shadowRadius: SPACING.smMd,
-      elevation: 3,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.sm,
-    },
-    sliderEmoji: { ...TYPOGRAPHY.Body },
-    sliderText: { ...TYPOGRAPHY.BodyBold, color: C.white },
-    sliderDots: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: SPACING.xsSm,
-      marginTop: SPACING.smMd,
-      marginBottom: SPACING.xs,
-    },
-    dot: { width: SPACING.xsSm, height: SPACING.xsSm, borderRadius: SPACING.xsSm / 2, backgroundColor: C.border },
-    dotActive: { backgroundColor: C.primary, width: 14 },
-  });
-}
+const styles = StyleSheet.create({
+  container: {
+    paddingLeft: HORIZONTAL_PADDING,
+    paddingRight: HORIZONTAL_PADDING,
+    gap: SLIDE_GAP,
+    marginTop: SPACING.smMd,
+    marginBottom: SPACING.xs,
+  },
+  chip: {
+    width: SLIDE_WIDTH,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xsSm,
+    paddingHorizontal: SPACING.smMd,
+  },
+  chipEmoji: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  chipText: {
+    ...TYPOGRAPHY.CaptionSmall,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+});

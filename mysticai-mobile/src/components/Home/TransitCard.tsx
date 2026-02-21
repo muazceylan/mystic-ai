@@ -1,206 +1,270 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useMemo, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Dimensions,
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING } from '../../constants/tokens';
 import type { TransitDigest } from './homeUtils';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const H_PAD = SPACING.lgXl;
+const CARD_WIDTH = Math.round(SCREEN_WIDTH * 0.75);
+const CARD_HEIGHT = 148;
+const CARD_GAP = 10;
+const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
+
 interface TransitCardProps {
   transitDigest: TransitDigest;
   dailyVibeText: string;
-  expanded: boolean;
-  onToggleExpand: () => void;
 }
 
-export function TransitCard({ transitDigest, dailyVibeText, expanded, onToggleExpand }: TransitCardProps) {
-  const { colors } = useTheme();
+interface GlassCard {
+  id: string;
+  icon: string;
+  label: string;
+  headline: string;
+  accentHex: string;
+}
+
+function buildCards(
+  transitDigest: TransitDigest,
+  dailyVibeText: string,
+  colors: ReturnType<typeof useTheme>['colors'],
+): GlassCard[] {
+  const cards: GlassCard[] = [];
+
+  // Card 1: Overall energy
+  const energyIcon =
+    transitDigest.energyType === 'lucky' ? '🌟' :
+    transitDigest.energyType === 'caution' ? '🔴' : '🔮';
+  const energyHex =
+    transitDigest.energyType === 'lucky' ? colors.success :
+    transitDigest.energyType === 'caution' ? colors.error : colors.warning;
+  cards.push({
+    id: 'energy',
+    icon: energyIcon,
+    label: 'GENEL ENERJİ',
+    headline: transitDigest.energyLabel,
+    accentHex: energyHex,
+  });
+
+  // Card 2: Transit headline / daily vibe
+  if (transitDigest.title) {
+    cards.push({
+      id: 'headline',
+      icon: '🪐',
+      label: 'BUGÜNÜN TRANSİTİ',
+      headline: transitDigest.title,
+      accentHex: colors.primary,
+    });
+  }
+
+  // Card 3+: Action items
+  transitDigest.actionItems.forEach((item, i) => {
+    cards.push({
+      id: `action-${i}`,
+      icon: '⚡',
+      label: 'ODAKLAN',
+      headline: item,
+      accentHex: colors.success,
+    });
+  });
+
+  // Caution cards
+  transitDigest.cautionItems.forEach((item, i) => {
+    cards.push({
+      id: `caution-${i}`,
+      icon: '🚫',
+      label: 'DİKKAT',
+      headline: item,
+      accentHex: colors.error,
+    });
+  });
+
+  return cards;
+}
+
+export function TransitCard({ transitDigest, dailyVibeText }: TransitCardProps) {
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
-  const S = makeStyles(colors);
+  const flatListRef = useRef<FlatList<GlassCard>>(null);
+  const currentIndexRef = useRef(0);
+
+  const cards = useMemo(
+    () => buildCards(transitDigest, dailyVibeText, colors),
+    [transitDigest, dailyVibeText, colors],
+  );
+
+  // Auto-scroll every 5 seconds
+  useEffect(() => {
+    if (cards.length <= 1) return;
+    const interval = setInterval(() => {
+      const nextIndex = (currentIndexRef.current + 1) % cards.length;
+      currentIndexRef.current = nextIndex;
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [cards.length]);
+
+  if (cards.length === 0) return null;
 
   return (
-    <View style={S.transitSection}>
-      <Text style={S.transitSectionTitle}>{t('home.transitTitle')}</Text>
-      <View style={S.transitCard}>
-        <View style={S.transitHeadlineRow}>
-          <View
-            style={[
-              S.transitDot,
-              {
-                backgroundColor:
-                  transitDigest.energyType === 'lucky'
-                    ? colors.success
-                    : transitDigest.energyType === 'caution'
-                      ? colors.red
-                      : colors.warning,
-              },
-            ]}
-          />
-          <Text style={S.transitHeadline}>{transitDigest.title}</Text>
-        </View>
+    <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.wrapper}>
+      {/* Section label */}
+      <Text
+        style={[
+          styles.sectionLabel,
+          { color: isDark ? 'rgba(196,181,253,0.6)' : 'rgba(99,102,241,0.55)' },
+        ]}
+      >
+        {t('home.transitTitle').toUpperCase()}
+      </Text>
 
-        <View
-          style={[
-            S.energyBand,
-            {
-              backgroundColor:
-                transitDigest.energyType === 'lucky'
-                  ? colors.luckBg
-                  : transitDigest.energyType === 'caution'
-                    ? colors.cautionBg
-                    : colors.neutralBg,
-            },
-          ]}
-        >
-          <Text style={S.energyBandIcon}>
-            {transitDigest.energyType === 'lucky' ? '🟢' : transitDigest.energyType === 'caution' ? '🔴' : '🟡'}
-          </Text>
-          <Text
-            style={[
-              S.energyBandText,
-              {
-                color:
-                  transitDigest.energyType === 'lucky'
-                    ? colors.success
-                    : transitDigest.energyType === 'caution'
-                      ? colors.cautionTextDark
-                      : colors.warning,
-              },
-            ]}
-          >
-            {transitDigest.energyLabel}
-          </Text>
-        </View>
-
-        {expanded ? (
-          <>
-            <Text style={S.transitDailyLabel}>{t('home.transitDailyEnergy')}</Text>
-            <Text style={S.transitDailyText}>{dailyVibeText}</Text>
-            {transitDigest.actionItems.length > 0 && (
-              <View style={S.transitDetailBox}>
-                <Text style={S.transitBoxLabel}>⚡ {t('home.transitActionItems')}</Text>
-                {transitDigest.actionItems.map((line) => (
-                  <View key={line} style={S.transitPointRow}>
-                    <Text style={S.transitPointMark}>›</Text>
-                    <Text style={S.transitPointText}>{line}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            {transitDigest.cautionItems.length > 0 && (
-              <View style={[S.transitDetailBox, S.transitCautionBox]}>
-                <Text style={[S.transitBoxLabel, { color: colors.cautionText }]}>
-                  ⚠️ {t('home.transitCautionItems')}
-                </Text>
-                {transitDigest.cautionItems.map((line) => (
-                  <View key={line} style={S.transitPointRow}>
-                    <Text style={[S.transitPointMark, { color: colors.cautionText }]}>›</Text>
-                    <Text style={[S.transitPointText, { color: colors.cautionTextDark }]}>{line}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            <TouchableOpacity
-              onPress={onToggleExpand}
-              style={S.detailCta}
-              accessibilityLabel={t('home.hideDetails')}
-              accessibilityRole="button"
-              accessibilityHint={t('accessibility.collapseHint')}
-              accessibilityState={{ expanded: true }}
-            >
-              <Text style={S.detailCtaText} maxFontSizeMultiplier={2}>
-                {t('home.hideDetails')}
-              </Text>
-              <Ionicons name="chevron-up" size={16} color={colors.primary} />
-            </TouchableOpacity>
-          </>
-        ) : (
-          <TouchableOpacity
-            onPress={onToggleExpand}
-            style={S.detailCta}
-            accessibilityLabel={t('home.showDetails')}
-            accessibilityRole="button"
-            accessibilityHint={t('accessibility.expandHint')}
-            accessibilityState={{ expanded: false }}
-          >
-            <Text style={S.detailCtaText} maxFontSizeMultiplier={2}>
-              {t('home.showDetails')}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.primary} />
-          </TouchableOpacity>
+      <FlatList
+        ref={flatListRef}
+        data={cards}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={SNAP_INTERVAL}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        style={styles.flatList}
+        contentContainerStyle={styles.listContent}
+        onScrollBeginDrag={() => {
+          // Reset auto-scroll index when user manually drags
+          currentIndexRef.current = 0;
+        }}
+        renderItem={({ item }) => (
+          <GlassTransitCard card={item} isDark={isDark} colors={colors} />
         )}
+      />
+    </Animated.View>
+  );
+}
+
+interface GlassTransitCardProps {
+  card: GlassCard;
+  isDark: boolean;
+  colors: ReturnType<typeof useTheme>['colors'];
+}
+
+function GlassTransitCard({ card, isDark, colors }: GlassTransitCardProps) {
+  // Glass background: dark = deep indigo/violet tint, light = white tint
+  const bgColor = isDark
+    ? 'rgba(26, 20, 60, 0.65)'
+    : 'rgba(255, 255, 255, 0.72)';
+  const borderColor = isDark
+    ? 'rgba(255, 255, 255, 0.09)'
+    : 'rgba(0, 0, 0, 0.07)';
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: bgColor,
+          borderColor,
+          shadowColor: card.accentHex,
+        },
+      ]}
+    >
+      {/* Top row: glow icon pill + label */}
+      <View style={styles.cardTopRow}>
+        <View style={[styles.iconPill, { backgroundColor: `${card.accentHex}22`, borderColor: `${card.accentHex}44` }]}>
+          <Text style={styles.iconEmoji}>{card.icon}</Text>
+        </View>
+        <Text style={[styles.cardLabel, { color: card.accentHex }]}>
+          {card.label}
+        </Text>
       </View>
+
+      {/* Headline */}
+      <Text
+        style={[styles.cardHeadline, { color: isDark ? '#e8e0ff' : '#1e1b4b' }]}
+        numberOfLines={3}
+      >
+        {card.headline}
+      </Text>
+
+      {/* Bottom glow line */}
+      <View style={[styles.cardGlowLine, { backgroundColor: `${card.accentHex}55` }]} />
     </View>
   );
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
-  return StyleSheet.create({
-    transitSection: { marginHorizontal: SPACING.lgXl, marginTop: SPACING.sm },
-    transitSectionTitle: { ...TYPOGRAPHY.BodyBold, color: C.subtext, marginBottom: SPACING.sm },
-    transitCard: {
-      backgroundColor: C.primarySoftBg,
-      borderRadius: 18,
-      paddingHorizontal: SPACING.mdLg,
-      paddingVertical: SPACING.mdLg,
-      borderWidth: 1.5,
-      borderColor: C.primary,
-      shadowColor: C.primary,
-      shadowOpacity: 0.12,
-      shadowOffset: { width: 0, height: SPACING.sm },
-      shadowRadius: SPACING.md,
-      elevation: 2,
-    },
-    transitHeadlineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: SPACING.smMd },
-    transitDot: { width: 14, height: 14, borderRadius: 7, marginRight: SPACING.smMd, marginTop: SPACING.xs },
-    transitHeadline: { flex: 1, ...TYPOGRAPHY.BodyLarge, color: C.success },
-    energyBand: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-      borderRadius: 10,
-      paddingHorizontal: SPACING.smMd,
-      paddingVertical: SPACING.sm,
-      marginBottom: SPACING.md,
-    },
-    energyBandIcon: { ...TYPOGRAPHY.Small },
-    energyBandText: { flex: 1, ...TYPOGRAPHY.SmallAlt },
-    transitDailyLabel: {
-      ...TYPOGRAPHY.CaptionBold,
-      color: C.primary,
-      marginBottom: SPACING.xs,
-      textTransform: 'uppercase',
-      letterSpacing: 0.4,
-    },
-    transitDailyText: { ...TYPOGRAPHY.Small, color: C.text, marginBottom: SPACING.smMd },
-    transitDetailBox: {
-      backgroundColor: C.primarySoftBg,
-      borderRadius: SPACING.md,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.smMd,
-      borderWidth: 1,
-      borderColor: C.primary,
-      gap: SPACING.xsSm,
-      marginBottom: SPACING.sm,
-    },
-    transitCautionBox: { backgroundColor: C.cautionBg, borderColor: C.error },
-    transitBoxLabel: { ...TYPOGRAPHY.CaptionBold, color: C.primary700, marginBottom: SPACING.xs },
-    transitPointRow: { flexDirection: 'row', alignItems: 'flex-start' },
-    transitPointMark: {
-      marginRight: SPACING.xsSm,
-      ...TYPOGRAPHY.BodyMid,
-      color: C.primary700,
-      fontWeight: '700',
-    },
-    transitPointText: { flex: 1, ...TYPOGRAPHY.SmallAlt, lineHeight: 20, color: C.text },
-    detailCta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xsSm,
-      marginTop: SPACING.md,
-      paddingVertical: SPACING.sm,
-      minHeight: 44,
-    },
-    detailCtaText: { ...TYPOGRAPHY.SmallBold, color: C.primary },
-  });
-}
+const styles = StyleSheet.create({
+  wrapper: {
+    marginTop: SPACING.xl,
+  },
+  sectionLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: SPACING.smMd,
+    marginLeft: H_PAD,
+  },
+  flatList: {
+    height: CARD_HEIGHT + 12, // explicit height prevents clipping by animated parent
+  },
+  listContent: {
+    gap: CARD_GAP,
+    paddingLeft: H_PAD,
+    paddingRight: H_PAD,
+    alignItems: 'flex-start',
+  },
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: SPACING.mdLg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    justifyContent: 'space-between',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xsSm,
+    marginBottom: SPACING.smMd,
+  },
+  iconPill: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconEmoji: {
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  cardLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  cardHeadline: {
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 21,
+    flex: 1,
+  },
+  cardGlowLine: {
+    height: 2,
+    borderRadius: 1,
+    marginTop: SPACING.xs,
+  },
+});

@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -98,7 +100,9 @@ public class WeeklySwotService {
     }
 
     public WeeklySwotResponse getWeeklySwot(Long userId) {
-        String cacheKey = CACHE_PREFIX + userId;
+        LocalDate today = LocalDate.now();
+        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+        String cacheKey = CACHE_PREFIX + userId + ":" + weekStart;
 
         // Try cache
         try {
@@ -107,7 +111,7 @@ public class WeeklySwotService {
                 return objectMapper.readValue(cached, WeeklySwotResponse.class);
             }
         } catch (Exception e) {
-            log.debug("Cache miss for weekly-swot user {}", userId);
+            log.debug("Cache miss for weekly-swot user {} week {}", userId, weekStart);
         }
 
         // Fetch natal chart
@@ -131,8 +135,6 @@ public class WeeklySwotService {
         String moonSign = chart.getMoonSign();
         String risingSign = chart.getRisingSign();
 
-        LocalDate today = LocalDate.now();
-        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         // Accumulators per SWOT category
@@ -266,10 +268,13 @@ public class WeeklySwotService {
         WeeklySwotResponse response = new WeeklySwotResponse(
                 strengthPoint, weaknessPoint, opportunityPoint, threatPoint, flash, weekStart, weekEnd);
 
-        // Cache 24h
+        // Cache until end of Sunday (week boundary)
         try {
+            LocalDateTime endOfSunday = weekStart.plusDays(6).atTime(23, 59, 59);
+            long ttlSeconds = Math.max(ChronoUnit.SECONDS.between(LocalDateTime.now(), endOfSunday), 3600L);
             redisTemplate.opsForValue().set(cacheKey,
-                    objectMapper.writeValueAsString(response), 24, TimeUnit.HOURS);
+                    objectMapper.writeValueAsString(response), ttlSeconds, TimeUnit.SECONDS);
+            log.debug("Cached weekly-swot for user {} week {} (TTL {}s)", userId, weekStart, ttlSeconds);
         } catch (Exception e) {
             log.debug("Failed to cache weekly-swot for user {}", userId);
         }
@@ -311,51 +316,53 @@ public class WeeklySwotService {
             PlanetaryAspect best = findBestAspect(acc.aspects);
             String tp = planetTr(best.planet1().replace("T-", ""));
             String np = planetTr(best.planet2().replace("N-", ""));
-            String aspectName = aspectTr(best.type().name());
 
+            String headline = tp.equals("Güneş") || tp.equals("Jüpiter")
+                    ? tp + " bu hafta " + sunTr + " haritanı güçlendiriyor"
+                    : tp + " haritandaki " + np + "'e destek veriyor";
             return new SwotPoint("STRENGTH",
-                    tp + " natal " + np + "'ünle " + aspectName + " yapıyor",
-                    sunTr + " enerjin bu hafta güçleniyor.",
+                    headline,
+                    sunTr + " gücün bu hafta zirvede — fırsatı kaçırma.",
                     score,
-                    risingTr + " yükselen olarak liderlik enerjini kullan, fikirlerini cesurca paylaş.");
+                    risingTr + " yükselenli biri olarak liderlik enerjini öne çıkar, fikirlerini paylaş.");
         }
 
         return new SwotPoint("STRENGTH",
-                sunTr + " gücün bu hafta yükseliyor",
-                risingTr + " yükselenin sana doğal bir karizma veriyor.",
+                sunTr + " için bu hafta yükseliş var",
+                risingTr + " yükselenin sana doğal bir çekim gücü katıyor.",
                 score,
-                "Sabah rutinini güçlendir, enerjini bilinçli yönlendir.");
+                "Sabah rutinini güçlendir, enerjini bilinçli kullan.");
     }
 
     private SwotPoint buildDynamicWeakness(int score, SwotAccumulator acc,
                                             String moonSign, String sunSign) {
         String moonTr = signTr(moonSign);
+        String sunTr = signTr(sunSign);
 
         if (!acc.aspects.isEmpty()) {
             PlanetaryAspect worst = findWorstAspect(acc.aspects);
             String tp = planetTr(worst.planet1().replace("T-", ""));
             String np = planetTr(worst.planet2().replace("N-", ""));
-            String aspectName = aspectTr(worst.type().name());
 
             String headline;
             String subtext;
             if (tp.equals("Satürn") || tp.equals("Kiron")) {
-                headline = tp + " " + np + "'üne " + aspectName + " yapıyor";
-                subtext = moonTr + " Ay'ın duygusal olarak zorlanabilir.";
+                headline = tp + " bu hafta " + sunTr + " haritasına baskı uyguluyor";
+                subtext = moonTr + " Ayı ile duygusal zorlanma olası — sabırlı kal.";
             } else {
-                headline = tp + " natal " + np + "'ünle gerilim yaratıyor";
-                subtext = "Bu hafta odaklanmak normalden zor olabilir.";
+                headline = tp + " haritandaki " + np + " ile gerilim yaratıyor";
+                subtext = "Odaklanmak normalden güç olabilir — kendine mola ver.";
             }
 
             return new SwotPoint("WEAKNESS", headline, subtext, score,
-                    moonTr + " Ay olarak kendine şefkat göster, fazla yüklenme.");
+                    moonTr + " Ayın hassas — kendine şefkat göster, fazla yüklenme.");
         }
 
         return new SwotPoint("WEAKNESS",
-                moonTr + " Ay'ın bu hafta hassas",
-                "Duygusal enerji dalgalanabilir.",
+                moonTr + " Ayı bu hafta duygusal hassasiyeti artırıyor",
+                "Enerji dalgalanabilir, akışa karşı gitme.",
                 score,
-                "Stres anlarında derin nefes al, acele kararlardan kaçın.");
+                "Stres anlarında dur ve nefes al; anlık tepkilerden kaçın.");
     }
 
     private SwotPoint buildDynamicOpportunity(int score, SwotAccumulator acc,
@@ -366,31 +373,30 @@ public class WeeklySwotService {
             PlanetaryAspect best = findBestAspect(acc.aspects);
             String tp = planetTr(best.planet1().replace("T-", ""));
             String np = planetTr(best.planet2().replace("N-", ""));
-            String aspectName = aspectTr(best.type().name());
 
             String headline;
             String tip;
             if (tp.equals("Venüs")) {
-                headline = "Venüs " + np + "'ünle " + aspectName + " oluşturuyor";
-                tip = "Sosyal ol, yeni tanışıklıklar bu hafta çok kıymetli.";
+                headline = "Venüs bu hafta " + sunTr + " haritanda ilişkileri canlandırıyor";
+                tip = "Sosyal ol; yeni tanışıklıklar bu hafta beklenmedik kapılar açabilir.";
             } else if (tp.equals("Jüpiter")) {
-                headline = "Jüpiter " + np + "'ünü destekliyor";
-                tip = "Büyük düşün, cesur adımlar atmanın tam zamanı.";
+                headline = "Jüpiter " + sunTr + " haritasında genişleme fırsatı yaratıyor";
+                tip = "Büyük düşün — cesur adım atmak için gökyüzü tam hazır.";
             } else {
-                headline = tp + " natal " + np + "'ünle fırsat penceresi açıyor";
-                tip = "Ertelediğin projeye bugün başla.";
+                headline = tp + " haritandaki " + np + " alanında fırsat penceresi açıyor";
+                tip = "Ertelediğin projeye bu hafta başla; momentum sende.";
             }
 
             return new SwotPoint("OPPORTUNITY", headline,
-                    sunTr + " için kozmik rüzgar arkandan esiyor.",
+                    sunTr + " için kozmik rüzgar arkanda esiyor.",
                     score, tip);
         }
 
         return new SwotPoint("OPPORTUNITY",
-                sunTr + " için yeni kapılar açılıyor",
-                "Kozmik enerji fırsatlara zemin hazırlıyor.",
+                sunTr + " için bu hafta yeni kapılar aralanıyor",
+                "Fırsatlar görünür yerlerde değil, alışılmadık anlarda çıkabilir.",
                 score,
-                "Gündelik rutinden çık, farklı bir şey dene.");
+                "Rutinden çık, farklı bir şey dene; ilk adım seni ileriye taşır.");
     }
 
     private SwotPoint buildDynamicThreat(int score, SwotAccumulator acc,
@@ -405,18 +411,18 @@ public class WeeklySwotService {
             String np = planetTr(aspect.planet2().replace("N-", ""));
 
             return new SwotPoint("THREAT",
-                    "Merkür retro + Mars " + np + "'ünü tetikliyor",
-                    "Hem iletişim hem sinir yönetimi kritik.",
+                    "Merkür retrosu ve Mars haritanı gergi altına alıyor",
+                    "İletişim ve sabır aynı anda sınandığında dikkat şart.",
                     score,
-                    "Önemli yazışmaları ertele, spor ile enerji boşalt.");
+                    "Önemli yazışmaları ertele; siniri spor veya yürüyüşle boşalt.");
         }
 
         if (mercuryRetro) {
             return new SwotPoint("THREAT",
-                    sunTr + " için Merkür retrosu aktif",
-                    "İletişim ve teknolojide aksaklıklar olası.",
+                    "Merkür retrosu " + sunTr + " için iletişimi riskli hâle getiriyor",
+                    "Teknoloji ve yazılı iletişimde aksaklıklar olası.",
                     score,
-                    "Sözleşme ve önemli mailleri çift kontrol et.");
+                    "Sözleşme ve kritik mailleri iki kez kontrol et, acele etme.");
         }
 
         if (!acc.aspects.isEmpty()) {
@@ -425,17 +431,17 @@ public class WeeklySwotService {
             String np = planetTr(worst.planet2().replace("N-", ""));
 
             return new SwotPoint("THREAT",
-                    tp + " natal " + np + "'ünle çatışma yaratıyor",
-                    sunTr + " enerjin bu hafta provoke edilebilir.",
+                    tp + " bu hafta haritandaki " + np + " alanında baskı yaratıyor",
+                    sunTr + " enerjisi bu hafta kolayca provoke edilebilir — dikkat.",
                     score,
-                    "Tartışmalardan uzak dur, tepki vermeden önce 10 kere düşün.");
+                    "Tartışmadan uzak dur; tepki vermeden önce bir adım geri çekil.");
         }
 
         return new SwotPoint("THREAT",
-                "Küçük aksaklıklara hazırlıklı ol",
-                sunTr + " için planlar değişebilir.",
+                sunTr + " için bu hafta küçük aksaklıklara hazırlıklı ol",
+                "Planlar beklenmedik şekilde değişebilir.",
                 score,
-                "B planını hazırla, esneklik bu hafta en büyük gücün.");
+                "B planını önceden hazırla; esneklik bu hafta en güçlü kozan.");
     }
 
     private FlashInsight buildDynamicFlash(SwotAccumulator strength, SwotAccumulator weakness,

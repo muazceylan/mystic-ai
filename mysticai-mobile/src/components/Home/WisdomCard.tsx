@@ -1,10 +1,19 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  FadeInDown,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING } from '../../constants/tokens';
 import { ErrorStateCard } from '../ui';
 import { SUMMARY_MAX_CHARS } from './homeConstants';
+
+const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' });
 
 interface WisdomCardProps {
   secretText: string;
@@ -13,7 +22,8 @@ interface WisdomCardProps {
   onRetry: () => void;
   expanded: boolean;
   onToggleExpand: () => void;
-  fadeAnim: Animated.Value;
+  /** When true, fades the content in after loading */
+  loaded?: boolean;
 }
 
 export function WisdomCard({
@@ -23,100 +33,157 @@ export function WisdomCard({
   onRetry,
   expanded,
   onToggleExpand,
-  fadeAnim,
+  loaded,
 }: WisdomCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
-  const S = makeStyles(colors);
+
+  const opacity = useSharedValue(loaded === undefined ? 1 : 0);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  useEffect(() => {
+    if (loaded || loaded === undefined) {
+      opacity.value = withTiming(1, { duration: 550 });
+    }
+  }, [loaded]);
+
+  const displayText =
+    expanded || secretText.length <= SUMMARY_MAX_CHARS
+      ? secretText
+      : `${secretText.slice(0, SUMMARY_MAX_CHARS).trim()}...`;
+
+  const accentLine = isDark
+    ? { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: 0.75, shadowRadius: 10 }
+    : { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 8 };
 
   return (
-    <View style={S.wisdomCard}>
-      <View style={S.wisdomHeader}>
-        <Ionicons name="eye" size={16} color={colors.primary} />
-        <Text style={S.wisdomTitle}>{t('home.dailySecret')}</Text>
-        <View style={S.wisdomBadge}>
-          <Text style={S.wisdomBadgeText}>{t('home.personalMessage')}</Text>
+    <Animated.View entering={FadeInDown.delay(440).duration(600)} style={styles.outerWrapper}>
+      {/* ── SECTION LABEL ── */}
+      <Text style={[styles.sectionLabel, { color: isDark ? 'rgba(196,181,253,0.6)' : 'rgba(99,102,241,0.55)' }]}>
+        {t('home.dailySecret').toUpperCase()}
+      </Text>
+
+      <View style={styles.wrapper}>
+        {/* Violet left accent line */}
+        <View style={[styles.accentLine, accentLine]} />
+
+        <View style={styles.content}>
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.subtext }]}>
+                {t('home.secretLoading')}
+              </Text>
+            </View>
+          ) : error ? (
+            <ErrorStateCard
+              message={t('home.secretError')}
+              onRetry={onRetry}
+              accessibilityLabel="Günün sırrını tekrar yükle"
+            />
+          ) : (
+            <Animated.View style={fadeStyle} accessibilityLiveRegion="polite">
+              {/* Serif editorial headline */}
+              <Text
+                style={[styles.headline, { color: colors.text }]}
+                maxFontSizeMultiplier={1.6}
+              >
+                {displayText}
+              </Text>
+
+              {/* Italic subtitle */}
+              <Text style={[styles.subtitle, { color: colors.subtext }]}>
+                {t('home.personalMessage').startsWith('—')
+                  ? t('home.personalMessage')
+                  : `— ${t('home.personalMessage')}`}
+              </Text>
+
+              {/* Expand / Collapse link */}
+              {secretText.length > SUMMARY_MAX_CHARS && (
+                <TouchableOpacity
+                  onPress={onToggleExpand}
+                  style={styles.expandRow}
+                  accessibilityLabel={expanded ? t('home.hideDetails') : t('home.showDetails')}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.expandText, { color: colors.primary }]}>
+                    {expanded ? t('home.hideDetails') : t('home.showDetails')}
+                  </Text>
+                  <Ionicons
+                    name={expanded ? 'chevron-up' : 'chevron-down'}
+                    size={13}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
+            </Animated.View>
+          )}
         </View>
       </View>
-
-      {loading ? (
-        <View style={S.wisdomLoading}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={S.wisdomLoadingText}>{t('home.secretLoading')}</Text>
-        </View>
-      ) : error ? (
-        <ErrorStateCard
-          message={t('home.secretError')}
-          onRetry={onRetry}
-          accessibilityLabel="Günün sırrını tekrar yükle"
-        />
-      ) : (
-        <Animated.View
-          style={{ opacity: fadeAnim }}
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={t('home.dailySecret')}
-        >
-          <Text style={S.wisdomText} maxFontSizeMultiplier={2}>
-            {expanded || secretText.length <= SUMMARY_MAX_CHARS
-              ? secretText
-              : `${secretText.slice(0, SUMMARY_MAX_CHARS).trim()}...`}
-          </Text>
-          {secretText.length > SUMMARY_MAX_CHARS && (
-            <TouchableOpacity
-              onPress={onToggleExpand}
-              style={S.detailCta}
-              accessibilityLabel={expanded ? t('home.hideDetails') : t('home.showDetails')}
-              accessibilityRole="button"
-              accessibilityHint={expanded ? t('accessibility.collapseHint') : t('accessibility.expandHint')}
-              accessibilityState={{ expanded }}
-            >
-              <Text style={S.detailCtaText} maxFontSizeMultiplier={2}>
-                {expanded ? t('home.hideDetails') : t('home.showDetails')}
-              </Text>
-              <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-        </Animated.View>
-      )}
-    </View>
+    </Animated.View>
   );
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
-  return StyleSheet.create({
-    wisdomCard: {
-      marginHorizontal: SPACING.lgXl,
-      marginTop: SPACING.smMd,
-      backgroundColor: C.neutralBg,
-      borderRadius: 18,
-      padding: SPACING.lg,
-      borderWidth: 1.5,
-      borderColor: C.warning,
-    },
-    wisdomHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xsSm, marginBottom: SPACING.smMd },
-    wisdomBadge: {
-      marginLeft: 'auto',
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: SPACING.xs,
-      borderRadius: 999,
-      backgroundColor: C.primarySoftBg,
-      borderWidth: 1,
-      borderColor: C.primary,
-    },
-    wisdomBadgeText: { ...TYPOGRAPHY.CaptionXS, fontWeight: '700', color: C.primary },
-    wisdomTitle: { ...TYPOGRAPHY.SmallAlt, fontWeight: '700', color: C.primary },
-    wisdomLoading: { alignItems: 'center', paddingVertical: SPACING.lg, gap: SPACING.sm },
-    wisdomLoadingText: { ...TYPOGRAPHY.Caption, color: C.subtext },
-    wisdomText: { ...TYPOGRAPHY.Lead, color: C.text },
-    detailCta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xsSm,
-      marginTop: SPACING.md,
-      paddingVertical: SPACING.sm,
-      minHeight: 44,
-    },
-    detailCtaText: { ...TYPOGRAPHY.SmallBold, color: C.primary },
-  });
-}
+const styles = StyleSheet.create({
+  outerWrapper: {
+    marginHorizontal: SPACING.lgXl,
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.sm,
+  },
+  sectionLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: SPACING.smMd,
+  },
+  wrapper: {
+    flexDirection: 'row',
+    gap: SPACING.mdLg,
+  },
+  accentLine: {
+    width: 4,
+    borderRadius: 4,
+    elevation: 0,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  content: {
+    flex: 1,
+  },
+  headline: {
+    fontFamily: SERIF,
+    fontSize: 20,
+    fontStyle: 'italic',
+    lineHeight: 30,
+    fontWeight: '400',
+    marginBottom: SPACING.smMd,
+  },
+  subtitle: {
+    fontFamily: SERIF,
+    fontSize: 12,
+    fontStyle: 'italic',
+    lineHeight: 18,
+    opacity: 0.75,
+  },
+  expandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.smMd,
+  },
+  expandText: {
+    ...TYPOGRAPHY.CaptionSmall,
+    fontWeight: '600',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.sm,
+  },
+  loadingText: {
+    ...TYPOGRAPHY.Caption,
+    fontStyle: 'italic',
+  },
+});

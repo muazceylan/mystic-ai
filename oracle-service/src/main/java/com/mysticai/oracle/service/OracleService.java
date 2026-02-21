@@ -8,15 +8,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -26,14 +31,58 @@ public class OracleService {
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     private final ReactiveCircuitBreakerFactory circuitBreakerFactory;
+    private final StringRedisTemplate redisTemplate;
+
+    private static final String ORACLE_CACHE_PREFIX = "oracle:daily:";
 
     /**
-     * Main entry point. Fetches data from all services in parallel, then calls AI Orchestrator
-     * for a personalized synthesis. Falls back to static content if AI is unavailable.
+     * Main entry point. Checks Redis cache first (key = oracle:daily:{userId}:{date}).
+     * Returns cached result if today's record exists; otherwise fetches, computes, and caches.
      */
     public Mono<OracleResponse> getDailySecret(Long userId, String name, String birthDate,
                                                String maritalStatus, String focusPoint) {
-        log.info("Fetching daily secret for user: {}", userId);
+        String cacheKey = ORACLE_CACHE_PREFIX + userId + ":" + LocalDate.now();
+        return checkDailyCache(cacheKey)
+                .switchIfEmpty(computeDailySecret(userId, name, birthDate, maritalStatus, focusPoint, cacheKey));
+    }
+
+    // ─── Cache helpers ────────────────────────────────────────────────────────────
+
+    private Mono<OracleResponse> checkDailyCache(String cacheKey) {
+        return Mono.<OracleResponse>fromCallable(() -> {
+                    String cached = redisTemplate.opsForValue().get(cacheKey);
+                    if (cached == null) return null;
+                    OracleResponse response = objectMapper.readValue(cached, OracleResponse.class);
+                    log.debug("Oracle daily cache hit for key {}", cacheKey);
+                    return response;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(r -> r != null ? Mono.just(r) : Mono.empty())
+                .onErrorResume(e -> {
+                    log.debug("Daily oracle cache miss for key {}: {}", cacheKey, e.getMessage());
+                    return Mono.empty();
+                });
+    }
+
+    private void persistDailyCache(String cacheKey, OracleResponse response) {
+        try {
+            LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
+            LocalDateTime midnightUtc = nowUtc.toLocalDate().plusDays(1).atStartOfDay();
+            long ttlSeconds = Math.max(Duration.between(nowUtc, midnightUtc).getSeconds(), 300L);
+            redisTemplate.opsForValue().set(
+                    cacheKey, objectMapper.writeValueAsString(response), ttlSeconds, TimeUnit.SECONDS);
+            log.debug("Cached oracle secret for key {} (TTL {}s)", cacheKey, ttlSeconds);
+        } catch (Exception e) {
+            log.debug("Failed to cache oracle response for key {}: {}", cacheKey, e.getMessage());
+        }
+    }
+
+    // ─── Core computation ─────────────────────────────────────────────────────────
+
+    private Mono<OracleResponse> computeDailySecret(Long userId, String name, String birthDate,
+                                                     String maritalStatus, String focusPoint,
+                                                     String cacheKey) {
+        log.info("Computing daily secret for user: {}", userId);
 
         Mono<NumerologyData> numerologyMono = fetchNumerologyData(name, birthDate);
         Mono<NatalChartData> natalChartMono = fetchNatalChartData(userId);
@@ -60,6 +109,7 @@ public class OracleService {
                     return callAiOrchestrator(aiRequest)
                             .onErrorReturn(generateStaticSecret(synthesis));
                 })
+                .doOnSuccess(response -> persistDailyCache(cacheKey, response))
                 .onErrorResume(e -> {
                     log.error("Error fetching daily secret data: {}", e.getMessage());
                     return Mono.just(createFallbackResponse());

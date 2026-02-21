@@ -36,6 +36,6 @@ export const SUMMARY_MAX_CHARS = 90;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export const HORIZONTAL_PADDING = SPACING.lgXl;
-export const SLIDE_GAP = 0;
-export const SLIDE_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
+export const SLIDE_GAP = SPACING.xsSm;
+export const SLIDE_WIDTH = Math.round(SCREEN_WIDTH * 0.42);
 export const SLIDE_SNAP = SLIDE_WIDTH + SLIDE_GAP;

@@ -90,34 +90,102 @@ public class SkyPulseService {
                                      List<String> retrogradePlanets) {
         PlanetPosition moon = transits.get(1);
         ZodiacSign moonSign = mapToZodiacSign(moon.sign());
+        String moonTr = moonSign.getTurkishName();
         String element = moonSign.getElement();
+        int dayOfYear = LocalDate.now().getDayOfYear();
 
-        // Mercury retrograde takes priority
+        // Mercury retrograde — communication caution (5 variants)
         boolean mercuryRetro = transits.get(2).retrograde();
         if (mercuryRetro) {
-            return "Merkür retroda - iletişimde dikkatli ol, sözleşmeleri ertele.";
+            String[] variants = {
+                "Merkür retroda — söylemeden önce düşün, imzalamadan önce iki kez oku.",
+                "Merkür geriye gidiyor; bugün ne söylediğin kadar nasıl söylediğin de belirleyici.",
+                "Merkür retrosu aktif — önemli kararları ertele, teknik aksaklıklara hazırlıklı ol.",
+                "İletişim sinyalleri karışık; net olmayan mesajlara yanıt vermeden önce sormaktan çekinme.",
+                "Merkür retroda — eski konuşmalar yeniden gündeme gelebilir, dikkatli pozisyon al."
+            };
+            return variants[dayOfYear % variants.length];
         }
 
-        // Venus retrograde
+        // Venus retrograde — relationship reflection
         if (transits.get(3).retrograde()) {
-            return "Venüs retroda - eski ilişkiler gündeme gelebilir, duygusal netlik ara.";
+            String[] variants = {
+                "Venüs retroda — ilişkilerde hız değil derinlik; geçmişi düzelt, geleceği net kur.",
+                "Venüs geriye gidiyor; bugün duygusal hesaplaşmalar için doğru zemin.",
+                "Venüs retrosu var — kendine değer biçme biçimini sorgulamak için güçlü bir gün."
+            };
+            return variants[dayOfYear % variants.length];
         }
 
-        // Moon phase based vibes
+        // Mars retrograde — action caution
+        if (transits.size() > 4 && transits.get(4).retrograde()) {
+            return "Mars retroda — zorla değil, stratejik adımlarla ilerle; enerjiyi boşa harcama.";
+        }
+
+        // Multiple retrogrades
+        if (retrogradePlanets.size() >= 3) {
+            return "Gökyüzü yavaşlatıyor — bugün aksiyondan çok gözlem ve planlama günü.";
+        }
+
+        // Moon phase-specific vibes
         if ("Dolunay".equals(moonPhase)) {
-            return moonSign.getTurkishName() + " burcundaki Dolunay ile duygular zirveye çıkıyor, farkındalık günü.";
+            String[] variants = {
+                moonTr + " Dolunayı'nda duygular zirveye çıkıyor — neyi bırakman gerektiğini biliyorsun.",
+                moonTr + " Dolunayı başka bir döngüyü kapatıyor; ne tamamladığını görmek için dur.",
+                "Dolunay'da duygular net konuşuyor — bugün sezgine güven, mantık bekleyebilir."
+            };
+            return variants[dayOfYear % variants.length];
         }
         if ("Yeni Ay".equals(moonPhase)) {
-            return "Yeni Ay enerjisi ile yeni başlangıçlar için mükemmel bir gün.";
+            String[] variants = {
+                "Yeni Ay'da bir şeyi ilk kez denemek için gökyüzü tam anlamıyla hazır.",
+                "Yeni Ay döngüsü başlıyor — niyet güçlü tutulursa bu hafta ivme kazanır.",
+                moonTr + " Yeni Ayı taze bir başlangıç enerjisi getiriyor; ilk adımı bugün at."
+            };
+            return variants[dayOfYear % variants.length];
+        }
+        if (moonPhase != null && moonPhase.contains("Son Dördün")) {
+            return "Son Dördün — sona erdirme ve bırakma enerjisi güçlü; temizle, hafifle.";
+        }
+        if (moonPhase != null && moonPhase.contains("İlk Dördün")) {
+            return "İlk Dördün — hamleni yapmanın vakti; küçük ama kararlı adım büyük fark yaratır.";
         }
 
-        // Element based vibes
+        // Element-based vibes (multiple variants to avoid repetition)
         return switch (element) {
-            case "Ateş" -> "Ay " + moonSign.getTurkishName() + "'ta - enerji yüksek, cesur adımlar için ideal bir gün.";
-            case "Toprak" -> "Ay " + moonSign.getTurkishName() + "'ta - pratik kararlar ve kariyer odağı için güçlü bir gün.";
-            case "Hava" -> "Ay " + moonSign.getTurkishName() + "'ta - iletişim ve sosyal bağlantılar için harika bir gün.";
-            case "Su" -> "Ay " + moonSign.getTurkishName() + "'ta - sezgiler güçlü, iç sesinizi dinleyin.";
-            default -> "Kozmik enerjiler dengeleniyor, akışa güven.";
+            case "Ateş" -> {
+                String[] v = {
+                    moonTr + " Ayı ile ateş unsuru aktif — harekete geçmek için bekleme.",
+                    "Ateş enerjisi yüksek; cesur karar bu sabah seni öne taşır.",
+                    moonTr + " Ayı cesareti besliyor — bugün itiyor olduğun kapıyı it."
+                };
+                yield v[dayOfYear % v.length];
+            }
+            case "Toprak" -> {
+                String[] v = {
+                    moonTr + " Ayı ile pratik adımlar kalıcı iz bırakır — temel at, inşa et.",
+                    "Toprak enerjisi sağlam zemin istiyor; bugün planla ve somut karar al.",
+                    moonTr + " Ayı ile finans ve kariyer kararları netleşiyor."
+                };
+                yield v[dayOfYear % v.length];
+            }
+            case "Hava" -> {
+                String[] v = {
+                    moonTr + " Ayı ile doğru konuşma, doğru kapıyı açar.",
+                    "Hava unsuru zihin keskinliği getiriyor — fikir üret, bağlan, paylaş.",
+                    moonTr + " Ayı iletişimi güçlendiriyor; sessiz kalmak bu gece zor olacak."
+                };
+                yield v[dayOfYear % v.length];
+            }
+            case "Su" -> {
+                String[] v = {
+                    moonTr + " Ayı ile sezgiler keskin — mantığın veremediği cevabı hissin verir.",
+                    "Su enerjisi derin; bugün yüzeyi değil özü gör.",
+                    moonTr + " Ayı duygusal netlik istiyor — hissettiklerini saklamanın zamanı değil."
+                };
+                yield v[dayOfYear % v.length];
+            }
+            default -> "Gökyüzü sakin; bugün kendi ritmine güven.";
         };
     }
 

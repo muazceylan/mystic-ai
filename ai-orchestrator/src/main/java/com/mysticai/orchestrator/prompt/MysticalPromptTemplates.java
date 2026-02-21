@@ -394,15 +394,18 @@ public class MysticalPromptTemplates {
             4. Medeni durum tonunu yansıt: %s
             5. Her alan 1-2 cümle maksimum; kısa ve çarpıcı ol
             6. Türkçe, samimi, direkt — klişe YASAK ("yıldızlar seni koruyor", "evren seni seviyor" kullanma)
+            7. BURÇ ADLARI YALNIZCA TÜRKÇE — Latin adlar (Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, Pisces) KESİNLİKLE YASAK. Kullan: Koç, Boğa, İkizler, Yengeç, Aslan, Başak, Terazi, Akrep, Yay, Oğlak, Kova, Balık
+            8. dailyVibe ZORUNLU KURAL: TAM OLARAK 1 (BİR) CÜMLE — kesinlikle nokta yoksa 2 cümle, sadece 1. Kişinin yaşam yolu sayısı + burcu + odak alanını birbirine kaynaştır. "Bugün", "Bu gün" gibi klişe girişler YASAK — doğrudan çarpıcı fiille başla.
+            9. DOLGU YASAKLARI: "Evren seninle", "Kozmik enerjin yükselmiş", "İçini dinle", "Kalbin sesi", "Yıldızlar rehberin", "Adım adım" ve benzeri anlamsız genel ifadeler KULLANMA.
 
             YALNIZCA JSON DÖNDÜR — başına/sonuna ```json veya açıklama EKLEME:
             {
-              "secret": "Kişisel, çarpıcı 1 cümle — isim + burç/sayı + bugün ne olabilir (max 110 karakter)",
-              "astrologyInsight": "Retrograd/destek durumu + doğum haritası kombinasyonu bugün ne anlatıyor (1-2 cümle)",
+              "secret": "Kişisel, çarpıcı 1 cümle — isim + burç/sayı + bugün ne olabilir (max 110 karakter, TÜRKÇE burç adı)",
+              "astrologyInsight": "Retrograd/destek durumu + doğum haritası kombinasyonu bugün ne anlatıyor (1-2 cümle, TÜRKÇE burç adları)",
               "numerologyInsight": "Yaşam yolu sayısı %s bugün odak alanında ne söylüyor (1-2 cümle)",
               "dreamInsight": "Rüya mesajı ile bugünün bağlantısı — rüya yoksa null",
-              "dailyVibe": "Bugünün enerjisini tek cümleyle özetle — retrograd durum ve odak alanı ile bu kişinin burç/sayı kombinasyonuna özgü, benzersiz günlük enerji cümlesi (max 120 karakter)",
-              "message": "%s alanında bugün somut ne yapmalı veya yapmamalı (1-2 aksiyon cümlesi)"
+              "dailyVibe": "SADECE 1 CÜMLE — sayı+burç+odak birleşimi güçlü çarpıcı cümle, klişe yok (max 120 karakter)",
+              "messagehjhj": "%s alanında bugün somut ne yapmalı veya yapmamalı (1-2 aksiyon cümlesi)"
             }
             """.formatted(
                 nvl(req.name(), "Kullanıcı"),
