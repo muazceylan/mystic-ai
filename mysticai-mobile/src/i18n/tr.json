@@ -22,6 +22,15 @@
     "expand": "Genişlet",
     "collapse": "Kapat"
   },
+  "accessibility": {
+    "retryHint": "İçeriği yeniden yüklemek için dokunun",
+    "expandHint": "Detayları genişletmek için dokunun",
+    "collapseHint": "Detayları kapatmak için dokunun",
+    "doubleTapToActivate": "Etkinleştirmek için çift dokunun",
+    "contentLoaded": "İçerik yüklendi",
+    "loading": "Yükleniyor",
+    "errorOccurred": "Bir hata oluştu"
+  },
   "profile": {
     "title": "Profil",
     "settings": "Ayarlar",

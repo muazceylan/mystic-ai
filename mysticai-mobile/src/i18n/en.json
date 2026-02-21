@@ -22,6 +22,15 @@
     "expand": "Expand",
     "collapse": "Collapse"
   },
+  "accessibility": {
+    "retryHint": "Double tap to reload content",
+    "expandHint": "Double tap to expand details",
+    "collapseHint": "Double tap to collapse details",
+    "doubleTapToActivate": "Double tap to activate",
+    "contentLoaded": "Content loaded",
+    "loading": "Loading",
+    "errorOccurred": "An error occurred"
+  },
   "profile": {
     "title": "Profile",
     "settings": "Settings",

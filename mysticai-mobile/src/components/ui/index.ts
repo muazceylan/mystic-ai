@@ -6,3 +6,4 @@ export { Skeleton } from './Skeleton';
 export { ListItem } from './ListItem';
 export { ErrorStateCard } from './ErrorStateCard';
 export { SafeScreen } from './SafeScreen';
+export { AccessibleText } from './AccessibleText';

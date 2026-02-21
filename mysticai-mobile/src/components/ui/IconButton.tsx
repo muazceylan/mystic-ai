@@ -2,9 +2,9 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { SPACING } from '../../constants/tokens';
+import { ACCESSIBILITY } from '../../constants/tokens';
 
-const MIN_TOUCH = 44;
+const MIN_TOUCH = ACCESSIBILITY.minTouchTarget;
 
 interface IconButtonProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -13,6 +13,9 @@ interface IconButtonProps {
   color?: string;
   style?: ViewStyle;
   accessibilityLabel: string;
+  /** Screen reader için ek açıklama */
+  accessibilityHint?: string;
+  disabled?: boolean;
   hitSlop?: number;
 }
 
@@ -23,6 +26,8 @@ export function IconButton({
   color,
   style,
   accessibilityLabel,
+  accessibilityHint,
+  disabled = false,
   hitSlop = (MIN_TOUCH - size) / 2,
 }: IconButtonProps) {
   const { colors } = useTheme();
@@ -30,10 +35,13 @@ export function IconButton({
   return (
     <TouchableOpacity
       onPress={onPress}
+      disabled={disabled}
       style={[styles.button, { minWidth: MIN_TOUCH, minHeight: MIN_TOUCH }, style]}
       hitSlop={{ top: slop, bottom: slop, left: slop, right: slop }}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled }}
     >
       <Ionicons name={icon} size={size} color={color ?? colors.text} />
     </TouchableOpacity>

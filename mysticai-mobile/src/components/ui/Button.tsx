@@ -8,7 +8,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SPACING, RADIUS } from '../../constants/tokens';
+import { SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 
 interface ButtonProps {
   title: string;
@@ -20,6 +20,8 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   accessibilityLabel?: string;
+  /** Screen reader için ek açıklama */
+  accessibilityHint?: string;
 }
 
 export function Button({
@@ -32,6 +34,7 @@ export function Button({
   style,
   textStyle,
   accessibilityLabel,
+  accessibilityHint,
 }: ButtonProps) {
   const { colors } = useTheme();
   const s = createStyles(colors);
@@ -51,6 +54,8 @@ export function Button({
       ]}
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityRole="button"
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
     >
       {loading ? (
         <ActivityIndicator
@@ -67,6 +72,7 @@ export function Button({
             isDisabled && s.textDisabled,
             textStyle,
           ]}
+          maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
           {title}
         </Text>

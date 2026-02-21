@@ -33,3 +33,19 @@ export const RADIUS = {
   xl: 20,
   full: 999,
 };
+
+/**
+ * Erişilebilirlik — Dynamic Type, screen reader
+ * maxFontSizeMultiplier: Sistem font ölçeğinde üst sınır (2.0 önerilir — layout kırılmadan erişilebilirlik)
+ */
+export const ACCESSIBILITY = {
+  /** Metin bileşenlerinde maxFontSizeMultiplier — iOS/Android Larger Text desteği */
+  maxFontSizeMultiplier: 2.0,
+  /** Minimum dokunma hedefi (px) */
+  minTouchTarget: 44,
+  /** Canlı bölge tipleri — dinamik içerik güncellemelerinde screen reader bildirimi */
+  liveRegion: {
+    polite: 'polite' as const,
+    assertive: 'assertive' as const,
+  },
+};

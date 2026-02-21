@@ -6,8 +6,10 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
+import { ACCESSIBILITY } from '../../constants/tokens';
 
 interface ErrorStateCardProps {
   /** Kısa açıklama — kullanıcıya ne olduğunu anlatır */
@@ -31,8 +33,9 @@ export function ErrorStateCard({
   onRetry,
   style,
   variant = 'default',
-  accessibilityLabel = 'Tekrar dene',
+  accessibilityLabel,
 }: ErrorStateCardProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const isCompact = variant === 'compact';
   const iconSize = isCompact ? 22 : 32;
@@ -46,17 +49,26 @@ export function ErrorStateCard({
         color={colors.error}
         style={s.icon}
       />
-      <Text style={[s.message, isCompact && s.messageCompact]}>{message}</Text>
+      <Text
+        style={[s.message, isCompact && s.messageCompact]}
+        maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+      >
+        {message}
+      </Text>
       <TouchableOpacity
         style={[s.retryBtn, isCompact && s.retryBtnCompact]}
         onPress={onRetry}
-        accessibilityLabel={accessibilityLabel}
+        accessibilityLabel={accessibilityLabel ?? t('common.retry')}
         accessibilityRole="button"
+        accessibilityHint={t('accessibility.retryHint')}
         activeOpacity={0.8}
       >
         <Ionicons name="refresh" size={isCompact ? 14 : 16} color={colors.white} />
-        <Text style={[s.retryText, isCompact && s.retryTextCompact]}>
-          Tekrar Dene
+        <Text
+          style={[s.retryText, isCompact && s.retryTextCompact]}
+          maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+        >
+          {t('common.retry')}
         </Text>
       </TouchableOpacity>
     </View>

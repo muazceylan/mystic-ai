@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,11 +17,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  WeeklySwotResponse,
-  SwotPoint,
-  fetchWeeklySwot,
-} from '../services/astrology.service';
+import { SwotPoint } from '../services/astrology.service';
+import { useWeeklySwot } from '../hooks/useHomeQueries';
 import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 
@@ -143,32 +140,14 @@ export default function CosmicSwotDashboard({ userId, hasChart }: Props) {
   const { colors } = useTheme();
   const swotConfig = getSwotConfig(colors, t);
   const s = createStyles(colors);
-  const [swot, setSwot] = useState<WeeklySwotResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const { data: swot, isLoading: loading, isError: error, refetch: loadSwot } = useWeeklySwot(
+    hasChart ? userId : undefined
+  );
   const [tipModal, setTipModal] = useState<{ visible: boolean; point: SwotPoint | null; category: SwotCategory | null }>({
     visible: false,
     point: null,
     category: null,
   });
-
-  const loadSwot = useCallback(async () => {
-    if (!userId || !hasChart) return;
-    setLoading(true);
-    setError(false);
-    try {
-      const res = await fetchWeeklySwot(userId);
-      setSwot(res.data);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, hasChart]);
-
-  useEffect(() => {
-    loadSwot();
-  }, [loadSwot]);
 
   // Don't render anything if no natal chart
   if (!hasChart) return null;
@@ -192,7 +171,7 @@ export default function CosmicSwotDashboard({ userId, hasChart }: Props) {
           <Text style={s.stateText}>{t('home.swotLoadError')}</Text>
           <TouchableOpacity
             style={s.retryButton}
-            onPress={loadSwot}
+            onPress={() => loadSwot()}
             accessibilityLabel={t('home.swotRetryBtn')}
             accessibilityRole="button"
           >

@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.22.3",
+    "@tanstack/query-persist-client-core": "^5.91.19",
+    "@tanstack/react-query": "^5.90.21",
     "axios": "^1.6.8",
     "expo": "~50.0.0",
     "expo-apple-authentication": "^8.0.8",

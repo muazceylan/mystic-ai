@@ -3,10 +3,12 @@ import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { initI18n } from '../i18n';
 import { COLORS } from '../constants/colors';
+import { queryClient } from '../lib/queryClient';
 
 /**
  * Protected route guard.
@@ -71,15 +73,17 @@ export default function Layout() {
   // useTranslation runs in TabsLayout/other screens before init completes.
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        {i18nReady ? (
-          <AppNavigator i18nReady={i18nReady} />
-        ) : (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
-        )}
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          {i18nReady ? (
+            <AppNavigator i18nReady={i18nReady} />
+          ) : (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+          )}
+        </ThemeProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SPACING } from '../../constants/tokens';
+import { SPACING, ACCESSIBILITY } from '../../constants/tokens';
 
 interface ListItemProps {
   title: string;
@@ -20,6 +20,7 @@ interface ListItemProps {
   style?: ViewStyle;
   titleStyle?: TextStyle;
   selected?: boolean;
+  accessibilityHint?: string;
 }
 
 export function ListItem({
@@ -31,6 +32,7 @@ export function ListItem({
   style,
   titleStyle,
   selected,
+  accessibilityHint,
 }: ListItemProps) {
   const { colors } = useTheme();
   const s = createStyles(colors);
@@ -44,6 +46,8 @@ export function ListItem({
         activeOpacity={0.7}
         accessibilityLabel={title}
         accessibilityRole="button"
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ selected: selected ?? false }}
       >
       {leftIcon && (
         <View style={s.leftIcon}>
@@ -62,11 +66,12 @@ export function ListItem({
             titleStyle,
           ]}
           numberOfLines={1}
+          maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
           {title}
         </Text>
         {subtitle ? (
-          <Text style={s.subtitle} numberOfLines={1}>
+          <Text style={s.subtitle} numberOfLines={1} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
             {subtitle}
           </Text>
         ) : null}
@@ -101,11 +106,12 @@ export function ListItem({
             titleStyle,
           ]}
           numberOfLines={1}
+          maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
           {title}
         </Text>
         {subtitle ? (
-          <Text style={s.subtitle} numberOfLines={1}>
+          <Text style={s.subtitle} numberOfLines={1} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
             {subtitle}
           </Text>
         ) : null}

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../store/useAuthStore';
@@ -183,6 +184,7 @@ export default function EditBirthInfoScreen() {
   const months = (t('calendar.months') || '').split(',');
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
   const clearNatalChart = useNatalChartStore((s) => s.clear);
   const clearLuckyDates = useLuckyDatesStore((s) => s.clear);
 
@@ -245,6 +247,8 @@ export default function EditBirthInfoScreen() {
         // Non-fatal: home screen will still reload, showing loading state
       }
       // Clear cached data so Home re-fetches the newly calculated chart
+      queryClient.invalidateQueries({ queryKey: ['astrology'] });
+      queryClient.invalidateQueries({ queryKey: ['lucky-dates'] });
       clearNatalChart();
       clearLuckyDates();
       router.replace('/(tabs)/home');

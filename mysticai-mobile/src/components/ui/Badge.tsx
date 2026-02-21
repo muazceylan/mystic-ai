@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SPACING, RADIUS } from '../../constants/tokens';
+import { SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 
 interface BadgeProps {
   label: string;
@@ -20,7 +20,10 @@ export function Badge({
   const s = createStyles(colors);
   return (
     <View style={[s.badge, s[`badge_${variant}`], style]}>
-      <Text style={[s.text, s[`text_${variant}`], textStyle]}>
+      <Text
+        style={[s.text, s[`text_${variant}`], textStyle]}
+        maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+      >
         {label}
       </Text>
     </View>

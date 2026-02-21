@@ -21,20 +21,18 @@ import ServiceStatus from '../../components/ServiceStatus';
 import CollectivePulseWidget from '../../components/CollectivePulseWidget';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
+import { NatalChartResponse, SkyPulseResponse, WeeklySwotResponse, SwotPoint } from '../../services/astrology.service';
+import { DailySecret } from '../../services/oracle.service';
 import {
-  fetchSkyPulse,
-  fetchLatestNatalChart,
-  fetchWeeklySwot,
-  NatalChartResponse,
-  SkyPulseResponse,
-  WeeklySwotResponse,
-  SwotPoint,
-} from '../../services/astrology.service';
-import { DailySecret, fetchDailySecret } from '../../services/oracle.service';
-import { useNatalChartStore } from '../../store/useNatalChartStore';
+  useDailySecret,
+  useSkyPulse,
+  useWeeklySwot,
+  useNatalChart,
+} from '../../hooks/useHomeQueries';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { ErrorStateCard, SafeScreen } from '../../components/ui';
+import { announceForAccessibility } from '../../utils/accessibility';
 
 const SERVICE_SLIDE_IDS = [
   { id: 'planner', key: 'home.planner', emoji: '📅' },
@@ -265,10 +263,41 @@ export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
   const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
-  const cachedChart = useNatalChartStore((s) => s.chart);
-  const setCachedChart = useNatalChartStore((s) => s.setChart);
-  const isChartStale = useNatalChartStore((s) => s.isStale);
   const router = useRouter();
+  const dailySecretParams = useMemo(
+    () =>
+      user
+        ? {
+            name: user.name ?? (`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || undefined),
+            birthDate: user.birthDate ?? undefined,
+            maritalStatus: user.maritalStatus ?? onboardingMaritalStatus ?? undefined,
+            focusPoint: user.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? undefined,
+          }
+        : null,
+    [user, onboardingMaritalStatus, onboardingFocusPoints]
+  );
+
+  const dailySecretQuery = useDailySecret(dailySecretParams);
+  const skyPulseQuery = useSkyPulse();
+  const weeklySwotQuery = useWeeklySwot(user?.id);
+  const natalChartQuery = useNatalChart(user?.id);
+
+  const dailySecret = dailySecretQuery.data ?? null;
+  const secretLoading = dailySecretQuery.isLoading;
+  const secretError = dailySecretQuery.isError;
+  const skyPulse = skyPulseQuery.data ?? null;
+  const skyPulseLoading = skyPulseQuery.isLoading;
+  const skyPulseError = skyPulseQuery.isError;
+  const weeklySwot = weeklySwotQuery.data ?? null;
+  const weeklyLoading = weeklySwotQuery.isLoading;
+  const weeklyError = weeklySwotQuery.isError;
+  const natalChart = natalChartQuery.data ?? null;
+
+  const loadDailySecret = useCallback(() => dailySecretQuery.refetch(), [dailySecretQuery.refetch]);
+  const loadSkyPulse = useCallback(() => skyPulseQuery.refetch(), [skyPulseQuery.refetch]);
+  const loadWeeklySwot = useCallback(() => weeklySwotQuery.refetch(), [weeklySwotQuery.refetch]);
+  const loadNatalChart = useCallback(() => natalChartQuery.refetch(), [natalChartQuery.refetch]);
+
   const SERVICE_SLIDES = useMemo(() => SERVICE_SLIDE_IDS.map((s) => ({ ...s, title: t(s.key) })), [t]);
   const sliderRef = useRef<FlatList<(typeof SERVICE_SLIDES)[0]>>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -279,19 +308,6 @@ export default function HomeScreen() {
   const [wisdomExpanded, setWisdomExpanded] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const swotYRef = useRef(0);
-
-  const [dailySecret, setDailySecret] = useState<DailySecret | null>(null);
-  const [secretLoading, setSecretLoading] = useState(true);
-  const [secretError, setSecretError] = useState(false);
-
-  const [skyPulse, setSkyPulse] = useState<SkyPulseResponse | null>(null);
-  const [skyPulseLoading, setSkyPulseLoading] = useState(true);
-  const [skyPulseError, setSkyPulseError] = useState(false);
-
-  const [weeklySwot, setWeeklySwot] = useState<WeeklySwotResponse | null>(null);
-  const [weeklyLoading, setWeeklyLoading] = useState(true);
-  const [weeklyError, setWeeklyError] = useState(false);
-  const [natalChart, setNatalChart] = useState<NatalChartResponse | null>(cachedChart);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -317,96 +333,33 @@ export default function HomeScreen() {
     ).start();
   }, [moonGlow]);
 
-  const loadDailySecret = useCallback(async () => {
-    try {
-      setSecretError(false);
-      const response = await fetchDailySecret({
-        name: user?.name ?? (`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || undefined),
-        birthDate: user?.birthDate ?? undefined,
-        maritalStatus: user?.maritalStatus ?? onboardingMaritalStatus ?? undefined,
-        focusPoint: user?.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? undefined,
-      });
-      setDailySecret(response.data);
+  useEffect(() => {
+    if (dailySecretQuery.isSuccess && dailySecretQuery.data) {
+      announceForAccessibility(t('accessibility.contentLoaded'));
       fadeAnim.setValue(0);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
         useNativeDriver: true,
       }).start();
-    } catch {
-      setSecretError(true);
-    } finally {
-      setSecretLoading(false);
     }
-  }, [fadeAnim, user]);
-
-  const loadSkyPulse = useCallback(async () => {
-    try {
-      setSkyPulseError(false);
-      const res = await fetchSkyPulse();
-      setSkyPulse(res.data);
-    } catch {
-      setSkyPulseError(true);
-    } finally {
-      setSkyPulseLoading(false);
-    }
-  }, []);
-
-  const loadWeeklySwot = useCallback(async () => {
-    if (!user?.id) {
-      setWeeklySwot(null);
-      setWeeklyLoading(false);
-      return;
-    }
-
-    try {
-      setWeeklyError(false);
-      const res = await fetchWeeklySwot(user.id);
-      setWeeklySwot(res.data);
-    } catch {
-      setWeeklyError(true);
-    } finally {
-      setWeeklyLoading(false);
-    }
-  }, [user?.id]);
-
-  const loadNatalChart = useCallback(async () => {
-    if (!user?.id) {
-      setNatalChart(null);
-      return;
-    }
-
-    if (cachedChart && cachedChart.userId === user.id && !isChartStale()) {
-      setNatalChart(cachedChart);
-      return;
-    }
-
-    try {
-      const response = await fetchLatestNatalChart(user.id);
-      setNatalChart(response.data);
-      setCachedChart(response.data);
-    } catch {
-      if (cachedChart && cachedChart.userId === user.id) {
-        setNatalChart(cachedChart);
-      }
-    }
-  }, [cachedChart, isChartStale, setCachedChart, user?.id]);
+  }, [dailySecretQuery.isSuccess, dailySecretQuery.data, fadeAnim, t]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setSecretLoading(true);
-    setSkyPulseLoading(true);
-    setWeeklyLoading(true);
-    await Promise.all([loadDailySecret(), loadSkyPulse(), loadWeeklySwot(), loadNatalChart()]);
+    await Promise.all([
+      dailySecretQuery.refetch(),
+      skyPulseQuery.refetch(),
+      weeklySwotQuery.refetch(),
+      natalChartQuery.refetch(),
+    ]);
     setRefreshing(false);
-  }, [loadDailySecret, loadSkyPulse, loadWeeklySwot, loadNatalChart]);
-
-  useEffect(() => {
-    loadDailySecret();
-    loadSkyPulse();
-    loadWeeklySwot();
-    loadNatalChart();
-  }, [loadDailySecret, loadSkyPulse, loadWeeklySwot, loadNatalChart]);
+  }, [
+    dailySecretQuery.refetch,
+    skyPulseQuery.refetch,
+    weeklySwotQuery.refetch,
+    natalChartQuery.refetch,
+  ]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -485,7 +438,7 @@ export default function HomeScreen() {
     const moonPhase = skyPulse?.moonPhase ?? '';
 
     // Planetary energy assessment
-    const hasCriticalRetro = retrogrades.some((p) => p.includes('Merkür') || p.includes('Mars'));
+    const hasCriticalRetro = retrogrades.some((p: string) => p.includes('Merkür') || p.includes('Mars'));
     const isDolunay = moonPhase.includes('Dolunay') || moonPhase.includes('Son Dördün');
     const energyType: 'lucky' | 'mixed' | 'caution' =
       hasCriticalRetro || retrogrades.length >= 3
@@ -693,8 +646,10 @@ export default function HomeScreen() {
                   style={S.detailCta}
                   accessibilityLabel={t('home.hideDetails')}
                   accessibilityRole="button"
+                  accessibilityHint={t('accessibility.collapseHint')}
+                  accessibilityState={{ expanded: true }}
                 >
-                  <Text style={S.detailCtaText}>{t('home.hideDetails')}</Text>
+                  <Text style={S.detailCtaText} maxFontSizeMultiplier={2}>{t('home.hideDetails')}</Text>
                   <Ionicons name="chevron-up" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </>
@@ -704,8 +659,10 @@ export default function HomeScreen() {
                 style={S.detailCta}
                 accessibilityLabel={t('home.showDetails')}
                 accessibilityRole="button"
+                accessibilityHint={t('accessibility.expandHint')}
+                accessibilityState={{ expanded: false }}
               >
-                <Text style={S.detailCtaText}>{t('home.showDetails')}</Text>
+                <Text style={S.detailCtaText} maxFontSizeMultiplier={2}>{t('home.showDetails')}</Text>
                 <Ionicons name="chevron-down" size={16} color={colors.primary} />
               </TouchableOpacity>
             )}
@@ -790,8 +747,12 @@ export default function HomeScreen() {
               accessibilityLabel="Günün sırrını tekrar yükle"
             />
           ) : (
-            <Animated.View style={{ opacity: fadeAnim }}>
-              <Text style={S.wisdomText}>
+            <Animated.View
+              style={{ opacity: fadeAnim }}
+              accessibilityLiveRegion="polite"
+              accessibilityLabel={t('home.dailySecret')}
+            >
+              <Text style={S.wisdomText} maxFontSizeMultiplier={2}>
                 {wisdomExpanded || secretText.length <= SUMMARY_MAX_CHARS
                   ? secretText
                   : `${secretText.slice(0, SUMMARY_MAX_CHARS).trim()}...`}
@@ -802,8 +763,10 @@ export default function HomeScreen() {
                   style={S.detailCta}
                   accessibilityLabel={wisdomExpanded ? t('home.hideDetails') : t('home.showDetails')}
                   accessibilityRole="button"
+                  accessibilityHint={wisdomExpanded ? t('accessibility.collapseHint') : t('accessibility.expandHint')}
+                  accessibilityState={{ expanded: wisdomExpanded }}
                 >
-                  <Text style={S.detailCtaText}>
+                  <Text style={S.detailCtaText} maxFontSizeMultiplier={2}>
                     {wisdomExpanded ? t('home.hideDetails') : t('home.showDetails')}
                   </Text>
                   <Ionicons name={wisdomExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary} />
@@ -834,6 +797,7 @@ export default function HomeScreen() {
             style={S.skyPulseCard}
             accessibilityLabel="Takvim ve ay fazı detayları"
             accessibilityRole="button"
+            accessibilityHint={t('accessibility.doubleTapToActivate')}
           >
             <View style={S.skyPulseLeft}>
               <Animated.Text
@@ -895,6 +859,8 @@ export default function HomeScreen() {
                   onPress={() => setExpandedSwotId((prev) => (prev === item.id ? null : item.id))}
                   accessibilityLabel={`${t(item.titleKey)}: ${isExpanded ? t('common.collapse') : t('common.expand')}`}
                   accessibilityRole="button"
+                  accessibilityHint={isExpanded ? t('accessibility.collapseHint') : t('accessibility.expandHint')}
+                  accessibilityState={{ expanded: isExpanded }}
                 >
                   <View style={S.swotCardHeader}>
                     <View style={S.swotCardHeadLeft}>

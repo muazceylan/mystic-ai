@@ -81,8 +81,8 @@ Bu doküman, repo içindeki hızlı değerlendirmeye dayanarak önerilen tüm UI
 - [x] **Slider görsel odaklama** — Aktif slide için scale/opacity animasyonu
 
 ### 4. Uzun Vadeli
-- [ ] Offline-first ve cache stratejisi (MMKV / TanStack Query)
-- [ ] Kapsamlı erişilebilirlik (screen reader, dynamic type)
+- [x] Offline-first ve cache stratejisi (TanStack Query, expo ile uyumlu async storage veya alternatif)
+- [x] Kapsamlı erişilebilirlik (screen reader, dynamic type)
 - [ ] A/B testleri, analitik entegrasyonu
 - [ ] E2E testler (Detox / Playwright)
 
