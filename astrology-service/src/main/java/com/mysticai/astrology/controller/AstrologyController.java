@@ -181,6 +181,17 @@ public class AstrologyController {
     }
 
     /**
+     * Full daily planner distribution for all planner categories.
+     */
+    @PostMapping("/planner/full-distribution")
+    public ResponseEntity<PlannerFullDistributionResponse> getPlannerFullDistribution(
+            @Valid @RequestBody PlannerFullDistributionRequest request
+    ) {
+        PlannerFullDistributionResponse response = luckyDatesService.calculatePlannerFullDistribution(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get all lucky dates results for a user
      */
     @GetMapping("/lucky-dates/user/{userId}")

@@ -55,7 +55,7 @@
 - **Dizin Yapısı:** `src/app` (Routes), `src/components` (UI), `src/store` (State), `src/services` (API).
 - **TypeScript:** Tüm bileşenler ve API modelleri için `Interface` tanımlanması zorunludur.
 - **Responsive Design:** NativeWind ile farklı cihaz boyutlarına tam uyumluluk.
-- **Theme:** "Mystic Dark" (#0D0D0D Arka Plan, #D4AF37 Altın, #9D4EDD Mor).
+- **Theme:** "Mystic Light" 
 
 ---
 

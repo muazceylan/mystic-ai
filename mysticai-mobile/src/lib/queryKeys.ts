@@ -4,6 +4,8 @@
 export const queryKeys = {
   dailySecret: (params?: Record<string, string | undefined>) =>
     ['oracle', 'daily-secret', params ?? {}] as const,
+  homeBrief: (params?: Record<string, string | undefined>) =>
+    ['oracle', 'home-brief', params ?? {}] as const,
   skyPulse: () => ['astrology', 'sky-pulse'] as const,
   weeklySwot: (userId: number) => ['astrology', 'weekly-swot', userId] as const,
   natalChart: (userId: number) => ['astrology', 'natal-chart', userId] as const,

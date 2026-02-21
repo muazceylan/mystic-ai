@@ -29,6 +29,7 @@ public class LuckyDatesService {
     private final NatalChartRepository natalChartRepository;
     private final LuckyDatesResultRepository luckyDatesResultRepository;
     private final TransitCalculator transitCalculator;
+    private final CosmicActionEngineService cosmicActionEngineService;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
@@ -119,6 +120,86 @@ public class LuckyDatesService {
                 .toList();
     }
 
+    public PlannerFullDistributionResponse calculatePlannerFullDistribution(PlannerFullDistributionRequest request) {
+        log.info("Calculating full planner distribution for user: {}, monthsAhead: {}",
+                request.userId(), request.monthsAhead());
+
+        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(
+                        request.userId().toString())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Natal chart not found for user: " + request.userId()));
+
+        List<PlanetPosition> natalPlanets = parseJsonList(chart.getPlanetPositionsJson(), PlanetPosition.class);
+        List<HousePlacement> natalHouses = parseJsonList(chart.getHousePlacementsJson(), HousePlacement.class);
+
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusMonths(request.monthsAhead());
+        List<PlannerDayInsight> dayInsights = new ArrayList<>();
+
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            List<PlanetPosition> transits = getTransitPositionsCached(date);
+            List<PlanetaryAspect> aspects = transitCalculator.calculateTransitAspects(transits, natalPlanets);
+            String moonPhase = transitCalculator.getMoonPhase(date);
+            boolean mercuryRetro = transitCalculator.isRetrograde(2, date.toEpochDay());
+
+            List<PlannerCategoryAction> categoryActions = new ArrayList<>();
+            int totalScore = 0;
+
+            for (PlannerCategory plannerCategory : PlannerCategory.values()) {
+                GoalCategory baseGoal = plannerCategory.getBaseGoalCategory();
+                int rawScore = scoreDate(date, transits, natalPlanets, natalHouses, baseGoal);
+                int normalizedScore = normalizeScore(rawScore);
+
+                CosmicActionEngineService.ActionBundle bundle = cosmicActionEngineService.buildActions(
+                        plannerCategory,
+                        date,
+                        normalizedScore,
+                        aspects,
+                        transits,
+                        moonPhase,
+                        mercuryRetro,
+                        request.userGender()
+                );
+
+                int adjustedScore = clampScore(normalizedScore + bundle.scoreAdjustment());
+                totalScore += adjustedScore;
+
+                List<String> supportingAspects = aspects.stream()
+                        .sorted(Comparator.comparingDouble(PlanetaryAspect::orb))
+                        .map(aspect -> aspect.planet1().replace("T-", "")
+                                + " " + aspect.type().getSymbol() + " "
+                                + aspect.planet2().replace("N-", ""))
+                        .limit(4)
+                        .toList();
+
+                categoryActions.add(new PlannerCategoryAction(
+                        plannerCategory,
+                        plannerCategory.getTurkishName(),
+                        adjustedScore,
+                        bundle.dos(),
+                        bundle.donts(),
+                        bundle.reasoning(),
+                        supportingAspects,
+                        mercuryRetro,
+                        moonPhase,
+                        "RULE_ENGINE"
+                ));
+            }
+
+            int overallScore = categoryActions.isEmpty() ? 0 : totalScore / categoryActions.size();
+            dayInsights.add(new PlannerDayInsight(date, overallScore, categoryActions));
+        }
+
+        return new PlannerFullDistributionResponse(
+                request.userId(),
+                request.monthsAhead(),
+                startDate,
+                endDate,
+                dayInsights,
+                LocalDateTime.now()
+        );
+    }
+
     public LuckyDatesResponse getLuckyDatesByCorrelationId(UUID correlationId) {
         LuckyDatesResult result = luckyDatesResultRepository.findByCorrelationId(correlationId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -186,8 +267,7 @@ public class LuckyDatesService {
 
     private LuckyDateCard buildLuckyDateCard(ScoredDate sd, List<PlanetPosition> natalPlanets,
                                               List<HousePlacement> natalHouses, GoalCategory category) {
-        // Normalize score to 0-100
-        int normalizedScore = Math.min(100, Math.max(0, 50 + sd.score()));
+        int normalizedScore = normalizeScore(sd.score());
 
         // Build reason text
         String reason = buildReasonText(sd, natalHouses, category);
@@ -338,6 +418,14 @@ public class LuckyDatesService {
     private double getAbsoluteLongitude(PlanetPosition planet) {
         int signIndex = getSignIndex(planet.sign());
         return signIndex * 30.0 + planet.degree() + planet.minutes() / 60.0 + planet.seconds() / 3600.0;
+    }
+
+    private int normalizeScore(int rawScore) {
+        return clampScore(50 + rawScore);
+    }
+
+    private int clampScore(int score) {
+        return Math.max(0, Math.min(100, score));
     }
 
     private int getSignIndex(String sign) {

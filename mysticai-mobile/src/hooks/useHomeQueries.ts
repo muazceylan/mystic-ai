@@ -7,7 +7,7 @@ import {
   WeeklySwotResponse,
   NatalChartResponse,
 } from '../services/astrology.service';
-import { fetchDailySecret, DailySecret } from '../services/oracle.service';
+import { fetchDailySecret, fetchHomeBrief, DailySecret, HomeBrief } from '../services/oracle.service';
 import { queryKeys } from '../lib/queryKeys';
 
 /** ms until midnight local time (min 5 min) */
@@ -28,7 +28,7 @@ function msUntilEndOfWeek(): number {
   return Math.max(endOfSunday.getTime() - now.getTime(), 60 * 60 * 1000);
 }
 
-export type { DailySecret, SkyPulseResponse, WeeklySwotResponse, NatalChartResponse };
+export type { DailySecret, HomeBrief, SkyPulseResponse, WeeklySwotResponse, NatalChartResponse };
 
 interface DailySecretParams {
   name?: string;
@@ -51,6 +51,23 @@ export function useDailySecret(params: DailySecretParams | null) {
     },
     enabled: !!params,
     staleTime: msUntilMidnight(), // gece yarısına kadar geçerli
+  });
+}
+
+export function useHomeBrief(params: DailySecretParams | null) {
+  return useQuery({
+    queryKey: queryKeys.homeBrief({
+      name: params?.name,
+      birthDate: params?.birthDate,
+      maritalStatus: params?.maritalStatus,
+      focusPoint: params?.focusPoint,
+    }),
+    queryFn: async () => {
+      const res = await fetchHomeBrief(params ?? undefined);
+      return res.data;
+    },
+    enabled: !!params,
+    staleTime: msUntilMidnight(),
   });
 }
 

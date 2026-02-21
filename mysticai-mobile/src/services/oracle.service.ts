@@ -10,6 +10,31 @@ export interface DailySecret {
   message: string | null;
 }
 
+export interface HomeBrief {
+  greeting: string;
+  dailyEnergy: string;
+  transitHeadline: string;
+  transitSummary: string;
+  transitPoints: string[];
+  secret: string;
+  actionMessage: string;
+  weeklyCards: Array<{
+    key: string;
+    title: string;
+    headline: string;
+    subtext: string;
+    quickTip: string;
+    accent: string;
+  }>;
+  meta: {
+    promptVersion: string;
+    promptVariant: string;
+    readabilityScore: number | null;
+    impactScore: number | null;
+  };
+  generatedAt: string;
+}
+
 const ORACLE_BASE = '/api/v1/oracle';
 
 export const fetchDailySecret = (params?: {
@@ -19,6 +44,14 @@ export const fetchDailySecret = (params?: {
   focusPoint?: string;
 }) =>
   api.get<DailySecret>(`${ORACLE_BASE}/daily-secret`, { params });
+
+export const fetchHomeBrief = (params?: {
+  name?: string;
+  birthDate?: string;
+  maritalStatus?: string;
+  focusPoint?: string;
+}) =>
+  api.get<HomeBrief>(`${ORACLE_BASE}/home-brief`, { params });
 
 export const checkOracleHealth = async (): Promise<boolean> => {
   try {

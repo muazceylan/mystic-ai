@@ -49,6 +49,18 @@ ai:
     api-key: ${GEMINI_API_KEY}
     base-url: https://generativelanguage.googleapis.com/v1beta
     model: gemini-1.5-flash
+  chain:
+    # Bean names from AiProviderConfig:
+    # groqPrimary, geminiFlash, groqMixtral, groqFast
+    complex:
+      - groqPrimary
+      - geminiFlash
+      - groqMixtral
+      - groqFast
+    simple:
+      - groqFast
+      - geminiFlash
+      - groqMixtral
 
 eureka:
   client:

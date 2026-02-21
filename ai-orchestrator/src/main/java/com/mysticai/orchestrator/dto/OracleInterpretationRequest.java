@@ -33,6 +33,10 @@ public record OracleInterpretationRequest(
         // Recent dream (nullable)
         String dreamText,
         String dreamMood,
-        String dreamInterpretation
+        String dreamInterpretation,
+
+        // Prompt experimentation
+        String promptVersion,
+        String promptVariant
 ) {
 }

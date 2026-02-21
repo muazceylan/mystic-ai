@@ -34,6 +34,7 @@ public class OracleService {
     private final StringRedisTemplate redisTemplate;
 
     private static final String ORACLE_CACHE_PREFIX = "oracle:daily:";
+    private static final String ORACLE_PROMPT_VERSION = "oracle-home-v2";
 
     /**
      * Main entry point. Checks Redis cache first (key = oracle:daily:{userId}:{date}).
@@ -44,6 +45,43 @@ public class OracleService {
         String cacheKey = ORACLE_CACHE_PREFIX + userId + ":" + LocalDate.now();
         return checkDailyCache(cacheKey)
                 .switchIfEmpty(computeDailySecret(userId, name, birthDate, maritalStatus, focusPoint, cacheKey));
+    }
+
+    public Mono<HomeBriefResponse> getHomeBrief(
+            Long userId,
+            String username,
+            String name,
+            String birthDate,
+            String maritalStatus,
+            String focusPoint) {
+
+        Mono<OracleResponse> oracleMono = getDailySecret(userId, name, birthDate, maritalStatus, focusPoint);
+        Mono<List<HomeBriefResponse.WeeklyCard>> weeklyCardsMono = fetchWeeklyCards(userId);
+
+        return Mono.zip(oracleMono, weeklyCardsMono)
+                .map(tuple -> {
+                    OracleResponse oracle = tuple.getT1();
+                    List<HomeBriefResponse.WeeklyCard> weeklyCards = tuple.getT2();
+                    String displayName = firstNonBlank(name, username, "Kullanici");
+
+                    return new HomeBriefResponse(
+                            "Merhaba " + displayName + ", bugün haritanda neler var bakalım.",
+                            firstNonBlank(oracle.dailyVibe(), oracle.message(), "Bugün ritmini sakin tut, netlik geliyor."),
+                            firstNonBlank(oracle.transitHeadline(), oracle.astrologyInsight(), "Günün akışı bugün lehine dönüyor."),
+                            firstNonBlank(oracle.transitSummary(), oracle.numerologyInsight(), "Dengeyi korudukça hızlanacaksın."),
+                            oracle.transitPoints(),
+                            toSingleSentence(oracle.secret(), "Bugün sezgine güven.", 110),
+                            firstNonBlank(oracle.message(), "Küçük ama net bir adım at."),
+                            weeklyCards,
+                            new HomeBriefResponse.Meta(
+                                    firstNonBlank(oracle.promptVersion(), ORACLE_PROMPT_VERSION),
+                                    firstNonBlank(oracle.promptVariant(), "A"),
+                                    oracle.readabilityScore(),
+                                    oracle.impactScore()
+                            ),
+                            oracle.generatedAt()
+                    );
+                });
     }
 
     // ─── Cache helpers ────────────────────────────────────────────────────────────
@@ -101,13 +139,29 @@ public class OracleService {
                             sky.retrogradePlanets()
                     );
 
+                    String promptVariant = choosePromptVariant(userId);
                     // Build the AI request with all user context
                     AiSynthesisRequest aiRequest = buildAiRequest(
-                            synthesis, name, birthDate, maritalStatus, focusPoint);
+                            synthesis, name, birthDate, maritalStatus, focusPoint,
+                            ORACLE_PROMPT_VERSION, promptVariant);
 
-                    // Call AI Orchestrator, fall back to static on failure
+                    // Call AI Orchestrator, retry with opposite prompt variant on weak output,
+                    // and always fall back to static synthesis if remote call fails/returns empty.
                     return callAiOrchestrator(aiRequest)
-                            .onErrorReturn(generateStaticSecret(synthesis));
+                            .flatMap(primary -> {
+                                if (!shouldRetryWithAlternateVariant(primary)) {
+                                    return Mono.just(primary);
+                                }
+                                return retryWithAlternateVariant(aiRequest, primary);
+                            })
+                            .switchIfEmpty(Mono.fromSupplier(() -> {
+                                log.warn("AI oracle response is empty, switching to static synthesis");
+                                return generateStaticSecret(synthesis);
+                            }))
+                            .onErrorResume(error -> {
+                                log.warn("AI oracle request failed, switching to static synthesis: {}", error.getMessage());
+                                return Mono.just(generateStaticSecret(synthesis));
+                            });
                 })
                 .doOnSuccess(response -> persistDailyCache(cacheKey, response))
                 .onErrorResume(e -> {
@@ -132,7 +186,7 @@ public class OracleService {
                 .bodyValue(aiRequest)
                 .retrieve()
                 .bodyToMono(String.class)
-                .map(this::parseAiResponse)
+                .map(raw -> parseAiResponse(raw, aiRequest.promptVersion(), aiRequest.promptVariant()))
                 .doOnSuccess(r -> log.info("AI oracle response received successfully"));
 
         return cb.run(remoteCall, throwable -> {
@@ -145,7 +199,7 @@ public class OracleService {
      * Parses the AI JSON response into OracleResponse.
      * If the AI returned invalid JSON (e.g., plain prose), treats it as the secret field.
      */
-    private OracleResponse parseAiResponse(String raw) {
+    private OracleResponse parseAiResponse(String raw, String promptVersion, String promptVariant) {
         // Strip markdown fences if AI added them despite instructions
         String json = raw.trim();
         if (json.startsWith("```")) {
@@ -154,21 +208,79 @@ public class OracleService {
 
         try {
             AiOracleResponse ai = objectMapper.readValue(json, AiOracleResponse.class);
+            List<String> transitPoints = normalizeTransitPoints(
+                    ai.transitPoints(), ai.astrologyInsight(), ai.numerologyInsight(), ai.dreamInsight(), ai.message());
+            String resolvedSecret = toSingleSentence(
+                    firstNonBlank(ai.secret(), ai.dailyVibe(), ai.message(), "Bugün sezgine güven."),
+                    "Bugün sezgine güven.",
+                    110);
+            String resolvedDailyVibe = toSingleSentence(
+                    firstNonBlank(ai.dailyVibe(), ai.message(), "Bugün ritmini sade tut."),
+                    "Bugün ritmini sade tut.",
+                    120);
+            String safeHeadline = stripTechnicalJargon(
+                    nvl(ai.transitHeadline(), nvl(ai.astrologyInsight(), "Günün akışı lehine dönüyor.")));
+            String safeSummary = stripTechnicalJargon(
+                    nvl(ai.transitSummary(), nvl(ai.message(), computeDayTheme())));
+            List<String> safeTransitPoints = transitPoints.stream()
+                    .map(this::stripTechnicalJargon)
+                    .map(p -> toSingleSentence(p, "", 120))
+                    .filter(p -> !p.isBlank())
+                    .limit(3)
+                    .toList();
+            if (safeTransitPoints.size() < 3) {
+                safeTransitPoints = normalizeTransitPoints(
+                        safeTransitPoints,
+                        safeSummary,
+                        "Bugün iletişimde net kal.",
+                        "Önceliğini tek başlıkta topla.");
+            }
+
+            int readabilityScore = ai.readabilityScore() != null
+                    ? clamp(ai.readabilityScore(), 0, 100)
+                    : computeReadabilityScore(resolvedSecret, safeSummary, String.join(" ", safeTransitPoints));
+            int impactScore = ai.impactScore() != null
+                    ? clamp(ai.impactScore(), 0, 100)
+                    : computeImpactScore(safeHeadline, resolvedSecret, ai.message());
+
             return new OracleResponse(
-                    nvl(ai.secret(), "Bugün içindeki sese güven; o sesi sessiz anlarda duyabilirsin."),
+                    resolvedSecret,
                     nvl(ai.numerologyInsight(), null),
                     nvl(ai.astrologyInsight(), null),
                     nvl(ai.dreamInsight(), null),
-                    nvl(ai.dailyVibe(), null),
+                    resolvedDailyVibe,
+                    safeHeadline,
+                    safeSummary,
+                    safeTransitPoints,
+                    firstNonBlank(ai.promptVersion(), promptVersion, ORACLE_PROMPT_VERSION),
+                    firstNonBlank(ai.promptVariant(), promptVariant, "A"),
+                    readabilityScore,
+                    impactScore,
                     LocalDateTime.now(),
                     nvl(ai.message(), computeDayTheme())
             );
         } catch (JsonProcessingException e) {
             log.warn("AI returned non-JSON response, using as secret: {}", e.getMessage());
             // AI returned prose — use first sentence as secret
-            String secret = json.split("[.!?]")[0].trim();
-            if (secret.length() > 150) secret = secret.substring(0, 150).trim();
-            return new OracleResponse(secret, null, null, null, null, LocalDateTime.now(), computeDayTheme());
+            String secret = toSingleSentence(json, "Bugün sezgine güven.", 110);
+            int readabilityScore = computeReadabilityScore(secret);
+            int impactScore = computeImpactScore(secret);
+            return new OracleResponse(
+                    secret,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "Bugünün teması: netlik ve hamle",
+                    "Teknik detaya takılmadan bugüne odaklan.",
+                    List.of("Ritmini koru.", "Önceliğini tek başlığa indir.", "Küçük ama net bir adım at."),
+                    promptVersion,
+                    promptVariant,
+                    readabilityScore,
+                    impactScore,
+                    LocalDateTime.now(),
+                    computeDayTheme()
+            );
         }
     }
 
@@ -176,11 +288,149 @@ public class OracleService {
         return (value != null && !value.isBlank()) ? value : fallback;
     }
 
+    private String choosePromptVariant(Long userId) {
+        if (userId == null) return "A";
+        return (Math.abs(userId) % 2 == 0) ? "A" : "B";
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) return "";
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
+    private List<String> normalizeTransitPoints(List<String> points, String... fallbacks) {
+        List<String> normalized = new ArrayList<>();
+
+        if (points != null) {
+            for (String point : points) {
+                String clean = toSingleSentence(point, "");
+                if (!clean.isBlank()) {
+                    normalized.add(clean);
+                }
+            }
+        }
+
+        if (normalized.isEmpty() && fallbacks != null) {
+            for (String fallback : fallbacks) {
+                String clean = toSingleSentence(fallback, "");
+                if (!clean.isBlank()) {
+                    normalized.add(clean);
+                }
+                if (normalized.size() >= 3) break;
+            }
+        }
+
+        if (normalized.isEmpty()) {
+            normalized = List.of(
+                    "Gunun ritmini sakin tut.",
+                    "Iletisimde net kal.",
+                    "Kucuk ama net bir adim at.");
+        }
+
+        if (normalized.size() > 3) {
+            return normalized.subList(0, 3);
+        }
+        return normalized;
+    }
+
+    private String toSingleSentence(String value, String fallback) {
+        return toSingleSentence(value, fallback, 140);
+    }
+
+    private String toSingleSentence(String value, String fallback, int maxLength) {
+        String source = firstNonBlank(value, fallback);
+        if (source.isBlank()) return "";
+        String cleaned = source.replaceAll("\\s+", " ").trim();
+        String[] parts = cleaned.split("[.!?]");
+        String sentence = parts.length > 0 ? parts[0].trim() : cleaned;
+        if (sentence.length() > maxLength) {
+            sentence = sentence.substring(0, maxLength).replaceAll("\\s+\\S*$", "").trim();
+        }
+        return sentence.isBlank() ? "" : sentence + ".";
+    }
+
+    private String stripTechnicalJargon(String value) {
+        if (value == null || value.isBlank()) return "";
+        return value
+                .replaceAll("(?i)\\b(kavusum|kare|ucgen|karsit|transit|orb|derece|ev)\\b", "")
+                .replaceAll("(?i)\\b(kavuşum|üçgen|karşıt|retro|retrograd|teknik gösterge)\\b", "")
+                .replaceAll("\\d+\\s*°", "")
+                .replaceAll("\\s+", " ")
+                .replaceAll("\\s+([.,;:])", "$1")
+                .trim();
+    }
+
+    private int computeReadabilityScore(String... parts) {
+        String text = String.join(" ", parts == null ? new String[0] : parts).trim();
+        if (text.isBlank()) return 55;
+        String[] words = text.split("\\s+");
+        double avgWordLen = java.util.Arrays.stream(words).mapToInt(String::length).average().orElse(6.0);
+        int longWords = (int) java.util.Arrays.stream(words).filter(w -> w.length() > 10).count();
+        int score = (int) Math.round(96 - (avgWordLen * 7) - (longWords * 0.8));
+        return clamp(score, 35, 98);
+    }
+
+    private int computeImpactScore(String... parts) {
+        String text = String.join(" ", parts == null ? new String[0] : parts).toLowerCase();
+        if (text.isBlank()) return 50;
+        String[] impactTokens = {"net", "hamle", "firsat", "destek", "guc", "hiz", "odak", "denge", "riski", "sans"};
+        int hits = 0;
+        for (String token : impactTokens) {
+            if (text.contains(token)) hits++;
+        }
+        int score = 42 + (hits * 8);
+        if (text.contains("!")) score += 4;
+        return clamp(score, 30, 98);
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private boolean shouldRetryWithAlternateVariant(OracleResponse response) {
+        if (response == null) return true;
+        int impact = response.impactScore() != null ? response.impactScore() : 50;
+        int readability = response.readabilityScore() != null ? response.readabilityScore() : 55;
+        int points = response.transitPoints() != null ? response.transitPoints().size() : 0;
+        boolean weakSecret = response.secret() == null || response.secret().length() < 24;
+        boolean weakMessage = response.message() == null || response.message().isBlank();
+        return impact < 55 || readability < 45 || points < 2 || weakSecret || weakMessage;
+    }
+
+    private Mono<OracleResponse> retryWithAlternateVariant(AiSynthesisRequest request, OracleResponse primary) {
+        String alternateVariant = "A".equalsIgnoreCase(request.promptVariant()) ? "B" : "A";
+        AiSynthesisRequest alternateRequest = withPromptVariant(request, alternateVariant);
+        log.info("Retrying oracle prompt with variant {} due to low quality primary response", alternateVariant);
+
+        return callAiOrchestrator(alternateRequest)
+                .onErrorResume(error -> {
+                    log.warn("Alternate variant {} failed: {}", alternateVariant, error.getMessage());
+                    return Mono.empty();
+                })
+                .switchIfEmpty(Mono.just(primary))
+                .map(alternate -> qualityScore(alternate) >= qualityScore(primary) ? alternate : primary);
+    }
+
+    private int qualityScore(OracleResponse response) {
+        if (response == null) return 0;
+        int impact = response.impactScore() != null ? response.impactScore() : 50;
+        int readability = response.readabilityScore() != null ? response.readabilityScore() : 55;
+        int pointsBonus = response.transitPoints() != null ? Math.min(response.transitPoints().size(), 3) * 5 : 0;
+        int messageBonus = (response.message() != null && !response.message().isBlank()) ? 8 : 0;
+        return impact + readability + pointsBonus + messageBonus;
+    }
+
     // ─── Build AI Request ─────────────────────────────────────────────────────────
 
     private AiSynthesisRequest buildAiRequest(GrandSynthesisRequest synthesis,
                                                String name, String birthDate,
-                                               String maritalStatus, String focusPoint) {
+                                               String maritalStatus, String focusPoint,
+                                               String promptVersion, String promptVariant) {
         NumerologyData num = synthesis.numerology();
         NatalChartData chart = synthesis.natalChart();
         DreamData dream = synthesis.recentDream();
@@ -201,7 +451,32 @@ public class OracleService {
                 synthesis.retrogradePlanets(),
                 dream != null ? dream.dreamText() : null,
                 dream != null ? dream.mood() : null,
-                dream != null ? dream.aiInterpretation() : null
+                dream != null ? dream.aiInterpretation() : null,
+                promptVersion,
+                promptVariant
+        );
+    }
+
+    private AiSynthesisRequest withPromptVariant(AiSynthesisRequest req, String promptVariant) {
+        return new AiSynthesisRequest(
+                req.name(),
+                req.birthDate(),
+                req.maritalStatus(),
+                req.focusPoint(),
+                req.lifePathNumber(),
+                req.destinyNumber(),
+                req.soulUrgeNumber(),
+                req.sunSign(),
+                req.moonSign(),
+                req.risingSign(),
+                req.moonPhase(),
+                req.moonSignToday(),
+                req.retrogradePlanets(),
+                req.dreamText(),
+                req.dreamMood(),
+                req.dreamInterpretation(),
+                req.promptVersion(),
+                promptVariant
         );
     }
 
@@ -328,6 +603,47 @@ public class OracleService {
         return new SkyPulseSummary(moonPhase, moonSignTurkish, retroList);
     }
 
+    private Mono<List<HomeBriefResponse.WeeklyCard>> fetchWeeklyCards(Long userId) {
+        ReactiveCircuitBreaker circuitBreaker = circuitBreakerFactory.create("astrology-service");
+
+        Mono<List<HomeBriefResponse.WeeklyCard>> remoteCall = webClientBuilder.build()
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .scheme("lb")
+                        .host("astrology-service")
+                        .path("/api/v1/astrology/weekly-swot")
+                        .queryParam("userId", userId)
+                        .build())
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .map(this::parseWeeklyCards);
+
+        return circuitBreaker.run(remoteCall, throwable -> {
+            log.warn("Circuit breaker activated for weekly-swot: {}", throwable.getMessage());
+            return Mono.just(List.of());
+        });
+    }
+
+    private List<HomeBriefResponse.WeeklyCard> parseWeeklyCards(JsonNode node) {
+        return List.of(
+                toWeeklyCard("strength", "ICSEL GUC", "#7C4DFF", node.path("strength")),
+                toWeeklyCard("opportunity", "ALTIN FIRSAT", "#009F73", node.path("opportunity")),
+                toWeeklyCard("threat", "KRITIK UYARI", "#E14B4B", node.path("threat")),
+                toWeeklyCard("weakness", "ENERJI KAYBI", "#E08A00", node.path("weakness"))
+        );
+    }
+
+    private HomeBriefResponse.WeeklyCard toWeeklyCard(
+            String key,
+            String title,
+            String accent,
+            JsonNode source) {
+        String headline = source.path("headline").asText("Bu alan bu hafta aktif.");
+        String subtext = source.path("subtext").asText("Detaylari acmak icin karta dokun.");
+        String quickTip = source.path("quickTip").asText("Ritmini koru ve odagini dagitma.");
+        return new HomeBriefResponse.WeeklyCard(key, title, headline, subtext, quickTip, accent);
+    }
+
     // ─── Static Fallback (circuit breaker fallback for AI) ───────────────────────
 
     /**
@@ -350,8 +666,22 @@ public class OracleService {
                 ? request.recentDream().aiInterpretation()
                 : buildDreamFallback(request.recentDream(), dayOfYear);
 
-        return new OracleResponse(secret, numerologyInsight, astrologyInsight, dreamInsight,
-                null, LocalDateTime.now(), computeDayTheme());
+        return new OracleResponse(
+                toSingleSentence(secret, "Bugun sezgine guven."),
+                numerologyInsight,
+                astrologyInsight,
+                dreamInsight,
+                null,
+                toSingleSentence(astrologyInsight, "Gunun akisi lehine donuyor."),
+                toSingleSentence(numerologyInsight, "Dengeni korudukca netlik artacak."),
+                normalizeTransitPoints(null, astrologyInsight, numerologyInsight, dreamInsight),
+                ORACLE_PROMPT_VERSION,
+                "A",
+                computeReadabilityScore(secret, astrologyInsight, numerologyInsight),
+                computeImpactScore(secret, astrologyInsight),
+                LocalDateTime.now(),
+                computeDayTheme()
+        );
     }
 
     private String buildContextualSecret(GrandSynthesisRequest request, int day) {
@@ -505,11 +835,22 @@ public class OracleService {
         };
 
         return new OracleResponse(
-                secrets[dayOfYear % secrets.length],
+                toSingleSentence(secrets[dayOfYear % secrets.length], "Bugun sezgine guven."),
                 "Sayılarının titreşimi bugün kararlarında belirleyici bir rehberlik sunuyor.",
                 astrologyFallbacks[(dayOfYear + dayOfWeek) % astrologyFallbacks.length],
                 null,
                 null,
+                "Gunun ritmi degisiyor, odagini netlestir.",
+                "Kucuk ama net hamlelerin sonuca daha hizli goturecek.",
+                List.of(
+                        "Iletisimde gereksiz ayrintidan kac.",
+                        "Onceligini tek bir basliga indir.",
+                        "Bugun bitirebilecegin bir isi mutlaka tamamla."
+                ),
+                ORACLE_PROMPT_VERSION,
+                "A",
+                70,
+                68,
                 LocalDateTime.now(),
                 computeDayTheme()
         );
@@ -526,6 +867,7 @@ public class OracleService {
             Integer lifePathNumber, Integer destinyNumber, Integer soulUrgeNumber,
             String sunSign, String moonSign, String risingSign,
             String moonPhase, String moonSignToday, List<String> retrogradePlanets,
-            String dreamText, String dreamMood, String dreamInterpretation
+            String dreamText, String dreamMood, String dreamInterpretation,
+            String promptVersion, String promptVariant
     ) {}
 }

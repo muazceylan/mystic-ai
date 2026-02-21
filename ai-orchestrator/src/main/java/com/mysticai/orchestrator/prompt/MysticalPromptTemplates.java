@@ -41,38 +41,31 @@ public class MysticalPromptTemplates {
      */
     public String getLuckyDatesInterpretationPrompt(String luckyDatesData) {
         return String.format("""
-            Sen kadim astroloji bilgeliğinin koruyucusu, gezegen transitlerini ve doğum haritalarını
-            sentezleyerek kişiye özel kozmik zaman pencereleri açabilen bir astroloji ustasısın.
+            Sen astrolojik aksiyon motorunun parçasısın.
+            Görevin romantik uzun metin yazmak değil; yapılandırılmış, uygulanabilir JSON üretmek.
 
-            Aşağıda bir kişinin doğum haritası verileri ve belirli bir hedef kategorisi için
-            hesaplanmış şanslı tarihler bulunmaktadır. Bu verileri derinlemesine analiz et.
-
-            VERİLER:
+            VERİ:
             %s
 
-            Yorumunu şu yapıda sun:
+            ÇIKTI FORMATI:
+            - SADECE geçerli JSON döndür.
+            - Markdown, açıklama, code fence, başlık, ek metin YOK.
+            - JSON şeması (tek obje):
+              {
+                "category": "string",
+                "score": 0-100 integer,
+                "dos": ["string", "..."],
+                "donts": ["string", "..."],
+                "reasoning": "string"
+              }
 
-            1. KOZMİK PENCERE ANALİZİ
-               Bu tarihlerin neden özel olduğunu, doğum haritasıyla bağlantılı şekilde açıkla.
-               Transitlerin natal gezegenlere olan etkisini sentezle.
-
-            2. HER TARİH İÇİN DETAYLI YORUM
-               Her şanslı tarih için 2-3 cümlelik özel yorum yaz.
-               Hangi transitin hangi natal gezegeni tetiklediğini belirt.
-               Somut öneriler sun (örn: "Bu tarihte iş görüşmesi yapmanız idealdir").
-
-            3. DİKKAT EDİLMESİ GEREKENLER
-               Merkür retrosu varsa uyar ve etkilenen tarihleri belirt.
-               Zorlayıcı açılar (Kare, Karşıt) varsa nasıl yönetileceğini açıkla.
-               Ay fazının etkisini belirt.
-
-            4. KOZMİK TAVSİYE
-               Genel enerji rehberliği sun.
-               Bu dönemin ruhsal öğrenimini ve fırsatlarını özetle.
-
-            Kadim bilgelikle, ama pratik hayata uygulanabilir şekilde konuş.
-            En az 300 kelime, en fazla 700 kelime arasında tut.
-            Türkçe yaz.
+            KURALLAR:
+            - dos/donts en az 2, en fazla 5 madde.
+            - Maddeler kısa, eyleme dönük, günlük hayata uygulanabilir olmalı.
+            - reasoning 1-2 cümle olmalı; ilgili transit/natal açı adını içermeli.
+            - Merkür retrosu varsa donts içinde sözleşme/iletişim uyarısı mutlaka olmalı.
+            - Skor verilen veriden türetilmeli; uydurma abartı yapma.
+            - Dil: Türkçe.
             """, luckyDatesData);
     }
 
@@ -355,6 +348,8 @@ public class MysticalPromptTemplates {
                   + (req.dreamMood() != null ? "\nRüya Duygusu: " + req.dreamMood() : "")
                   + (req.dreamInterpretation() != null ? "\nRüya Yorumu: " + req.dreamInterpretation().substring(0, Math.min(req.dreamInterpretation().length(), 200)) : "")
                 : "Kayıtlı rüya yok.";
+        String promptVersion = nvl(req.promptVersion(), "oracle-home-v2");
+        String promptVariant = nvl(req.promptVariant(), "A");
 
         return """
             Sen kişiye özel günlük kozmik analiz üreten bir uzman astroloji ve numeroloji danışmanısın.
@@ -382,30 +377,41 @@ public class MysticalPromptTemplates {
 
             %s
 
+            DENEY BİLGİSİ:
+            - Prompt Versiyonu: %s
+            - A/B Varyantı: %s
+
             ════════════════════════════════════════
             GÖREV
             ════════════════════════════════════════
             Bu verileri sentezleyerek bu kişiye ÖZEL, BUGÜNE AİT bir analiz üret.
 
             ZORUNLU KURALLAR:
-            1. Retrograd gezegen varsa → o gezegenin %s alanına somut etkisini açıkla; "dikkat" veya "tehlike" kelimelerini kullan
-            2. Retrograd yoksa → hangi gezegenlerin bugün bu kişiyi desteklediğini belirt; "şans", "destek" ifadelerini kullan
-            3. Sayıları ve burçları birbirine bağla — "Yaşam Yolu %s olarak..." gibi başla
-            4. Medeni durum tonunu yansıt: %s
-            5. Her alan 1-2 cümle maksimum; kısa ve çarpıcı ol
-            6. Türkçe, samimi, direkt — klişe YASAK ("yıldızlar seni koruyor", "evren seni seviyor" kullanma)
-            7. BURÇ ADLARI YALNIZCA TÜRKÇE — Latin adlar (Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, Pisces) KESİNLİKLE YASAK. Kullan: Koç, Boğa, İkizler, Yengeç, Aslan, Başak, Terazi, Akrep, Yay, Oğlak, Kova, Balık
-            8. dailyVibe ZORUNLU KURAL: TAM OLARAK 1 (BİR) CÜMLE — kesinlikle nokta yoksa 2 cümle, sadece 1. Kişinin yaşam yolu sayısı + burcu + odak alanını birbirine kaynaştır. "Bugün", "Bu gün" gibi klişe girişler YASAK — doğrudan çarpıcı fiille başla.
-            9. DOLGU YASAKLARI: "Evren seninle", "Kozmik enerjin yükselmiş", "İçini dinle", "Kalbin sesi", "Yıldızlar rehberin", "Adım adım" ve benzeri anlamsız genel ifadeler KULLANMA.
+            1. Dil sadece TÜRKÇE olsun.
+            2. Teknik astroloji terimleri YASAK: "kavuşum, kare, üçgen, karşıt, derece, orb, transit, ev".
+            3. Burç adları sadece Türkçe kullan: Koç, Boğa, İkizler, Yengeç, Aslan, Başak, Terazi, Akrep, Yay, Oğlak, Kova, Balık.
+            4. Mesajlar somut, kısa, çarpıcı ve günlük hayata uygulanabilir olsun.
+            5. Medeni durum tonunu yansıt: %s
+            6. Varyant A → daha direkt/aksiyon odaklı. Varyant B → daha sezgisel/yumuşak.
+            7. Klişe yasak: "evren seninle", "içindeki sesi dinle", "kozmik enerji yükseliyor", "yıldızlar rehberin".
+            8. secret ve dailyVibe tek cümle olmalı (max 110/120 karakter).
+            9. transitPoints tam 3 madde olsun; her madde tek cümle.
 
             YALNIZCA JSON DÖNDÜR — başına/sonuna ```json veya açıklama EKLEME:
             {
-              "secret": "Kişisel, çarpıcı 1 cümle — isim + burç/sayı + bugün ne olabilir (max 110 karakter, TÜRKÇE burç adı)",
-              "astrologyInsight": "Retrograd/destek durumu + doğum haritası kombinasyonu bugün ne anlatıyor (1-2 cümle, TÜRKÇE burç adları)",
-              "numerologyInsight": "Yaşam yolu sayısı %s bugün odak alanında ne söylüyor (1-2 cümle)",
-              "dreamInsight": "Rüya mesajı ile bugünün bağlantısı — rüya yoksa null",
-              "dailyVibe": "SADECE 1 CÜMLE — sayı+burç+odak birleşimi güçlü çarpıcı cümle, klişe yok (max 120 karakter)",
-              "messagehjhj": "%s alanında bugün somut ne yapmalı veya yapmamalı (1-2 aksiyon cümlesi)"
+              "secret": "Günün sırrı, tek cümle, güçlü ve kişisel (max 110 karakter)",
+              "dailyVibe": "Günün enerjisi, tek cümle, teknik terim yok (max 120 karakter)",
+              "transitHeadline": "Günün transit başlığı, 1 cümle, merak uyandırıcı",
+              "transitSummary": "Transit özeti, 1 cümle, teknik terim yok",
+              "transitPoints": ["Madde 1", "Madde 2", "Madde 3"],
+              "astrologyInsight": "Bugüne etkisi, 1-2 cümle",
+              "numerologyInsight": "Sayıların bugünkü katkısı, 1-2 cümle",
+              "dreamInsight": "Rüya bağlantısı varsa 1 cümle, yoksa null",
+              "message": "%s alanında bugün yapılacak en net hamle, 1 cümle",
+              "promptVersion": "%s",
+              "promptVariant": "%s",
+              "readabilityScore": 0,
+              "impactScore": 0
             }
             """.formatted(
                 nvl(req.name(), "Kullanıcı"),
@@ -422,11 +428,13 @@ public class MysticalPromptTemplates {
                 nvl(req.moonSignToday(), "Bilinmiyor"),
                 retroText,
                 dreamSection,
-                focusLabel,
-                nvl(req.lifePathNumber()),
+                promptVersion,
+                promptVariant,
                 maritalTone,
-                nvl(req.lifePathNumber()),
                 focusLabel
+                ,
+                promptVersion,
+                promptVariant
         );
     }
 

@@ -1,5 +1,6 @@
 package com.mysticai.oracle.controller;
 
+import com.mysticai.oracle.dto.HomeBriefResponse;
 import com.mysticai.oracle.dto.OracleResponse;
 import com.mysticai.oracle.service.OracleService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,22 @@ public class OracleController {
         log.info("Daily secret requested for user: {} ({})", userId, username);
 
         return oracleService.getDailySecret(userId, name, birthDate, maritalStatus, focusPoint)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/home-brief")
+    public Mono<ResponseEntity<HomeBriefResponse>> getHomeBrief(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(value = "X-Username", required = false) String username,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String birthDate,
+            @RequestParam(required = false) String maritalStatus,
+            @RequestParam(required = false) String focusPoint) {
+
+        log.info("Home brief requested for user: {} ({})", userId, username);
+
+        return oracleService.getHomeBrief(userId, username, name, birthDate, maritalStatus, focusPoint)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }

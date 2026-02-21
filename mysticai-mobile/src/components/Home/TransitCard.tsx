@@ -5,6 +5,8 @@ import {
   StyleSheet,
   FlatList,
   Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -14,14 +16,13 @@ import type { TransitDigest } from './homeUtils';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const H_PAD = SPACING.lgXl;
-const CARD_WIDTH = Math.round(SCREEN_WIDTH * 0.75);
+const CARD_WIDTH = Math.round(SCREEN_WIDTH - (H_PAD * 2));
 const CARD_HEIGHT = 148;
 const CARD_GAP = 10;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
 
 interface TransitCardProps {
   transitDigest: TransitDigest;
-  dailyVibeText: string;
 }
 
 interface GlassCard {
@@ -34,7 +35,6 @@ interface GlassCard {
 
 function buildCards(
   transitDigest: TransitDigest,
-  dailyVibeText: string,
   colors: ReturnType<typeof useTheme>['colors'],
 ): GlassCard[] {
   const cards: GlassCard[] = [];
@@ -90,15 +90,15 @@ function buildCards(
   return cards;
 }
 
-export function TransitCard({ transitDigest, dailyVibeText }: TransitCardProps) {
+export function TransitCard({ transitDigest }: TransitCardProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const flatListRef = useRef<FlatList<GlassCard>>(null);
   const currentIndexRef = useRef(0);
 
   const cards = useMemo(
-    () => buildCards(transitDigest, dailyVibeText, colors),
-    [transitDigest, dailyVibeText, colors],
+    () => buildCards(transitDigest, colors),
+    [transitDigest, colors],
   );
 
   // Auto-scroll every 5 seconds
@@ -113,6 +113,11 @@ export function TransitCard({ transitDigest, dailyVibeText }: TransitCardProps) 
   }, [cards.length]);
 
   if (cards.length === 0) return null;
+
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(event.nativeEvent.contentOffset.x / SNAP_INTERVAL);
+    currentIndexRef.current = Math.max(0, Math.min(index, cards.length - 1));
+  };
 
   return (
     <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.wrapper}>
@@ -137,10 +142,15 @@ export function TransitCard({ transitDigest, dailyVibeText }: TransitCardProps) 
         decelerationRate="fast"
         style={styles.flatList}
         contentContainerStyle={styles.listContent}
+        getItemLayout={(_, index) => ({
+          length: SNAP_INTERVAL,
+          offset: SNAP_INTERVAL * index,
+          index,
+        })}
         onScrollBeginDrag={() => {
-          // Reset auto-scroll index when user manually drags
-          currentIndexRef.current = 0;
+          // Keep index where user paused; timer picks up from this position.
         }}
+        onMomentumScrollEnd={handleMomentumEnd}
         renderItem={({ item }) => (
           <GlassTransitCard card={item} isDark={isDark} colors={colors} />
         )}

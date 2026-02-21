@@ -26,20 +26,14 @@ import {
 } from '../../components/Home';
 import {
   normalizeFocus,
-  normalizeAiCopy,
-  toSingleSentence,
-  dedupeLines,
   buildCuriousSecret,
-  buildTransitDigest,
   getDailyVibeFallback,
 } from '../../components/Home/homeUtils';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import {
-  useDailySecret,
+  useHomeBrief,
   useSkyPulse,
-  useWeeklySwot,
-  useNatalChart,
 } from '../../hooks/useHomeQueries';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -71,23 +65,18 @@ export default function HomeScreen() {
     [user, onboardingMaritalStatus, onboardingFocusPoints],
   );
 
-  const dailySecretQuery = useDailySecret(dailySecretParams);
+  const homeBriefQuery = useHomeBrief(dailySecretParams);
   const skyPulseQuery = useSkyPulse();
-  const weeklySwotQuery = useWeeklySwot(user?.id);
-  const natalChartQuery = useNatalChart(user?.id);
 
-  const dailySecret = dailySecretQuery.data ?? null;
-  const secretLoading = dailySecretQuery.isLoading;
-  const secretError = dailySecretQuery.isError;
+  const homeBrief = homeBriefQuery.data ?? null;
+  const secretLoading = homeBriefQuery.isLoading;
+  const secretError = homeBriefQuery.isError;
   const skyPulse = skyPulseQuery.data ?? null;
   const skyPulseLoading = skyPulseQuery.isLoading;
-  const weeklySwot = weeklySwotQuery.data ?? null;
-  const weeklyLoading = weeklySwotQuery.isLoading;
-  const weeklyError = weeklySwotQuery.isError;
-  const natalChart = natalChartQuery.data ?? null;
+  const weeklyLoading = homeBriefQuery.isLoading;
+  const weeklyError = homeBriefQuery.isError;
 
-  const loadDailySecret = useCallback(() => dailySecretQuery.refetch(), [dailySecretQuery.refetch]);
-  const loadWeeklySwot = useCallback(() => weeklySwotQuery.refetch(), [weeklySwotQuery.refetch]);
+  const refetchHomeBrief = useCallback(() => homeBriefQuery.refetch(), [homeBriefQuery.refetch]);
 
   const SERVICE_SLIDES = useMemo(
     () => SERVICE_SLIDE_IDS.map((s) => ({ ...s, title: t(s.key) })),
@@ -125,25 +114,21 @@ export default function HomeScreen() {
   // Track whether daily secret has loaded (for WisdomCard fade)
   const [secretLoaded, setSecretLoaded] = useState(false);
   useEffect(() => {
-    if (dailySecretQuery.isSuccess && dailySecretQuery.data) {
+    if (homeBriefQuery.isSuccess && homeBriefQuery.data?.secret) {
       announceForAccessibility(t('accessibility.contentLoaded'));
       setSecretLoaded(true);
     }
-  }, [dailySecretQuery.isSuccess, dailySecretQuery.data, t]);
+  }, [homeBriefQuery.isSuccess, homeBriefQuery.data, t]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     // Gökyüzü verisi saatlik değişir — her zaman yenile.
-    // Günlük/haftalık veriler sunucu tarafında önbelleklenir; TanStack Query staleTime
-    // süresi dolmadıkça tekrar çekilmez (yani gece yarısı / hafta sonu sıfırlanır).
     await skyPulseQuery.refetch();
-    if (dailySecretQuery.isStale) await dailySecretQuery.refetch();
-    if (weeklySwotQuery.isStale) await weeklySwotQuery.refetch();
+    if (homeBriefQuery.isStale) await homeBriefQuery.refetch();
     setRefreshing(false);
   }, [
     skyPulseQuery,
-    dailySecretQuery,
-    weeklySwotQuery,
+    homeBriefQuery,
   ]);
 
   const firstName = user?.firstName || '';
@@ -155,59 +140,77 @@ export default function HomeScreen() {
   const focusKey = normalizeFocus(selectedFocus);
   const activeMaritalStatus = user?.maritalStatus || onboardingMaritalStatus || '';
 
-  const aiInsightLines = useMemo(
-    () =>
-      dedupeLines(
-        [
-          normalizeAiCopy(dailySecret?.message),
-          normalizeAiCopy(dailySecret?.astrologyInsight),
-          normalizeAiCopy(dailySecret?.dreamInsight),
-          normalizeAiCopy(dailySecret?.numerologyInsight),
-          normalizeAiCopy(dailySecret?.secret),
-        ].filter(Boolean),
-      ),
-    [
-      dailySecret?.astrologyInsight,
-      dailySecret?.dreamInsight,
-      dailySecret?.message,
-      dailySecret?.numerologyInsight,
-      dailySecret?.secret,
-    ],
-  );
-
   const secretText = useMemo(() => {
     if (secretError) {
-      return toSingleSentence(
-        buildCuriousSecret(name, daySeed, focusKey, activeMaritalStatus, t, null),
-        t('home.secretFallbackWithName', { name }),
-        110,
-      );
+      return buildCuriousSecret(name, daySeed, focusKey, activeMaritalStatus, t, null);
     }
-    return toSingleSentence(
-      dailySecret?.secret || dailySecret?.message || '',
-      buildCuriousSecret(name, daySeed, focusKey, activeMaritalStatus, t, dailySecret?.secret ?? null),
-      110,
-    );
-  }, [activeMaritalStatus, dailySecret?.message, dailySecret?.secret, daySeed, focusKey, name, secretError, t]);
+    return homeBrief?.secret || buildCuriousSecret(name, daySeed, focusKey, activeMaritalStatus, t, null);
+  }, [activeMaritalStatus, daySeed, focusKey, homeBrief?.secret, name, secretError, t]);
 
   const dailyVibeText = useMemo(() => {
-    if (dailySecret?.dailyVibe) return dailySecret.dailyVibe;
+    if (homeBrief?.dailyEnergy) return homeBrief.dailyEnergy;
     return getDailyVibeFallback(daySeed, focusKey, activeMaritalStatus, t);
-  }, [activeMaritalStatus, dailySecret?.dailyVibe, daySeed, focusKey, t]);
+  }, [activeMaritalStatus, daySeed, focusKey, homeBrief?.dailyEnergy, t]);
 
-  const transitDigest = useMemo(
-    () => buildTransitDigest(skyPulse, natalChart, focusKey, aiInsightLines, dailyVibeText, t),
-    [aiInsightLines, dailyVibeText, focusKey, natalChart, skyPulse, t],
-  );
+  const transitDigest = useMemo(() => {
+    const impact = homeBrief?.meta?.impactScore ?? 60;
+    const energyType: 'lucky' | 'mixed' | 'caution' = impact >= 72 ? 'lucky' : impact <= 42 ? 'caution' : 'mixed';
+    const points = homeBrief?.transitPoints ?? [];
+    const prioritized = [
+      homeBrief?.actionMessage?.trim(),
+      ...points,
+    ].filter((line): line is string => !!line && line.length > 0);
+    return {
+      title: homeBrief?.transitHeadline ?? dailyVibeText,
+      energyType,
+      energyLabel: homeBrief?.transitSummary ?? dailyVibeText,
+      actionItems: prioritized.slice(0, 2),
+      cautionItems: prioritized.slice(2, 3),
+    };
+  }, [
+    dailyVibeText,
+    homeBrief?.actionMessage,
+    homeBrief?.meta?.impactScore,
+    homeBrief?.transitHeadline,
+    homeBrief?.transitPoints,
+    homeBrief?.transitSummary,
+  ]);
+
+  const weeklySwot = useMemo(() => {
+    if (!homeBrief?.weeklyCards?.length) return null;
+    const find = (key: string) => homeBrief.weeklyCards.find((c: { key: string }) => c.key === key);
+    const toPoint = (key: string) => {
+      const card = find(key);
+      return {
+        category: key.toUpperCase(),
+        headline: card?.headline ?? 'Bu alan bu hafta aktif.',
+        subtext: card?.subtext ?? 'Detaylari acmak icin karta dokun.',
+        intensity: 70,
+        quickTip: card?.quickTip ?? 'Ritmini koru ve odagini dagitma.',
+      };
+    };
+    return {
+      strength: toPoint('strength'),
+      weakness: toPoint('weakness'),
+      opportunity: toPoint('opportunity'),
+      threat: toPoint('threat'),
+      flashInsight: {
+        type: 'FORTUNE' as const,
+        headline: homeBrief.transitHeadline ?? 'Haftalik akista destekleyici bir dalga var.',
+        detail: homeBrief.transitSummary ?? dailyVibeText,
+      },
+      weekStart: new Date().toISOString(),
+      weekEnd: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+  }, [dailyVibeText, homeBrief]);
 
   // ☀️Aslan · 🌙Balık · ⬆️Terazi
   const zodiacLine = useMemo(() => {
     const parts: string[] = [];
-    if (natalChart?.sunSign) parts.push(`☀️${natalChart.sunSign}`);
+    if (user?.zodiacSign) parts.push(`☀️${user.zodiacSign}`);
     if (skyPulse?.moonSignTurkish) parts.push(`🌙${skyPulse.moonSignTurkish}`);
-    if (natalChart?.risingSign) parts.push(`⬆️${natalChart.risingSign}`);
     return parts.join(' · ');
-  }, [natalChart?.sunSign, natalChart?.risingSign, skyPulse?.moonSignTurkish]);
+  }, [user?.zodiacSign, skyPulse?.moonSignTurkish]);
 
   const scrollToSwot = useCallback(() => {
     (scrollRef.current as any)?.scrollTo({ y: swotYRef.current, animated: true });
@@ -274,8 +277,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <View style={S.greetingBlock}>
-              <Text style={[S.greetingName, { color: colors.text }]}>
-                Merhaba, {name} ✨
+              <Text style={[S.greetingName, { color: colors.text }]} numberOfLines={2}>
+                {homeBrief?.greeting ?? `Merhaba ${name}, bugün haritanda neler var bakalım.`}
               </Text>
               {zodiacLine ? (
                 <Text style={[S.greetingZodiac, { color: colors.subtext }]} numberOfLines={1}>
@@ -329,13 +332,6 @@ export default function HomeScreen() {
           <CollectiveTicker onPress={() => router.push('/(tabs)/dreams')} />
 
           {/* ═══════════════════════════════════════════
-              § 5. SERVICE DISCOVERY STRIP
-          ═══════════════════════════════════════════ */}
-          <Animated.View entering={FadeInDown.delay(360).duration(480)}>
-            <ServiceSlider slides={SERVICE_SLIDES} onScrollToSwot={scrollToSwot} />
-          </Animated.View>
-
-          {/* ═══════════════════════════════════════════
               ▼ DENSE SECTION — lives below the fold ▼
           ═══════════════════════════════════════════ */}
 
@@ -344,7 +340,7 @@ export default function HomeScreen() {
             secretText={secretText}
             loading={secretLoading}
             error={secretError}
-            onRetry={loadDailySecret}
+            onRetry={refetchHomeBrief}
             expanded={wisdomExpanded}
             onToggleExpand={() => setWisdomExpanded((e) => !e)}
             loaded={secretLoaded}
@@ -353,15 +349,21 @@ export default function HomeScreen() {
           {/* § 7. TRANSIT CAROUSEL */}
           <TransitCard
             transitDigest={transitDigest}
-            dailyVibeText={dailyVibeText}
           />
+
+          {/* ═══════════════════════════════════════════
+              § 5. SERVICE DISCOVERY STRIP
+          ═══════════════════════════════════════════ */}
+          <Animated.View entering={FadeInDown.delay(360).duration(480)}>
+            <ServiceSlider slides={SERVICE_SLIDES} onScrollToSwot={scrollToSwot} />
+          </Animated.View>
 
           {/* § 8. SWOT ACCORDION */}
           <SwotSection
             weeklySwot={weeklySwot}
             loading={weeklyLoading}
             error={weeklyError}
-            onRetry={loadWeeklySwot}
+            onRetry={refetchHomeBrief}
             expandedId={expandedSwotId}
             onToggleExpand={setExpandedSwotId}
             onLayout={(y) => { swotYRef.current = y; }}

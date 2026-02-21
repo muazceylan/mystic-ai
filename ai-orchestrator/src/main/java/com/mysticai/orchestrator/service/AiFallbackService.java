@@ -4,10 +4,14 @@ import com.mysticai.orchestrator.provider.AiModelProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Intelligent AI fallback service that rotates through a prioritized provider chain.
@@ -33,13 +37,19 @@ public class AiFallbackService {
             @Qualifier("geminiFlash")  AiModelProvider geminiFlash,
             @Qualifier("groqMixtral") AiModelProvider groqMixtral,
             @Qualifier("groqFast")     AiModelProvider groqFast,
+            @Value("${ai.chain.complex:groqPrimary,geminiFlash,groqMixtral,groqFast}") List<String> complexOrder,
+            @Value("${ai.chain.simple:groqFast,geminiFlash,groqMixtral}") List<String> simpleOrder,
             MockInterpretationService mockService) {
+        Map<String, AiModelProvider> providers = new LinkedHashMap<>();
+        providers.put("groqPrimary", groqPrimary);
+        providers.put("geminiFlash", geminiFlash);
+        providers.put("groqMixtral", groqMixtral);
+        providers.put("groqFast", groqFast);
 
-        // Complex: best quality → high-RPM free tier → reliable mid → ultra-fast
-        this.complexChain = List.of(groqPrimary, geminiFlash, groqMixtral, groqFast);
-
-        // Simple: ultra-fast → high-RPM free tier → reliable mid
-        this.simpleChain  = List.of(groqFast, geminiFlash, groqMixtral);
+        this.complexChain = resolveChain("complex", complexOrder, providers,
+                List.of("groqPrimary", "geminiFlash", "groqMixtral", "groqFast"));
+        this.simpleChain = resolveChain("simple", simpleOrder, providers,
+                List.of("groqFast", "geminiFlash", "groqMixtral"));
 
         this.mockService = mockService;
     }
@@ -82,6 +92,40 @@ public class AiFallbackService {
         log.error("[AI Chain] All {} providers exhausted — using local mock fallback",
                 chain.size());
         return mockService.generateFallback(prompt);
+    }
+
+    private List<AiModelProvider> resolveChain(
+            String chainName,
+            List<String> configuredOrder,
+            Map<String, AiModelProvider> providers,
+            List<String> defaultOrder) {
+
+        List<String> order = (configuredOrder == null || configuredOrder.isEmpty())
+                ? defaultOrder
+                : configuredOrder;
+
+        List<AiModelProvider> resolved = new ArrayList<>();
+        for (String key : order) {
+            AiModelProvider provider = providers.get(key);
+            if (provider == null) {
+                log.warn("[AI Chain] Unknown provider key '{}' in ai.chain.{} — skipping", key, chainName);
+                continue;
+            }
+            resolved.add(provider);
+        }
+
+        if (resolved.isEmpty()) {
+            log.warn("[AI Chain] Resolved {} chain is empty, falling back to defaults: {}", chainName, defaultOrder);
+            for (String key : defaultOrder) {
+                AiModelProvider provider = providers.get(key);
+                if (provider != null) {
+                    resolved.add(provider);
+                }
+            }
+        }
+
+        log.info("[AI Chain] {} order: {}", chainName, order);
+        return resolved;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────
