@@ -46,7 +46,7 @@ ai:
     base-url: https://api.groq.com/openai/v1
   gemini:
     # Set GEMINI_API_KEY env var to enable Google Gemini fallback (free tier, high RPM)
-    api-key: ${GEMINI_API_KEY:}
+    api-key: ${GEMINI_API_KEY}
     base-url: https://generativelanguage.googleapis.com/v1beta
     model: gemini-1.5-flash
 
