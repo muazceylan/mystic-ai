@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { getZodiacInfo } from '../../constants/zodiac';
+import { COLORS } from '../../constants/colors';
 
 interface BigThreeCardProps {
   sunSign: string;
@@ -11,17 +12,17 @@ interface BigThreeCardProps {
 const ITEMS = [
   {
     label: 'Güneş',
-    borderColor: '#D4AF37',
+    borderColor: COLORS.gold,
     bgColor: 'rgba(212,175,55,0.1)',
   },
   {
     label: 'Ay',
-    borderColor: '#7B9EC7',
+    borderColor: COLORS.moonBlue,
     bgColor: 'rgba(123,158,199,0.1)',
   },
   {
     label: 'Yükselen',
-    borderColor: '#9D4EDD',
+    borderColor: COLORS.primary,
     bgColor: 'rgba(157,78,221,0.1)',
   },
 ];
@@ -90,12 +91,12 @@ export default function BigThreeCard({ sunSign, moonSign, risingSign }: BigThree
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#F1F0F5',
-    shadowColor: '#000',
+    borderColor: COLORS.borderMuted,
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: COLORS.textSlate,
     marginBottom: 18,
     textAlign: 'center',
   },
@@ -130,10 +131,10 @@ const styles = StyleSheet.create({
   signName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: COLORS.textSlate,
   },
   label: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: COLORS.muted,
   },
 });

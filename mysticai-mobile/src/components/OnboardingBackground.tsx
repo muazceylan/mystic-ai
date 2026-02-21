@@ -1,4 +1,5 @@
 import { View, StyleSheet } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 export default function OnboardingBackground() {
   return (
@@ -20,7 +21,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 999,
-    backgroundColor: '#DCE9FF',
+    backgroundColor: COLORS.glowTop,
     opacity: 0.6,
   },
   glowBottom: {
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 999,
-    backgroundColor: '#F5D6E8',
+    backgroundColor: COLORS.glowBottom,
     opacity: 0.55,
   },
 });

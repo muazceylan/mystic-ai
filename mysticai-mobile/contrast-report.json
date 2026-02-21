@@ -1,0 +1,6820 @@
+{
+  "checks": [
+    {
+      "text": "textPrimary",
+      "background": "background",
+      "textValue": "#111827",
+      "bgValue": "#F9F7FB",
+      "contrast": 16.66,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    },
+    {
+      "text": "textPrimary",
+      "background": "surface",
+      "textValue": "#111827",
+      "bgValue": "#FFFFFF",
+      "contrast": 17.74,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    },
+    {
+      "text": "textSecondary",
+      "background": "background",
+      "textValue": "#6B7280",
+      "bgValue": "#F9F7FB",
+      "contrast": 4.54,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    },
+    {
+      "text": "textSecondary",
+      "background": "surface",
+      "textValue": "#6B7280",
+      "bgValue": "#FFFFFF",
+      "contrast": 4.83,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    },
+    {
+      "text": "text",
+      "background": "background",
+      "textValue": "#1E1E1E",
+      "bgValue": "#F9F7FB",
+      "contrast": 15.66,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    },
+    {
+      "text": "text",
+      "background": "surface",
+      "textValue": "#1E1E1E",
+      "bgValue": "#FFFFFF",
+      "contrast": 16.67,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    },
+    {
+      "text": "subtext",
+      "background": "background",
+      "textValue": "#6B7280",
+      "bgValue": "#F9F7FB",
+      "contrast": 4.54,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    },
+    {
+      "text": "subtext",
+      "background": "surface",
+      "textValue": "#6B7280",
+      "bgValue": "#FFFFFF",
+      "contrast": 4.83,
+      "passesAA_normal": true,
+      "passesAA_large": true
+    }
+  ],
+  "inlineUsages": [
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/contrast-report.json",
+      "values": [
+        "#111",
+        "#F9F",
+        "#FFF",
+        "#6B7",
+        "#1E1",
+        "#7A7",
+        "#def",
+        "#445",
+        "#fff",
+        "#000",
+        "#023",
+        "#003",
+        "#006",
+        "#009",
+        "#00C",
+        "#330",
+        "#333",
+        "#336",
+        "#339",
+        "#33C",
+        "#660",
+        "#663",
+        "#66C",
+        "#990",
+        "#993",
+        "#99C",
+        "#CC0",
+        "#CC3",
+        "#CC6",
+        "#CC9",
+        "#CCC",
+        "#FF0",
+        "#FF3",
+        "#FF6",
+        "#FF9",
+        "#FFC",
+        "#297",
+        "#323",
+        "#bac",
+        "#add",
+        "#dea",
+        "#4F8",
+        "#007",
+        "#411",
+        "#116",
+        "#6e8",
+        "#c9c",
+        "#dac",
+        "#acc",
+        "#9C2",
+        "#03A",
+        "#FF5",
+        "#567",
+        "#CDD",
+        "#607",
+        "#E91",
+        "#0F9",
+        "#795",
+        "#00B",
+        "#50b",
+        "#f38",
+        "#808",
+        "#ff9",
+        "#9c2",
+        "#737",
+        "#f00",
+        "#ccc",
+        "#1a7",
+        "#3b8",
+        "#156",
+        "#5a5",
+        "#e0e",
+        "#db1",
+        "#eae",
+        "#dad",
+        "#cfe",
+        "#faf",
+        "#0e6",
+        "#cdc",
+        "#202",
+        "#454",
+        "#a00",
+        "#0a0",
+        "#a50",
+        "#00a",
+        "#a0a",
+        "#0aa",
+        "#aaa",
+        "#555",
+        "#f55",
+        "#5f5",
+        "#ff5",
+        "#55f",
+        "#f5f",
+        "#5ff",
+        "#00f",
+        "#222",
+        "#595",
+        "#B0B",
+        "#304",
+        "#3D3",
+        "#D8B",
+        "#A5D",
+        "#80C",
+        "#47e",
+        "#eb4",
+        "#7ee",
+        "#734",
+        "#ebd",
+        "#b4e",
+        "#479",
+        "#ebc",
+        "#d54",
+        "#47b",
+        "#91e",
+        "#86e",
+        "#83e",
+        "#ebe",
+        "#eb5",
+        "#7be",
+        "#a14",
+        "#eb8",
+        "#eba",
+        "#477",
+        "#478",
+        "#ba4",
+        "#524",
+        "#eb6",
+        "#ebb",
+        "#fbf",
+        "#ffd",
+        "#0c5",
+        "#90C",
+        "#0D4",
+        "#296",
+        "#06f",
+        "#F5F",
+        "#CFC",
+        "#E0E",
+        "#BDB",
+        "#FAF",
+        "#9E9",
+        "#757",
+        "#616",
+        "#424",
+        "#212",
+        "#080",
+        "#0c6",
+        "#D3E",
+        "#C33",
+        "#fa3",
+        "#c00",
+        "#f33",
+        "#008",
+        "#7F7",
+        "#093",
+        "#EEF",
+        "#393",
+        "#818",
+        "#999",
+        "#777",
+        "#F63",
+        "#FFA",
+        "#053",
+        "#17b",
+        "#ff8",
+        "#e50",
+        "#ffb",
+        "#faa",
+        "#f48",
+        "#e85",
+        "#dc2",
+        "#d00",
+        "#9d0",
+        "#740",
+        "#693",
+        "#5e6",
+        "#539",
+        "#4ea",
+        "#48b",
+        "#56c",
+        "#64d",
+        "#eee",
+        "#444",
+        "#d93",
+        "#4c4",
+        "#f29",
+        "#fcc",
+        "#086",
+        "#B31",
+        "#919",
+        "#858",
+        "#d68",
+        "#a18",
+        "#b52",
+        "#749",
+        "#029",
+        "#fad",
+        "#482",
+        "#f77",
+        "#5e5",
+        "#7af",
+        "#fc5",
+        "#98f",
+        "#36a",
+        "#e6f",
+        "#e1f",
+        "#b0e",
+        "#f43",
+        "#e9a",
+        "#e54",
+        "#428",
+        "#e37",
+        "#d01",
+        "#3c4",
+        "#518",
+        "#E54",
+        "#d9e",
+        "#fce",
+        "#fdd",
+        "#2a3",
+        "#4d3",
+        "#4e2",
+        "#1A7",
+        "#F29",
+        "#E37",
+        "#F43",
+        "#D01",
+        "#F9A",
+        "#ddd",
+        "#228",
+        "#1A6",
+        "#1A3",
+        "#f2e",
+        "#888",
+        "#f0e",
+        "#f08",
+        "#d7f",
+        "#d9d",
+        "#d7d",
+        "#233",
+        "#cce",
+        "#99e",
+        "#f78",
+        "#6c6",
+        "#e2f",
+        "#ff3",
+        "#eff",
+        "#b4b",
+        "#d0d",
+        "#bbb",
+        "#328",
+        "#bb5",
+        "#17c",
+        "#347",
+        "#b2c",
+        "#c2b",
+        "#99f",
+        "#fda",
+        "#ffe",
+        "#cac",
+        "#cda",
+        "#ff0",
+        "#0f0",
+        "#0ff",
+        "#f0f",
+        "#F44",
+        "#FFE",
+        "#EF9",
+        "#E57",
+        "#EF5",
+        "#E53",
+        "#D32",
+        "#C62",
+        "#B71",
+        "#FCE",
+        "#F8B",
+        "#F48",
+        "#F06",
+        "#EC4",
+        "#D81",
+        "#C21",
+        "#AD1",
+        "#880",
+        "#F3E",
+        "#E1B",
+        "#CE9",
+        "#BA6",
+        "#AB4",
+        "#8E2",
+        "#7B1",
+        "#6A1",
+        "#4A1",
+        "#673",
+        "#EDE",
+        "#D1C",
+        "#B39",
+        "#957",
+        "#7E5",
+        "#5E3",
+        "#512",
+        "#452",
+        "#311",
+        "#3F5",
+        "#E8E",
+        "#C5C",
+        "#9FA",
+        "#798",
+        "#5C6",
+        "#394",
+        "#303",
+        "#283",
+        "#1A2",
+        "#219",
+        "#E3F",
+        "#BBD",
+        "#64B",
+        "#42A",
+        "#1E8",
+        "#197",
+        "#E1F",
+        "#B3E",
+        "#81D",
+        "#4FC",
+        "#29B",
+        "#039",
+        "#028",
+        "#027",
+        "#015",
+        "#E0F",
+        "#B2E",
+        "#80D",
+        "#4DD",
+        "#26C",
+        "#00A",
+        "#B2D",
+        "#4DB",
+        "#26A",
+        "#004",
+        "#4CA",
+        "#E8F",
+        "#C8E",
+        "#81C",
+        "#66B",
+        "#43A",
+        "#388",
+        "#2E7",
+        "#1B5",
+        "#8BC",
+        "#F1F",
+        "#DCE",
+        "#C5E",
+        "#AED",
+        "#9CC",
+        "#7CB",
+        "#689",
+        "#558",
+        "#F0F",
+        "#E6E",
+        "#D4E",
+        "#C0C",
+        "#AFB",
+        "#827",
+        "#FDD",
+        "#FBC",
+        "#F57",
+        "#FFD",
+        "#FFB",
+        "#FF8",
+        "#FB8",
+        "#EF6",
+        "#E65",
+        "#FBE",
+        "#FF7",
+        "#F45",
+        "#E64",
+        "#D84",
+        "#BF3",
+        "#EFE",
+        "#D7C",
+        "#BCA",
+        "#A18",
+        "#8D6",
+        "#6D4",
+        "#5D4",
+        "#4E3",
+        "#3E2",
+        "#EEE",
+        "#ECE",
+        "#CFD",
+        "#90A",
+        "#789",
+        "#546",
+        "#455",
+        "#374",
+        "#263",
+        "#a3a",
+        "#7f5",
+        "#666",
+        "#8b0",
+        "#313",
+        "#3e3",
+        "#c0c",
+        "#63a",
+        "#33c",
+        "#118",
+        "#126",
+        "#573",
+        "#fea",
+        "#Eff",
+        "#ac6",
+        "#a60",
+        "#542",
+        "#815",
+        "#154",
+        "#158",
+        "#262",
+        "#256",
+        "#341",
+        "#DEA",
+        "#104",
+        "#9f9",
+        "#243",
+        "#540",
+        "#123",
+        "#115",
+        "#abc",
+        "#fac",
+        "#dfd",
+        "#a1a",
+        "#dbe",
+        "#c8e",
+        "#79b",
+        "#218",
+        "#036",
+        "#005",
+        "#044",
+        "#032",
+        "#052",
+        "#fdf",
+        "#f8f",
+        "#e1e",
+        "#d1d",
+        "#9b9",
+        "#6c7",
+        "#596",
+        "#464",
+        "#252",
+        "#dcf",
+        "#bef",
+        "#85e",
+        "#34d",
+        "#28a",
+        "#176",
+        "#165",
+        "#144",
+        "#ffa",
+        "#fb8",
+        "#fa7",
+        "#de6",
+        "#c45",
+        "#964",
+        "#7a4",
+        "#fed",
+        "#f9b",
+        "#f69",
+        "#ec6",
+        "#ea4",
+        "#d03",
+        "#b93",
+        "#6d2",
+        "#e6d",
+        "#d1b",
+        "#b39",
+        "#8a6",
+        "#6f4",
+        "#5a3",
+        "#4c2",
+        "#3a1",
+        "#291",
+        "#f9f",
+        "#ede",
+        "#d2c",
+        "#a19",
+        "#664",
+        "#463",
+        "#392",
+        "#2e2",
+        "#261",
+        "#221",
+        "#fee",
+        "#f97",
+        "#d73",
+        "#cb2",
+        "#b31",
+        "#9e1",
+        "#861",
+        "#f2c",
+        "#cfa",
+        "#9c7",
+        "#735",
+        "#1b1",
+        "#122",
+        "#173",
+        "#1e4",
+        "#236",
+        "#2d7",
+        "#61a",
+        "#8fc",
+        "#cae",
+        "#0d1",
+        "#161",
+        "#484",
+        "#6e7",
+        "#8b9",
+        "#b1b",
+        "#c9d",
+        "#1a2",
+        "#1d3",
+        "#255",
+        "#2e8",
+        "#38a",
+        "#4ab",
+        "#65d",
+        "#8ae",
+        "#b9f",
+        "#2e1",
+        "#472",
+        "#8f4",
+        "#ad5",
+        "#d67",
+        "#f5a",
+        "#fcd",
+        "#3d1",
+        "#571",
+        "#782",
+        "#9c3",
+        "#bf4",
+        "#ffc",
+        "#201",
+        "#2a2",
+        "#342",
+        "#443",
+        "#5c4",
+        "#776",
+        "#a49",
+        "#e4e",
+        "#2b1",
+        "#3c2",
+        "#553",
+        "#6e4",
+        "#895",
+        "#a37",
+        "#bc8",
+        "#d2a",
+        "#e2c",
+        "#e9d",
+        "#541",
+        "#732",
+        "#962",
+        "#bd3",
+        "#e05",
+        "#f76",
+        "#302",
+        "#473",
+        "#856",
+        "#bf8",
+        "#d4a",
+        "#e8b",
+        "#f2d",
+        "#fae",
+        "#629",
+        "#54a",
+        "#e5c",
+        "#d98",
+        "#d95",
+        "#d97",
+        "#395",
+        "#326",
+        "#8c5",
+        "#8c3",
+        "#8a4",
+        "#4e3",
+        "#270",
+        "#BCC",
+        "#384",
+        "#Bac",
+        "#365",
+        "#235",
+        "#404",
+        "#160",
+        "#162",
+        "#163",
+        "#836",
+        "#169",
+        "#174",
+        "#837",
+        "#759",
+        "#f6f",
+        "#bdc",
+        "#7d7",
+        "#c2c",
+        "#DEF",
+        "#dec",
+        "#199",
+        "#191",
+        "#22c",
+        "#ef4",
+        "#414",
+        "#231",
+        "#226",
+        "#679",
+        "#eac",
+        "#100",
+        "#978",
+        "#ee7",
+        "#37a",
+        "#63b",
+        "#80b",
+        "#97b",
+        "#abb",
+        "#beb",
+        "#cfb",
+        "#dfb",
+        "#efb",
+        "#feb",
+        "#ef6",
+        "#232",
+        "#1a1",
+        "#e5e",
+        "#5f6",
+        "#cfd",
+        "#6a5",
+        "#eb3",
+        "#fe2",
+        "#f4b",
+        "#644",
+        "#178",
+        "#3d4",
+        "#fc3",
+        "#357",
+        "#dcd",
+        "#fcf",
+        "#efc",
+        "#e3b",
+        "#939",
+        "#d3e",
+        "#c3d",
+        "#9fc",
+        "#83a",
+        "#113",
+        "#c88",
+        "#b28",
+        "#3e2",
+        "#9d7",
+        "#268",
+        "#f1c",
+        "#a6e",
+        "#89d",
+        "#ee1",
+        "#da1",
+        "#f79",
+        "#fb3",
+        "#f82",
+        "#fd4",
+        "#9d8",
+        "#282",
+        "#ced",
+        "#5c0",
+        "#afb",
+        "#61d",
+        "#4f5",
+        "#a2e",
+        "#8f9",
+        "#290",
+        "#fc7",
+        "#332",
+        "#665",
+        "#200",
+        "#900",
+        "#363",
+        "#7f8",
+        "#b2b",
+        "#949",
+        "#e3d",
+        "#d6a",
+        "#1d2",
+        "#465",
+        "#731",
+        "#611",
+        "#511",
+        "#e4c",
+        "#125",
+        "#211",
+        "#223",
+        "#128",
+        "#193",
+        "#621",
+        "#496",
+        "#132",
+        "#142",
+        "#167",
+        "#823",
+        "#189",
+        "#234",
+        "#246",
+        "#159",
+        "#841",
+        "#f19",
+        "#619",
+        "#767",
+        "#81b",
+        "#f5d",
+        "#f4f",
+        "#707",
+        "#DDD",
+        "#965",
+        "#3B5",
+        "#DCD",
+        "#129",
+        "#F3F",
+        "#DAE",
+        "#aba",
+        "#109",
+        "#d6d",
+        "#822",
+        "#258",
+        "#242",
+        "#00F",
+        "#657",
+        "#CCD",
+        "#AAB",
+        "#A3D",
+        "#D5D",
+        "#612",
+        "#646",
+        "#260",
+        "#145",
+        "#170",
+        "#121",
+        "#110",
+        "#157",
+        "#f1f",
+        "#e2e",
+        "#cbd",
+        "#94a",
+        "#647",
+        "#475",
+        "#334",
+        "#1e2",
+        "#0f1",
+        "#020",
+        "#f3f",
+        "#9ca",
+        "#6b7",
+        "#4b5",
+        "#1f2",
+        "#030",
+        "#d4d",
+        "#717",
+        "#525",
+        "#3f3",
+        "#272",
+        "#181",
+        "#090",
+        "#171",
+        "#e7e",
+        "#a8a",
+        "#787",
+        "#575",
+        "#292",
+        "#1c1",
+        "#0c0",
+        "#fef",
+        "#fec",
+        "#fca",
+        "#f87",
+        "#b91",
+        "#991",
+        "#7f1",
+        "#450",
+        "#fdb",
+        "#fb9",
+        "#ea5",
+        "#c24",
+        "#9a3",
+        "#7c2",
+        "#431",
+        "#fde",
+        "#fbb",
+        "#f59",
+        "#b45",
+        "#924",
+        "#783",
+        "#451",
+        "#eab",
+        "#ca8",
+        "#a16",
+        "#854",
+        "#713",
+        "#422",
+        "#f7f",
+        "#ecf",
+        "#d9f",
+        "#a3e",
+        "#84c",
+        "#65a",
+        "#4d7",
+        "#3f6",
+        "#bbf",
+        "#4ad",
+        "#16a",
+        "#166",
+        "#d1f",
+        "#a7f",
+        "#6ee",
+        "#10b",
+        "#059",
+        "#047",
+        "#065",
+        "#064",
+        "#022",
+        "#ccf",
+        "#5ee",
+        "#2dd",
+        "#14b",
+        "#0d9",
+        "#0f7",
+        "#134",
+        "#042",
+        "#cff",
+        "#a5f",
+        "#67e",
+        "#22d",
+        "#06b",
+        "#089",
+        "#0e7",
+        "#155",
+        "#164",
+        "#083",
+        "#e0f",
+        "#bae",
+        "#7dd",
+        "#38b",
+        "#0ea",
+        "#075",
+        "#0c4",
+        "#082",
+        "#bfd",
+        "#93c",
+        "#60a",
+        "#1d4",
+        "#1e3",
+        "#172",
+        "#eef",
+        "#c7d",
+        "#a5b",
+        "#636",
+        "#4f4",
+        "#433",
+        "#373",
+        "#312",
+        "#1e1",
+        "#c4b",
+        "#a78",
+        "#8b5",
+        "#7c3",
+        "#5b2",
+        "#4c1",
+        "#f3e",
+        "#d8b",
+        "#c08",
+        "#a85",
+        "#933",
+        "#7e2",
+        "#6b2",
+        "#581",
+        "#3b0",
+        "#f0a",
+        "#e87",
+        "#d94",
+        "#c02",
+        "#a21",
+        "#701",
+        "#4a0",
+        "#fbc",
+        "#f9a",
+        "#f47",
+        "#ec4",
+        "#db2",
+        "#be1",
+        "#9d1",
+        "#831",
+        "#500",
+        "#fb7",
+        "#e11",
+        "#9f1",
+        "#881",
+        "#4c0",
+        "#5f9",
+        "#7ff",
+        "#d26",
+        "#ff7",
+        "#dda",
+        "#daa",
+        "#649",
+        "#deb",
+        "#dc1",
+        "#b88",
+        "#bdb",
+        "#a9a",
+        "#483",
+        "#2f4",
+        "#ff1",
+        "#00b",
+        "#b22",
+        "#940",
+        "#1e9",
+        "#ff6",
+        "#8a2",
+        "#7cf",
+        "#cd5",
+        "#4b0",
+        "#a52",
+        "#800",
+        "#00c",
+        "#20b",
+        "#66c",
+        "#3cb",
+        "#32c",
+        "#87c",
+        "#778",
+        "#c71",
+        "#afe",
+        "#48d",
+        "#ba5",
+        "#b0c",
+        "#7b6",
+        "#d2b",
+        "#da7",
+        "#937",
+        "#cd8",
+        "#db7",
+        "#ee8",
+        "#708",
+        "#8fb",
+        "#556",
+        "#adf",
+        "#a05",
+        "#e6e",
+        "#90e",
+        "#ff4",
+        "#468",
+        "#416",
+        "#40e",
+        "#9ac",
+        "#fa8",
+        "#8b4",
+        "#f4a",
+        "#e99",
+        "#d3d",
+        "#696",
+        "#6b8",
+        "#639",
+        "#410",
+        "#362",
+        "#177",
+        "#179",
+        "#866",
+        "#182",
+        "#238",
+        "#4d0",
+        "#dee",
+        "#9D4",
+        "#E5E",
+        "#B5B",
+        "#F1E",
+        "#EA4",
+        "#0D0",
+        "#D4A",
+        "#2E4",
+        "#3FA",
+        "#D47",
+        "#C04",
+        "#FDE",
+        "#8C6",
+        "#B89",
+        "#C78",
+        "#C86",
+        "#0E0",
+        "#1A1",
+        "#C8A",
+        "#A88",
+        "#7C4",
+        "#C8C",
+        "#7A6",
+        "#1A0",
+        "#4A4",
+        "#E05",
+        "#A02",
+        "#5E4",
+        "#E9F",
+        "#E14",
+        "#E08",
+        "#11A",
+        "#E6F",
+        "#0D6",
+        "#7B2",
+        "#7A4",
+        "#9B3",
+        "#5C1",
+        "#2E2",
+        "#3C5",
+        "#D8D",
+        "#5A4",
+        "#F5E",
+        "#D0B",
+        "#8F5",
+        "#7E4",
+        "#1F1",
+        "#F5B",
+        "#5A2",
+        "#F2D",
+        "#F0E",
+        "#D8C",
+        "#DED",
+        "#5B5",
+        "#F8F",
+        "#0F1",
+        "#94A",
+        "#E2E",
+        "#7C3",
+        "#5B2",
+        "#EF4",
+        "#FEE",
+        "#F59",
+        "#FEF",
+        "#10B",
+        "#6B2",
+        "#FDF",
+        "#DCF",
+        "#16A",
+        "#C02",
+        "#1E2",
+        "#7B9",
+        "#8B5",
+        "#E09",
+        "#D5C",
+        "#4A2",
+        "#2A1",
+        "#D97",
+        "#DC2",
+        "#8A7",
+        "#F5D",
+        "#F0C",
+        "#A85",
+        "#CBD",
+        "#FCD",
+        "#34D",
+        "#FB9",
+        "#F87",
+        "#FC4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/ios/Pods/Local Podspecs/glog.podspec.json",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/bunyan/lib/bunyan.js",
+      "values": [
+        "#445"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/cli/build/src/api/user/expoSsoLauncher.js",
+      "values": [
+        "#fff",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/config-plugins/build/android/PrimaryColor.js",
+      "values": [
+        "#023"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/config-types/build/ExpoConfig.d.ts",
+      "values": [
+        "#fff",
+        "#000",
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/devcert/node_modules/debug/src/browser.js",
+      "values": [
+        "#000",
+        "#003",
+        "#006",
+        "#009",
+        "#00C",
+        "#330",
+        "#333",
+        "#336",
+        "#339",
+        "#33C",
+        "#660",
+        "#663",
+        "#66C",
+        "#990",
+        "#993",
+        "#99C",
+        "#CC0",
+        "#CC3",
+        "#CC6",
+        "#CC9",
+        "#CCC",
+        "#FF0",
+        "#FF3",
+        "#FF6",
+        "#FF9",
+        "#FFC"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/image-utils/node_modules/type-fest/index.d.ts",
+      "values": [
+        "#297"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/build/error-overlay/overlay/LogBoxInspectorCodeFrame.js",
+      "values": [
+        "#323"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/build/error-overlay/overlay/LogBoxInspectorFooter.js",
+      "values": [
+        "#323",
+        "#111",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/build/error-overlay/overlay/LogBoxInspectorMessageHeader.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/build/error-overlay/toast/ErrorToast.js",
+      "values": [
+        "#323",
+        "#111"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/src/error-overlay/overlay/LogBoxInspectorCodeFrame.tsx",
+      "values": [
+        "#323"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/src/error-overlay/overlay/LogBoxInspectorFooter.tsx",
+      "values": [
+        "#323",
+        "#111",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/src/error-overlay/overlay/LogBoxInspectorMessageHeader.tsx",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/metro-runtime/src/error-overlay/toast/ErrorToast.tsx",
+      "values": [
+        "#323",
+        "#111"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/package-manager/node_modules/lru-cache/dist/commonjs/index.js",
+      "values": [
+        "#bac",
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/package-manager/node_modules/lru-cache/dist/esm/index.js",
+      "values": [
+        "#bac",
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/package-manager/node_modules/npm-package-arg/lib/npa.js",
+      "values": [
+        "#dea"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/prebuild-config/build/plugins/icons/withAndroidIcons.js",
+      "values": [
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/prebuild-config/build/plugins/icons/withIosIcons.js",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/prebuild-config/build/plugins/unversioned/expo-splash-screen/getIosSplashConfig.js",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/prebuild-config/build/plugins/unversioned/expo-splash-screen/withAndroidSplashScreen.js",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/Fontisto.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/createIconSet.d.ts",
+      "values": [
+        "#007"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/AntDesign.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Entypo.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/EvilIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Feather.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/FontAwesome.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/FontAwesome5.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/FontAwesome5Pro.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/FontAwesome6.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/FontAwesome6Pro.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fontisto.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Foundation.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Ionicons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/MaterialCommunityIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/MaterialIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Octicons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/SimpleLineIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Zocial.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/lib/icon-button.js",
+      "values": [
+        "#007"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@npmcli/fs/lib/errors.js",
+      "values": [
+        "#411"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleObjCpp/index.js",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/community-cli-plugin/node_modules/execa/index.js",
+      "values": [
+        "#116"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/core/i18n/locales/en-US.json",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/core/i18n/locales/zh.json",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/devtools_compatibility.js",
+      "values": [
+        "#6e8",
+        "#fff",
+        "#c9c",
+        "#323"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/entrypoints/main/main-meta.js",
+      "values": [
+        "#dac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/entrypoints/main/main.js",
+      "values": [
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/entrypoints/shell/shell.js",
+      "values": [
+        "#dac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/animation/animation.js",
+      "values": [
+        "#9C2",
+        "#03A",
+        "#FF5",
+        "#567",
+        "#CDD",
+        "#607",
+        "#E91",
+        "#0F9",
+        "#795",
+        "#00B"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/application/application.js",
+      "values": [
+        "#50b",
+        "#f38",
+        "#808",
+        "#ff9",
+        "#9c2",
+        "#009",
+        "#737",
+        "#f00",
+        "#ccc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/application/components/components.js",
+      "values": [
+        "#bac",
+        "#1a7",
+        "#3b8",
+        "#156",
+        "#5a5",
+        "#e0e",
+        "#db1",
+        "#eae",
+        "#fff",
+        "#dad",
+        "#333",
+        "#cfe",
+        "#faf",
+        "#0e6",
+        "#ccc",
+        "#cdc",
+        "#202",
+        "#454"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/browser_debugger/browser_debugger.js",
+      "values": [
+        "#ccc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/changes/changes.js",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/console/console.js",
+      "values": [
+        "#000",
+        "#a00",
+        "#0a0",
+        "#a50",
+        "#00a",
+        "#a0a",
+        "#0aa",
+        "#aaa",
+        "#555",
+        "#f55",
+        "#5f5",
+        "#ff5",
+        "#55f",
+        "#f5f",
+        "#5ff",
+        "#fff",
+        "#00f"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/elements/components/components.js",
+      "values": [
+        "#1a7",
+        "#3b8",
+        "#156",
+        "#5a5",
+        "#e0e",
+        "#db1",
+        "#eae",
+        "#fff",
+        "#dad",
+        "#333",
+        "#cfe",
+        "#faf",
+        "#0e6",
+        "#ccc",
+        "#cdc",
+        "#202",
+        "#454",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/elements/elements.js",
+      "values": [
+        "#555",
+        "#000",
+        "#222"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/lighthouse/lighthouse.js",
+      "values": [
+        "#595",
+        "#B0B",
+        "#304",
+        "#3D3",
+        "#D8B",
+        "#00C",
+        "#009",
+        "#A5D",
+        "#80C",
+        "#FFF",
+        "#fff",
+        "#47e",
+        "#eb4",
+        "#7ee",
+        "#734",
+        "#ebd",
+        "#b4e",
+        "#479",
+        "#ebc",
+        "#d54",
+        "#47b",
+        "#91e",
+        "#86e",
+        "#83e",
+        "#ebe",
+        "#eb5",
+        "#7be",
+        "#a14",
+        "#eb8",
+        "#eba",
+        "#477",
+        "#478",
+        "#ba4",
+        "#524",
+        "#eb6",
+        "#ebb",
+        "#fbf",
+        "#ffd",
+        "#0c5",
+        "#90C",
+        "#0D4",
+        "#296",
+        "#06f",
+        "#00B",
+        "#F5F",
+        "#CFC",
+        "#E0E",
+        "#BDB",
+        "#FAF",
+        "#9E9",
+        "#757",
+        "#616",
+        "#424",
+        "#212",
+        "#000",
+        "#080",
+        "#0c6",
+        "#D3E",
+        "#C33",
+        "#fa3",
+        "#c00",
+        "#f33",
+        "#008",
+        "#7F7",
+        "#093",
+        "#EEF",
+        "#393",
+        "#818",
+        "#999",
+        "#aaa",
+        "#777",
+        "#555",
+        "#ccc",
+        "#F63",
+        "#FFA",
+        "#FF3",
+        "#323",
+        "#053",
+        "#17b",
+        "#f00",
+        "#ff8",
+        "#e50"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/media/media.js",
+      "values": [
+        "#ffb",
+        "#faa",
+        "#f48",
+        "#e85",
+        "#dc2",
+        "#d00",
+        "#9d0",
+        "#740",
+        "#693",
+        "#5e6",
+        "#539",
+        "#4ea",
+        "#48b",
+        "#56c",
+        "#64d",
+        "#eee",
+        "#444"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/network/components/components.js",
+      "values": [
+        "#d93",
+        "#fff",
+        "#4c4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/network/network.js",
+      "values": [
+        "#d93",
+        "#fff",
+        "#f29",
+        "#000",
+        "#dad",
+        "#fcc",
+        "#03A",
+        "#086",
+        "#B31",
+        "#919",
+        "#858",
+        "#d68",
+        "#00a",
+        "#009",
+        "#a18",
+        "#b52",
+        "#749",
+        "#029",
+        "#fad",
+        "#454",
+        "#482"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/profiler/profiler.js",
+      "values": [
+        "#333",
+        "#fff",
+        "#f77",
+        "#5e5",
+        "#7af",
+        "#fc5",
+        "#98f"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/recorder/components/components.js",
+      "values": [
+        "#fff",
+        "#1a7",
+        "#36a",
+        "#e6f"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/sensors/sensors.js",
+      "values": [
+        "#e1f",
+        "#b0e",
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/sources/components/components.js",
+      "values": [
+        "#f29",
+        "#f43",
+        "#e9a",
+        "#e54"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/sources/sources.js",
+      "values": [
+        "#fff",
+        "#ccc",
+        "#ebe",
+        "#428",
+        "#1a7",
+        "#f29",
+        "#e37",
+        "#f43",
+        "#d01",
+        "#3c4",
+        "#518",
+        "#e9a",
+        "#E54",
+        "#d9e",
+        "#fce",
+        "#fdd",
+        "#2a3",
+        "#4d3",
+        "#4e2",
+        "#1A7",
+        "#F29",
+        "#E37",
+        "#F43",
+        "#D01",
+        "#F9A"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/panels/timeline/timeline.js",
+      "values": [
+        "#ddd",
+        "#FF9",
+        "#086",
+        "#B31",
+        "#228",
+        "#1A6",
+        "#1A3",
+        "#f2e",
+        "#ccc",
+        "#333",
+        "#888",
+        "#f0e",
+        "#f08",
+        "#fad",
+        "#d7f"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/third_party/codemirror.next/chunk/codemirror.js",
+      "values": [
+        "#212",
+        "#d9d",
+        "#222",
+        "#d7d",
+        "#233",
+        "#444",
+        "#cce",
+        "#99e",
+        "#f78",
+        "#f5f",
+        "#6c6",
+        "#ddd",
+        "#333",
+        "#ccc",
+        "#e2f",
+        "#888",
+        "#ff3",
+        "#eff",
+        "#b4b",
+        "#d0d",
+        "#393",
+        "#111",
+        "#555",
+        "#bbb",
+        "#eee",
+        "#328",
+        "#bb5",
+        "#17c",
+        "#777",
+        "#347",
+        "#000",
+        "#fff",
+        "#b2c",
+        "#c2b",
+        "#99f"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/third_party/codemirror.next/chunk/cpp.js",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/third_party/codemirror.next/chunk/python.js",
+      "values": [
+        "#fda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/third_party/diff/diff.js",
+      "values": [
+        "#e6f",
+        "#ffe"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/third_party/lighthouse/lighthouse-dt-bundle.js",
+      "values": [
+        "#000",
+        "#003",
+        "#006",
+        "#009",
+        "#00C",
+        "#330",
+        "#333",
+        "#336",
+        "#339",
+        "#33C",
+        "#660",
+        "#663",
+        "#66C",
+        "#990",
+        "#993",
+        "#99C",
+        "#CC0",
+        "#CC3",
+        "#CC6",
+        "#CC9",
+        "#CCC",
+        "#FF0",
+        "#FF3",
+        "#FF6",
+        "#FF9",
+        "#FFC",
+        "#cac",
+        "#cda",
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/third_party/lighthouse/report/report.js",
+      "values": [
+        "#595",
+        "#B0B",
+        "#304",
+        "#3D3",
+        "#D8B",
+        "#00C",
+        "#009",
+        "#A5D",
+        "#80C",
+        "#FFF",
+        "#fff",
+        "#47e",
+        "#eb4",
+        "#7ee",
+        "#734",
+        "#ebd",
+        "#b4e",
+        "#479",
+        "#ebc",
+        "#d54",
+        "#47b",
+        "#91e",
+        "#86e",
+        "#83e",
+        "#ebe",
+        "#eb5",
+        "#7be",
+        "#a14",
+        "#eb8",
+        "#eba",
+        "#477",
+        "#478",
+        "#ba4",
+        "#524",
+        "#eb6",
+        "#ebb",
+        "#fbf",
+        "#ffd",
+        "#0c5",
+        "#90C",
+        "#0D4",
+        "#296",
+        "#06f",
+        "#00B",
+        "#F5F",
+        "#CFC",
+        "#E0E",
+        "#BDB",
+        "#FAF",
+        "#9E9",
+        "#757",
+        "#616",
+        "#424",
+        "#212",
+        "#000",
+        "#080",
+        "#0c6",
+        "#D3E",
+        "#C33",
+        "#fa3",
+        "#c00",
+        "#f33",
+        "#008",
+        "#7F7",
+        "#093",
+        "#EEF",
+        "#393",
+        "#818",
+        "#999",
+        "#aaa",
+        "#777",
+        "#555",
+        "#ccc",
+        "#F63",
+        "#FFA",
+        "#FF3"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/components/linear_memory_inspector/linear_memory_inspector.js",
+      "values": [
+        "#808",
+        "#d0d",
+        "#1a7",
+        "#3b8",
+        "#156",
+        "#5a5",
+        "#e0e",
+        "#db1",
+        "#eae",
+        "#fff",
+        "#dad",
+        "#333",
+        "#cfe",
+        "#faf",
+        "#0e6",
+        "#ccc",
+        "#cdc",
+        "#202",
+        "#454"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/components/markdown_view/markdown_view.js",
+      "values": [
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/legacy/components/color_picker/color_picker.js",
+      "values": [
+        "#f00",
+        "#ff0",
+        "#0f0",
+        "#0ff",
+        "#00f",
+        "#f0f",
+        "#fff",
+        "#000",
+        "#F44",
+        "#FFE",
+        "#FFC",
+        "#EF9",
+        "#E57",
+        "#EF5",
+        "#E53",
+        "#D32",
+        "#C62",
+        "#B71",
+        "#E91",
+        "#FCE",
+        "#F8B",
+        "#F48",
+        "#F06",
+        "#EC4",
+        "#D81",
+        "#C21",
+        "#AD1",
+        "#880",
+        "#9C2",
+        "#F3E",
+        "#E1B",
+        "#CE9",
+        "#BA6",
+        "#AB4",
+        "#8E2",
+        "#7B1",
+        "#6A1",
+        "#4A1",
+        "#673",
+        "#EDE",
+        "#D1C",
+        "#B39",
+        "#957",
+        "#7E5",
+        "#5E3",
+        "#512",
+        "#452",
+        "#311",
+        "#3F5",
+        "#E8E",
+        "#C5C",
+        "#9FA",
+        "#798",
+        "#5C6",
+        "#394",
+        "#303",
+        "#283",
+        "#1A2",
+        "#219",
+        "#E3F",
+        "#BBD",
+        "#90C",
+        "#64B",
+        "#42A",
+        "#1E8",
+        "#197",
+        "#156",
+        "#0D4",
+        "#03A",
+        "#E1F",
+        "#B3E",
+        "#81D",
+        "#4FC",
+        "#29B",
+        "#039",
+        "#028",
+        "#027",
+        "#015",
+        "#00B",
+        "#E0F",
+        "#B2E",
+        "#80D",
+        "#4DD",
+        "#26C",
+        "#00A",
+        "#009",
+        "#008",
+        "#006",
+        "#B2D",
+        "#80C",
+        "#4DB",
+        "#26A",
+        "#007",
+        "#004",
+        "#4CA",
+        "#E8F",
+        "#C8E",
+        "#A5D",
+        "#81C",
+        "#66B",
+        "#43A",
+        "#388",
+        "#2E7",
+        "#1B5",
+        "#8BC",
+        "#F1F",
+        "#DCE",
+        "#C5E",
+        "#AED",
+        "#9CC",
+        "#7CB",
+        "#689",
+        "#558",
+        "#336",
+        "#CDD",
+        "#F9F",
+        "#F0F",
+        "#E6E",
+        "#D4E",
+        "#C0C",
+        "#AFB",
+        "#9E9",
+        "#827",
+        "#FFF",
+        "#FDD",
+        "#FBC",
+        "#F9A",
+        "#F57",
+        "#FFD",
+        "#FFB",
+        "#FFA",
+        "#FF8",
+        "#FF6",
+        "#FF9",
+        "#FB8",
+        "#EF6",
+        "#E65",
+        "#FF5",
+        "#FBE",
+        "#FF7",
+        "#F45",
+        "#E64",
+        "#D84",
+        "#BF3",
+        "#795",
+        "#EFE",
+        "#D7C",
+        "#BCA",
+        "#A18",
+        "#8D6",
+        "#6D4",
+        "#5D4",
+        "#4E3",
+        "#3E2",
+        "#FAF",
+        "#F5F",
+        "#EEE",
+        "#E0E",
+        "#BDB",
+        "#757",
+        "#616",
+        "#424",
+        "#212",
+        "#607",
+        "#ECE",
+        "#CFD",
+        "#B0B",
+        "#90A",
+        "#789",
+        "#546",
+        "#455",
+        "#374",
+        "#263"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/legacy/components/inline_editor/inline_editor.js",
+      "values": [
+        "#9c2",
+        "#a3a",
+        "#fff",
+        "#428",
+        "#ffd"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/legacy/components/perf_ui/perf_ui.js",
+      "values": [
+        "#7f5",
+        "#ddd",
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/legacy/components/quick_open/quick_open.js",
+      "values": [
+        "#F44",
+        "#E91",
+        "#9C2",
+        "#673",
+        "#3F5",
+        "#03A",
+        "#00B",
+        "#009",
+        "#4CA",
+        "#8BC",
+        "#CDD",
+        "#FFC",
+        "#FF9",
+        "#FF5",
+        "#795",
+        "#9E9",
+        "#607"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/legacy/legacy.js",
+      "values": [
+        "#666",
+        "#000",
+        "#fff",
+        "#1a7",
+        "#8b0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native/debugger-frontend/dist/third-party/front_end/ui/legacy/utils/utils.js",
+      "values": [
+        "#1a7",
+        "#3b8",
+        "#156",
+        "#5a5",
+        "#e0e",
+        "#db1",
+        "#eae",
+        "#fff",
+        "#dad",
+        "#333",
+        "#cfe",
+        "#faf",
+        "#0e6",
+        "#ccc",
+        "#cdc",
+        "#202",
+        "#454",
+        "#313",
+        "#3e3",
+        "#f00",
+        "#c0c",
+        "#63a",
+        "#ffe",
+        "#eee",
+        "#33c"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native-community/cli/node_modules/execa/index.js",
+      "values": [
+        "#116"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native-community/cli-clean/node_modules/execa/index.js",
+      "values": [
+        "#116"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native-community/cli-doctor/build/tools/healthchecks/androidSDK.js",
+      "values": [
+        "#118"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native-community/cli-doctor/build/tools/healthchecks/androidStudio.js",
+      "values": [
+        "#118"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native-community/cli-doctor/node_modules/execa/index.js",
+      "values": [
+        "#116"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native-community/cli-platform-android/node_modules/execa/index.js",
+      "values": [
+        "#116"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-native-community/cli-platform-ios/node_modules/execa/index.js",
+      "values": [
+        "#116"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-navigation/elements/lib/commonjs/Header/HeaderBackButton.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-navigation/elements/lib/module/Header/HeaderBackButton.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@react-navigation/elements/src/Header/HeaderBackButton.tsx",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@sinonjs/fake-timers/src/fake-timers-src.js",
+      "values": [
+        "#126"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@types/node/child_process.d.ts",
+      "values": [
+        "#573"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@types/node/crypto.d.ts",
+      "values": [
+        "#fea"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@types/node/os.d.ts",
+      "values": [
+        "#Eff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@types/node/v8.d.ts",
+      "values": [
+        "#ac6",
+        "#a60"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@types/node/web-globals/timers.d.ts",
+      "values": [
+        "#542"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/@xmldom/xmldom/lib/dom.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/ajv/dist/vocabularies/dynamic/dynamicRef.js",
+      "values": [
+        "#815"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/ajv/lib/vocabularies/dynamic/dynamicRef.ts",
+      "values": [
+        "#815"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/ansi-escapes/node_modules/type-fest/source/literal-union.d.ts",
+      "values": [
+        "#297"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/ansi-escapes/node_modules/type-fest/source/opaque.d.ts",
+      "values": [
+        "#154",
+        "#158"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/ansi-escapes/node_modules/type-fest/source/partial-deep.d.ts",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/argparse/lib/action/subparsers.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/argparse/lib/action_container.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/argparse/lib/argument_parser.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/argparse/lib/help/formatter.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/babel-plugin-polyfill-corejs2/lib/built-in-definitions.js",
+      "values": [
+        "#262"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/badgin/build/index.es.js",
+      "values": [
+        "#424",
+        "#fff",
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/badgin/build/index.iife.js",
+      "values": [
+        "#424",
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/badgin/build/index.js",
+      "values": [
+        "#424",
+        "#fff",
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/chalk/index.d.ts",
+      "values": [
+        "#256",
+        "#341",
+        "#DEA"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/chokidar/index.js",
+      "values": [
+        "#104"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/component-type/test/mocha.js",
+      "values": [
+        "#9f9",
+        "#eee",
+        "#243"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/dayjs/esm/locale/sk.js",
+      "values": [
+        "#540"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/debug/src/browser.js",
+      "values": [
+        "#000",
+        "#003",
+        "#006",
+        "#009",
+        "#00C",
+        "#330",
+        "#333",
+        "#336",
+        "#339",
+        "#33C",
+        "#660",
+        "#663",
+        "#66C",
+        "#990",
+        "#993",
+        "#99C",
+        "#CC0",
+        "#CC3",
+        "#CC6",
+        "#CC9",
+        "#CCC",
+        "#FF0",
+        "#FF3",
+        "#FF6",
+        "#FF9",
+        "#FFC"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/deprecated-react-native-prop-types/DeprecatedColorPropType.js",
+      "values": [
+        "#f0f",
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/esprima/dist/esprima.js",
+      "values": [
+        "#123"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/execa/index.js",
+      "values": [
+        "#115",
+        "#116"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo/build/environment/DevLoadingView.js",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-auth-session/build/QueryParams.js",
+      "values": [
+        "#abc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-auth-session/build/providers/Facebook.d.ts",
+      "values": [
+        "#fac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-auth-session/build/providers/Facebook.js",
+      "values": [
+        "#fac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-auth-session/src/QueryParams.ts",
+      "values": [
+        "#abc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-auth-session/src/providers/Facebook.ts",
+      "values": [
+        "#fac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-av/build/Video.types.d.ts",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-av/src/Video.types.ts",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-dev-client/e2e/app/App.tsx",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-dev-launcher/node_modules/ajv/dist/vocabularies/dynamic/dynamicRef.js",
+      "values": [
+        "#815"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-dev-launcher/node_modules/ajv/lib/vocabularies/dynamic/dynamicRef.ts",
+      "values": [
+        "#815"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-dev-menu/assets/EXDevMenuApp.android.js",
+      "values": [
+        "#219",
+        "#dfd",
+        "#a1a",
+        "#f0f",
+        "#ff0",
+        "#F1F",
+        "#dbe",
+        "#c8e",
+        "#79b",
+        "#218",
+        "#036",
+        "#005",
+        "#044",
+        "#032",
+        "#052",
+        "#fdf",
+        "#f8f",
+        "#e1e",
+        "#d1d",
+        "#9b9",
+        "#6c7",
+        "#596",
+        "#464",
+        "#303",
+        "#252",
+        "#dcf",
+        "#bef",
+        "#85e",
+        "#34d",
+        "#28a",
+        "#228",
+        "#176",
+        "#165",
+        "#144",
+        "#fff",
+        "#ffe",
+        "#ffd",
+        "#ffa",
+        "#fb8",
+        "#fa7",
+        "#de6",
+        "#c45",
+        "#964",
+        "#7a4",
+        "#fed",
+        "#f9b",
+        "#f69",
+        "#ec6",
+        "#ea4",
+        "#d03",
+        "#b93",
+        "#993",
+        "#6d2",
+        "#f5f",
+        "#e6d",
+        "#d1b",
+        "#b39",
+        "#8a6",
+        "#6f4",
+        "#5a3",
+        "#4c2",
+        "#3a1",
+        "#291",
+        "#f9f",
+        "#ede",
+        "#d2c",
+        "#a19",
+        "#664",
+        "#463",
+        "#392",
+        "#2e2",
+        "#261",
+        "#221",
+        "#fee",
+        "#fda",
+        "#f97",
+        "#d73",
+        "#cb2",
+        "#b31",
+        "#9e1",
+        "#861",
+        "#f2c",
+        "#cfa",
+        "#9c7",
+        "#735",
+        "#1b1",
+        "#122",
+        "#173",
+        "#1e4",
+        "#236",
+        "#2d7",
+        "#479",
+        "#61a",
+        "#8fc",
+        "#add",
+        "#cae",
+        "#0d1",
+        "#161",
+        "#212",
+        "#484",
+        "#6e7",
+        "#8b9",
+        "#b1b",
+        "#c9d",
+        "#1a2",
+        "#1d3",
+        "#255",
+        "#256",
+        "#2e8",
+        "#38a",
+        "#4ab",
+        "#65d",
+        "#8ae",
+        "#b9f",
+        "#2e1",
+        "#472",
+        "#663",
+        "#8f4",
+        "#ad5",
+        "#d67",
+        "#eb8",
+        "#f5a",
+        "#fcc",
+        "#fcd",
+        "#3d1",
+        "#571",
+        "#782",
+        "#9c3",
+        "#bf4",
+        "#f77",
+        "#ff9",
+        "#ffb",
+        "#ffc",
+        "#201",
+        "#2a2",
+        "#342",
+        "#443",
+        "#5c4",
+        "#776",
+        "#a49",
+        "#c9c",
+        "#e4e",
+        "#2b1",
+        "#3c2",
+        "#553",
+        "#6e4",
+        "#895",
+        "#a37",
+        "#bc8",
+        "#d2a",
+        "#e2c",
+        "#e9d",
+        "#541",
+        "#732",
+        "#962",
+        "#bd3",
+        "#e05",
+        "#f76",
+        "#ff8",
+        "#302",
+        "#473",
+        "#856",
+        "#bf8",
+        "#d4a",
+        "#e8b",
+        "#f2d",
+        "#fae",
+        "#000",
+        "#629",
+        "#54a",
+        "#e5c",
+        "#d98",
+        "#d95",
+        "#d97",
+        "#395",
+        "#326",
+        "#8c5",
+        "#8c3",
+        "#8a4",
+        "#4e3"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-dev-menu/assets/EXDevMenuApp.ios.js",
+      "values": [
+        "#999",
+        "#007",
+        "#cdc",
+        "#f0f",
+        "#ff0",
+        "#F1F",
+        "#dbe",
+        "#c8e",
+        "#79b",
+        "#218",
+        "#036",
+        "#005",
+        "#044",
+        "#032",
+        "#052",
+        "#fdf",
+        "#f8f",
+        "#e1e",
+        "#d1d",
+        "#9b9",
+        "#6c7",
+        "#596",
+        "#464",
+        "#303",
+        "#252",
+        "#dcf",
+        "#bef",
+        "#85e",
+        "#34d",
+        "#28a",
+        "#228",
+        "#176",
+        "#165",
+        "#144",
+        "#fff",
+        "#ffe",
+        "#ffd",
+        "#ffa",
+        "#fb8",
+        "#fa7",
+        "#de6",
+        "#c45",
+        "#964",
+        "#7a4",
+        "#fed",
+        "#f9b",
+        "#f69",
+        "#ec6",
+        "#ea4",
+        "#d03",
+        "#b93",
+        "#993",
+        "#6d2",
+        "#f5f",
+        "#e6d",
+        "#d1b",
+        "#b39",
+        "#8a6",
+        "#6f4",
+        "#5a3",
+        "#4c2",
+        "#3a1",
+        "#291",
+        "#f9f",
+        "#ede",
+        "#d2c",
+        "#a19",
+        "#664",
+        "#463",
+        "#392",
+        "#2e2",
+        "#261",
+        "#221",
+        "#fee",
+        "#fda",
+        "#f97",
+        "#d73",
+        "#cb2",
+        "#b31",
+        "#9e1",
+        "#861",
+        "#f2c",
+        "#cfa",
+        "#9c7",
+        "#735",
+        "#1b1",
+        "#122",
+        "#173",
+        "#1e4",
+        "#236",
+        "#2d7",
+        "#479",
+        "#61a",
+        "#8fc",
+        "#add",
+        "#cae",
+        "#0d1",
+        "#161",
+        "#212",
+        "#484",
+        "#6e7",
+        "#8b9",
+        "#b1b",
+        "#c9d",
+        "#1a2",
+        "#1d3",
+        "#255",
+        "#256",
+        "#2e8",
+        "#38a",
+        "#4ab",
+        "#65d",
+        "#8ae",
+        "#b9f",
+        "#2e1",
+        "#472",
+        "#663",
+        "#8f4",
+        "#ad5",
+        "#d67",
+        "#eb8",
+        "#f5a",
+        "#fcc",
+        "#fcd",
+        "#3d1",
+        "#571",
+        "#782",
+        "#9c3",
+        "#bf4",
+        "#f77",
+        "#ff9",
+        "#ffb",
+        "#ffc",
+        "#201",
+        "#2a2",
+        "#342",
+        "#443",
+        "#5c4",
+        "#776",
+        "#a49",
+        "#c9c",
+        "#e4e",
+        "#2b1",
+        "#3c2",
+        "#553",
+        "#6e4",
+        "#895",
+        "#a37",
+        "#bc8",
+        "#d2a",
+        "#e2c",
+        "#e9d",
+        "#541",
+        "#732",
+        "#962",
+        "#bd3",
+        "#e05",
+        "#f76",
+        "#ff8",
+        "#302",
+        "#473",
+        "#856",
+        "#bf8",
+        "#d4a",
+        "#e8b",
+        "#f2d",
+        "#fae",
+        "#000",
+        "#629",
+        "#54a",
+        "#e5c",
+        "#d98",
+        "#d95",
+        "#d97",
+        "#395",
+        "#326",
+        "#8c5",
+        "#8c3",
+        "#8a4",
+        "#4e3"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-linear-gradient/build/NativeLinearGradient.android.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-linear-gradient/src/NativeLinearGradient.android.tsx",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-linking/build/Linking.d.ts",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-linking/build/Linking.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-linking/src/Linking.ts",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-modules-core/build/uuid/lib/v35.js",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-modules-core/src/uuid/lib/v35.ts",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-notifications/build/Notifications.types.d.ts",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-notifications/plugin/build/withNotifications.d.ts",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-notifications/plugin/src/withNotifications.ts",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-notifications/src/Notifications.types.ts",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-router/build/onboard/Tutorial.js",
+      "values": [
+        "#BCC"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-router/build/onboard/createEntryFile.js",
+      "values": [
+        "#384"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-router/build/views/Sitemap.js",
+      "values": [
+        "#323"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/expo-router/build/views/Unmatched.js",
+      "values": [
+        "#323"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/exponential-backoff/src/backoff.spec.ts",
+      "values": [
+        "#bac",
+        "#Bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-glob/out/managers/tasks.js",
+      "values": [
+        "#365",
+        "#394"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-glob/out/readers/async.js",
+      "values": [
+        "#235"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-glob/out/settings.js",
+      "values": [
+        "#404"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-xml-parser/src/v5/EntitiesParser.js",
+      "values": [
+        "#160",
+        "#162",
+        "#163",
+        "#165",
+        "#836",
+        "#169",
+        "#174",
+        "#837"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-xml-parser/src/v5/valueParsers/EntitiesParser.js",
+      "values": [
+        "#160",
+        "#162",
+        "#163",
+        "#165",
+        "#836",
+        "#169",
+        "#174",
+        "#837"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-xml-parser/src/v6/EntitiesParser.js",
+      "values": [
+        "#160",
+        "#162",
+        "#163",
+        "#165",
+        "#836",
+        "#169",
+        "#174",
+        "#837"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-xml-parser/src/v6/valueParsers/EntitiesParser.js",
+      "values": [
+        "#160",
+        "#162",
+        "#163",
+        "#165",
+        "#836",
+        "#169",
+        "#174",
+        "#837"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fast-xml-parser/src/xmlparser/OrderedObjParser.js",
+      "values": [
+        "#160",
+        "#162",
+        "#163",
+        "#165",
+        "#836",
+        "#169",
+        "#174",
+        "#837"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fbjs/lib/fetchWithRetries.js",
+      "values": [
+        "#759"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fbjs-css-vars/index.js",
+      "values": [
+        "#f6f",
+        "#919",
+        "#bdc",
+        "#fff",
+        "#7d7",
+        "#c2c"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/fetch-retry/test/unit/index.js",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/inline-style-prefixer/es/plugins/filter.js",
+      "values": [
+        "#fea"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/inline-style-prefixer/es/plugins/imageSet.js",
+      "values": [
+        "#fea"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/inline-style-prefixer/lib/plugins/filter.js",
+      "values": [
+        "#fea"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/inline-style-prefixer/lib/plugins/imageSet.js",
+      "values": [
+        "#fea"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/jimp-compact/dist/jimp.js",
+      "values": [
+        "#fff",
+        "#000",
+        "#DEF",
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/jiti/dist/babel.js",
+      "values": [
+        "#000",
+        "#003",
+        "#006",
+        "#009",
+        "#00C",
+        "#330",
+        "#333",
+        "#336",
+        "#339",
+        "#33C",
+        "#660",
+        "#663",
+        "#66C",
+        "#990",
+        "#993",
+        "#99C",
+        "#CC0",
+        "#CC3",
+        "#CC6",
+        "#CC9",
+        "#CCC",
+        "#FF0",
+        "#FF3",
+        "#FF6",
+        "#FF9",
+        "#FFC"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/lightningcss/node/ast.d.ts",
+      "values": [
+        "#bac",
+        "#Bac",
+        "#dec"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/lightningcss/node/index.d.ts",
+      "values": [
+        "#dec"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro/node_modules/source-map/dist/source-map.debug.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro/node_modules/source-map/dist/source-map.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro/node_modules/source-map/lib/source-map-consumer.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-file-map/src/lib/TreeFS.js",
+      "values": [
+        "#cac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-file-map/src/watchers/WatchmanWatcher.js",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-source-map/node_modules/source-map/dist/source-map.debug.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-source-map/node_modules/source-map/dist/source-map.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-source-map/node_modules/source-map/lib/source-map-consumer.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-symbolicate/node_modules/source-map/dist/source-map.debug.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-symbolicate/node_modules/source-map/dist/source-map.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/metro-symbolicate/node_modules/source-map/lib/source-map-consumer.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/dist/tailwind/native.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/dist/tailwind/shadows.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/dist/tailwind/web.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/backgrounds.tsx",
+      "values": [
+        "#000",
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/borders.tsx",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/container-queries.tsx",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/custom.tsx",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/dark-mode.ios.tsx",
+      "values": [
+        "#000",
+        "#22c",
+        "#3b8",
+        "#ef4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/effects.ios.tsx",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/groups.tsx",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/interactivity.tsx",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/modifier-{}.tsx",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/platform-modifiers-test.ios.tsx",
+      "values": [
+        "#fff",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/preset.tsx",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/reusing-styles.tsx",
+      "values": [
+        "#3b8",
+        "#fff",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/states.tsx",
+      "values": [
+        "#fff",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/svg.tsx",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/transition-animations.tsx",
+      "values": [
+        "#ef4",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/typography.tsx",
+      "values": [
+        "#000",
+        "#fff",
+        "#f8f"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/__tests__/unofficial-plugins.test.ios.tsx",
+      "values": [
+        "#ef4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/tailwind/native.ts",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/tailwind/shadows.ts",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/nativewind/src/tailwind/web.ts",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/node-fetch/lib/index.es.js",
+      "values": [
+        "#414"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/node-fetch/lib/index.js",
+      "values": [
+        "#414"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/node-forge/lib/pkcs7asn1.js",
+      "values": [
+        "#231"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/node-forge/lib/rc2.js",
+      "values": [
+        "#226"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/node-forge/lib/util.js",
+      "values": [
+        "#679"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/npm-package-arg/npa.js",
+      "values": [
+        "#dea"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/dist/plist-build.js",
+      "values": [
+        "#cda",
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/dist/plist-parse.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/dist/plist.js",
+      "values": [
+        "#cda",
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/@xmldom/xmldom/lib/dom.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/xmlbuilder/lib/XMLCData.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/xmlbuilder/lib/XMLDTDAttList.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/xmlbuilder/lib/XMLDocType.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/xmlbuilder/lib/XMLDocumentCB.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/xmlbuilder/lib/XMLStringifier.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/xmlbuilder/lib/XMLWriterBase.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/plist/node_modules/xmlbuilder/typings/index.d.ts",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/postcss/lib/container.d.ts",
+      "values": [
+        "#eac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/qs/lib/parse.js",
+      "values": [
+        "#100"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/qs/lib/stringify.js",
+      "values": [
+        "#100"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/qs/test/parse.js",
+      "values": [
+        "#978"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-devtools-core/dist/backend.js",
+      "values": [
+        "#333",
+        "#ee7",
+        "#aaa",
+        "#d7d",
+        "#f0f",
+        "#37a",
+        "#63b",
+        "#80b",
+        "#97b",
+        "#abb",
+        "#beb",
+        "#cfb",
+        "#dfb",
+        "#efb",
+        "#feb",
+        "#ef6",
+        "#232",
+        "#1a1",
+        "#fff",
+        "#e5e",
+        "#008",
+        "#ede",
+        "#5f6",
+        "#cfd",
+        "#eee",
+        "#000",
+        "#6a5",
+        "#777",
+        "#ffd",
+        "#eb3",
+        "#fe2",
+        "#f4b",
+        "#644",
+        "#178",
+        "#3d4",
+        "#eff",
+        "#ff0",
+        "#fc3",
+        "#357",
+        "#dcd",
+        "#d1d",
+        "#c9c",
+        "#444",
+        "#ccc",
+        "#fcf",
+        "#f0e",
+        "#efc",
+        "#e3b",
+        "#f6f",
+        "#939",
+        "#d3e",
+        "#c3d",
+        "#9fc",
+        "#83a",
+        "#113",
+        "#c88",
+        "#b28",
+        "#3e2",
+        "#9d7",
+        "#268",
+        "#f1c",
+        "#a6e",
+        "#89d",
+        "#ee1",
+        "#da1",
+        "#f79",
+        "#fb3",
+        "#f82",
+        "#fd4",
+        "#c2c",
+        "#faf",
+        "#9d8",
+        "#282",
+        "#ced",
+        "#5c0",
+        "#afb",
+        "#61d",
+        "#4f5",
+        "#a2e",
+        "#666",
+        "#8f9",
+        "#290",
+        "#fc7",
+        "#332",
+        "#665",
+        "#f5f",
+        "#200",
+        "#900",
+        "#f55",
+        "#313",
+        "#303",
+        "#363",
+        "#7f8",
+        "#b2b",
+        "#949",
+        "#e3d",
+        "#d6a",
+        "#1d2",
+        "#465",
+        "#1a7",
+        "#731",
+        "#611",
+        "#e5c",
+        "#511",
+        "#e4c",
+        "#555",
+        "#ff8",
+        "#125"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-devtools-core/dist/parseHookNames.chunk.js",
+      "values": [
+        "#000",
+        "#003",
+        "#006",
+        "#009",
+        "#00C",
+        "#330",
+        "#333",
+        "#336",
+        "#339",
+        "#33C",
+        "#660",
+        "#663",
+        "#66C",
+        "#990",
+        "#993",
+        "#99C",
+        "#CC0",
+        "#CC3",
+        "#CC6",
+        "#CC9",
+        "#CCC",
+        "#FF0",
+        "#FF3",
+        "#FF6",
+        "#FF9",
+        "#FFC"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-devtools-core/dist/parseSourceAndMetadata.worker.worker.js",
+      "values": [
+        "#000",
+        "#003",
+        "#006",
+        "#009",
+        "#00C",
+        "#330",
+        "#333",
+        "#336",
+        "#339",
+        "#33C",
+        "#660",
+        "#663",
+        "#66C",
+        "#990",
+        "#993",
+        "#99C",
+        "#CC0",
+        "#CC3",
+        "#CC6",
+        "#CC9",
+        "#CCC",
+        "#FF0",
+        "#FF3",
+        "#FF6",
+        "#FF9",
+        "#FFC"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-devtools-core/dist/standalone.js",
+      "values": [
+        "#f0f",
+        "#444",
+        "#ccc",
+        "#aaa",
+        "#eee",
+        "#ef6",
+        "#232",
+        "#1a1",
+        "#fff",
+        "#e5e",
+        "#008",
+        "#ede",
+        "#5f6",
+        "#cfd",
+        "#000",
+        "#333",
+        "#37a",
+        "#63b",
+        "#80b",
+        "#97b",
+        "#abb",
+        "#beb",
+        "#cfb",
+        "#dfb",
+        "#efb",
+        "#feb",
+        "#6a5",
+        "#777",
+        "#ffd",
+        "#eb3",
+        "#fe2",
+        "#f4b",
+        "#644",
+        "#178",
+        "#3d4",
+        "#eff",
+        "#ff0",
+        "#fc3",
+        "#357",
+        "#dcd",
+        "#d1d",
+        "#c9c",
+        "#fcf",
+        "#f0e",
+        "#efc",
+        "#e3b",
+        "#f6f",
+        "#939",
+        "#d3e",
+        "#c3d",
+        "#9fc",
+        "#83a",
+        "#113",
+        "#c88",
+        "#b28",
+        "#3e2",
+        "#9d7",
+        "#268",
+        "#f1c",
+        "#a6e",
+        "#89d",
+        "#ee1",
+        "#da1",
+        "#f79",
+        "#fb3",
+        "#f82",
+        "#fd4",
+        "#c2c",
+        "#faf",
+        "#9d8",
+        "#282",
+        "#ced",
+        "#5c0",
+        "#afb",
+        "#61d",
+        "#4f5",
+        "#a2e",
+        "#666",
+        "#8f9",
+        "#290",
+        "#fc7",
+        "#332",
+        "#665",
+        "#f5f",
+        "#200",
+        "#900",
+        "#f55",
+        "#313",
+        "#303",
+        "#363",
+        "#7f8",
+        "#b2b",
+        "#949",
+        "#e3d",
+        "#d6a",
+        "#1d2",
+        "#465",
+        "#1a7",
+        "#731",
+        "#611",
+        "#e5c",
+        "#511",
+        "#e4c",
+        "#555",
+        "#ff8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/cjs/react-dom-server-legacy.browser.development.js",
+      "values": [
+        "#211",
+        "#223"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js",
+      "values": [
+        "#211",
+        "#223"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/cjs/react-dom-server.browser.development.js",
+      "values": [
+        "#211",
+        "#223"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/cjs/react-dom-server.node.development.js",
+      "values": [
+        "#211",
+        "#223"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/cjs/react-dom.development.js",
+      "values": [
+        "#128",
+        "#193",
+        "#621",
+        "#211",
+        "#496",
+        "#200",
+        "#132",
+        "#142",
+        "#167",
+        "#201"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/umd/react-dom-server-legacy.browser.development.js",
+      "values": [
+        "#211",
+        "#223"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/umd/react-dom-server.browser.development.js",
+      "values": [
+        "#211",
+        "#223"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-dom/umd/react-dom.development.js",
+      "values": [
+        "#128",
+        "#193",
+        "#621",
+        "#211",
+        "#496",
+        "#200",
+        "#132",
+        "#142",
+        "#167",
+        "#201"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/dist/amd/react-i18next.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/dist/amd/react-i18next.min.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/dist/commonjs/unescape.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/dist/es/unescape.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/dist/umd/react-i18next.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/dist/umd/react-i18next.min.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/react-i18next.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/react-i18next.min.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/src/TransWithoutContext.js",
+      "values": [
+        "#189"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-i18next/src/unescape.js",
+      "values": [
+        "#160",
+        "#169",
+        "#174",
+        "#823"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Animated/Animated.d.ts",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Animated/AnimatedImplementation.js",
+      "values": [
+        "#dec",
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Animated/Easing.js",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Animated/nodes/AnimatedNode.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Animated/nodes/AnimatedValue.js",
+      "values": [
+        "#234",
+        "#123"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Animated/nodes/AnimatedValueXY.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/AppState/AppState.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Blob/BlobManager.js",
+      "values": [
+        "#246"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/BugReporting/dumpReactTree.js",
+      "values": [
+        "#159"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/ActivityIndicator/ActivityIndicator.js",
+      "values": [
+        "#999",
+        "#000",
+        "#00f"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/Button.flow.js",
+      "values": [
+        "#219",
+        "#007",
+        "#acc",
+        "#841",
+        "#f19",
+        "#737"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/Button.js",
+      "values": [
+        "#219",
+        "#007",
+        "#acc",
+        "#841",
+        "#f19",
+        "#737",
+        "#dfd",
+        "#cdc",
+        "#a1a"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/DrawerAndroid/DrawerLayoutAndroid.android.js",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/Pressable/Pressable.js",
+      "values": [
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/StatusBar/StatusBar.js",
+      "values": [
+        "#619"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/Switch/Switch.js",
+      "values": [
+        "#767",
+        "#81b",
+        "#f5d",
+        "#f4f",
+        "#3e3"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/TextInput/AndroidTextInputNativeComponent.js",
+      "values": [
+        "#707"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/TextInput/TextInput.flow.js",
+      "values": [
+        "#707",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/TextInput/TextInput.js",
+      "values": [
+        "#707",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/Touchable/TouchableHighlight.js",
+      "values": [
+        "#DDD",
+        "#FF0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/Touchable/TouchableOpacity.js",
+      "values": [
+        "#DDD",
+        "#FF0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/Touchable/TouchableWithoutFeedback.js",
+      "values": [
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/View/ViewAccessibility.d.ts",
+      "values": [
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Components/View/ViewPropTypes.js",
+      "values": [
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Image/ImageProps.js",
+      "values": [
+        "#def",
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Inspector/ElementProperties.js",
+      "values": [
+        "#965",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Inspector/NetworkOverlay.js",
+      "values": [
+        "#555",
+        "#000",
+        "#3B5",
+        "#DCD",
+        "#444",
+        "#888"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Inspector/StyleInspector.js",
+      "values": [
+        "#ccc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Linking/Linking.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/LogBox/UI/LogBoxInspectorFooter.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/LogBox/UI/LogBoxInspectorMessageHeader.js",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/LogBox/UI/LogBoxNotification.js",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/NewAppScreen/components/Colors.js",
+      "values": [
+        "#129",
+        "#FFF",
+        "#F3F",
+        "#DAE",
+        "#444",
+        "#222",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/PushNotificationIOS/PushNotificationIOS.js",
+      "values": [
+        "#add",
+        "#aba"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js",
+      "values": [
+        "#109",
+        "#200",
+        "#167",
+        "#201"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-dev.js",
+      "values": [
+        "#109",
+        "#200",
+        "#856",
+        "#167",
+        "#201"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/StyleSheet/StyleSheet.d.ts",
+      "values": [
+        "#bbb"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/StyleSheet/StyleSheet.js",
+      "values": [
+        "#d6d",
+        "#bbb"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Text/TextProps.js",
+      "values": [
+        "#acc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/UTFSequence.js",
+      "values": [
+        "#822"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Utilities/LoadingView.android.js",
+      "values": [
+        "#258",
+        "#fff",
+        "#faf",
+        "#242",
+        "#404"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native/Libraries/Utilities/LoadingView.ios.js",
+      "values": [
+        "#258",
+        "#fff",
+        "#faf",
+        "#242",
+        "#404"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/node_modules/lightningcss/node/ast.d.ts",
+      "values": [
+        "#bac",
+        "#Bac",
+        "#def",
+        "#dec"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/node_modules/lightningcss/node/index.d.ts",
+      "values": [
+        "#dec"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/animations.test.tsx",
+      "values": [
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/colors.test.tsx",
+      "values": [
+        "#ef4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/compiler.test.tsx",
+      "values": [
+        "#000",
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/container-queries.test.tsx",
+      "values": [
+        "#ff0",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/css-interop.test.tsx",
+      "values": [
+        "#000",
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/custom-components.test.tsx",
+      "values": [
+        "#000",
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/debugging.test.tsx",
+      "values": [
+        "#ef4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/grouping.test.tsx",
+      "values": [
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/media-query.test.tsx",
+      "values": [
+        "#000",
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/react-native-components.test.tsx",
+      "values": [
+        "#fff",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/refs.test.tsx",
+      "values": [
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/remap-props.test.tsx",
+      "values": [
+        "#000",
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/sanity-checks.test.tsx",
+      "values": [
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/selector-prefix.test.tsx",
+      "values": [
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/selectors.test.tsx",
+      "values": [
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/specificity.test.tsx",
+      "values": [
+        "#000",
+        "#008",
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-css-interop/src/__tests__/transitions.test.tsx",
+      "values": [
+        "#ff0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/module/reanimated2/Easing.js",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/module/reanimated2/interpolateColor.js",
+      "values": [
+        "#00F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/module/reanimated2/layoutReanimation/defaultAnimations/Fade.js",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/module/reanimated2/layoutReanimation/defaultTransitions/CurvedTransition.js",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/module/reanimated2/layoutReanimation/defaultTransitions/FadingTransition.js",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/typescript/reanimated2/Easing.d.ts",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/typescript/reanimated2/interpolateColor.d.ts",
+      "values": [
+        "#00F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/typescript/reanimated2/layoutReanimation/defaultAnimations/Fade.d.ts",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/typescript/reanimated2/layoutReanimation/defaultTransitions/CurvedTransition.d.ts",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/lib/typescript/reanimated2/layoutReanimation/defaultTransitions/FadingTransition.d.ts",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/src/reanimated2/Easing.ts",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/src/reanimated2/interpolateColor.ts",
+      "values": [
+        "#00F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/src/reanimated2/layoutReanimation/defaultAnimations/Fade.ts",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/src/reanimated2/layoutReanimation/defaultTransitions/CurvedTransition.ts",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-reanimated/src/reanimated2/layoutReanimation/defaultTransitions/FadingTransition.ts",
+      "values": [
+        "#fad"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/AntDesign.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/Entypo.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/EvilIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/Feather.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/FontAwesome.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/FontAwesome5.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/FontAwesome5Pro.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/FontAwesome6.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/FontAwesome6Pro.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/Fontisto.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/Foundation.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/Ionicons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/MaterialCommunityIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/MaterialIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/Octicons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/SimpleLineIcons.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/Zocial.js",
+      "values": [
+        "#4F8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/dist/lib/icon-button.js",
+      "values": [
+        "#007"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-vector-icons/lib/icon-button.js",
+      "values": [
+        "#007"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/exports/ActivityIndicator/index.js",
+      "values": [
+        "#197"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/exports/Button/index.js",
+      "values": [
+        "#219",
+        "#fff",
+        "#dfd",
+        "#a1a"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/exports/CheckBox/index.js",
+      "values": [
+        "#fff",
+        "#657",
+        "#009",
+        "#CCD",
+        "#AAB"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/exports/ProgressBar/index.js",
+      "values": [
+        "#197"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/exports/Switch/index.js",
+      "values": [
+        "#A3D",
+        "#939",
+        "#D5D",
+        "#009",
+        "#FAF",
+        "#BDB"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/exports/TextInput/index.js",
+      "values": [
+        "#270",
+        "#612"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/modules/setValueForStyles/dangerousStyleValue.js",
+      "values": [
+        "#211"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/modules/useStable/index.js",
+      "values": [
+        "#646"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/vendor/react-native/Animated/AnimatedImplementation.js",
+      "values": [
+        "#dec",
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/vendor/react-native/Animated/Easing.js",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/vendor/react-native/Animated/nodes/AnimatedNode.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/vendor/react-native/Animated/nodes/AnimatedValue.js",
+      "values": [
+        "#234",
+        "#123"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/cjs/vendor/react-native/Animated/nodes/AnimatedValueXY.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/exports/ActivityIndicator/index.js",
+      "values": [
+        "#197"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/exports/Button/index.js",
+      "values": [
+        "#219",
+        "#fff",
+        "#dfd",
+        "#a1a"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/exports/CheckBox/index.js",
+      "values": [
+        "#fff",
+        "#657",
+        "#009",
+        "#CCD",
+        "#AAB"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/exports/ProgressBar/index.js",
+      "values": [
+        "#197"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/exports/Switch/index.js",
+      "values": [
+        "#A3D",
+        "#939",
+        "#D5D",
+        "#009",
+        "#FAF",
+        "#BDB"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/exports/TextInput/index.js",
+      "values": [
+        "#270",
+        "#612"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/modules/setValueForStyles/dangerousStyleValue.js",
+      "values": [
+        "#211"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/modules/useStable/index.js",
+      "values": [
+        "#646"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/vendor/react-native/Animated/AnimatedImplementation.js",
+      "values": [
+        "#dec",
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/vendor/react-native/Animated/Easing.js",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/vendor/react-native/Animated/nodes/AnimatedNode.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/vendor/react-native/Animated/nodes/AnimatedValue.js",
+      "values": [
+        "#234",
+        "#123"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/dist/vendor/react-native/Animated/nodes/AnimatedValueXY.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/exports/ActivityIndicator/index.js",
+      "values": [
+        "#197"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/exports/Button/index.js",
+      "values": [
+        "#219",
+        "#fff",
+        "#dfd",
+        "#a1a"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/exports/CheckBox/index.js",
+      "values": [
+        "#fff",
+        "#657",
+        "#009",
+        "#CCD",
+        "#AAB"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/exports/ProgressBar/index.js",
+      "values": [
+        "#197"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/exports/Switch/index.js",
+      "values": [
+        "#A3D",
+        "#939",
+        "#D5D",
+        "#009",
+        "#FAF",
+        "#BDB"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/exports/TextInput/index.js",
+      "values": [
+        "#270",
+        "#612"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/exports/TextInput/types.js",
+      "values": [
+        "#260"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/modules/setValueForStyles/dangerousStyleValue.js",
+      "values": [
+        "#211"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/modules/useStable/index.js",
+      "values": [
+        "#646"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/vendor/react-native/Animated/AnimatedImplementation.js",
+      "values": [
+        "#dec",
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/vendor/react-native/Animated/Easing.js",
+      "values": [
+        "#bac"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/vendor/react-native/Animated/nodes/AnimatedNode.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/vendor/react-native/Animated/nodes/AnimatedValue.js",
+      "values": [
+        "#234",
+        "#123"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-native-web/src/vendor/react-native/Animated/nodes/AnimatedValueXY.js",
+      "values": [
+        "#add"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-shallow-renderer/cjs/react-shallow-renderer.js",
+      "values": [
+        "#145"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-shallow-renderer/esm/react-shallow-renderer.js",
+      "values": [
+        "#145"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/react-shallow-renderer/umd/react-shallow-renderer.js",
+      "values": [
+        "#145"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/recast/lib/patcher.js",
+      "values": [
+        "#170"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/recast/node_modules/source-map/dist/source-map.debug.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/recast/node_modules/source-map/dist/source-map.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/recast/node_modules/source-map/lib/source-map-consumer.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/requireg/node_modules/resolve/test/resolver.js",
+      "values": [
+        "#121"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/requireg/node_modules/resolve/test/resolver_sync.js",
+      "values": [
+        "#121"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/resolve/test/resolver.js",
+      "values": [
+        "#211",
+        "#121"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/resolve/test/resolver_sync.js",
+      "values": [
+        "#211",
+        "#121"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/sax/lib/sax.js",
+      "values": [
+        "#def"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/schema-utils/dist/validate.js",
+      "values": [
+        "#110"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/send/node_modules/mime/src/test.js",
+      "values": [
+        "#157"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/serve-static/node_modules/mime/src/test.js",
+      "values": [
+        "#157"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/source-map-js/lib/source-map-consumer.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/source-map-support/node_modules/source-map/dist/source-map.debug.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/source-map-support/node_modules/source-map/dist/source-map.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/source-map-support/node_modules/source-map/lib/source-map-consumer.js",
+      "values": [
+        "#199",
+        "#191"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/lib/corePlugins.js",
+      "values": [
+        "#000",
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/lib/lib/defaultExtractor.js",
+      "values": [
+        "#336"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/lib/public/colors.js",
+      "values": [
+        "#000",
+        "#fff",
+        "#f8f",
+        "#f1f",
+        "#e2e",
+        "#cbd",
+        "#94a",
+        "#647",
+        "#475",
+        "#334",
+        "#1e2",
+        "#0f1",
+        "#020",
+        "#f9f",
+        "#f3f",
+        "#e5e",
+        "#d1d",
+        "#9ca",
+        "#6b7",
+        "#4b5",
+        "#374",
+        "#1f2",
+        "#111",
+        "#030",
+        "#faf",
+        "#f4f",
+        "#e4e",
+        "#d4d",
+        "#a1a",
+        "#717",
+        "#525",
+        "#3f3",
+        "#272",
+        "#181",
+        "#090",
+        "#f5f",
+        "#a3a",
+        "#737",
+        "#404",
+        "#262",
+        "#171",
+        "#0a0",
+        "#e7e",
+        "#d6d",
+        "#a8a",
+        "#787",
+        "#575",
+        "#444",
+        "#292",
+        "#1c1",
+        "#0c0",
+        "#fef",
+        "#fee",
+        "#fec",
+        "#fca",
+        "#f87",
+        "#ef4",
+        "#dc2",
+        "#b91",
+        "#991",
+        "#7f1",
+        "#450",
+        "#ffe",
+        "#fed",
+        "#fdb",
+        "#fb9",
+        "#f97",
+        "#ea5",
+        "#c24",
+        "#9a3",
+        "#7c2",
+        "#431",
+        "#fde",
+        "#fcd",
+        "#fbb",
+        "#f59",
+        "#d97",
+        "#b45",
+        "#924",
+        "#783",
+        "#451",
+        "#fac",
+        "#eab",
+        "#ca8",
+        "#a16",
+        "#854",
+        "#713",
+        "#422",
+        "#f7f",
+        "#ecf",
+        "#d9f",
+        "#bef",
+        "#a3e",
+        "#84c",
+        "#65a",
+        "#4d7",
+        "#3f6",
+        "#365",
+        "#1a2",
+        "#f0f",
+        "#dcf",
+        "#bbf",
+        "#86e",
+        "#4ad",
+        "#22c",
+        "#16a",
+        "#158",
+        "#166",
+        "#145",
+        "#052",
+        "#d1f",
+        "#a7f",
+        "#6ee",
+        "#34d",
+        "#10b",
+        "#059",
+        "#047",
+        "#065",
+        "#064",
+        "#022",
+        "#ccf",
+        "#99f",
+        "#5ee",
+        "#2dd",
+        "#14b",
+        "#0d9",
+        "#0f7",
+        "#115",
+        "#134",
+        "#042",
+        "#cff",
+        "#a5f",
+        "#67e",
+        "#22d",
+        "#06b",
+        "#089",
+        "#0e7",
+        "#155",
+        "#164",
+        "#083",
+        "#e0f",
+        "#bae",
+        "#7dd",
+        "#38b",
+        "#0ea",
+        "#028",
+        "#036",
+        "#075",
+        "#0c4",
+        "#082",
+        "#eff",
+        "#dbe",
+        "#bfd",
+        "#93c",
+        "#60a",
+        "#3b8",
+        "#256",
+        "#1d4",
+        "#1e4",
+        "#1e3",
+        "#172",
+        "#eef",
+        "#e0e",
+        "#c7d",
+        "#a5b",
+        "#818",
+        "#636",
+        "#4f4",
+        "#433",
+        "#373",
+        "#312",
+        "#1e1",
+        "#ede",
+        "#ddd",
+        "#c4b",
+        "#a78",
+        "#8b5",
+        "#7c3",
+        "#6d2",
+        "#5b2",
+        "#4c1",
+        "#2e1",
+        "#f3e",
+        "#e9d",
+        "#d8b",
+        "#c08",
+        "#a85",
+        "#933",
+        "#7e2",
+        "#6b2",
+        "#581",
+        "#3b0",
+        "#fdf",
+        "#fae",
+        "#f5d",
+        "#f0a",
+        "#e87",
+        "#d94",
+        "#c02",
+        "#a21",
+        "#861",
+        "#701",
+        "#4a0",
+        "#fce",
+        "#fbc",
+        "#f9a",
+        "#f47",
+        "#ec4",
+        "#db2",
+        "#be1",
+        "#9d1",
+        "#831",
+        "#500",
+        "#fda",
+        "#fb7",
+        "#f43",
+        "#e11",
+        "#9f1",
+        "#881",
+        "#4c0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/lib/util/getAllConfigs.js",
+      "values": [
+        "#3b8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/peers/index.js",
+      "values": [
+        "#fff",
+        "#ffe",
+        "#000",
+        "#5f9",
+        "#7ff",
+        "#d26",
+        "#ff7",
+        "#fae",
+        "#00f",
+        "#f0f",
+        "#f5f",
+        "#dda",
+        "#ffd",
+        "#daa",
+        "#dcd",
+        "#649",
+        "#deb",
+        "#dc1",
+        "#008",
+        "#b88",
+        "#bdb",
+        "#a9a",
+        "#006",
+        "#8b0",
+        "#993",
+        "#ff8",
+        "#483",
+        "#808",
+        "#2f4",
+        "#ff1",
+        "#00b",
+        "#f5d",
+        "#b22",
+        "#f8f",
+        "#940",
+        "#ff0",
+        "#1e9",
+        "#ff6",
+        "#8a2",
+        "#228",
+        "#7cf",
+        "#cd5",
+        "#4b0",
+        "#a52",
+        "#800",
+        "#f08",
+        "#00c",
+        "#e0f",
+        "#ffa",
+        "#20b",
+        "#faf",
+        "#66c",
+        "#f0e",
+        "#3cb",
+        "#32c",
+        "#87c",
+        "#add",
+        "#191",
+        "#ffb",
+        "#778",
+        "#c71",
+        "#b0e",
+        "#eee",
+        "#fdf",
+        "#afe",
+        "#48d",
+        "#ba5",
+        "#663",
+        "#b0c",
+        "#7b6",
+        "#d8b",
+        "#d2b",
+        "#da7",
+        "#937",
+        "#ffc",
+        "#98f",
+        "#6a5",
+        "#cd8",
+        "#db7",
+        "#ee8",
+        "#708",
+        "#8fb",
+        "#556",
+        "#adf",
+        "#2e8",
+        "#c0c",
+        "#a05",
+        "#e6e",
+        "#90e",
+        "#ff4",
+        "#468",
+        "#416",
+        "#40e",
+        "#9ac",
+        "#fa8",
+        "#8b4",
+        "#f4a",
+        "#bc8",
+        "#e99",
+        "#d3d",
+        "#696",
+        "#6b8",
+        "#0ff",
+        "#789",
+        "#0f0",
+        "#639",
+        "#f00",
+        "#410",
+        "#362",
+        "#200"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/src/corePlugins.js",
+      "values": [
+        "#000",
+        "#fff"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/src/lib/defaultExtractor.js",
+      "values": [
+        "#336"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/src/lib/regex.js",
+      "values": [
+        "#177"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/src/public/colors.js",
+      "values": [
+        "#000",
+        "#fff",
+        "#f8f",
+        "#f1f",
+        "#e2e",
+        "#cbd",
+        "#94a",
+        "#647",
+        "#475",
+        "#334",
+        "#1e2",
+        "#0f1",
+        "#020",
+        "#f9f",
+        "#f3f",
+        "#e5e",
+        "#d1d",
+        "#9ca",
+        "#6b7",
+        "#4b5",
+        "#374",
+        "#1f2",
+        "#111",
+        "#030",
+        "#faf",
+        "#f4f",
+        "#e4e",
+        "#d4d",
+        "#a1a",
+        "#717",
+        "#525",
+        "#3f3",
+        "#272",
+        "#181",
+        "#090",
+        "#f5f",
+        "#a3a",
+        "#737",
+        "#404",
+        "#262",
+        "#171",
+        "#0a0",
+        "#e7e",
+        "#d6d",
+        "#a8a",
+        "#787",
+        "#575",
+        "#444",
+        "#292",
+        "#1c1",
+        "#0c0",
+        "#fef",
+        "#fee",
+        "#fec",
+        "#fca",
+        "#f87",
+        "#ef4",
+        "#dc2",
+        "#b91",
+        "#991",
+        "#7f1",
+        "#450",
+        "#ffe",
+        "#fed",
+        "#fdb",
+        "#fb9",
+        "#f97",
+        "#ea5",
+        "#c24",
+        "#9a3",
+        "#7c2",
+        "#431",
+        "#fde",
+        "#fcd",
+        "#fbb",
+        "#f59",
+        "#d97",
+        "#b45",
+        "#924",
+        "#783",
+        "#451",
+        "#fac",
+        "#eab",
+        "#ca8",
+        "#a16",
+        "#854",
+        "#713",
+        "#422",
+        "#f7f",
+        "#ecf",
+        "#d9f",
+        "#bef",
+        "#a3e",
+        "#84c",
+        "#65a",
+        "#4d7",
+        "#3f6",
+        "#365",
+        "#1a2",
+        "#f0f",
+        "#dcf",
+        "#bbf",
+        "#86e",
+        "#4ad",
+        "#22c",
+        "#16a",
+        "#158",
+        "#166",
+        "#145",
+        "#052",
+        "#d1f",
+        "#a7f",
+        "#6ee",
+        "#34d",
+        "#10b",
+        "#059",
+        "#047",
+        "#065",
+        "#064",
+        "#022",
+        "#ccf",
+        "#99f",
+        "#5ee",
+        "#2dd",
+        "#14b",
+        "#0d9",
+        "#0f7",
+        "#115",
+        "#134",
+        "#042",
+        "#cff",
+        "#a5f",
+        "#67e",
+        "#22d",
+        "#06b",
+        "#089",
+        "#0e7",
+        "#155",
+        "#164",
+        "#083",
+        "#e0f",
+        "#bae",
+        "#7dd",
+        "#38b",
+        "#0ea",
+        "#028",
+        "#036",
+        "#075",
+        "#0c4",
+        "#082",
+        "#eff",
+        "#dbe",
+        "#bfd",
+        "#93c",
+        "#60a",
+        "#3b8",
+        "#256",
+        "#1d4",
+        "#1e4",
+        "#1e3",
+        "#172",
+        "#eef",
+        "#e0e",
+        "#c7d",
+        "#a5b",
+        "#818",
+        "#636",
+        "#4f4",
+        "#433",
+        "#373",
+        "#312",
+        "#1e1",
+        "#ede",
+        "#ddd",
+        "#c4b",
+        "#a78",
+        "#8b5",
+        "#7c3",
+        "#6d2",
+        "#5b2",
+        "#4c1",
+        "#2e1",
+        "#f3e",
+        "#e9d",
+        "#d8b",
+        "#c08",
+        "#a85",
+        "#933",
+        "#7e2",
+        "#6b2",
+        "#581",
+        "#3b0",
+        "#fdf",
+        "#fae",
+        "#f5d",
+        "#f0a",
+        "#e87",
+        "#d94",
+        "#c02",
+        "#a21",
+        "#861",
+        "#701",
+        "#4a0",
+        "#fce",
+        "#fbc",
+        "#f9a",
+        "#f47",
+        "#ec4",
+        "#db2",
+        "#be1",
+        "#9d1",
+        "#831",
+        "#500",
+        "#fda",
+        "#fb7",
+        "#f43",
+        "#e11",
+        "#9f1",
+        "#881",
+        "#4c0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/src/util/getAllConfigs.js",
+      "values": [
+        "#3b8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/stubs/config.full.js",
+      "values": [
+        "#000",
+        "#3b8"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tailwindcss/types/generated/colors.d.ts",
+      "values": [
+        "#000",
+        "#fff",
+        "#f8f",
+        "#f1f",
+        "#e2e",
+        "#cbd",
+        "#94a",
+        "#647",
+        "#475",
+        "#334",
+        "#1e2",
+        "#0f1",
+        "#020",
+        "#f9f",
+        "#f3f",
+        "#e5e",
+        "#d1d",
+        "#9ca",
+        "#6b7",
+        "#4b5",
+        "#374",
+        "#1f2",
+        "#111",
+        "#030",
+        "#faf",
+        "#f4f",
+        "#e4e",
+        "#d4d",
+        "#a1a",
+        "#717",
+        "#525",
+        "#3f3",
+        "#272",
+        "#181",
+        "#090",
+        "#f5f",
+        "#a3a",
+        "#737",
+        "#404",
+        "#262",
+        "#171",
+        "#0a0",
+        "#e7e",
+        "#d6d",
+        "#a8a",
+        "#787",
+        "#575",
+        "#444",
+        "#292",
+        "#1c1",
+        "#0c0",
+        "#fef",
+        "#fee",
+        "#fec",
+        "#fca",
+        "#f87",
+        "#ef4",
+        "#dc2",
+        "#b91",
+        "#991",
+        "#7f1",
+        "#450",
+        "#ffe",
+        "#fed",
+        "#fdb",
+        "#fb9",
+        "#f97",
+        "#ea5",
+        "#c24",
+        "#9a3",
+        "#7c2",
+        "#431",
+        "#fde",
+        "#fcd",
+        "#fbb",
+        "#f59",
+        "#d97",
+        "#b45",
+        "#924",
+        "#783",
+        "#451",
+        "#fac",
+        "#eab",
+        "#ca8",
+        "#a16",
+        "#854",
+        "#713",
+        "#422",
+        "#f7f",
+        "#ecf",
+        "#d9f",
+        "#bef",
+        "#a3e",
+        "#84c",
+        "#65a",
+        "#4d7",
+        "#3f6",
+        "#365",
+        "#1a2",
+        "#f0f",
+        "#dcf",
+        "#bbf",
+        "#86e",
+        "#4ad",
+        "#22c",
+        "#16a",
+        "#158",
+        "#166",
+        "#145",
+        "#052",
+        "#d1f",
+        "#a7f",
+        "#6ee",
+        "#34d",
+        "#10b",
+        "#059",
+        "#047",
+        "#065",
+        "#064",
+        "#022",
+        "#ccf",
+        "#99f",
+        "#5ee",
+        "#2dd",
+        "#14b",
+        "#0d9",
+        "#0f7",
+        "#115",
+        "#134",
+        "#042",
+        "#cff",
+        "#a5f",
+        "#67e",
+        "#22d",
+        "#06b",
+        "#089",
+        "#0e7",
+        "#155",
+        "#164",
+        "#083",
+        "#e0f",
+        "#bae",
+        "#7dd",
+        "#38b",
+        "#0ea",
+        "#028",
+        "#036",
+        "#075",
+        "#0c4",
+        "#082",
+        "#eff",
+        "#dbe",
+        "#bfd",
+        "#93c",
+        "#60a",
+        "#3b8",
+        "#256",
+        "#1d4",
+        "#1e4",
+        "#1e3",
+        "#172",
+        "#eef",
+        "#e0e",
+        "#c7d",
+        "#a5b",
+        "#818",
+        "#636",
+        "#4f4",
+        "#433",
+        "#373",
+        "#312",
+        "#1e1",
+        "#ede",
+        "#ddd",
+        "#c4b",
+        "#a78",
+        "#8b5",
+        "#7c3",
+        "#6d2",
+        "#5b2",
+        "#4c1",
+        "#2e1",
+        "#f3e",
+        "#e9d",
+        "#d8b",
+        "#c08",
+        "#a85",
+        "#933",
+        "#7e2",
+        "#6b2",
+        "#581",
+        "#3b0",
+        "#fdf",
+        "#fae",
+        "#f5d",
+        "#f0a",
+        "#e87",
+        "#d94",
+        "#c02",
+        "#a21",
+        "#861",
+        "#701",
+        "#4a0",
+        "#fce",
+        "#fbc",
+        "#f9a",
+        "#f47",
+        "#ec4",
+        "#db2",
+        "#be1",
+        "#9d1",
+        "#831",
+        "#500",
+        "#fda",
+        "#fb7",
+        "#f43",
+        "#e11",
+        "#9f1",
+        "#881",
+        "#4c0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tempy/node_modules/type-fest/source/literal-union.d.ts",
+      "values": [
+        "#297"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tempy/node_modules/type-fest/source/opaque.d.ts",
+      "values": [
+        "#154",
+        "#158"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/tempy/node_modules/type-fest/source/partial-deep.d.ts",
+      "values": [
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/terser/dist/bundle.min.js",
+      "values": [
+        "#179",
+        "#326",
+        "#866"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/terser/lib/compress/tighten-body.js",
+      "values": [
+        "#866"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/terser/lib/scope.js",
+      "values": [
+        "#179",
+        "#326"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/type-fest/source/literal-union.d.ts",
+      "values": [
+        "#297"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/type-fest/source/opaque.d.ts",
+      "values": [
+        "#154",
+        "#158"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/typescript/lib/_tsc.js",
+      "values": [
+        "#182"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/typescript/lib/typescript.js",
+      "values": [
+        "#182",
+        "#238"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/url/test/index.js",
+      "values": [
+        "#abc"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/url-join/test/tests.js",
+      "values": [
+        "#faa"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/uuid/dist/esm-browser/v1.js",
+      "values": [
+        "#189"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/uuid/dist/esm-browser/v35.js",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/uuid/dist/esm-node/v1.js",
+      "values": [
+        "#189"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/uuid/dist/esm-node/v35.js",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/uuid/dist/v1.js",
+      "values": [
+        "#189"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/uuid/dist/v35.js",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/wonka/esy.lock/index.json",
+      "values": [
+        "#4d0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/dist/esm-browser/v1.js",
+      "values": [
+        "#189"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/dist/esm-browser/v35.js",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/dist/esm-node/v1.js",
+      "values": [
+        "#189"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/dist/esm-node/v35.js",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/dist/v1.js",
+      "values": [
+        "#189"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/dist/v35.js",
+      "values": [
+        "#270"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/v1.js",
+      "values": [
+        "#dee"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/v3.js",
+      "values": [
+        "#dee"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/v4.js",
+      "values": [
+        "#dee"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xcode/node_modules/uuid/v5.js",
+      "values": [
+        "#dee"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xml2js/node_modules/xmlbuilder/lib/XMLCData.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xml2js/node_modules/xmlbuilder/lib/XMLDTDAttList.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xml2js/node_modules/xmlbuilder/lib/XMLStringifier.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xml2js/node_modules/xmlbuilder/lib/XMLWriterBase.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xmlbuilder/lib/XMLCData.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xmlbuilder/lib/XMLDTDAttList.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xmlbuilder/lib/XMLDocType.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xmlbuilder/lib/XMLDocumentCB.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xmlbuilder/lib/XMLStringifier.js",
+      "values": [
+        "#cda"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xmlbuilder/lib/XMLWriterBase.js",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/node_modules/xmlbuilder/typings/index.d.ts",
+      "values": [
+        "#DEF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/_layout.tsx",
+      "values": [
+        "#F9F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/birth-city.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#E5E",
+        "#B5B",
+        "#FFF",
+        "#000",
+        "#EFE"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/birth-country.tsx",
+      "values": [
+        "#FFF",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#B5B",
+        "#000",
+        "#EFE"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/birth-date.tsx",
+      "values": [
+        "#FFF",
+        "#000",
+        "#E6E"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/birth-time.tsx",
+      "values": [
+        "#FFF",
+        "#000",
+        "#E6E",
+        "#F5F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/email-register.tsx",
+      "values": [
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/focus-point.tsx",
+      "values": [
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/gender.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#E5E",
+        "#B5B",
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/login.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#E54",
+        "#FFF",
+        "#E5E",
+        "#B5B"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/marital-status.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#E5E",
+        "#B5B",
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/natal-chart.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#E5E",
+        "#B5B",
+        "#FFF",
+        "#E54",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(auth)/welcome.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#FFF",
+        "#EA4",
+        "#111"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/_layout.tsx",
+      "values": [
+        "#0D0",
+        "#333",
+        "#D4A",
+        "#666"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/calendar.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#2E4",
+        "#3FA",
+        "#D4A",
+        "#D47",
+        "#C04",
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/compatibility.tsx",
+      "values": [
+        "#E91",
+        "#FDE",
+        "#156",
+        "#E3F",
+        "#E65",
+        "#FFF",
+        "#C62",
+        "#FFE",
+        "#2E7",
+        "#BF3",
+        "#F1F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/dream-book.tsx",
+      "values": [
+        "#F9F",
+        "#EDE",
+        "#FFF",
+        "#8C6",
+        "#B89",
+        "#9D4",
+        "#C78",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#3FA",
+        "#C86",
+        "#fff",
+        "#0E0",
+        "#1A1",
+        "#EEE",
+        "#C8A",
+        "#A88",
+        "#7C4",
+        "#DDD",
+        "#C8C",
+        "#7A6",
+        "#1A0"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/dreams.tsx",
+      "values": [
+        "#F9F",
+        "#EDE",
+        "#FFF",
+        "#F3E",
+        "#E6E",
+        "#9D4",
+        "#C78",
+        "#2E4",
+        "#8C6",
+        "#3FA",
+        "#C86",
+        "#C04",
+        "#1E1",
+        "#4A4",
+        "#7A7",
+        "#E05",
+        "#A02",
+        "#5E4",
+        "#4A1"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/home.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#2E4",
+        "#3FA",
+        "#C04",
+        "#7C4",
+        "#009",
+        "#E9F",
+        "#E14",
+        "#FFE",
+        "#E08",
+        "#FFF",
+        "#11A",
+        "#E6F",
+        "#FDE",
+        "#0D6",
+        "#7B2",
+        "#7A4",
+        "#9B3",
+        "#5C1",
+        "#EFE",
+        "#2E2",
+        "#3C5",
+        "#D8D",
+        "#5A4",
+        "#F5E",
+        "#D0B",
+        "#8F5",
+        "#235",
+        "#7E4",
+        "#1F1",
+        "#EDE",
+        "#F5B",
+        "#5A2",
+        "#292",
+        "#F2D",
+        "#F0E",
+        "#D8C",
+        "#362",
+        "#DED",
+        "#5B5",
+        "#D7C"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/natal-chart.tsx",
+      "values": [
+        "#F8F",
+        "#FFF",
+        "#0F1",
+        "#475",
+        "#94A",
+        "#E2E",
+        "#7C3",
+        "#EDE",
+        "#DDD",
+        "#5B2",
+        "#EF4",
+        "#FEE",
+        "#F59",
+        "#FEF",
+        "#10B",
+        "#000"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/(tabs)/profile.tsx",
+      "values": [
+        "#EDE",
+        "#1E1"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/add-person.tsx",
+      "values": [
+        "#FFF",
+        "#000",
+        "#E6E",
+        "#F5F",
+        "#F0F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/edit-birth-info.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#E5E",
+        "#B5B",
+        "#E54",
+        "#fff",
+        "#FFF",
+        "#000",
+        "#F5F"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/help.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/notifications-settings.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#DDD",
+        "#C8A",
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/premium.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#D4A",
+        "#FFF",
+        "#6B2",
+        "#FDF",
+        "#DCF",
+        "#16A"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/privacy.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/app/theme-settings.tsx",
+      "values": [
+        "#FFF"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/Astrology/AspectBottomSheet.tsx",
+      "values": [
+        "#7C3",
+        "#C02",
+        "#FFF",
+        "#E2E",
+        "#1E2",
+        "#94A",
+        "#647",
+        "#334"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/Astrology/BigThreeCard.tsx",
+      "values": [
+        "#D4A",
+        "#7B9",
+        "#9D4",
+        "#FFF",
+        "#F1F",
+        "#000",
+        "#1E2",
+        "#94A"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/Astrology/CosmicHotspotCard.tsx",
+      "values": [
+        "#7C3",
+        "#C02",
+        "#FFF",
+        "#000",
+        "#0F1",
+        "#647"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/Astrology/CosmicMap.tsx",
+      "values": [
+        "#1E2",
+        "#F8F",
+        "#F1F",
+        "#000",
+        "#8B5",
+        "#94A",
+        "#F59"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/Astrology/PlanetBottomSheet.tsx",
+      "values": [
+        "#E09",
+        "#FFF",
+        "#E2E",
+        "#1E2",
+        "#647",
+        "#8B5",
+        "#F59",
+        "#334"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/Astrology/StaggeredAiText.tsx",
+      "values": [
+        "#475"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/CalendarPicker.tsx",
+      "values": [
+        "#9D4",
+        "#1E1",
+        "#FFF",
+        "#E6E"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/CollectivePulseWidget.tsx",
+      "values": [
+        "#F5F",
+        "#D5C",
+        "#4A2",
+        "#7A6",
+        "#C8A",
+        "#2A1",
+        "#7C4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/CosmicSwotDashboard.tsx",
+      "values": [
+        "#F9F",
+        "#1E1",
+        "#7A7",
+        "#E6E",
+        "#9D4",
+        "#F1E",
+        "#FFF",
+        "#7C3",
+        "#D97",
+        "#059",
+        "#DC2"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/DreamDictionary.tsx",
+      "values": [
+        "#121",
+        "#1F1",
+        "#C8A",
+        "#7C4",
+        "#A88",
+        "#EEE",
+        "#8A7",
+        "#3FA",
+        "#E08",
+        "#E53",
+        "#8D6",
+        "#1E8",
+        "#26A",
+        "#F45",
+        "#43A",
+        "#D81",
+        "#6A1",
+        "#008",
+        "#FF8",
+        "#394",
+        "#452"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/OnboardingBackground.tsx",
+      "values": [
+        "#DCE",
+        "#F5D"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/components/OnboardingProgressBar.tsx",
+      "values": [
+        "#E6E",
+        "#9D4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/constants/colors.ts",
+      "values": [
+        "#F9F",
+        "#FFF",
+        "#1E1",
+        "#111",
+        "#6B7",
+        "#E6E",
+        "#9D4",
+        "#7C3",
+        "#E5E",
+        "#B5B",
+        "#E54",
+        "#16A"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/src/context/ThemeContext.tsx",
+      "values": [
+        "#F8F",
+        "#EDE",
+        "#FFF",
+        "#F3E",
+        "#E6E",
+        "#9D4",
+        "#C78",
+        "#F1E",
+        "#1E1",
+        "#4A4",
+        "#7A7",
+        "#D4A",
+        "#F0C",
+        "#3FA",
+        "#C86",
+        "#C04",
+        "#E05",
+        "#020",
+        "#0F1",
+        "#1E2",
+        "#334",
+        "#A85",
+        "#D8B",
+        "#F1F",
+        "#CBD",
+        "#94A",
+        "#F59",
+        "#FCD",
+        "#34D",
+        "#FB9",
+        "#F87",
+        "#FC4"
+      ]
+    },
+    {
+      "file": "/Users/mmc/Proje/mystic-ai/mysticai-mobile/tailwind.config.js",
+      "values": [
+        "#0D0",
+        "#9D4",
+        "#D4A"
+      ]
+    }
+  ]
+}

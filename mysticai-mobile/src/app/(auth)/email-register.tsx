@@ -138,7 +138,11 @@ export default function EmailRegisterScreen() {
       return (
         <View style={styles.emailFeedback}>
           <Ionicons name="close-circle" size={16} color={COLORS.error} />
-          <TouchableOpacity onPress={() => router.replace('/login')}>
+          <TouchableOpacity
+            onPress={() => router.replace('/login')}
+            accessibilityLabel="Giriş ekranına git"
+            accessibilityRole="link"
+          >
             <Text style={[styles.emailFeedbackText, { color: COLORS.error }]}>
               Bu e-posta zaten kayitli, giris yapmak ister misin?
             </Text>
@@ -163,7 +167,12 @@ export default function EmailRegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+              accessibilityLabel="Geri dön"
+              accessibilityRole="button"
+            >
               <Ionicons name="arrow-back" size={22} color={COLORS.text} />
             </TouchableOpacity>
             <Text style={styles.title}>Kayit Ol</Text>
@@ -318,9 +327,11 @@ export default function EmailRegisterScreen() {
               style={[styles.continueButton, isSubmitting && styles.continueButtonDisabled]}
               onPress={handleSubmit(onSubmit)}
               disabled={isSubmitting}
+              accessibilityLabel="Kayıt ol"
+              accessibilityRole="button"
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={COLORS.white} />
               ) : (
                 <Text style={styles.continueButtonText}>Kayit Ol</Text>
               )}
@@ -374,7 +385,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -415,7 +426,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.disabled,
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '600',
   },

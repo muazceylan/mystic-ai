@@ -47,6 +47,8 @@ export default function FocusPointScreen() {
                 ]}
                 onPress={() => store.toggleFocusPoint(point.id)}
                 disabled={dimmed}
+                accessibilityLabel={point.title}
+                accessibilityRole="button"
               >
                 <Ionicons
                   name={ICON_MAP[point.id] || 'sparkles'}
@@ -69,13 +71,20 @@ export default function FocusPointScreen() {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.outlineButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={() => router.back()}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Text style={styles.outlineText}>Geri</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
           disabled={!canContinue}
           onPress={() => router.push('/natal-chart')}
+          accessibilityLabel="Devam et"
+          accessibilityRole="button"
         >
           <Text style={[styles.primaryText, !canContinue && styles.primaryTextDisabled]}>
             Devam Et
@@ -124,7 +133,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 14,
@@ -164,7 +173,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   outlineText: {
     color: COLORS.primary,
@@ -182,7 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.disabled,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '600',
   },

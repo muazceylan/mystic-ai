@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet, TextStyle } from 'react-native';
+import { COLORS } from '../../constants/colors';
 
 const MAX_STAGGER = 6;
 
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     fontSize: 14,
-    color: '#475569',
+    color: COLORS.body,
     lineHeight: 22,
   },
 });

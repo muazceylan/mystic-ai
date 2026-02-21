@@ -1,28 +1,24 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { COLORS } from '../constants/colors';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ActiveTheme = 'light' | 'dark';
 
 export interface ThemeColors {
-  // Backgrounds
   bg: string;
   bgGrad1: string;
   surface: string;
   surfaceAlt: string;
-  // Borders
   border: string;
-  // Brand
   primary: string;
   primaryLight: string;
   primarySoft: string;
-  // Text
   text: string;
   textSoft: string;
   subtext: string;
   dim: string;
-  // Semantic
   gold: string;
   goldLight: string;
   green: string;
@@ -31,65 +27,63 @@ export interface ThemeColors {
   orangeBg: string;
   red: string;
   danger: string;
-  // Misc
   white: string;
   card: string;
   inputBg: string;
-  // Status bar style
   statusBar: 'light' | 'dark';
 }
 
 export const LIGHT: ThemeColors = {
-  bg: '#F8FAFC',
-  bgGrad1: '#EDE9F5',
-  surface: '#FFFFFF',
-  surfaceAlt: '#F3EFF9',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primaryLight: '#C784F7',
-  primarySoft: '#F1E8FD',
-  text: '#1E1E1E',
-  textSoft: '#4A4A5A',
-  subtext: '#7A7A7A',
-  dim: 'rgba(0,0,0,0.3)',
-  gold: '#D4AF37',
-  goldLight: '#F0CC55',
-  green: '#3FA46A',
-  greenBg: 'rgba(63,164,106,0.12)',
-  orange: '#C86400',
-  orangeBg: 'rgba(200,100,0,0.12)',
-  red: '#C04A4A',
-  danger: '#E05454',
-  white: '#FFFFFF',
-  card: '#FFFFFF',
-  inputBg: '#F3EFF9',
+  bg: COLORS.themeLightBg,
+  bgGrad1: COLORS.themeLightBgGrad1,
+  surface: COLORS.surface,
+  surfaceAlt: COLORS.themeLightSurfaceAlt,
+  border: COLORS.border,
+  primary: COLORS.primary,
+  primaryLight: COLORS.primaryLight,
+  primarySoft: COLORS.themeLightPrimarySoft,
+  text: COLORS.text,
+  textSoft: COLORS.textSoft,
+  subtext: COLORS.themeSubtext,
+  dim: COLORS.dim,
+  gold: COLORS.gold,
+  goldLight: COLORS.themeLightGoldLight,
+  green: COLORS.green,
+  greenBg: COLORS.greenBg,
+  orange: COLORS.themeOrange,
+  orangeBg: COLORS.orangeBg,
+  red: COLORS.red,
+  danger: COLORS.themeDanger,
+  white: COLORS.white,
+  card: COLORS.surface,
+  inputBg: COLORS.themeInputBg,
   statusBar: 'dark',
 };
 
 export const DARK: ThemeColors = {
-  bg: '#020617',        // Obsidian
-  bgGrad1: '#0F172A',   // Deep Navy
-  surface: '#1E293B',
-  surfaceAlt: '#0F1F35',
-  border: '#334155',
-  primary: '#A855F7',   // Brighter violet for dark backgrounds
-  primaryLight: '#D8B4FE',
-  primarySoft: '#1E1040',
-  text: '#F1F5F9',
-  textSoft: '#CBD5E1',
-  subtext: '#94A3B8',
-  dim: 'rgba(255,255,255,0.4)',
-  gold: '#F59E0B',
-  goldLight: '#FCD34D',
-  green: '#34D399',
-  greenBg: 'rgba(52,211,153,0.15)',
-  orange: '#FB923C',
-  orangeBg: 'rgba(251,146,60,0.15)',
-  red: '#F87171',
-  danger: '#FC4A4A',
-  white: '#F1F5F9',
-  card: '#1E293B',
-  inputBg: '#0F1F35',
+  bg: COLORS.themeDarkBg,
+  bgGrad1: COLORS.themeDarkBgGrad1,
+  surface: COLORS.themeDarkSurface,
+  surfaceAlt: COLORS.themeDarkSurfaceAlt,
+  border: COLORS.themeDarkBorder,
+  primary: COLORS.themeDarkPrimary,
+  primaryLight: COLORS.themeDarkPrimaryLight,
+  primarySoft: COLORS.themeDarkPrimarySoft,
+  text: COLORS.themeDarkText,
+  textSoft: COLORS.themeDarkTextSoft,
+  subtext: COLORS.themeDarkSubtext,
+  dim: COLORS.themeDarkDim,
+  gold: COLORS.themeDarkGold,
+  goldLight: COLORS.themeDarkGoldLight,
+  green: COLORS.themeDarkGreen,
+  greenBg: COLORS.themeDarkGreenBg,
+  orange: COLORS.themeDarkOrange,
+  orangeBg: COLORS.themeDarkOrangeBg,
+  red: COLORS.themeDarkRed,
+  danger: COLORS.themeDarkDanger,
+  white: COLORS.themeDarkWhite,
+  card: COLORS.themeDarkCard,
+  inputBg: COLORS.themeDarkInputBg,
   statusBar: 'light',
 };
 

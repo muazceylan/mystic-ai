@@ -14,15 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/useAuthStore';
 import OnboardingBackground from '../components/OnboardingBackground';
 import { dreamService } from '../services/dream.service';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-};
+import { COLORS } from '../constants/colors';
 
 const STORAGE_KEY = 'mysticai_notification_prefs';
 
@@ -98,7 +90,12 @@ export default function NotificationsSettingsScreen() {
     <View style={styles.container}>
       <OnboardingBackground />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Bildirimler</Text>
@@ -129,9 +126,9 @@ export default function NotificationsSettingsScreen() {
                 <Switch
                   value={prefs[item.id]}
                   onValueChange={(v) => updatePref(item.id, v)}
-                  trackColor={{ false: '#DDD', true: '#C8A8F5' }}
-                  thumbColor={prefs[item.id] ? COLORS.primary : '#FFFFFF'}
-                  ios_backgroundColor="#DDD"
+                  trackColor={{ false: COLORS.switchTrack, true: COLORS.switchThumbActive }}
+                  thumbColor={prefs[item.id] ? COLORS.primary : COLORS.white}
+                  ios_backgroundColor={COLORS.switchTrack}
                 />
               )}
             </View>
@@ -160,7 +157,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -179,7 +176,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,

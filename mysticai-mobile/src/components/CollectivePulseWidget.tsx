@@ -9,16 +9,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useDreamStore } from '../store/useDreamStore';
-
-const C = {
-  bg: '#F5F0FF',
-  border: '#D5C2F5',
-  title: '#4A2F7A',
-  sub: '#7A6A9A',
-  gold: '#C8A84B',
-  text: '#2A1A4A',
-  card: 'rgba(255,255,255,0.85)',
-};
+import { COLORS } from '../constants/colors';
 
 interface Props {
   onPress?: () => void;
@@ -37,21 +28,28 @@ export default function CollectivePulseWidget({ onPress }: Props) {
         activeOpacity={0.85}
         onPress={onPress}
         style={styles.card}
+        accessibilityLabel="Dünyanın bugün gördüğü rüyalar — detayları aç"
+        accessibilityRole="button"
       >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerIcon}>🌍</Text>
           <Text style={styles.headerTitle}>Dünyanın Bugün Gördüğü Rüyalar</Text>
           {!pulseLoading && (
-            <TouchableOpacity onPress={fetchCollectivePulse} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="refresh-outline" size={14} color={C.sub} />
+            <TouchableOpacity
+              onPress={fetchCollectivePulse}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel="Kolektif nabzı yenile"
+              accessibilityRole="button"
+            >
+              <Ionicons name="refresh-outline" size={14} color={COLORS.pulseSub} />
             </TouchableOpacity>
           )}
         </View>
 
         {pulseLoading ? (
           <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={C.title} />
+            <ActivityIndicator size="small" color={COLORS.pulseTitle} />
             <Text style={styles.loadingText}>Kolektif nabız okunuyor...</Text>
           </View>
         ) : !collectivePulse || collectivePulse.topSymbols.length === 0 ? (
@@ -97,12 +95,12 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 20,
     marginTop: 10,
-    backgroundColor: C.bg,
+    backgroundColor: COLORS.pulseBg,
     borderRadius: 18,
     padding: 14,
     borderWidth: 1.5,
-    borderColor: C.border,
-    shadowColor: '#7C4DFF',
+    borderColor: COLORS.pulseBorder,
+    shadowColor: COLORS.violetLight,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 12,
@@ -119,7 +117,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '700',
-    color: C.title,
+    color: COLORS.pulseTitle,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -127,8 +125,8 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 8,
   },
-  loadingText: { fontSize: 12, color: C.sub, fontStyle: 'italic' },
-  emptyText: { fontSize: 12, color: C.sub, fontStyle: 'italic', paddingVertical: 6 },
+  loadingText: { fontSize: 12, color: COLORS.pulseSub, fontStyle: 'italic' },
+  emptyText: { fontSize: 12, color: COLORS.pulseSub, fontStyle: 'italic', paddingVertical: 6 },
   symbolsRow: {
     flexDirection: 'row',
     gap: 8,
@@ -154,12 +152,12 @@ const styles = StyleSheet.create({
   symbolName: {
     fontSize: 13,
     fontWeight: '600',
-    color: C.text,
+    color: COLORS.textDark,
   },
-  symbolNameTop: { color: '#4A2F7A', fontWeight: '800' },
+  symbolNameTop: { color: COLORS.pulseTitle, fontWeight: '800' },
   symbolCount: {
     fontSize: 11,
-    color: C.sub,
+    color: COLORS.pulseSub,
     marginLeft: 2,
   },
   reasonBox: {
@@ -174,17 +172,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(124,77,255,0.15)',
     marginBottom: 6,
   },
-  reasonIcon: { fontSize: 12, color: C.gold, marginTop: 2 },
+  reasonIcon: { fontSize: 12, color: COLORS.gold, marginTop: 2 },
   reasonText: {
     flex: 1,
     fontSize: 12,
     lineHeight: 18,
-    color: C.title,
+    color: COLORS.pulseTitle,
     fontStyle: 'italic',
   },
   updatedAt: {
     fontSize: 10,
-    color: C.sub,
+    color: COLORS.pulseSub,
     textAlign: 'right',
     marginTop: 2,
   },

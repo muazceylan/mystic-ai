@@ -24,22 +24,7 @@ import {
   calculateLuckyDates,
   fetchLuckyDatesByCorrelationId,
 } from '../../services/lucky-dates.service';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  accent: '#2E4A9C',
-  accentSoft: '#E6EDFF',
-  green: '#3FA46A',
-  yellow: '#D4A017',
-  orange: '#D4764A',
-  red: '#C04A4A',
-  white: '#FFFFFF',
-};
+import { COLORS } from '../../constants/colors';
 
 interface CategoryOption {
   key: GoalCategory;
@@ -197,6 +182,8 @@ export default function CalendarScreen() {
           <TouchableOpacity
             style={styles.emptyButton}
             onPress={() => router.push('/(tabs)/natal-chart')}
+            accessibilityLabel="Doğum haritası oluştur"
+            accessibilityRole="button"
           >
             <Text style={styles.emptyButtonText}>Do\u011Fum Haritas\u0131 Olu\u015Ftur</Text>
           </TouchableOpacity>
@@ -246,6 +233,8 @@ export default function CalendarScreen() {
           <TouchableOpacity
             style={styles.calendarButton}
             onPress={() => openCalendarEvent(item.date, categoryLabel)}
+            accessibilityLabel="Takvime ekle"
+            accessibilityRole="button"
           >
             <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
             <Text style={styles.calendarButtonText}>Takvime Ekle</Text>
@@ -279,6 +268,8 @@ export default function CalendarScreen() {
                 key={cat.key}
                 style={[styles.categoryPill, isActive && styles.categoryPillActive]}
                 onPress={() => handleCategoryPress(cat.key)}
+                accessibilityLabel={cat.label}
+                accessibilityRole="button"
               >
                 <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
                 <Text style={[styles.categoryLabel, isActive && styles.categoryLabelActive]}>
@@ -299,7 +290,12 @@ export default function CalendarScreen() {
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={32} color={COLORS.red} />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchDates}>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={fetchDates}
+              accessibilityLabel="Tekrar dene"
+              accessibilityRole="button"
+            >
               <Text style={styles.retryButtonText}>Tekrar Dene</Text>
             </TouchableOpacity>
           </View>
@@ -500,7 +496,7 @@ const styles = StyleSheet.create({
   },
   retroBadge: {
     marginTop: 6,
-    backgroundColor: '#FFF3E0',
+    backgroundColor: COLORS.neutralBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,

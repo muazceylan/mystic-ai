@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COLORS } from '../constants/colors';
 import { checkOracleHealth } from '../services/oracle.service';
 
 interface Props {
@@ -48,14 +49,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotOnline: {
-    backgroundColor: '#3FA46A',
+    backgroundColor: COLORS.success,
   },
   dotOffline: {
-    backgroundColor: '#C04A4A',
+    backgroundColor: COLORS.error,
   },
   label: {
     fontSize: 10,
-    color: '#7A7A7A',
+    color: COLORS.subtext,
     fontWeight: '500',
   },
 });

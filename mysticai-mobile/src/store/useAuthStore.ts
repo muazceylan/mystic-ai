@@ -44,7 +44,7 @@ interface AuthState {
   login: (token: string, refreshToken: string | null, user: UserProfile) => void;
   logout: () => void;
   setUser: (user: UserProfile) => void;
-  hydrate: () => void;
+  hydrate: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -80,8 +80,8 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user) => set({ user }),
 
-      hydrate: () => {
-        const token = getToken();
+      hydrate: async () => {
+        const token = await getToken();
         if (token) {
           set({ token, isAuthenticated: true, isHydrated: true });
         } else {

@@ -31,38 +31,10 @@ interface RelationshipTypeOption {
 }
 
 const RELATIONSHIP_TYPES: RelationshipTypeOption[] = [
-  {
-    key: 'LOVE',
-    emoji: '💍',
-    labelTR: 'Aşk',
-    labelEN: 'Love',
-    color: '#E91E8C',
-    bgColor: '#FDE8F4',
-  },
-  {
-    key: 'BUSINESS',
-    emoji: '🤝',
-    labelTR: 'İş',
-    labelEN: 'Business',
-    color: '#1565C0',
-    bgColor: '#E3F0FB',
-  },
-  {
-    key: 'FRIENDSHIP',
-    emoji: '🌟',
-    labelTR: 'Arkadaş',
-    labelEN: 'Friend',
-    color: '#E65100',
-    bgColor: '#FFF3E0',
-  },
-  {
-    key: 'RIVAL',
-    emoji: '🥊',
-    labelTR: 'Rakip',
-    labelEN: 'Rival',
-    color: '#C62828',
-    bgColor: '#FFEBEE',
-  },
+  { key: 'LOVE', emoji: '💍', labelTR: 'Aşk', labelEN: 'Love', color: COLORS.pink, bgColor: COLORS.pinkBg },
+  { key: 'BUSINESS', emoji: '🤝', labelTR: 'İş', labelEN: 'Business', color: COLORS.blue, bgColor: COLORS.blueBg },
+  { key: 'FRIENDSHIP', emoji: '🌟', labelTR: 'Arkadaş', labelEN: 'Friend', color: COLORS.orange, bgColor: COLORS.neutralBg },
+  { key: 'RIVAL', emoji: '🥊', labelTR: 'Rakip', labelEN: 'Rival', color: COLORS.redDark, bgColor: COLORS.redBg },
 ];
 
 // ─── Circular Progress ────────────────────────────────────────────────────────
@@ -162,9 +134,9 @@ export default function CompatibilityScreen() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 70) return '#2E7D32';
-    if (score >= 40) return '#E65100';
-    return '#C62828';
+    if (score >= 70) return COLORS.strengthGreen;
+    if (score >= 40) return COLORS.orange;
+    return COLORS.redDark;
   };
 
   const isLoading = isAnalyzing || isPolling;
@@ -187,6 +159,9 @@ export default function CompatibilityScreen() {
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/add-person')}
+              accessibilityLabel="Kişi ekle"
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons name="add-circle" size={26} color={COLORS.primary} />
             </TouchableOpacity>
@@ -198,6 +173,8 @@ export default function CompatibilityScreen() {
             <TouchableOpacity
               style={styles.emptyPeopleCard}
               onPress={() => router.push('/add-person')}
+              accessibilityLabel="Kişi ekle"
+              accessibilityRole="button"
             >
               <Ionicons name="person-add-outline" size={32} color={COLORS.subtext} />
               <Text style={styles.emptyPeopleText}>Kişi ekle</Text>
@@ -211,6 +188,8 @@ export default function CompatibilityScreen() {
               <TouchableOpacity
                 style={styles.addPersonCard}
                 onPress={() => router.push('/add-person')}
+                accessibilityLabel="Kişi ekle"
+                accessibilityRole="button"
               >
                 <View style={styles.addPersonIcon}>
                   <Ionicons name="add" size={22} color={COLORS.primary} />
@@ -229,6 +208,8 @@ export default function CompatibilityScreen() {
                     setSelectedPerson(person);
                     clearSynastry();
                   }}
+                  accessibilityLabel={`${person.name} seç`}
+                  accessibilityRole="button"
                   onLongPress={() => {
                     Alert.alert(
                       person.name,
@@ -289,6 +270,8 @@ export default function CompatibilityScreen() {
                       setSelectedType(t.key);
                       clearSynastry();
                     }}
+                    accessibilityLabel={locale === 'en' ? t.labelEN : t.labelTR}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.typeEmoji}>{t.emoji}</Text>
                     <Text style={[styles.typeLabel, isSelected && { color: t.color }]}>
@@ -308,11 +291,13 @@ export default function CompatibilityScreen() {
               style={[styles.analyzeButton, isLoading && styles.analyzeButtonDisabled]}
               onPress={handleAnalyze}
               disabled={isLoading}
+              accessibilityLabel={`${selectedPerson.name} ile karşılaştır`}
+              accessibilityRole="button"
             >
               {isLoading ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <ActivityIndicator color={COLORS.white} size="small" />
               ) : (
-                <Ionicons name="sparkles" size={20} color="#FFF" />
+                <Ionicons name="sparkles" size={20} color={COLORS.white} />
               )}
               <Text style={styles.analyzeButtonText}>
                 {isLoading ? 'Analiz ediliyor...' : `${selectedPerson.name} ile Karşılaştır`}
@@ -353,7 +338,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.breakdownTitle}>💚 Güçlü Noktalar</Text>
                 {currentSynastry.strengths.map((s, i) => (
                   <View key={i} style={[styles.breakdownCard, styles.strengthCard]}>
-                    <Ionicons name="checkmark-circle" size={18} color="#2E7D32" style={{ marginRight: 10, marginTop: 1 }} />
+                    <Ionicons name="checkmark-circle" size={18} color={COLORS.strengthGreen} style={{ marginRight: 10, marginTop: 1 }} />
                     <Text style={styles.breakdownText}>{s}</Text>
                   </View>
                 ))}
@@ -366,7 +351,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.breakdownTitle}>🔥 Zorluklar</Text>
                 {currentSynastry.challenges.map((c, i) => (
                   <View key={i} style={[styles.breakdownCard, styles.challengeCard]}>
-                    <Ionicons name="alert-circle" size={18} color="#BF360C" style={{ marginRight: 10, marginTop: 1 }} />
+                    <Ionicons name="alert-circle" size={18} color={COLORS.warningDark} style={{ marginRight: 10, marginTop: 1 }} />
                     <Text style={styles.breakdownText}>{c}</Text>
                   </View>
                 ))}
@@ -376,8 +361,8 @@ export default function CompatibilityScreen() {
             {/* Key Warning */}
             {currentSynastry.keyWarning && (
               <View style={[styles.breakdownCard, styles.warningCard]}>
-                <Ionicons name="warning" size={18} color="#E65100" style={{ marginRight: 10, marginTop: 1 }} />
-                <Text style={[styles.breakdownText, { color: '#BF360C' }]}>
+                <Ionicons name="warning" size={18} color={COLORS.orange} style={{ marginRight: 10, marginTop: 1 }} />
+                <Text style={[styles.breakdownText, { color: COLORS.warningDark }]}>
                   {currentSynastry.keyWarning}
                 </Text>
               </View>
@@ -398,6 +383,8 @@ export default function CompatibilityScreen() {
                 clearSynastry();
                 setSelectedType(null);
               }}
+              accessibilityLabel="Yeni analiz yap"
+              accessibilityRole="button"
             >
               <Text style={styles.newAnalysisText}>Yeni Analiz Yap</Text>
             </TouchableOpacity>
@@ -427,7 +414,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 8 : 20,
     paddingBottom: 16,
     paddingHorizontal: 20,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -450,7 +437,7 @@ const styles = StyleSheet.create({
   emptyPeopleCard: {
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: COLORS.border,
@@ -465,7 +452,7 @@ const styles = StyleSheet.create({
   addPersonCard: {
     width: 76,
     height: 96,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: COLORS.primary,
@@ -488,7 +475,7 @@ const styles = StyleSheet.create({
   personCard: {
     width: 76,
     height: 96,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -510,7 +497,7 @@ const styles = StyleSheet.create({
   },
   personAvatarSelected: { backgroundColor: COLORS.primary },
   personAvatarText: { fontSize: 17, fontWeight: '700', color: COLORS.primary },
-  personAvatarTextSelected: { color: '#FFF' },
+  personAvatarTextSelected: { color: COLORS.white },
   personName: { fontSize: 11, color: COLORS.text, fontWeight: '600', textAlign: 'center' },
   personSign: { fontSize: 10, color: COLORS.subtext },
 
@@ -522,7 +509,7 @@ const styles = StyleSheet.create({
   },
   typeCard: {
     width: '46.5%',
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: COLORS.border,
@@ -544,13 +531,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   analyzeButtonDisabled: { opacity: 0.6 },
-  analyzeButtonText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  analyzeButtonText: { fontSize: 16, fontWeight: '700', color: COLORS.white },
 
   scoreCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
@@ -577,22 +564,22 @@ const styles = StyleSheet.create({
   },
   breakdownText: { flex: 1, fontSize: 13, color: COLORS.text, lineHeight: 20 },
   strengthCard: {
-    backgroundColor: '#F1F8F1',
+    backgroundColor: COLORS.successBg,
     borderLeftWidth: 3,
-    borderLeftColor: '#2E7D32',
+    borderLeftColor: COLORS.strengthGreen,
   },
   challengeCard: {
-    backgroundColor: '#FFF3F0',
+    backgroundColor: COLORS.warningBg,
     borderLeftWidth: 3,
-    borderLeftColor: '#BF360C',
+    borderLeftColor: COLORS.warningDark,
   },
   warningCard: {
-    backgroundColor: '#FFF8E1',
+    backgroundColor: COLORS.neutralBg,
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
     borderLeftWidth: 3,
-    borderLeftColor: '#E65100',
+    borderLeftColor: COLORS.orange,
   },
 
   cosmicAdviceCard: {
@@ -612,14 +599,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
   },
   newAnalysisText: { fontSize: 14, color: COLORS.subtext, fontWeight: '600' },
 
   errorCard: {
     margin: 20,
     padding: 24,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,

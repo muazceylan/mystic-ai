@@ -4,17 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { GENDER_OPTIONS } from '../../constants/index';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-};
+import { COLORS } from '../../constants/colors';
 
 const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   female: 'female',
@@ -45,6 +35,8 @@ export default function GenderScreen() {
                   selected && styles.optionSelected,
                 ]}
                 onPress={() => store.setGender(option.id)}
+                accessibilityLabel={option.title}
+                accessibilityRole="button"
               >
                 <Ionicons
                   name={ICON_MAP[option.id] || 'person'}
@@ -56,7 +48,7 @@ export default function GenderScreen() {
                 </Text>
                 {selected && (
                   <View style={styles.checkBadge}>
-                    <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                    <Ionicons name="checkmark" size={12} color={COLORS.white} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -66,13 +58,20 @@ export default function GenderScreen() {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.outlineButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={() => router.back()}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Text style={styles.outlineText}>Geri</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !store.gender && styles.primaryDisabled]}
           disabled={!store.gender}
           onPress={() => router.push('/marital-status')}
+          accessibilityLabel="Devam et"
+          accessibilityRole="button"
         >
           <Text style={[styles.primaryText, !store.gender && styles.primaryTextDisabled]}>
             Devam Et
@@ -114,7 +113,7 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 14,
@@ -160,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   outlineText: {
     color: COLORS.primary,
@@ -178,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.disabled,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '600',
   },

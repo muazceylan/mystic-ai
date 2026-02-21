@@ -13,8 +13,8 @@ const api = axios.create({
 });
 
 // Attach token to every request
-api.interceptors.request.use((config: any) => {
-  const token = getToken();
+api.interceptors.request.use(async (config: any) => {
+  const token = await getToken();
   if (token) {
     config.headers = {
       ...(config.headers ?? {}),

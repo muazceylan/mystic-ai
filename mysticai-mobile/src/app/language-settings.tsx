@@ -55,7 +55,12 @@ export default function LanguageSettingsScreen() {
     <View style={S.container}>
       <OnboardingBackground />
       <View style={S.header}>
-        <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={S.backBtn}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={S.headerTitle}>{t('language.title')}</Text>
@@ -72,6 +77,8 @@ export default function LanguageSettingsScreen() {
               <TouchableOpacity
                 key={lang.id}
                 style={[S.row, index > 0 && S.rowBorder]}
+                accessibilityLabel={`${lang.name} dilini seç`}
+                accessibilityRole="button"
                 onPress={() => handleSelect(lang.id)}
                 activeOpacity={0.7}
                 disabled={saving}

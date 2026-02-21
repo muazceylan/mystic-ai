@@ -3,15 +3,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import OnboardingBackground from '../components/OnboardingBackground';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-};
+import { COLORS } from '../constants/colors';
 
 const FAQ = [
   {
@@ -54,7 +46,12 @@ export default function HelpScreen() {
     <View style={styles.container}>
       <OnboardingBackground />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Yardım</Text>
@@ -69,6 +66,8 @@ export default function HelpScreen() {
             <TouchableOpacity
               key={a.id}
               style={[styles.actionRow, i > 0 && styles.rowBorder]}
+              accessibilityLabel={a.label}
+              accessibilityRole={a.url ? 'link' : 'button'}
               onPress={a.action}
               activeOpacity={0.7}
             >
@@ -91,6 +90,8 @@ export default function HelpScreen() {
               <TouchableOpacity
                 style={styles.faqHeader}
                 onPress={() => toggle(i)}
+                accessibilityLabel={expanded === i ? `${item.q} kapat` : `${item.q} genişlet`}
+                accessibilityRole="button"
                 activeOpacity={0.7}
               >
                 <Text style={styles.faqQ}>{item.q}</Text>
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 12, marginTop: 20 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,

@@ -4,17 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import OnboardingBackground from '../components/OnboardingBackground';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  gold: '#D4AF37',
-  goldSoft: '#FFF4DF',
-};
+import { COLORS } from '../constants/colors';
 
 const PLAN_FEATURES = [
   'Sınırsız Natal Haritası Yorumu',
@@ -67,7 +57,12 @@ export default function PremiumScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Premium</Text>
@@ -77,7 +72,7 @@ export default function PremiumScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Hero */}
         <LinearGradient
-          colors={['#6B21A8', '#9D4EDD']}
+          colors={[COLORS.primary700, COLORS.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
@@ -93,7 +88,7 @@ export default function PremiumScreen() {
           {PLAN_FEATURES.map((feat, i) => (
             <View key={i} style={[styles.featureRow, i > 0 && styles.featureRowBorder]}>
               <View style={styles.featureCheck}>
-                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={14} color={COLORS.white} />
               </View>
               <Text style={styles.featureText}>{feat}</Text>
             </View>
@@ -106,6 +101,8 @@ export default function PremiumScreen() {
           <TouchableOpacity
             key={plan.id}
             style={[styles.planCard, plan.popular && styles.planCardPopular]}
+            accessibilityLabel={`${plan.name} planını seç`}
+            accessibilityRole="button"
             onPress={() => handleSubscribe(plan.id)}
             activeOpacity={0.8}
           >
@@ -133,7 +130,12 @@ export default function PremiumScreen() {
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore}>
+        <TouchableOpacity
+          style={styles.restoreBtn}
+          onPress={handleRestore}
+          accessibilityLabel="Satın alımları geri yükle"
+          accessibilityRole="button"
+        >
           <Text style={styles.restoreBtnText}>Satın Alımları Geri Yükle</Text>
         </TouchableOpacity>
 
@@ -160,7 +162,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -176,12 +178,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  heroTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', marginTop: 10, marginBottom: 6 },
+  heroTitle: { fontSize: 22, fontWeight: '800', color: COLORS.white, marginTop: 10, marginBottom: 6 },
   heroSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
   // Features
   sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
   featuresCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -210,7 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: COLORS.border,
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     position: 'relative',
   },
-  planCardPopular: { borderColor: COLORS.primary, backgroundColor: '#FDFAFF' },
+  planCardPopular: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
   popularBadge: {
     position: 'absolute',
     top: -10,
@@ -228,17 +230,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  popularBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  popularBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.white },
   planLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   planTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text },
   planTitlePopular: { color: COLORS.primary },
   discountBadge: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: COLORS.successLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  discountText: { fontSize: 11, fontWeight: '700', color: '#16A34A' },
+  discountText: { fontSize: 11, fontWeight: '700', color: COLORS.success },
   planRight: { alignItems: 'flex-end' },
   planPrice: { fontSize: 20, fontWeight: '800', color: COLORS.text },
   planPricePopular: { color: COLORS.primary },

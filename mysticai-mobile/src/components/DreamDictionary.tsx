@@ -14,30 +14,18 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import { SymbolInsight } from '../services/dream.service';
 import { useDreamStore } from '../store/useDreamStore';
-
-const C = {
-  bg: '#12103D',
-  surface: '#1F1C5A',
-  border: 'rgba(124,77,255,0.3)',
-  gold: '#C8A84B',
-  purple: '#7C4DFF',
-  purpleLight: '#A880FF',
-  white: '#EEE8FF',
-  sub: '#8A7FA8',
-  green: '#3FA46A',
-  orange: '#E08A00',
-};
+import { COLORS } from '../constants/colors';
 
 const HOUSE_COLORS: Record<string, string> = {
-  '1. Ev': '#E53935', '2. Ev': '#8D6E63', '3. Ev': '#1E88E5',
-  '4. Ev': '#26A69A', '5. Ev': '#F4511E', '6. Ev': '#43A047',
-  '7. Ev': '#D81B60', '8. Ev': '#6A1B9A', '9. Ev': '#00838F',
-  '10. Ev': '#FF8F00', '11. Ev': '#3949AB', '12. Ev': '#4527A0',
+  '1. Ev': COLORS.house1, '2. Ev': COLORS.house2, '3. Ev': COLORS.house3,
+  '4. Ev': COLORS.house4, '5. Ev': COLORS.house5, '6. Ev': COLORS.house6,
+  '7. Ev': COLORS.house7, '8. Ev': COLORS.house8, '9. Ev': COLORS.house9,
+  '10. Ev': COLORS.house10, '11. Ev': COLORS.house11, '12. Ev': COLORS.house12,
 };
 
 function getHouseColor(houseStr: string): string {
   const match = Object.keys(HOUSE_COLORS).find(k => houseStr.includes(k));
-  return match ? HOUSE_COLORS[match] : '#7C4DFF';
+  return match ? HOUSE_COLORS[match] : COLORS.violetLight;
 }
 
 interface SymbolMeaning {
@@ -86,7 +74,13 @@ export default function DreamDictionary({ userId }: Props) {
     const houseColor = getHouseColor(item.houseAssociation);
     return (
       <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
-        <TouchableOpacity style={styles.symbolCard} onPress={() => fetchMeaning(item)} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.symbolCard}
+          onPress={() => fetchMeaning(item)}
+          activeOpacity={0.8}
+          accessibilityLabel={`${capitalize(item.symbolName)} detaylarını aç`}
+          accessibilityRole="button"
+        >
           <View style={[styles.symbolRank, { backgroundColor: houseColor + '22', borderColor: houseColor + '55' }]}>
             <Text style={[styles.symbolRankText, { color: houseColor }]}>#{index + 1}</Text>
           </View>
@@ -102,7 +96,7 @@ export default function DreamDictionary({ userId }: Props) {
               <View style={styles.recurringDot} />
             )}
           </View>
-          <Ionicons name="chevron-forward" size={14} color={C.sub} />
+          <Ionicons name="chevron-forward" size={14} color={COLORS.dictSub} />
         </TouchableOpacity>
       </Animated.View>
     );
@@ -115,7 +109,7 @@ export default function DreamDictionary({ userId }: Props) {
       {/* Header row */}
       <View style={styles.headerRow}>
         <Text style={styles.sectionTitle}>Rüya Sözlüğüm</Text>
-        {analyticsLoading && <ActivityIndicator size="small" color={C.purple} />}
+        {analyticsLoading && <ActivityIndicator size="small" color={COLORS.violetLight} />}
       </View>
 
       {/* Stats row */}
@@ -155,7 +149,7 @@ export default function DreamDictionary({ userId }: Props) {
       {/* Symbol list */}
       {analyticsLoading && symbols.length === 0 ? (
         <View style={styles.loadingBlock}>
-          <ActivityIndicator size="large" color={C.purple} />
+          <ActivityIndicator size="large" color={COLORS.violetLight} />
           <Text style={styles.loadingText}>Semboller analiz ediliyor...</Text>
         </View>
       ) : symbols.length === 0 ? (
@@ -186,8 +180,14 @@ export default function DreamDictionary({ userId }: Props) {
             {/* Handle */}
             <View style={styles.modalHandle} />
 
-            <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedSymbol(null)}>
-              <Ionicons name="close" size={20} color={C.sub} />
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => setSelectedSymbol(null)}
+              accessibilityLabel="Modalı kapat"
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="close" size={20} color={COLORS.dictSub} />
             </TouchableOpacity>
 
             {selectedSymbol && (
@@ -215,7 +215,7 @@ export default function DreamDictionary({ userId }: Props) {
 
                 {meaningLoading ? (
                   <View style={styles.meaningLoading}>
-                    <ActivityIndicator size="large" color={C.gold} />
+                    <ActivityIndicator size="large" color={COLORS.gold} />
                     <Text style={styles.meaningLoadingText}>Yorumlama yapılıyor...</Text>
                   </View>
                 ) : meaning ? (
@@ -229,8 +229,8 @@ export default function DreamDictionary({ userId }: Props) {
                       <Text style={styles.meaningSectionText}>{meaning.psychological}</Text>
                     </View>
                     <View style={[styles.meaningSection, styles.personalSection]}>
-                      <Text style={[styles.meaningSectionTitle, { color: C.gold }]}>✦ Senin İçin Mesaj</Text>
-                      <Text style={[styles.meaningSectionText, { color: '#EEE8FF' }]}>{meaning.personal}</Text>
+                      <Text style={[styles.meaningSectionTitle, { color: COLORS.gold }]}>✦ Senin İçin Mesaj</Text>
+                      <Text style={[styles.meaningSectionText, { color: COLORS.white }]}>{meaning.personal}</Text>
                     </View>
                   </View>
                 ) : null}
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: C.gold,
+    color: COLORS.gold,
     letterSpacing: 0.5,
   },
   statsRow: {
@@ -269,15 +269,15 @@ const styles = StyleSheet.create({
   },
   statChip: {
     flex: 1,
-    backgroundColor: C.surface,
+    backgroundColor: COLORS.dictSurface,
     borderRadius: 12,
     paddingVertical: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: COLORS.dictBorder,
   },
-  statValue: { fontSize: 16, fontWeight: '800', color: C.white },
-  statLabel: { fontSize: 10, color: C.sub, marginTop: 2 },
+  statValue: { fontSize: 16, fontWeight: '800', color: COLORS.dictText },
+  statLabel: { fontSize: 10, color: COLORS.dictSub, marginTop: 2 },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,20 +286,20 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   recurringDot: {
-    width: 8, height: 8, borderRadius: 4, backgroundColor: C.gold,
+    width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.gold,
   },
-  legendText: { fontSize: 11, color: C.sub },
-  legendSep: { color: C.sub, fontSize: 11 },
+  legendText: { fontSize: 11, color: COLORS.dictSub },
+  legendSep: { color: COLORS.dictSub, fontSize: 11 },
   symbolCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: C.surface,
+    backgroundColor: COLORS.dictSurface,
     borderRadius: 14,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: COLORS.dictBorder,
   },
   symbolRank: {
     width: 34,
@@ -311,8 +311,8 @@ const styles = StyleSheet.create({
   },
   symbolRankText: { fontSize: 12, fontWeight: '800' },
   symbolInfo: { flex: 1 },
-  symbolName: { fontSize: 14, fontWeight: '700', color: C.white },
-  symbolHouse: { fontSize: 11, color: C.sub, marginTop: 2 },
+  symbolName: { fontSize: 14, fontWeight: '700', color: COLORS.dictText },
+  symbolHouse: { fontSize: 11, color: COLORS.dictSub, marginTop: 2 },
   symbolRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   symbolCountBadge: {
     backgroundColor: 'rgba(124,77,255,0.2)',
@@ -320,31 +320,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  symbolCountText: { fontSize: 12, fontWeight: '700', color: C.purpleLight },
+  symbolCountText: { fontSize: 12, fontWeight: '700', color: COLORS.violetLightLight },
   loadingBlock: { alignItems: 'center', paddingVertical: 30, gap: 12 },
-  loadingText: { fontSize: 13, color: C.sub, fontStyle: 'italic' },
+  loadingText: { fontSize: 13, color: COLORS.dictSub, fontStyle: 'italic' },
   emptyBlock: { alignItems: 'center', paddingVertical: 32, gap: 8 },
   emptyIcon: { fontSize: 36 },
-  emptyText: { fontSize: 15, color: C.white, fontWeight: '600' },
-  emptySubText: { fontSize: 12, color: C.sub, textAlign: 'center' },
+  emptyText: { fontSize: 15, color: COLORS.dictText, fontWeight: '600' },
+  emptySubText: { fontSize: 12, color: COLORS.dictSub, textAlign: 'center' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: C.bg,
+    backgroundColor: COLORS.dictBg,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingTop: 12,
     maxHeight: '85%',
     borderTopWidth: 1,
-    borderColor: C.border,
+    borderColor: COLORS.dictBorder,
   },
   modalHandle: {
     width: 40, height: 4, borderRadius: 2,
-    backgroundColor: C.border,
+    backgroundColor: COLORS.dictBorder,
     alignSelf: 'center', marginBottom: 12,
   },
   modalClose: {
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: C.gold,
+    color: COLORS.gold,
     marginBottom: 10,
     marginTop: 8,
   },
@@ -372,17 +372,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   houseTagText: { fontSize: 12, fontWeight: '700' },
-  modalCount: { fontSize: 13, color: C.sub },
-  modalCountBold: { color: C.white, fontWeight: '700' },
+  modalCount: { fontSize: 13, color: COLORS.dictSub },
+  modalCountBold: { color: COLORS.dictText, fontWeight: '700' },
   meaningLoading: { alignItems: 'center', paddingVertical: 30, gap: 10 },
-  meaningLoadingText: { fontSize: 13, color: C.sub, fontStyle: 'italic' },
+  meaningLoadingText: { fontSize: 13, color: COLORS.dictSub, fontStyle: 'italic' },
   meaningBlock: { gap: 14, paddingBottom: 24 },
   meaningSection: {
-    backgroundColor: C.surface,
+    backgroundColor: COLORS.dictSurface,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: COLORS.dictBorder,
     gap: 6,
   },
   personalSection: {
@@ -392,13 +392,13 @@ const styles = StyleSheet.create({
   meaningSectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: C.purpleLight,
+    color: COLORS.gold,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   meaningSectionText: {
     fontSize: 14,
     lineHeight: 22,
-    color: C.sub,
+    color: COLORS.dictSub,
   },
 });

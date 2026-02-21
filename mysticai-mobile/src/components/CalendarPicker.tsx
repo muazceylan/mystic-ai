@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { COLORS } from '../constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -133,8 +134,13 @@ export default function CalendarPicker({
       <View style={styles.yearGrid}>
         <View style={styles.yearGridHeader}>
           <Text style={styles.yearGridTitle}>Yil Secin</Text>
-          <TouchableOpacity onPress={() => setShowYearGrid(false)}>
-            <Ionicons name="close" size={22} color="#7A7A7A" />
+        <TouchableOpacity
+            onPress={() => setShowYearGrid(false)}
+            accessibilityLabel="Yıl seçimini kapat"
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="close" size={22} color={COLORS.subtext} />
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -155,6 +161,8 @@ export default function CalendarPicker({
                     setShowYearGrid(false);
                     setShowMonthGrid(true);
                   }}
+                  accessibilityLabel={`${y} yılını seç`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.yearCellText, isCurrent && styles.yearCellTextSelected]}>
                     {y}
@@ -173,8 +181,13 @@ export default function CalendarPicker({
       <View style={styles.yearGrid}>
         <View style={styles.yearGridHeader}>
           <Text style={styles.yearGridTitle}>{viewYear} — Ay Seçin</Text>
-          <TouchableOpacity onPress={() => setShowMonthGrid(false)}>
-            <Ionicons name="close" size={22} color="#7A7A7A" />
+          <TouchableOpacity
+            onPress={() => setShowMonthGrid(false)}
+            accessibilityLabel="Ay seçimini kapat"
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="close" size={22} color={COLORS.subtext} />
           </TouchableOpacity>
         </View>
         <View style={styles.monthGridContainer}>
@@ -188,6 +201,8 @@ export default function CalendarPicker({
                   setViewMonth(idx);
                   setShowMonthGrid(false);
                 }}
+                accessibilityLabel={`${month} ayını seç`}
+                accessibilityRole="button"
               >
                 <Text style={[styles.monthCellText, isCurrent && styles.yearCellTextSelected]}>
                   {month}
@@ -204,20 +219,37 @@ export default function CalendarPicker({
     <View style={styles.container}>
       {/* Header: month/year + nav arrows */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={goToPrevMonth} style={styles.navButton}>
-          <Ionicons name="chevron-back" size={22} color="#1E1E1E" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={goToPrevMonth}
+            style={styles.navButton}
+            accessibilityLabel="Önceki ay"
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+          <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setShowYearGrid(true)} style={styles.monthYearButton}>
+        <TouchableOpacity
+          onPress={() => setShowYearGrid(true)}
+          style={styles.monthYearButton}
+          accessibilityLabel={`${MONTHS_TR[viewMonth]} ${viewYear} — ay ve yıl seç`}
+          accessibilityRole="button"
+        >
           <Text style={styles.monthYearText}>
             {MONTHS_TR[viewMonth]} {viewYear}
           </Text>
-          <Ionicons name="caret-down" size={14} color="#9D4EDD" />
+          <Ionicons name="caret-down" size={14} color={COLORS.primary} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={goToNextMonth} style={styles.navButton}>
-          <Ionicons name="chevron-forward" size={22} color="#1E1E1E" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={goToNextMonth}
+            style={styles.navButton}
+            accessibilityLabel="Sonraki ay"
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+          <Ionicons name="chevron-forward" size={22} color={COLORS.text} />
+          </TouchableOpacity>
       </View>
 
       {/* Day-of-week labels */}
@@ -245,6 +277,8 @@ export default function CalendarPicker({
                   onSelect(new Date(cell.year, cell.month, cell.day));
                 }
               }}
+              accessibilityLabel={cell.disabled ? undefined : `${cell.day} ${MONTHS_TR[cell.month]} ${cell.year} tarihini seç`}
+              accessibilityRole="button"
             >
               <View
                 style={[
@@ -296,7 +330,7 @@ const styles = StyleSheet.create({
   monthYearText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E1E1E',
+    color: COLORS.text,
   },
   weekRow: {
     flexDirection: 'row',
@@ -310,7 +344,7 @@ const styles = StyleSheet.create({
   weekLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#7A7A7A',
+    color: COLORS.subtext,
   },
   grid: {
     flexDirection: 'row',
@@ -330,29 +364,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayCircleSelected: {
-    backgroundColor: '#9D4EDD',
+    backgroundColor: COLORS.primary,
   },
   dayCircleToday: {
     borderWidth: 1.5,
-    borderColor: '#9D4EDD',
+    borderColor: COLORS.primary,
   },
   dayText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E1E1E',
+    color: COLORS.text,
   },
   dayTextOutside: {
-    color: '#D5D5D5',
+    color: COLORS.disabled,
   },
   dayTextDisabled: {
-    color: '#D5D5D5',
+    color: COLORS.disabled,
   },
   dayTextSelected: {
-    color: '#FFFFFF',
+    color: COLORS.surface,
     fontWeight: '700',
   },
   dayTextToday: {
-    color: '#9D4EDD',
+    color: COLORS.primary,
     fontWeight: '700',
   },
   // Year grid
@@ -368,7 +402,7 @@ const styles = StyleSheet.create({
   yearGridTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E1E1E',
+    color: COLORS.text,
   },
   yearGridScroll: {
     maxHeight: 300,
@@ -386,15 +420,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   yearCellSelected: {
-    backgroundColor: '#9D4EDD',
+    backgroundColor: COLORS.primary,
   },
   yearCellText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E1E1E',
+    color: COLORS.text,
   },
   yearCellTextSelected: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontWeight: '700',
   },
   // Month grid
@@ -410,11 +444,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E6E1EA',
+    borderColor: COLORS.border,
   },
   monthCellText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E1E1E',
+    color: COLORS.text,
   },
 });

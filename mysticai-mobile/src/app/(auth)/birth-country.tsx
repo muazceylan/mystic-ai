@@ -4,14 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { COUNTRIES } from '../../constants/index';
-
-const COLORS = {
-  background: '#FFFFFF',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  placeholder: '#B5B5B5',
-};
+import { COLORS } from '../../constants/colors';
 
 export default function BirthCountryScreen() {
   const store = useOnboardingStore();
@@ -30,17 +23,22 @@ export default function BirthCountryScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Lokasyon seç</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           <Ionicons name="close" size={22} color={COLORS.subtext} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color={COLORS.placeholder} />
+        <Ionicons name="search" size={18} color={COLORS.disabledText} />
         <TextInput
           style={styles.searchInput}
           placeholder="Ülke Seç"
-          placeholderTextColor={COLORS.placeholder}
+          placeholderTextColor={COLORS.disabledText}
           value={search}
           onChangeText={setSearch}
         />
@@ -51,7 +49,12 @@ export default function BirthCountryScreen() {
         keyExtractor={(item) => item.code}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.listItem} onPress={() => handleSelect(item)}>
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => handleSelect(item)}
+            accessibilityLabel={`${item.name} ülkesini seç`}
+            accessibilityRole="button"
+          >
             <Text style={styles.listItemText}>{item.name}</Text>
           </TouchableOpacity>
         )}
@@ -82,14 +85,14 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -104,7 +107,7 @@ const styles = StyleSheet.create({
   listItem: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
+    borderBottomColor: COLORS.border,
   },
   listItemText: {
     fontSize: 15,

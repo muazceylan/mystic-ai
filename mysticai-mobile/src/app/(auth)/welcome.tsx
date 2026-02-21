@@ -9,15 +9,7 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { socialLogin } from '../../services/auth';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  white: '#FFFFFF',
-};
+import { COLORS } from '../../constants/colors';
 
 export default function WelcomeScreen() {
   const storeLogin = useAuthStore((s) => s.login);
@@ -114,8 +106,10 @@ export default function WelcomeScreen() {
             style={[styles.socialButton, styles.appleButton]}
             onPress={handleAppleLogin}
             disabled={loading}
+            accessibilityLabel="Apple ile giriş yap"
+            accessibilityRole="button"
           >
-            <Ionicons name="logo-apple" size={22} color="#FFFFFF" style={styles.icon} />
+            <Ionicons name="logo-apple" size={22} color={COLORS.white} style={styles.icon} />
             <Text style={[styles.socialText, styles.appleText]}>Apple ile Giriş Yap</Text>
           </TouchableOpacity>
         )}
@@ -124,8 +118,10 @@ export default function WelcomeScreen() {
           style={styles.socialButton}
           onPress={handleGoogleLogin}
           disabled={loading}
+          accessibilityLabel="Google ile giriş yap"
+          accessibilityRole="button"
         >
-          <Ionicons name="logo-google" size={22} color="#EA4335" style={styles.icon} />
+          <Ionicons name="logo-google" size={22} color={COLORS.googleRed} style={styles.icon} />
           <Text style={styles.socialText}>Google ile Giriş Yap</Text>
         </TouchableOpacity>
 
@@ -139,6 +135,8 @@ export default function WelcomeScreen() {
           style={styles.emailButton}
           onPress={handleEmailLogin}
           disabled={loading}
+          accessibilityLabel="E-posta ile giriş yap"
+          accessibilityRole="button"
         >
           <Ionicons name="mail-outline" size={20} color={COLORS.primary} style={styles.icon} />
           <Text style={styles.emailButtonText}>E-posta ile Giriş Yap</Text>
@@ -153,7 +151,12 @@ export default function WelcomeScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Hesabın yok mu? </Text>
-        <TouchableOpacity onPress={handleRegister} disabled={loading}>
+        <TouchableOpacity
+          onPress={handleRegister}
+          disabled={loading}
+          accessibilityLabel="Kayıt ol"
+          accessibilityRole="button"
+        >
           <Text style={styles.footerLink}>Kayıt Ol</Text>
         </TouchableOpacity>
       </View>
@@ -198,8 +201,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   appleButton: {
-    backgroundColor: '#111111',
-    borderColor: '#111111',
+    backgroundColor: COLORS.appleBlack,
+    borderColor: COLORS.appleBlack,
   },
   icon: {
     position: 'absolute',

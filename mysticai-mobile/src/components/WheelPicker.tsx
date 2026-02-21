@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ViewToken } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
@@ -120,8 +121,8 @@ const styles = StyleSheet.create({
     height: ITEM_HEIGHT,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#E6E1EA',
-    backgroundColor: 'rgba(157, 78, 221, 0.06)',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.primarySoft,
     zIndex: 1,
   },
   item: {
@@ -131,14 +132,14 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 18,
     fontWeight: '500',
-    color: '#1E1E1E',
+    color: COLORS.text,
   },
   itemTextSelected: {
     fontWeight: '700',
-    color: '#9D4EDD',
+    color: COLORS.primary,
     fontSize: 20,
   },
   itemTextDimmed: {
-    color: '#B5B5B5',
+    color: COLORS.disabledText,
   },
 });

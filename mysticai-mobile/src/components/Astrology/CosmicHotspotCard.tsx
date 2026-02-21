@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { PlanetaryAspect } from '../../services/astrology.service';
 import { PLANET_TURKISH } from '../../constants/zodiac';
 import { getAspectHookText, isHarmoniousAspect } from '../../constants/aspect-glossary';
+import { COLORS } from '../../constants/colors';
 
 const PLANET_SYMBOLS: Record<string, string> = {
   Sun: '\u2609', Moon: '\u263D', Mercury: '\u263F', Venus: '\u2640',
@@ -21,7 +22,7 @@ interface Props {
 
 export default function CosmicHotspotCard({ aspect, index }: Props) {
   const harmonious = isHarmoniousAspect(aspect.type);
-  const glowColor = harmonious ? '#7C3AED' : '#C026D3';
+  const glowColor = harmonious ? COLORS.violet : COLORS.harmonious;
 
   // ── Pulse animation (border glow) ─────────────────────────────────
   const pulseAnim = useRef(new Animated.Value(0.2)).current;
@@ -114,13 +115,13 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 16,
     alignItems: 'center',
     gap: 6,
     borderWidth: 2,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   namesText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: COLORS.textDark,
     textAlign: 'center',
   },
   typeLabel: {
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   },
   hookText: {
     fontSize: 11,
-    color: '#64748B',
+    color: COLORS.textMuted,
     lineHeight: 16,
     textAlign: 'center',
     marginTop: 2,

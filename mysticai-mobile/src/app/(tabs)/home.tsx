@@ -32,18 +32,7 @@ import {
 } from '../../services/astrology.service';
 import { DailySecret, fetchDailySecret } from '../../services/oracle.service';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  accent: '#2E4A9C',
-  green: '#3FA46A',
-  red: '#C04A4A',
-};
+import { COLORS } from '../../constants/colors';
 
 const SERVICE_SLIDES = [
   { id: 'planner', title: 'Kozmik Planlayici', emoji: '📅' },
@@ -148,10 +137,10 @@ const SWOT_ITEMS: Array<{
   accent: string;
   surface: string;
 }> = [
-  { id: 'strength', title: 'ICSEL GUC', icon: '⚡', accent: '#7C4DFF', surface: '#F1EAFF' },
-  { id: 'opportunity', title: 'ALTIN FIRSAT', icon: '✨', accent: '#009F73', surface: '#E9F8F2' },
-  { id: 'threat', title: 'KRITIK UYARI', icon: '🚫', accent: '#E14B4B', surface: '#FFEDEF' },
-  { id: 'weakness', title: 'ENERJI KAYBI', icon: '⚠️', accent: '#E08A00', surface: '#FFF4E8' },
+  { id: 'strength', title: 'ICSEL GUC', icon: '⚡', accent: COLORS.violetLight, surface: COLORS.primarySoftBg },
+  { id: 'opportunity', title: 'ALTIN FIRSAT', icon: '✨', accent: COLORS.trine, surface: COLORS.successLight },
+  { id: 'threat', title: 'KRITIK UYARI', icon: '🚫', accent: COLORS.error, surface: COLORS.cautionBg },
+  { id: 'weakness', title: 'ENERJI KAYBI', icon: '⚠️', accent: COLORS.warning, surface: COLORS.neutralBg },
 ];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -576,10 +565,20 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              accessibilityLabel="Özellikler"
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Ionicons name="sparkles" size={18} color={COLORS.subtext} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              accessibilityLabel="Bildirimler"
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Ionicons name="notifications" size={18} color={COLORS.subtext} />
             </TouchableOpacity>
           </View>
@@ -596,9 +595,9 @@ export default function HomeScreen() {
                 styles.transitDot,
                 {
                   backgroundColor:
-                    transitDigest.energyType === 'lucky' ? '#11A773'
-                    : transitDigest.energyType === 'caution' ? '#C04A4A'
-                    : '#E08A00',
+                    transitDigest.energyType === 'lucky' ? COLORS.success
+                    : transitDigest.energyType === 'caution' ? COLORS.red
+                    : COLORS.warning,
                 },
               ]} />
               <Text style={styles.transitHeadline}>{transitDigest.title}</Text>
@@ -609,9 +608,9 @@ export default function HomeScreen() {
               styles.energyBand,
               {
                 backgroundColor:
-                  transitDigest.energyType === 'lucky' ? '#E6F7F1'
-                  : transitDigest.energyType === 'caution' ? '#FDECEA'
-                  : '#FFF4E0',
+                  transitDigest.energyType === 'lucky' ? COLORS.luckBg
+                  : transitDigest.energyType === 'caution' ? COLORS.cautionBg
+                  : COLORS.neutralBg,
               },
             ]}>
               <Text style={styles.energyBandIcon}>
@@ -621,9 +620,9 @@ export default function HomeScreen() {
                 styles.energyBandText,
                 {
                   color:
-                    transitDigest.energyType === 'lucky' ? '#0D6E49'
-                    : transitDigest.energyType === 'caution' ? '#7B2020'
-                    : '#7A4A00',
+                    transitDigest.energyType === 'lucky' ? COLORS.success
+                    : transitDigest.energyType === 'caution' ? COLORS.cautionTextDark
+                    : COLORS.warning,
                 },
               ]}>
                 {transitDigest.energyLabel}
@@ -650,11 +649,11 @@ export default function HomeScreen() {
             {/* Dikkat Noktaları */}
             {transitDigest.cautionItems.length > 0 && (
               <View style={[styles.transitDetailBox, styles.transitCautionBox]}>
-                <Text style={[styles.transitBoxLabel, { color: '#9B3232' }]}>⚠️ Dikkat Noktaları</Text>
+                <Text style={[styles.transitBoxLabel, { color: COLORS.cautionText }]}>⚠️ Dikkat Noktaları</Text>
                 {transitDigest.cautionItems.map((line) => (
                   <View key={line} style={styles.transitPointRow}>
-                    <Text style={[styles.transitPointMark, { color: '#9B3232' }]}>›</Text>
-                    <Text style={[styles.transitPointText, { color: '#5C1A1A' }]}>{line}</Text>
+                    <Text style={[styles.transitPointMark, { color: COLORS.cautionText }]}>›</Text>
+                    <Text style={[styles.transitPointText, { color: COLORS.cautionTextDark }]}>{line}</Text>
                   </View>
                 ))}
               </View>
@@ -681,6 +680,8 @@ export default function HomeScreen() {
                 if (item.id === 'natal') router.push('/(tabs)/natal-chart');
               }}
               style={styles.sliderCard}
+              accessibilityLabel={item.title}
+              accessibilityRole="button"
             >
               <Text style={styles.sliderEmoji}>{item.emoji}</Text>
               <Text style={styles.sliderText}>{item.title}</Text>
@@ -721,7 +722,12 @@ export default function HomeScreen() {
             <Text style={styles.skyPulseLoadingText}>Gokyuzu okunuyor...</Text>
           </View>
         ) : skyPulseError || !skyPulse ? (
-          <TouchableOpacity style={[styles.skyPulseCard, styles.skyPulseCenter]} onPress={loadSkyPulse}>
+          <TouchableOpacity
+            style={[styles.skyPulseCard, styles.skyPulseCenter]}
+            onPress={loadSkyPulse}
+            accessibilityLabel="Gökyüzü verisini tekrar yükle"
+            accessibilityRole="button"
+          >
             <Ionicons name="cloud-offline-outline" size={20} color={COLORS.subtext} />
             <Text style={styles.skyPulseLoadingText}>Gokyuzu verisi yuklenemedi</Text>
           </TouchableOpacity>
@@ -730,6 +736,8 @@ export default function HomeScreen() {
             activeOpacity={0.85}
             onPress={() => router.push('/(tabs)/calendar')}
             style={styles.skyPulseCard}
+            accessibilityLabel="Takvim ve ay fazı detayları"
+            accessibilityRole="button"
           >
             <View style={styles.skyPulseLeft}>
               <Animated.Text
@@ -768,7 +776,12 @@ export default function HomeScreen() {
               <Text style={styles.swotLoadingText}>SWOT analizi yukleniyor...</Text>
             </View>
           ) : weeklyError || !weeklySwot ? (
-            <TouchableOpacity style={styles.swotLoadingCard} onPress={loadWeeklySwot}>
+            <TouchableOpacity
+              style={styles.swotLoadingCard}
+              onPress={loadWeeklySwot}
+              accessibilityLabel="SWOT analizini tekrar yükle"
+              accessibilityRole="button"
+            >
               <Ionicons name="refresh" size={16} color={COLORS.primary} />
               <Text style={styles.swotLoadingText}>SWOT analizi alinmadi, tekrar dene</Text>
             </TouchableOpacity>
@@ -782,6 +795,8 @@ export default function HomeScreen() {
                   style={[styles.swotCard, { backgroundColor: item.surface, borderColor: `${item.accent}55` }]}
                   activeOpacity={0.85}
                   onPress={() => setExpandedSwotId((prev) => (prev === item.id ? null : item.id))}
+                  accessibilityLabel={`${item.title}: ${isExpanded ? 'kapat' : 'genişlet'}`}
+                  accessibilityRole="button"
                 >
                   <View style={styles.swotCardHeader}>
                     <View style={styles.swotCardHeadLeft}>
@@ -842,7 +857,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EFEAF7',
+    backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -864,7 +879,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#F1EEF6',
+    backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -873,7 +888,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontSize: 14,
     fontWeight: '600',
-    color: '#2E2E3D',
+    color: COLORS.text,
   },
   skyPulseCard: {
     marginHorizontal: 20,
@@ -931,8 +946,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#3C55A8',
-    shadowColor: '#2E4A9C',
+    borderColor: COLORS.accent,
+    shadowColor: COLORS.accent,
     shadowOpacity: 0.18,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
@@ -946,7 +961,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sliderText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -961,7 +976,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#D8D1E2',
+    backgroundColor: COLORS.border,
   },
   dotActive: {
     backgroundColor: COLORS.primary,
@@ -974,17 +989,17 @@ const styles = StyleSheet.create({
   transitSectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#5A4D6F',
+    color: COLORS.subtext,
     marginBottom: 8,
   },
   transitCard: {
-    backgroundColor: '#F5ECFF',
+    backgroundColor: COLORS.primarySoftBg,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: '#D0B2F0',
-    shadowColor: '#8F58D8',
+    borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 12,
@@ -1007,7 +1022,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
     fontWeight: '800',
-    color: '#235C4C',
+    color: COLORS.success,
   },
   energyBand: {
     flexDirection: 'row',
@@ -1030,7 +1045,7 @@ const styles = StyleSheet.create({
   transitDailyLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7E4BCF',
+    color: COLORS.primary,
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -1038,27 +1053,27 @@ const styles = StyleSheet.create({
   transitDailyText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#1F1F2A',
+    color: COLORS.text,
     marginBottom: 10,
   },
   transitDetailBox: {
-    backgroundColor: '#EDE0F8',
+    backgroundColor: COLORS.primarySoftBg,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#D0B8EA',
+    borderColor: COLORS.primary,
     gap: 6,
     marginBottom: 8,
   },
   transitCautionBox: {
-    backgroundColor: '#FDECEA',
-    borderColor: '#F5BFBF',
+    backgroundColor: COLORS.cautionBg,
+    borderColor: COLORS.error,
   },
   transitBoxLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5A2D8A',
+    color: COLORS.primary700,
     marginBottom: 4,
   },
   transitPointRow: {
@@ -1069,23 +1084,23 @@ const styles = StyleSheet.create({
     marginRight: 6,
     fontSize: 15,
     lineHeight: 22,
-    color: '#5A2D8A',
+    color: COLORS.primary700,
     fontWeight: '700',
   },
   transitPointText: {
     flex: 1,
     fontSize: 13,
     lineHeight: 20,
-    color: '#292934',
+    color: COLORS.text,
   },
   wisdomCard: {
     marginHorizontal: 20,
     marginTop: 10,
-    backgroundColor: '#FFF8EA',
+    backgroundColor: COLORS.neutralBg,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: '#F2D9A8',
+    borderColor: COLORS.warning,
   },
   wisdomHeader: {
     flexDirection: 'row',
@@ -1098,14 +1113,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#F0E6FF',
+    backgroundColor: COLORS.primarySoftBg,
     borderWidth: 1,
-    borderColor: '#D8C1F5',
+    borderColor: COLORS.primary,
   },
   wisdomBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#7E4BCF',
+    color: COLORS.primary,
   },
   wisdomTitle: {
     fontSize: 13,
@@ -1124,7 +1139,7 @@ const styles = StyleSheet.create({
   wisdomText: {
     fontSize: 21,
     fontWeight: '800',
-    color: '#362713',
+    color: COLORS.text,
     lineHeight: 30,
   },
   swotSection: {
@@ -1138,7 +1153,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   swotLoadingCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 14,
@@ -1153,9 +1168,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   swotCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1.2,
-    borderColor: '#DED4EC',
+    borderColor: COLORS.border,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -1184,18 +1199,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
     fontWeight: '700',
-    color: '#1E1E1E',
+    color: COLORS.text,
   },
   swotCardSub: {
     marginTop: 4,
     fontSize: 12,
-    color: '#5B5B68',
+    color: COLORS.subtext,
     lineHeight: 18,
   },
   swotCardBody: {
     marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#D7CCE8',
+    borderTopColor: COLORS.border,
     paddingTop: 10,
     gap: 6,
   },

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { COLORS } from '../constants/colors';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -39,12 +40,12 @@ export default function OnboardingProgressBar({
 const styles = StyleSheet.create({
   track: {
     height: 3,
-    backgroundColor: '#E6E1EA',
+    backgroundColor: COLORS.border,
     width: '100%',
   },
   fill: {
     height: '100%',
-    backgroundColor: '#9D4EDD',
+    backgroundColor: COLORS.primary,
     borderRadius: 1.5,
   },
 });

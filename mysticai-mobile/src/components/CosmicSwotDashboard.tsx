@@ -22,49 +22,40 @@ import {
   SwotPoint,
   fetchWeeklySwot,
 } from '../services/astrology.service';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  white: '#FFFFFF',
-};
+import { COLORS } from '../constants/colors';
 
 const SWOT_CONFIG = {
   STRENGTH: {
     emoji: '\u26A1',
     label: '\u0130\u00E7sel G\u00FC\u00E7',
-    color: '#7C3AED',
+    color: COLORS.violet,
     bgColor: 'rgba(124, 58, 237, 0.08)',
     borderColor: 'rgba(124, 58, 237, 0.20)',
-    barColor: '#7C3AED',
+    barColor: COLORS.swotStrength,
   },
   WEAKNESS: {
     emoji: '\u26A0\uFE0F',
     label: 'Enerji Kayb\u0131',
-    color: '#D97706',
+    color: COLORS.warning,
     bgColor: 'rgba(217, 119, 6, 0.08)',
     borderColor: 'rgba(217, 119, 6, 0.20)',
-    barColor: '#D97706',
+    barColor: COLORS.swotWeakness,
   },
   OPPORTUNITY: {
     emoji: '\u2728',
     label: 'Alt\u0131n F\u0131rsat',
-    color: '#059669',
+    color: COLORS.success,
     bgColor: 'rgba(5, 150, 105, 0.08)',
     borderColor: 'rgba(5, 150, 105, 0.20)',
-    barColor: '#059669',
+    barColor: COLORS.swotOpportunity,
   },
   THREAT: {
     emoji: '\uD83D\uDEAB',
     label: 'Kritik Uyar\u0131',
-    color: '#DC2626',
+    color: COLORS.error,
     bgColor: 'rgba(220, 38, 38, 0.08)',
     borderColor: 'rgba(220, 38, 38, 0.20)',
-    barColor: '#DC2626',
+    barColor: COLORS.swotThreat,
   },
 } as const;
 
@@ -122,6 +113,8 @@ function SwotCard({ point, category, index, onPress }: SwotCardProps) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onPress();
         }}
+        accessibilityLabel={`${config.label}: ${point.headline}`}
+        accessibilityRole="button"
       >
         <View style={styles.swotCardHeader}>
           <Text style={styles.swotEmoji}>{config.emoji}</Text>
@@ -190,7 +183,12 @@ export default function CosmicSwotDashboard({ userId, hasChart }: Props) {
         <View style={styles.stateCard}>
           <Ionicons name="alert-circle-outline" size={24} color={COLORS.primary} />
           <Text style={styles.stateText}>Haftal\u0131k enerji analizi y\u00FCklenemedi</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadSwot}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={loadSwot}
+            accessibilityLabel="Tekrar dene"
+            accessibilityRole="button"
+          >
             <Ionicons name="refresh" size={14} color={COLORS.primary} />
             <Text style={styles.retryText}>Tekrar dene</Text>
           </TouchableOpacity>
@@ -244,6 +242,8 @@ export default function CosmicSwotDashboard({ userId, hasChart }: Props) {
         <Pressable
           style={styles.modalOverlay}
           onPress={() => setTipModal({ visible: false, point: null, category: null })}
+          accessibilityLabel="Modal dışına tıkla kapat"
+          accessibilityRole="button"
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             {tipModal.point && tipModal.category && (
@@ -256,6 +256,8 @@ export default function CosmicSwotDashboard({ userId, hasChart }: Props) {
                 <TouchableOpacity
                   style={[styles.modalButton, { backgroundColor: SWOT_CONFIG[tipModal.category].color }]}
                   onPress={() => setTipModal({ visible: false, point: null, category: null })}
+                  accessibilityLabel="Anladım, kapat"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.modalButtonText}>Anlad\u0131m</Text>
                 </TouchableOpacity>
@@ -336,10 +338,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   flashAlertText: {
-    color: '#DC2626',
+    color: COLORS.error,
   },
   flashFortuneText: {
-    color: '#059669',
+    color: COLORS.success,
   },
   flashDetail: {
     fontSize: 11,

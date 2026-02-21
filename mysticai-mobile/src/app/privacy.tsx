@@ -2,15 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking } from 'r
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../components/OnboardingBackground';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-};
+import { COLORS } from '../constants/colors';
 
 const SECTIONS = [
   {
@@ -40,7 +32,12 @@ export default function PrivacyScreen() {
     <View style={styles.container}>
       <OnboardingBackground />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gizlilik Politikası</Text>
@@ -65,6 +62,8 @@ export default function PrivacyScreen() {
         <TouchableOpacity
           style={styles.linkBtn}
           onPress={() => Linking.openURL('mailto:destek@mystic.ai')}
+          accessibilityLabel="E-posta ile iletişim"
+          accessibilityRole="link"
         >
           <Ionicons name="mail-outline" size={16} color={COLORS.primary} />
           <Text style={styles.linkBtnText}>destek@mystic.ai</Text>
@@ -88,7 +87,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

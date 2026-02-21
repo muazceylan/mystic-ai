@@ -52,7 +52,12 @@ export default function BirthTimeScreen() {
           Dogum saatiniz yukselen burcunuzu bulmam icin onemlidir.
         </Text>
 
-        <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setShowPicker(true)}
+          accessibilityLabel="Doğum saati seç"
+          accessibilityRole="button"
+        >
           <Text style={[styles.inputText, displayValue === 'SS:DD' && styles.placeholder]}>
             {displayValue}
           </Text>
@@ -65,6 +70,9 @@ export default function BirthTimeScreen() {
 
         <TouchableOpacity
           style={styles.link}
+          accessibilityLabel="Doğum saatimi bilmiyorum"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: store.birthTimeUnknown }}
           onPress={() => {
             const nextValue = !store.birthTimeUnknown;
             store.setBirthTimeUnknown(nextValue);
@@ -83,11 +91,18 @@ export default function BirthTimeScreen() {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.outlineButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={() => router.back()}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Text style={styles.outlineText}>Geri</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
+          accessibilityLabel="Devam et"
+          accessibilityRole="button"
           disabled={!canContinue}
           onPress={() => router.push('/birth-country')}
         >
@@ -157,6 +172,8 @@ export default function BirthTimeScreen() {
               <TouchableOpacity
                 style={styles.modalTextButton}
                 onPress={() => setShowPicker(false)}
+                accessibilityLabel="İptal"
+                accessibilityRole="button"
               >
                 <Text style={styles.modalTextButtonLabel}>Iptal</Text>
               </TouchableOpacity>
@@ -164,6 +181,8 @@ export default function BirthTimeScreen() {
                 style={[styles.modalTextButton, !isValidInput() && styles.modalTextButtonDisabled]}
                 onPress={handleConfirm}
                 disabled={!isValidInput()}
+                accessibilityLabel="Saati onayla"
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -207,7 +226,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -247,7 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   outlineText: {
     color: COLORS.primary,
@@ -265,7 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.disabled,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -281,11 +300,11 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 28,
     overflow: 'hidden',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.15,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
@@ -310,7 +329,7 @@ const styles = StyleSheet.create({
   },
   modalDivider: {
     height: 1,
-    backgroundColor: '#E6E1EA',
+    backgroundColor: COLORS.border,
   },
   timeInputRow: {
     flexDirection: 'row',
@@ -332,7 +351,7 @@ const styles = StyleSheet.create({
   timeInput: {
     width: 80,
     height: 64,
-    backgroundColor: '#F5F0FA',
+    backgroundColor: COLORS.surfaceAlt,
     borderRadius: 12,
     fontSize: 32,
     fontWeight: '700',

@@ -19,6 +19,7 @@ import {
   getAspectHookText,
   isHarmoniousAspect,
 } from '../../constants/aspect-glossary';
+import { COLORS } from '../../constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -81,7 +82,7 @@ export default function AspectBottomSheet({
 
   const glossary = ASPECT_GLOSSARY[aspect.type];
   const harmonious = isHarmoniousAspect(aspect.type);
-  const accentColor = harmonious ? '#7C3AED' : '#C026D3';
+  const accentColor = harmonious ? COLORS.violet : COLORS.harmonious;
 
   const p1Sym = PLANET_SYMBOLS[aspect.planet1] ?? '?';
   const p2Sym = PLANET_SYMBOLS[aspect.planet2] ?? '?';
@@ -95,7 +96,11 @@ export default function AspectBottomSheet({
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.container}>
-        <TouchableWithoutFeedback onPress={onClose}>
+        <TouchableWithoutFeedback
+          onPress={onClose}
+          accessibilityLabel="Arka plana tıkla kapat"
+          accessibilityRole="button"
+        >
           <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
         </TouchableWithoutFeedback>
 
@@ -159,6 +164,8 @@ export default function AspectBottomSheet({
             <TouchableOpacity
               style={[styles.closeButton, { backgroundColor: accentColor }]}
               onPress={onClose}
+              accessibilityLabel="Kapat"
+              accessibilityRole="button"
             >
               <Text style={styles.closeButtonText}>Kapat</Text>
             </TouchableOpacity>
@@ -179,7 +186,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: SCREEN_HEIGHT * 0.78,
@@ -192,7 +199,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: COLORS.borderLight,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 16,
@@ -217,11 +224,11 @@ const styles = StyleSheet.create({
   typeTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1E293B',
+    color: COLORS.textSlate,
   },
   angleText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: COLORS.muted,
   },
   section: {
     marginBottom: 16,
@@ -233,7 +240,7 @@ const styles = StyleSheet.create({
   },
   sectionText: {
     fontSize: 13,
-    color: '#64748B',
+    color: COLORS.textMuted,
     lineHeight: 20,
   },
   hookSection: {
@@ -248,7 +255,7 @@ const styles = StyleSheet.create({
   },
   hookText: {
     fontSize: 13,
-    color: '#334155',
+    color: COLORS.textDark,
     lineHeight: 20,
   },
   closeButton: {
@@ -260,6 +267,6 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
 });

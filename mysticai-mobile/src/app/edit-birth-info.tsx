@@ -21,18 +21,7 @@ import CalendarPicker from '../components/CalendarPicker';
 import { updateProfile } from '../services/auth';
 import { calculateNatalChart } from '../services/astrology.service';
 import { getZodiacSign } from '../constants/index';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-  error: '#E54B4B',
-};
+import { COLORS } from '../constants/colors';
 
 const TURKISH_MONTHS = [
   'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -124,7 +113,12 @@ export default function EditBirthInfoScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Doğum Bilgileri</Text>
@@ -138,7 +132,12 @@ export default function EditBirthInfoScreen() {
 
         {/* Birth Date */}
         <Text style={styles.label}>Doğum Tarihi</Text>
-        <TouchableOpacity style={styles.inputRow} onPress={() => setShowDatePicker(true)}>
+        <TouchableOpacity
+          style={styles.inputRow}
+          onPress={() => setShowDatePicker(true)}
+          accessibilityLabel="Doğum tarihi seç"
+          accessibilityRole="button"
+        >
           <Ionicons
             name="calendar-outline"
             size={20}
@@ -155,6 +154,8 @@ export default function EditBirthInfoScreen() {
         <TouchableOpacity
           style={[styles.inputRow, birthTimeUnknown && styles.inputRowDisabled]}
           onPress={() => !birthTimeUnknown && setShowTimePicker(true)}
+          accessibilityLabel="Doğum saati seç"
+          accessibilityRole="button"
         >
           <Ionicons
             name="time-outline"
@@ -171,6 +172,9 @@ export default function EditBirthInfoScreen() {
         <TouchableOpacity
           style={styles.checkRow}
           onPress={() => setBirthTimeUnknown((v) => !v)}
+          accessibilityLabel="Doğum saatimi bilmiyorum"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: birthTimeUnknown }}
         >
           <Ionicons
             name={birthTimeUnknown ? 'checkbox' : 'square-outline'}
@@ -203,9 +207,11 @@ export default function EditBirthInfoScreen() {
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
+            accessibilityLabel="Değişiklikleri kaydet"
+            accessibilityRole="button"
           >
             {saving ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={COLORS.white} size="small" />
             ) : (
               <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
             )}
@@ -237,12 +243,16 @@ export default function EditBirthInfoScreen() {
               <TouchableOpacity
                 style={styles.modalTextBtn}
                 onPress={() => setShowDatePicker(false)}
+                accessibilityLabel="İptal"
+                accessibilityRole="button"
               >
                 <Text style={styles.modalTextBtnLabel}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalTextBtn, !tempDate && { opacity: 0.4 }]}
                 disabled={!tempDate}
+                accessibilityLabel="Tarihi onayla"
+                accessibilityRole="button"
                 onPress={() => {
                   if (tempDate) setBirthDate(tempDate);
                   setShowDatePicker(false);
@@ -301,12 +311,16 @@ export default function EditBirthInfoScreen() {
               <TouchableOpacity
                 style={styles.modalTextBtn}
                 onPress={() => setShowTimePicker(false)}
+                accessibilityLabel="İptal"
+                accessibilityRole="button"
               >
                 <Text style={styles.modalTextBtnLabel}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalTextBtn, !isTimeValid() && { opacity: 0.4 }]}
                 disabled={!isTimeValid()}
+                accessibilityLabel="Saati onayla"
+                accessibilityRole="button"
                 onPress={() => {
                   const h = parseInt(tempHour, 10);
                   const m = parseInt(tempMinute, 10);
@@ -338,7 +352,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -371,7 +385,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -402,7 +416,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  saveButtonText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
   // Modal
   modalOverlay: {
     flex: 1,
@@ -413,12 +427,12 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 28,
     overflow: 'hidden',
     maxHeight: '85%',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.15,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
@@ -457,7 +471,7 @@ const styles = StyleSheet.create({
   timeInput: {
     width: 80,
     height: 64,
-    backgroundColor: '#F5F0FA',
+    backgroundColor: COLORS.surfaceAlt,
     borderRadius: 12,
     fontSize: 32,
     fontWeight: '700',

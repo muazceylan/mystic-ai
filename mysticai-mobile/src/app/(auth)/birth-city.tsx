@@ -6,16 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { CITIES, COUNTRIES, DISTRICTS } from '../../constants/index';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-};
+import { COLORS } from '../../constants/colors';
 
 type ScreenView = 'city-list' | 'district-list' | 'summary';
 
@@ -82,7 +73,12 @@ export default function BirthCityScreen() {
       <View style={listStyles.container}>
         <View style={listStyles.header}>
           <Text style={listStyles.headerTitle}>Şehir Seç</Text>
-          <TouchableOpacity onPress={handleCloseCityList}>
+          <TouchableOpacity
+            onPress={handleCloseCityList}
+            accessibilityLabel="Kapat"
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Ionicons name="close" size={22} color={COLORS.subtext} />
           </TouchableOpacity>
         </View>
@@ -100,7 +96,12 @@ export default function BirthCityScreen() {
             autoFocus
           />
           {citySearch.length > 0 && (
-            <TouchableOpacity onPress={() => setCitySearch('')}>
+            <TouchableOpacity
+              onPress={() => setCitySearch('')}
+              accessibilityLabel="Aramayı temizle"
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Ionicons name="close" size={18} color={COLORS.disabledText} />
             </TouchableOpacity>
           )}
@@ -111,7 +112,12 @@ export default function BirthCityScreen() {
           keyExtractor={(item) => item.name}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity style={listStyles.listItem} onPress={() => handleCitySelect(item)}>
+            <TouchableOpacity
+              style={listStyles.listItem}
+              onPress={() => handleCitySelect(item)}
+              accessibilityLabel={`${item.name} şehrini seç`}
+              accessibilityRole="button"
+            >
               <Text style={listStyles.listItemText}>{item.name}</Text>
               <Ionicons name="chevron-forward" size={16} color={COLORS.disabledText} />
             </TouchableOpacity>
@@ -127,13 +133,22 @@ export default function BirthCityScreen() {
     return (
       <View style={listStyles.container}>
         <View style={listStyles.header}>
-          <TouchableOpacity onPress={() => setView('city-list')} style={{ padding: 2 }}>
+          <TouchableOpacity
+            onPress={() => setView('city-list')}
+            style={{ padding: 2 }}
+            accessibilityLabel="Şehir listesine dön"
+            accessibilityRole="button"
+          >
             <Ionicons name="arrow-back" size={22} color={COLORS.primary} />
           </TouchableOpacity>
           <Text style={[listStyles.headerTitle, { flex: 1, marginLeft: 8 }]}>
             {pendingCity?.name} — İlçe Seç
           </Text>
-          <TouchableOpacity onPress={handleSkipDistrict}>
+            <TouchableOpacity
+              onPress={handleSkipDistrict}
+              accessibilityLabel="İlçe seçmeden atla"
+              accessibilityRole="button"
+            >
             <Text style={listStyles.skipText}>Atla</Text>
           </TouchableOpacity>
         </View>
@@ -149,7 +164,12 @@ export default function BirthCityScreen() {
             autoFocus
           />
           {districtSearch.length > 0 && (
-            <TouchableOpacity onPress={() => setDistrictSearch('')}>
+            <TouchableOpacity
+              onPress={() => setDistrictSearch('')}
+              accessibilityLabel="Aramayı temizle"
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Ionicons name="close" size={18} color={COLORS.disabledText} />
             </TouchableOpacity>
           )}
@@ -160,7 +180,12 @@ export default function BirthCityScreen() {
           keyExtractor={(item) => item}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity style={listStyles.listItem} onPress={() => handleDistrictSelect(item)}>
+            <TouchableOpacity
+              style={listStyles.listItem}
+              onPress={() => handleDistrictSelect(item)}
+              accessibilityLabel={`${item} ilçesini seç`}
+              accessibilityRole="button"
+            >
               <Text style={listStyles.listItemText}>{item}</Text>
             </TouchableOpacity>
           )}
@@ -230,7 +255,7 @@ export default function BirthCityScreen() {
 const listStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     paddingHorizontal: 20,
     paddingTop: 18,
   },
@@ -254,14 +279,14 @@ const listStyles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -287,7 +312,7 @@ const listStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
+    borderBottomColor: COLORS.border,
   },
   listItemText: {
     fontSize: 15,
@@ -325,7 +350,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -363,7 +388,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   outlineText: {
     color: COLORS.primary,
@@ -381,7 +406,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.disabled,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '600',
   },

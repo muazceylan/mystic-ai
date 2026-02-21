@@ -14,18 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useAuthStore } from '../../store/useAuthStore';
 import { login as loginApi } from '../../services/auth';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  error: '#E54B4B',
-  white: '#FFFFFF',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-};
+import { COLORS } from '../../constants/colors';
 
 export default function LoginScreen() {
   const storeLogin = useAuthStore((s) => s.login);
@@ -67,7 +56,12 @@ export default function LoginScreen() {
     >
       <OnboardingBackground />
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+        accessibilityLabel="Geri dön"
+        accessibilityRole="button"
+      >
         <Ionicons name="arrow-back" size={24} color={COLORS.text} />
       </TouchableOpacity>
 
@@ -104,6 +98,9 @@ export default function LoginScreen() {
             <TouchableOpacity
               style={styles.eyeButton}
               onPress={() => setShowPassword(!showPassword)}
+              accessibilityLabel={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons
                 name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -115,7 +112,12 @@ export default function LoginScreen() {
 
           {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
-          <TouchableOpacity style={styles.forgotPassword} disabled>
+          <TouchableOpacity
+            style={styles.forgotPassword}
+            disabled
+            accessibilityLabel="Şifreni mi unuttun?"
+            accessibilityRole="button"
+          >
             <Text style={styles.forgotPasswordText}>Şifreni mi unuttun?</Text>
           </TouchableOpacity>
 
@@ -123,9 +125,11 @@ export default function LoginScreen() {
             style={[styles.loginButton, (!isFormValid || loading) && styles.loginButtonDisabled]}
             disabled={!isFormValid || loading}
             onPress={handleLogin}
+            accessibilityLabel="Giriş yap"
+            accessibilityRole="button"
           >
             {loading ? (
-              <ActivityIndicator color={COLORS.white} />
+              <ActivityIndicator color={COLORS.surface} />
             ) : (
               <Text
                 style={[

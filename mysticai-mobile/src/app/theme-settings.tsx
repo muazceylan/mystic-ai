@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../components/OnboardingBackground';
+import { COLORS } from '../constants/colors';
 
 const THEMES: { id: ThemeMode; titleKey: string; subtitleKey: string; icon: string }[] = [
   { id: 'light', titleKey: 'theme.light',  subtitleKey: 'theme.lightDesc',  icon: 'sunny-outline' },
@@ -27,7 +28,12 @@ export default function ThemeSettingsScreen() {
     <View style={S.container}>
       <OnboardingBackground />
       <View style={S.header}>
-        <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={S.backBtn}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={S.headerTitle}>{t('theme.title')}</Text>
@@ -44,6 +50,8 @@ export default function ThemeSettingsScreen() {
               <TouchableOpacity
                 key={theme.id}
                 style={[S.row, index > 0 && S.rowBorder]}
+                accessibilityLabel={`${theme.name} temasını seç`}
+                accessibilityRole="button"
                 onPress={() => handleSelect(theme.id)}
                 activeOpacity={0.7}
               >
@@ -52,7 +60,7 @@ export default function ThemeSettingsScreen() {
                     <Ionicons
                       name={theme.icon as any}
                       size={18}
-                      color={isSelected ? '#FFFFFF' : colors.primary}
+                      color={isSelected ? COLORS.white : colors.primary}
                     />
                   </View>
                   <View>

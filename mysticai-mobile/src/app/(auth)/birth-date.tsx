@@ -44,7 +44,12 @@ export default function BirthDateScreen() {
           Sizi analiz edebilmem icin dogum tarihinizi giriniz
         </Text>
 
-        <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setShowPicker(true)}
+          accessibilityLabel="Doğum tarihi seç"
+          accessibilityRole="button"
+        >
           <Ionicons name="calendar-outline" size={20} color={store.birthDate ? COLORS.primary : COLORS.disabledText} />
           <Text style={[styles.inputText, !store.birthDate && styles.placeholder]}>
             {store.birthDate ? formatDate(store.birthDate) : 'Tarih secin'}
@@ -58,11 +63,18 @@ export default function BirthDateScreen() {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.outlineButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={() => router.back()}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Text style={styles.outlineText}>Geri</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
+          accessibilityLabel="Devam et"
+          accessibilityRole="button"
           disabled={!canContinue}
           onPress={() => canContinue && router.push('/birth-time')}
         >
@@ -107,6 +119,8 @@ export default function BirthDateScreen() {
               <TouchableOpacity
                 style={styles.modalTextButton}
                 onPress={() => setShowPicker(false)}
+                accessibilityLabel="İptal"
+                accessibilityRole="button"
               >
                 <Text style={styles.modalTextButtonLabel}>Iptal</Text>
               </TouchableOpacity>
@@ -114,6 +128,8 @@ export default function BirthDateScreen() {
                 style={[styles.modalTextButton, !tempDate && styles.modalTextButtonDisabled]}
                 onPress={handleConfirm}
                 disabled={!tempDate}
+                accessibilityLabel="Tarihi onayla"
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -157,7 +173,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
@@ -187,7 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   outlineText: {
     color: COLORS.primary,
@@ -205,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.disabled,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -222,12 +238,12 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 28,
     overflow: 'hidden',
     maxHeight: '85%',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.15,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
@@ -252,7 +268,7 @@ const styles = StyleSheet.create({
   },
   modalDivider: {
     height: 1,
-    backgroundColor: '#E6E1EA',
+    backgroundColor: COLORS.border,
   },
   calendarScroll: {
     paddingHorizontal: 16,

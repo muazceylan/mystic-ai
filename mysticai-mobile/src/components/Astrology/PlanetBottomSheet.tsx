@@ -18,6 +18,7 @@ import {
   HOUSE_GLOSSARY,
   CONCEPT_GLOSSARY,
 } from '../../constants/astrology-glossary';
+import { COLORS } from '../../constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -82,7 +83,11 @@ export default function PlanetBottomSheet({
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.container}>
-        <TouchableWithoutFeedback onPress={onClose}>
+        <TouchableWithoutFeedback
+          onPress={onClose}
+          accessibilityLabel="Arka plana tıkla kapat"
+          accessibilityRole="button"
+        >
           <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
         </TouchableWithoutFeedback>
 
@@ -147,7 +152,7 @@ export default function PlanetBottomSheet({
           {/* Retrograde explanation */}
           {planet.retrograde && (
             <View style={styles.retroSection}>
-              <Ionicons name="arrow-undo" size={14} color="#E09732" />
+              <Ionicons name="arrow-undo" size={14} color={COLORS.amber} />
               <Text style={styles.retroExplanation}>
                 {CONCEPT_GLOSSARY.retrograde.longDesc}
               </Text>
@@ -155,7 +160,12 @@ export default function PlanetBottomSheet({
           )}
 
           {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            accessibilityLabel="Kapat"
+            accessibilityRole="button"
+          >
             <Text style={styles.closeButtonText}>Kapat</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -174,7 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -185,7 +195,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: COLORS.borderLight,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 16,
@@ -207,11 +217,11 @@ const styles = StyleSheet.create({
   planetTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: COLORS.textSlate,
   },
   planetSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   badges: {
@@ -227,7 +237,7 @@ const styles = StyleSheet.create({
   houseBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: COLORS.violetLight,
   },
   retroBadge: {
     backgroundColor: 'rgba(245,158,11,0.12)',
@@ -238,11 +248,11 @@ const styles = StyleSheet.create({
   retroBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: COLORS.amber,
   },
   personalizedText: {
     fontSize: 15,
-    color: '#334155',
+    color: COLORS.textDark,
     lineHeight: 23,
     marginBottom: 16,
   },
@@ -252,12 +262,12 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8B5CF6',
+    color: COLORS.violetLight,
     marginBottom: 4,
   },
   sectionText: {
     fontSize: 13,
-    color: '#64748B',
+    color: COLORS.textMuted,
     lineHeight: 20,
   },
   retroSection: {
@@ -272,19 +282,19 @@ const styles = StyleSheet.create({
   retroExplanation: {
     flex: 1,
     fontSize: 12,
-    color: '#64748B',
+    color: COLORS.textMuted,
     lineHeight: 18,
   },
   closeButton: {
     alignItems: 'center',
     paddingVertical: 14,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: COLORS.violetLight,
     borderRadius: 24,
     marginTop: 4,
   },
   closeButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
 });

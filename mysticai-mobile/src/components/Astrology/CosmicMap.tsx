@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { PlanetPosition } from '../../services/astrology.service';
 import { getZodiacInfo, PLANET_TURKISH } from '../../constants/zodiac';
+import { COLORS } from '../../constants/colors';
 
 const PLANET_EMOJIS: Record<string, string> = {
   Sun: '☀️',
@@ -63,6 +64,8 @@ export default function CosmicMap({ planets, onPlanetPress }: CosmicMapProps) {
             <TouchableOpacity
               style={styles.card}
               onPress={() => onPlanetPress(planet)}
+              accessibilityLabel={`${PLANET_TURKISH[planet] ?? planet} detaylarını aç`}
+              accessibilityRole="button"
               activeOpacity={0.7}
             >
               {/* Left: Planet emoji + name */}
@@ -107,18 +110,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: COLORS.textSlate,
     marginBottom: 8,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#F1F0F5',
-    shadowColor: '#000',
+    borderColor: COLORS.borderMuted,
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -136,7 +139,7 @@ const styles = StyleSheet.create({
   planetName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: COLORS.textSlate,
   },
   cardCenter: {
     flex: 1,
@@ -145,11 +148,11 @@ const styles = StyleSheet.create({
   signText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: COLORS.violetLight,
   },
   degreeText: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: COLORS.muted,
     marginTop: 2,
   },
   cardRight: {
@@ -168,7 +171,7 @@ const styles = StyleSheet.create({
   houseBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#8B5CF6',
+    color: COLORS.violetLight,
   },
   retroBadge: {
     backgroundColor: 'rgba(245,158,11,0.12)',
@@ -179,6 +182,6 @@ const styles = StyleSheet.create({
   retroText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: COLORS.amber,
   },
 });

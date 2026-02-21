@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import OnboardingProgressBar from '../../components/OnboardingProgressBar';
+import { COLORS } from '../../constants/colors';
 
 const ONBOARDING_STEPS = [
   'email-register',
@@ -32,7 +33,7 @@ export default function AuthLayout() {
     <>
       <StatusBar style="dark" />
       {stepInfo && (
-        <View style={{ paddingTop: insets.top, backgroundColor: '#F9F7FB' }}>
+        <View style={{ paddingTop: insets.top, backgroundColor: COLORS.background }}>
           <OnboardingProgressBar
             currentStep={stepInfo.current}
             totalSteps={stepInfo.total}
@@ -43,7 +44,7 @@ export default function AuthLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: {
-            backgroundColor: '#F9F7FB',
+            backgroundColor: COLORS.background,
           },
           animation: 'slide_from_right',
           animationDuration: 250,

@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/useAuthStore';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { getZodiacSign } from '../../constants/index';
+import { COLORS } from '../../constants/colors';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
 
@@ -35,7 +36,7 @@ const SETTINGS_ITEMS = [
 ] as const;
 
 function StatSkeleton() {
-  return <View style={{ width: 36, height: 24, borderRadius: 6, backgroundColor: '#EDE8F5', marginBottom: 4 }} />;
+  return <View style={{ width: 36, height: 24, borderRadius: 6, backgroundColor: COLORS.surfaceAlt, marginBottom: 4 }} />;
 }
 
 function getZodiacFromBirthDate(birthDate?: string): string {
@@ -179,6 +180,8 @@ export default function ProfileScreen() {
             </View>
             <TouchableOpacity
               style={S.upgradeButton}
+              accessibilityLabel="Premium'a yükselt"
+              accessibilityRole="button"
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/premium' as any); }}
             >
               <Text style={S.upgradeButtonText}>{t('profile.premium.upgradeBtn')}</Text>
@@ -194,6 +197,8 @@ export default function ProfileScreen() {
               key={item.id}
               style={[S.settingsItem, index > 0 && S.settingsItemBorder]}
               onPress={() => handleSettingPress(item.route)}
+              accessibilityLabel={t(item.titleKey)}
+              accessibilityRole="button"
               activeOpacity={0.7}
             >
               <View style={S.settingsRow}>
@@ -208,7 +213,13 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── Logout ── */}
-        <TouchableOpacity style={S.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={S.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+          accessibilityLabel="Çıkış yap"
+          accessibilityRole="button"
+        >
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />
           <Text style={S.logoutText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
@@ -288,7 +299,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       backgroundColor: C.gold, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 8,
     },
-    upgradeButtonText: { color: '#1E1E1E', fontSize: 12, fontWeight: '700' },
+    upgradeButtonText: { color: COLORS.text, fontSize: 12, fontWeight: '700' },
     // Logout
     logoutButton: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

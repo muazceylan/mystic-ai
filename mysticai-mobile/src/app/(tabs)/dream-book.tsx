@@ -24,26 +24,12 @@ import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useDreamStore } from '../../store/useDreamStore';
 import type { DreamEntryResponse } from '../../services/dream.service';
+import { COLORS } from '../../constants/colors';
 
 const MONTHS_TR = [
   '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
 ];
-
-const C = {
-  bg: '#F9F7FB',
-  bgGrad1: '#EDE9F5',
-  surface: '#FFFFFF',
-  gold: '#8C6F1A',
-  goldLight: '#B8941F',
-  purple: '#9D4EDD',
-  purpleLight: '#C784F7',
-  white: '#1E1E1E',
-  sub: '#7A7A7A',
-  border: '#E6E1EA',
-  green: '#3FA46A',
-  orange: '#C86400',
-};
 
 export default function DreamBookScreen() {
   const user = useAuthStore(s => s.user);
@@ -156,7 +142,7 @@ export default function DreamBookScreen() {
   });
 
   return (
-    <LinearGradient colors={[C.bg, C.bgGrad1]} style={styles.root}>
+    <LinearGradient colors={[COLORS.background, COLORS.surfaceMuted]} style={styles.root}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <Animated.View entering={FadeIn.duration(600)} style={styles.headerBlock}>
@@ -167,18 +153,25 @@ export default function DreamBookScreen() {
 
         {/* Month Picker */}
         <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.monthPicker}>
-          <TouchableOpacity onPress={prevMonth} style={styles.monthArrow}>
-            <Ionicons name="chevron-back" size={20} color={C.gold} />
+          <TouchableOpacity
+            onPress={prevMonth}
+            style={styles.monthArrow}
+            accessibilityLabel="Önceki ay"
+            accessibilityRole="button"
+          >
+            <Ionicons name="chevron-back" size={20} color={COLORS.goldDark} />
           </TouchableOpacity>
           <Text style={styles.monthLabel}>{yearMonthLabel}</Text>
           <TouchableOpacity
             onPress={nextMonth}
             style={[styles.monthArrow, !isCurrentOrPast && styles.monthArrowDisabled]}
+            accessibilityLabel="Sonraki ay"
+            accessibilityRole="button"
           >
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={isCurrentOrPast ? C.gold : C.sub}
+              color={isCurrentOrPast ? COLORS.goldDark : COLORS.subtext}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -187,7 +180,7 @@ export default function DreamBookScreen() {
         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.storyCard}>
           {storyLoading || generating ? (
             <View style={styles.loadingBlock}>
-              <ActivityIndicator size="large" color={C.purple} />
+              <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={styles.loadingText}>
                 {generating ? 'Hikâye yazılıyor...' : 'Yükleniyor...'}
               </Text>
@@ -197,7 +190,7 @@ export default function DreamBookScreen() {
             </View>
           ) : isPending ? (
             <View style={styles.loadingBlock}>
-              <ActivityIndicator size="large" color={C.gold} />
+              <ActivityIndicator size="large" color={COLORS.goldDark} />
               <Text style={styles.loadingText}>Yapay zeka yazıyor...</Text>
               <Text style={styles.loadingSubText}>
                 Birkaç saniye daha, bilinçaltı imgeleriniz sıraya diziliyor...
@@ -221,7 +214,7 @@ export default function DreamBookScreen() {
 
               {/* Dream count badge */}
               <View style={styles.countBadge}>
-                <Ionicons name="moon-outline" size={13} color={C.gold} />
+                <Ionicons name="moon-outline" size={13} color={COLORS.goldDark} />
                 <Text style={styles.countText}>{monthlyStory.dreamCount} rüya • {yearMonthLabel}</Text>
               </View>
 
@@ -234,19 +227,23 @@ export default function DreamBookScreen() {
                   style={styles.refreshBtn}
                   onPress={handleRefresh}
                   disabled={refreshing}
+                  accessibilityLabel="Hikâyeyi yenile"
+                  accessibilityRole="button"
                 >
                   {refreshing
-                    ? <ActivityIndicator size="small" color={C.purple} />
-                    : <Ionicons name="refresh-outline" size={18} color={C.purple} />}
+                    ? <ActivityIndicator size="small" color={COLORS.primary} />
+                    : <Ionicons name="refresh-outline" size={18} color={COLORS.primary} />}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.exportBtn, { flex: 1 }]}
                   onPress={handleExportPdf}
                   disabled={pdfExporting}
+                  accessibilityLabel="PDF olarak indir"
+                  accessibilityRole="button"
                 >
                   {pdfExporting
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <Ionicons name="download-outline" size={16} color="#fff" />}
+                    ? <ActivityIndicator size="small" color={COLORS.white} />
+                    : <Ionicons name="download-outline" size={16} color={COLORS.white} />}
                   <Text style={styles.exportBtnText}>
                     {pdfExporting ? 'PDF Hazırlanıyor...' : 'PDF Olarak İndir'}
                   </Text>
@@ -260,8 +257,14 @@ export default function DreamBookScreen() {
               <Text style={styles.emptySub}>
                 Bu aya ait rüyalar kaydedildiğinde aylık hikâyen yazılabilir.
               </Text>
-              <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} disabled={storyLoading}>
-                <Ionicons name="sparkles" size={15} color="#fff" />
+              <TouchableOpacity
+                style={styles.generateBtn}
+                onPress={handleGenerate}
+                disabled={storyLoading}
+                accessibilityLabel="Hikâyeyi oluştur"
+                accessibilityRole="button"
+              >
+                <Ionicons name="sparkles" size={15} color={COLORS.white} />
                 <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
               </TouchableOpacity>
             </View>
@@ -277,10 +280,12 @@ export default function DreamBookScreen() {
                 style={styles.generateBtn}
                 onPress={handleGenerate}
                 disabled={generating || storyLoading}
+                accessibilityLabel="Hikâyeyi oluştur"
+                accessibilityRole="button"
               >
                 {generating
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <Ionicons name="sparkles" size={15} color="#fff" />}
+                  ? <ActivityIndicator size="small" color={COLORS.white} />
+                  : <Ionicons name="sparkles" size={15} color={COLORS.white} />}
                 <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
               </TouchableOpacity>
             </View>
@@ -289,7 +294,7 @@ export default function DreamBookScreen() {
 
         {/* Info card */}
         <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.infoCard}>
-          <Ionicons name="information-circle-outline" size={15} color={C.sub} />
+          <Ionicons name="information-circle-outline" size={15} color={COLORS.subtext} />
           <Text style={styles.infoText}>
             Her ay sonunda yapay zeka, rüyalarını Jungçu psikoloji ve astroloji perspektifiyle
             şiirsel bir hikâyeye dönüştürür. PDF'i indirebilir veya paylaşabilirsin.
@@ -328,8 +333,8 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Lora', Georgia, serif;
-    background: linear-gradient(135deg, #0E0B2E 0%, #1A1650 100%);
-    color: #EEE8FF;
+    background: linear-gradient(135deg, ${COLORS.pdfBgStart} 0%, ${COLORS.pdfBgEnd} 100%);
+    color: ${COLORS.pdfText};
     min-height: 100vh;
     padding: 60px 50px;
   }
@@ -342,18 +347,18 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   .title {
     font-family: 'Cinzel', serif;
     font-size: 32px;
-    color: #C8A84B;
+    color: ${COLORS.pdfGold};
     letter-spacing: 3px;
     text-transform: uppercase;
   }
-  .period { font-size: 16px; color: #A880FF; margin-top: 8px; font-style: italic; }
+  .period { font-size: 16px; color: ${COLORS.pdfViolet}; margin-top: 8px; font-style: italic; }
   .glyph { font-size: 48px; margin-bottom: 12px; }
   .symbols { margin: 20px 0; text-align: center; }
   .badge {
     display: inline-block;
     background: rgba(200,168,75,0.15);
     border: 1px solid rgba(200,168,75,0.35);
-    color: #C8A84B;
+    color: ${COLORS.pdfGold};
     border-radius: 20px;
     padding: 4px 12px;
     margin: 4px;
@@ -362,7 +367,7 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   .section-label {
     font-family: 'Cinzel', serif;
     font-size: 11px;
-    color: #7C4DFF;
+    color: ${COLORS.pdfSection};
     text-transform: uppercase;
     letter-spacing: 2px;
     text-align: center;
@@ -371,11 +376,11 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   .story {
     font-size: 16px;
     line-height: 2;
-    color: #DDD5F8;
+    color: ${COLORS.pdfStory};
     text-align: justify;
     margin: 24px 0;
     background: rgba(255,255,255,0.03);
-    border-left: 3px solid #C8A84B;
+    border-left: 3px solid ${COLORS.pdfGold};
     padding: 20px 24px;
     border-radius: 4px;
   }
@@ -383,7 +388,7 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   .dreams-title {
     font-family: 'Cinzel', serif;
     font-size: 14px;
-    color: #C8A84B;
+    color: ${COLORS.pdfGold};
     text-transform: uppercase;
     letter-spacing: 2px;
     margin-bottom: 16px;
@@ -399,7 +404,7 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   }
   .dream-date {
     font-size: 11px;
-    color: #A880FF;
+    color: ${COLORS.pdfDreamDate};
     font-family: 'Cinzel', serif;
     letter-spacing: 1px;
     margin-bottom: 6px;
@@ -407,13 +412,13 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   .dream-text {
     font-size: 14px;
     line-height: 1.8;
-    color: #C8C0E8;
+    color: ${COLORS.pdfDreamText};
   }
   .footer {
     text-align: center;
     margin-top: 40px;
     font-size: 12px;
-    color: #7A6A9A;
+    color: ${COLORS.pdfFooter};
     font-style: italic;
     border-top: 1px solid rgba(200,168,75,0.2);
     padding-top: 16px;
@@ -453,13 +458,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontWeight: '800',
-    color: C.gold,
+    color: COLORS.goldDark,
     letterSpacing: 1.5,
     textAlign: 'center',
   },
   headerSub: {
     fontSize: 13,
-    color: C.sub,
+    color: COLORS.subtext,
     marginTop: 4,
     fontStyle: 'italic',
     textAlign: 'center',
@@ -471,29 +476,29 @@ const styles = StyleSheet.create({
     gap: 20,
     marginHorizontal: 20,
     marginBottom: 16,
-    backgroundColor: C.surface,
+    backgroundColor: COLORS.surface,
     borderRadius: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: COLORS.border,
   },
   monthArrow: { padding: 6 },
   monthArrowDisabled: { opacity: 0.3 },
   monthLabel: {
     fontSize: 17,
     fontWeight: '700',
-    color: C.white,
+    color: COLORS.text,
     minWidth: 140,
     textAlign: 'center',
   },
   storyCard: {
     marginHorizontal: 20,
-    backgroundColor: C.surface,
+    backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: C.border,
-    shadowColor: C.purple,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.primary,
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
@@ -508,11 +513,11 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: C.white,
+    color: COLORS.text,
   },
   loadingSubText: {
     fontSize: 12,
-    color: C.sub,
+    color: COLORS.subtext,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingHorizontal: 20,
@@ -521,7 +526,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: C.gold,
+    color: COLORS.goldDark,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -539,18 +544,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,168,75,0.3)',
   },
-  symChipText: { fontSize: 12, color: C.gold, fontWeight: '600' },
+  symChipText: { fontSize: 12, color: COLORS.goldDark, fontWeight: '600' },
   countBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     marginBottom: 12,
   },
-  countText: { fontSize: 12, color: C.sub, fontStyle: 'italic' },
+  countText: { fontSize: 12, color: COLORS.subtext, fontStyle: 'italic' },
   storyText: {
     fontSize: 15,
     lineHeight: 26,
-    color: C.white,
+    color: COLORS.text,
     marginBottom: 20,
   },
   exportRow: {
@@ -564,7 +569,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: C.purple,
+    borderColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(157,78,221,0.07)',
@@ -574,18 +579,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: C.purple,
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
   },
-  exportBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  exportBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
   emptyBlock: { alignItems: 'center', paddingVertical: 24, gap: 10 },
   emptyIcon: { fontSize: 36 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.white },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
   emptySub: {
     fontSize: 12,
-    color: C.sub,
+    color: COLORS.subtext,
     textAlign: 'center',
     paddingHorizontal: 16,
     lineHeight: 18,
@@ -594,13 +599,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: C.gold,
+    backgroundColor: COLORS.gold,
     borderRadius: 12,
     paddingVertical: 11,
     paddingHorizontal: 22,
     marginTop: 6,
   },
-  generateBtnText: { color: '#1A0A00', fontSize: 14, fontWeight: '800' },
+  generateBtnText: { color: COLORS.black, fontSize: 14, fontWeight: '800' },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -611,7 +616,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: COLORS.border,
   },
-  infoText: { flex: 1, fontSize: 12, color: C.sub, lineHeight: 18 },
+  infoText: { flex: 1, fontSize: 12, color: COLORS.subtext, lineHeight: 18 },
 });

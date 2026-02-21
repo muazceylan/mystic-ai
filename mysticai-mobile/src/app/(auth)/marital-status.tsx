@@ -4,17 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { MARITAL_STATUS_OPTIONS } from '../../constants/index';
-
-const COLORS = {
-  background: '#F9F7FB',
-  text: '#1E1E1E',
-  subtext: '#7A7A7A',
-  border: '#E6E1EA',
-  primary: '#9D4EDD',
-  primarySoft: '#F1E8FD',
-  disabled: '#E5E5E5',
-  disabledText: '#B5B5B5',
-};
+import { COLORS } from '../../constants/colors';
 
 export default function MaritalStatusScreen() {
   const store = useOnboardingStore();
@@ -35,6 +25,8 @@ export default function MaritalStatusScreen() {
                 key={option.id}
                 style={[styles.card, selected && styles.cardSelected]}
                 onPress={() => store.setMaritalStatus(option.id)}
+                accessibilityLabel={option.title}
+                accessibilityRole="button"
               >
                 <Text style={[styles.cardEmoji, selected && styles.cardEmojiSelected]}>
                   {option.emoji}
@@ -44,7 +36,7 @@ export default function MaritalStatusScreen() {
                 </Text>
                 {selected && (
                   <View style={styles.checkBadge}>
-                    <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                    <Ionicons name="checkmark" size={12} color={COLORS.white} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -54,13 +46,20 @@ export default function MaritalStatusScreen() {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.outlineButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={() => router.back()}
+          accessibilityLabel="Geri dön"
+          accessibilityRole="button"
+        >
           <Text style={styles.outlineText}>Geri</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !store.maritalStatus && styles.primaryDisabled]}
           disabled={!store.maritalStatus}
           onPress={() => router.push('/focus-point')}
+          accessibilityLabel="Devam et"
+          accessibilityRole="button"
         >
           <Text style={[styles.primaryText, !store.maritalStatus && styles.primaryTextDisabled]}>
             Devam Et
@@ -103,7 +102,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 14,
@@ -155,7 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
   },
   outlineText: {
     color: COLORS.primary,
@@ -173,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.disabled,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '600',
   },
