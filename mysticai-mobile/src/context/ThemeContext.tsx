@@ -8,83 +8,317 @@ export type ActiveTheme = 'light' | 'dark';
 
 export interface ThemeColors {
   bg: string;
+  background: string;
   bgGrad1: string;
   surface: string;
   surfaceAlt: string;
+  surfaceMuted: string;
   border: string;
   primary: string;
+  primary700: string;
   primaryLight: string;
   primarySoft: string;
+  primarySoftBg: string;
   text: string;
   textSoft: string;
   subtext: string;
+  body: string;
+  muted: string;
   dim: string;
   gold: string;
+  yellow: string;
+  goldDark: string;
   goldLight: string;
   green: string;
   greenBg: string;
   orange: string;
   orangeBg: string;
   red: string;
+  redBright: string;
+  redDark: string;
+  redBg: string;
+  redLight: string;
   danger: string;
+  error: string;
+  success: string;
+  successLight: string;
+  successBg: string;
+  warning: string;
+  warningDark: string;
+  warningBg: string;
   white: string;
   card: string;
   inputBg: string;
+  shadow: string;
+  accent: string;
+  accentSoft: string;
+  disabled: string;
+  disabledText: string;
+  violet: string;
+  violetLight: string;
+  violetBg: string;
+  violetText: string;
+  trine: string;
+  luckBg: string;
+  cautionBg: string;
+  cautionText: string;
+  cautionTextDark: string;
+  neutralBg: string;
+  amber: string;
+  amberLight: string;
+  pink: string;
+  pinkBg: string;
+  blue: string;
+  blueBg: string;
+  strengthGreen: string;
+  appleBlack: string;
+  googleRed: string;
+  recordingStart: string;
+  recordingEnd: string;
+  primaryDark: string;
+  overlayDark: string;
+  tabBarBg: string;
+  tabBarBorder: string;
+  tabBarActive: string;
+  tabBarInactive: string;
+  switchTrack: string;
+  switchThumbActive: string;
   statusBar: 'light' | 'dark';
+  glowTop: string;
+  glowBottom: string;
+  surfaceGlass: string;
+  surfaceGlassBorder: string;
+  primaryTint: string;
+  textSlate: string;
+  textMuted: string;
+  textDark: string;
+  borderLight: string;
+  borderMuted: string;
+  moonBlue: string;
+  harmonious: string;
+  pulseBg: string;
+  pulseBorder: string;
+  pulseTitle: string;
+  pulseSub: string;
+  swotStrength: string;
+  swotWeakness: string;
+  swotOpportunity: string;
+  swotThreat: string;
+  dictBg: string;
+  dictSurface: string;
+  dictBorder: string;
+  dictText: string;
+  dictSub: string;
 }
 
 export const LIGHT: ThemeColors = {
   bg: COLORS.themeLightBg,
+  background: COLORS.themeLightBg,
   bgGrad1: COLORS.themeLightBgGrad1,
   surface: COLORS.surface,
   surfaceAlt: COLORS.themeLightSurfaceAlt,
+  surfaceMuted: COLORS.surfaceMuted,
   border: COLORS.border,
   primary: COLORS.primary,
+  primary700: COLORS.primary700,
   primaryLight: COLORS.primaryLight,
   primarySoft: COLORS.themeLightPrimarySoft,
+  primarySoftBg: COLORS.primarySoftBg,
   text: COLORS.text,
   textSoft: COLORS.textSoft,
   subtext: COLORS.themeSubtext,
+  body: COLORS.body,
+  muted: COLORS.muted,
   dim: COLORS.dim,
   gold: COLORS.gold,
+  yellow: COLORS.yellow,
+  goldDark: COLORS.goldDark,
   goldLight: COLORS.themeLightGoldLight,
   green: COLORS.green,
   greenBg: COLORS.greenBg,
   orange: COLORS.themeOrange,
   orangeBg: COLORS.orangeBg,
   red: COLORS.red,
+  redBright: COLORS.redBright,
+  redDark: COLORS.redDark,
+  redBg: COLORS.redBg,
+  redLight: COLORS.redLight,
   danger: COLORS.themeDanger,
+  error: COLORS.error,
+  success: COLORS.success,
+  successLight: COLORS.successLight,
+  successBg: COLORS.successBg,
+  warning: COLORS.warning,
+  warningDark: COLORS.warningDark,
+  warningBg: COLORS.warningBg,
   white: COLORS.white,
   card: COLORS.surface,
   inputBg: COLORS.themeInputBg,
+  shadow: COLORS.shadow,
+  accent: COLORS.accent,
+  accentSoft: COLORS.accentSoft,
+  disabled: COLORS.disabled,
+  disabledText: COLORS.disabledText,
+  violet: COLORS.violet,
+  violetLight: COLORS.violetLight,
+  violetBg: COLORS.violetBg,
+  violetText: COLORS.violetText,
+  trine: COLORS.trine,
+  luckBg: COLORS.luckBg,
+  cautionBg: COLORS.cautionBg,
+  cautionText: COLORS.cautionText,
+  cautionTextDark: COLORS.cautionTextDark,
+  neutralBg: COLORS.neutralBg,
+  amber: COLORS.amber,
+  amberLight: COLORS.amberLight,
+  pink: COLORS.pink,
+  pinkBg: COLORS.pinkBg,
+  blue: COLORS.blue,
+  blueBg: COLORS.blueBg,
+  strengthGreen: COLORS.strengthGreen,
+  appleBlack: COLORS.appleBlack,
+  googleRed: COLORS.googleRed,
+  recordingStart: COLORS.recordingStart,
+  recordingEnd: COLORS.recordingEnd,
+  primaryDark: COLORS.primaryDark,
+  overlayDark: COLORS.overlayDark,
+  tabBarBg: COLORS.themeLightTabBarBg,
+  tabBarBorder: COLORS.themeLightTabBarBorder,
+  tabBarActive: COLORS.themeLightTabBarActive,
+  tabBarInactive: COLORS.themeLightTabBarInactive,
+  switchTrack: COLORS.switchTrack,
+  switchThumbActive: COLORS.switchThumbActive,
   statusBar: 'dark',
+  glowTop: COLORS.glowTop,
+  glowBottom: COLORS.glowBottom,
+  surfaceGlass: COLORS.themeLightSurfaceGlass,
+  surfaceGlassBorder: COLORS.themeLightSurfaceGlassBorder,
+  primaryTint: COLORS.themeLightPrimaryTint,
+  textSlate: COLORS.textSlate,
+  textMuted: COLORS.textMuted,
+  textDark: COLORS.textDark,
+  borderLight: COLORS.borderLight,
+  borderMuted: COLORS.borderMuted,
+  moonBlue: COLORS.moonBlue,
+  harmonious: COLORS.harmonious,
+  pulseBg: COLORS.pulseBg,
+  pulseBorder: COLORS.pulseBorder,
+  pulseTitle: COLORS.pulseTitle,
+  pulseSub: COLORS.pulseSub,
+  swotStrength: COLORS.swotStrength,
+  swotWeakness: COLORS.swotWeakness,
+  swotOpportunity: COLORS.swotOpportunity,
+  swotThreat: COLORS.swotThreat,
+  dictBg: COLORS.themeLightDictBg,
+  dictSurface: COLORS.themeLightDictSurface,
+  dictBorder: COLORS.themeLightDictBorder,
+  dictText: COLORS.themeLightDictText,
+  dictSub: COLORS.themeLightDictSub,
 };
 
 export const DARK: ThemeColors = {
   bg: COLORS.themeDarkBg,
+  background: COLORS.themeDarkBg,
   bgGrad1: COLORS.themeDarkBgGrad1,
   surface: COLORS.themeDarkSurface,
   surfaceAlt: COLORS.themeDarkSurfaceAlt,
+  surfaceMuted: COLORS.themeDarkSurfaceMuted,
   border: COLORS.themeDarkBorder,
   primary: COLORS.themeDarkPrimary,
+  primary700: COLORS.themeDarkPrimary700,
   primaryLight: COLORS.themeDarkPrimaryLight,
   primarySoft: COLORS.themeDarkPrimarySoft,
+  primarySoftBg: COLORS.themeDarkPrimarySoftBg,
   text: COLORS.themeDarkText,
   textSoft: COLORS.themeDarkTextSoft,
   subtext: COLORS.themeDarkSubtext,
+  body: COLORS.themeDarkBody,
+  muted: COLORS.themeDarkMuted,
   dim: COLORS.themeDarkDim,
   gold: COLORS.themeDarkGold,
+  yellow: COLORS.themeDarkGoldLight,
+  goldDark: COLORS.themeDarkGold,
   goldLight: COLORS.themeDarkGoldLight,
   green: COLORS.themeDarkGreen,
   greenBg: COLORS.themeDarkGreenBg,
   orange: COLORS.themeDarkOrange,
   orangeBg: COLORS.themeDarkOrangeBg,
   red: COLORS.themeDarkRed,
+  redBright: COLORS.themeDarkRed,
+  redDark: COLORS.themeDarkRed,
+  redBg: COLORS.themeDarkRedLight,
+  redLight: COLORS.themeDarkRedLight,
   danger: COLORS.themeDarkDanger,
+  error: COLORS.themeDarkDanger,
+  success: COLORS.themeDarkGreen,
+  successLight: COLORS.themeDarkGreenBg,
+  successBg: COLORS.themeDarkSuccessBg,
+  warning: COLORS.themeDarkOrange,
+  warningDark: COLORS.themeDarkOrange,
+  warningBg: COLORS.themeDarkWarningBg,
   white: COLORS.themeDarkWhite,
   card: COLORS.themeDarkCard,
   inputBg: COLORS.themeDarkInputBg,
+  shadow: COLORS.themeDarkBg,
+  accent: COLORS.themeDarkAccent,
+  accentSoft: COLORS.themeDarkVioletBg,
+  disabled: COLORS.themeDarkDisabled,
+  disabledText: COLORS.themeDarkDisabledText,
+  violet: COLORS.themeDarkViolet,
+  violetLight: COLORS.themeDarkPrimaryLight,
+  violetBg: COLORS.themeDarkVioletBg,
+  violetText: COLORS.themeDarkVioletText,
+  trine: COLORS.themeDarkGreen,
+  luckBg: COLORS.themeDarkLuckBg,
+  cautionBg: COLORS.themeDarkCautionBg,
+  cautionText: COLORS.themeDarkCautionText,
+  cautionTextDark: COLORS.themeDarkCautionTextDark,
+  neutralBg: COLORS.themeDarkNeutralBg,
+  amber: COLORS.themeDarkGold,
+  amberLight: COLORS.themeDarkOrangeBg,
+  pink: COLORS.themeDarkPrimaryLight,
+  pinkBg: COLORS.themeDarkVioletBg,
+  blue: COLORS.themeDarkAccent,
+  blueBg: COLORS.themeDarkVioletBg,
+  strengthGreen: COLORS.themeDarkGreen,
+  appleBlack: COLORS.themeDarkBg,
+  googleRed: COLORS.googleRed,
+  recordingStart: COLORS.themeDarkDanger,
+  recordingEnd: COLORS.themeDarkRed,
+  primaryDark: COLORS.themeDarkPrimary,
+  overlayDark: COLORS.themeDarkBg,
+  tabBarBg: COLORS.themeDarkTabBarBg,
+  tabBarBorder: COLORS.themeDarkTabBarBorder,
+  tabBarActive: COLORS.themeDarkTabBarActive,
+  tabBarInactive: COLORS.themeDarkTabBarInactive,
+  switchTrack: COLORS.themeDarkSwitchTrack,
+  switchThumbActive: COLORS.themeDarkSwitchThumbActive,
   statusBar: 'light',
+  glowTop: COLORS.themeDarkGlowTop,
+  glowBottom: COLORS.themeDarkGlowBottom,
+  surfaceGlass: COLORS.themeDarkSurfaceGlass,
+  surfaceGlassBorder: COLORS.themeDarkSurfaceGlassBorder,
+  primaryTint: COLORS.themeDarkPrimaryTint,
+  textSlate: COLORS.themeDarkTextSlate,
+  textMuted: COLORS.themeDarkTextMuted,
+  textDark: COLORS.themeDarkTextSlate,
+  borderLight: COLORS.themeDarkBorderLight,
+  borderMuted: COLORS.themeDarkBorderMuted,
+  moonBlue: COLORS.themeDarkMoonBlue,
+  harmonious: COLORS.themeDarkHarmonious,
+  pulseBg: COLORS.themeDarkPulseBg,
+  pulseBorder: COLORS.themeDarkPulseBorder,
+  pulseTitle: COLORS.themeDarkPulseTitle,
+  pulseSub: COLORS.themeDarkPulseSub,
+  swotStrength: COLORS.swotStrength,
+  swotWeakness: COLORS.swotWeakness,
+  swotOpportunity: COLORS.swotOpportunity,
+  swotThreat: COLORS.swotThreat,
+  dictBg: COLORS.themeDarkDictBg,
+  dictSurface: COLORS.themeDarkDictSurface,
+  dictBorder: COLORS.themeDarkDictBorder,
+  dictText: COLORS.themeDarkDictText,
+  dictSub: COLORS.themeDarkDictSub,
 };
 
 const STORAGE_KEY = 'mysticai_theme_pref';

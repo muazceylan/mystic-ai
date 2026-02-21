@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/useAuthStore';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { initI18n } from '../i18n';
+import { COLORS } from '../constants/colors';
 
 /**
  * Protected route guard.
@@ -48,6 +50,8 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
           headerShown: false,
           contentStyle: { backgroundColor: colors.bg },
           animation: 'slide_from_right',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
         }}
       />
     </>
@@ -63,12 +67,18 @@ export default function Layout() {
     initI18n().then(() => setI18nReady(true));
   }, []);
 
-  // IMPORTANT: never return null — the root layout must always render its navigator.
-  // The Stack mounts immediately; navigation waits for i18nReady inside AppNavigator.
+  // Block rendering navigator until i18n is ready — prevents "NO_I18NEXT_INSTANCE" when
+  // useTranslation runs in TabsLayout/other screens before init completes.
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppNavigator i18nReady={i18nReady} />
+        {i18nReady ? (
+          <AppNavigator i18nReady={i18nReady} />
+        ) : (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        )}
       </ThemeProvider>
     </SafeAreaProvider>
   );

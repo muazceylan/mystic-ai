@@ -18,7 +18,7 @@ import {
   HOUSE_GLOSSARY,
   CONCEPT_GLOSSARY,
 } from '../../constants/astrology-glossary';
-import { COLORS } from '../../constants/colors';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -33,6 +33,8 @@ export default function PlanetBottomSheet({
   planet,
   onClose,
 }: PlanetBottomSheetProps) {
+  const { colors } = useTheme();
+  const s = createStyles(colors);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -82,91 +84,82 @@ export default function PlanetBottomSheet({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <View style={styles.container}>
+      <View style={s.container}>
         <TouchableWithoutFeedback
           onPress={onClose}
           accessibilityLabel="Arka plana tıkla kapat"
           accessibilityRole="button"
         >
-          <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
+          <Animated.View style={[s.backdrop, { opacity: backdropAnim }]} />
         </TouchableWithoutFeedback>
 
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
+          style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}
         >
-          {/* Handle bar */}
-          <View style={styles.handleBar} />
-
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.planetEmoji}>{signInfo.symbol}</Text>
+          <View style={s.handleBar} />
+          <View style={s.header}>
+            <View style={s.headerLeft}>
+              <Text style={s.planetEmoji}>{signInfo.symbol}</Text>
               <View>
-                <Text style={styles.planetTitle}>{planetName}</Text>
-                <Text style={styles.planetSubtitle}>
+                <Text style={s.planetTitle}>{planetName}</Text>
+                <Text style={s.planetSubtitle}>
                   {signInfo.name} | {Math.floor(planet.degree)}°{planet.minutes}'{planet.seconds}"
                 </Text>
               </View>
             </View>
-            <View style={styles.badges}>
-              <View style={styles.houseBadge}>
-                <Text style={styles.houseBadgeText}>Ev {planet.house}</Text>
+            <View style={s.badges}>
+              <View style={s.houseBadge}>
+                <Text style={s.houseBadgeText}>Ev {planet.house}</Text>
               </View>
               {planet.retrograde && (
-                <View style={styles.retroBadge}>
-                  <Text style={styles.retroBadgeText}>Rx</Text>
+                <View style={s.retroBadge}>
+                  <Text style={s.retroBadgeText}>Rx</Text>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Personalized description */}
-          <Text style={styles.personalizedText}>{personalizedText}</Text>
+          <Text style={s.personalizedText}>{personalizedText}</Text>
 
-          {/* Planet governs */}
           {planetDesc && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Yönetim Alanı</Text>
-              <Text style={styles.sectionText}>{planetDesc.governs}</Text>
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>Yönetim Alanı</Text>
+              <Text style={s.sectionText}>{planetDesc.governs}</Text>
             </View>
           )}
 
-          {/* Sign info */}
           {signGlossary && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>
                 {signInfo.symbol} {signGlossary.term} Burcu
               </Text>
-              <Text style={styles.sectionText}>{signGlossary.longDesc}</Text>
+              <Text style={s.sectionText}>{signGlossary.longDesc}</Text>
             </View>
           )}
 
-          {/* House info */}
           {houseGlossary && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{houseGlossary.term}</Text>
-              <Text style={styles.sectionText}>{houseGlossary.longDesc}</Text>
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>{houseGlossary.term}</Text>
+              <Text style={s.sectionText}>{houseGlossary.longDesc}</Text>
             </View>
           )}
 
-          {/* Retrograde explanation */}
           {planet.retrograde && (
-            <View style={styles.retroSection}>
-              <Ionicons name="arrow-undo" size={14} color={COLORS.amber} />
-              <Text style={styles.retroExplanation}>
+            <View style={s.retroSection}>
+              <Ionicons name="arrow-undo" size={14} color={colors.amber} />
+              <Text style={s.retroExplanation}>
                 {CONCEPT_GLOSSARY.retrograde.longDesc}
               </Text>
             </View>
           )}
 
-          {/* Close button */}
           <TouchableOpacity
-            style={styles.closeButton}
+            style={s.closeButton}
             onPress={onClose}
             accessibilityLabel="Kapat"
             accessibilityRole="button"
           >
-            <Text style={styles.closeButtonText}>Kapat</Text>
+            <Text style={s.closeButtonText}>Kapat</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -174,127 +167,115 @@ export default function PlanetBottomSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    maxHeight: SCREEN_HEIGHT * 0.75,
-  },
-  handleBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.borderLight,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  planetEmoji: {
-    fontSize: 32,
-  },
-  planetTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.textSlate,
-  },
-  planetSubtitle: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  badges: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  houseBadge: {
-    backgroundColor: 'rgba(139,92,246,0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  houseBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.violetLight,
-  },
-  retroBadge: {
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  retroBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.amber,
-  },
-  personalizedText: {
-    fontSize: 15,
-    color: COLORS.textDark,
-    lineHeight: 23,
-    marginBottom: 16,
-  },
-  section: {
-    marginBottom: 14,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.violetLight,
-    marginBottom: 4,
-  },
-  sectionText: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    lineHeight: 20,
-  },
-  retroSection: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: 'rgba(245,158,11,0.08)',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 14,
-  },
-  retroExplanation: {
-    flex: 1,
-    fontSize: 12,
-    color: COLORS.textMuted,
-    lineHeight: 18,
-  },
-  closeButton: {
-    alignItems: 'center',
-    paddingVertical: 14,
-    backgroundColor: COLORS.violetLight,
-    borderRadius: 24,
-    marginTop: 4,
-  },
-  closeButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-});
+function createStyles(C: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, justifyContent: 'flex-end' },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    sheet: {
+      backgroundColor: C.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 20,
+      paddingBottom: 40,
+      maxHeight: SCREEN_HEIGHT * 0.75,
+    },
+    handleBar: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: C.borderLight,
+      alignSelf: 'center',
+      marginTop: 12,
+      marginBottom: 16,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    planetEmoji: { fontSize: 32 },
+    planetTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: C.textSlate,
+    },
+    planetSubtitle: {
+      fontSize: 13,
+      color: C.textMuted,
+      marginTop: 2,
+    },
+    badges: { flexDirection: 'row', gap: 6 },
+    houseBadge: {
+      backgroundColor: C.violetBg,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    houseBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: C.violetLight,
+    },
+    retroBadge: {
+      backgroundColor: C.amberLight,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    retroBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: C.amber,
+    },
+    personalizedText: {
+      fontSize: 15,
+      color: C.textDark,
+      lineHeight: 23,
+      marginBottom: 16,
+    },
+    section: { marginBottom: 14 },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: C.violetLight,
+      marginBottom: 4,
+    },
+    sectionText: {
+      fontSize: 13,
+      color: C.textMuted,
+      lineHeight: 20,
+    },
+    retroSection: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      backgroundColor: C.amberLight,
+      padding: 12,
+      borderRadius: 12,
+      marginBottom: 14,
+    },
+    retroExplanation: {
+      flex: 1,
+      fontSize: 12,
+      color: C.textMuted,
+      lineHeight: 18,
+    },
+    closeButton: {
+      alignItems: 'center',
+      paddingVertical: 14,
+      backgroundColor: C.violetLight,
+      borderRadius: 24,
+      marginTop: 4,
+    },
+    closeButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: C.white,
+    },
+  });
+}

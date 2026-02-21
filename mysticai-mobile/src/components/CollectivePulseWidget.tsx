@@ -9,7 +9,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useDreamStore } from '../store/useDreamStore';
-import { COLORS } from '../constants/colors';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { ErrorStateCard } from './ui';
 
 interface Props {
@@ -17,6 +17,8 @@ interface Props {
 }
 
 export default function CollectivePulseWidget({ onPress }: Props) {
+  const { colors } = useTheme();
+  const s = createStyles(colors);
   const { collectivePulse, pulseLoading, pulseError, fetchCollectivePulse } = useDreamStore();
 
   useEffect(() => {
@@ -28,14 +30,14 @@ export default function CollectivePulseWidget({ onPress }: Props) {
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onPress}
-        style={styles.card}
+        style={s.card}
         accessibilityLabel="Dünyanın bugün gördüğü rüyalar — detayları aç"
         accessibilityRole="button"
       >
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerIcon}>🌍</Text>
-          <Text style={styles.headerTitle}>Dünyanın Bugün Gördüğü Rüyalar</Text>
+        <View style={s.header}>
+          <Text style={s.headerIcon}>🌍</Text>
+          <Text style={s.headerTitle}>Dünyanın Bugün Gördüğü Rüyalar</Text>
           {!pulseLoading && (
             <TouchableOpacity
               onPress={fetchCollectivePulse}
@@ -43,15 +45,15 @@ export default function CollectivePulseWidget({ onPress }: Props) {
               accessibilityLabel="Kolektif nabzı yenile"
               accessibilityRole="button"
             >
-              <Ionicons name="refresh-outline" size={14} color={COLORS.pulseSub} />
+              <Ionicons name="refresh-outline" size={14} color={colors.pulseSub} />
             </TouchableOpacity>
           )}
         </View>
 
         {pulseLoading ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={COLORS.pulseTitle} />
-            <Text style={styles.loadingText}>Kolektif nabız okunuyor...</Text>
+          <View style={s.loadingRow}>
+            <ActivityIndicator size="small" color={colors.pulseTitle} />
+            <Text style={s.loadingText}>Kolektif nabız okunuyor...</Text>
           </View>
         ) : pulseError ? (
           <ErrorStateCard
@@ -61,31 +63,29 @@ export default function CollectivePulseWidget({ onPress }: Props) {
             accessibilityLabel="Kolektif nabzı tekrar yükle"
           />
         ) : !collectivePulse || collectivePulse.topSymbols.length === 0 ? (
-          <Text style={styles.emptyText}>Henüz veri yok. İlk rüyayı kaydet!</Text>
+          <Text style={s.emptyText}>Henüz veri yok. İlk rüyayı kaydet!</Text>
         ) : (
           <>
-            {/* Top symbols */}
-            <View style={styles.symbolsRow}>
+            <View style={s.symbolsRow}>
               {collectivePulse.topSymbols.slice(0, 3).map((sym, i) => (
-                <View key={sym.symbolName} style={[styles.symbolChip, i === 0 && styles.symbolChipTop]}>
-                  <Text style={styles.symbolEmoji}>{sym.emoji}</Text>
-                  <Text style={[styles.symbolName, i === 0 && styles.symbolNameTop]}>
+                <View key={sym.symbolName} style={[s.symbolChip, i === 0 && s.symbolChipTop]}>
+                  <Text style={s.symbolEmoji}>{sym.emoji}</Text>
+                  <Text style={[s.symbolName, i === 0 && s.symbolNameTop]}>
                     {capitalize(sym.symbolName)}
                   </Text>
-                  <Text style={styles.symbolCount}>{sym.count}x</Text>
+                  <Text style={s.symbolCount}>{sym.count}x</Text>
                 </View>
               ))}
             </View>
 
-            {/* Astro reasoning */}
             {collectivePulse.astroReasoning ? (
-              <View style={styles.reasonBox}>
-                <Text style={styles.reasonIcon}>✦</Text>
-                <Text style={styles.reasonText}>{collectivePulse.astroReasoning}</Text>
+              <View style={s.reasonBox}>
+                <Text style={s.reasonIcon}>✦</Text>
+                <Text style={s.reasonText}>{collectivePulse.astroReasoning}</Text>
               </View>
             ) : null}
 
-            <Text style={styles.updatedAt}>
+            <Text style={s.updatedAt}>
               {collectivePulse.generatedAt ? `Son güncelleme: ${collectivePulse.generatedAt}` : ''}
             </Text>
           </>
@@ -99,99 +99,101 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: 20,
-    marginTop: 10,
-    backgroundColor: COLORS.pulseBg,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1.5,
-    borderColor: COLORS.pulseBorder,
-    shadowColor: COLORS.violetLight,
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
-  },
-  headerIcon: { fontSize: 16 },
-  headerTitle: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.pulseTitle,
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-  },
-  loadingText: { fontSize: 12, color: COLORS.pulseSub, fontStyle: 'italic' },
-  emptyText: { fontSize: 12, color: COLORS.pulseSub, fontStyle: 'italic', paddingVertical: 6 },
-  symbolsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-    flexWrap: 'wrap',
-  },
-  symbolChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(200,168,75,0.12)',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(200,168,75,0.3)',
-  },
-  symbolChipTop: {
-    backgroundColor: 'rgba(124,77,255,0.13)',
-    borderColor: 'rgba(124,77,255,0.35)',
-  },
-  symbolEmoji: { fontSize: 16 },
-  symbolName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textDark,
-  },
-  symbolNameTop: { color: COLORS.pulseTitle, fontWeight: '800' },
-  symbolCount: {
-    fontSize: 11,
-    color: COLORS.pulseSub,
-    marginLeft: 2,
-  },
-  reasonBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
-    backgroundColor: 'rgba(124,77,255,0.07)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(124,77,255,0.15)',
-    marginBottom: 6,
-  },
-  reasonIcon: { fontSize: 12, color: COLORS.gold, marginTop: 2 },
-  reasonText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 18,
-    color: COLORS.pulseTitle,
-    fontStyle: 'italic',
-  },
-  updatedAt: {
-    fontSize: 10,
-    color: COLORS.pulseSub,
-    textAlign: 'right',
-    marginTop: 2,
-  },
-});
+function createStyles(C: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      marginHorizontal: 20,
+      marginTop: 10,
+      backgroundColor: C.pulseBg,
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1.5,
+      borderColor: C.pulseBorder,
+      shadowColor: C.violetLight,
+      shadowOpacity: 0.1,
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 10,
+    },
+    headerIcon: { fontSize: 16 },
+    headerTitle: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '700',
+      color: C.pulseTitle,
+    },
+    loadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+    },
+    loadingText: { fontSize: 12, color: C.pulseSub, fontStyle: 'italic' },
+    emptyText: { fontSize: 12, color: C.pulseSub, fontStyle: 'italic', paddingVertical: 6 },
+    symbolsRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 10,
+      flexWrap: 'wrap',
+    },
+    symbolChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: C.amberLight,
+      borderRadius: 20,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    symbolChipTop: {
+      backgroundColor: C.violetBg,
+      borderColor: C.violetLight,
+    },
+    symbolEmoji: { fontSize: 16 },
+    symbolName: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: C.textDark,
+    },
+    symbolNameTop: { color: C.pulseTitle, fontWeight: '800' },
+    symbolCount: {
+      fontSize: 11,
+      color: C.pulseSub,
+      marginLeft: 2,
+    },
+    reasonBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 6,
+      backgroundColor: C.violetBg,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: C.border,
+      marginBottom: 6,
+    },
+    reasonIcon: { fontSize: 12, color: C.gold, marginTop: 2 },
+    reasonText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 18,
+      color: C.pulseTitle,
+      fontStyle: 'italic',
+    },
+    updatedAt: {
+      fontSize: 10,
+      color: C.pulseSub,
+      textAlign: 'right',
+      marginTop: 2,
+    },
+  });
+}

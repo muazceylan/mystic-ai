@@ -8,6 +8,7 @@ import {
   Animated,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -19,12 +20,13 @@ import {
   fetchLatestNatalChart,
   calculateNatalChart,
 } from '../../services/astrology.service';
-import { getZodiacInfo, PLANET_TURKISH } from '../../constants/zodiac';
+import { getZodiacInfo } from '../../constants/zodiac';
 import PlanetBottomSheet from '../../components/Astrology/PlanetBottomSheet';
 import CosmicHotspotCard from '../../components/Astrology/CosmicHotspotCard';
 import AspectBottomSheet from '../../components/Astrology/AspectBottomSheet';
 import StaggeredAiText from '../../components/Astrology/StaggeredAiText';
-import { COLORS } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
 // ─── Planet Symbols (Unicode astro glyphs) ──────────────────────────────
@@ -41,18 +43,39 @@ const PLANET_SYMBOLS: Record<string, string> = {
   Pluto: '♇',
 };
 
-const ASPECT_INFO: Record<string, { symbol: string; label: string; color: string }> = {
-  CONJUNCTION: { symbol: '☌', label: 'Kavuşum', color: COLORS.violet },
-  OPPOSITION: { symbol: '☍', label: 'Karşıt', color: COLORS.redBright },
-  TRINE: { symbol: '△', label: 'Üçgen', color: COLORS.trine },
-  SQUARE: { symbol: '□', label: 'Kare', color: COLORS.amber },
-};
 
 const ZODIAC_SYMBOLS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
 
 type ScreenState = 'loading' | 'calculating' | 'error' | 'ready';
 
+function getAspectInfo(C: ReturnType<typeof useTheme>['colors'], t: (k: string) => string) {
+  return {
+    CONJUNCTION: { symbol: '☌', label: t('natalChart.conjunction'), color: C.violet },
+    OPPOSITION: { symbol: '☍', label: t('natalChart.opposition'), color: C.redBright },
+    TRINE: { symbol: '△', label: t('natalChart.trine'), color: C.trine },
+    SQUARE: { symbol: '□', label: t('natalChart.square'), color: C.amber },
+  } as Record<string, { symbol: string; label: string; color: string }>;
+}
+
 export default function NatalChartTab() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const ASPECT_INFO = useMemo(() => getAspectInfo(colors, t), [colors, t]);
+  const planetNames: Record<string, string> = useMemo(() => ({
+    Sun: t('natalChart.sun'),
+    Moon: t('natalChart.moon'),
+    Mercury: t('natalChart.mercury'),
+    Venus: t('natalChart.venus'),
+    Mars: t('natalChart.mars'),
+    Jupiter: t('natalChart.jupiter'),
+    Saturn: t('natalChart.saturn'),
+    Uranus: t('natalChart.uranus'),
+    Neptune: t('natalChart.neptune'),
+    Pluto: t('natalChart.pluto'),
+    Chiron: t('natalChart.chiron'),
+    NorthNode: t('natalChart.northNode'),
+  }), [t]);
   const user = useAuthStore((s) => s.user);
   const {
     chart: cachedChart,
@@ -200,7 +223,7 @@ export default function NatalChartTab() {
       if (!request) {
         setErrorMessage('Dogum bilgileriniz eksik. Lutfen profilinizi guncelleyin.');
         setState('error');
-        setCacheError('Dogum bilgileri eksik');
+        setCacheError(t('natalChart.missingBirthData'));
         return;
       }
 
@@ -216,7 +239,7 @@ export default function NatalChartTab() {
         stopCalcAnimation();
         setErrorMessage('Dogum haritasi hesaplanamadi. Lutfen tekrar deneyin.');
         setState('error');
-        setCacheError('Hesaplama hatasi');
+        setCacheError(t('natalChart.calcError'));
       }
     } finally {
       setCacheLoading(false);
@@ -285,12 +308,12 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'loading') {
     return (
-      <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
-        <View style={s.center}>
-          <ActivityIndicator size="large" color={COLORS.violet} />
-          <Animated.View style={[s.skelLine, { width: 180, opacity: pulseAnim }]} />
-          <Animated.View style={[s.skelLine, { width: 120, opacity: pulseAnim }]} />
-          <Text style={s.loadingText}>Haritaniz yukleniyor...</Text>
+      <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.violet} />
+          <Animated.View style={[styles.skelLine, { width: 180, opacity: pulseAnim }]} />
+          <Animated.View style={[styles.skelLine, { width: 120, opacity: pulseAnim }]} />
+          <Text style={styles.loadingText}>Haritaniz yukleniyor...</Text>
         </View>
       </SafeScreen>
     );
@@ -301,11 +324,11 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'calculating') {
     return (
-      <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
-        <View style={s.center}>
+      <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
+        <View style={styles.center}>
           <Animated.Text
             style={[
-              s.calcSymbol,
+              styles.calcSymbol,
               {
                 opacity: calcAnim.interpolate({
                   inputRange: [0, 0.5, 1],
@@ -324,8 +347,8 @@ export default function NatalChartTab() {
           >
             {ZODIAC_SYMBOLS[Math.floor(Date.now() / 500) % 12]}
           </Animated.Text>
-          <Text style={s.calcTitle}>Yildizlar Hesaplaniyor...</Text>
-          <Text style={s.calcSub}>Bu islem birkac saniye surebilir</Text>
+          <Text style={styles.calcTitle}>Yildizlar Hesaplaniyor...</Text>
+          <Text style={styles.calcSub}>Bu islem birkac saniye surebilir</Text>
         </View>
       </SafeScreen>
     );
@@ -336,20 +359,20 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'error') {
     return (
-      <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
-        <View style={s.center}>
-          <View style={s.errorIcon}>
-            <Ionicons name="alert-circle-outline" size={32} color={COLORS.redBright} />
+      <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
+        <View style={styles.center}>
+          <View style={styles.errorIcon}>
+            <Ionicons name="alert-circle-outline" size={32} color={colors.redBright} />
           </View>
-          <Text style={s.errorText}>{errorMessage}</Text>
+          <Text style={styles.errorText}>{errorMessage}</Text>
           <Pressable
-            style={s.retryBtn}
+            style={styles.retryBtn}
             onPress={() => loadChart(true)}
-            accessibilityLabel="Tekrar dene"
+            accessibilityLabel={t('natalChart.retry')}
             accessibilityRole="button"
           >
-            <Ionicons name="refresh" size={16} color={COLORS.white} />
-            <Text style={s.retryBtnText}>Tekrar Dene</Text>
+            <Ionicons name="refresh" size={16} color={colors.white} />
+            <Text style={styles.retryBtnText}>Tekrar Dene</Text>
           </Pressable>
         </View>
       </SafeScreen>
@@ -365,55 +388,59 @@ export default function NatalChartTab() {
   const userName = chart?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '';
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']} style={s.container}>
+    <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
       <ScrollView
-        style={s.scroll}
-        contentContainerStyle={s.scrollContent}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.violet}
-            colors={[COLORS.violet]}
+            tintColor={colors.violet}
+            colors={[colors.violet]}
           />
         }
       >
         {/* ── Header Card ───────────────────────────────────────── */}
-        <View style={s.headerCard}>
-          <Text style={s.headerTitle}>Kozmik Haritam</Text>
-          {userName ? <Text style={s.headerName}>{userName}</Text> : null}
-          <Text style={s.headerSub}>
-            {chart?.birthDate} | {chart?.birthTime ?? 'Saat bilinmiyor'} | {chart?.birthLocation}
+        <View style={styles.headerCard}>
+          <Text style={styles.headerTitle}>{t('natalChart.chartTitle')}</Text>
+          {userName ? <Text style={styles.headerName}>{userName}</Text> : null}
+          <Text style={styles.headerSub}>
+            {chart?.birthDate} | {chart?.birthTime ?? t('birthInfo.timeUnknown')} | {chart?.birthLocation}
           </Text>
         </View>
 
         {/* ── Big Three (Trinity) ────────────────────────────────── */}
-        <View style={s.trinityRow}>
+        <View style={styles.trinityRow}>
           {[
-            { icon: '☉', label: 'Guneş', info: sunInfo },
-            { icon: '☽', label: 'Ay', info: moonInfo },
-            { icon: '↑', label: 'Yukselen', info: risingInfo },
+            { icon: '☉', label: t('natalChart.sun'), info: sunInfo },
+            { icon: '☽', label: t('natalChart.moon'), info: moonInfo },
+            { icon: '↑', label: t('natalChart.rising'), info: risingInfo },
           ].map((item) => (
-            <View key={item.label} style={s.trinityBubble}>
-              <Text style={s.trinityIcon}>{item.icon}</Text>
-              <Text style={s.trinitySign}>{item.info.symbol} {item.info.name}</Text>
-              <Text style={s.trinityLabel}>{item.label}</Text>
+            <View key={item.label} style={styles.trinityBubble}>
+              <Text style={styles.trinityIcon}>{item.icon}</Text>
+              <Text style={styles.trinitySign}>{item.info.symbol} {item.info.name}</Text>
+              <Text style={styles.trinityLabel}>{item.label}</Text>
             </View>
           ))}
         </View>
 
         {/* ── Kozmik Odak Noktalari (Cosmic Hotspots) ────────────── */}
         {hotspotAspects.length > 0 && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Kozmik Odak Noktalari</Text>
-            <View style={s.hotspotRow}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('natalChart.cosmicHotspots')}</Text>
+            <View style={styles.hotspotRow}>
               {hotspotAspects.map((asp, i) => (
                 <Pressable
                   key={`hotspot-${i}`}
                   style={{ flex: 1 }}
                   onPress={() => openAspectSheet(asp)}
-                  accessibilityLabel={`Kozmik odak noktası: ${asp.planet1} ${asp.type} ${asp.planet2}`}
+                  accessibilityLabel={t('natalChart.cosmicHotspotLabel', {
+                    p1: planetNames[asp.planet1] ?? asp.planet1,
+                    type: asp.type,
+                    p2: planetNames[asp.planet2] ?? asp.planet2,
+                  })}
                   accessibilityRole="button"
                 >
                   <CosmicHotspotCard aspect={asp} index={i} />
@@ -425,37 +452,37 @@ export default function NatalChartTab() {
 
         {/* ── Planetary Positions ─────────────────────────────────── */}
         {chart?.planets?.length ? (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Gezegen Konumlari</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('natalChart.planetaryPositions')}</Text>
             {chart.planets.map((planet, i) => {
-              const trName = PLANET_TURKISH[planet.planet] ?? planet.planet;
+              const trName = planetNames[planet.planet] ?? planet.planet;
               const signInfo = getZodiacInfo(planet.sign);
               const sym = PLANET_SYMBOLS[planet.planet] ?? '⭐';
 
               return (
                 <Pressable
                   key={`${planet.planet}-${i}`}
-                  style={s.planetRow}
+                  style={styles.planetRow}
                   onPress={() => openPlanetSheet(planet)}
-                  accessibilityLabel={`${trName} detaylarını aç`}
+                  accessibilityLabel={t('natalChart.openPlanetDetails', { name: trName })}
                   accessibilityRole="button"
                 >
-                  <View style={s.planetIconWrap}>
-                    <Text style={s.planetIcon}>{sym}</Text>
+                  <View style={styles.planetIconWrap}>
+                    <Text style={styles.planetIcon}>{sym}</Text>
                   </View>
-                  <View style={s.planetInfo}>
-                    <Text style={s.planetName}>{trName}</Text>
-                    <Text style={s.planetSign}>
+                  <View style={styles.planetInfo}>
+                    <Text style={styles.planetName}>{trName}</Text>
+                    <Text style={styles.planetSign}>
                       {signInfo.symbol} {signInfo.name} {Math.floor(planet.degree)}°{planet.minutes}'
                     </Text>
                   </View>
-                  <View style={s.planetMeta}>
-                    <View style={s.houseBadge}>
-                      <Text style={s.houseBadgeText}>{planet.house}</Text>
+                  <View style={styles.planetMeta}>
+                    <View style={styles.houseBadge}>
+                      <Text style={styles.houseBadgeText}>{planet.house}</Text>
                     </View>
                     {planet.retrograde && (
-                      <View style={s.retroBadge}>
-                        <Text style={s.retroText}>Rx</Text>
+                      <View style={styles.retroBadge}>
+                        <Text style={styles.retroText}>Rx</Text>
                       </View>
                     )}
                   </View>
@@ -467,9 +494,9 @@ export default function NatalChartTab() {
 
         {/* ── Planetary Aspects (Acilar) ──────────────────────────── */}
         {chart?.aspects?.length ? (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Gezegensel Acilar</Text>
-            <View style={s.aspectsGrid}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('natalChart.planetaryAspects')}</Text>
+            <View style={styles.aspectsGrid}>
               {chart.aspects.map((asp, i) => {
                 const info = ASPECT_INFO[asp.type] ?? ASPECT_INFO.CONJUNCTION;
                 const p1Sym = PLANET_SYMBOLS[asp.planet1] ?? '?';
@@ -478,15 +505,15 @@ export default function NatalChartTab() {
                   <Pressable
                     key={`asp-${i}`}
                     onPress={() => openAspectSheet(asp)}
-                    accessibilityLabel={`${info.label} açısı detayları`}
+                    accessibilityLabel={t('natalChart.aspectDetailsLabel', { label: info.label })}
                     accessibilityRole="button"
                   >
-                    <View style={s.aspectTag}>
-                      <Text style={s.aspectPlanets}>
+                    <View style={styles.aspectTag}>
+                      <Text style={styles.aspectPlanets}>
                         {p1Sym} {info.symbol} {p2Sym}
                       </Text>
-                      <Text style={[s.aspectLabel, { color: info.color }]}>{info.label}</Text>
-                      <Text style={s.aspectOrb}>{asp.angle.toFixed(1)}°</Text>
+                      <Text style={[styles.aspectLabel, { color: info.color }]}>{info.label}</Text>
+                      <Text style={styles.aspectOrb}>{asp.angle.toFixed(1)}°</Text>
                     </View>
                   </Pressable>
                 );
@@ -497,20 +524,20 @@ export default function NatalChartTab() {
 
         {/* ── House Grid ──────────────────────────────────────────── */}
         {chart?.houses?.length ? (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Ev Konumlari</Text>
-            <View style={s.houseGrid}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('natalChart.housePositions')}</Text>
+            <View style={styles.houseGrid}>
               {chart.houses.map((h) => {
                 const info = getZodiacInfo(h.sign);
                 return (
-                  <View key={h.houseNumber} style={s.houseCell}>
-                    <View style={s.houseNumCircle}>
-                      <Text style={s.houseNumText}>{h.houseNumber}</Text>
+                  <View key={h.houseNumber} style={styles.houseCell}>
+                    <View style={styles.houseNumCircle}>
+                      <Text style={styles.houseNumText}>{h.houseNumber}</Text>
                     </View>
-                    <Text style={s.houseSign}>
+                    <Text style={styles.houseSign}>
                       {info.symbol} {info.name}
                     </Text>
-                    <Text style={s.houseDeg}>{Math.floor(h.degree)}°</Text>
+                    <Text style={styles.houseDeg}>{Math.floor(h.degree)}°</Text>
                   </View>
                 );
               })}
@@ -520,48 +547,48 @@ export default function NatalChartTab() {
 
         {/* ── AI Interpretation ───────────────────────────────────── */}
         {chart && (
-          <View style={s.aiCard}>
-            <View style={s.aiHeader}>
-              <Ionicons name="sparkles-outline" size={18} color={COLORS.violet} />
-              <Text style={s.sectionTitle}>AI Yorumu</Text>
+          <View style={styles.aiCard}>
+            <View style={styles.aiHeader}>
+              <Ionicons name="sparkles-outline" size={18} color={colors.violet} />
+              <Text style={styles.sectionTitle}>AI Yorumu</Text>
             </View>
             {chart.interpretationStatus === 'COMPLETED' && chart.aiInterpretation ? (
-              <StaggeredAiText key={chart.aiInterpretation} text={chart.aiInterpretation} style={s.aiText} />
+              <StaggeredAiText key={chart.aiInterpretation} text={chart.aiInterpretation} style={styles.aiText} />
             ) : chart.interpretationStatus === 'FAILED' ? (
-              <View style={s.aiStatus}>
-                <Ionicons name="alert-circle" size={22} color={COLORS.redBright} />
-                <Text style={s.aiStatusText}>Yorum olusturulamadi.</Text>
+              <View style={styles.aiStatus}>
+                <Ionicons name="alert-circle" size={22} color={colors.redBright} />
+                <Text style={styles.aiStatusText}>Yorum olusturulamadi.</Text>
                 <Pressable
-                  style={s.retrySmall}
+                  style={styles.retrySmall}
                   onPress={onRefresh}
-                  accessibilityLabel="Tekrar dene"
+                  accessibilityLabel={t('natalChart.retry')}
                   accessibilityRole="button"
                 >
-                  <Ionicons name="refresh" size={13} color={COLORS.violet} />
-                  <Text style={s.retrySmallText}>Tekrar dene</Text>
+                  <Ionicons name="refresh" size={13} color={colors.violet} />
+                  <Text style={styles.retrySmallText}>{t('natalChart.retry')}</Text>
                 </Pressable>
               </View>
             ) : pollExhausted ? (
-              <View style={s.aiStatus}>
-                <Ionicons name="time-outline" size={22} color={COLORS.muted} />
-                <Text style={s.aiStatusText}>Yorum henuz hazir degil.</Text>
+              <View style={styles.aiStatus}>
+                <Ionicons name="time-outline" size={22} color={colors.muted} />
+                <Text style={styles.aiStatusText}>Yorum henuz hazir degil.</Text>
                 <Pressable
-                  style={s.retrySmall}
+                  style={styles.retrySmall}
                   onPress={() => { setPollExhausted(false); startPolling(); }}
-                  accessibilityLabel="Tekrar kontrol et"
+                  accessibilityLabel={t('natalChart.checkAgain')}
                   accessibilityRole="button"
                 >
-                  <Ionicons name="refresh" size={13} color={COLORS.violet} />
-                  <Text style={s.retrySmallText}>Tekrar kontrol et</Text>
+                  <Ionicons name="refresh" size={13} color={colors.violet} />
+                  <Text style={styles.retrySmallText}>{t('natalChart.checkAgain')}</Text>
                 </Pressable>
               </View>
             ) : (
-              <View style={s.aiStatus}>
-                <ActivityIndicator size="small" color={COLORS.violet} />
-                <Animated.View style={[s.skelLine, { width: '100%', opacity: pulseAnim }]} />
-                <Animated.View style={[s.skelLine, { width: '90%', opacity: pulseAnim }]} />
-                <Animated.View style={[s.skelLine, { width: '70%', opacity: pulseAnim }]} />
-                <Text style={s.aiStatusText}>Yapay zeka yorumunuz hazirlaniyor...</Text>
+              <View style={styles.aiStatus}>
+                <ActivityIndicator size="small" color={colors.violet} />
+                <Animated.View style={[styles.skelLine, { width: '100%', opacity: pulseAnim }]} />
+                <Animated.View style={[styles.skelLine, { width: '90%', opacity: pulseAnim }]} />
+                <Animated.View style={[styles.skelLine, { width: '70%', opacity: pulseAnim }]} />
+                <Text style={styles.aiStatusText}>Yapay zeka yorumunuz hazirlaniyor...</Text>
               </View>
             )}
           </View>
@@ -569,13 +596,13 @@ export default function NatalChartTab() {
 
         {/* ── Refresh Button ──────────────────────────────────────── */}
         <Pressable
-          style={s.refreshBtn}
+          style={styles.refreshBtn}
           onPress={() => loadChart(true)}
-          accessibilityLabel="Haritamı yenile"
+          accessibilityLabel={t('natalChart.refreshChart')}
           accessibilityRole="button"
         >
-          <Ionicons name="refresh" size={16} color={COLORS.violet} />
-          <Text style={s.refreshBtnText}>Haritami Yenile</Text>
+          <Ionicons name="refresh" size={16} color={colors.violet} />
+          <Text style={styles.refreshBtnText}>Haritami Yenile</Text>
         </Pressable>
       </ScrollView>
 
@@ -599,17 +626,18 @@ export default function NatalChartTab() {
 // ═══════════════════════════════════════════════════════════════════════
 // STYLES — Modern Light Theme
 // ═══════════════════════════════════════════════════════════════════════
-const s = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: C.bg,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: (Platform.OS === 'ios' ? 88 : 68) + 32,
     gap: 20,
   },
 
@@ -624,40 +652,40 @@ const s = StyleSheet.create({
   skelLine: {
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.violetBg,
+    backgroundColor: C.violetBg,
   },
   loadingText: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.muted,
+    color: C.muted,
     marginTop: 4,
   },
   calcSymbol: {
     fontSize: 48,
     marginBottom: 8,
-    color: COLORS.violet,
+    color: C.violet,
   },
   calcTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
   },
   calcSub: {
     fontSize: 13,
-    color: COLORS.muted,
+    color: C.muted,
   },
   errorIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.redLight,
+    backgroundColor: C.redLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   errorText: {
     fontSize: 14,
-    color: COLORS.body,
+    color: C.body,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -665,26 +693,26 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.violet,
+    backgroundColor: C.violet,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 24,
     marginTop: 8,
   },
   retryBtnText: {
-    color: COLORS.white,
+    color: C.white,
     fontWeight: '600',
     fontSize: 14,
   },
 
   // ── Header Card ──────────────────────────────────────────────────
   headerCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.card,
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     gap: 4,
-    shadowColor: COLORS.shadow,
+    shadowColor: C.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -693,17 +721,17 @@ const s = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: COLORS.text,
+    color: C.text,
   },
   headerName: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.violet,
+    color: C.violet,
     marginTop: 2,
   },
   headerSub: {
     fontSize: 12,
-    color: COLORS.muted,
+    color: C.muted,
     marginTop: 2,
   },
 
@@ -714,7 +742,7 @@ const s = StyleSheet.create({
   },
   trinityBubble: {
     flex: 1,
-    backgroundColor: COLORS.violetBg,
+    backgroundColor: C.violetBg,
     borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 8,
@@ -723,17 +751,17 @@ const s = StyleSheet.create({
   },
   trinityIcon: {
     fontSize: 22,
-    color: COLORS.violetText,
+    color: C.violetText,
   },
   trinitySign: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.violetText,
+    color: C.violetText,
     textAlign: 'center',
   },
   trinityLabel: {
     fontSize: 11,
-    color: COLORS.muted,
+    color: C.muted,
     fontWeight: '500',
   },
 
@@ -748,18 +776,18 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
   },
 
   // ── Planet Rows ───────────────────────────────────────────────────
   planetRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: C.card,
     borderRadius: 20,
     padding: 14,
     gap: 12,
-    shadowColor: COLORS.shadow,
+    shadowColor: C.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 4,
@@ -769,13 +797,13 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.violetBg,
+    backgroundColor: C.violetBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   planetIcon: {
     fontSize: 20,
-    color: COLORS.violet,
+    color: C.violet,
   },
   planetInfo: {
     flex: 1,
@@ -784,11 +812,11 @@ const s = StyleSheet.create({
   planetName: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
   },
   planetSign: {
     fontSize: 12,
-    color: COLORS.muted,
+    color: C.muted,
   },
   planetMeta: {
     flexDirection: 'row',
@@ -799,17 +827,17 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.violetBg,
+    backgroundColor: C.violetBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   houseBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.violet,
+    color: C.violet,
   },
   retroBadge: {
-    backgroundColor: COLORS.amberLight,
+    backgroundColor: C.amberLight,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -817,42 +845,42 @@ const s = StyleSheet.create({
   retroText: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.amber,
+    color: C.amber,
   },
 
   // ── Aspects ───────────────────────────────────────────────────────
   aspectsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   aspectTag: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    backgroundColor: C.card,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    gap: 4,
-    shadowColor: COLORS.shadow,
+    gap: 2,
+    shadowColor: C.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 1,
-    minWidth: 90,
+    minWidth: 82,
   },
   aspectPlanets: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
-    letterSpacing: 2,
+    color: C.text,
+    letterSpacing: 1,
   },
   aspectLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   aspectOrb: {
-    fontSize: 10,
-    color: COLORS.muted,
+    fontSize: 9,
+    color: C.muted,
   },
 
   // ── House Grid ────────────────────────────────────────────────────
@@ -863,45 +891,45 @@ const s = StyleSheet.create({
   },
   houseCell: {
     width: '31%' as any,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.card,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
   houseNumCircle: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: COLORS.violetBg,
+    backgroundColor: C.violetBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   houseNumText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.violet,
+    color: C.violet,
   },
   houseSign: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text,
+    color: C.text,
     textAlign: 'center',
   },
   houseDeg: {
     fontSize: 10,
-    color: COLORS.muted,
+    color: C.muted,
   },
 
   // ── AI Card ───────────────────────────────────────────────────────
   aiCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.card,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     gap: 12,
   },
   aiHeader: {
@@ -911,7 +939,7 @@ const s = StyleSheet.create({
   },
   aiText: {
     fontSize: 14,
-    color: COLORS.body,
+    color: C.body,
     lineHeight: 22,
   },
   aiStatus: {
@@ -921,7 +949,7 @@ const s = StyleSheet.create({
   },
   aiStatusText: {
     fontSize: 13,
-    color: COLORS.muted,
+    color: C.muted,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -932,12 +960,12 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.violetBg,
+    backgroundColor: C.violetBg,
     marginTop: 4,
   },
   retrySmallText: {
     fontSize: 12,
-    color: COLORS.violet,
+    color: C.violet,
     fontWeight: '600',
   },
 
@@ -950,12 +978,13 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: COLORS.violet,
+    borderColor: C.violet,
     backgroundColor: 'transparent',
   },
   refreshBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.violet,
+    color: C.violet,
   },
 });
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SPACING, RADIUS } from '../../constants/tokens';
 
 interface BadgeProps {
@@ -16,31 +16,35 @@ export function Badge({
   style,
   textStyle,
 }: BadgeProps) {
+  const { colors } = useTheme();
+  const s = createStyles(colors);
   return (
-    <View style={[styles.badge, styles[`badge_${variant}`], style]}>
-      <Text style={[styles.text, styles[`text_${variant}`], textStyle]}>
+    <View style={[s.badge, s[`badge_${variant}`], style]}>
+      <Text style={[s.text, s[`text_${variant}`], textStyle]}>
         {label}
       </Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.full,
-    alignSelf: 'flex-start',
-  },
-  badge_default: { backgroundColor: COLORS.border },
-  badge_primary: { backgroundColor: COLORS.primarySoft },
-  badge_success: { backgroundColor: COLORS.luckBg },
-  badge_warning: { backgroundColor: COLORS.neutralBg },
-  badge_error: { backgroundColor: COLORS.cautionBg },
-  text: { fontSize: 12, fontWeight: '600' },
-  text_default: { color: COLORS.textSecondary },
-  text_primary: { color: COLORS.primary },
-  text_success: { color: COLORS.success },
-  text_warning: { color: COLORS.warning },
-  text_error: { color: COLORS.error },
-});
+function createStyles(C: ThemeColors) {
+  return StyleSheet.create({
+    badge: {
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      borderRadius: RADIUS.full,
+      alignSelf: 'flex-start',
+    },
+    badge_default: { backgroundColor: C.border },
+    badge_primary: { backgroundColor: C.primarySoft },
+    badge_success: { backgroundColor: C.luckBg },
+    badge_warning: { backgroundColor: C.neutralBg },
+    badge_error: { backgroundColor: C.cautionBg },
+    text: { fontSize: 12, fontWeight: '600' },
+    text_default: { color: C.subtext },
+    text_primary: { color: C.primary },
+    text_success: { color: C.success },
+    text_warning: { color: C.warning },
+    text_error: { color: C.error },
+  });
+}

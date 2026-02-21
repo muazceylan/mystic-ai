@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ViewToken } from 'react-native';
-import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
@@ -19,6 +19,7 @@ export default function WheelPicker({
   onValueChange,
   width = 80,
 }: WheelPickerProps) {
+  const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const isScrollingRef = useRef(false);
 
@@ -65,8 +66,8 @@ export default function WheelPicker({
         <Text
           style={[
             styles.itemText,
-            isSelected && styles.itemTextSelected,
-            !isSelected && styles.itemTextDimmed,
+            isSelected && { ...styles.itemTextSelected, color: colors.primary },
+            !isSelected && { color: colors.disabledText },
           ]}
         >
           {item.label}
@@ -77,7 +78,13 @@ export default function WheelPicker({
 
   return (
     <View style={[styles.container, { width, height: PICKER_HEIGHT }]}>
-      <View style={styles.selectedOverlay} pointerEvents="none" />
+      <View
+        style={[
+          styles.selectedOverlay,
+          { borderColor: colors.border, backgroundColor: colors.primarySoft },
+        ]}
+        pointerEvents="none"
+      />
       <FlatList
         ref={flatListRef}
         data={items}
@@ -121,25 +128,9 @@ const styles = StyleSheet.create({
     height: ITEM_HEIGHT,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.primarySoft,
     zIndex: 1,
   },
-  item: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  itemText: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  itemTextSelected: {
-    fontWeight: '700',
-    color: COLORS.primary,
-    fontSize: 20,
-  },
-  itemTextDimmed: {
-    color: COLORS.disabledText,
-  },
+  item: { justifyContent: 'center', alignItems: 'center' },
+  itemText: { fontSize: 18, fontWeight: '500' },
+  itemTextSelected: { fontWeight: '700', fontSize: 20 },
 });

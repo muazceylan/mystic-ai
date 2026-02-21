@@ -8,12 +8,133 @@ import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { COUNTRIES } from '../../constants/index';
 import { login as loginApi, register, updateProfile } from '../../services/auth';
-import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
 type Choice = 'analyze' | 'skip' | null;
 
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: C.bg,
+      paddingHorizontal: 24,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      gap: 16,
+    },
+    optionCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      gap: 12,
+    },
+    optionSelected: {
+      borderColor: C.primary,
+      backgroundColor: C.primarySoft,
+    },
+    optionTextContainer: {
+      flex: 1,
+    },
+    optionTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: C.text,
+    },
+    optionTitleSelected: {
+      color: C.primary,
+    },
+    optionSubtitle: {
+      marginTop: 4,
+      fontSize: 12,
+      color: C.subtext,
+    },
+    checkBadge: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: C.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    errorText: {
+      color: C.error,
+      fontSize: 12,
+      textAlign: 'center',
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingBottom: 32,
+    },
+    outlineButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: C.primary,
+      borderRadius: 999,
+      paddingVertical: 14,
+      alignItems: 'center',
+      backgroundColor: C.surface,
+    },
+    outlineText: {
+      color: C.primary,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    primaryButton: {
+      flex: 1,
+      borderRadius: 999,
+      paddingVertical: 14,
+      alignItems: 'center',
+      backgroundColor: C.primary,
+    },
+    primaryDisabled: {
+      backgroundColor: C.disabled,
+    },
+    primaryText: {
+      color: C.white,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    primaryTextDisabled: {
+      color: C.disabledText,
+    },
+    syncOverlay: {
+      position: 'absolute',
+      left: 24,
+      right: 24,
+      bottom: 100,
+      backgroundColor: C.surface,
+      borderRadius: 14,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      borderWidth: 1,
+      borderColor: C.border,
+      shadowColor: C.shadow,
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    syncText: {
+      fontSize: 12,
+      color: C.subtext,
+    },
+  });
+}
+
 export default function NatalChartScreen() {
+  const { colors } = useTheme();
   const onboarding = useOnboardingStore();
   const storeLogin = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -21,6 +142,7 @@ export default function NatalChartScreen() {
   const [choice, setChoice] = useState<Choice>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const styles = makeStyles(colors);
 
   const birthLocation = useMemo(() => {
     const countryName =
@@ -159,7 +281,7 @@ export default function NatalChartScreen() {
           <Ionicons
             name="chatbubble-ellipses"
             size={20}
-            color={choice === 'analyze' ? COLORS.primary : COLORS.subtext}
+            color={choice === 'analyze' ? colors.primary : colors.subtext}
           />
           <View style={styles.optionTextContainer}>
             <Text style={[styles.optionTitle, choice === 'analyze' && styles.optionTitleSelected]}>
@@ -171,7 +293,7 @@ export default function NatalChartScreen() {
           </View>
           {choice === 'analyze' && (
             <View style={styles.checkBadge}>
-              <Ionicons name="checkmark" size={12} color={COLORS.white} />
+              <Ionicons name="checkmark" size={12} color={colors.white} />
             </View>
           )}
         </TouchableOpacity>
@@ -182,7 +304,7 @@ export default function NatalChartScreen() {
           accessibilityLabel="Uygulamaya geç"
           accessibilityRole="button"
         >
-          <Ionicons name="home" size={20} color={choice === 'skip' ? COLORS.primary : COLORS.subtext} />
+          <Ionicons name="home" size={20} color={choice === 'skip' ? colors.primary : colors.subtext} />
           <View style={styles.optionTextContainer}>
             <Text style={[styles.optionTitle, choice === 'skip' && styles.optionTitleSelected]}>
               Uygulamaya Geç
@@ -193,7 +315,7 @@ export default function NatalChartScreen() {
           </View>
           {choice === 'skip' && (
             <View style={styles.checkBadge}>
-              <Ionicons name="checkmark" size={12} color={COLORS.white} />
+              <Ionicons name="checkmark" size={12} color={colors.white} />
             </View>
           )}
         </TouchableOpacity>
@@ -218,7 +340,7 @@ export default function NatalChartScreen() {
           accessibilityRole="button"
         >
           {isGenerating ? (
-            <ActivityIndicator color={COLORS.white} />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={[styles.primaryText, (!choice || isGenerating) && styles.primaryTextDisabled]}>
               Devam Et
@@ -229,7 +351,7 @@ export default function NatalChartScreen() {
 
       {isGenerating && (
         <View style={styles.syncOverlay}>
-          <ActivityIndicator color={COLORS.primary} />
+          <ActivityIndicator color={colors.primary} />
           <Text style={styles.syncText}>Haritanız yıldızlarla senkronize ediliyor...</Text>
         </View>
       )}
@@ -237,121 +359,3 @@ export default function NatalChartScreen() {
     </SafeScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 24,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 16,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  optionSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primarySoft,
-  },
-  optionTextContainer: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  optionTitleSelected: {
-    color: COLORS.primary,
-  },
-  optionSubtitle: {
-    marginTop: 4,
-    fontSize: 12,
-    color: COLORS.subtext,
-  },
-  checkBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingBottom: 32,
-  },
-  outlineButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-  },
-  outlineText: {
-    color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  primaryButton: {
-    flex: 1,
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-  },
-  primaryDisabled: {
-    backgroundColor: COLORS.disabled,
-  },
-  primaryText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  primaryTextDisabled: {
-    color: COLORS.disabledText,
-  },
-  syncOverlay: {
-    position: 'absolute',
-    left: 24,
-    right: 24,
-    bottom: 100,
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  syncText: {
-    fontSize: 12,
-    color: COLORS.subtext,
-  },
-});

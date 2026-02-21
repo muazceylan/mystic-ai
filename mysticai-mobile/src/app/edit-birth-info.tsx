@@ -21,19 +21,166 @@ import CalendarPicker from '../components/CalendarPicker';
 import { updateProfile } from '../services/auth';
 import { calculateNatalChart } from '../services/astrology.service';
 import { getZodiacSign } from '../constants/index';
-import { COLORS } from '../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
 import { SafeScreen } from '../components/ui';
 
-const TURKISH_MONTHS = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
+function formatDateDisplay(date: Date, months: string[]): string {
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
 
-function formatDateDisplay(date: Date): string {
-  return `${date.getDate()} ${TURKISH_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingTop: 56,
+      paddingBottom: 12,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: C.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: C.text,
+    },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
+    hint: {
+      fontSize: 13,
+      color: C.subtext,
+      lineHeight: 19,
+      marginBottom: 20,
+      backgroundColor: C.primarySoft,
+      padding: 12,
+      borderRadius: 10,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: C.text,
+      marginBottom: 8,
+      marginTop: 16,
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+    },
+    inputRowDisabled: { opacity: 0.5 },
+    inputText: { flex: 1, fontSize: 15, color: C.text },
+    placeholderText: { color: C.disabledText },
+    textInputInline: {
+      flex: 1,
+      fontSize: 15,
+      color: C.text,
+      padding: 0,
+    },
+    checkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 8,
+    },
+    checkLabel: { fontSize: 13, color: C.text },
+    saveRow: { marginTop: 32 },
+    saveButton: {
+      backgroundColor: C.primary,
+      borderRadius: 999,
+      paddingVertical: 15,
+      alignItems: 'center',
+    },
+    saveButtonDisabled: { opacity: 0.6 },
+    saveButtonText: { color: C.white, fontSize: 15, fontWeight: '700' },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    modalCard: {
+      width: '100%',
+      backgroundColor: C.surface,
+      borderRadius: 28,
+      overflow: 'hidden',
+      maxHeight: '85%',
+      elevation: 8,
+      shadowColor: C.shadow,
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 8 },
+    },
+    modalHeader: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
+    modalLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: C.subtext,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 8,
+    },
+    modalSelected: { fontSize: 22, fontWeight: '700', color: C.text },
+    divider: { height: 1, backgroundColor: C.border },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 8,
+    },
+    modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 },
+    modalTextBtnLabel: { fontSize: 14, fontWeight: '600', color: C.primary },
+    timeRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'flex-end',
+      gap: 12,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 8,
+    },
+    timeGroup: { alignItems: 'center' },
+    timeGroupLabel: { fontSize: 12, color: C.subtext, marginBottom: 8 },
+    timeInput: {
+      width: 80,
+      height: 64,
+      backgroundColor: C.surfaceAlt,
+      borderRadius: 12,
+      fontSize: 32,
+      fontWeight: '700',
+      color: C.primary,
+      textAlign: 'center',
+      borderWidth: 1.5,
+      borderColor: C.border,
+    },
+    timeColon: { fontSize: 32, fontWeight: '700', color: C.text, marginBottom: 8 },
+    timeHint: { fontSize: 12, color: C.subtext, textAlign: 'center', paddingBottom: 20, paddingTop: 8 },
+  });
 }
 
 export default function EditBirthInfoScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const months = (t('calendar.months') || '').split(',');
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const clearNatalChart = useNatalChartStore((s) => s.clear);
@@ -66,7 +213,7 @@ export default function EditBirthInfoScreen() {
 
   const handleSave = async () => {
     if (!birthDate || !birthLocation.trim()) {
-      Alert.alert('Eksik Bilgi', 'Doğum tarihi ve konum zorunludur.');
+      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.missingInfoDesc'));
       return;
     }
     if (!user?.id) return;
@@ -102,7 +249,7 @@ export default function EditBirthInfoScreen() {
       clearLuckyDates();
       router.replace('/(tabs)/home');
     } catch (err) {
-      Alert.alert('Hata', 'Bilgiler kaydedilemedi. Lütfen tekrar deneyin.');
+      Alert.alert(t('common.error'), t('birthInfo.saveError'));
     } finally {
       setSaving(false);
     }
@@ -118,88 +265,88 @@ export default function EditBirthInfoScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backBtn}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={24} color={COLORS.text} />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Doğum Bilgileri</Text>
+        <Text style={styles.headerTitle}>{t('birthInfo.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.hint}>
-          Doğum bilgileriniz natal haritanızın hesaplanmasında kullanılır. Değişiklikler haritanızı etkiler.
+          {t('birthInfo.hint')}
         </Text>
 
         {/* Birth Date */}
-        <Text style={styles.label}>Doğum Tarihi</Text>
+        <Text style={styles.label}>{t('birthInfo.birthDate')}</Text>
         <TouchableOpacity
           style={styles.inputRow}
           onPress={() => setShowDatePicker(true)}
-          accessibilityLabel="Doğum tarihi seç"
+          accessibilityLabel={t('editBirthInfo.accessibilitySelectDate')}
           accessibilityRole="button"
         >
           <Ionicons
             name="calendar-outline"
             size={20}
-            color={birthDate ? COLORS.primary : COLORS.disabledText}
+            color={birthDate ? colors.primary : colors.disabledText}
           />
           <Text style={[styles.inputText, !birthDate && styles.placeholderText]}>
-            {birthDate ? formatDateDisplay(birthDate) : 'Tarih seçin'}
+            {birthDate ? formatDateDisplay(birthDate, months) : t('birthInfo.selectDate')}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={COLORS.subtext} />
+          <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
         </TouchableOpacity>
 
         {/* Birth Time */}
-        <Text style={styles.label}>Doğum Saati</Text>
+        <Text style={styles.label}>{t('birthInfo.birthTime')}</Text>
         <TouchableOpacity
           style={[styles.inputRow, birthTimeUnknown && styles.inputRowDisabled]}
           onPress={() => !birthTimeUnknown && setShowTimePicker(true)}
-          accessibilityLabel="Doğum saati seç"
+          accessibilityLabel={t('editBirthInfo.accessibilitySelectTime')}
           accessibilityRole="button"
         >
           <Ionicons
             name="time-outline"
             size={20}
-            color={birthTime && !birthTimeUnknown ? COLORS.primary : COLORS.disabledText}
+            color={birthTime && !birthTimeUnknown ? colors.primary : colors.disabledText}
           />
           <Text style={[styles.inputText, (!birthTime || birthTimeUnknown) && styles.placeholderText]}>
-            {birthTimeUnknown ? 'Bilinmiyor' : birthTime || 'SS:DD seçin'}
+            {birthTimeUnknown ? t('common.unknown') : birthTime || t('birthInfo.selectTime')}
           </Text>
           {!birthTimeUnknown && (
-            <Ionicons name="chevron-forward" size={16} color={COLORS.subtext} />
+            <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
           )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.checkRow}
           onPress={() => setBirthTimeUnknown((v) => !v)}
-          accessibilityLabel="Doğum saatimi bilmiyorum"
+          accessibilityLabel={t('editBirthInfo.accessibilityBirthTimeUnknown')}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: birthTimeUnknown }}
         >
           <Ionicons
             name={birthTimeUnknown ? 'checkbox' : 'square-outline'}
             size={20}
-            color={birthTimeUnknown ? COLORS.primary : COLORS.subtext}
+            color={birthTimeUnknown ? colors.primary : colors.subtext}
           />
-          <Text style={styles.checkLabel}>Doğum saatimi bilmiyorum</Text>
+          <Text style={styles.checkLabel}>{t('birthInfo.unknownTime')}</Text>
         </TouchableOpacity>
 
         {/* Birth Location */}
-        <Text style={styles.label}>Doğum Yeri</Text>
+        <Text style={styles.label}>{t('birthInfo.birthLocation')}</Text>
         <View style={styles.inputRow}>
           <Ionicons
             name="location-outline"
             size={20}
-            color={birthLocation ? COLORS.primary : COLORS.disabledText}
+            color={birthLocation ? colors.primary : colors.disabledText}
           />
           <TextInput
             style={styles.textInputInline}
             value={birthLocation}
             onChangeText={setBirthLocation}
-            placeholder="Şehir, Ülke (örn. İstanbul, TR)"
-            placeholderTextColor={COLORS.disabledText}
+            placeholder={t('birthInfo.locationPlaceholder')}
+            placeholderTextColor={colors.disabledText}
             returnKeyType="done"
           />
         </View>
@@ -209,13 +356,13 @@ export default function EditBirthInfoScreen() {
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
-            accessibilityLabel="Değişiklikleri kaydet"
+            accessibilityLabel={t('editBirthInfo.accessibilitySaveChanges')}
             accessibilityRole="button"
           >
             {saving ? (
-              <ActivityIndicator color={COLORS.white} size="small" />
+              <ActivityIndicator color={colors.white} size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
+              <Text style={styles.saveButtonText}>{t('birthInfo.saveChanges')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -226,9 +373,9 @@ export default function EditBirthInfoScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalLabel}>Doğum tarihinizi seçin</Text>
+              <Text style={styles.modalLabel}>{t('editBirthInfo.selectBirthDateModal')}</Text>
               <Text style={styles.modalSelected}>
-                {tempDate ? formatDateDisplay(tempDate) : 'Henüz seçilmedi'}
+                {tempDate ? formatDateDisplay(tempDate, months) : t('editBirthInfo.notSelectedYet')}
               </Text>
             </View>
             <View style={styles.divider} />
@@ -245,22 +392,22 @@ export default function EditBirthInfoScreen() {
               <TouchableOpacity
                 style={styles.modalTextBtn}
                 onPress={() => setShowDatePicker(false)}
-                accessibilityLabel="İptal"
+                accessibilityLabel={t('common.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalTextBtnLabel}>İptal</Text>
+                <Text style={styles.modalTextBtnLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalTextBtn, !tempDate && { opacity: 0.4 }]}
                 disabled={!tempDate}
-                accessibilityLabel="Tarihi onayla"
+                accessibilityLabel={t('editBirthInfo.confirmDate')}
                 accessibilityRole="button"
                 onPress={() => {
                   if (tempDate) setBirthDate(tempDate);
                   setShowDatePicker(false);
                 }}
               >
-                <Text style={styles.modalTextBtnLabel}>Tamam</Text>
+                <Text style={styles.modalTextBtnLabel}>{t('common.ok')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -272,7 +419,7 @@ export default function EditBirthInfoScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalLabel}>Saat seçin</Text>
+              <Text style={styles.modalLabel}>{t('editBirthInfo.selectTimeModal')}</Text>
               <Text style={styles.modalSelected}>
                 {isTimeValid() ? `${tempHour}:${tempMinute}` : '--:--'}
               </Text>
@@ -280,7 +427,7 @@ export default function EditBirthInfoScreen() {
             <View style={styles.divider} />
             <View style={styles.timeRow}>
               <View style={styles.timeGroup}>
-                <Text style={styles.timeGroupLabel}>Saat</Text>
+                <Text style={styles.timeGroupLabel}>{t('auth.hour')}</Text>
                 <TextInput
                   style={styles.timeInput}
                   value={tempHour}
@@ -288,13 +435,13 @@ export default function EditBirthInfoScreen() {
                   keyboardType="number-pad"
                   maxLength={2}
                   placeholder="00"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholderTextColor={colors.disabledText}
                   selectTextOnFocus
                 />
               </View>
               <Text style={styles.timeColon}>:</Text>
               <View style={styles.timeGroup}>
-                <Text style={styles.timeGroupLabel}>Dakika</Text>
+                <Text style={styles.timeGroupLabel}>{t('auth.minute')}</Text>
                 <TextInput
                   style={styles.timeInput}
                   value={tempMinute}
@@ -302,26 +449,26 @@ export default function EditBirthInfoScreen() {
                   keyboardType="number-pad"
                   maxLength={2}
                   placeholder="00"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholderTextColor={colors.disabledText}
                   selectTextOnFocus
                 />
               </View>
             </View>
-            <Text style={styles.timeHint}>24 saat formatı (00:00 – 23:59)</Text>
+            <Text style={styles.timeHint}>{t('birthInfo.timeFormat')}</Text>
             <View style={styles.divider} />
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalTextBtn}
                 onPress={() => setShowTimePicker(false)}
-                accessibilityLabel="İptal"
+                accessibilityLabel={t('common.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalTextBtnLabel}>İptal</Text>
+                <Text style={styles.modalTextBtnLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalTextBtn, !isTimeValid() && { opacity: 0.4 }]}
                 disabled={!isTimeValid()}
-                accessibilityLabel="Saati onayla"
+                accessibilityLabel={t('editBirthInfo.confirmTime')}
                 accessibilityRole="button"
                 onPress={() => {
                   const h = parseInt(tempHour, 10);
@@ -330,7 +477,7 @@ export default function EditBirthInfoScreen() {
                   setShowTimePicker(false);
                 }}
               >
-                <Text style={styles.modalTextBtnLabel}>Tamam</Text>
+                <Text style={styles.modalTextBtnLabel}>{t('common.ok')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -340,149 +487,3 @@ export default function EditBirthInfoScreen() {
     </SafeScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 56,
-    paddingBottom: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
-  hint: {
-    fontSize: 13,
-    color: COLORS.subtext,
-    lineHeight: 19,
-    marginBottom: 20,
-    backgroundColor: COLORS.primarySoft,
-    padding: 12,
-    borderRadius: 10,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  inputRowDisabled: { opacity: 0.5 },
-  inputText: { flex: 1, fontSize: 15, color: COLORS.text },
-  placeholderText: { color: COLORS.disabledText },
-  textInputInline: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.text,
-    padding: 0,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  checkLabel: { fontSize: 13, color: COLORS.text },
-  saveRow: { marginTop: 32 },
-  saveButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 999,
-    paddingVertical: 15,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  modalCard: {
-    width: '100%',
-    backgroundColor: COLORS.surface,
-    borderRadius: 28,
-    overflow: 'hidden',
-    maxHeight: '85%',
-    elevation: 8,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  modalHeader: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
-  modalLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: COLORS.subtext,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  modalSelected: { fontSize: 22, fontWeight: '700', color: COLORS.text },
-  divider: { height: 1, backgroundColor: COLORS.border },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 },
-  modalTextBtnLabel: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    gap: 12,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 8,
-  },
-  timeGroup: { alignItems: 'center' },
-  timeGroupLabel: { fontSize: 12, color: COLORS.subtext, marginBottom: 8 },
-  timeInput: {
-    width: 80,
-    height: 64,
-    backgroundColor: COLORS.surfaceAlt,
-    borderRadius: 12,
-    fontSize: 32,
-    fontWeight: '700',
-    color: COLORS.primary,
-    textAlign: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-  },
-  timeColon: { fontSize: 32, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
-  timeHint: { fontSize: 12, color: COLORS.subtext, textAlign: 'center', paddingBottom: 20, paddingTop: 8 },
-});

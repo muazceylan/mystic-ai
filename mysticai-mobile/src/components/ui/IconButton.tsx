@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { SPACING } from '../../constants/tokens';
 
 const MIN_TOUCH = 44;
@@ -20,11 +20,12 @@ export function IconButton({
   icon,
   onPress,
   size = 24,
-  color = COLORS.text,
+  color,
   style,
   accessibilityLabel,
   hitSlop = (MIN_TOUCH - size) / 2,
 }: IconButtonProps) {
+  const { colors } = useTheme();
   const slop = Math.max(0, Math.ceil(hitSlop));
   return (
     <TouchableOpacity
@@ -34,7 +35,7 @@ export function IconButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
     >
-      <Ionicons name={icon} size={size} color={color} />
+      <Ionicons name={icon} size={size} color={color ?? colors.text} />
     </TouchableOpacity>
   );
 }

@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { COLORS } from '../constants/colors';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { useTheme } from '../context/ThemeContext';
 
 interface OnboardingProgressBarProps {
   currentStep: number;
@@ -17,6 +17,7 @@ export default function OnboardingProgressBar({
   currentStep,
   totalSteps,
 }: OnboardingProgressBarProps) {
+  const { colors } = useTheme();
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -31,21 +32,13 @@ export default function OnboardingProgressBar({
   }));
 
   return (
-    <View style={styles.track}>
-      <Animated.View style={[styles.fill, animatedStyle]} />
+    <View style={[styles.track, { backgroundColor: colors.border }]}>
+      <Animated.View style={[styles.fill, { backgroundColor: colors.primary }, animatedStyle]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  track: {
-    height: 3,
-    backgroundColor: COLORS.border,
-    width: '100%',
-  },
-  fill: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 1.5,
-  },
+  track: { height: 3, width: '100%' },
+  fill: { height: '100%', borderRadius: 1.5 },
 });

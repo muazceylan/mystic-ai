@@ -1,0 +1,13 @@
+- (x) Datepicer düzenlemesi (pazar günleri gelmiyordu)
+- (x) Tema düzenlemesi
+- (x) Basit tasarım iyileştirmeleri
+- (x) Kaydırma hareketi ile geri gelme özelliği
+- (x) Ön yüz tasarımı (anasayfa karmaşıklığı giderilecek, renk paletleri ayarlanacak)
+- (x) Tüm uygulama dil düzenelemeleri gerçekleştirildi (backend'e ayrıca bakılmalı)
+- () çalışmayan özellikleri inceler/düzenle
+- () Tab’lar arasında kaydırma: Ana sayfa, Planlayıcı, Rüyalar vb. arasında kaydırarak geçiş için react-native-pager-view ile özel bir tab yapısı veya Material Top Tabs kullanmak gerekir. Bu, tab bar’ı üstte göstereceği için mevcut alt tab bar’ı değiştirir, o yüzden bekletiliyor.
+- () 
+- () 
+- () 
+- () 
+- () 

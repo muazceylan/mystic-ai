@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SPACING, RADIUS } from '../../constants/tokens';
 
 interface ButtonProps {
@@ -33,18 +33,20 @@ export function Button({
   textStyle,
   accessibilityLabel,
 }: ButtonProps) {
+  const { colors } = useTheme();
+  const s = createStyles(colors);
   const isDisabled = disabled || loading;
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={isDisabled}
       style={[
-        styles.base,
-        styles[size],
-        variant === 'primary' && styles.primary,
-        variant === 'outline' && styles.outline,
-        variant === 'ghost' && styles.ghost,
-        isDisabled && styles.disabled,
+        s.base,
+        s[size],
+        variant === 'primary' && s.primary,
+        variant === 'outline' && s.outline,
+        variant === 'ghost' && s.ghost,
+        isDisabled && s.disabled,
         style,
       ]}
       accessibilityLabel={accessibilityLabel ?? title}
@@ -52,17 +54,17 @@ export function Button({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'primary' ? COLORS.white : COLORS.primary}
+          color={variant === 'primary' ? colors.white : colors.primary}
         />
       ) : (
         <Text
           style={[
-            styles.text,
-            styles[`text_${size}`],
-            variant === 'primary' && styles.textPrimary,
-            variant === 'outline' && styles.textOutline,
-            variant === 'ghost' && styles.textGhost,
-            isDisabled && styles.textDisabled,
+            s.text,
+            s[`text_${size}`],
+            variant === 'primary' && s.textPrimary,
+            variant === 'outline' && s.textOutline,
+            variant === 'ghost' && s.textGhost,
+            isDisabled && s.textDisabled,
             textStyle,
           ]}
         >
@@ -73,40 +75,34 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    minHeight: 44,
-    minWidth: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: RADIUS.lg,
-    paddingHorizontal: SPACING.xl,
-  },
-  sm: { minHeight: 36, paddingHorizontal: SPACING.lg },
-  md: {},
-  lg: { minHeight: 52, paddingHorizontal: SPACING.xxl },
-  primary: {
-    backgroundColor: COLORS.primary,
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  text: {
-    fontWeight: '600',
-  },
-  text_sm: { fontSize: 14 },
-  text_md: { fontSize: 16 },
-  text_lg: { fontSize: 18 },
-  textPrimary: { color: COLORS.white },
-  textOutline: { color: COLORS.text },
-  textGhost: { color: COLORS.primary },
-  textDisabled: { color: COLORS.disabledText },
-});
+function createStyles(C: ThemeColors) {
+  return StyleSheet.create({
+    base: {
+      minHeight: 44,
+      minWidth: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: RADIUS.lg,
+      paddingHorizontal: SPACING.xl,
+    },
+    sm: { minHeight: 36, paddingHorizontal: SPACING.lg },
+    md: {},
+    lg: { minHeight: 52, paddingHorizontal: SPACING.xxl },
+    primary: { backgroundColor: C.primary },
+    outline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: C.border,
+    },
+    ghost: { backgroundColor: 'transparent' },
+    disabled: { opacity: 0.5 },
+    text: { fontWeight: '600' },
+    text_sm: { fontSize: 14 },
+    text_md: { fontSize: 16 },
+    text_lg: { fontSize: 18 },
+    textPrimary: { color: C.white },
+    textOutline: { color: C.text },
+    textGhost: { color: C.primary },
+    textDisabled: { color: C.disabledText },
+  });
+}

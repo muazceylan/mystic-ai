@@ -1,23 +1,26 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: COLORS.tabBarBg,
+          backgroundColor: colors.tabBarBg,
           borderTopWidth: 1,
-          borderTopColor: COLORS.tabBarBorder,
+          borderTopColor: colors.tabBarBorder,
           height: Platform.OS === 'ios' ? 88 : 68,
           paddingBottom: Platform.OS === 'ios' ? 28 : 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: COLORS.tabBarActive,
-        tabBarInactiveTintColor: COLORS.tabBarInactive,
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -27,7 +30,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Ana Sayfa',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'home' : 'home-outline'}
@@ -40,7 +43,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Planlayıcı',
+          title: t('tabs.calendar'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'calendar' : 'calendar-outline'}
@@ -53,7 +56,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dreams"
         options={{
-          title: 'Rüyalar',
+          title: t('tabs.dreams'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'moon' : 'moon-outline'}
@@ -66,7 +69,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dream-book"
         options={{
-          title: 'Rüya Kitabı',
+          title: t('tabs.dreamBook'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'journal' : 'journal-outline'}
@@ -79,7 +82,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="compatibility"
         options={{
-          title: 'Uyum',
+          title: t('tabs.compatibility'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'heart-circle' : 'heart-circle-outline'}
@@ -92,7 +95,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="natal-chart"
         options={{
-          title: 'Haritam',
+          title: t('tabs.natalChart'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'planet' : 'planet-outline'}
@@ -105,7 +108,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'person' : 'person-outline'}

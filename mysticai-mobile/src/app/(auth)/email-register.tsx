@@ -16,7 +16,8 @@ import { useForm, Controller } from 'react-hook-form';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { checkEmailGet } from '../../services/auth';
-import { COLORS } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
 /** Ad/soyad için geçerli karakterler: harfler (Türkçe dahil), boşluk, tire, kesme */
@@ -34,12 +35,106 @@ interface FormValues {
 
 type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'error';
 
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: C.bg,
+    },
+    flex1: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: 24,
+      paddingTop: 20,
+      paddingBottom: 100,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    backButton: {
+      paddingRight: 12,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: C.text,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: C.subtext,
+      marginBottom: 20,
+    },
+    inputGroup: {
+      marginBottom: 18,
+    },
+    label: {
+      fontSize: 13,
+      color: C.subtext,
+      marginBottom: 6,
+    },
+    input: {
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      color: C.text,
+      fontSize: 15,
+    },
+    inputError: {
+      borderColor: C.error,
+    },
+    errorText: {
+      color: C.error,
+      fontSize: 12,
+      marginTop: 4,
+    },
+    emailFeedback: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 6,
+    },
+    emailFeedbackText: {
+      fontSize: 12,
+      color: C.subtext,
+    },
+    buttonWrapper: {
+      marginTop: 20,
+      marginBottom: 40,
+    },
+    continueButton: {
+      backgroundColor: C.primary,
+      borderRadius: 999,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    continueButtonDisabled: {
+      backgroundColor: C.disabled,
+    },
+    continueButtonText: {
+      color: C.white,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+  });
+}
+
 export default function EmailRegisterScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   const store = useOnboardingStore();
   const params = useLocalSearchParams<{ error?: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const styles = makeStyles(colors);
 
   const {
     control,
@@ -105,7 +200,7 @@ export default function EmailRegisterScreen() {
     try {
       if (emailStatus === 'taken') {
         setError('email', {
-          message: 'Bu e-posta zaten kayitli. Lutfen giris yapin.',
+          message: t('emailRegister.emailTaken'),
         });
         return;
       }
@@ -113,7 +208,7 @@ export default function EmailRegisterScreen() {
       router.push('/birth-date');
     } catch {
       setError('email', {
-        message: 'E-posta kontrolu yapilamadi. Lutfen tekrar deneyin.',
+        message: t('emailRegister.emailCheckFailed'),
       });
     } finally {
       setIsSubmitting(false);
@@ -124,17 +219,17 @@ export default function EmailRegisterScreen() {
     if (emailStatus === 'checking') {
       return (
         <View style={styles.emailFeedback}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.emailFeedbackText}>Kontrol ediliyor...</Text>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.emailFeedbackText}>{t('emailRegister.checking')}</Text>
         </View>
       );
     }
     if (emailStatus === 'available') {
       return (
         <View style={styles.emailFeedback}>
-          <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-          <Text style={[styles.emailFeedbackText, { color: COLORS.success }]}>
-            Kullanilabilir
+          <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+          <Text style={[styles.emailFeedbackText, { color: colors.success }]}>
+            {t('emailRegister.available')}
           </Text>
         </View>
       );
@@ -142,14 +237,14 @@ export default function EmailRegisterScreen() {
     if (emailStatus === 'taken') {
       return (
         <View style={styles.emailFeedback}>
-          <Ionicons name="close-circle" size={16} color={COLORS.error} />
+          <Ionicons name="close-circle" size={16} color={colors.error} />
           <TouchableOpacity
             onPress={() => router.replace('/login')}
-            accessibilityLabel="Giriş ekranına git"
+            accessibilityLabel={t('auth.goToLogin')}
             accessibilityRole="link"
           >
-            <Text style={[styles.emailFeedbackText, { color: COLORS.error }]}>
-              Bu e-posta zaten kayitli, giris yapmak ister misin?
+            <Text style={[styles.emailFeedbackText, { color: colors.error }]}>
+              {t('emailRegister.emailTakenQuestion')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -175,30 +270,30 @@ export default function EmailRegisterScreen() {
             <TouchableOpacity
               onPress={() => router.back()}
               style={styles.backButton}
-              accessibilityLabel="Geri dön"
+              accessibilityLabel={t('addPerson.accessibilityBack')}
               accessibilityRole="button"
             >
-              <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+              <Ionicons name="arrow-back" size={22} color={colors.text} />
             </TouchableOpacity>
-            <Text style={styles.title}>Kayit Ol</Text>
+            <Text style={styles.title}>{t('emailRegister.title')}</Text>
           </View>
 
-          <Text style={styles.sectionTitle}>Kisisel Bilgiler</Text>
+          <Text style={styles.sectionTitle}>{t('emailRegister.personalInfo')}</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Ad</Text>
+            <Text style={styles.label}>{t('auth.firstName')}</Text>
             <Controller
               control={control}
               name="firstName"
               rules={{
-                required: 'Ad gereklidir',
-                validate: (v) => v.trim().length > 0 || 'Ad gereklidir',
+                required: t('emailRegister.firstNameRequired'),
+                validate: (v) => v.trim().length > 0 || t('emailRegister.firstNameRequired'),
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.firstName && styles.inputError]}
-                  placeholder="Adiniz"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholder={t('emailRegister.firstNamePlaceholder')}
+                  placeholderTextColor={colors.disabledText}
                   value={value}
                   onChangeText={(text) => {
                     const masked = maskNameInput(text);
@@ -214,19 +309,19 @@ export default function EmailRegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Soyad</Text>
+            <Text style={styles.label}>{t('auth.lastName')}</Text>
             <Controller
               control={control}
               name="lastName"
               rules={{
-                required: 'Soyad gereklidir',
-                validate: (v) => v.trim().length > 0 || 'Soyad gereklidir',
+                required: t('emailRegister.lastNameRequired'),
+                validate: (v) => v.trim().length > 0 || t('emailRegister.lastNameRequired'),
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.lastName && styles.inputError]}
-                  placeholder="Soyadiniz"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholder={t('emailRegister.lastNamePlaceholder')}
+                  placeholderTextColor={colors.disabledText}
                   value={value}
                   onChangeText={(text) => {
                     const masked = maskNameInput(text);
@@ -242,22 +337,22 @@ export default function EmailRegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>E-posta</Text>
+            <Text style={styles.label}>{t('auth.email')}</Text>
             <Controller
               control={control}
               name="email"
               rules={{
-                required: 'E-posta gereklidir',
+                required: t('emailRegister.emailRequired'),
                 pattern: {
                   value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: 'Gecerli bir e-posta adresi giriniz',
+                  message: t('auth.invalidEmail'),
                 },
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.email && styles.inputError]}
-                  placeholder="E-posta adresiniz"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholder={t('emailRegister.emailPlaceholder')}
+                  placeholderTextColor={colors.disabledText}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={value}
@@ -275,22 +370,22 @@ export default function EmailRegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sifre</Text>
+            <Text style={styles.label}>{t('auth.password')}</Text>
             <Controller
               control={control}
               name="password"
               rules={{
-                required: 'Sifre gereklidir',
+                required: t('auth.passwordRequired'),
                 minLength: {
                   value: 8,
-                  message: 'Sifre en az 8 karakter olmalidir',
+                  message: t('auth.passwordMinLength'),
                 },
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.password && styles.inputError]}
-                  placeholder="Sifreniz (en az 8 karakter)"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholder={t('emailRegister.passwordPlaceholder')}
+                  placeholderTextColor={colors.disabledText}
                   secureTextEntry
                   value={value}
                   onChangeText={(text) => {
@@ -306,20 +401,20 @@ export default function EmailRegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sifre Tekrar</Text>
+            <Text style={styles.label}>{t('auth.confirmPassword')}</Text>
             <Controller
               control={control}
               name="confirmPassword"
               rules={{
-                required: 'Sifre tekrari gereklidir',
+                required: t('emailRegister.confirmPasswordRequired'),
                 validate: (value) =>
-                  value === watchedPassword || 'Sifreler eslesmiyor',
+                  value === watchedPassword || t('auth.passwordsMatch'),
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.confirmPassword && styles.inputError]}
-                  placeholder="Sifrenizi tekrar girin"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholder={t('emailRegister.confirmPasswordPlaceholder')}
+                  placeholderTextColor={colors.disabledText}
                   secureTextEntry
                   value={value}
                   onChangeText={(text) => {
@@ -340,13 +435,13 @@ export default function EmailRegisterScreen() {
               style={[styles.continueButton, isSubmitting && styles.continueButtonDisabled]}
               onPress={handleSubmit(onSubmit)}
               disabled={isSubmitting}
-              accessibilityLabel="Kayıt ol"
+              accessibilityLabel={t('auth.signUp')}
               accessibilityRole="button"
             >
               {isSubmitting ? (
-                <ActivityIndicator color={COLORS.white} />
+                <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.continueButtonText}>Kayit Ol</Text>
+                <Text style={styles.continueButtonText}>{t('auth.signUp')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -355,92 +450,3 @@ export default function EmailRegisterScreen() {
     </SafeScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  flex1: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  backButton: {
-    paddingRight: 12,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.subtext,
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 13,
-    color: COLORS.subtext,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    color: COLORS.text,
-    fontSize: 15,
-  },
-  inputError: {
-    borderColor: COLORS.error,
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  emailFeedback: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-  },
-  emailFeedbackText: {
-    fontSize: 12,
-    color: COLORS.subtext,
-  },
-  buttonWrapper: {
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  continueButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  continueButtonDisabled: {
-    backgroundColor: COLORS.disabled,
-  },
-  continueButtonText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});

@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { PlanetaryAspect } from '../../services/astrology.service';
-import { PLANET_TURKISH } from '../../constants/zodiac';
 import { getAspectHookText, isHarmoniousAspect } from '../../constants/aspect-glossary';
-import { COLORS } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 
 const PLANET_SYMBOLS: Record<string, string> = {
   Sun: '\u2609', Moon: '\u263D', Mercury: '\u263F', Venus: '\u2640',
@@ -21,8 +21,10 @@ interface Props {
 }
 
 export default function CosmicHotspotCard({ aspect, index }: Props) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   const harmonious = isHarmoniousAspect(aspect.type);
-  const glowColor = harmonious ? COLORS.violet : COLORS.harmonious;
+  const glowColor = harmonious ? colors.violet : colors.harmonious;
 
   // ── Pulse animation (border glow) ─────────────────────────────────
   const pulseAnim = useRef(new Animated.Value(0.2)).current;
@@ -57,8 +59,9 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
   const p1Sym = PLANET_SYMBOLS[aspect.planet1] ?? '?';
   const p2Sym = PLANET_SYMBOLS[aspect.planet2] ?? '?';
   const aspSym = ASPECT_SYMBOLS[aspect.type] ?? '\u260C';
-  const p1Name = PLANET_TURKISH[aspect.planet1] ?? aspect.planet1;
-  const p2Name = PLANET_TURKISH[aspect.planet2] ?? aspect.planet2;
+  const planetKey = (p: string) => `natalChart.${p === 'NorthNode' ? 'northNode' : p.charAt(0).toLowerCase() + p.slice(1)}`;
+  const p1Name = t(planetKey(aspect.planet1), { defaultValue: aspect.planet1 });
+  const p2Name = t(planetKey(aspect.planet2), { defaultValue: aspect.planet2 });
   const hookText = getAspectHookText(aspect.planet1, aspect.planet2, aspect.type);
 
   const borderColor = pulseAnim.interpolate({
@@ -69,10 +72,11 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
     ],
   });
 
+  const s = createStyles(colors);
   return (
     <Animated.View
       style={[
-        styles.card,
+        s.card,
         {
           borderColor,
           opacity: entryAnim,
@@ -88,73 +92,66 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
       ]}
     >
       {/* Planet symbols row */}
-      <View style={styles.symbolRow}>
-        <Text style={[styles.planetSymbol, { color: glowColor }]}>{p1Sym}</Text>
-        <Text style={[styles.aspectSymbol, { color: glowColor }]}>{aspSym}</Text>
-        <Text style={[styles.planetSymbol, { color: glowColor }]}>{p2Sym}</Text>
+      <View style={s.symbolRow}>
+        <Text style={[s.planetSymbol, { color: glowColor }]}>{p1Sym}</Text>
+        <Text style={[s.aspectSymbol, { color: glowColor }]}>{aspSym}</Text>
+        <Text style={[s.planetSymbol, { color: glowColor }]}>{p2Sym}</Text>
       </View>
 
       {/* Names and angle */}
-      <Text style={styles.namesText}>
+      <Text style={s.namesText}>
         {p1Name} & {p2Name}
       </Text>
-      <Text style={[styles.typeLabel, { color: glowColor }]}>
-        {aspect.type === 'CONJUNCTION' ? 'Kavusum' :
-         aspect.type === 'OPPOSITION' ? 'Karsit' :
-         aspect.type === 'TRINE' ? 'Ucgen' : 'Kare'}
+      <Text style={[s.typeLabel, { color: glowColor }]}>
+        {aspect.type === 'CONJUNCTION' ? t('natalChart.conjunction') :
+         aspect.type === 'OPPOSITION' ? t('natalChart.opposition') :
+         aspect.type === 'TRINE' ? t('natalChart.trine') : t('natalChart.square')}
         {' \u00B7 '}
         {aspect.angle.toFixed(1)}\u00B0
       </Text>
 
       {/* Hook text */}
-      <Text style={styles.hookText}>{hookText}</Text>
+      <Text style={s.hookText}>{hookText}</Text>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 16,
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 2,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  symbolRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  planetSymbol: {
-    fontSize: 28,
-    fontWeight: '600',
-  },
-  aspectSymbol: {
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  namesText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    textAlign: 'center',
-  },
-  typeLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  hookText: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-});
+function createStyles(C: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      flex: 1,
+      backgroundColor: C.card,
+      borderRadius: 20,
+      padding: 16,
+      alignItems: 'center',
+      gap: 6,
+      borderWidth: 2,
+      shadowColor: C.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    symbolRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    planetSymbol: { fontSize: 28, fontWeight: '600' },
+    aspectSymbol: { fontSize: 18, fontWeight: '400' },
+    namesText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: C.textDark,
+      textAlign: 'center',
+    },
+    typeLabel: { fontSize: 11, fontWeight: '600' },
+    hookText: {
+      fontSize: 11,
+      color: C.textMuted,
+      lineHeight: 16,
+      textAlign: 'center',
+      marginTop: 2,
+    },
+  });
+}

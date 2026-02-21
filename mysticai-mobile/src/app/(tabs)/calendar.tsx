@@ -24,7 +24,8 @@ import {
   calculateLuckyDates,
   fetchLuckyDatesByCorrelationId,
 } from '../../services/lucky-dates.service';
-import { COLORS } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
 interface CategoryOption {
@@ -33,35 +34,30 @@ interface CategoryOption {
   emoji: string;
 }
 
-const CATEGORIES: CategoryOption[] = [
-  { key: 'MARRIAGE', label: 'Evlilik', emoji: '\uD83D\uDC8D' },
-  { key: 'CAREER', label: 'Kariyer', emoji: '\uD83D\uDCBC' },
-  { key: 'CONTRACT', label: 'Anla\u015Fma', emoji: '\u270D\uFE0F' },
-  { key: 'NEW_BEGINNING', label: 'Yeni Ba\u015Flang\u0131\u00E7', emoji: '\uD83D\uDE80' },
+const CATEGORY_KEYS = [
+  { key: 'MARRIAGE' as const, labelKey: 'calendar.marriage', emoji: '\uD83D\uDC8D' },
+  { key: 'CAREER' as const, labelKey: 'calendar.career', emoji: '\uD83D\uDCBC' },
+  { key: 'CONTRACT' as const, labelKey: 'calendar.contract', emoji: '\u270D\uFE0F' },
+  { key: 'NEW_BEGINNING' as const, labelKey: 'calendar.newBeginning', emoji: '\uD83D\uDE80' },
 ];
 
-function formatTurkishDate(dateStr: string): string {
+function formatLocaleDate(dateStr: string, months: string[], days: string[]): string {
   const date = new Date(dateStr);
-  const months = [
-    'Ocak', '\u015Eubat', 'Mart', 'Nisan', 'May\u0131s', 'Haziran',
-    'Temmuz', 'A\u011Fustos', 'Eyl\u00FCl', 'Ekim', 'Kas\u0131m', 'Aral\u0131k',
-  ];
-  const days = ['Pazar', 'Pazartesi', 'Sal\u0131', '\u00C7ar\u015Famba', 'Per\u015Fembe', 'Cuma', 'Cumartesi'];
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}, ${days[date.getDay()]}`;
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 80) return COLORS.green;
-  if (score >= 60) return COLORS.yellow;
-  return COLORS.orange;
+function getScoreColor(score: number, colors: { green: string; yellow: string; orange: string }): string {
+  if (score >= 80) return colors.green;
+  if (score >= 60) return colors.yellow;
+  return colors.orange;
 }
 
-function openCalendarEvent(dateStr: string, category: string) {
+function openCalendarEvent(dateStr: string, category: string, cosmicWindowLabel: string) {
   const date = new Date(dateStr);
   const endDate = new Date(date);
   endDate.setHours(endDate.getHours() + 1);
 
-  const title = encodeURIComponent(`Kozmik Pencere - ${category}`);
+  const title = encodeURIComponent(`${cosmicWindowLabel} - ${category}`);
   const startISO = date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const endISO = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
@@ -71,6 +67,12 @@ function openCalendarEvent(dateStr: string, category: string) {
 }
 
 export default function CalendarScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const CATEGORIES = CATEGORY_KEYS.map((c) => ({ ...c, label: t(c.labelKey) }));
+  const months = t('calendar.months').split(',');
+  const days = t('calendar.days').split(',');
+  const styles = makeStyles(colors);
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
   const router = useRouter();
@@ -176,7 +178,7 @@ export default function CalendarScreen() {
         <View style={styles.container}>
           <OnboardingBackground />
         <View style={styles.emptyContainer}>
-          <Ionicons name="planet-outline" size={64} color={COLORS.primary} />
+          <Ionicons name="planet-outline" size={64} color={colors.primary} />
           <Text style={styles.emptyTitle}>Do\u011Fum Haritan\u0131z Gerekli</Text>
           <Text style={styles.emptyText}>
             Kozmik Planlay\u0131c\u0131'y\u0131 kullanabilmek i\u00E7in \u00F6nce do\u011Fum haritan\u0131z\u0131n hesaplanmas\u0131 gerekiyor.
@@ -196,23 +198,23 @@ export default function CalendarScreen() {
   }
 
   const renderDateCard = ({ item }: { item: LuckyDateCard }) => {
-    const scoreColor = getScoreColor(item.successScore);
+    const scoreColor = getScoreColor(item.successScore, colors);
     const categoryLabel = CATEGORIES.find((c) => c.key === activeCategory)?.label ?? '';
 
     return (
       <View style={styles.dateCard}>
         <View style={styles.dateCardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.dateCardDate}>{formatTurkishDate(item.date)}</Text>
+            <Text style={styles.dateCardDate}>{formatLocaleDate(item.date, months, days)}</Text>
             {item.mercuryRetrograde && (
               <View style={styles.retroBadge}>
-                <Text style={styles.retroBadgeText}>Merk\u00FCr Retrosu</Text>
+                <Text style={styles.retroBadgeText}>{t('calendar.mercuryRetro')}</Text>
               </View>
             )}
           </View>
           <View style={[styles.scoreCircle, { borderColor: scoreColor }]}>
             <Text style={[styles.scoreText, { color: scoreColor }]}>%{item.successScore}</Text>
-            <Text style={styles.scoreLabel}>Uygunluk</Text>
+            <Text style={styles.scoreLabel}>{t('calendar.compatibility')}</Text>
           </View>
         </View>
 
@@ -230,17 +232,17 @@ export default function CalendarScreen() {
 
         <View style={styles.dateCardFooter}>
           <View style={styles.moonPhaseRow}>
-            <Ionicons name="moon-outline" size={14} color={COLORS.subtext} />
+            <Ionicons name="moon-outline" size={14} color={colors.subtext} />
             <Text style={styles.moonPhaseText}>{item.moonPhase}</Text>
           </View>
           <TouchableOpacity
             style={styles.calendarButton}
-            onPress={() => openCalendarEvent(item.date, categoryLabel)}
+            onPress={() => openCalendarEvent(item.date, categoryLabel, t('calendar.cosmicWindow'))}
             accessibilityLabel="Takvime ekle"
             accessibilityRole="button"
           >
-            <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.calendarButtonText}>Takvime Ekle</Text>
+            <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+            <Text style={styles.calendarButtonText}>{t('calendar.addToCalendar')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -255,7 +257,7 @@ export default function CalendarScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Ionicons name="calendar" size={22} color={COLORS.primary} />
+          <Ionicons name="calendar" size={22} color={colors.primary} />
           <Text style={styles.headerTitle}>Kozmik Planlay\u0131c\u0131</Text>
         </View>
 
@@ -287,12 +289,12 @@ export default function CalendarScreen() {
         {/* Content */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>Kozmik pencereler hesaplan\u0131yor...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={32} color={COLORS.red} />
+            <Ionicons name="alert-circle-outline" size={32} color={colors.red} />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -309,7 +311,7 @@ export default function CalendarScreen() {
             {currentResult.hookText && (
               <View style={styles.hookCard}>
                 <View style={styles.hookHeader}>
-                  <Ionicons name="sparkles" size={16} color={COLORS.primary} />
+                  <Ionicons name="sparkles" size={16} color={colors.primary} />
                   <Text style={styles.hookTitle}>Kozmik Analiz</Text>
                 </View>
                 <Text style={styles.hookText}>{currentResult.hookText}</Text>
@@ -328,7 +330,7 @@ export default function CalendarScreen() {
             {/* AI Interpretation */}
             <View style={styles.aiSection}>
               <View style={styles.aiHeader}>
-                <Ionicons name="sparkles" size={16} color={COLORS.accent} />
+                <Ionicons name="sparkles" size={16} color={colors.accent} />
                 <Text style={styles.aiTitle}>Kozmik Yorum</Text>
               </View>
               {currentResult.status === 'COMPLETED' && currentResult.aiInterpretation ? (
@@ -349,7 +351,7 @@ export default function CalendarScreen() {
                 </View>
               ) : (
                 <View style={styles.aiLoading}>
-                  <ActivityIndicator size="small" color={COLORS.accent} />
+                  <ActivityIndicator size="small" color={colors.accent} />
                   <Text style={styles.aiLoadingText}>
                     Y\u0131ld\u0131zlar\u0131n mesaj\u0131 \u00E7\u00F6z\u00FCml\u00FCyor...
                   </Text>
@@ -364,10 +366,25 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: {
+  background: string;
+  text: string;
+  subtext: string;
+  surface: string;
+  card: string;
+  border: string;
+  primary: string;
+  primarySoft: string;
+  red: string;
+  orange: string;
+  accent: string;
+  accentSoft: string;
+  neutralBg: string;
+}) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: C.background,
   },
   scroll: {
     flex: 1,
@@ -386,7 +403,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
   },
 
   // Categories
@@ -402,13 +419,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
   categoryPillActive: {
-    backgroundColor: COLORS.primarySoft,
-    borderColor: COLORS.primary,
+    backgroundColor: C.primarySoft,
+    borderColor: C.primary,
   },
   categoryEmoji: {
     fontSize: 16,
@@ -416,10 +433,10 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.subtext,
+    color: C.subtext,
   },
   categoryLabelActive: {
-    color: COLORS.primary,
+    color: C.primary,
   },
 
   // Loading
@@ -430,7 +447,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.subtext,
+    color: C.subtext,
     fontStyle: 'italic',
   },
 
@@ -443,7 +460,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: COLORS.red,
+    color: C.red,
     textAlign: 'center',
   },
   retryButton: {
@@ -451,22 +468,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: COLORS.primarySoft,
+    backgroundColor: C.primarySoft,
   },
   retryButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: C.primary,
   },
 
   // Hook Card
   hookCard: {
     marginHorizontal: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     marginBottom: 16,
   },
   hookHeader: {
@@ -478,11 +495,11 @@ const styles = StyleSheet.create({
   hookTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.primary,
   },
   hookText: {
     fontSize: 14,
-    color: COLORS.text,
+    color: C.text,
     lineHeight: 21,
   },
 
@@ -492,11 +509,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dateCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
   dateCardHeader: {
     flexDirection: 'row',
@@ -507,11 +524,11 @@ const styles = StyleSheet.create({
   dateCardDate: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
   },
   retroBadge: {
     marginTop: 6,
-    backgroundColor: COLORS.neutralBg,
+    backgroundColor: C.neutralBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
@@ -520,7 +537,7 @@ const styles = StyleSheet.create({
   retroBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.orange,
+    color: C.orange,
   },
   scoreCircle: {
     width: 56,
@@ -536,12 +553,12 @@ const styles = StyleSheet.create({
   },
   scoreLabel: {
     fontSize: 8,
-    color: COLORS.subtext,
+    color: C.subtext,
     marginTop: 1,
   },
   dateCardReason: {
     fontSize: 13,
-    color: COLORS.subtext,
+    color: C.subtext,
     lineHeight: 19,
     marginBottom: 10,
   },
@@ -552,7 +569,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   aspectPill: {
-    backgroundColor: COLORS.accentSoft,
+    backgroundColor: C.accentSoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -560,14 +577,14 @@ const styles = StyleSheet.create({
   aspectPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.accent,
+    color: C.accent,
   },
   dateCardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: C.border,
     paddingTop: 10,
   },
   moonPhaseRow: {
@@ -577,7 +594,7 @@ const styles = StyleSheet.create({
   },
   moonPhaseText: {
     fontSize: 12,
-    color: COLORS.subtext,
+    color: C.subtext,
   },
   calendarButton: {
     flexDirection: 'row',
@@ -586,23 +603,23 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: COLORS.primarySoft,
+    backgroundColor: C.primarySoft,
   },
   calendarButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: C.primary,
   },
 
   // AI Section
   aiSection: {
     marginTop: 20,
     marginHorizontal: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
   aiHeader: {
     flexDirection: 'row',
@@ -613,11 +630,11 @@ const styles = StyleSheet.create({
   aiTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.accent,
+    color: C.accent,
   },
   aiText: {
     fontSize: 14,
-    color: COLORS.text,
+    color: C.text,
     lineHeight: 22,
   },
   aiErrorBlock: {
@@ -626,7 +643,7 @@ const styles = StyleSheet.create({
   },
   aiErrorText: {
     fontSize: 13,
-    color: COLORS.red,
+    color: C.red,
     fontStyle: 'italic',
   },
   aiRetryButton: {
@@ -634,14 +651,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
     minHeight: 44,
     justifyContent: 'center',
   },
   aiRetryButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.white,
+    color: C.white,
   },
   aiLoading: {
     flexDirection: 'row',
@@ -651,7 +668,7 @@ const styles = StyleSheet.create({
   },
   aiLoadingText: {
     fontSize: 13,
-    color: COLORS.subtext,
+    color: C.subtext,
     fontStyle: 'italic',
   },
 
@@ -666,12 +683,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
     marginTop: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: COLORS.subtext,
+    color: C.subtext,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -680,11 +697,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
   },
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.white,
+    color: C.white,
   },
-});
+  });
+}

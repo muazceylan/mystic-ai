@@ -14,13 +14,14 @@ import Animated, {
   Easing, FadeIn, FadeInDown, SlideInDown,
   interpolate,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useDreamStore } from '../../store/useDreamStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ErrorStateCard, SafeScreen } from '../../components/ui';
 import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
 import type { DreamEntryResponse } from '../../services/dream.service';
-import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 type Tab      = 'journal' | 'compose' | 'dictionary';
 type RecState = 'idle' | 'recording' | 'transcribing' | 'done';
@@ -62,6 +63,9 @@ const isToday = (d: Date) =>
 // ─────────────────────────────────────────────────────────────────────
 
 export default function DreamsScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { user }        = useAuthStore();
   const {
     dreams, symbols, loading, submitting, transcribing, error,
@@ -154,14 +158,14 @@ export default function DreamsScreen() {
   const startRec = async () => {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) { Alert.alert('İzin Gerekli', 'Mikrofon izni veriniz.'); return; }
+      if (!granted) { Alert.alert(t('dreams.micPermissionTitle'), t('dreams.micPermissionRequired')); return; }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = recording;
       recordingUri.current = null;
       setRecState('recording');
-    } catch { Alert.alert('Hata', 'Ses kaydı başlatılamadı.'); }
+    } catch { Alert.alert(t('common.error'), t('dreams.voiceStartError')); }
   };
 
   const stopRec = async () => {
@@ -188,7 +192,7 @@ export default function DreamsScreen() {
       setRecState('done');
     } catch (e: any) {
       setRecState('idle');
-      Alert.alert('Çözümleme Hatası', e.message ?? 'Ses metne çevrilemedi.');
+      Alert.alert(t('dreams.analysisError'), e.message ?? t('dreams.transcriptionError'));
     }
   };
 
@@ -210,18 +214,18 @@ export default function DreamsScreen() {
       resetCompose();
       setTab('journal');
       if (result.id) pollUntilComplete(result.id);
-    } catch { Alert.alert('Hata', 'Rüya kaydedilemedi.'); }
+    } catch { Alert.alert(t('common.error'), t('dreams.saveError')); }
   };
 
   // ─── Delete dream ─────────────────────────────────────────────────
   const handleDelete = (id: number) => {
-    Alert.alert('Rüyayı Sil', 'Bu rüya kaydını silmek istediğine emin misin?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('dreams.deleteDreamTitle'), t('dreams.deleteDreamMessage'), [
+      { text: t('dreams.cancel'), style: 'cancel' },
       {
-        text: 'Sil', style: 'destructive',
+        text: t('common.delete'), style: 'destructive',
         onPress: async () => {
           setDeletingId(id);
-          try { await deleteDream(id); } catch { Alert.alert('Hata', 'Silinemedi.'); }
+          try { await deleteDream(id); } catch { Alert.alert(t('common.error'), t('dreams.deleteError')); }
           setDeletingId(null);
         },
       },
@@ -234,9 +238,9 @@ export default function DreamsScreen() {
     setSpeakingId(dream.id);
     const { interpretation, opportunities, warnings } = parseInterpretation(dream);
     const parts: string[] = [];
-    if (interpretation)        parts.push('Kozmik yorum: ' + interpretation);
-    if (opportunities.length)  parts.push('Fırsatlar: ' + opportunities.join('. '));
-    if (warnings.length)       parts.push('Dikkat: '    + warnings.join('. '));
+    if (interpretation)        parts.push(t('dreams.cosmicInterpretation') + ': ' + interpretation);
+    if (opportunities.length)  parts.push(t('dreams.opportunitiesSection') + ': ' + opportunities.join('. '));
+    if (warnings.length)       parts.push(t('dreams.warningsSection') + ': ' + warnings.join('. '));
     Speech.speak(parts.join('\n\n'), {
       language: 'tr-TR', rate: 0.88,
       onDone: () => setSpeakingId(null),
@@ -288,19 +292,19 @@ export default function DreamsScreen() {
             </View>
             <View style={styles.cardActions}>
               {deleting
-                ? <ActivityIndicator size="small" color={COLORS.red} />
+                ? <ActivityIndicator size="small" color={colors.red} />
                 : <TouchableOpacity
                     onPress={() => handleDelete(dream.id)}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     accessibilityLabel="Rüyayı sil"
                     accessibilityRole="button"
                   >
-                    <Ionicons name="trash-outline" size={17} color={COLORS.dim} />
+                    <Ionicons name="trash-outline" size={17} color={colors.dim} />
                   </TouchableOpacity>
               }
               <Ionicons
                 name={expanded ? 'chevron-up' : 'chevron-down'}
-                size={16} color={COLORS.subtext} style={{ marginTop: 4 }}
+                size={16} color={colors.subtext} style={{ marginTop: 4 }}
               />
             </View>
           </View>
@@ -321,14 +325,14 @@ export default function DreamsScreen() {
             <View style={styles.insightRow}>
               {opportunities.length > 0 && (
                 <View style={[styles.insightBadge, styles.insightGreen]}>
-                  <Text style={[styles.insightBadgeText, { color: COLORS.green }]}>
+                  <Text style={[styles.insightBadgeText, { color: colors.green }]}>
                     ✨ {opportunities.length} fırsat
                   </Text>
                 </View>
               )}
               {warnings.length > 0 && (
                 <View style={[styles.insightBadge, styles.insightOrange]}>
-                  <Text style={[styles.insightBadgeText, { color: COLORS.orange }]}>
+                  <Text style={[styles.insightBadgeText, { color: colors.orange }]}>
                     ⚠️ {warnings.length} uyarı
                   </Text>
                 </View>
@@ -339,7 +343,7 @@ export default function DreamsScreen() {
           {/* Status pill */}
           {pending && (
             <View style={styles.pendingPill}>
-              <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 6 }} />
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 6 }} />
               <Text style={styles.pendingPillText}>Kozmik şifre çözülüyor…</Text>
             </View>
           )}
@@ -355,7 +359,7 @@ export default function DreamsScreen() {
                 accessibilityLabel={speaking ? 'Sesli okumayı durdur' : 'Sesli oku'}
                 accessibilityRole="button"
               >
-                <Ionicons name={speaking ? 'stop-circle' : 'volume-high'} size={17} color={COLORS.accent} />
+                <Ionicons name={speaking ? 'stop-circle' : 'volume-high'} size={17} color={colors.accent} />
                 <Text style={styles.speakText}>{speaking ? 'Durdur' : 'Sesli Oku'}</Text>
               </TouchableOpacity>
 
@@ -368,11 +372,11 @@ export default function DreamsScreen() {
               {/* ✨ Fırsatlar */}
               {opportunities.length > 0 && (
                 <View style={[styles.section, styles.sectionGreen]}>
-                  <Text style={[styles.sectionHead, {color: COLORS.green}]}>✨ Fırsatlar</Text>
+                  <Text style={[styles.sectionHead, {color: colors.green}]}>✨ Fırsatlar</Text>
                   {opportunities.map((op, i) => (
                     <View key={i} style={styles.bulletRow}>
-                      <Ionicons name="checkmark-circle" size={15} color={COLORS.green} style={{marginTop:3}} />
-                      <Text style={[styles.bulletText, {color: COLORS.green}]}>{op}</Text>
+                      <Ionicons name="checkmark-circle" size={15} color={colors.green} style={{marginTop:3}} />
+                      <Text style={[styles.bulletText, {color: colors.green}]}>{op}</Text>
                     </View>
                   ))}
                 </View>
@@ -381,11 +385,11 @@ export default function DreamsScreen() {
               {/* ⚠️ Uyarılar */}
               {warnings.length > 0 && (
                 <View style={[styles.section, styles.sectionOrange]}>
-                  <Text style={[styles.sectionHead, {color: COLORS.orange}]}>⚠️ Dikkat Edilmesi Gerekenler</Text>
+                  <Text style={[styles.sectionHead, {color: colors.orange}]}>⚠️ Dikkat Edilmesi Gerekenler</Text>
                   {warnings.map((w, i) => (
                     <View key={i} style={styles.bulletRow}>
-                      <Ionicons name="alert-circle" size={15} color={COLORS.orange} style={{marginTop:3}} />
-                      <Text style={[styles.bulletText, {color: COLORS.orange}]}>{w}</Text>
+                      <Ionicons name="alert-circle" size={15} color={colors.orange} style={{marginTop:3}} />
+                      <Text style={[styles.bulletText, {color: colors.orange}]}>{w}</Text>
                     </View>
                   ))}
                 </View>
@@ -413,7 +417,7 @@ export default function DreamsScreen() {
           accessibilityLabel="Önceki gün"
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={20} color={COLORS.textSoft} />
+          <Ionicons name="chevron-back" size={20} color={colors.textSoft} />
         </TouchableOpacity>
         <View style={styles.dateCenter}>
           <Text style={styles.dateMain}>{fmtDate(selectedDate)}</Text>
@@ -435,17 +439,17 @@ export default function DreamsScreen() {
           accessibilityRole="button"
         >
           <Ionicons name="chevron-forward" size={20}
-            color={isToday(selectedDate) ? COLORS.dim : COLORS.textSoft} />
+            color={isToday(selectedDate) ? colors.dim : colors.textSoft} />
         </TouchableOpacity>
       </View>
 
       {/* ── Title input ── */}
       <View style={styles.titleBox}>
-        <Ionicons name="bookmark-outline" size={15} color={COLORS.subtext} style={{ marginTop: 2 }} />
+        <Ionicons name="bookmark-outline" size={15} color={colors.subtext} style={{ marginTop: 2 }} />
         <TextInput
           style={styles.titleInput}
           placeholder="Rüyaya başlık ekle (opsiyonel)"
-          placeholderTextColor={COLORS.dim}
+          placeholderTextColor={colors.dim}
           value={dreamTitle}
           onChangeText={setDreamTitle}
           maxLength={100}
@@ -465,7 +469,7 @@ export default function DreamsScreen() {
         {/* Transcribing indicator */}
         {recState === 'transcribing' && (
           <Animated.View entering={FadeIn} style={styles.transcribingBox}>
-            <ActivityIndicator size="small" color={COLORS.goldDark} />
+            <ActivityIndicator size="small" color={colors.goldDark} />
             <Text style={styles.transcribingText}>Ses metne çevriliyor…</Text>
           </Animated.View>
         )}
@@ -485,10 +489,10 @@ export default function DreamsScreen() {
               <Animated.View style={[styles.micRing, micStyle,
                 recState === 'recording' && styles.micRingRec]}>
                 <LinearGradient
-                  colors={recState === 'recording' ? [COLORS.recordingStart, COLORS.recordingEnd] : [COLORS.primary, COLORS.primaryDark]}
+                  colors={recState === 'recording' ? [colors.recordingStart, colors.recordingEnd] : [colors.primary, colors.primaryDark]}
                   style={styles.micCore}
                 >
-                  <Ionicons name={recState === 'recording' ? 'stop' : 'mic'} size={32} color={COLORS.white} />
+                  <Ionicons name={recState === 'recording' ? 'stop' : 'mic'} size={32} color={colors.white} />
                 </LinearGradient>
               </Animated.View>
             </TouchableOpacity>
@@ -513,7 +517,7 @@ export default function DreamsScreen() {
             placeholder={recState === 'done'
               ? 'Transkripsiyon tamamlandı — dilediğin gibi düzenleyebilirsin…'
               : 'Bu gece gördüğün rüyayı anlat…'}
-            placeholderTextColor={COLORS.dim}
+            placeholderTextColor={colors.dim}
             value={dreamText}
             onChangeText={setDreamText}
             multiline
@@ -533,7 +537,7 @@ export default function DreamsScreen() {
             accessibilityLabel="Vazgeç"
             accessibilityRole="button"
           >
-            <Ionicons name="close-circle-outline" size={18} color={COLORS.subtext} />
+            <Ionicons name="close-circle-outline" size={18} color={colors.subtext} />
             <Text style={styles.cancelBtnText}>Vazgeç</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -544,8 +548,8 @@ export default function DreamsScreen() {
             accessibilityRole="button"
           >
             {submitting
-              ? <ActivityIndicator size="small" color={COLORS.white} />
-              : <><Ionicons name="sparkles" size={17} color={COLORS.white} />
+              ? <ActivityIndicator size="small" color={colors.white} />
+              : <><Ionicons name="sparkles" size={17} color={colors.white} />
                  <Text style={styles.saveBtnText}>Kaydet ve Yorumla</Text></>
             }
           </TouchableOpacity>
@@ -557,7 +561,7 @@ export default function DreamsScreen() {
   // ─── Screen ───────────────────────────────────────────────────────
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
-      <LinearGradient colors={[COLORS.background, COLORS.surfaceMuted, COLORS.background]} style={styles.container}>
+      <LinearGradient colors={[colors.background, colors.surfaceMuted, colors.background]} style={styles.container}>
         {/* Header */}
       <View style={styles.header}>
         <View>
@@ -573,7 +577,7 @@ export default function DreamsScreen() {
           accessibilityLabel={tab === 'compose' ? 'Yazmayı kapat' : 'Yeni rüya ekle'}
           accessibilityRole="button"
         >
-          <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={COLORS.white} />
+          <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -586,7 +590,7 @@ export default function DreamsScreen() {
             accessibilityLabel="Günlük sekmesi"
             accessibilityRole="tab"
           >
-            <Ionicons name="book-outline" size={14} color={tab === 'journal' ? COLORS.primary : COLORS.subtext} />
+            <Ionicons name="book-outline" size={14} color={tab === 'journal' ? colors.primary : colors.subtext} />
             <Text style={[styles.tabBtnText, tab === 'journal' && styles.tabBtnTextActive]}>Günlük</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -595,7 +599,7 @@ export default function DreamsScreen() {
             accessibilityLabel="Sözlük sekmesi"
             accessibilityRole="tab"
           >
-            <Ionicons name="library-outline" size={14} color={tab === 'dictionary' ? COLORS.primary : COLORS.subtext} />
+            <Ionicons name="library-outline" size={14} color={tab === 'dictionary' ? colors.primary : colors.subtext} />
             <Text style={[styles.tabBtnText, tab === 'dictionary' && styles.tabBtnTextActive]}>Sözlük</Text>
           </TouchableOpacity>
         </View>
@@ -635,12 +639,12 @@ export default function DreamsScreen() {
           contentContainerStyle={styles.journalContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
           {loading && (
             <View style={styles.centerBox}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.centerText}>Rüyalar yükleniyor…</Text>
             </View>
           )}
@@ -678,103 +682,104 @@ export default function DreamsScreen() {
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'ios' ? 56 : 32 },
 
   // Header
   header:      { flexDirection:'row', alignItems:'center', justifyContent:'space-between',
                  paddingHorizontal:20, paddingBottom:14 },
-  headerTitle: { fontSize:25, fontWeight:'700', color:COLORS.text, letterSpacing:0.3 },
-  headerSub:   { fontSize:12, color:COLORS.subtext, marginTop:2 },
-  addBtn:      { width:38, height:38, borderRadius:19, backgroundColor:COLORS.primary,
+  headerTitle: { fontSize:25, fontWeight:'700', color:C.text, letterSpacing:0.3 },
+  headerSub:   { fontSize:12, color:C.subtext, marginTop:2 },
+  addBtn:      { width:38, height:38, borderRadius:19, backgroundColor:C.primary,
                  alignItems:'center', justifyContent:'center' },
-  addBtnClose: { backgroundColor: COLORS.overlayDark },
+  addBtnClose: { backgroundColor: C.overlayDark },
 
   // Symbol strip
   strip:      { paddingHorizontal:20, marginBottom:10 },
-  stripLabel: { fontSize:10, color:COLORS.dim, marginBottom:7, textTransform:'uppercase', letterSpacing:0.8 },
-  chip:       { flexDirection:'row', alignItems:'center', backgroundColor:COLORS.surfaceAlt,
+  stripLabel: { fontSize:10, color:C.dim, marginBottom:7, textTransform:'uppercase', letterSpacing:0.8 },
+  chip:       { flexDirection:'row', alignItems:'center', backgroundColor:C.surfaceAlt,
                 borderRadius:18, paddingHorizontal:11, paddingVertical:5, marginRight:8,
-                borderWidth:1, borderColor:COLORS.border },
-  chipText:   { fontSize:12, color:COLORS.textSoft },
-  chipBubble: { marginLeft:5, backgroundColor:COLORS.primary, borderRadius:9,
+                borderWidth:1, borderColor:C.border },
+  chipText:   { fontSize:12, color:C.textSoft },
+  chipBubble: { marginLeft:5, backgroundColor:C.primary, borderRadius:9,
                 paddingHorizontal:5, paddingVertical:1 },
-  chipCount:  { fontSize:9, color:COLORS.white, fontWeight:'700' },
+  chipCount:  { fontSize:9, color:C.white, fontWeight:'700' },
 
   // Compose
   composeContent: { paddingHorizontal:20, paddingTop:6, paddingBottom:48 },
 
   // Date picker
-  datePicker: { flexDirection:'row', alignItems:'center', backgroundColor:COLORS.surface,
-                borderRadius:14, borderWidth:1, borderColor:COLORS.border,
+  datePicker: { flexDirection:'row', alignItems:'center', backgroundColor:C.surface,
+                borderRadius:14, borderWidth:1, borderColor:C.border,
                 marginBottom:20, paddingVertical:12 },
   dateArrow:  { paddingHorizontal:14 },
   dateArrowDisabled: { opacity:0.3 },
   dateCenter: { flex:1, alignItems:'center' },
-  dateMain:   { fontSize:16, fontWeight:'600', color:COLORS.text },
-  dateTodayBtn: { fontSize:11, color:COLORS.primary, marginTop:4 },
+  dateMain:   { fontSize:16, fontWeight:'600', color:C.text },
+  dateTodayBtn: { fontSize:11, color:C.primary, marginTop:4 },
 
   // Title input
-  titleBox:   { flexDirection:'row', alignItems:'center', gap:8, backgroundColor:COLORS.surface,
-                borderRadius:12, borderWidth:1, borderColor:COLORS.border,
+  titleBox:   { flexDirection:'row', alignItems:'center', gap:8, backgroundColor:C.surface,
+                borderRadius:12, borderWidth:1, borderColor:C.border,
                 paddingHorizontal:14, paddingVertical:10, marginBottom:14 },
-  titleInput: { flex:1, color:COLORS.text, fontSize:14 },
+  titleInput: { flex:1, color:C.text, fontSize:14 },
 
   // Mic
   micSection:       { alignItems:'center', marginBottom:10 },
   micRow:           { alignItems:'center', gap:10 },
-  micHint:          { fontSize:13, color:COLORS.subtext },
+  micHint:          { fontSize:13, color:C.subtext },
   micRing:          { width:86, height:86, borderRadius:43, alignItems:'center',
-                      justifyContent:'center', shadowColor:COLORS.primary,
+                      justifyContent:'center', shadowColor:C.primary,
                       shadowOffset:{width:0,height:0}, shadowRadius:18, elevation:10 },
-  micRingRec:       { shadowColor:COLORS.red },
+  micRingRec:       { shadowColor:C.red },
   micCore:          { width:78, height:78, borderRadius:39, alignItems:'center', justifyContent:'center' },
 
   // Live words
-  liveWords:     { backgroundColor:COLORS.surfaceAlt, borderRadius:12, padding:12,
-                   borderWidth:1, borderColor:COLORS.border, marginBottom:12, minHeight:58,
+  liveWords:     { backgroundColor:C.surfaceAlt, borderRadius:12, padding:12,
+                   borderWidth:1, borderColor:C.border, marginBottom:12, minHeight:58,
                    width:'100%' },
-  liveWordsLabel:{ fontSize:11, color:COLORS.primary, fontWeight:'600', marginBottom:5 },
-  liveWordsText: { fontSize:15, color:COLORS.textSoft, letterSpacing:1.5, fontStyle:'italic' },
+  liveWordsLabel:{ fontSize:11, color:C.primary, fontWeight:'600', marginBottom:5 },
+  liveWordsText: { fontSize:15, color:C.textSoft, letterSpacing:1.5, fontStyle:'italic' },
 
   // Transcribing
   transcribingBox: { flexDirection:'row', alignItems:'center', gap:8,
-                     backgroundColor:COLORS.surfaceAlt, borderRadius:12, padding:14,
-                     borderWidth:1, borderColor:COLORS.goldDark, marginBottom:16, width:'100%' },
-  transcribingText:{ fontSize:14, color:COLORS.goldDark },
+                     backgroundColor:C.surfaceAlt, borderRadius:12, padding:14,
+                     borderWidth:1, borderColor:C.goldDark, marginBottom:16, width:'100%' },
+  transcribingText:{ fontSize:14, color:C.goldDark },
 
   // Divider
   divider: { flexDirection:'row', alignItems:'center', marginVertical:16, gap:10 },
-  divLine: { flex:1, height:1, backgroundColor:COLORS.border },
-  divText:  { color:COLORS.dim, fontSize:12 },
+  divLine: { flex:1, height:1, backgroundColor:C.border },
+  divText:  { color:C.dim, fontSize:12 },
 
   // Text area
-  textBox:   { backgroundColor:COLORS.surface, borderRadius:14, borderWidth:1, borderColor:COLORS.border,
+  textBox:   { backgroundColor:C.surface, borderRadius:14, borderWidth:1, borderColor:C.border,
                padding:14, marginBottom:14, minHeight:130 },
-  textInput: { color:COLORS.text, fontSize:15, lineHeight:22, minHeight:95 },
-  charCount: { textAlign:'right', color:COLORS.dim, fontSize:10, marginTop:6 },
+  textInput: { color:C.text, fontSize:15, lineHeight:22, minHeight:95 },
+  charCount: { textAlign:'right', color:C.dim, fontSize:10, marginTop:6 },
 
   // Action buttons
   actionRow:   { flexDirection:'row', gap:10 },
   cancelBtn:   { flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center',
-                 gap:6, backgroundColor:COLORS.surfaceAlt, borderRadius:14, paddingVertical:14,
-                 borderWidth:1, borderColor:COLORS.border },
-  cancelBtnText:{ color:COLORS.subtext, fontWeight:'600', fontSize:14 },
+                 gap:6, backgroundColor:C.surfaceAlt, borderRadius:14, paddingVertical:14,
+                 borderWidth:1, borderColor:C.border },
+  cancelBtnText:{ color:C.subtext, fontWeight:'600', fontSize:14 },
   saveBtn:     { flex:2, flexDirection:'row', alignItems:'center', justifyContent:'center',
-                 gap:7, backgroundColor:COLORS.primary, borderRadius:14, paddingVertical:14 },
+                 gap:7, backgroundColor:C.primary, borderRadius:14, paddingVertical:14 },
   saveBtnOff:  { opacity:0.38 },
-  saveBtnText: { color:COLORS.white, fontWeight:'700', fontSize:15 },
+  saveBtnText: { color:C.white, fontWeight:'700', fontSize:15 },
 
   // Journal
   journalContent: { paddingHorizontal:14, paddingTop:4 },
   centerBox:      { alignItems:'center', paddingTop:55, gap:10 },
-  centerText:     { color:COLORS.subtext, fontSize:13 },
+  centerText:     { color:C.subtext, fontSize:13 },
   emptyBox:       { alignItems:'center', paddingTop:55, paddingHorizontal:32 },
   emptyEmoji:     { fontSize:58, marginBottom:14 },
-  emptyTitle:     { fontSize:19, fontWeight:'600', color:COLORS.text, marginBottom:7, textAlign:'center' },
-  emptySub:       { fontSize:13, color:COLORS.subtext, textAlign:'center', lineHeight:19, marginBottom:22 },
-  emptyBtn:       { backgroundColor:COLORS.primary, borderRadius:22, paddingHorizontal:26, paddingVertical:11 },
-  emptyBtnText:   { color:COLORS.white, fontWeight:'600', fontSize:14 },
+  emptyTitle:     { fontSize:19, fontWeight:'600', color:C.text, marginBottom:7, textAlign:'center' },
+  emptySub:       { fontSize:13, color:C.subtext, textAlign:'center', lineHeight:19, marginBottom:22 },
+  emptyBtn:       { backgroundColor:C.primary, borderRadius:22, paddingHorizontal:26, paddingVertical:11 },
+  emptyBtnText:   { color:C.white, fontWeight:'600', fontSize:14 },
 
   // Tab switcher
   tabRow: {
@@ -782,11 +787,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 6,
     marginTop: 4,
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 3,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
   },
   tabBtn: {
     flex: 1,
@@ -798,51 +803,52 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabBtnActive: {
-    backgroundColor: COLORS.background,
-    shadowColor: COLORS.primary,
+    backgroundColor: C.background,
+    shadowColor: C.primary,
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
   },
-  tabBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.subtext },
-  tabBtnTextActive: { color: COLORS.primary },
+  tabBtnText: { fontSize: 13, fontWeight: '600', color: C.subtext },
+  tabBtnTextActive: { color: C.primary },
 
   // Card
-  card:       { backgroundColor:COLORS.surface, borderRadius:16, padding:15,
-                marginBottom:11, borderWidth:1, borderColor:COLORS.border },
-  cardActive: { borderColor:COLORS.primary, borderWidth:1.5 },
+  card:       { backgroundColor:C.surface, borderRadius:16, padding:15,
+                marginBottom:11, borderWidth:1, borderColor:C.border },
+  cardActive: { borderColor:C.primary, borderWidth:1.5 },
   cardRow:    { flexDirection:'row', alignItems:'flex-start', gap:8 },
   cardActions:{ alignItems:'center', gap:8 },
-  cardTitle:  { fontSize:14, fontWeight:'700', color:COLORS.primary, marginBottom:2 },
-  cardDate:   { fontSize:11, color:COLORS.subtext, marginBottom:4 },
-  cardPreview:{ fontSize:14, color:COLORS.textSoft, lineHeight:20 },
+  cardTitle:  { fontSize:14, fontWeight:'700', color:C.primary, marginBottom:2 },
+  cardDate:   { fontSize:11, color:C.subtext, marginBottom:4 },
+  cardPreview:{ fontSize:14, color:C.textSoft, lineHeight:20 },
   badgeRow:   { flexDirection:'row', flexWrap:'wrap', gap:5, marginTop:9 },
-  badge:      { backgroundColor:COLORS.surfaceAlt, borderRadius:11, paddingHorizontal:9,
-                paddingVertical:3, borderWidth:1, borderColor:COLORS.primary },
-  badgeText:  { fontSize:11, color:COLORS.primaryLight, fontWeight:'600' },
+  badge:      { backgroundColor:C.surfaceAlt, borderRadius:11, paddingHorizontal:9,
+                paddingVertical:3, borderWidth:1, borderColor:C.primary },
+  badgeText:  { fontSize:11, color:C.primaryLight, fontWeight:'600' },
   // Insight badges (opportunity / warning counts on collapsed card)
   insightRow:       { flexDirection:'row', gap:6, marginTop:8, flexWrap:'wrap' },
   insightBadge:     { flexDirection:'row', alignItems:'center', borderRadius:12,
                       paddingHorizontal:10, paddingVertical:4 },
-  insightGreen:     { backgroundColor:COLORS.greenBg, borderWidth:1, borderColor:COLORS.green },
-  insightOrange:    { backgroundColor:COLORS.orangeBg, borderWidth:1, borderColor:COLORS.orange },
+  insightGreen:     { backgroundColor:C.greenBg, borderWidth:1, borderColor:C.green },
+  insightOrange:    { backgroundColor:C.orangeBg, borderWidth:1, borderColor:C.orange },
   insightBadgeText: { fontSize:11, fontWeight:'700' },
-  pendingPill:{ flexDirection:'row', alignItems:'center', backgroundColor:COLORS.surfaceAlt,
+  pendingPill:{ flexDirection:'row', alignItems:'center', backgroundColor:C.surfaceAlt,
                 borderRadius:20, paddingHorizontal:12, paddingVertical:7,
-                alignSelf:'flex-start', marginTop:10, borderWidth:1, borderColor:COLORS.border },
-  pendingPillText:{ color:COLORS.subtext, fontSize:12, fontStyle:'italic' },
+                alignSelf:'flex-start', marginTop:10, borderWidth:1, borderColor:C.border },
+  pendingPillText:{ color:C.subtext, fontSize:12, fontStyle:'italic' },
 
   // Interpretation
-  interp:       { marginTop:14, gap:12, borderTopWidth:1, borderTopColor:COLORS.border, paddingTop:14 },
+  interp:       { marginTop:14, gap:12, borderTopWidth:1, borderTopColor:C.border, paddingTop:14 },
   speakBtn:     { flexDirection:'row', alignItems:'center', gap:5, alignSelf:'flex-end',
-                  backgroundColor:COLORS.surfaceAlt, borderRadius:18, paddingHorizontal:12,
-                  paddingVertical:7, borderWidth:1, borderColor:COLORS.accent },
-  speakText:    { color:COLORS.accent, fontSize:12, fontWeight:'600' },
+                  backgroundColor:C.surfaceAlt, borderRadius:18, paddingHorizontal:12,
+                  paddingVertical:7, borderWidth:1, borderColor:C.accent },
+  speakText:    { color:C.accent, fontSize:12, fontWeight:'600' },
   section:      { gap:7 },
-  sectionGreen: { backgroundColor:COLORS.greenBg, borderRadius:10, padding:10 },
-  sectionOrange:{ backgroundColor:COLORS.orangeBg, borderRadius:10, padding:10 },
-  sectionHead:  { fontSize:13, fontWeight:'700', color:COLORS.text, marginBottom:3 },
-  interpText:   { fontSize:14, color:COLORS.textSoft, lineHeight:21 },
+  sectionGreen: { backgroundColor:C.greenBg, borderRadius:10, padding:10 },
+  sectionOrange:{ backgroundColor:C.orangeBg, borderRadius:10, padding:10 },
+  sectionHead:  { fontSize:13, fontWeight:'700', color:C.text, marginBottom:3 },
+  interpText:   { fontSize:14, color:C.textSoft, lineHeight:21 },
   bulletRow:    { flexDirection:'row', gap:7, alignItems:'flex-start' },
   bulletText:   { flex:1, fontSize:13, lineHeight:20 },
 });
+}

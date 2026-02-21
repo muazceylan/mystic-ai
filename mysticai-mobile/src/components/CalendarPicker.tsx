@@ -1,10 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native';
-import { COLORS } from '../constants/colors';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const CELL_SIZE = Math.floor((SCREEN_WIDTH - 48 - 48) / 7); // modal padding + inner padding
+import { useTheme } from '../context/ThemeContext';
 
 const DAYS_TR = ['Pt', 'Sa', 'Ca', 'Pe', 'Cu', 'Ct', 'Pz'];
 const MONTHS_TR = [
@@ -19,12 +16,134 @@ interface CalendarPickerProps {
   maximumDate?: Date;
 }
 
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: { width: '100%' },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    navButton: { padding: 8 },
+    monthYearButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+    },
+    monthYearText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: C.text,
+    },
+    weekRow: { flexDirection: 'row' as const, marginBottom: 4 },
+    weekCell: {
+      flex: 1,
+      alignItems: 'center' as const,
+      paddingVertical: 4,
+    },
+    weekLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: C.subtext,
+    },
+    grid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      width: '100%',
+    },
+    dayCell: {
+      width: `${100 / 7}%`,
+      aspectRatio: 1,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      minWidth: 0,
+    },
+    dayCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    dayCircleSelected: { backgroundColor: C.primary },
+    dayCircleToday: {
+      borderWidth: 1.5,
+      borderColor: C.primary,
+    },
+    dayText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: C.text,
+    },
+    dayTextOutside: { color: C.disabledText },
+    dayTextDisabled: { color: C.disabledText },
+    dayTextSelected: { color: C.white, fontWeight: '700' as const },
+    dayTextToday: { color: C.primary, fontWeight: '700' as const },
+    yearGrid: { width: '100%' },
+    yearGridHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 12,
+    },
+    yearGridTitle: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: C.text,
+    },
+    yearGridScroll: { maxHeight: 300 },
+    yearGridContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+      paddingBottom: 16,
+    },
+    yearCell: {
+      width: '22%',
+      paddingVertical: 10,
+      borderRadius: 20,
+      alignItems: 'center' as const,
+    },
+    yearCellSelected: { backgroundColor: C.primary },
+    yearCellText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: C.text,
+    },
+    yearCellTextSelected: { color: C.white, fontWeight: '700' as const },
+    monthGridContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+      paddingBottom: 16,
+    },
+    monthCell: {
+      width: '30%',
+      paddingVertical: 12,
+      borderRadius: 20,
+      alignItems: 'center' as const,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    monthCellText: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: C.text,
+    },
+  });
+}
+
 export default function CalendarPicker({
   selectedDate,
   onSelect,
   minimumDate = new Date(1920, 0, 1),
   maximumDate = new Date(),
 }: CalendarPickerProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const initDate = selectedDate || new Date(1995, 5, 15);
   const [viewYear, setViewYear] = useState(initDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initDate.getMonth());
@@ -140,7 +259,7 @@ export default function CalendarPicker({
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="close" size={22} color={COLORS.subtext} />
+            <Ionicons name="close" size={22} color={colors.subtext} />
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -187,7 +306,7 @@ export default function CalendarPicker({
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="close" size={22} color={COLORS.subtext} />
+            <Ionicons name="close" size={22} color={colors.subtext} />
           </TouchableOpacity>
         </View>
         <View style={styles.monthGridContainer}>
@@ -226,7 +345,7 @@ export default function CalendarPicker({
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-          <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
 
         <TouchableOpacity
@@ -238,7 +357,7 @@ export default function CalendarPicker({
           <Text style={styles.monthYearText}>
             {MONTHS_TR[viewMonth]} {viewYear}
           </Text>
-          <Ionicons name="caret-down" size={14} color={COLORS.primary} />
+          <Ionicons name="caret-down" size={14} color={colors.primary} />
         </TouchableOpacity>
 
           <TouchableOpacity
@@ -248,7 +367,7 @@ export default function CalendarPicker({
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-          <Ionicons name="chevron-forward" size={22} color={COLORS.text} />
+          <Ionicons name="chevron-forward" size={22} color={colors.text} />
           </TouchableOpacity>
       </View>
 
@@ -306,149 +425,3 @@ export default function CalendarPicker({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  navButton: {
-    padding: 8,
-  },
-  monthYearButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  monthYearText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  weekRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  weekCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  weekLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.subtext,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayCircleSelected: {
-    backgroundColor: COLORS.primary,
-  },
-  dayCircleToday: {
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
-  dayText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  dayTextOutside: {
-    color: COLORS.disabled,
-  },
-  dayTextDisabled: {
-    color: COLORS.disabled,
-  },
-  dayTextSelected: {
-    color: COLORS.surface,
-    fontWeight: '700',
-  },
-  dayTextToday: {
-    color: COLORS.primary,
-    fontWeight: '700',
-  },
-  // Year grid
-  yearGrid: {
-    width: '100%',
-  },
-  yearGridHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  yearGridTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  yearGridScroll: {
-    maxHeight: 300,
-  },
-  yearGridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingBottom: 16,
-  },
-  yearCell: {
-    width: '22%',
-    paddingVertical: 10,
-    borderRadius: 20,
-    alignItems: 'center',
-  },
-  yearCellSelected: {
-    backgroundColor: COLORS.primary,
-  },
-  yearCellText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  yearCellTextSelected: {
-    color: COLORS.white,
-    fontWeight: '700',
-  },
-  // Month grid
-  monthGridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingBottom: 16,
-  },
-  monthCell: {
-    width: '30%',
-    paddingVertical: 12,
-    borderRadius: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  monthCellText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-});

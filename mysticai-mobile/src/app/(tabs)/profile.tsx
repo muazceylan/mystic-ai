@@ -16,7 +16,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/useAuthStore';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { getZodiacSign } from '../../constants/index';
-import { COLORS } from '../../constants/colors';
 import { SafeScreen } from '../../components/ui';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
@@ -36,8 +35,8 @@ const SETTINGS_ITEMS = [
   { id: 'help',          titleKey: 'profile.menu.help',          icon: 'help-circle-outline',   route: '/help' },
 ] as const;
 
-function StatSkeleton() {
-  return <View style={{ width: 36, height: 24, borderRadius: 6, backgroundColor: COLORS.surfaceAlt, marginBottom: 4 }} />;
+function StatSkeleton({ colors }: { colors: { surfaceAlt: string } }) {
+  return <View style={{ width: 36, height: 24, borderRadius: 6, backgroundColor: colors.surfaceAlt, marginBottom: 4 }} />;
 }
 
 function getZodiacFromBirthDate(birthDate?: string): string {
@@ -146,15 +145,15 @@ export default function ProfileScreen() {
         {/* ── Stats ── */}
         <View style={S.statsContainer}>
           <View style={[S.statItem, S.statBorderRight]}>
-            {loadingStats ? <StatSkeleton /> : <Text style={S.statValue}>{stats?.plannedDays ?? 0}</Text>}
+            {loadingStats ? <StatSkeleton colors={colors} /> : <Text style={S.statValue}>{stats?.plannedDays ?? 0}</Text>}
             <Text style={S.statLabel}>{t('profile.stats.plannedDays')}</Text>
           </View>
           <View style={[S.statItem, S.statBorderRight]}>
-            {loadingStats ? <StatSkeleton /> : <Text style={S.statValue}>{stats?.dreamCount ?? 0}</Text>}
+            {loadingStats ? <StatSkeleton colors={colors} /> : <Text style={S.statValue}>{stats?.dreamCount ?? 0}</Text>}
             <Text style={S.statLabel}>{t('profile.stats.dreamCount')}</Text>
           </View>
           <View style={S.statItem}>
-            {loadingStats ? <StatSkeleton /> : <Text style={S.statValue}>{stats?.dailyYorum ?? 0}</Text>}
+            {loadingStats ? <StatSkeleton colors={colors} /> : <Text style={S.statValue}>{stats?.dailyYorum ?? 0}</Text>}
             <Text style={S.statLabel}>{t('profile.stats.dailyComment')}</Text>
           </View>
         </View>
@@ -302,7 +301,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       backgroundColor: C.gold, borderRadius: 10,
       paddingHorizontal: 14, paddingVertical: 8,
     },
-    upgradeButtonText: { color: COLORS.text, fontSize: 12, fontWeight: '700' },
+    upgradeButtonText: { color: C.text, fontSize: 12, fontWeight: '700' },
     // Logout
     logoutButton: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

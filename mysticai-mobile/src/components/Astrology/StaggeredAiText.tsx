@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet, TextStyle } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const MAX_STAGGER = 6;
 
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export default function StaggeredAiText({ text, style }: Props) {
+  const { colors } = useTheme();
   const paragraphs = text.split(/\n\n+/).filter(Boolean);
   const animValues = useRef<Animated.Value[]>([]);
 
@@ -48,6 +49,7 @@ export default function StaggeredAiText({ text, style }: Props) {
             key={`${i}-${para.slice(0, 20)}`}
             style={[
               styles.paragraph,
+              { color: colors.body },
               style,
               {
                 opacity: anim,
@@ -71,12 +73,6 @@ export default function StaggeredAiText({ text, style }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 12,
-  },
-  paragraph: {
-    fontSize: 14,
-    color: COLORS.body,
-    lineHeight: 22,
-  },
+  container: { gap: 12 },
+  paragraph: { fontSize: 14, lineHeight: 22 },
 });

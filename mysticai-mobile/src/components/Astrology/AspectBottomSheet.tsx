@@ -19,7 +19,7 @@ import {
   getAspectHookText,
   isHarmoniousAspect,
 } from '../../constants/aspect-glossary';
-import { COLORS } from '../../constants/colors';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -44,6 +44,8 @@ export default function AspectBottomSheet({
   aspect,
   onClose,
 }: AspectBottomSheetProps) {
+  const { colors } = useTheme();
+  const s = createStyles(colors);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -82,7 +84,7 @@ export default function AspectBottomSheet({
 
   const glossary = ASPECT_GLOSSARY[aspect.type];
   const harmonious = isHarmoniousAspect(aspect.type);
-  const accentColor = harmonious ? COLORS.violet : COLORS.harmonious;
+  const accentColor = harmonious ? colors.violet : colors.harmonious;
 
   const p1Sym = PLANET_SYMBOLS[aspect.planet1] ?? '?';
   const p2Sym = PLANET_SYMBOLS[aspect.planet2] ?? '?';
@@ -95,79 +97,71 @@ export default function AspectBottomSheet({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <View style={styles.container}>
+      <View style={s.container}>
         <TouchableWithoutFeedback
           onPress={onClose}
           accessibilityLabel="Arka plana tıkla kapat"
           accessibilityRole="button"
         >
-          <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
+          <Animated.View style={[s.backdrop, { opacity: backdropAnim }]} />
         </TouchableWithoutFeedback>
 
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
+          style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}
         >
           <ScrollView
             bounces={false}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={s.scrollContent}
           >
-            {/* Handle bar */}
-            <View style={styles.handleBar} />
-
-            {/* Header — symbols and type name */}
-            <View style={styles.header}>
-              <View style={styles.symbolRow}>
-                <Text style={[styles.planetSymbol, { color: accentColor }]}>{p1Sym}</Text>
-                <Text style={[styles.aspectSymbol, { color: accentColor }]}>{aspSym}</Text>
-                <Text style={[styles.planetSymbol, { color: accentColor }]}>{p2Sym}</Text>
+            <View style={s.handleBar} />
+            <View style={s.header}>
+              <View style={s.symbolRow}>
+                <Text style={[s.planetSymbol, { color: accentColor }]}>{p1Sym}</Text>
+                <Text style={[s.aspectSymbol, { color: accentColor }]}>{aspSym}</Text>
+                <Text style={[s.planetSymbol, { color: accentColor }]}>{p2Sym}</Text>
               </View>
-              <Text style={styles.typeTitle}>{glossary.term}</Text>
-              <Text style={styles.angleText}>
+              <Text style={s.typeTitle}>{glossary.term}</Text>
+              <Text style={s.angleText}>
                 {aspect.angle.toFixed(1)}\u00B0 \u00B7 orb {aspect.orb.toFixed(2)}\u00B0
               </Text>
             </View>
 
-            {/* Aspect explanation */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: accentColor }]}>Bu Aci Ne Anlama Geliyor?</Text>
-              <Text style={styles.sectionText}>{glossary.longDesc}</Text>
+            <View style={s.section}>
+              <Text style={[s.sectionLabel, { color: accentColor }]}>Bu Aci Ne Anlama Geliyor?</Text>
+              <Text style={s.sectionText}>{glossary.longDesc}</Text>
             </View>
 
-            {/* Planet 1 info */}
             {p1Glossary && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: accentColor }]}>
+              <View style={s.section}>
+                <Text style={[s.sectionLabel, { color: accentColor }]}>
                   {p1Sym} {p1Name}
                 </Text>
-                <Text style={styles.sectionText}>{p1Glossary.longDesc}</Text>
+                <Text style={s.sectionText}>{p1Glossary.longDesc}</Text>
               </View>
             )}
 
-            {/* Planet 2 info */}
             {p2Glossary && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: accentColor }]}>
+              <View style={s.section}>
+                <Text style={[s.sectionLabel, { color: accentColor }]}>
                   {p2Sym} {p2Name}
                 </Text>
-                <Text style={styles.sectionText}>{p2Glossary.longDesc}</Text>
+                <Text style={s.sectionText}>{p2Glossary.longDesc}</Text>
               </View>
             )}
 
-            {/* Personalized hook */}
-            <View style={[styles.hookSection, { backgroundColor: accentColor + '0F' }]}>
-              <Text style={[styles.hookLabel, { color: accentColor }]}>Sana Ozel</Text>
-              <Text style={styles.hookText}>{hookText}</Text>
+            <View style={[s.hookSection, { backgroundColor: accentColor + '0F' }]}>
+              <Text style={[s.hookLabel, { color: accentColor }]}>Sana Ozel</Text>
+              <Text style={s.hookText}>{hookText}</Text>
             </View>
 
-            {/* Close button */}
             <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: accentColor }]}
+              style={[s.closeButton, { backgroundColor: accentColor }]}
               onPress={onClose}
               accessibilityLabel="Kapat"
               accessibilityRole="button"
             >
-              <Text style={styles.closeButtonText}>Kapat</Text>
+              <Text style={s.closeButtonText}>Kapat</Text>
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>
@@ -176,97 +170,67 @@ export default function AspectBottomSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: SCREEN_HEIGHT * 0.78,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  handleBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.borderLight,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 6,
-  },
-  symbolRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  planetSymbol: {
-    fontSize: 32,
-    fontWeight: '600',
-  },
-  aspectSymbol: {
-    fontSize: 20,
-  },
-  typeTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.textSlate,
-  },
-  angleText: {
-    fontSize: 13,
-    color: COLORS.muted,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  sectionText: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    lineHeight: 20,
-  },
-  hookSection: {
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 16,
-  },
-  hookLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  hookText: {
-    fontSize: 13,
-    color: COLORS.textDark,
-    lineHeight: 20,
-  },
-  closeButton: {
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: 24,
-    marginTop: 4,
-  },
-  closeButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-});
+function createStyles(C: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, justifyContent: 'flex-end' },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    sheet: {
+      backgroundColor: C.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      maxHeight: SCREEN_HEIGHT * 0.78,
+    },
+    scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+    handleBar: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: C.borderLight,
+      alignSelf: 'center',
+      marginTop: 12,
+      marginBottom: 16,
+    },
+    header: { alignItems: 'center', marginBottom: 20, gap: 6 },
+    symbolRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    planetSymbol: { fontSize: 32, fontWeight: '600' },
+    aspectSymbol: { fontSize: 20 },
+    typeTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: C.textSlate,
+    },
+    angleText: { fontSize: 13, color: C.muted },
+    section: { marginBottom: 16 },
+    sectionLabel: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+    sectionText: {
+      fontSize: 13,
+      color: C.textMuted,
+      lineHeight: 20,
+    },
+    hookSection: {
+      padding: 14,
+      borderRadius: 14,
+      marginBottom: 16,
+    },
+    hookLabel: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
+    hookText: {
+      fontSize: 13,
+      color: C.textDark,
+      lineHeight: 20,
+    },
+    closeButton: {
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderRadius: 24,
+      marginTop: 4,
+    },
+    closeButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: C.white,
+    },
+  });
+}

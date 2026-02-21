@@ -3,17 +3,173 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'rea
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import CalendarPicker from '../../components/CalendarPicker';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { getZodiacSign } from '../../constants/index';
-import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: C.bg,
+      paddingHorizontal: 24,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: C.text,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: C.subtext,
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    input: {
+      width: '100%',
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    inputText: {
+      flex: 1,
+      fontSize: 16,
+      color: C.text,
+    },
+    placeholder: {
+      color: C.disabledText,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingBottom: 32,
+    },
+    outlineButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: C.primary,
+      borderRadius: 999,
+      paddingVertical: 14,
+      alignItems: 'center',
+      backgroundColor: C.surface,
+    },
+    outlineText: {
+      color: C.primary,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    primaryButton: {
+      flex: 1,
+      borderRadius: 999,
+      paddingVertical: 14,
+      alignItems: 'center',
+      backgroundColor: C.primary,
+    },
+    primaryDisabled: {
+      backgroundColor: C.disabled,
+    },
+    primaryText: {
+      color: C.white,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    primaryTextDisabled: {
+      color: C.disabledText,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    modalCard: {
+      width: '100%',
+      backgroundColor: C.surface,
+      borderRadius: 28,
+      overflow: 'hidden',
+      maxHeight: '85%',
+      elevation: 8,
+      shadowColor: C.shadow,
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 8 },
+    },
+    modalHeader: {
+      paddingHorizontal: 24,
+      paddingTop: 20,
+      paddingBottom: 16,
+    },
+    modalLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: C.subtext,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 8,
+    },
+    modalSelectedDate: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: C.text,
+    },
+    modalDivider: {
+      height: 1,
+      backgroundColor: C.border,
+    },
+    calendarScroll: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 8,
+    },
+    modalTextButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 20,
+    },
+    modalTextButtonDisabled: {
+      opacity: 0.4,
+    },
+    modalTextButtonLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: C.primary,
+    },
+    modalTextButtonLabelDisabled: {
+      color: C.disabledText,
+    },
+  });
+}
+
 export default function BirthDateScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
   const store = useOnboardingStore();
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date | null>(store.birthDate);
+  const styles = makeStyles(colors);
 
   const handleConfirm = () => {
     if (tempDate) {
@@ -26,10 +182,7 @@ export default function BirthDateScreen() {
 
   const formatDate = (date: Date) => {
     const day = date.getDate();
-    const months = [
-      'Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran',
-      'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik',
-    ];
+    const months = t('calendar.months').split(',');
     return `${day} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
@@ -41,9 +194,9 @@ export default function BirthDateScreen() {
         <OnboardingBackground />
 
         <View style={styles.content}>
-        <Text style={styles.title}>Dogum Tarihiniz?</Text>
+        <Text style={styles.title}>{t('auth.birthDateTitle')}</Text>
         <Text style={styles.subtitle}>
-          Sizi analiz edebilmem icin dogum tarihinizi giriniz
+          {t('auth.birthDateSubtitle')}
         </Text>
 
         <TouchableOpacity
@@ -52,13 +205,13 @@ export default function BirthDateScreen() {
           accessibilityLabel="Doğum tarihi seç"
           accessibilityRole="button"
         >
-          <Ionicons name="calendar-outline" size={20} color={store.birthDate ? COLORS.primary : COLORS.disabledText} />
+          <Ionicons name="calendar-outline" size={20} color={store.birthDate ? colors.primary : colors.disabledText} />
           <Text style={[styles.inputText, !store.birthDate && styles.placeholder]}>
-            {store.birthDate ? formatDate(store.birthDate) : 'Tarih secin'}
+            {store.birthDate ? formatDate(store.birthDate) : t('birthInfo.selectDate')}
           </Text>
           {store.birthDate && (
             <Animated.View entering={FadeIn.duration(300)}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+              <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             </Animated.View>
           )}
         </TouchableOpacity>
@@ -71,7 +224,7 @@ export default function BirthDateScreen() {
           accessibilityLabel="Geri dön"
           accessibilityRole="button"
         >
-          <Text style={styles.outlineText}>Geri</Text>
+          <Text style={styles.outlineText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
@@ -81,7 +234,7 @@ export default function BirthDateScreen() {
           onPress={() => canContinue && router.push('/birth-time')}
         >
           <Text style={[styles.primaryText, !canContinue && styles.primaryTextDisabled]}>
-            Devam Et
+            {t('common.continue')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -150,154 +303,3 @@ export default function BirthDateScreen() {
     </SafeScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 24,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.subtext,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  input: {
-    width: '100%',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  inputText: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  placeholder: {
-    color: COLORS.disabledText,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingBottom: 32,
-  },
-  outlineButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-  },
-  outlineText: {
-    color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  primaryButton: {
-    flex: 1,
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-  },
-  primaryDisabled: {
-    backgroundColor: COLORS.disabled,
-  },
-  primaryText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  primaryTextDisabled: {
-    color: COLORS.disabledText,
-  },
-  // M3 Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  modalCard: {
-    width: '100%',
-    backgroundColor: COLORS.surface,
-    borderRadius: 28,
-    overflow: 'hidden',
-    maxHeight: '85%',
-    elevation: 8,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  modalHeader: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
-  },
-  modalLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: COLORS.subtext,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  modalSelectedDate: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  modalDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-  calendarScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  modalTextButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  modalTextButtonDisabled: {
-    opacity: 0.4,
-  },
-  modalTextButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  modalTextButtonLabelDisabled: {
-    color: COLORS.disabledText,
-  },
-});

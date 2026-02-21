@@ -4,6 +4,7 @@ import {
   SafeAreaView,
   Edge,
 } from 'react-native-safe-area-context';
+import { useTheme } from '../../context/ThemeContext';
 
 type SafeScreenProps = {
   children: React.ReactNode;
@@ -15,14 +16,20 @@ type SafeScreenProps = {
 /**
  * Platform-compatible SafeArea wrapper for all screens.
  * Uses react-native-safe-area-context for iOS notch, Android nav bar, and status bar handling.
+ * Applies theme background color so status bar / notch area matches the screen theme.
  */
 export function SafeScreen({
   children,
   edges = ['top', 'left', 'right', 'bottom'],
   style,
 }: SafeScreenProps) {
+  const { colors } = useTheme();
+
   return (
-    <SafeAreaView style={[styles.container, style]} edges={edges}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg }, style]}
+      edges={edges}
+    >
       {children}
     </SafeAreaView>
   );

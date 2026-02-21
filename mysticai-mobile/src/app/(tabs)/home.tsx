@@ -32,17 +32,19 @@ import {
 } from '../../services/astrology.service';
 import { DailySecret, fetchDailySecret } from '../../services/oracle.service';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
-import { COLORS } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { ErrorStateCard, SafeScreen } from '../../components/ui';
 
-const SERVICE_SLIDES = [
-  { id: 'planner', title: 'Kozmik Planlayici', emoji: '📅' },
-  { id: 'dream', title: 'Ruya Analizi', emoji: '🌙' },
-  { id: 'numerology', title: 'Numeroloji', emoji: '🔢' },
-  { id: 'weekly', title: 'Haftanin Analizi', emoji: '📅' },
-  { id: 'natal', title: 'Dogum Haritasi', emoji: '⭐' },
-  { id: 'name', title: 'Isim Analizi', emoji: '🧿' },
+const SERVICE_SLIDE_IDS = [
+  { id: 'planner', key: 'home.planner', emoji: '📅' },
+  { id: 'dream', key: 'home.dreams', emoji: '🌙' },
+  { id: 'numerology', key: 'home.numerology', emoji: '🔢' },
+  { id: 'weekly', key: 'home.weeklyAnalysis', emoji: '📅' },
+  { id: 'natal', key: 'home.birthChart', emoji: '⭐' },
+  { id: 'name', key: 'home.nameAnalysis', emoji: '🧿' },
 ];
+
 
 const DAILY_VIBE_FALLBACKS = [
   'Bugun acele etmeden ilerle; dogru an seni bulacak.',
@@ -51,15 +53,15 @@ const DAILY_VIBE_FALLBACKS = [
   'Kalbini hafifleten secenegi sec; gun onunla acilacak.',
 ];
 
-const RETRO_CAUTION_MAP: Record<string, string> = {
-  'Merkür': 'Sözleşme ve önemli kararları ertele; mesajlar yanlış anlaşılabilir.',
-  'Venüs': 'Duygusal kararlar için acele etme; eski ilişkiler gündeme gelebilir.',
-  'Mars': 'Agresif hamlelerden kaçın; enerjiyi savunmaya ve planlamaya yönelt.',
-  'Jüpiter': 'Aşırı iyimserlikten sakın; büyük risk almadan önce iki kez düşün.',
-  'Satürn': 'Yapılar test ediliyor; sabırlı ol ve mevcut taahhütlere sadık kal.',
-  'Uranüs': 'Ani değişimlere karşı hazırlıklı ol; esnekliğini koru.',
-  'Neptün': 'Yanıltıcı durumlar olabilir; sezgine güven ama netlik ara.',
-  'Plüton': 'Derin dönüşümler sürüyor; kontrol edemeyeceklerini bırak.',
+const RETRO_CAUTION_KEYS: Record<string, string> = {
+  'Merkür': 'home.retroMercury', 'Mercury': 'home.retroMercury',
+  'Venüs': 'home.retroVenus', 'Venus': 'home.retroVenus',
+  'Mars': 'home.retroMars',
+  'Jüpiter': 'home.retroJupiter', 'Jupiter': 'home.retroJupiter',
+  'Satürn': 'home.retroSaturn', 'Saturn': 'home.retroSaturn',
+  'Uranüs': 'home.retroUranus', 'Uranus': 'home.retroUranus',
+  'Neptün': 'home.retroNeptune', 'Neptune': 'home.retroNeptune',
+  'Plüton': 'home.retroPluto', 'Pluto': 'home.retroPluto',
 };
 
 const ACTION_MAP: Record<string, Record<'lucky' | 'mixed' | 'caution', string[]>> = {
@@ -131,18 +133,14 @@ const SECRET_PATTERNS_BY_FOCUS: Record<string, string[]> = {
   ],
 };
 
-const SWOT_ITEMS: Array<{
-  id: 'strength' | 'weakness' | 'opportunity' | 'threat';
-  title: string;
-  icon: string;
-  accent: string;
-  surface: string;
-}> = [
-  { id: 'strength', title: 'ICSEL GUC', icon: '⚡', accent: COLORS.violetLight, surface: COLORS.primarySoftBg },
-  { id: 'opportunity', title: 'ALTIN FIRSAT', icon: '✨', accent: COLORS.trine, surface: COLORS.successLight },
-  { id: 'threat', title: 'KRITIK UYARI', icon: '🚫', accent: COLORS.error, surface: COLORS.cautionBg },
-  { id: 'weakness', title: 'ENERJI KAYBI', icon: '⚠️', accent: COLORS.warning, surface: COLORS.neutralBg },
-];
+function getSwotItems(colors: ReturnType<typeof useTheme>['colors'], t: (k: string) => string) {
+  return [
+    { id: 'strength' as const, titleKey: 'home.strength', icon: '⚡', accent: colors.violetLight, surface: colors.primarySoftBg },
+    { id: 'opportunity' as const, titleKey: 'home.opportunity', icon: '✨', accent: colors.trine, surface: colors.successLight },
+    { id: 'threat' as const, titleKey: 'home.threat', icon: '🚫', accent: colors.error, surface: colors.cautionBg },
+    { id: 'weakness' as const, titleKey: 'home.weakness', icon: '⚠️', accent: colors.warning, surface: colors.neutralBg },
+  ];
+}
 
 const SUMMARY_MAX_CHARS = 90;
 
@@ -151,8 +149,6 @@ const HORIZONTAL_PADDING = 20;
 const SLIDE_GAP = 0;
 const SLIDE_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
 const SLIDE_SNAP = SLIDE_WIDTH + SLIDE_GAP;
-
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<typeof SERVICE_SLIDES[0]>);
 
 function getMoonPhaseIcon(phase: string): string {
   if (phase.includes('Yeni Ay')) return '🌑';
@@ -263,6 +259,8 @@ function dedupeLines(lines: string[]): string[] {
 }
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
   const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
@@ -270,6 +268,7 @@ export default function HomeScreen() {
   const setCachedChart = useNatalChartStore((s) => s.setChart);
   const isChartStale = useNatalChartStore((s) => s.isStale);
   const router = useRouter();
+  const SERVICE_SLIDES = useMemo(() => SERVICE_SLIDE_IDS.map((s) => ({ ...s, title: t(s.key) })), [t]);
   const sliderRef = useRef<FlatList<(typeof SERVICE_SLIDES)[0]>>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
@@ -506,8 +505,8 @@ export default function HomeScreen() {
     // Caution items from retrograde planets
     const cautionItems: string[] = [];
     for (const planet of retrogrades) {
-      for (const [key, msg] of Object.entries(RETRO_CAUTION_MAP)) {
-        if (planet.includes(key)) { cautionItems.push(msg); break; }
+      for (const [key, tKey] of Object.entries(RETRO_CAUTION_KEYS)) {
+        if (planet.includes(key)) { cautionItems.push(t(tKey)); break; }
       }
     }
     if (cautionItems.length === 0 && isDolunay) {
@@ -530,6 +529,7 @@ export default function HomeScreen() {
       actionItems: actionItems.slice(0, 2),
     };
   }, [
+    t,
     aiInsightLines,
     dailyVibeText,
     focusKey,
@@ -539,6 +539,7 @@ export default function HomeScreen() {
     skyPulse?.moonPhase,
   ]);
 
+  const S = makeStyles(colors);
   const swotDataMap: Record<string, SwotPoint | undefined> = {
     strength: weeklySwot?.strength,
     weakness: weeklySwot?.weakness,
@@ -548,90 +549,90 @@ export default function HomeScreen() {
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
-      <View style={styles.container}>
+      <View style={S.container}>
         <OnboardingBackground />
 
         <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        style={S.scroll}
+        contentContainerStyle={S.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-            colors={[COLORS.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
-        <View style={styles.headerRow}>
-          <View style={styles.profileBlock}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={16} color={COLORS.subtext} />
+        <View style={S.headerRow}>
+          <View style={S.profileBlock}>
+            <View style={S.avatar}>
+              <Ionicons name="person" size={16} color={colors.subtext} />
             </View>
             <View>
-              <Text style={styles.profileTitle}>Profilim</Text>
-              <Text style={styles.profileSubtitle}>LV. 2 (%15)</Text>
+              <Text style={S.profileTitle}>Profilim</Text>
+              <Text style={S.profileSubtitle}>LV. 2 (%15)</Text>
             </View>
           </View>
-          <View style={styles.headerIcons}>
+          <View style={S.headerIcons}>
             <TouchableOpacity
-              style={styles.iconButton}
+              style={S.iconButton}
               accessibilityLabel="Özellikler"
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="sparkles" size={18} color={COLORS.subtext} />
+              <Ionicons name="sparkles" size={18} color={colors.subtext} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.iconButton}
+              style={S.iconButton}
               accessibilityLabel="Bildirimler"
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="notifications" size={18} color={COLORS.subtext} />
+              <Ionicons name="notifications" size={18} color={colors.subtext} />
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.greetingText}>Merhaba {fullName}, bugun haritanda neler var bakalim.</Text>
+        <Text style={S.greetingText}>Merhaba {fullName}, bugun haritanda neler var bakalim.</Text>
 
-        <View style={styles.transitSection}>
-          <Text style={styles.transitSectionTitle}>Bugünün Transitleri</Text>
-          <View style={styles.transitCard}>
+        <View style={S.transitSection}>
+          <Text style={S.transitSectionTitle}>Bugünün Transitleri</Text>
+          <View style={S.transitCard}>
             {/* Başlık */}
-            <View style={styles.transitHeadlineRow}>
+            <View style={S.transitHeadlineRow}>
               <View style={[
-                styles.transitDot,
+                S.transitDot,
                 {
                   backgroundColor:
-                    transitDigest.energyType === 'lucky' ? COLORS.success
-                    : transitDigest.energyType === 'caution' ? COLORS.red
-                    : COLORS.warning,
+                    transitDigest.energyType === 'lucky' ? colors.success
+                    : transitDigest.energyType === 'caution' ? colors.red
+                    : colors.warning,
                 },
               ]} />
-              <Text style={styles.transitHeadline}>{transitDigest.title}</Text>
+              <Text style={S.transitHeadline}>{transitDigest.title}</Text>
             </View>
 
             {/* Gezegen Enerji Bandı */}
             <View style={[
-              styles.energyBand,
+              S.energyBand,
               {
                 backgroundColor:
-                  transitDigest.energyType === 'lucky' ? COLORS.luckBg
-                  : transitDigest.energyType === 'caution' ? COLORS.cautionBg
-                  : COLORS.neutralBg,
+                  transitDigest.energyType === 'lucky' ? colors.luckBg
+                  : transitDigest.energyType === 'caution' ? colors.cautionBg
+                  : colors.neutralBg,
               },
             ]}>
-              <Text style={styles.energyBandIcon}>
+              <Text style={S.energyBandIcon}>
                 {transitDigest.energyType === 'lucky' ? '🟢' : transitDigest.energyType === 'caution' ? '🔴' : '🟡'}
               </Text>
               <Text style={[
-                styles.energyBandText,
+                S.energyBandText,
                 {
                   color:
-                    transitDigest.energyType === 'lucky' ? COLORS.success
-                    : transitDigest.energyType === 'caution' ? COLORS.cautionTextDark
-                    : COLORS.warning,
+                    transitDigest.energyType === 'lucky' ? colors.success
+                    : transitDigest.energyType === 'caution' ? colors.cautionTextDark
+                    : colors.warning,
                 },
               ]}>
                 {transitDigest.energyLabel}
@@ -641,55 +642,55 @@ export default function HomeScreen() {
             {/* Özet-detay pattern: Günün Enerjisi, Yapabilecekler, Dikkat Noktaları */}
             {transitExpanded ? (
               <>
-                <Text style={styles.transitDailyLabel}>Günün Enerjisi</Text>
-                <Text style={styles.transitDailyText}>{dailyVibeText}</Text>
+                <Text style={S.transitDailyLabel}>Günün Enerjisi</Text>
+                <Text style={S.transitDailyText}>{dailyVibeText}</Text>
                 {transitDigest.actionItems.length > 0 && (
-                  <View style={styles.transitDetailBox}>
-                    <Text style={styles.transitBoxLabel}>⚡ Bugün Yapabileceklerin</Text>
+                  <View style={S.transitDetailBox}>
+                    <Text style={S.transitBoxLabel}>⚡ Bugün Yapabileceklerin</Text>
                     {transitDigest.actionItems.map((line) => (
-                      <View key={line} style={styles.transitPointRow}>
-                        <Text style={styles.transitPointMark}>›</Text>
-                        <Text style={styles.transitPointText}>{line}</Text>
+                      <View key={line} style={S.transitPointRow}>
+                        <Text style={S.transitPointMark}>›</Text>
+                        <Text style={S.transitPointText}>{line}</Text>
                       </View>
                     ))}
                   </View>
                 )}
                 {transitDigest.cautionItems.length > 0 && (
-                  <View style={[styles.transitDetailBox, styles.transitCautionBox]}>
-                    <Text style={[styles.transitBoxLabel, { color: COLORS.cautionText }]}>⚠️ Dikkat Noktaları</Text>
+                  <View style={[S.transitDetailBox, S.transitCautionBox]}>
+                    <Text style={[S.transitBoxLabel, { color: colors.cautionText }]}>⚠️ Dikkat Noktaları</Text>
                     {transitDigest.cautionItems.map((line) => (
-                      <View key={line} style={styles.transitPointRow}>
-                        <Text style={[styles.transitPointMark, { color: COLORS.cautionText }]}>›</Text>
-                        <Text style={[styles.transitPointText, { color: COLORS.cautionTextDark }]}>{line}</Text>
+                      <View key={line} style={S.transitPointRow}>
+                        <Text style={[S.transitPointMark, { color: colors.cautionText }]}>›</Text>
+                        <Text style={[S.transitPointText, { color: colors.cautionTextDark }]}>{line}</Text>
                       </View>
                     ))}
                   </View>
                 )}
                 <TouchableOpacity
                   onPress={() => setTransitExpanded(false)}
-                  style={styles.detailCta}
+                  style={S.detailCta}
                   accessibilityLabel="Detayları gizle"
                   accessibilityRole="button"
                 >
-                  <Text style={styles.detailCtaText}>Detayları Gizle</Text>
-                  <Ionicons name="chevron-up" size={16} color={COLORS.primary} />
+                  <Text style={S.detailCtaText}>Detayları Gizle</Text>
+                  <Ionicons name="chevron-up" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </>
             ) : (
               <TouchableOpacity
                 onPress={() => setTransitExpanded(true)}
-                style={styles.detailCta}
+                style={S.detailCta}
                 accessibilityLabel="Detayları göster"
                 accessibilityRole="button"
               >
-                <Text style={styles.detailCtaText}>Detayları Göster</Text>
-                <Ionicons name="chevron-down" size={16} color={COLORS.primary} />
+                <Text style={S.detailCtaText}>Detayları Göster</Text>
+                <Ionicons name="chevron-down" size={16} color={colors.primary} />
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        <AnimatedFlatList
+        <Animated.FlatList
           ref={sliderRef}
           data={SERVICE_SLIDES}
           keyExtractor={(item) => item.id}
@@ -704,7 +705,7 @@ export default function HomeScreen() {
             { useNativeDriver: true }
           )}
           onMomentumScrollEnd={handleSliderScrollEnd}
-          contentContainerStyle={styles.sliderContainer}
+          contentContainerStyle={S.sliderContainer}
           renderItem={({ item, index }) => {
             const inputRange = [
               (index - 1) * SLIDE_SNAP,
@@ -723,44 +724,44 @@ export default function HomeScreen() {
             });
             return (
               <Animated.View
-                style={[styles.sliderCardWrapper, { transform: [{ scale }], opacity }]}
+                style={[S.sliderCardWrapper, { transform: [{ scale }], opacity }]}
               >
                 <TouchableOpacity
                   activeOpacity={item.id === 'natal' ? 0.7 : 1}
                   onPress={() => {
                     if (item.id === 'natal') router.push('/(tabs)/natal-chart');
                   }}
-                  style={styles.sliderCard}
+                  style={S.sliderCard}
                   accessibilityLabel={item.title}
                   accessibilityRole="button"
                 >
-                  <Text style={styles.sliderEmoji}>{item.emoji}</Text>
-                  <Text style={styles.sliderText}>{item.title}</Text>
+                  <Text style={S.sliderEmoji}>{item.emoji}</Text>
+                  <Text style={S.sliderText}>{item.title}</Text>
                 </TouchableOpacity>
               </Animated.View>
             );
           }}
         />
 
-        <View style={styles.sliderDots}>
+        <View style={S.sliderDots}>
           {SERVICE_SLIDES.map((item, index) => (
-            <View key={item.id} style={[styles.dot, index === activeSlide && styles.dotActive]} />
+            <View key={item.id} style={[S.dot, index === activeSlide && S.dotActive]} />
           ))}
         </View>
 
-        <View style={styles.wisdomCard}>
-          <View style={styles.wisdomHeader}>
-            <Ionicons name="eye" size={16} color={COLORS.primary} />
-            <Text style={styles.wisdomTitle}>Gunun Sirri</Text>
-            <View style={styles.wisdomBadge}>
-              <Text style={styles.wisdomBadgeText}>Kisisel Mesaj</Text>
+        <View style={S.wisdomCard}>
+          <View style={S.wisdomHeader}>
+            <Ionicons name="eye" size={16} color={colors.primary} />
+            <Text style={S.wisdomTitle}>Gunun Sirri</Text>
+            <View style={S.wisdomBadge}>
+              <Text style={S.wisdomBadgeText}>Kisisel Mesaj</Text>
             </View>
           </View>
 
           {secretLoading ? (
-            <View style={styles.wisdomLoading}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.wisdomLoadingText}>Mesaj hazirlaniyor...</Text>
+            <View style={S.wisdomLoading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={S.wisdomLoadingText}>Mesaj hazirlaniyor...</Text>
             </View>
           ) : secretError ? (
             <ErrorStateCard
@@ -770,7 +771,7 @@ export default function HomeScreen() {
             />
           ) : (
             <Animated.View style={{ opacity: fadeAnim }}>
-              <Text style={styles.wisdomText}>
+              <Text style={S.wisdomText}>
                 {wisdomExpanded || secretText.length <= SUMMARY_MAX_CHARS
                   ? secretText
                   : `${secretText.slice(0, SUMMARY_MAX_CHARS).trim()}...`}
@@ -778,14 +779,14 @@ export default function HomeScreen() {
               {secretText.length > SUMMARY_MAX_CHARS && (
                 <TouchableOpacity
                   onPress={() => setWisdomExpanded((e) => !e)}
-                  style={styles.detailCta}
+                  style={S.detailCta}
                   accessibilityLabel={wisdomExpanded ? 'Detayları gizle' : 'Detayları göster'}
                   accessibilityRole="button"
                 >
-                  <Text style={styles.detailCtaText}>
+                  <Text style={S.detailCtaText}>
                     {wisdomExpanded ? 'Detayları Gizle' : 'Detayları Göster'}
                   </Text>
-                  <Ionicons name={wisdomExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.primary} />
+                  <Ionicons name={wisdomExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary} />
                 </TouchableOpacity>
               )}
             </Animated.View>
@@ -793,12 +794,12 @@ export default function HomeScreen() {
         </View>
 
         {skyPulseLoading ? (
-          <View style={[styles.skyPulseCard, styles.skyPulseCenter]}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={styles.skyPulseLoadingText}>Gokyuzu okunuyor...</Text>
+          <View style={[S.skyPulseCard, S.skyPulseCenter]}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={S.skyPulseLoadingText}>Gokyuzu okunuyor...</Text>
           </View>
         ) : skyPulseError || !skyPulse ? (
-          <View style={[styles.skyPulseCard, styles.skyPulseCenter]}>
+          <View style={[S.skyPulseCard, S.skyPulseCenter]}>
             <ErrorStateCard
               message="Gökyüzü verisi alınamadı. Ay fazı ve gezegen bilgisi yüklenemedi."
               onRetry={loadSkyPulse}
@@ -810,14 +811,14 @@ export default function HomeScreen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => router.push('/(tabs)/calendar')}
-            style={styles.skyPulseCard}
+            style={S.skyPulseCard}
             accessibilityLabel="Takvim ve ay fazı detayları"
             accessibilityRole="button"
           >
-            <View style={styles.skyPulseLeft}>
+            <View style={S.skyPulseLeft}>
               <Animated.Text
                 style={[
-                  styles.skyPulseMoonIcon,
+                  S.skyPulseMoonIcon,
                   {
                     opacity: moonGlow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
                     transform: [{ scale: moonGlow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }],
@@ -827,13 +828,13 @@ export default function HomeScreen() {
                 {getMoonPhaseIcon(skyPulse.moonPhase)}
               </Animated.Text>
             </View>
-            <View style={styles.skyPulseRight}>
-              <Text style={styles.skyPulseSign}>
+            <View style={S.skyPulseRight}>
+              <Text style={S.skyPulseSign}>
                 {skyPulse.moonSignSymbol} {skyPulse.moonSignTurkish}
               </Text>
-              <Text style={styles.skyPulsePhase}>{skyPulse.moonPhase}</Text>
+              <Text style={S.skyPulsePhase}>{skyPulse.moonPhase}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.primary} style={{ opacity: 0.6 }} />
+            <Ionicons name="chevron-forward" size={16} color={colors.primary} style={{ opacity: 0.6 }} />
           </TouchableOpacity>
         )}
 
@@ -842,40 +843,40 @@ export default function HomeScreen() {
 
         <ServiceStatus />
 
-        <View style={styles.swotSection}>
-          <Text style={styles.swotSectionTitle}>Haritanda bu hafta</Text>
+        <View style={S.swotSection}>
+          <Text style={S.swotSectionTitle}>Haritanda bu hafta</Text>
 
           {weeklyLoading ? (
-            <View style={styles.swotLoadingCard}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.swotLoadingText}>SWOT analizi yukleniyor...</Text>
+            <View style={S.swotLoadingCard}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={S.swotLoadingText}>{t('home.swotLoading')}</Text>
             </View>
           ) : weeklyError || !weeklySwot ? (
-            <View style={styles.swotLoadingCard}>
+            <View style={S.swotLoadingCard}>
               <ErrorStateCard
-                message="Haftalık enerji analizi yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."
+                message={t('home.swotError')}
                 onRetry={loadWeeklySwot}
                 variant="compact"
-                accessibilityLabel="SWOT analizini tekrar yükle"
+                accessibilityLabel={t('home.swotRetry')}
               />
             </View>
           ) : (
-            SWOT_ITEMS.map((item) => {
+            getSwotItems(colors, t).map((item) => {
               const swotPoint = swotDataMap[item.id];
               const isExpanded = expandedSwotId === item.id;
               return (
                 <TouchableOpacity
                   key={item.id}
-                  style={[styles.swotCard, { backgroundColor: item.surface, borderColor: `${item.accent}55` }]}
+                  style={[S.swotCard, { backgroundColor: item.surface, borderColor: `${item.accent}55` }]}
                   activeOpacity={0.85}
                   onPress={() => setExpandedSwotId((prev) => (prev === item.id ? null : item.id))}
-                  accessibilityLabel={`${item.title}: ${isExpanded ? 'kapat' : 'genişlet'}`}
+                  accessibilityLabel={`${t(item.titleKey)}: ${isExpanded ? t('common.collapse') : t('common.expand')}`}
                   accessibilityRole="button"
                 >
-                  <View style={styles.swotCardHeader}>
-                    <View style={styles.swotCardHeadLeft}>
-                      <Text style={styles.swotCardIcon}>{item.icon}</Text>
-                      <Text style={[styles.swotCardTitle, { color: item.accent }]}>{item.title}</Text>
+                  <View style={S.swotCardHeader}>
+                    <View style={S.swotCardHeadLeft}>
+                      <Text style={S.swotCardIcon}>{item.icon}</Text>
+                      <Text style={[S.swotCardTitle, { color: item.accent }]}>{t(item.titleKey)}</Text>
                     </View>
                     <Ionicons
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
@@ -884,17 +885,17 @@ export default function HomeScreen() {
                     />
                   </View>
 
-                  <Text style={styles.swotCardHeadlineDark}>{swotPoint?.headline ?? 'Bu alan bu hafta aktif.'}</Text>
-                  <Text style={styles.swotCardSub}>
-                    {swotPoint?.subtext ?? (isExpanded ? 'Detayları Gizle' : 'Detayları Göster')}
+                  <Text style={S.swotCardHeadlineDark}>{swotPoint?.headline ?? t('home.areaActiveThisWeek')}</Text>
+                  <Text style={S.swotCardSub}>
+                    {swotPoint?.subtext ?? (isExpanded ? t('home.hideDetails') : t('home.showDetails'))}
                   </Text>
 
                   {isExpanded && swotPoint && (
-                    <View style={styles.swotCardBody}>
-                      <Text style={styles.swotCardTip}>Ipuclari: {swotPoint.quickTip}</Text>
+                    <View style={S.swotCardBody}>
+                      <Text style={S.swotCardTip}>{t('home.tipsLabel')}: {swotPoint.quickTip}</Text>
                     </View>
                   )}
-                  <View style={[styles.swotCardBar, { backgroundColor: item.accent }]} />
+                  <View style={[S.swotCardBar, { backgroundColor: item.accent }]} />
                 </TouchableOpacity>
               );
             })
@@ -906,10 +907,11 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: C.background,
   },
   scroll: {
     flex: 1,
@@ -934,18 +936,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.surfaceMuted,
+    backgroundColor: C.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
+    color: C.text,
   },
   profileSubtitle: {
     fontSize: 12,
-    color: COLORS.subtext,
+    color: C.subtext,
     marginTop: 2,
   },
   headerIcons: {
@@ -956,7 +958,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: COLORS.surfaceMuted,
+    backgroundColor: C.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -965,7 +967,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
+    color: C.text,
   },
   skyPulseCard: {
     marginHorizontal: 20,
@@ -975,16 +977,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: C.surfaceGlass,
     borderWidth: 1,
-    borderColor: 'rgba(157, 78, 221, 0.25)',
+    borderColor: C.surfaceGlassBorder,
     gap: 12,
   },
   skyPulseLeft: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(157, 78, 221, 0.08)',
+    backgroundColor: C.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -998,11 +1000,11 @@ const styles = StyleSheet.create({
   skyPulseSign: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text,
+    color: C.text,
   },
   skyPulsePhase: {
     fontSize: 11,
-    color: COLORS.subtext,
+    color: C.subtext,
     fontStyle: 'italic',
   },
   skyPulseCenter: {
@@ -1010,7 +1012,7 @@ const styles = StyleSheet.create({
   },
   skyPulseLoadingText: {
     fontSize: 12,
-    color: COLORS.subtext,
+    color: C.subtext,
     fontStyle: 'italic',
   },
   sliderContainer: {
@@ -1026,11 +1028,11 @@ const styles = StyleSheet.create({
   sliderCard: {
     width: SLIDE_WIDTH,
     height: 50,
-    backgroundColor: COLORS.accent,
+    backgroundColor: C.accent,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.accent,
-    shadowColor: COLORS.accent,
+    borderColor: C.accent,
+    shadowColor: C.accent,
     shadowOpacity: 0.18,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
@@ -1044,7 +1046,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sliderText: {
-    color: COLORS.white,
+    color: C.white,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1059,10 +1061,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.border,
+    backgroundColor: C.border,
   },
   dotActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.primary,
     width: 14,
   },
   transitSection: {
@@ -1072,17 +1074,17 @@ const styles = StyleSheet.create({
   transitSectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.subtext,
+    color: C.subtext,
     marginBottom: 8,
   },
   transitCard: {
-    backgroundColor: COLORS.primarySoftBg,
+    backgroundColor: C.primarySoftBg,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    borderColor: C.primary,
+    shadowColor: C.primary,
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 12,
@@ -1105,7 +1107,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
     fontWeight: '800',
-    color: COLORS.success,
+    color: C.success,
   },
   energyBand: {
     flexDirection: 'row',
@@ -1128,7 +1130,7 @@ const styles = StyleSheet.create({
   transitDailyLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.primary,
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -1136,27 +1138,27 @@ const styles = StyleSheet.create({
   transitDailyText: {
     fontSize: 14,
     lineHeight: 20,
-    color: COLORS.text,
+    color: C.text,
     marginBottom: 10,
   },
   transitDetailBox: {
-    backgroundColor: COLORS.primarySoftBg,
+    backgroundColor: C.primarySoftBg,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: C.primary,
     gap: 6,
     marginBottom: 8,
   },
   transitCautionBox: {
-    backgroundColor: COLORS.cautionBg,
-    borderColor: COLORS.error,
+    backgroundColor: C.cautionBg,
+    borderColor: C.error,
   },
   transitBoxLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary700,
+    color: C.primary700,
     marginBottom: 4,
   },
   transitPointRow: {
@@ -1167,14 +1169,14 @@ const styles = StyleSheet.create({
     marginRight: 6,
     fontSize: 15,
     lineHeight: 22,
-    color: COLORS.primary700,
+    color: C.primary700,
     fontWeight: '700',
   },
   transitPointText: {
     flex: 1,
     fontSize: 13,
     lineHeight: 20,
-    color: COLORS.text,
+    color: C.text,
   },
   detailCta: {
     flexDirection: 'row',
@@ -1188,16 +1190,16 @@ const styles = StyleSheet.create({
   detailCtaText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: C.primary,
   },
   wisdomCard: {
     marginHorizontal: 20,
     marginTop: 10,
-    backgroundColor: COLORS.neutralBg,
+    backgroundColor: C.neutralBg,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: COLORS.warning,
+    borderColor: C.warning,
   },
   wisdomHeader: {
     flexDirection: 'row',
@@ -1210,19 +1212,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: COLORS.primarySoftBg,
+    backgroundColor: C.primarySoftBg,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: C.primary,
   },
   wisdomBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.primary,
   },
   wisdomTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.primary,
   },
   wisdomLoading: {
     alignItems: 'center',
@@ -1231,12 +1233,12 @@ const styles = StyleSheet.create({
   },
   wisdomLoadingText: {
     fontSize: 12,
-    color: COLORS.subtext,
+    color: C.subtext,
   },
   wisdomText: {
     fontSize: 21,
     fontWeight: '800',
-    color: COLORS.text,
+    color: C.text,
     lineHeight: 30,
   },
   swotSection: {
@@ -1247,12 +1249,12 @@ const styles = StyleSheet.create({
   swotSectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.primary,
   },
   swotLoadingCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 14,
@@ -1261,13 +1263,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   swotLoadingText: {
-    color: COLORS.subtext,
+    color: C.subtext,
     fontSize: 12,
   },
   swotCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: C.surface,
     borderWidth: 1.2,
-    borderColor: COLORS.border,
+    borderColor: C.border,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -1289,41 +1291,41 @@ const styles = StyleSheet.create({
   swotCardTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
   },
   swotCardHeadlineDark: {
     marginTop: 10,
     fontSize: 17,
     lineHeight: 24,
     fontWeight: '700',
-    color: COLORS.text,
+    color: C.text,
   },
   swotCardSub: {
     marginTop: 4,
     fontSize: 12,
-    color: COLORS.subtext,
+    color: C.subtext,
     lineHeight: 18,
   },
   swotCardBody: {
     marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: C.border,
     paddingTop: 10,
     gap: 6,
   },
   swotCardHeadline: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.primary,
   },
   swotCardDetail: {
     fontSize: 12,
-    color: COLORS.subtext,
+    color: C.subtext,
     lineHeight: 18,
   },
   swotCardTip: {
     fontSize: 12,
-    color: COLORS.text,
+    color: C.text,
   },
   swotCardBar: {
     marginTop: 10,
@@ -1331,3 +1333,4 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
 });
+}

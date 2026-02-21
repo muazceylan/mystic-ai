@@ -15,6 +15,8 @@ import api from '../services/api';
 import { SymbolInsight } from '../services/dream.service';
 import { useDreamStore } from '../store/useDreamStore';
 import { ErrorStateCard } from './ui';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../constants/colors';
 
 const HOUSE_COLORS: Record<string, string> = {
@@ -40,6 +42,9 @@ interface Props {
 }
 
 export default function DreamDictionary({ userId }: Props) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const s = createStyles(colors);
   const { analytics, analyticsLoading, analyticsError, fetchAnalytics } = useDreamStore();
   const [selectedSymbol, setSelectedSymbol] = useState<SymbolInsight | null>(null);
   const [meaning, setMeaning] = useState<SymbolMeaning | null>(null);
@@ -62,7 +67,7 @@ export default function DreamDictionary({ userId }: Props) {
       setMeaning(res.data);
     } catch {
       setMeaning({
-        universal: 'Anlam yüklenemedi.',
+        universal: t('dreamDictionary.meaningLoadError'),
         psychological: '',
         personal: '',
       });
@@ -76,28 +81,28 @@ export default function DreamDictionary({ userId }: Props) {
     return (
       <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
         <TouchableOpacity
-          style={styles.symbolCard}
+          style={s.symbolCard}
           onPress={() => fetchMeaning(item)}
           activeOpacity={0.8}
-          accessibilityLabel={`${capitalize(item.symbolName)} detaylarını aç`}
+          accessibilityLabel={t('dreamDictionary.openDetails', { name: capitalize(item.symbolName) })}
           accessibilityRole="button"
         >
-          <View style={[styles.symbolRank, { backgroundColor: houseColor + '22', borderColor: houseColor + '55' }]}>
-            <Text style={[styles.symbolRankText, { color: houseColor }]}>#{index + 1}</Text>
+          <View style={[s.symbolRank, { backgroundColor: houseColor + '22', borderColor: houseColor + '55' }]}>
+            <Text style={[s.symbolRankText, { color: houseColor }]}>#{index + 1}</Text>
           </View>
-          <View style={styles.symbolInfo}>
-            <Text style={styles.symbolName}>{capitalize(item.symbolName)}</Text>
-            <Text style={styles.symbolHouse}>{item.houseAssociation}</Text>
+          <View style={s.symbolInfo}>
+            <Text style={s.symbolName}>{capitalize(item.symbolName)}</Text>
+            <Text style={s.symbolHouse}>{item.houseAssociation}</Text>
           </View>
-          <View style={styles.symbolRight}>
-            <View style={styles.symbolCountBadge}>
-              <Text style={styles.symbolCountText}>{item.count}x</Text>
+          <View style={s.symbolRight}>
+            <View style={s.symbolCountBadge}>
+              <Text style={s.symbolCountText}>{item.count}x</Text>
             </View>
             {item.recurring && (
-              <View style={styles.recurringDot} />
+              <View style={s.recurringDot} />
             )}
           </View>
-          <Ionicons name="chevron-forward" size={14} color={COLORS.dictSub} />
+          <Ionicons name="chevron-forward" size={14} color={colors.dictSub} />
         </TouchableOpacity>
       </Animated.View>
     );
@@ -106,65 +111,61 @@ export default function DreamDictionary({ userId }: Props) {
   const symbols = analytics?.symbolInsights ?? [];
 
   return (
-    <View style={styles.container}>
-      {/* Header row */}
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Rüya Sözlüğüm</Text>
-        {analyticsLoading && <ActivityIndicator size="small" color={COLORS.violetLight} />}
+    <View style={s.container}>
+      <View style={s.headerRow}>
+        <Text style={s.sectionTitle}>Rüya Sözlüğüm</Text>
+        {analyticsLoading && <ActivityIndicator size="small" color={colors.violetLight} />}
       </View>
 
-      {/* Stats row */}
       {analytics && (
-        <Animated.View entering={FadeIn.duration(500)} style={styles.statsRow}>
-          <View style={styles.statChip}>
-            <Text style={styles.statValue}>{analytics.totalDreams}</Text>
-            <Text style={styles.statLabel}>Toplam Rüya</Text>
+        <Animated.View entering={FadeIn.duration(500)} style={s.statsRow}>
+          <View style={s.statChip}>
+            <Text style={s.statValue}>{analytics.totalDreams}</Text>
+            <Text style={s.statLabel}>Toplam Rüya</Text>
           </View>
-          <View style={styles.statChip}>
-            <Text style={styles.statValue}>{analytics.currentStreak}</Text>
-            <Text style={styles.statLabel}>Günlük Seri</Text>
+          <View style={s.statChip}>
+            <Text style={s.statValue}>{analytics.currentStreak}</Text>
+            <Text style={s.statLabel}>Günlük Seri</Text>
           </View>
-          <View style={styles.statChip}>
-            <Text style={styles.statValue}>{symbols.length}</Text>
-            <Text style={styles.statLabel}>Sembol</Text>
+          <View style={s.statChip}>
+            <Text style={s.statValue}>{symbols.length}</Text>
+            <Text style={s.statLabel}>Sembol</Text>
           </View>
-          <View style={styles.statChip}>
-            <Text style={styles.statValue}>{analytics.longestStreak}</Text>
-            <Text style={styles.statLabel}>En Uzun</Text>
+          <View style={s.statChip}>
+            <Text style={s.statValue}>{analytics.longestStreak}</Text>
+            <Text style={s.statLabel}>En Uzun</Text>
           </View>
         </Animated.View>
       )}
 
-      {/* Symbol cloud legend */}
       {symbols.length > 0 && (
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={styles.recurringDot} />
-            <Text style={styles.legendText}>Tekrarlayan</Text>
+        <View style={s.legendRow}>
+          <View style={s.legendItem}>
+            <View style={s.recurringDot} />
+            <Text style={s.legendText}>Tekrarlayan</Text>
           </View>
-          <Text style={styles.legendSep}>•</Text>
-          <Text style={styles.legendText}>Ev rengi = astrolojik alan</Text>
+          <Text style={s.legendSep}>•</Text>
+          <Text style={s.legendText}>Ev rengi = astrolojik alan</Text>
         </View>
       )}
 
-      {/* Symbol list */}
       {analyticsLoading && symbols.length === 0 ? (
-        <View style={styles.loadingBlock}>
-          <ActivityIndicator size="large" color={COLORS.violetLight} />
-          <Text style={styles.loadingText}>Semboller analiz ediliyor...</Text>
+        <View style={s.loadingBlock}>
+          <ActivityIndicator size="large" color={colors.violetLight} />
+          <Text style={s.loadingText}>{t('dreamDictionary.symbolsAnalyzing')}</Text>
         </View>
       ) : analyticsError ? (
         <ErrorStateCard
           message={analyticsError}
           onRetry={() => fetchAnalytics(userId)}
           variant="compact"
-          accessibilityLabel="Rüya analizini tekrar yükle"
+          accessibilityLabel={t('dreamDictionary.retryAnalysis')}
         />
       ) : symbols.length === 0 ? (
-        <View style={styles.emptyBlock}>
-          <Text style={styles.emptyIcon}>🔮</Text>
-          <Text style={styles.emptyText}>Henüz sembol yok.</Text>
-          <Text style={styles.emptySubText}>Rüyalar kaydedildikçe sözlüğün büyüyecek.</Text>
+        <View style={s.emptyBlock}>
+          <Text style={s.emptyIcon}>🔮</Text>
+          <Text style={s.emptyText}>{t('dreamDictionary.noSymbolsYet')}</Text>
+          <Text style={s.emptySubText}>{t('dreamDictionary.noSymbolsHint')}</Text>
         </View>
       ) : (
         <FlatList
@@ -183,71 +184,69 @@ export default function DreamDictionary({ userId }: Props) {
         transparent
         onRequestClose={() => setSelectedSymbol(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            {/* Handle */}
-            <View style={styles.modalHandle} />
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View style={s.modalHandle} />
 
             <TouchableOpacity
-              style={styles.modalClose}
+              style={s.modalClose}
               onPress={() => setSelectedSymbol(null)}
-              accessibilityLabel="Modalı kapat"
+              accessibilityLabel={t('dreamDictionary.closeModal')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="close" size={20} color={COLORS.dictSub} />
+              <Ionicons name="close" size={20} color={colors.dictSub} />
             </TouchableOpacity>
 
             {selectedSymbol && (
               <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Symbol header */}
-                <Text style={styles.modalTitle}>{capitalize(selectedSymbol.symbolName)}</Text>
+                <Text style={s.modalTitle}>{capitalize(selectedSymbol.symbolName)}</Text>
 
-                <View style={styles.modalMeta}>
+                <View style={s.modalMeta}>
                   <View style={[
-                    styles.houseTag,
+                    s.houseTag,
                     { backgroundColor: getHouseColor(selectedSymbol.houseAssociation) + '25',
                       borderColor: getHouseColor(selectedSymbol.houseAssociation) + '60' }
                   ]}>
                     <Text style={[
-                      styles.houseTagText,
+                      s.houseTagText,
                       { color: getHouseColor(selectedSymbol.houseAssociation) }
                     ]}>
                       {selectedSymbol.houseAssociation}
                     </Text>
                   </View>
-                  <Text style={styles.modalCount}>
-                    Bu sembolü <Text style={styles.modalCountBold}>{selectedSymbol.count} kez</Text> gördün
+                  <Text style={s.modalCount}>
+                    {t('dreamDictionary.seenCount', { count: selectedSymbol.count })}
                   </Text>
                 </View>
 
                 {meaningLoading ? (
-                  <View style={styles.meaningLoading}>
-                    <ActivityIndicator size="large" color={COLORS.gold} />
-                    <Text style={styles.meaningLoadingText}>Yorumlama yapılıyor...</Text>
+                  <View style={s.meaningLoading}>
+                    <ActivityIndicator size="large" color={colors.gold} />
+                    <Text style={s.meaningLoadingText}>{t('dreamDictionary.interpretLoading')}</Text>
                   </View>
                 ) : meaning ? (
-                  <View style={styles.meaningBlock}>
-                    {meaning.universal === 'Anlam yüklenemedi.' ? (
+                  <View style={s.meaningBlock}>
+                    {meaning.universal === t('dreamDictionary.meaningLoadError') ? (
                       <ErrorStateCard
-                        message="Sembol anlamı yüklenemedi. Bağlantı sorunu olabilir."
+                        message={t('dreamDictionary.symbolLoadError')}
                         onRetry={() => selectedSymbol && fetchMeaning(selectedSymbol)}
                         variant="compact"
-                        accessibilityLabel="Sembol anlamını tekrar yükle"
+                        accessibilityLabel={t('dreamDictionary.retrySymbol')}
                       />
                     ) : (
                       <>
-                    <View style={styles.meaningSection}>
-                      <Text style={styles.meaningSectionTitle}>🌍 Evrensel Anlam</Text>
-                      <Text style={styles.meaningSectionText}>{meaning.universal}</Text>
+                    <View style={s.meaningSection}>
+                      <Text style={s.meaningSectionTitle}>🌍 {t('dreamDictionary.universalMeaning')}</Text>
+                      <Text style={s.meaningSectionText}>{meaning.universal}</Text>
                     </View>
-                    <View style={styles.meaningSection}>
-                      <Text style={styles.meaningSectionTitle}>🧠 Psikolojik Yansıma</Text>
-                      <Text style={styles.meaningSectionText}>{meaning.psychological}</Text>
+                    <View style={s.meaningSection}>
+                      <Text style={s.meaningSectionTitle}>🧠 {t('dreamDictionary.psychologicalReflection')}</Text>
+                      <Text style={s.meaningSectionText}>{meaning.psychological}</Text>
                     </View>
-                    <View style={[styles.meaningSection, styles.personalSection]}>
-                      <Text style={[styles.meaningSectionTitle, { color: COLORS.gold }]}>✦ Senin İçin Mesaj</Text>
-                      <Text style={[styles.meaningSectionText, { color: COLORS.white }]}>{meaning.personal}</Text>
+                    <View style={[s.meaningSection, s.personalSection]}>
+                      <Text style={[s.meaningSectionTitle, { color: colors.gold }]}>✦ {t('dreamDictionary.messageForYou')}</Text>
+                      <Text style={[s.meaningSectionText, { color: colors.white }]}>{meaning.personal}</Text>
                     </View>
                       </>
                     )}
@@ -266,158 +265,160 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const styles = StyleSheet.create({
-  container: { paddingHorizontal: 16 },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: COLORS.gold,
-    letterSpacing: 0.5,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  statChip: {
-    flex: 1,
-    backgroundColor: COLORS.dictSurface,
-    borderRadius: 12,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.dictBorder,
-  },
-  statValue: { fontSize: 16, fontWeight: '800', color: COLORS.dictText },
-  statLabel: { fontSize: 10, color: COLORS.dictSub, marginTop: 2 },
-  legendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  recurringDot: {
-    width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.gold,
-  },
-  legendText: { fontSize: 11, color: COLORS.dictSub },
-  legendSep: { color: COLORS.dictSub, fontSize: 11 },
-  symbolCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: COLORS.dictSurface,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.dictBorder,
-  },
-  symbolRank: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  symbolRankText: { fontSize: 12, fontWeight: '800' },
-  symbolInfo: { flex: 1 },
-  symbolName: { fontSize: 14, fontWeight: '700', color: COLORS.dictText },
-  symbolHouse: { fontSize: 11, color: COLORS.dictSub, marginTop: 2 },
-  symbolRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  symbolCountBadge: {
-    backgroundColor: 'rgba(124,77,255,0.2)',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  symbolCountText: { fontSize: 12, fontWeight: '700', color: COLORS.violetLightLight },
-  loadingBlock: { alignItems: 'center', paddingVertical: 30, gap: 12 },
-  loadingText: { fontSize: 13, color: COLORS.dictSub, fontStyle: 'italic' },
-  emptyBlock: { alignItems: 'center', paddingVertical: 32, gap: 8 },
-  emptyIcon: { fontSize: 36 },
-  emptyText: { fontSize: 15, color: COLORS.dictText, fontWeight: '600' },
-  emptySubText: { fontSize: 12, color: COLORS.dictSub, textAlign: 'center' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: COLORS.dictBg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingTop: 12,
-    maxHeight: '85%',
-    borderTopWidth: 1,
-    borderColor: COLORS.dictBorder,
-  },
-  modalHandle: {
-    width: 40, height: 4, borderRadius: 2,
-    backgroundColor: COLORS.dictBorder,
-    alignSelf: 'center', marginBottom: 12,
-  },
-  modalClose: {
-    position: 'absolute', top: 12, right: 20,
-    padding: 6,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.gold,
-    marginBottom: 10,
-    marginTop: 8,
-  },
-  modalMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-    flexWrap: 'wrap',
-  },
-  houseTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  houseTagText: { fontSize: 12, fontWeight: '700' },
-  modalCount: { fontSize: 13, color: COLORS.dictSub },
-  modalCountBold: { color: COLORS.dictText, fontWeight: '700' },
-  meaningLoading: { alignItems: 'center', paddingVertical: 30, gap: 10 },
-  meaningLoadingText: { fontSize: 13, color: COLORS.dictSub, fontStyle: 'italic' },
-  meaningBlock: { gap: 14, paddingBottom: 24 },
-  meaningSection: {
-    backgroundColor: COLORS.dictSurface,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.dictBorder,
-    gap: 6,
-  },
-  personalSection: {
-    backgroundColor: 'rgba(200,168,75,0.08)',
-    borderColor: 'rgba(200,168,75,0.3)',
-  },
-  meaningSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.gold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  meaningSectionText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: COLORS.dictSub,
-  },
-});
+function createStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: { paddingHorizontal: 16 },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+      marginTop: 4,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: C.gold,
+      letterSpacing: 0.5,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 12,
+    },
+    statChip: {
+      flex: 1,
+      backgroundColor: C.dictSurface,
+      borderRadius: 12,
+      paddingVertical: 8,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: C.dictBorder,
+    },
+    statValue: { fontSize: 16, fontWeight: '800', color: C.dictText },
+    statLabel: { fontSize: 10, color: C.dictSub, marginTop: 2 },
+    legendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 10,
+    },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    recurringDot: {
+      width: 8, height: 8, borderRadius: 4, backgroundColor: C.gold,
+    },
+    legendText: { fontSize: 11, color: C.dictSub },
+    legendSep: { color: C.dictSub, fontSize: 11 },
+    symbolCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: C.dictSurface,
+      borderRadius: 14,
+      padding: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: C.dictBorder,
+    },
+    symbolRank: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+    },
+    symbolRankText: { fontSize: 12, fontWeight: '800' },
+    symbolInfo: { flex: 1 },
+    symbolName: { fontSize: 14, fontWeight: '700', color: C.dictText },
+    symbolHouse: { fontSize: 11, color: C.dictSub, marginTop: 2 },
+    symbolRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    symbolCountBadge: {
+      backgroundColor: C.violetBg,
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    symbolCountText: { fontSize: 12, fontWeight: '700', color: C.violetLight },
+    loadingBlock: { alignItems: 'center', paddingVertical: 30, gap: 12 },
+    loadingText: { fontSize: 13, color: C.dictSub, fontStyle: 'italic' },
+    emptyBlock: { alignItems: 'center', paddingVertical: 32, gap: 8 },
+    emptyIcon: { fontSize: 36 },
+    emptyText: { fontSize: 15, color: C.dictText, fontWeight: '600' },
+    emptySubText: { fontSize: 12, color: C.dictSub, textAlign: 'center' },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'flex-end',
+    },
+    modalSheet: {
+      backgroundColor: C.dictBg,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 20,
+      paddingTop: 12,
+      maxHeight: '85%',
+      borderTopWidth: 1,
+      borderColor: C.dictBorder,
+    },
+    modalHandle: {
+      width: 40, height: 4, borderRadius: 2,
+      backgroundColor: C.dictBorder,
+      alignSelf: 'center', marginBottom: 12,
+    },
+    modalClose: {
+      position: 'absolute', top: 12, right: 20,
+      padding: 6,
+    },
+    modalTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: C.gold,
+      marginBottom: 10,
+      marginTop: 8,
+    },
+    modalMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 16,
+      flexWrap: 'wrap',
+    },
+    houseTag: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 20,
+      borderWidth: 1,
+    },
+    houseTagText: { fontSize: 12, fontWeight: '700' },
+    modalCount: { fontSize: 13, color: C.dictSub },
+    modalCountBold: { color: C.dictText, fontWeight: '700' },
+    meaningLoading: { alignItems: 'center', paddingVertical: 30, gap: 10 },
+    meaningLoadingText: { fontSize: 13, color: C.dictSub, fontStyle: 'italic' },
+    meaningBlock: { gap: 14, paddingBottom: 24 },
+    meaningSection: {
+      backgroundColor: C.dictSurface,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: C.dictBorder,
+      gap: 6,
+    },
+    personalSection: {
+      backgroundColor: C.amberLight,
+      borderColor: C.border,
+    },
+    meaningSectionTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: C.gold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    meaningSectionText: {
+      fontSize: 14,
+      lineHeight: 22,
+      color: C.dictSub,
+    },
+  });
+}

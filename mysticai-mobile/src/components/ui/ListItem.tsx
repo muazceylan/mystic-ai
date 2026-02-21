@@ -8,7 +8,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/colors';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SPACING } from '../../constants/tokens';
 
 interface ListItemProps {
@@ -32,39 +32,33 @@ export function ListItem({
   titleStyle,
   selected,
 }: ListItemProps) {
-  const Wrapper = onPress ? TouchableOpacity : View;
-  const wrapperProps = onPress
-    ? {
-        onPress,
-        activeOpacity: 0.7,
-        accessibilityLabel: title,
-        accessibilityRole: 'button' as const,
-      }
-    : {};
+  const { colors } = useTheme();
+  const s = createStyles(colors);
+  const containerStyle = [s.row, selected && s.rowSelected, style];
 
-  return (
-    <Wrapper
-      style={[
-        styles.row,
-        selected && styles.rowSelected,
-        style,
-      ]}
-      {...wrapperProps}
-    >
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={containerStyle}
+        onPress={onPress}
+        activeOpacity={0.7}
+        accessibilityLabel={title}
+        accessibilityRole="button"
+      >
       {leftIcon && (
-        <View style={styles.leftIcon}>
+        <View style={s.leftIcon}>
           <Ionicons
             name={leftIcon}
             size={20}
-            color={selected ? COLORS.primary : COLORS.subtext}
+            color={selected ? colors.primary : colors.subtext}
           />
         </View>
       )}
-      <View style={styles.content}>
+      <View style={s.content}>
         <Text
           style={[
-            styles.title,
-            selected && styles.titleSelected,
+            s.title,
+            selected && s.titleSelected,
             titleStyle,
           ]}
           numberOfLines={1}
@@ -72,7 +66,7 @@ export function ListItem({
           {title}
         </Text>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={s.subtitle} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
@@ -81,42 +75,79 @@ export function ListItem({
         <Ionicons
           name={rightIcon}
           size={16}
-          color={COLORS.subtext}
+          color={colors.subtext}
         />
       )}
-    </Wrapper>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={containerStyle}>
+      {leftIcon && (
+        <View style={s.leftIcon}>
+          <Ionicons
+            name={leftIcon}
+            size={20}
+            color={selected ? colors.primary : colors.subtext}
+          />
+        </View>
+      )}
+      <View style={s.content}>
+        <Text
+          style={[
+            s.title,
+            selected && s.titleSelected,
+            titleStyle,
+          ]}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={s.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {rightIcon && (
+        <Ionicons
+          name={rightIcon}
+          size={16}
+          color={colors.subtext}
+        />
+      )}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    minHeight: 44,
-  },
-  rowSelected: {
-    backgroundColor: COLORS.primarySoft,
-  },
-  leftIcon: {
-    marginRight: SPACING.md,
-  },
-  content: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  titleSelected: {
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.subtext,
-    marginTop: 2,
-  },
-});
+function createStyles(C: ThemeColors) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.lg,
+      minHeight: 44,
+    },
+    rowSelected: {
+      backgroundColor: C.primarySoft,
+    },
+    leftIcon: { marginRight: SPACING.md },
+    content: { flex: 1 },
+    title: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: C.text,
+    },
+    titleSelected: {
+      color: C.primary,
+      fontWeight: '600',
+    },
+    subtitle: {
+      fontSize: 13,
+      color: C.subtext,
+      marginTop: 2,
+    },
+  });
+}

@@ -20,21 +20,19 @@ import CalendarPicker from '../components/CalendarPicker';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSynastryStore } from '../store/useSynastryStore';
 import { COUNTRIES, CITIES, DISTRICTS } from '../constants/index';
-import { COLORS } from '../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../context/ThemeContext';
 import { SafeScreen } from '../components/ui';
 
-const TURKISH_MONTHS = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
-
-function formatDateDisplay(date: Date): string {
-  return `${date.getDate()} ${TURKISH_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+function formatDateDisplay(date: Date, months: string[]): string {
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function AddPersonScreen() {
+  const { t } = useTranslation();
+  const months = (t('calendar.months') || '').split(',');
   const { user } = useAuthStore();
   const { addPerson } = useSynastryStore();
 
@@ -70,7 +68,7 @@ export default function AddPersonScreen() {
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
-  const countryName = COUNTRIES.find(c => c.code === countryCode)?.name ?? 'Türkiye';
+  const countryName = COUNTRIES.find(c => c.code === countryCode)?.name ?? t('addPerson.defaultCountry');
   const cityList = CITIES[countryCode] ?? CITIES['TR'] ?? [];
   const districtList = DISTRICTS[city] ?? [];
 
@@ -91,7 +89,7 @@ export default function AddPersonScreen() {
   };
 
   const displayTime = birthTimeUnknown
-    ? 'Bilinmiyor'
+    ? t('common.unknown')
     : birthTimeConfirmed
     ? birthTime
     : 'SS:DD';
@@ -137,15 +135,15 @@ export default function AddPersonScreen() {
     if (!user?.id) return;
 
     if (!name.trim()) {
-      Alert.alert('Eksik Bilgi', 'İsim zorunludur.');
+      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.nameRequired'));
       return;
     }
     if (!birthDate) {
-      Alert.alert('Eksik Bilgi', 'Doğum tarihi zorunludur.');
+      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.birthDateRequired'));
       return;
     }
     if (!city) {
-      Alert.alert('Eksik Bilgi', 'Doğum yeri (şehir) zorunludur.');
+      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.birthLocationRequired'));
       return;
     }
 
@@ -169,13 +167,15 @@ export default function AddPersonScreen() {
       });
       router.replace('/(tabs)/compatibility');
     } catch (e: any) {
-      Alert.alert('Hata', e?.response?.data?.message ?? 'Kişi eklenemedi');
+      Alert.alert(t('common.error'), e?.response?.data?.message ?? t('natalChart.addPersonError'));
     } finally {
       setIsSaving(false);
     }
   };
 
   const canSave = !isSaving && !!name.trim() && !!birthDate && !!city;
+  const { colors } = useTheme();
+  const { styles, modalS, pickerS } = makeStyles(colors);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -192,14 +192,14 @@ export default function AddPersonScreen() {
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('addPerson.accessibilityBack')}
           accessibilityRole="button"
         >
-          <Ionicons name="arrow-back" size={22} color={COLORS.primary} />
+          <Ionicons name="arrow-back" size={22} color={colors.primary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Kişi Ekle</Text>
-          <Text style={styles.headerSub}>Doğum haritası hesaplanacak</Text>
+          <Text style={styles.headerTitle}>{t('addPerson.title')}</Text>
+          <Text style={styles.headerSub}>{t('addPerson.subtitle')}</Text>
         </View>
       </View>
 
@@ -211,13 +211,13 @@ export default function AddPersonScreen() {
       >
 
         {/* ── İsim ─────────────────────────────────────────────── */}
-        <Text style={styles.label}>İsim *</Text>
+        <Text style={styles.label}>{t('addPerson.nameLabel')}</Text>
         <View style={styles.inputRow}>
-          <Ionicons name="person-outline" size={18} color={COLORS.subtext} />
+          <Ionicons name="person-outline" size={18} color={colors.subtext} />
           <TextInput
             style={styles.textInput}
-            placeholder="Örn: Ahmet, Hilal..."
-            placeholderTextColor={COLORS.disabledText}
+            placeholder={t('addPerson.namePlaceholder')}
+            placeholderTextColor={colors.disabledText}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -225,40 +225,40 @@ export default function AddPersonScreen() {
         </View>
 
         {/* ── Doğum Tarihi ─────────────────────────────────────── */}
-        <Text style={[styles.label, { marginTop: 20 }]}>Doğum Tarihi *</Text>
+        <Text style={[styles.label, { marginTop: 20 }]}>{t('addPerson.birthDateLabel')}</Text>
         <TouchableOpacity
           style={styles.inputRow}
           onPress={openDateModal}
-          accessibilityLabel="Doğum tarihi seç"
+          accessibilityLabel={t('addPerson.accessibilitySelectDate')}
           accessibilityRole="button"
         >
           <Ionicons
             name="calendar-outline"
             size={18}
-            color={birthDate ? COLORS.primary : COLORS.subtext}
+            color={birthDate ? colors.primary : colors.subtext}
           />
           <Text style={[styles.inputText, !birthDate && styles.placeholder]}>
-            {birthDate ? formatDateDisplay(birthDate) : 'Tarih seçin'}
+            {birthDate ? formatDateDisplay(birthDate, months) : t('common.selectDate')}
           </Text>
           {birthDate && (
-            <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
+            <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
           )}
         </TouchableOpacity>
 
         {/* ── Doğum Saati ──────────────────────────────────────── */}
-        <Text style={[styles.label, { marginTop: 20 }]}>Doğum Saati</Text>
+        <Text style={[styles.label, { marginTop: 20 }]}>{t('addPerson.birthTimeLabel')}</Text>
         <TouchableOpacity
           style={[styles.inputRow, birthTimeUnknown && { opacity: 0.5 }]}
           onPress={() => { if (!birthTimeUnknown) openTimeModal(); }}
-          accessibilityLabel="Doğum saati seç"
+          accessibilityLabel={t('addPerson.accessibilitySelectTime')}
           accessibilityRole="button"
         >
-          <Ionicons name="time-outline" size={18} color={COLORS.subtext} />
+          <Ionicons name="time-outline" size={18} color={colors.subtext} />
           <Text style={[styles.inputText, !birthTimeConfirmed && !birthTimeUnknown && styles.placeholder]}>
             {displayTime}
           </Text>
           {birthTimeConfirmed && !birthTimeUnknown && (
-            <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
+            <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
           )}
         </TouchableOpacity>
         <TouchableOpacity
@@ -268,66 +268,66 @@ export default function AddPersonScreen() {
             setBirthTimeUnknown(next);
             if (next) setBirthTimeConfirmed(false);
           }}
-          accessibilityLabel="Doğum saatini bilmiyorum"
+          accessibilityLabel={t('addPerson.accessibilityBirthTimeUnknown')}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: birthTimeUnknown }}
         >
           <Ionicons
             name={birthTimeUnknown ? 'checkbox' : 'square-outline'}
             size={20}
-            color={birthTimeUnknown ? COLORS.primary : COLORS.subtext}
+            color={birthTimeUnknown ? colors.primary : colors.subtext}
           />
-          <Text style={styles.checkLabel}>Doğum saatini bilmiyorum</Text>
+          <Text style={styles.checkLabel}>{t('addPerson.accessibilityBirthTimeUnknown')}</Text>
         </TouchableOpacity>
 
         {/* ── Doğum Ülkesi ─────────────────────────────────────── */}
-        <Text style={[styles.label, { marginTop: 20 }]}>Doğum Ülkesi *</Text>
+        <Text style={[styles.label, { marginTop: 20 }]}>{t('addPerson.birthCountryLabel')}</Text>
         <TouchableOpacity
           style={styles.inputRow}
           onPress={() => { setCountrySearch(''); setShowCountryModal(true); }}
-          accessibilityLabel="Doğum ülkesi seç"
+          accessibilityLabel={t('addPerson.accessibilitySelectCountry')}
           accessibilityRole="button"
         >
-          <Ionicons name="globe-outline" size={18} color={COLORS.subtext} />
+          <Ionicons name="globe-outline" size={18} color={colors.subtext} />
           <Text style={styles.inputText}>{countryName}</Text>
-          <Ionicons name="chevron-down" size={16} color={COLORS.subtext} />
+          <Ionicons name="chevron-down" size={16} color={colors.subtext} />
         </TouchableOpacity>
 
         {/* ── Doğum Şehri ──────────────────────────────────────── */}
-        <Text style={[styles.label, { marginTop: 16 }]}>Doğum Şehri *</Text>
+        <Text style={[styles.label, { marginTop: 16 }]}>{t('addPerson.birthCityLabel')}</Text>
         <TouchableOpacity
           style={styles.inputRow}
           onPress={() => { setCitySearch(''); setShowCityModal(true); }}
-          accessibilityLabel="Doğum şehri seç"
+          accessibilityLabel={t('addPerson.accessibilitySelectCity')}
           accessibilityRole="button"
         >
-          <Ionicons name="location-outline" size={18} color={city ? COLORS.primary : COLORS.subtext} />
+          <Ionicons name="location-outline" size={18} color={city ? colors.primary : colors.subtext} />
           <Text style={[styles.inputText, !city && styles.placeholder]}>
-            {city || 'Şehir seçin'}
+            {city || t('addPerson.citySelect')}
           </Text>
           {city
-            ? <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
-            : <Ionicons name="chevron-down" size={16} color={COLORS.subtext} />
+            ? <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+            : <Ionicons name="chevron-down" size={16} color={colors.subtext} />
           }
         </TouchableOpacity>
 
         {/* ── Doğum İlçesi ─────────────────────────────────────── */}
         {city && districtList.length > 0 && (
           <>
-            <Text style={[styles.label, { marginTop: 16 }]}>Doğum İlçesi</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>{t('addPerson.birthDistrictLabel')}</Text>
             <TouchableOpacity
               style={styles.inputRow}
               onPress={() => { setDistrictSearch(''); setShowDistrictModal(true); }}
-              accessibilityLabel="Doğum ilçesi seç"
+              accessibilityLabel={t('addPerson.accessibilitySelectDistrict')}
               accessibilityRole="button"
             >
-              <Ionicons name="map-outline" size={18} color={district ? COLORS.primary : COLORS.subtext} />
+              <Ionicons name="map-outline" size={18} color={district ? colors.primary : colors.subtext} />
               <Text style={[styles.inputText, !district && styles.placeholder]}>
-                {district || 'İlçe seçin (isteğe bağlı)'}
+                {district || t('addPerson.districtOptional')}
               </Text>
               {district
-                ? <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
-                : <Ionicons name="chevron-down" size={16} color={COLORS.subtext} />
+                ? <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                : <Ionicons name="chevron-down" size={16} color={colors.subtext} />
               }
             </TouchableOpacity>
           </>
@@ -339,15 +339,15 @@ export default function AddPersonScreen() {
             style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
             onPress={handleSave}
             disabled={!canSave}
-            accessibilityLabel="Kişiyi kaydet"
+            accessibilityLabel={t('addPerson.accessibilitySavePerson')}
             accessibilityRole="button"
           >
             {isSaving
-              ? <ActivityIndicator color={COLORS.white} />
-              : <Ionicons name="planet-outline" size={20} color={COLORS.white} />
+              ? <ActivityIndicator color={colors.white} />
+              : <Ionicons name="planet-outline" size={20} color={colors.white} />
             }
             <Text style={styles.saveBtnText}>
-              {isSaving ? 'Harita hesaplanıyor...' : 'Kaydet'}
+              {isSaving ? t('addPerson.calculatingChart') : t('common.save')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -358,9 +358,9 @@ export default function AddPersonScreen() {
         <View style={modalS.overlay}>
           <View style={modalS.card}>
             <View style={modalS.header}>
-              <Text style={modalS.headerLabel}>Tarih seçin</Text>
+              <Text style={modalS.headerLabel}>{t('addPerson.selectDateModal')}</Text>
               <Text style={modalS.headerValue}>
-                {tempDate ? formatDateDisplay(tempDate) : 'Henüz seçilmedi'}
+                {tempDate ? formatDateDisplay(tempDate, months) : t('editBirthInfo.notSelectedYet')}
               </Text>
             </View>
             <View style={modalS.divider} />
@@ -377,20 +377,20 @@ export default function AddPersonScreen() {
               <TouchableOpacity
                 style={modalS.textBtn}
                 onPress={() => setShowDateModal(false)}
-                accessibilityLabel="İptal"
+                accessibilityLabel={t('common.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={modalS.textBtnLabel}>İptal</Text>
+                <Text style={modalS.textBtnLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[modalS.textBtn, !tempDate && modalS.textBtnDisabled]}
-                accessibilityLabel="Tarihi onayla"
+                accessibilityLabel={t('editBirthInfo.confirmDate')}
                 accessibilityRole="button"
                 onPress={confirmDate}
                 disabled={!tempDate}
               >
                 <Text style={[modalS.textBtnLabel, !tempDate && modalS.textBtnLabelDisabled]}>
-                  Tamam
+                  {t('common.ok')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -403,7 +403,7 @@ export default function AddPersonScreen() {
         <View style={modalS.overlay}>
           <View style={modalS.card}>
             <View style={modalS.header}>
-              <Text style={modalS.headerLabel}>Saat seçin</Text>
+              <Text style={modalS.headerLabel}>{t('addPerson.selectTime')}</Text>
               <Text style={modalS.headerValue}>
                 {isTimeValid() ? `${tempHour}:${tempMinute}` : '--:--'}
               </Text>
@@ -411,7 +411,7 @@ export default function AddPersonScreen() {
             <View style={modalS.divider} />
             <View style={modalS.timeRow}>
               <View style={modalS.timeGroup}>
-                <Text style={modalS.timeGroupLabel}>Saat</Text>
+                <Text style={modalS.timeGroupLabel}>{t('auth.hour')}</Text>
                 <TextInput
                   style={modalS.timeInput}
                   value={tempHour}
@@ -423,13 +423,13 @@ export default function AddPersonScreen() {
                   keyboardType="number-pad"
                   maxLength={2}
                   placeholder="00"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholderTextColor={colors.disabledText}
                   selectTextOnFocus
                 />
               </View>
               <Text style={modalS.timeColon}>:</Text>
               <View style={modalS.timeGroup}>
-                <Text style={modalS.timeGroupLabel}>Dakika</Text>
+                <Text style={modalS.timeGroupLabel}>{t('auth.minute')}</Text>
                 <TextInput
                   ref={minuteRef}
                   style={modalS.timeInput}
@@ -438,31 +438,31 @@ export default function AddPersonScreen() {
                   keyboardType="number-pad"
                   maxLength={2}
                   placeholder="00"
-                  placeholderTextColor={COLORS.disabledText}
+                  placeholderTextColor={colors.disabledText}
                   selectTextOnFocus
                 />
               </View>
             </View>
-            <Text style={modalS.timeHint}>24 saat formatı (00:00 – 23:59)</Text>
+            <Text style={modalS.timeHint}>{t('birthInfo.timeFormat')}</Text>
             <View style={modalS.divider} />
             <View style={modalS.actions}>
               <TouchableOpacity
                 style={modalS.textBtn}
                 onPress={() => setShowTimeModal(false)}
-                accessibilityLabel="İptal"
+                accessibilityLabel={t('common.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={modalS.textBtnLabel}>İptal</Text>
+                <Text style={modalS.textBtnLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[modalS.textBtn, !isTimeValid() && modalS.textBtnDisabled]}
-                accessibilityLabel="Saati onayla"
+                accessibilityLabel={t('editBirthInfo.confirmTime')}
                 accessibilityRole="button"
                 onPress={confirmTime}
                 disabled={!isTimeValid()}
               >
                 <Text style={[modalS.textBtnLabel, !isTimeValid() && modalS.textBtnLabelDisabled]}>
-                  Tamam
+                  {t('common.ok')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -474,22 +474,22 @@ export default function AddPersonScreen() {
       <Modal visible={showCountryModal} transparent animationType="slide">
         <View style={pickerS.container}>
           <View style={pickerS.header}>
-            <Text style={pickerS.headerTitle}>Ülke Seç</Text>
+            <Text style={pickerS.headerTitle}>{t('addPerson.selectCountry')}</Text>
             <TouchableOpacity
               onPress={() => setShowCountryModal(false)}
-              accessibilityLabel="Ülke seçimini kapat"
+              accessibilityLabel={t('addPerson.accessibilityCloseCountry')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="close" size={22} color={COLORS.subtext} />
+              <Ionicons name="close" size={22} color={colors.subtext} />
             </TouchableOpacity>
           </View>
           <View style={pickerS.searchBox}>
-            <Ionicons name="search" size={17} color={COLORS.disabledText} />
+            <Ionicons name="search" size={17} color={colors.disabledText} />
             <TextInput
               style={pickerS.searchInput}
-              placeholder="Ülke ara..."
-              placeholderTextColor={COLORS.disabledText}
+              placeholder={t('addPerson.countrySearch')}
+              placeholderTextColor={colors.disabledText}
               value={countrySearch}
               onChangeText={setCountrySearch}
             />
@@ -506,21 +506,21 @@ export default function AddPersonScreen() {
                   setDistrict('');
                   setShowCountryModal(false);
                 }}
-                accessibilityLabel={`${item.name} ülkesini seç`}
+                accessibilityLabel={t('addPerson.countryItemLabel', { name: item.name })}
                 accessibilityRole="button"
               >
                 <Text style={[
                   pickerS.listItemText,
-                  item.code === countryCode && { color: COLORS.primary, fontWeight: '700' },
+                  item.code === countryCode && { color: colors.primary, fontWeight: '700' },
                 ]}>
                   {item.name}
                 </Text>
                 {item.code === countryCode && (
-                  <Ionicons name="checkmark" size={18} color={COLORS.primary} />
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
                 )}
               </TouchableOpacity>
             )}
-            ListEmptyComponent={<Text style={pickerS.emptyText}>Ülke bulunamadı</Text>}
+            ListEmptyComponent={<Text style={pickerS.emptyText}>{t('addPerson.noCountriesFound')}</Text>}
           />
         </View>
       </Modal>
@@ -529,24 +529,24 @@ export default function AddPersonScreen() {
       <Modal visible={showCityModal} transparent animationType="slide">
         <View style={pickerS.container}>
           <View style={pickerS.header}>
-            <Text style={pickerS.headerTitle}>Şehir Seç</Text>
+            <Text style={pickerS.headerTitle}>{t('addPerson.selectCity')}</Text>
             <TouchableOpacity
               onPress={() => setShowCityModal(false)}
-              accessibilityLabel="Şehir seçimini kapat"
+              accessibilityLabel={t('addPerson.accessibilityCloseCity')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="close" size={22} color={COLORS.subtext} />
+              <Ionicons name="close" size={22} color={colors.subtext} />
             </TouchableOpacity>
           </View>
           <View style={pickerS.searchBox}>
-            <Ionicons name="search" size={17} color={COLORS.disabledText} />
+            <Ionicons name="search" size={17} color={colors.disabledText} />
             <Text style={pickerS.countryPrefix}>{countryName}</Text>
-            <Text style={{ color: COLORS.border }}>|</Text>
+            <Text style={{ color: colors.border }}>|</Text>
             <TextInput
               style={pickerS.searchInput}
-              placeholder="Şehir ara..."
-              placeholderTextColor={COLORS.disabledText}
+              placeholder={t('addPerson.citySearch')}
+              placeholderTextColor={colors.disabledText}
               value={citySearch}
               onChangeText={setCitySearch}
             />
@@ -568,17 +568,17 @@ export default function AddPersonScreen() {
                     setTimeout(() => setShowDistrictModal(true), 300);
                   }
                 }}
-                accessibilityLabel={`${item.name} şehrini seç`}
+                accessibilityLabel={t('addPerson.cityItemLabel', { name: item.name })}
                 accessibilityRole="button"
               >
                 <Text style={[
                   pickerS.listItemText,
-                  item.name === city && { color: COLORS.primary, fontWeight: '700' },
+                  item.name === city && { color: colors.primary, fontWeight: '700' },
                 ]}>
                   {item.name}
                 </Text>
                 {item.name === city && (
-                  <Ionicons name="checkmark" size={18} color={COLORS.primary} />
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
                 )}
               </TouchableOpacity>
             )}
@@ -591,30 +591,30 @@ export default function AddPersonScreen() {
       <Modal visible={showDistrictModal} transparent animationType="slide">
         <View style={pickerS.container}>
           <View style={pickerS.header}>
-            <Text style={pickerS.headerTitle}>{city} — İlçe Seç</Text>
+            <Text style={pickerS.headerTitle}>{city} — {t('addPerson.selectDistrict')}</Text>
             <TouchableOpacity
               onPress={() => setShowDistrictModal(false)}
-              accessibilityLabel="İlçe seçimini kapat"
+              accessibilityLabel={t('addPerson.accessibilityCloseDistrict')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="close" size={22} color={COLORS.subtext} />
+              <Ionicons name="close" size={22} color={colors.subtext} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={pickerS.skipRow}
             onPress={() => { setDistrict(''); setShowDistrictModal(false); }}
-            accessibilityLabel="İlçe seçmeden devam et"
+            accessibilityLabel={t('addPerson.accessibilityDistrictSkip')}
             accessibilityRole="button"
           >
-            <Text style={pickerS.skipText}>İlçe seçmeden devam et</Text>
+            <Text style={pickerS.skipText}>{t('addPerson.districtSkip')}</Text>
           </TouchableOpacity>
           <View style={pickerS.searchBox}>
-            <Ionicons name="search" size={17} color={COLORS.disabledText} />
+            <Ionicons name="search" size={17} color={colors.disabledText} />
             <TextInput
               style={pickerS.searchInput}
-              placeholder="İlçe ara..."
-              placeholderTextColor={COLORS.disabledText}
+              placeholder={t('addPerson.districtSearch')}
+              placeholderTextColor={colors.disabledText}
               value={districtSearch}
               onChangeText={setDistrictSearch}
             />
@@ -626,21 +626,21 @@ export default function AddPersonScreen() {
               <TouchableOpacity
                 style={pickerS.listItem}
                 onPress={() => { setDistrict(item); setShowDistrictModal(false); }}
-                accessibilityLabel={`${item} ilçesini seç`}
+                accessibilityLabel={t('addPerson.districtItemLabel', { name: item })}
                 accessibilityRole="button"
               >
                 <Text style={[
                   pickerS.listItemText,
-                  item === district && { color: COLORS.primary, fontWeight: '700' },
+                  item === district && { color: colors.primary, fontWeight: '700' },
                 ]}>
                   {item}
                 </Text>
                 {item === district && (
-                  <Ionicons name="checkmark" size={18} color={COLORS.primary} />
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
                 )}
               </TouchableOpacity>
             )}
-            ListEmptyComponent={<Text style={pickerS.emptyText}>İlçe bulunamadı</Text>}
+            ListEmptyComponent={<Text style={pickerS.emptyText}>{t('addPerson.noDistrictsFound')}</Text>}
           />
         </View>
       </Modal>
@@ -651,169 +651,157 @@ export default function AddPersonScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingTop: Platform.OS === 'ios' ? 56 : 32,
+      paddingHorizontal: 24,
+      paddingBottom: 16,
+    },
+    backBtn: { padding: 4 },
+    headerTitle: { fontSize: 20, fontWeight: '700', color: C.text },
+    headerSub: { fontSize: 12, color: C.subtext, marginTop: 1 },
+    scroll: { flex: 1 },
+    label: { fontSize: 13, fontWeight: '600', color: C.subtext, marginBottom: 8 },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+    },
+    textInput: { flex: 1, fontSize: 15, color: C.text },
+    inputText: { flex: 1, fontSize: 15, color: C.text },
+    placeholder: { color: C.disabledText },
+    checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+    checkLabel: { fontSize: 14, color: C.text },
+    saveBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      backgroundColor: C.primary,
+      borderRadius: 999,
+      paddingVertical: 16,
+    },
+    saveBtnDisabled: { backgroundColor: C.disabled },
+    saveBtnText: { fontSize: 16, fontWeight: '700', color: C.white },
+  });
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingTop: Platform.OS === 'ios' ? 56 : 32,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text },
-  headerSub: { fontSize: 12, color: COLORS.subtext, marginTop: 1 },
+  const modalS = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    card: {
+      width: '100%',
+      backgroundColor: C.surface,
+      borderRadius: 28,
+      overflow: 'hidden',
+      maxHeight: '85%',
+      elevation: 8,
+      shadowColor: C.shadow,
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 8 },
+    },
+    header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
+    headerLabel: {
+      fontSize: 12, fontWeight: '500', color: C.subtext,
+      textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
+    },
+    headerValue: { fontSize: 22, fontWeight: '700', color: C.text },
+    divider: { height: 1, backgroundColor: C.border },
+    actions: { flexDirection: 'row', justifyContent: 'flex-end', padding: 12, gap: 8 },
+    textBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 },
+    textBtnDisabled: { opacity: 0.4 },
+    textBtnLabel: { fontSize: 14, fontWeight: '600', color: C.primary },
+    textBtnLabelDisabled: { color: C.disabledText },
+    timeRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'flex-end',
+      gap: 12,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 8,
+    },
+    timeGroup: { alignItems: 'center' },
+    timeGroupLabel: { fontSize: 12, color: C.subtext, marginBottom: 8 },
+    timeInput: {
+      width: 80, height: 64,
+      backgroundColor: C.surfaceAlt,
+      borderRadius: 12,
+      fontSize: 32, fontWeight: '700',
+      color: C.primary,
+      textAlign: 'center',
+      borderWidth: 1.5,
+      borderColor: C.border,
+    },
+    timeColon: { fontSize: 32, fontWeight: '700', color: C.text, marginBottom: 8 },
+    timeHint: {
+      fontSize: 12, color: C.subtext,
+      textAlign: 'center', paddingVertical: 12,
+    },
+  });
 
-  scroll: { flex: 1 },
+  const pickerS = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: C.surface,
+      paddingHorizontal: 20,
+      paddingTop: Platform.OS === 'ios' ? 56 : 24,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    headerTitle: { fontSize: 18, fontWeight: '600', color: C.text },
+    skipRow: { paddingVertical: 10, marginBottom: 8, alignItems: 'center' },
+    skipText: { fontSize: 13, color: C.subtext, fontWeight: '500' },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: C.surface,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: C.border,
+      marginBottom: 8,
+      shadowColor: C.shadow,
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    countryPrefix: { fontSize: 14, color: C.text, fontWeight: '600' },
+    searchInput: { flex: 1, fontSize: 15, color: C.text },
+    listItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: C.border,
+    },
+    listItemText: { fontSize: 15, color: C.text },
+    emptyText: { textAlign: 'center', color: C.subtext, marginTop: 20 },
+  });
 
-  label: { fontSize: 13, fontWeight: '600', color: COLORS.subtext, marginBottom: 8 },
-
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  textInput: { flex: 1, fontSize: 15, color: COLORS.text },
-  inputText: { flex: 1, fontSize: 15, color: COLORS.text },
-  placeholder: { color: COLORS.disabledText },
-
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
-  checkLabel: { fontSize: 14, color: COLORS.text },
-
-  saveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: COLORS.primary,
-    borderRadius: 999,
-    paddingVertical: 16,
-  },
-  saveBtnDisabled: { backgroundColor: COLORS.disabled },
-  saveBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.white },
-});
-
-const modalS = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  card: {
-    width: '100%',
-    backgroundColor: COLORS.surface,
-    borderRadius: 28,
-    overflow: 'hidden',
-    maxHeight: '85%',
-    elevation: 8,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
-  headerLabel: {
-    fontSize: 12, fontWeight: '500', color: COLORS.subtext,
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
-  },
-  headerValue: { fontSize: 22, fontWeight: '700', color: COLORS.text },
-  divider: { height: 1, backgroundColor: COLORS.border },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', padding: 12, gap: 8 },
-  textBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 },
-  textBtnDisabled: { opacity: 0.4 },
-  textBtnLabel: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
-  textBtnLabelDisabled: { color: COLORS.disabledText },
-
-  // Time picker
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    gap: 12,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 8,
-  },
-  timeGroup: { alignItems: 'center' },
-  timeGroupLabel: { fontSize: 12, color: COLORS.subtext, marginBottom: 8 },
-  timeInput: {
-    width: 80, height: 64,
-    backgroundColor: COLORS.surfaceAlt,
-    borderRadius: 12,
-    fontSize: 32, fontWeight: '700',
-    color: COLORS.primary,
-    textAlign: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-  },
-  timeColon: { fontSize: 32, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
-  timeHint: {
-    fontSize: 12, color: COLORS.subtext,
-    textAlign: 'center', paddingVertical: 12,
-  },
-});
-
-const pickerS = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 56 : 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text },
-  skipRow: {
-    paddingVertical: 10,
-    marginBottom: 8,
-    alignItems: 'center',
-  },
-  skipText: {
-    fontSize: 13,
-    color: COLORS.subtext,
-    fontWeight: '500',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 8,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  countryPrefix: { fontSize: 14, color: COLORS.text, fontWeight: '600' },
-  searchInput: { flex: 1, fontSize: 15, color: COLORS.text },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  listItemText: { fontSize: 15, color: COLORS.text },
-  emptyText: { textAlign: 'center', color: COLORS.subtext, marginTop: 20 },
-});
+  return { styles, modalS, pickerS };
+}

@@ -21,11 +21,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useDreamStore } from '../../store/useDreamStore';
 import { ErrorStateCard } from '../../components/ui';
 import type { DreamEntryResponse } from '../../services/dream.service';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
 const MONTHS_TR = [
@@ -33,7 +35,187 @@ const MONTHS_TR = [
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
 ];
 
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    root: { flex: 1 },
+    scroll: { paddingTop: 56, paddingBottom: 40 },
+    headerBlock: {
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      marginBottom: 24,
+    },
+    moonGlyph: { fontSize: 44, marginBottom: 8 },
+    headerTitle: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: C.goldDark,
+      letterSpacing: 1.5,
+      textAlign: 'center',
+    },
+    headerSub: {
+      fontSize: 13,
+      color: C.subtext,
+      marginTop: 4,
+      fontStyle: 'italic',
+      textAlign: 'center',
+    },
+    monthPicker: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 20,
+      marginHorizontal: 20,
+      marginBottom: 16,
+      backgroundColor: C.surface,
+      borderRadius: 14,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    monthArrow: { padding: 6 },
+    monthArrowDisabled: { opacity: 0.3 },
+    monthLabel: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: C.text,
+      minWidth: 140,
+      textAlign: 'center',
+    },
+    storyCard: {
+      marginHorizontal: 20,
+      backgroundColor: C.surface,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: C.border,
+      shadowColor: C.primary,
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: 8 },
+      shadowRadius: 16,
+      elevation: 4,
+      minHeight: 200,
+    },
+    loadingBlock: {
+      alignItems: 'center',
+      paddingVertical: 30,
+      gap: 12,
+    },
+    loadingText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: C.text,
+    },
+    loadingSubText: {
+      fontSize: 12,
+      color: C.subtext,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      paddingHorizontal: 20,
+    },
+    symbolsSection: { marginBottom: 12 },
+    sectionLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: C.goldDark,
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      marginBottom: 8,
+    },
+    symbolsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    symChip: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 20,
+      backgroundColor: 'rgba(200,168,75,0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(200,168,75,0.3)',
+    },
+    symChipText: { fontSize: 12, color: C.goldDark, fontWeight: '600' },
+    countBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginBottom: 12,
+    },
+    countText: { fontSize: 12, color: C.subtext, fontStyle: 'italic' },
+    storyText: {
+      fontSize: 15,
+      lineHeight: 26,
+      color: C.text,
+      marginBottom: 20,
+    },
+    exportRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 4,
+      alignItems: 'center',
+    },
+    refreshBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: C.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(157,78,221,0.07)',
+    },
+    exportBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: C.primary,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+    },
+    exportBtnText: { color: C.white, fontSize: 14, fontWeight: '700' },
+    emptyBlock: { alignItems: 'center', paddingVertical: 24, gap: 10 },
+    emptyIcon: { fontSize: 36 },
+    emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+    emptySub: {
+      fontSize: 12,
+      color: C.subtext,
+      textAlign: 'center',
+      paddingHorizontal: 16,
+      lineHeight: 18,
+    },
+    generateBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: C.gold,
+      borderRadius: 12,
+      paddingVertical: 11,
+      paddingHorizontal: 22,
+      marginTop: 6,
+    },
+    generateBtnText: { color: C.text, fontSize: 14, fontWeight: '800' },
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      marginHorizontal: 20,
+      marginTop: 14,
+      backgroundColor: 'rgba(0,0,0,0.04)',
+      borderRadius: 12,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    infoText: { flex: 1, fontSize: 12, color: C.subtext, lineHeight: 18 },
+  });
+}
+
 export default function DreamBookScreen() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const user = useAuthStore(s => s.user);
   const { dreams, monthlyStory, storyLoading, storyError, generateMonthlyStory, fetchMonthlyStory, pollStoryUntilComplete } =
     useDreamStore();
@@ -73,7 +255,7 @@ export default function DreamBookScreen() {
         pollStoryUntilComplete(userId, year, month);
       }
     } catch {
-      Alert.alert('Hata', 'Hikâye oluşturulamadı, tekrar dene.');
+      Alert.alert(t('common.error'), t('dreams.storyError'));
     } finally {
       setGenerating(false);
     }
@@ -88,7 +270,7 @@ export default function DreamBookScreen() {
       // If the new story is still PENDING (AI processing), start polling
       pollStoryUntilComplete(userId, year, month);
     } catch {
-      Alert.alert('Hata', 'Hikâye yenilenemedi, tekrar dene.');
+      Alert.alert(t('common.error'), t('dreams.storyRefreshError'));
     } finally {
       setRefreshing(false);
     }
@@ -108,10 +290,10 @@ export default function DreamBookScreen() {
           dialogTitle: `Rüya Kitabım – ${yearMonthLabel}`,
         });
       } else {
-        Alert.alert('PDF Hazır', 'PDF dosyası oluşturuldu.');
+        Alert.alert(t('dreams.pdfReady'), t('dreams.pdfReadyMessage'));
       }
     } catch {
-      Alert.alert('Hata', 'PDF oluşturulamadı.');
+      Alert.alert(t('common.error'), t('dreams.pdfError'));
     } finally {
       setPdfExporting(false);
     }
@@ -145,13 +327,13 @@ export default function DreamBookScreen() {
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
-      <LinearGradient colors={[COLORS.background, COLORS.surfaceMuted]} style={styles.root}>
+      <LinearGradient colors={[colors.bg, colors.surfaceMuted]} style={styles.root}>
         <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <Animated.View entering={FadeIn.duration(600)} style={styles.headerBlock}>
           <Animated.Text style={[styles.moonGlyph, glowStyle]}>📖</Animated.Text>
-          <Text style={styles.headerTitle}>Rüya Kitabım</Text>
-          <Text style={styles.headerSub}>Bilinçaltı yolculuğunun aylık destanı</Text>
+          <Text style={styles.headerTitle}>{t('tabs.dreamBook')}</Text>
+          <Text style={styles.headerSub}>{t('dreams.dreamBookSubtitle')}</Text>
         </Animated.View>
 
         {/* Month Picker */}
@@ -162,7 +344,7 @@ export default function DreamBookScreen() {
             accessibilityLabel="Önceki ay"
             accessibilityRole="button"
           >
-            <Ionicons name="chevron-back" size={20} color={COLORS.goldDark} />
+            <Ionicons name="chevron-back" size={20} color={colors.goldDark} />
           </TouchableOpacity>
           <Text style={styles.monthLabel}>{yearMonthLabel}</Text>
           <TouchableOpacity
@@ -174,7 +356,7 @@ export default function DreamBookScreen() {
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={isCurrentOrPast ? COLORS.goldDark : COLORS.subtext}
+              color={isCurrentOrPast ? colors.goldDark : colors.subtext}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -189,7 +371,7 @@ export default function DreamBookScreen() {
             />
           ) : storyLoading || generating ? (
             <View style={styles.loadingBlock}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.loadingText}>
                 {generating ? 'Hikâye yazılıyor...' : 'Yükleniyor...'}
               </Text>
@@ -199,7 +381,7 @@ export default function DreamBookScreen() {
             </View>
           ) : isPending ? (
             <View style={styles.loadingBlock}>
-              <ActivityIndicator size="large" color={COLORS.goldDark} />
+              <ActivityIndicator size="large" color={colors.goldDark} />
               <Text style={styles.loadingText}>Yapay zeka yazıyor...</Text>
               <Text style={styles.loadingSubText}>
                 Birkaç saniye daha, bilinçaltı imgeleriniz sıraya diziliyor...
@@ -223,7 +405,7 @@ export default function DreamBookScreen() {
 
               {/* Dream count badge */}
               <View style={styles.countBadge}>
-                <Ionicons name="moon-outline" size={13} color={COLORS.goldDark} />
+                <Ionicons name="moon-outline" size={13} color={colors.goldDark} />
                 <Text style={styles.countText}>{monthlyStory.dreamCount} rüya • {yearMonthLabel}</Text>
               </View>
 
@@ -240,8 +422,8 @@ export default function DreamBookScreen() {
                   accessibilityRole="button"
                 >
                   {refreshing
-                    ? <ActivityIndicator size="small" color={COLORS.primary} />
-                    : <Ionicons name="refresh-outline" size={18} color={COLORS.primary} />}
+                    ? <ActivityIndicator size="small" color={colors.primary} />
+                    : <Ionicons name="refresh-outline" size={18} color={colors.primary} />}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.exportBtn, { flex: 1 }]}
@@ -251,8 +433,8 @@ export default function DreamBookScreen() {
                   accessibilityRole="button"
                 >
                   {pdfExporting
-                    ? <ActivityIndicator size="small" color={COLORS.white} />
-                    : <Ionicons name="download-outline" size={16} color={COLORS.white} />}
+                    ? <ActivityIndicator size="small" color={colors.white} />
+                    : <Ionicons name="download-outline" size={16} color={colors.white} />}
                   <Text style={styles.exportBtnText}>
                     {pdfExporting ? 'PDF Hazırlanıyor...' : 'PDF Olarak İndir'}
                   </Text>
@@ -273,7 +455,7 @@ export default function DreamBookScreen() {
                 accessibilityLabel="Hikâyeyi oluştur"
                 accessibilityRole="button"
               >
-                <Ionicons name="sparkles" size={15} color={COLORS.white} />
+                <Ionicons name="sparkles" size={15} color={colors.white} />
                 <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
               </TouchableOpacity>
             </View>
@@ -293,8 +475,8 @@ export default function DreamBookScreen() {
                 accessibilityRole="button"
               >
                 {generating
-                  ? <ActivityIndicator size="small" color={COLORS.white} />
-                  : <Ionicons name="sparkles" size={15} color={COLORS.white} />}
+                  ? <ActivityIndicator size="small" color={colors.white} />
+                  : <Ionicons name="sparkles" size={15} color={colors.white} />}
                 <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
               </TouchableOpacity>
             </View>
@@ -303,7 +485,7 @@ export default function DreamBookScreen() {
 
         {/* Info card */}
         <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.infoCard}>
-          <Ionicons name="information-circle-outline" size={15} color={COLORS.subtext} />
+          <Ionicons name="information-circle-outline" size={15} color={colors.subtext} />
           <Text style={styles.infoText}>
             Her ay sonunda yapay zeka, rüyalarını Jungçu psikoloji ve astroloji perspektifiyle
             şiirsel bir hikâyeye dönüştürür. PDF'i indirebilir veya paylaşabilirsin.
@@ -456,177 +638,3 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
 </html>`;
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  scroll: { paddingTop: 56, paddingBottom: 40 },
-  headerBlock: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  moonGlyph: { fontSize: 44, marginBottom: 8 },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: COLORS.goldDark,
-    letterSpacing: 1.5,
-    textAlign: 'center',
-  },
-  headerSub: {
-    fontSize: 13,
-    color: COLORS.subtext,
-    marginTop: 4,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  monthPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  monthArrow: { padding: 6 },
-  monthArrowDisabled: { opacity: 0.3 },
-  monthLabel: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.text,
-    minWidth: 140,
-    textAlign: 'center',
-  },
-  storyCard: {
-    marginHorizontal: 20,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 4,
-    minHeight: 200,
-  },
-  loadingBlock: {
-    alignItems: 'center',
-    paddingVertical: 30,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  loadingSubText: {
-    fontSize: 12,
-    color: COLORS.subtext,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  symbolsSection: { marginBottom: 12 },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.goldDark,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  symbolsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  symChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: 'rgba(200,168,75,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,168,75,0.3)',
-  },
-  symChipText: { fontSize: 12, color: COLORS.goldDark, fontWeight: '600' },
-  countBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 12,
-  },
-  countText: { fontSize: 12, color: COLORS.subtext, fontStyle: 'italic' },
-  storyText: {
-    fontSize: 15,
-    lineHeight: 26,
-    color: COLORS.text,
-    marginBottom: 20,
-  },
-  exportRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-    alignItems: 'center',
-  },
-  refreshBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(157,78,221,0.07)',
-  },
-  exportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  exportBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
-  emptyBlock: { alignItems: 'center', paddingVertical: 24, gap: 10 },
-  emptyIcon: { fontSize: 36 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-  emptySub: {
-    fontSize: 12,
-    color: COLORS.subtext,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-    lineHeight: 18,
-  },
-  generateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.gold,
-    borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 22,
-    marginTop: 6,
-  },
-  generateBtnText: { color: COLORS.black, fontSize: 14, fontWeight: '800' },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginHorizontal: 20,
-    marginTop: 14,
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  infoText: { flex: 1, fontSize: 12, color: COLORS.subtext, lineHeight: 18 },
-});

@@ -15,7 +15,8 @@ import { router } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSynastryStore } from '../../store/useSynastryStore';
 import { RelationshipType, SavedPersonResponse } from '../../services/synastry.service';
-import { COLORS } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import i18n from '../../i18n';
 import { ErrorStateCard, SafeScreen } from '../../components/ui';
 
@@ -30,16 +31,18 @@ interface RelationshipTypeOption {
   bgColor: string;
 }
 
-const RELATIONSHIP_TYPES: RelationshipTypeOption[] = [
-  { key: 'LOVE', emoji: '💍', labelTR: 'Aşk', labelEN: 'Love', color: COLORS.pink, bgColor: COLORS.pinkBg },
-  { key: 'BUSINESS', emoji: '🤝', labelTR: 'İş', labelEN: 'Business', color: COLORS.blue, bgColor: COLORS.blueBg },
-  { key: 'FRIENDSHIP', emoji: '🌟', labelTR: 'Arkadaş', labelEN: 'Friend', color: COLORS.orange, bgColor: COLORS.neutralBg },
-  { key: 'RIVAL', emoji: '🥊', labelTR: 'Rakip', labelEN: 'Rival', color: COLORS.redDark, bgColor: COLORS.redBg },
-];
+function getRelationshipTypes(C: ReturnType<typeof useTheme>['colors']): RelationshipTypeOption[] {
+  return [
+    { key: 'LOVE', emoji: '💍', labelTR: 'Aşk', labelEN: 'Love', color: C.pink, bgColor: C.pinkBg },
+    { key: 'BUSINESS', emoji: '🤝', labelTR: 'İş', labelEN: 'Business', color: C.blue, bgColor: C.blueBg },
+    { key: 'FRIENDSHIP', emoji: '🌟', labelTR: 'Arkadaş', labelEN: 'Friend', color: C.orange, bgColor: C.neutralBg },
+    { key: 'RIVAL', emoji: '🥊', labelTR: 'Rakip', labelEN: 'Rival', color: C.redDark, bgColor: C.redBg },
+  ];
+}
 
 // ─── Circular Progress ────────────────────────────────────────────────────────
 
-const CircularScore: React.FC<{ score: number; color: string }> = ({ score, color }) => {
+const CircularScore: React.FC<{ score: number; color: string; borderColor: string; scoreNumberStyle: any; scoreLabelStyle: any }> = ({ score, color, borderColor, scoreNumberStyle, scoreLabelStyle }) => {
   const animValue = useRef(new Animated.Value(0)).current;
   const size = 160;
   const strokeWidth = 12;
@@ -62,7 +65,7 @@ const CircularScore: React.FC<{ score: number; color: string }> = ({ score, colo
           height: size,
           borderRadius: size / 2,
           borderWidth: strokeWidth,
-          borderColor: COLORS.border,
+          borderColor: borderColor,
         }}
       />
       {/* Score arc */}
@@ -83,8 +86,8 @@ const CircularScore: React.FC<{ score: number; color: string }> = ({ score, colo
       />
       {/* Center text */}
       <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={[styles.scoreNumber, { color }]}>{score}%</Text>
-        <Text style={styles.scoreLabel}>Uyum</Text>
+        <Text style={[scoreNumberStyle, { color }]}>{score}%</Text>
+        <Text style={scoreLabelStyle}>Uyum</Text>
       </View>
     </View>
   );
@@ -92,7 +95,205 @@ const CircularScore: React.FC<{ score: number; color: string }> = ({ score, colo
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
+function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    header: {
+      paddingTop: Platform.OS === 'ios' ? 8 : 20,
+      paddingBottom: 16,
+      paddingHorizontal: 20,
+      backgroundColor: C.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: C.border,
+    },
+    headerTitle: { fontSize: 22, fontWeight: '700', color: C.primary },
+    headerSubtitle: { fontSize: 12, color: C.subtext, marginTop: 2 },
+    scroll: { flex: 1 },
+    section: { paddingHorizontal: 20, marginTop: 24 },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    sectionTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+    addButton: { padding: 4 },
+    emptyPeopleCard: {
+      alignItems: 'center',
+      padding: 32,
+      backgroundColor: C.surface,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: C.border,
+      borderStyle: 'dashed',
+      gap: 8,
+    },
+    emptyPeopleText: { fontSize: 15, color: C.subtext, fontWeight: '600' },
+    emptyPeopleHint: { fontSize: 12, color: C.subtext, textAlign: 'center' },
+    peopleScroll: { marginHorizontal: -20, paddingHorizontal: 20 },
+    addPersonCard: {
+      width: 76,
+      height: 96,
+      backgroundColor: C.surface,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: C.primary,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+      gap: 6,
+    },
+    addPersonIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: C.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addPersonLabel: { fontSize: 11, color: C.primary, fontWeight: '600' },
+    personCard: {
+      width: 76,
+      height: 96,
+      backgroundColor: C.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: C.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+      padding: 8,
+      gap: 4,
+    },
+    personCardSelected: { borderColor: C.primary, borderWidth: 2 },
+    personAvatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: C.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    personAvatarSelected: { backgroundColor: C.primary },
+    personAvatarText: { fontSize: 17, fontWeight: '700', color: C.primary },
+    personAvatarTextSelected: { color: C.white },
+    personName: { fontSize: 11, color: C.text, fontWeight: '600', textAlign: 'center' },
+    personSign: { fontSize: 10, color: C.subtext },
+    typeGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginTop: 4,
+    },
+    typeCard: {
+      width: '46.5%',
+      backgroundColor: C.surface,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: C.border,
+      paddingVertical: 20,
+      alignItems: 'center',
+      gap: 8,
+    },
+    typeEmoji: { fontSize: 28 },
+    typeLabel: { fontSize: 14, fontWeight: '700', color: C.text },
+    analyzeSection: { paddingHorizontal: 20, marginTop: 28 },
+    analyzeButton: {
+      backgroundColor: C.primary,
+      borderRadius: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 16,
+      gap: 10,
+    },
+    analyzeButtonDisabled: { opacity: 0.6 },
+    analyzeButtonText: { fontSize: 16, fontWeight: '700', color: C.white },
+    scoreCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 20,
+      backgroundColor: C.surface,
+      borderRadius: 20,
+      padding: 20,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    scoreNumber: { fontSize: 34, fontWeight: '800', textAlign: 'center' },
+    scoreLabel: { fontSize: 12, color: C.subtext, textAlign: 'center', marginTop: -2 },
+    scoreInfo: { flex: 1, gap: 6 },
+    scorePersonName: { fontSize: 19, fontWeight: '700', color: C.text },
+    scoreTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    scoreTypeEmoji: { fontSize: 16 },
+    scoreTypeLabel: { fontSize: 13, color: C.primary, fontWeight: '600' },
+    harmonyInsight: { fontSize: 13, color: C.subtext, lineHeight: 19, marginTop: 2 },
+    breakdownSection: { marginBottom: 16 },
+    breakdownTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 10 },
+    breakdownCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 8,
+    },
+    breakdownText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 20 },
+    strengthCard: {
+      backgroundColor: C.successBg,
+      borderLeftWidth: 3,
+      borderLeftColor: C.strengthGreen,
+    },
+    challengeCard: {
+      backgroundColor: C.warningBg,
+      borderLeftWidth: 3,
+      borderLeftColor: C.warningDark,
+    },
+    warningCard: {
+      backgroundColor: C.neutralBg,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 16,
+      borderLeftWidth: 3,
+      borderLeftColor: C.orange,
+    },
+    cosmicAdviceCard: {
+      backgroundColor: C.primarySoft,
+      borderRadius: 20,
+      padding: 20,
+      marginBottom: 20,
+      gap: 10,
+    },
+    cosmicAdviceTitle: { fontSize: 15, fontWeight: '700', color: C.primary },
+    cosmicAdviceText: { fontSize: 14, color: C.text, lineHeight: 22 },
+    newAnalysisButton: {
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 12,
+      backgroundColor: C.surface,
+    },
+    newAnalysisText: { fontSize: 14, color: C.subtext, fontWeight: '600' },
+    errorCard: {
+      margin: 20,
+      padding: 24,
+      backgroundColor: C.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: C.border,
+      alignItems: 'center',
+      gap: 12,
+    },
+    errorText: { fontSize: 14, color: C.error, textAlign: 'center' },
+  });
+}
+
 export default function CompatibilityScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const RELATIONSHIP_TYPES = getRelationshipTypes(colors);
   const { user } = useAuthStore();
   const {
     savedPeople,
@@ -106,6 +307,7 @@ export default function CompatibilityScreen() {
     clearSynastry,
   } = useSynastryStore();
 
+  const { t } = useTranslation();
   const locale = i18n.language;
 
   const [selectedPerson, setSelectedPerson] = useState<SavedPersonResponse | null>(null);
@@ -130,14 +332,14 @@ export default function CompatibilityScreen() {
         setIsPolling(false);
       }
     } catch (e) {
-      Alert.alert('Hata', 'Analiz başlatılamadı. Lütfen önce doğum haritanızı hesaplayın.');
+      Alert.alert(t('common.error'), t('natalChart.analysisStartError'));
     }
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 70) return COLORS.strengthGreen;
-    if (score >= 40) return COLORS.orange;
-    return COLORS.redDark;
+    if (score >= 70) return colors.strengthGreen;
+    if (score >= 40) return colors.orange;
+    return colors.redDark;
   };
 
   const isLoading = isAnalyzing || isPolling;
@@ -147,8 +349,8 @@ export default function CompatibilityScreen() {
     <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Uyum Analizi</Text>
-        <Text style={styles.headerSubtitle}>Sinastri & İlişki Haritası</Text>
+        <Text style={styles.headerTitle}>{t('compatibility.title')}</Text>
+        <Text style={styles.headerSubtitle}>{t('compatibility.subtitle')}</Text>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -156,7 +358,7 @@ export default function CompatibilityScreen() {
         {/* ── SECTION 1: Saved People ─────────────────────────────── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Önemli Kişiler</Text>
+            <Text style={styles.sectionTitle}>{t('compatibility.importantPeople')}</Text>
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/add-person')}
@@ -164,12 +366,12 @@ export default function CompatibilityScreen() {
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Ionicons name="add-circle" size={26} color={COLORS.primary} />
+              <Ionicons name="add-circle" size={26} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
           {isLoadingPeople ? (
-            <ActivityIndicator color={COLORS.primary} style={{ marginTop: 16 }} />
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
           ) : error ? (
             <ErrorStateCard
               message={error}
@@ -184,10 +386,10 @@ export default function CompatibilityScreen() {
               accessibilityLabel="Kişi ekle"
               accessibilityRole="button"
             >
-              <Ionicons name="person-add-outline" size={32} color={COLORS.subtext} />
-              <Text style={styles.emptyPeopleText}>Kişi ekle</Text>
+              <Ionicons name="person-add-outline" size={32} color={colors.subtext} />
+              <Text style={styles.emptyPeopleText}>{t('compatibility.addPerson')}</Text>
               <Text style={styles.emptyPeopleHint}>
-                Sevdiklerinizi ekleyerek uyum analizi yapın
+                {t('compatibility.addPersonHint')}
               </Text>
             </TouchableOpacity>
           ) : (
@@ -200,9 +402,9 @@ export default function CompatibilityScreen() {
                 accessibilityRole="button"
               >
                 <View style={styles.addPersonIcon}>
-                  <Ionicons name="add" size={22} color={COLORS.primary} />
+                  <Ionicons name="add" size={22} color={colors.primary} />
                 </View>
-                <Text style={styles.addPersonLabel}>Ekle</Text>
+                <Text style={styles.addPersonLabel}>{t('compatibility.add')}</Text>
               </TouchableOpacity>
 
               {savedPeople.map((person) => (
@@ -221,17 +423,17 @@ export default function CompatibilityScreen() {
                   onLongPress={() => {
                     Alert.alert(
                       person.name,
-                      'Bu kişiyi silmek istiyor musunuz?',
+                      t('compatibility.deletePersonConfirm'),
                       [
-                        { text: 'İptal', style: 'cancel' },
+                        { text: t('common.cancel'), style: 'cancel' },
                         {
-                          text: 'Sil',
+                          text: t('common.delete'),
                           style: 'destructive',
                           onPress: async () => {
                             try {
                               await useSynastryStore.getState().removePerson(person.id, user!.id!);
                             } catch {
-                              Alert.alert('Hata', 'Kişi silinemedi');
+                              Alert.alert(t('common.error'), t('natalChart.deletePersonError'));
                             }
                           },
                         },
@@ -303,9 +505,9 @@ export default function CompatibilityScreen() {
               accessibilityRole="button"
             >
               {isLoading ? (
-                <ActivityIndicator color={COLORS.white} size="small" />
+                <ActivityIndicator color={colors.white} size="small" />
               ) : (
-                <Ionicons name="sparkles" size={20} color={COLORS.white} />
+                <Ionicons name="sparkles" size={20} color={colors.white} />
               )}
               <Text style={styles.analyzeButtonText}>
                 {isLoading ? 'Analiz ediliyor...' : `${selectedPerson.name} ile Karşılaştır`}
@@ -323,6 +525,9 @@ export default function CompatibilityScreen() {
               <CircularScore
                 score={currentSynastry.harmonyScore ?? 0}
                 color={getScoreColor(currentSynastry.harmonyScore ?? 0)}
+                borderColor={colors.border}
+                scoreNumberStyle={styles.scoreNumber}
+                scoreLabelStyle={styles.scoreLabel}
               />
               <View style={styles.scoreInfo}>
                 <Text style={styles.scorePersonName}>{currentSynastry.personName}</Text>
@@ -346,7 +551,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.breakdownTitle}>💚 Güçlü Noktalar</Text>
                 {currentSynastry.strengths.map((s, i) => (
                   <View key={i} style={[styles.breakdownCard, styles.strengthCard]}>
-                    <Ionicons name="checkmark-circle" size={18} color={COLORS.strengthGreen} style={{ marginRight: 10, marginTop: 1 }} />
+                    <Ionicons name="checkmark-circle" size={18} color={colors.strengthGreen} style={{ marginRight: 10, marginTop: 1 }} />
                     <Text style={styles.breakdownText}>{s}</Text>
                   </View>
                 ))}
@@ -359,7 +564,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.breakdownTitle}>🔥 Zorluklar</Text>
                 {currentSynastry.challenges.map((c, i) => (
                   <View key={i} style={[styles.breakdownCard, styles.challengeCard]}>
-                    <Ionicons name="alert-circle" size={18} color={COLORS.warningDark} style={{ marginRight: 10, marginTop: 1 }} />
+                    <Ionicons name="alert-circle" size={18} color={colors.warningDark} style={{ marginRight: 10, marginTop: 1 }} />
                     <Text style={styles.breakdownText}>{c}</Text>
                   </View>
                 ))}
@@ -369,8 +574,8 @@ export default function CompatibilityScreen() {
             {/* Key Warning */}
             {currentSynastry.keyWarning && (
               <View style={[styles.breakdownCard, styles.warningCard]}>
-                <Ionicons name="warning" size={18} color={COLORS.orange} style={{ marginRight: 10, marginTop: 1 }} />
-                <Text style={[styles.breakdownText, { color: COLORS.warningDark }]}>
+                <Ionicons name="warning" size={18} color={colors.orange} style={{ marginRight: 10, marginTop: 1 }} />
+                <Text style={[styles.breakdownText, { color: colors.warningDark }]}>
                   {currentSynastry.keyWarning}
                 </Text>
               </View>
@@ -416,213 +621,3 @@ export default function CompatibilityScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 8 : 20,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.primary },
-  headerSubtitle: { fontSize: 12, color: COLORS.subtext, marginTop: 2 },
-
-  scroll: { flex: 1 },
-
-  section: { paddingHorizontal: 20, marginTop: 24 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-
-  addButton: { padding: 4 },
-
-  emptyPeopleCard: {
-    alignItems: 'center',
-    padding: 32,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderStyle: 'dashed',
-    gap: 8,
-  },
-  emptyPeopleText: { fontSize: 15, color: COLORS.subtext, fontWeight: '600' },
-  emptyPeopleHint: { fontSize: 12, color: COLORS.subtext, textAlign: 'center' },
-
-  peopleScroll: { marginHorizontal: -20, paddingHorizontal: 20 },
-
-  addPersonCard: {
-    width: 76,
-    height: 96,
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-    gap: 6,
-  },
-  addPersonIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addPersonLabel: { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
-
-  personCard: {
-    width: 76,
-    height: 96,
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-    padding: 8,
-    gap: 4,
-  },
-  personCardSelected: { borderColor: COLORS.primary, borderWidth: 2 },
-
-  personAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  personAvatarSelected: { backgroundColor: COLORS.primary },
-  personAvatarText: { fontSize: 17, fontWeight: '700', color: COLORS.primary },
-  personAvatarTextSelected: { color: COLORS.white },
-  personName: { fontSize: 11, color: COLORS.text, fontWeight: '600', textAlign: 'center' },
-  personSign: { fontSize: 10, color: COLORS.subtext },
-
-  typeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 4,
-  },
-  typeCard: {
-    width: '46.5%',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    paddingVertical: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  typeEmoji: { fontSize: 28 },
-  typeLabel: { fontSize: 14, fontWeight: '700', color: COLORS.text },
-
-  analyzeSection: { paddingHorizontal: 20, marginTop: 28 },
-  analyzeButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 10,
-  },
-  analyzeButtonDisabled: { opacity: 0.6 },
-  analyzeButtonText: { fontSize: 16, fontWeight: '700', color: COLORS.white },
-
-  scoreCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 20,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  scoreNumber: { fontSize: 34, fontWeight: '800', textAlign: 'center' },
-  scoreLabel: { fontSize: 12, color: COLORS.subtext, textAlign: 'center', marginTop: -2 },
-  scoreInfo: { flex: 1, gap: 6 },
-  scorePersonName: { fontSize: 19, fontWeight: '700', color: COLORS.text },
-  scoreTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  scoreTypeEmoji: { fontSize: 16 },
-  scoreTypeLabel: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
-  harmonyInsight: { fontSize: 13, color: COLORS.subtext, lineHeight: 19, marginTop: 2 },
-
-  breakdownSection: { marginBottom: 16 },
-  breakdownTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 10 },
-  breakdownCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  breakdownText: { flex: 1, fontSize: 13, color: COLORS.text, lineHeight: 20 },
-  strengthCard: {
-    backgroundColor: COLORS.successBg,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.strengthGreen,
-  },
-  challengeCard: {
-    backgroundColor: COLORS.warningBg,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.warningDark,
-  },
-  warningCard: {
-    backgroundColor: COLORS.neutralBg,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.orange,
-  },
-
-  cosmicAdviceCard: {
-    backgroundColor: COLORS.primarySoft,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    gap: 10,
-  },
-  cosmicAdviceTitle: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
-  cosmicAdviceText: { fontSize: 14, color: COLORS.text, lineHeight: 22 },
-
-  newAnalysisButton: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 12,
-    backgroundColor: COLORS.surface,
-  },
-  newAnalysisText: { fontSize: 14, color: COLORS.subtext, fontWeight: '600' },
-
-  errorCard: {
-    margin: 20,
-    padding: 24,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    gap: 12,
-  },
-  errorText: { fontSize: 14, color: COLORS.error, textAlign: 'center' },
-});
