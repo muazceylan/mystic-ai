@@ -173,7 +173,7 @@ export default function GenderScreen() {
         <TouchableOpacity
           style={styles.outlineButton}
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
         >
           <Text style={styles.outlineText}>{t('common.back')}</Text>
@@ -182,7 +182,7 @@ export default function GenderScreen() {
           style={[styles.primaryButton, !store.gender && styles.primaryDisabled]}
           disabled={!store.gender}
           onPress={() => router.push('/marital-status')}
-          accessibilityLabel="Devam et"
+          accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >
           <Text style={[styles.primaryText, !store.gender && styles.primaryTextDisabled]}>

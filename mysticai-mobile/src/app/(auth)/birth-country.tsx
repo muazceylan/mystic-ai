@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'r
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { COUNTRIES } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
@@ -85,11 +86,12 @@ export default function BirthCountryScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
+        <OnboardingBackground />
         <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('auth.selectLocation')}</Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
@@ -116,13 +118,13 @@ export default function BirthCountryScreen() {
           <TouchableOpacity
             style={styles.listItem}
             onPress={() => handleSelect(item)}
-            accessibilityLabel={`${item.name} ülkesini seç`}
+            accessibilityLabel={t('auth.selectCountryItem', { name: item.name })}
             accessibilityRole="button"
           >
             <Text style={styles.listItemText}>{item.name}</Text>
           </TouchableOpacity>
         )}
-        ListEmptyComponent={<Text style={styles.emptyText}>Ülke bulunamadı</Text>}
+        ListEmptyComponent={<Text style={styles.emptyText}>{t('auth.noCountryFound')}</Text>}
       />
       </View>
     </SafeScreen>

@@ -26,10 +26,6 @@ import type { DreamEntryResponse } from '../../services/dream.service';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../constants/colors';
 
-const MONTHS_TR = [
-  '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
 
 type Tab      = 'journal' | 'compose' | 'dictionary' | 'book';
 type RecState = 'idle' | 'recording' | 'transcribing' | 'done';
@@ -280,7 +276,8 @@ export default function DreamsScreen() {
   }, [userId]);
 
   // ─── Dream book handlers ──────────────────────────────────────────
-  const yearMonthLabel = `${MONTHS_TR[bookMonth]} ${bookYear}`;
+  const months = t('calendar.months').split(',');
+  const yearMonthLabel = `${months[bookMonth - 1] || ''} ${bookYear}`;
   const monthDreams = dreams.filter(d => {
     if (!d.dreamDate) return false;
     const [y, m] = d.dreamDate.split('-').map(Number);
@@ -393,7 +390,7 @@ export default function DreamsScreen() {
                 : <TouchableOpacity
                     onPress={() => handleDelete(dream.id)}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                    accessibilityLabel="Rüyayı sil"
+                    accessibilityLabel={t('dreams.deleteDream')}
                     accessibilityRole="button"
                   >
                     <Ionicons name="trash-outline" size={17} color={colors.dim} />
@@ -511,7 +508,7 @@ export default function DreamsScreen() {
         <TouchableOpacity
           onPress={() => changeDate(-1)}
           style={styles.dateArrow}
-          accessibilityLabel="Önceki gün"
+          accessibilityLabel={t('dreams.previousDay')}
           accessibilityRole="button"
         >
           <Ionicons name="chevron-back" size={20} color={colors.textSoft} />
@@ -532,7 +529,7 @@ export default function DreamsScreen() {
           onPress={() => changeDate(1)}
           style={[styles.dateArrow, isToday(selectedDate) && styles.dateArrowDisabled]}
           disabled={isToday(selectedDate)}
-          accessibilityLabel="Sonraki gün"
+          accessibilityLabel={t('dreams.nextDay')}
           accessibilityRole="button"
         >
           <Ionicons name="chevron-forward" size={20}
@@ -545,7 +542,7 @@ export default function DreamsScreen() {
         <Ionicons name="bookmark-outline" size={15} color={colors.subtext} style={{ marginTop: 2 }} />
         <TextInput
           style={styles.titleInput}
-          placeholder="Rüyaya başlık ekle (opsiyonel)"
+          placeholder={t('dreams.titlePlaceholder')}
           placeholderTextColor={colors.dim}
           value={dreamTitle}
           onChangeText={setDreamTitle}
@@ -559,7 +556,7 @@ export default function DreamsScreen() {
         {/* Recording indicator */}
         {recState === 'recording' && (
           <Animated.View entering={FadeIn} style={styles.liveWords}>
-            <Text style={styles.liveWordsLabel}>🎙 Dinleniyor…</Text>
+            <Text style={styles.liveWordsLabel}>🎙 {t('dreams.listening')}</Text>
           </Animated.View>
         )}
 
@@ -567,7 +564,7 @@ export default function DreamsScreen() {
         {recState === 'transcribing' && (
           <Animated.View entering={FadeIn} style={styles.transcribingBox}>
             <ActivityIndicator size="small" color={colors.goldDark} />
-            <Text style={styles.transcribingText}>Ses metne çevriliyor…</Text>
+            <Text style={styles.transcribingText}>{t('dreams.transcribing')}</Text>
           </Animated.View>
         )}
 
@@ -575,12 +572,12 @@ export default function DreamsScreen() {
         {(recState === 'idle' || recState === 'recording') && (
           <View style={styles.micRow}>
             <Text style={styles.micHint}>
-              {recState === 'idle' ? 'Sesle anlat' : `⏺ ${fmtDur(recDuration)}`}
+              {recState === 'idle' ? t('dreams.voiceHint') : `⏺ ${fmtDur(recDuration)}`}
             </Text>
             <TouchableOpacity
               onPress={() => recState === 'idle' ? startRec() : stopRec()}
               activeOpacity={0.8}
-              accessibilityLabel={recState === 'recording' ? 'Kaydı durdur' : 'Sesle kaydet'}
+              accessibilityLabel={recState === 'recording' ? t('dreams.stopRecording') : t('dreams.startRecording')}
               accessibilityRole="button"
             >
               <Animated.View style={[styles.micRing, micStyle,
@@ -601,7 +598,7 @@ export default function DreamsScreen() {
       {(recState === 'idle' || recState === 'done') && (
         <View style={styles.divider}>
           <View style={styles.divLine} />
-          <Text style={styles.divText}>{recState === 'done' ? 'düzenle' : 'ya da yaz'}</Text>
+          <Text style={styles.divText}>{recState === 'done' ? t('dreams.edit') : t('dreams.orWrite')}</Text>
           <View style={styles.divLine} />
         </View>
       )}
@@ -612,8 +609,8 @@ export default function DreamsScreen() {
           <TextInput
             style={styles.textInput}
             placeholder={recState === 'done'
-              ? 'Transkripsiyon tamamlandı — dilediğin gibi düzenleyebilirsin…'
-              : 'Bu gece gördüğün rüyayı anlat…'}
+              ? t('dreams.transcriptionDonePlaceholder')
+              : t('dreams.textPlaceholder')}
             placeholderTextColor={colors.dim}
             value={dreamText}
             onChangeText={setDreamText}
@@ -631,23 +628,23 @@ export default function DreamsScreen() {
           <TouchableOpacity
             style={styles.cancelBtn}
             onPress={resetCompose}
-            accessibilityLabel="Vazgeç"
+            accessibilityLabel={t('dreams.cancel')}
             accessibilityRole="button"
           >
             <Ionicons name="close-circle-outline" size={18} color={colors.subtext} />
-            <Text style={styles.cancelBtnText}>Vazgeç</Text>
+            <Text style={styles.cancelBtnText}>{t('dreams.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.saveBtn, (!dreamText.trim() || submitting) && styles.saveBtnOff]}
             onPress={handleSave}
             disabled={!dreamText.trim() || submitting}
-            accessibilityLabel="Kaydet ve yorumla"
+            accessibilityLabel={t('dreams.saveAndInterpret')}
             accessibilityRole="button"
           >
             {submitting
               ? <ActivityIndicator size="small" color={colors.white} />
               : <><Ionicons name="sparkles" size={17} color={colors.white} />
-                 <Text style={styles.saveBtnText}>Kaydet ve Yorumla</Text></>
+                 <Text style={styles.saveBtnText}>{t('dreams.save')}</Text></>
             }
           </TouchableOpacity>
         </View>
@@ -665,7 +662,7 @@ export default function DreamsScreen() {
       </View>
 
       <View style={styles.monthPicker}>
-        <TouchableOpacity onPress={prevBookMonth} style={styles.monthArrow} accessibilityLabel="Önceki ay" accessibilityRole="button">
+        <TouchableOpacity onPress={prevBookMonth} style={styles.monthArrow} accessibilityLabel={t('dreams.previousMonth')} accessibilityRole="button">
           <Ionicons name="chevron-back" size={20} color={colors.goldDark} />
         </TouchableOpacity>
         <Text style={styles.monthLabel}>{yearMonthLabel}</Text>
@@ -673,7 +670,7 @@ export default function DreamsScreen() {
           onPress={nextBookMonth}
           style={[styles.monthArrow, !isCurrentOrPastBook && styles.monthArrowDisabled]}
           disabled={!isCurrentOrPastBook}
-          accessibilityLabel="Sonraki ay"
+          accessibilityLabel={t('dreams.nextMonth')}
           accessibilityRole="button"
         >
           <Ionicons name="chevron-forward" size={20} color={isCurrentOrPastBook ? colors.goldDark : colors.subtext} />
@@ -685,25 +682,25 @@ export default function DreamsScreen() {
           <ErrorStateCard
             message={storyError}
             onRetry={() => userId && fetchMonthlyStory(userId, bookYear, bookMonth)}
-            accessibilityLabel="Aylık hikâyeyi tekrar yükle"
+            accessibilityLabel={t('dreams.reloadMonthlyStory')}
           />
         ) : storyLoading || generating ? (
           <View style={styles.loadingBlock}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>{generating ? 'Hikâye yazılıyor...' : 'Yükleniyor...'}</Text>
-            <Text style={styles.loadingSubText}>Ay mevsiminizin hikâyesi kalemle şekilleniyor...</Text>
+            <Text style={styles.loadingText}>{generating ? t('dreams.storyWriting') : t('dreams.loading')}</Text>
+            <Text style={styles.loadingSubText}>{t('dreams.storyLoadingSub')}</Text>
           </View>
         ) : isPending ? (
           <View style={styles.loadingBlock}>
             <ActivityIndicator size="large" color={colors.goldDark} />
-            <Text style={styles.loadingText}>Yapay zeka yazıyor...</Text>
-            <Text style={styles.loadingSubText}>Birkaç saniye daha, bilinçaltı imgeleriniz sıraya diziliyor...</Text>
+            <Text style={styles.loadingText}>{t('dreams.aiWriting')}</Text>
+            <Text style={styles.loadingSubText}>{t('dreams.aiWritingSub')}</Text>
           </View>
         ) : isCompleted && monthlyStory?.story ? (
           <>
             {monthlyStory.dominantSymbols?.length > 0 && (
               <View style={styles.symbolsSection}>
-                <Text style={styles.sectionLabel}>✦ Dönemin Sembolleri</Text>
+                <Text style={styles.sectionLabel}>✦ {t('dreams.periodSymbols')}</Text>
                 <View style={styles.symbolsRow}>
                   {monthlyStory.dominantSymbols.slice(0, 6).map(sym => (
                     <View key={sym} style={styles.symChip}>
@@ -723,7 +720,7 @@ export default function DreamsScreen() {
                 style={styles.refreshBtn}
                 onPress={handleBookRefresh}
                 disabled={bookRefreshing}
-                accessibilityLabel="Hikâyeyi yenile"
+                accessibilityLabel={t('dreams.refreshStory')}
                 accessibilityRole="button"
               >
                 {bookRefreshing ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="refresh-outline" size={18} color={colors.primary} />}
@@ -732,32 +729,32 @@ export default function DreamsScreen() {
                 style={[styles.exportBtn, { flex: 1 }]}
                 onPress={handleExportPdf}
                 disabled={pdfExporting}
-                accessibilityLabel="PDF olarak indir"
+                accessibilityLabel={t('dreams.pdfDownload')}
                 accessibilityRole="button"
               >
                 {pdfExporting ? <ActivityIndicator size="small" color={colors.white} /> : <Ionicons name="download-outline" size={16} color={colors.white} />}
-                <Text style={styles.exportBtnText}>{pdfExporting ? 'PDF Hazırlanıyor...' : 'PDF Olarak İndir'}</Text>
+                <Text style={styles.exportBtnText}>{pdfExporting ? t('dreams.pdfPreparing') : t('dreams.pdfDownload')}</Text>
               </TouchableOpacity>
             </View>
           </>
         ) : isEmpty ? (
           <View style={styles.emptyBlock}>
             <Text style={styles.emptyIcon}>🌑</Text>
-            <Text style={styles.emptyTitle}>{yearMonthLabel} henüz boş</Text>
-            <Text style={styles.emptySub}>Bu aya ait rüyalar kaydedildiğinde aylık hikâyen yazılabilir.</Text>
-            <TouchableOpacity style={styles.generateBtn} onPress={handleBookGenerate} disabled={storyLoading} accessibilityLabel="Hikâyeyi oluştur" accessibilityRole="button">
+            <Text style={styles.emptyTitle}>{t('dreams.monthEmpty', { month: yearMonthLabel })}</Text>
+            <Text style={styles.emptySub}>{t('dreams.monthEmptyDesc')}</Text>
+            <TouchableOpacity style={styles.generateBtn} onPress={handleBookGenerate} disabled={storyLoading} accessibilityLabel={t('dreams.generateStory')} accessibilityRole="button">
               <Ionicons name="sparkles" size={15} color={colors.white} />
-              <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
+              <Text style={styles.generateBtnText}>{t('dreams.generateStory')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.emptyBlock}>
             <Text style={styles.emptyIcon}>✨</Text>
-            <Text style={styles.emptyTitle}>Hikâye hazır değil</Text>
-            <Text style={styles.emptySub}>{yearMonthLabel} ayının rüya yolculuğunu yapay zeka ile anlat.</Text>
-            <TouchableOpacity style={styles.generateBtn} onPress={handleBookGenerate} disabled={generating || storyLoading} accessibilityLabel="Hikâyeyi oluştur" accessibilityRole="button">
+            <Text style={styles.emptyTitle}>{t('dreams.storyNotReady')}</Text>
+            <Text style={styles.emptySub}>{t('dreams.storyNotReadyDesc', { month: yearMonthLabel })}</Text>
+            <TouchableOpacity style={styles.generateBtn} onPress={handleBookGenerate} disabled={generating || storyLoading} accessibilityLabel={t('dreams.generateStory')} accessibilityRole="button">
               {generating ? <ActivityIndicator size="small" color={colors.white} /> : <Ionicons name="sparkles" size={15} color={colors.white} />}
-              <Text style={styles.generateBtnText}>Hikâyeyi Oluştur</Text>
+              <Text style={styles.generateBtnText}>{t('dreams.generateStory')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -766,7 +763,7 @@ export default function DreamsScreen() {
       <View style={styles.infoCard}>
         <Ionicons name="information-circle-outline" size={15} color={colors.subtext} />
         <Text style={styles.infoText}>
-          Her ay sonunda yapay zeka, rüyalarını Jungçu psikoloji ve astroloji perspektifiyle şiirsel bir hikâyeye dönüştürür. PDF'i indirebilir veya paylaşabilirsin.
+          {t('dreams.bookInfo')}
         </Text>
       </View>
     </ScrollView>
@@ -788,7 +785,7 @@ export default function DreamsScreen() {
             if (tab === 'compose') { resetCompose(); setTab('journal'); }
             else setTab('compose');
           }}
-          accessibilityLabel={tab === 'compose' ? 'Yazmayı kapat' : 'Yeni rüya ekle'}
+          accessibilityLabel={tab === 'compose' ? t('dreams.closeCompose') : t('dreams.addNewDream')}
           accessibilityRole="button"
         >
           <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={colors.white} />
@@ -831,7 +828,7 @@ export default function DreamsScreen() {
       {/* Recurring symbols strip (journal only) */}
       {tab === 'journal' && symbols.filter(s => s.recurring).length > 0 && (
         <Animated.View entering={FadeIn} style={styles.strip}>
-          <Text style={styles.stripLabel}>Tekrar eden semboller</Text>
+          <Text style={styles.stripLabel}>{t('dreams.recurringSymbols')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {symbols.filter(s => s.recurring).map((s, i) => (
               <View key={i} style={styles.chip}>
@@ -871,7 +868,7 @@ export default function DreamsScreen() {
           {loading && (
             <View style={styles.centerBox}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.centerText}>Rüyalar yükleniyor…</Text>
+              <Text style={styles.centerText}>{t('dreams.loading')}</Text>
             </View>
           )}
           {!loading && error && (
@@ -879,7 +876,7 @@ export default function DreamsScreen() {
               <ErrorStateCard
                 message={error}
                 onRetry={() => fetchDreams(userId)}
-                accessibilityLabel="Rüyaları tekrar yükle"
+                accessibilityLabel={t('dreams.reloadDreams')}
               />
             </View>
           )}
@@ -891,10 +888,10 @@ export default function DreamsScreen() {
               <TouchableOpacity
                 style={styles.emptyBtn}
                 onPress={() => setTab('compose')}
-                accessibilityLabel="İlk rüyamı ekle"
+                accessibilityLabel={t('dreams.addFirstDream')}
                 accessibilityRole="button"
               >
-                <Text style={styles.emptyBtnText}>İlk Rüyamı Ekle</Text>
+                <Text style={styles.emptyBtnText}>{t('dreams.addDream')}</Text>
               </TouchableOpacity>
             </View>
           )}

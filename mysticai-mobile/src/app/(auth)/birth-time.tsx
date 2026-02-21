@@ -259,7 +259,7 @@ export default function BirthTimeScreen() {
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowPicker(true)}
-          accessibilityLabel="Doğum saati seç"
+          accessibilityLabel={t('editBirthInfo.accessibilitySelectTime')}
           accessibilityRole="button"
         >
           <Text style={[styles.inputText, displayValue === 'SS:DD' && styles.placeholder]}>
@@ -274,7 +274,7 @@ export default function BirthTimeScreen() {
 
         <TouchableOpacity
           style={styles.link}
-          accessibilityLabel="Doğum saatimi bilmiyorum"
+          accessibilityLabel={t('birthInfo.unknownTime')}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: store.birthTimeUnknown }}
           onPress={() => {
@@ -298,14 +298,14 @@ export default function BirthTimeScreen() {
         <TouchableOpacity
           style={styles.outlineButton}
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
         >
           <Text style={styles.outlineText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
-          accessibilityLabel="Devam et"
+          accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
           disabled={!canContinue}
           onPress={() => router.push('/birth-country')}

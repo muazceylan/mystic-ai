@@ -107,7 +107,22 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     buttonWrapper: {
       marginTop: 20,
+      marginBottom: 16,
+    },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
       marginBottom: 40,
+    },
+    footerText: {
+      fontSize: 14,
+      color: C.subtext,
+    },
+    footerLink: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: C.primary,
     },
     continueButton: {
       backgroundColor: C.primary,
@@ -239,7 +254,7 @@ export default function EmailRegisterScreen() {
         <View style={styles.emailFeedback}>
           <Ionicons name="close-circle" size={16} color={colors.error} />
           <TouchableOpacity
-            onPress={() => router.replace('/login')}
+            onPress={() => router.replace('/(auth)/welcome')}
             accessibilityLabel={t('auth.goToLogin')}
             accessibilityRole="link"
           >
@@ -443,6 +458,18 @@ export default function EmailRegisterScreen() {
               ) : (
                 <Text style={styles.continueButtonText}>{t('auth.signUp')}</Text>
               )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>{t('auth.alreadyHaveAccount')}</Text>
+            <TouchableOpacity
+              onPress={() => router.replace('/(auth)/welcome')}
+              disabled={isSubmitting}
+              accessibilityLabel={t('auth.loginTitle')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.footerLink}>{t('auth.loginTitle')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

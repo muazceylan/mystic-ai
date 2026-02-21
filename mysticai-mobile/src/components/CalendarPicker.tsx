@@ -1,13 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
-
-const DAYS_TR = ['Pt', 'Sa', 'Ca', 'Pe', 'Cu', 'Ct', 'Pz'];
-const MONTHS_TR = [
-  'Ocak', 'Subat', 'Mart', 'Nisan', 'Mayis', 'Haziran',
-  'Temmuz', 'Agustos', 'Eylul', 'Ekim', 'Kasim', 'Aralik',
-];
 
 interface CalendarPickerProps {
   selectedDate: Date | null;
@@ -142,7 +137,10 @@ export default function CalendarPicker({
   minimumDate = new Date(1920, 0, 1),
   maximumDate = new Date(),
 }: CalendarPickerProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
+  const months = useMemo(() => t('calendar.months').split(','), [t]);
+  const shortDays = useMemo(() => t('calendar.shortDays').split(','), [t]);
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const initDate = selectedDate || new Date(1995, 5, 15);
   const [viewYear, setViewYear] = useState(initDate.getFullYear());
@@ -252,10 +250,10 @@ export default function CalendarPicker({
     return (
       <View style={styles.yearGrid}>
         <View style={styles.yearGridHeader}>
-          <Text style={styles.yearGridTitle}>Yil Secin</Text>
+          <Text style={styles.yearGridTitle}>{t('calendar.selectYear')}</Text>
         <TouchableOpacity
             onPress={() => setShowYearGrid(false)}
-            accessibilityLabel="Yıl seçimini kapat"
+            accessibilityLabel={t('calendar.closeYearSelect')}
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
@@ -280,7 +278,7 @@ export default function CalendarPicker({
                     setShowYearGrid(false);
                     setShowMonthGrid(true);
                   }}
-                  accessibilityLabel={`${y} yılını seç`}
+                  accessibilityLabel={t('calendar.selectYearOption', { year: y })}
                   accessibilityRole="button"
                 >
                   <Text style={[styles.yearCellText, isCurrent && styles.yearCellTextSelected]}>
@@ -299,10 +297,10 @@ export default function CalendarPicker({
     return (
       <View style={styles.yearGrid}>
         <View style={styles.yearGridHeader}>
-          <Text style={styles.yearGridTitle}>{viewYear} — Ay Seçin</Text>
+          <Text style={styles.yearGridTitle}>{viewYear} — {t('calendar.selectMonth')}</Text>
           <TouchableOpacity
             onPress={() => setShowMonthGrid(false)}
-            accessibilityLabel="Ay seçimini kapat"
+            accessibilityLabel={t('calendar.closeMonthSelect')}
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
@@ -310,7 +308,7 @@ export default function CalendarPicker({
           </TouchableOpacity>
         </View>
         <View style={styles.monthGridContainer}>
-          {MONTHS_TR.map((month, idx) => {
+          {months.map((month, idx) => {
             const isCurrent = idx === viewMonth;
             return (
               <TouchableOpacity
@@ -320,7 +318,7 @@ export default function CalendarPicker({
                   setViewMonth(idx);
                   setShowMonthGrid(false);
                 }}
-                accessibilityLabel={`${month} ayını seç`}
+                accessibilityLabel={t('calendar.selectMonthOption', { month })}
                 accessibilityRole="button"
               >
                 <Text style={[styles.monthCellText, isCurrent && styles.yearCellTextSelected]}>
@@ -341,7 +339,7 @@ export default function CalendarPicker({
           <TouchableOpacity
             onPress={goToPrevMonth}
             style={styles.navButton}
-            accessibilityLabel="Önceki ay"
+            accessibilityLabel={t('calendar.previousMonth')}
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
@@ -351,11 +349,11 @@ export default function CalendarPicker({
         <TouchableOpacity
           onPress={() => setShowYearGrid(true)}
           style={styles.monthYearButton}
-          accessibilityLabel={`${MONTHS_TR[viewMonth]} ${viewYear} — ay ve yıl seç`}
+          accessibilityLabel={t('calendar.selectMonthYear', { month: months[viewMonth], year: viewYear })}
           accessibilityRole="button"
         >
           <Text style={styles.monthYearText}>
-            {MONTHS_TR[viewMonth]} {viewYear}
+            {months[viewMonth]} {viewYear}
           </Text>
           <Ionicons name="caret-down" size={14} color={colors.primary} />
         </TouchableOpacity>
@@ -363,7 +361,7 @@ export default function CalendarPicker({
           <TouchableOpacity
             onPress={goToNextMonth}
             style={styles.navButton}
-            accessibilityLabel="Sonraki ay"
+            accessibilityLabel={t('calendar.nextMonth')}
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
@@ -373,7 +371,7 @@ export default function CalendarPicker({
 
       {/* Day-of-week labels */}
       <View style={styles.weekRow}>
-        {DAYS_TR.map((d) => (
+        {shortDays.map((d) => (
           <View key={d} style={styles.weekCell}>
             <Text style={styles.weekLabel}>{d}</Text>
           </View>
@@ -396,7 +394,7 @@ export default function CalendarPicker({
                   onSelect(new Date(cell.year, cell.month, cell.day));
                 }
               }}
-              accessibilityLabel={cell.disabled ? undefined : `${cell.day} ${MONTHS_TR[cell.month]} ${cell.year} tarihini seç`}
+              accessibilityLabel={cell.disabled ? undefined : t('calendar.selectDate', { day: cell.day, month: months[cell.month], year: cell.year })}
               accessibilityRole="button"
             >
               <View

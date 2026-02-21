@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios/dist/browser/axios.cjs';
+import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -134,6 +135,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
 }
 
 export default function NatalChartScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const onboarding = useOnboardingStore();
   const storeLogin = useAuthStore((state) => state.login);
@@ -253,14 +255,14 @@ export default function NatalChartScreen() {
           router.replace({
             pathname: '/(auth)/email-register',
             params: {
-              error: 'Bu e-posta zaten kayıtlı. Lütfen giriş yapın.',
+              error: t('auth.emailAlreadyExists'),
             },
           });
           return;
         }
       }
 
-      setErrorMessage('Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+      setErrorMessage(t('natalChart.onboardingRegisterError'));
     } finally {
       setIsGenerating(false);
     }
@@ -275,7 +277,7 @@ export default function NatalChartScreen() {
         <TouchableOpacity
           style={[styles.optionCard, choice === 'analyze' && styles.optionSelected]}
           onPress={() => setChoice('analyze')}
-          accessibilityLabel="Doğum haritamı analiz et"
+          accessibilityLabel={t('natalChart.accessibilityAnalyzeChart')}
           accessibilityRole="button"
         >
           <Ionicons
@@ -285,10 +287,10 @@ export default function NatalChartScreen() {
           />
           <View style={styles.optionTextContainer}>
             <Text style={[styles.optionTitle, choice === 'analyze' && styles.optionTitleSelected]}>
-              Doğum Haritamı Analiz Et
+              {t('natalChart.onboardingAnalyzeTitle')}
             </Text>
             <Text style={styles.optionSubtitle}>
-              Henüz yeniyim, gezegenlerimi ve evlerimi öğrenmek istiyorum
+              {t('natalChart.onboardingAnalyzeDesc')}
             </Text>
           </View>
           {choice === 'analyze' && (
@@ -301,16 +303,16 @@ export default function NatalChartScreen() {
         <TouchableOpacity
           style={[styles.optionCard, choice === 'skip' && styles.optionSelected]}
           onPress={() => setChoice('skip')}
-          accessibilityLabel="Uygulamaya geç"
+          accessibilityLabel={t('natalChart.accessibilityGoToApp')}
           accessibilityRole="button"
         >
           <Ionicons name="home" size={20} color={choice === 'skip' ? colors.primary : colors.subtext} />
           <View style={styles.optionTextContainer}>
             <Text style={[styles.optionTitle, choice === 'skip' && styles.optionTitleSelected]}>
-              Uygulamaya Geç
+              {t('natalChart.onboardingSkipTitle')}
             </Text>
             <Text style={styles.optionSubtitle}>
-              Astroloji tecrübem var, uygulamaya geçmek istiyorum
+              {t('natalChart.onboardingSkipDesc')}
             </Text>
           </View>
           {choice === 'skip' && (
@@ -327,23 +329,23 @@ export default function NatalChartScreen() {
         <TouchableOpacity
           style={styles.outlineButton}
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
         >
-          <Text style={styles.outlineText}>Geri</Text>
+          <Text style={styles.outlineText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, (!choice || isGenerating) && styles.primaryDisabled]}
           disabled={!choice || isGenerating}
           onPress={handleContinue}
-          accessibilityLabel="Devam et"
+          accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >
           {isGenerating ? (
             <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={[styles.primaryText, (!choice || isGenerating) && styles.primaryTextDisabled]}>
-              Devam Et
+              {t('common.continue')}
             </Text>
           )}
         </TouchableOpacity>
@@ -352,7 +354,7 @@ export default function NatalChartScreen() {
       {isGenerating && (
         <View style={styles.syncOverlay}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.syncText}>Haritanız yıldızlarla senkronize ediliyor...</Text>
+          <Text style={styles.syncText}>{t('natalChart.onboardingSyncMessage')}</Text>
         </View>
       )}
       </View>

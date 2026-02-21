@@ -243,11 +243,12 @@ export default function BirthCityScreen() {
     return (
       <SafeScreen>
         <View style={listStyles.container}>
+          <OnboardingBackground />
         <View style={listStyles.header}>
           <Text style={listStyles.headerTitle}>{t('auth.selectCity')}</Text>
           <TouchableOpacity
             onPress={handleCloseCityList}
-            accessibilityLabel="Kapat"
+            accessibilityLabel={t('common.close')}
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
@@ -270,7 +271,7 @@ export default function BirthCityScreen() {
           {citySearch.length > 0 && (
             <TouchableOpacity
               onPress={() => setCitySearch('')}
-              accessibilityLabel="Aramayı temizle"
+              accessibilityLabel={t('auth.clearSearch')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
@@ -287,7 +288,7 @@ export default function BirthCityScreen() {
             <TouchableOpacity
               style={listStyles.listItem}
               onPress={() => handleCitySelect(item)}
-              accessibilityLabel={`${item.name} şehrini seç`}
+              accessibilityLabel={t('auth.selectCityItem', { name: item.name })}
               accessibilityRole="button"
             >
               <Text style={listStyles.listItemText}>{item.name}</Text>
@@ -306,11 +307,12 @@ export default function BirthCityScreen() {
     return (
       <SafeScreen>
         <View style={listStyles.container}>
+          <OnboardingBackground />
         <View style={listStyles.header}>
           <TouchableOpacity
             onPress={() => setView('city-list')}
             style={{ padding: 2 }}
-            accessibilityLabel="Şehir listesine dön"
+            accessibilityLabel={t('auth.backToCityList')}
             accessibilityRole="button"
           >
             <Ionicons name="arrow-back" size={22} color={colors.primary} />
@@ -320,7 +322,7 @@ export default function BirthCityScreen() {
           </Text>
             <TouchableOpacity
               onPress={handleSkipDistrict}
-              accessibilityLabel="İlçe seçmeden atla"
+              accessibilityLabel={t('auth.skipDistrict')}
               accessibilityRole="button"
             >
             <Text style={listStyles.skipText}>{t('auth.skip')}</Text>
@@ -340,7 +342,7 @@ export default function BirthCityScreen() {
           {districtSearch.length > 0 && (
             <TouchableOpacity
               onPress={() => setDistrictSearch('')}
-              accessibilityLabel="Aramayı temizle"
+              accessibilityLabel={t('auth.clearSearch')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
@@ -357,7 +359,7 @@ export default function BirthCityScreen() {
             <TouchableOpacity
               style={listStyles.listItem}
               onPress={() => handleDistrictSelect(item)}
-              accessibilityLabel={`${item} ilçesini seç`}
+              accessibilityLabel={t('auth.selectDistrictItem', { name: item })}
               accessibilityRole="button"
             >
               <Text style={listStyles.listItemText}>{item}</Text>
@@ -411,13 +413,20 @@ export default function BirthCityScreen() {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.outlineButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={() => router.back()}
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
+          accessibilityRole="button"
+        >
           <Text style={styles.outlineText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
           disabled={!canContinue}
           onPress={() => router.push('/gender')}
+          accessibilityLabel={t('common.continue')}
+          accessibilityRole="button"
         >
           <Text style={[styles.primaryText, !canContinue && styles.primaryTextDisabled]}>
             {t('common.continue')}

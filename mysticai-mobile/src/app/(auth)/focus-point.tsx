@@ -187,7 +187,7 @@ export default function FocusPointScreen() {
         <TouchableOpacity
           style={styles.outlineButton}
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
         >
           <Text style={styles.outlineText}>{t('common.back')}</Text>
@@ -196,7 +196,7 @@ export default function FocusPointScreen() {
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
           disabled={!canContinue}
           onPress={() => router.push('/natal-chart')}
-          accessibilityLabel="Devam et"
+          accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >
           <Text style={[styles.primaryText, !canContinue && styles.primaryTextDisabled]}>

@@ -179,17 +179,17 @@ export default function CalendarScreen() {
           <OnboardingBackground />
         <View style={styles.emptyContainer}>
           <Ionicons name="planet-outline" size={64} color={colors.primary} />
-          <Text style={styles.emptyTitle}>Do\u011Fum Haritan\u0131z Gerekli</Text>
+          <Text style={styles.emptyTitle}>{t('calendar.errors.natalChartRequired')}</Text>
           <Text style={styles.emptyText}>
-            Kozmik Planlay\u0131c\u0131'y\u0131 kullanabilmek i\u00E7in \u00F6nce do\u011Fum haritan\u0131z\u0131n hesaplanmas\u0131 gerekiyor.
+            {t('calendar.errors.natalChartRequiredDesc')}
           </Text>
           <TouchableOpacity
             style={styles.emptyButton}
             onPress={() => router.push('/(tabs)/natal-chart')}
-            accessibilityLabel="Doğum haritası oluştur"
+            accessibilityLabel={t('calendar.errors.createNatalChart')}
             accessibilityRole="button"
           >
-            <Text style={styles.emptyButtonText}>Do\u011Fum Haritas\u0131 Olu\u015Ftur</Text>
+            <Text style={styles.emptyButtonText}>{t('calendar.errors.createNatalChart')}</Text>
           </TouchableOpacity>
         </View>
         </View>
@@ -238,7 +238,7 @@ export default function CalendarScreen() {
           <TouchableOpacity
             style={styles.calendarButton}
             onPress={() => openCalendarEvent(item.date, categoryLabel, t('calendar.cosmicWindow'))}
-            accessibilityLabel="Takvime ekle"
+            accessibilityLabel={t('calendar.addToCalendar')}
             accessibilityRole="button"
           >
             <Ionicons name="calendar-outline" size={14} color={colors.primary} />
@@ -258,7 +258,7 @@ export default function CalendarScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Ionicons name="calendar" size={22} color={colors.primary} />
-          <Text style={styles.headerTitle}>Kozmik Planlay\u0131c\u0131</Text>
+          <Text style={styles.headerTitle}>{t('calendar.title')}</Text>
         </View>
 
         {/* Category Pills */}
@@ -290,7 +290,7 @@ export default function CalendarScreen() {
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Kozmik pencereler hesaplan\u0131yor...</Text>
+            <Text style={styles.loadingText}>{t('calendar.loading')}</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
@@ -299,10 +299,10 @@ export default function CalendarScreen() {
             <TouchableOpacity
               style={styles.retryButton}
               onPress={fetchDates}
-              accessibilityLabel="Tekrar dene"
+              accessibilityLabel={t('calendar.errors.retry')}
               accessibilityRole="button"
             >
-              <Text style={styles.retryButtonText}>Tekrar Dene</Text>
+              <Text style={styles.retryButtonText}>{t('calendar.errors.retry')}</Text>
             </TouchableOpacity>
           </View>
         ) : currentResult ? (
@@ -310,10 +310,10 @@ export default function CalendarScreen() {
             {/* Hook Card */}
             {currentResult.hookText && (
               <View style={styles.hookCard}>
-                <View style={styles.hookHeader}>
-                  <Ionicons name="sparkles" size={16} color={colors.primary} />
-                  <Text style={styles.hookTitle}>Kozmik Analiz</Text>
-                </View>
+              <View style={styles.hookHeader}>
+                <Ionicons name="sparkles" size={16} color={colors.primary} />
+                <Text style={styles.hookTitle}>{t('calendar.cosmicAnalysis')}</Text>
+              </View>
                 <Text style={styles.hookText}>{currentResult.hookText}</Text>
               </View>
             )}
@@ -331,29 +331,29 @@ export default function CalendarScreen() {
             <View style={styles.aiSection}>
               <View style={styles.aiHeader}>
                 <Ionicons name="sparkles" size={16} color={colors.accent} />
-                <Text style={styles.aiTitle}>Kozmik Yorum</Text>
+                <Text style={styles.aiTitle}>{t('calendar.cosmicInterpretation')}</Text>
               </View>
               {currentResult.status === 'COMPLETED' && currentResult.aiInterpretation ? (
                 <Text style={styles.aiText}>{currentResult.aiInterpretation}</Text>
               ) : currentResult.status === 'FAILED' ? (
                 <View style={styles.aiErrorBlock}>
                   <Text style={styles.aiErrorText}>
-                    Kozmik yorum olu\u015Fturulurken bir sorun ya\u015Fand\u0131. Yeniden deneyebilirsin.
+                    {t('calendar.errors.cosmicInterpretationError')}
                   </Text>
                   <TouchableOpacity
                     style={styles.aiRetryButton}
                     onPress={fetchDates}
-                    accessibilityLabel="Kozmik yorumu tekrar dene"
+                    accessibilityLabel={t('calendar.errors.retry')}
                     accessibilityRole="button"
                   >
-                    <Text style={styles.aiRetryButtonText}>Tekrar Dene</Text>
+                    <Text style={styles.aiRetryButtonText}>{t('calendar.errors.retry')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.aiLoading}>
                   <ActivityIndicator size="small" color={colors.accent} />
                   <Text style={styles.aiLoadingText}>
-                    Y\u0131ld\u0131zlar\u0131n mesaj\u0131 \u00E7\u00F6z\u00FCml\u00FCyor...
+                    {t('calendar.errors.starsDecoding')}
                   </Text>
                 </View>
               )}

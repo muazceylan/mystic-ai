@@ -168,7 +168,7 @@ export default function MaritalStatusScreen() {
         <TouchableOpacity
           style={styles.outlineButton}
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
         >
           <Text style={styles.outlineText}>{t('common.back')}</Text>
@@ -177,7 +177,7 @@ export default function MaritalStatusScreen() {
           style={[styles.primaryButton, !store.maritalStatus && styles.primaryDisabled]}
           disabled={!store.maritalStatus}
           onPress={() => router.push('/focus-point')}
-          accessibilityLabel="Devam et"
+          accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >
           <Text style={[styles.primaryText, !store.maritalStatus && styles.primaryTextDisabled]}>

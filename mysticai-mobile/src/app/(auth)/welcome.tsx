@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -9,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { socialLogin } from '../../services/auth';
+import { socialLogin, login as loginApi } from '../../services/auth';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
@@ -19,12 +30,15 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       flex: 1,
       backgroundColor: C.bg,
       paddingHorizontal: 24,
-      paddingTop: 80,
-      alignItems: 'center',
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingTop: 56,
+      paddingBottom: 100,
     },
     titleArea: {
       alignItems: 'center',
-      marginBottom: 40,
+      marginBottom: 28,
     },
     heading: {
       fontSize: 28,
@@ -35,8 +49,56 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     subheading: {
       fontSize: 16,
       color: C.subtext,
+      textAlign: 'center',
     },
-    buttons: {
+    form: {
+      width: '100%',
+      gap: 14,
+      marginBottom: 24,
+    },
+    inputContainer: {
+      backgroundColor: C.white,
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    input: {
+      flex: 1,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      color: C.text,
+    },
+    eyeButton: {
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+    },
+    errorText: {
+      color: C.error,
+      fontSize: 13,
+      textAlign: 'center',
+    },
+    loginButton: {
+      backgroundColor: C.primary,
+      borderRadius: 28,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 6,
+    },
+    loginButtonDisabled: {
+      backgroundColor: C.disabled,
+    },
+    loginButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: C.white,
+    },
+    loginButtonTextDisabled: {
+      color: C.disabledText,
+    },
+    socialSection: {
       width: '100%',
       gap: 14,
     },
@@ -69,7 +131,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     divider: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginVertical: 4,
+      marginVertical: 20,
     },
     dividerLine: {
       flex: 1,
@@ -80,21 +142,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       marginHorizontal: 12,
       fontSize: 13,
       color: C.subtext,
-    },
-    emailButton: {
-      backgroundColor: C.white,
-      borderWidth: 1,
-      borderColor: C.primary,
-      borderRadius: 14,
-      paddingVertical: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-    },
-    emailButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: C.primary,
     },
     loadingOverlay: {
       position: 'absolute',
@@ -108,9 +155,14 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     footer: {
       position: 'absolute',
-      bottom: 48,
+      left: 0,
+      right: 0,
+      bottom: 0,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
+      paddingBottom: 48,
+      paddingHorizontal: 24,
     },
     footerText: {
       fontSize: 14,
@@ -129,8 +181,13 @@ export default function WelcomeScreen() {
   const { colors } = useTheme();
   const storeLogin = useAuthStore((s) => s.login);
   const onboarding = useOnboardingStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const styles = makeStyles(colors);
+  const isFormValid = email.trim().length > 0 && password.length > 0;
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     iosClientId: "607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com",
@@ -199,8 +256,25 @@ export default function WelcomeScreen() {
     }
   };
 
-  const handleEmailLogin = () => {
-    router.push('/login');
+  const handleEmailLogin = async () => {
+    if (!isFormValid || loading) return;
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      const res = await loginApi({ username: email.trim().toLowerCase(), password });
+      const { accessToken, refreshToken, user } = res.data;
+      storeLogin(accessToken, refreshToken, user);
+      router.replace('/(tabs)/home');
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 401) {
+        setErrorMessage(t('auth.invalidCredentials'));
+      } else {
+        setErrorMessage(t('auth.loginError'));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = () => {
@@ -209,56 +283,120 @@ export default function WelcomeScreen() {
 
   return (
     <SafeScreen>
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <OnboardingBackground />
 
-        <View style={styles.titleArea}>
-        <Text style={styles.heading}>{t('auth.welcomeTitle')}</Text>
-        <Text style={styles.subheading}>{t('auth.welcomeSubtitle')}</Text>
-      </View>
-
-      <View style={styles.buttons}>
-        {Platform.OS === 'ios' && (
-          <TouchableOpacity
-            style={[styles.socialButton, styles.appleButton]}
-            onPress={handleAppleLogin}
-            disabled={loading}
-            accessibilityLabel="Apple ile giriş yap"
-            accessibilityRole="button"
-          >
-            <Ionicons name="logo-apple" size={22} color={colors.white} style={styles.icon} />
-            <Text style={[styles.socialText, styles.appleText]}>{t('auth.loginWithApple')}</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={styles.socialButton}
-          onPress={handleGoogleLogin}
-          disabled={loading}
-          accessibilityLabel="Google ile giriş yap"
-          accessibilityRole="button"
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons name="logo-google" size={22} color={colors.googleRed} style={styles.icon} />
-          <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
-        </TouchableOpacity>
+          <View style={styles.titleArea}>
+            <Text style={styles.heading}>{t('auth.welcomeTitle')}</Text>
+            <Text style={styles.subheading}>{t('auth.welcomeSubtitle')}</Text>
+          </View>
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>{t('common.or')}</Text>
-          <View style={styles.dividerLine} />
-        </View>
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={t('auth.email')}
+                placeholderTextColor={colors.subtext}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            </View>
 
-        <TouchableOpacity
-          style={styles.emailButton}
-          onPress={handleEmailLogin}
-          disabled={loading}
-          accessibilityLabel="E-posta ile giriş yap"
-          accessibilityRole="button"
-        >
-          <Ionicons name="mail-outline" size={20} color={colors.primary} style={styles.icon} />
-          <Text style={styles.emailButtonText}>{t('auth.loginWithEmail')}</Text>
-        </TouchableOpacity>
-      </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder={t('auth.password')}
+                placeholderTextColor={colors.subtext}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+                accessibilityLabel={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                accessibilityRole="button"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.subtext}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+            <TouchableOpacity
+              style={[styles.loginButton, (!isFormValid || loading) && styles.loginButtonDisabled]}
+              disabled={!isFormValid || loading}
+              onPress={handleEmailLogin}
+              accessibilityLabel={t('auth.loginTitle')}
+              accessibilityRole="button"
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text
+                  style={[
+                    styles.loginButtonText,
+                    (!isFormValid || loading) && styles.loginButtonTextDisabled,
+                  ]}
+                >
+                  {t('auth.loginTitle')}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t('common.or')}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.socialSection}>
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={handleAppleLogin}
+                disabled={loading}
+                accessibilityLabel={t('auth.loginWithApple')}
+                accessibilityRole="button"
+              >
+                <Ionicons name="logo-apple" size={22} color={colors.white} style={styles.icon} />
+                <Text style={[styles.socialText, styles.appleText]}>{t('auth.loginWithApple')}</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleLogin}
+              disabled={loading}
+              accessibilityLabel={t('auth.loginWithGoogle')}
+              accessibilityRole="button"
+            >
+              <Ionicons name="logo-google" size={22} color={colors.googleRed} style={styles.icon} />
+              <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -266,18 +404,18 @@ export default function WelcomeScreen() {
         </View>
       )}
 
-      <View style={styles.footer}>
+      <View style={styles.footer} pointerEvents={loading ? 'none' : 'auto'}>
         <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
         <TouchableOpacity
           onPress={handleRegister}
           disabled={loading}
-          accessibilityLabel="Kayıt ol"
+          accessibilityLabel={t('auth.signUp')}
           accessibilityRole="button"
         >
           <Text style={styles.footerLink}>{t('auth.signUp')}</Text>
         </TouchableOpacity>
       </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeScreen>
   );
 }

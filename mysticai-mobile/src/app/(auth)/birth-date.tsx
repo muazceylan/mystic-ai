@@ -202,7 +202,7 @@ export default function BirthDateScreen() {
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowPicker(true)}
-          accessibilityLabel="Doğum tarihi seç"
+          accessibilityLabel={t('editBirthInfo.accessibilitySelectDate')}
           accessibilityRole="button"
         >
           <Ionicons name="calendar-outline" size={20} color={store.birthDate ? colors.primary : colors.disabledText} />
@@ -221,14 +221,14 @@ export default function BirthDateScreen() {
         <TouchableOpacity
           style={styles.outlineButton}
           onPress={() => router.back()}
-          accessibilityLabel="Geri dön"
+          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
           accessibilityRole="button"
         >
           <Text style={styles.outlineText}>{t('common.back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
-          accessibilityLabel="Devam et"
+          accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
           disabled={!canContinue}
           onPress={() => canContinue && router.push('/birth-time')}
