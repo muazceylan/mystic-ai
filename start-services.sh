@@ -2,6 +2,15 @@
 
 echo "🔮 Mystic AI Servisleri Başlatılıyor..."
 
+# Load environment variables from .env
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | grep -v '^$' | xargs)
+  echo "✅ .env dosyası yüklendi"
+else
+  echo "⚠️  .env dosyası bulunamadı!"
+  exit 1
+fi
+
 # Kill existing Java processes
 echo "🧹 Eski process'ler temizleniyor..."
 pkill -f "service-registry" || true
