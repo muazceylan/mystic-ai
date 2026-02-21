@@ -174,7 +174,93 @@
     "skyPulseLoading": "Gökyüzü okunuyor...",
     "skyPulseError": "Gökyüzü verisi alınamadı. Ay fazı ve gezegen bilgisi yüklenemedi.",
     "skyPulseRetry": "Gökyüzü verisini tekrar yükle",
-    "swotSectionTitle": "Haritanda bu hafta"
+    "swotSectionTitle": "Haritanda bu hafta",
+    "secretFallback": "bugün sezgine güven",
+    "secretFallbackWithName": "{{name}}, bugün sezgine güven.",
+    "fullMoonCaution": "Dolunay duygularını yoğunlaştırır — dürtüsel kararlardan uzak dur.",
+    "energyLabel": {
+      "retroCaution": "{{planets}} retroda — temkinli, hesaplı ilerle",
+      "retroMixed": "{{planet}} retroda — bu alanda geri adım at ve gözden geçir",
+      "dolunay": "{{phase}} — duygular yoğun, farkındalıklı kal",
+      "moonPhase": "{{phase}} enerjisi — gezegenler bugün seni destekliyor",
+      "default": "Gezegenler bugün seni destekliyor — hamlelerini yap"
+    },
+    "focusLead": {
+      "ask": "Aşk alanında",
+      "para": "Maddi düzende",
+      "kariyer": "Kariyer tarafında",
+      "aile": "Aile ilişkilerinde",
+      "arkadaslik": "Sosyal bağlarda",
+      "ticaret": "İş akışında",
+      "genel": "Bugünün akışı"
+    },
+    "relationTone": {
+      "married": "ilişki dengesinde",
+      "single": "kalp alanında",
+      "relationship": "bağ kurma enerjisinde",
+      "default": "günün akışında"
+    },
+    "focusLabel": {
+      "ask": "aşk",
+      "para": "para",
+      "kariyer": "kariyer",
+      "aile": "aile",
+      "arkadaslik": "sosyal bağlar",
+      "ticaret": "ticaret",
+      "genel": "yaşam"
+    },
+    "dailyVibeFallback": {
+      "0": "Bugün acele etmeden ilerle; doğru an seni bulacak.",
+      "1": "Küçük bir karar günün ritmini tamamen değiştirebilir.",
+      "2": "Sessiz bir an yakala, cevaplar orada netleşecek.",
+      "3": "Kalbini hafifleten seçeneği seç; gün onunla açılacak."
+    },
+    "actionMap": {
+      "ask": {
+        "lucky": ["Kalbinde sakladığın o sözü bugün söyleyebilirsin.", "Bağı güçlendiren beklenmedik bir jest yap."],
+        "mixed": ["Duygusal konuşmaları dikkatli yönet; sabırlı ol.", "Sezgine güven ama hızlı karar verme."],
+        "caution": ["Hassas ilişki konularını bugün ertelemeyi düşün.", "Dinlemeye odaklan, konuşmaya değil."]
+      },
+      "para": {
+        "lucky": ["Ertelediğin finansal adımı bugün atmak için doğru an.", "Kısa vadeli yatırım için iyi bir gün."],
+        "mixed": ["Mali kararlar alırken iki kez kontrol et.", "Fırsatları değerlendir ama büyük risk alma."],
+        "caution": ["Büyük harcama ve yatırım kararlarını birkaç güne ertele.", "Mevcut finansal düzeni gözden geçir."]
+      },
+      "kariyer": {
+        "lucky": ["Liderlik gösterebileceğin bir konuda söz al.", "Fark yaratacak projeye bugün başla."],
+        "mixed": ["Mevcut projeleri güçlendir; yenilerini planlamaya başla.", "Takım içi iletişimi güçlendir."],
+        "caution": ["Müzakere ve pazarlıkları ertele; zemin hazırlamaya odaklan.", "Hızlı değil, doğru adım at."]
+      },
+      "aile": {
+        "lucky": ["Aile içi eski bir gerilimi yumuşatmak için bugün konuş.", "Sevdiklerinle kaliteli zaman planla."],
+        "mixed": ["Ev içi konuşmalarda kelimelerine dikkat et.", "Dinlemeye öncelik ver."],
+        "caution": ["Ev içi hassas konuları bugün ertelemeyi düşün.", "Sabırlı ve anlayışlı bir tutum benimse."]
+      },
+      "arkadaslik": {
+        "lucky": ["Samimi bir bağlantı kurmak için harika bir gün.", "Uzun süredir görmediğin birine ulaş."],
+        "mixed": ["Sosyal planları esnek tut; değişebilirler.", "Yüzeysel değil, derin bağlantılara odaklan."],
+        "caution": ["Sosyal anlaşmazlıklardan kaçın; bugün dinleyici ol.", "Yeni taahhütler almadan önce düşün."]
+      },
+      "ticaret": {
+        "lucky": ["İş birliği teklifi için doğru an.", "Müzakere masasında güçlü bir pozisyondasın."],
+        "mixed": ["Sözleşme detaylarını dikkatlice incele.", "Ticari kararları aceleci verme."],
+        "caution": ["Sözleşme imzalamayı ertele; koşulları yeniden değerlendir.", "İş ortaklarının niyetlerini sorgula."]
+      },
+      "genel": {
+        "lucky": ["Uzun süredir ertelediğin adımı bugün atmak için iyi bir an.", "Yeni bağlantılar ve fırsatlar için alan aç."],
+        "mixed": ["Kararları aceleci verme; bir adım geri çekil, değerlendir.", "Enerjiyi odaklı tut; dağıtma."],
+        "caution": ["Bugün gözlemci kal; hamleni yarına sakla.", "Mevcut durumu stabilize et, büyütme."]
+      }
+    },
+    "secretPatterns": {
+      "ask": ["bugün bir kelimenin tonu, sandığından daha derin bir yakınlaşma başlatabilir.", "kısa bir mesajlaşma, uzun süredir beklediğin duygusal netliği açabilir."],
+      "para": ["küçük bir harcama kararı, bu hafta büyük rahatlık getirecek bir düzene dönebilir.", "gün içinde duyacağın bir fikir, gelirini sade bir şekilde güçlendirebilir."],
+      "kariyer": ["bugün atılan küçük bir adım, bir üst seviyeye geçişin kapısını aralayabilir.", "günün ortasında gelecek bir geri bildirim, yönünü netleştirmen için işaret olabilir."],
+      "aile": ["ev içindeki kısa bir konuşma, uzun süredir biriken bir konuyu yumuşatabilir.", "bugün göstereceğin minik bir ilgi, aile bağlarını beklediğinden hızlı güçlendirebilir."],
+      "arkadaslik": ["bugün kuracağın samimi bir bağlantı, haftanın en güçlü desteği olabilir.", "kısa bir buluşma planı, uzun zamandır eksik kalan aidiyet hissini canlandırabilir."],
+      "ticaret": ["gün içindeki bir tanışma, sandığından daha verimli bir iş birliğine dönebilir.", "küçük bir pazarlıkta sakin kalman, tahminden daha iyi bir sonuç getirebilir."],
+      "genel": ["bugün fark etmediğin bir işaret senin için tekrar edecek; ikinciyi kaçırma.", "gün içinde kısa bir duraklama, uzun süredir beklediğin netliği getirecek."]
+    }
   },
   "numerology": {
     "title": "Numeroloji",
@@ -237,7 +323,8 @@
     "storyRefreshError": "Hikâye yenilenemedi, tekrar dene.",
     "pdfReady": "PDF Hazır",
     "pdfReadyMessage": "PDF dosyası oluşturuldu.",
-    "pdfError": "PDF oluşturulamadı."
+    "pdfError": "PDF oluşturulamadı.",
+    "backToToday": "Bugüne dön"
   },
   "tabs": {
     "home": "Ana Sayfa",
@@ -346,7 +433,13 @@
     "contract": "Anlaşma",
     "newBeginning": "Yeni Başlangıç",
     "months": "Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık",
-    "days": "Pazar,Pazartesi,Salı,Çarşamba,Perşembe,Cuma,Cumartesi"
+    "days": "Pazar,Pazartesi,Salı,Çarşamba,Perşembe,Cuma,Cumartesi",
+    "errors": {
+      "natalChartNotFound": "Doğum haritanız bulunamadı. Lütfen önce doğum haritası oluşturun.",
+      "invalidRequest": "Geçersiz istek. Lütfen tekrar deneyin.",
+      "serviceUnavailable": "Astroloji servisi şu an ulaşılamıyor. Lütfen daha sonra tekrar deneyin.",
+      "connectionError": "Bağlantı hatası. İnternet bağlantınızı kontrol edin."
+    }
   },
   "natalChart": {
     "retry": "Tekrar dene",

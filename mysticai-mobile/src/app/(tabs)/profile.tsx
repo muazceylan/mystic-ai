@@ -23,7 +23,6 @@ import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
 interface UserStats {
   plannedDays: number;
   dreamCount: number;
-  dailyYorum: number;
 }
 
 const SETTINGS_ITEMS = [
@@ -82,9 +81,9 @@ export default function ProfileScreen() {
       ]);
       const totalDreams = analyticsRes.status === 'fulfilled' ? analyticsRes.value.totalDreams : 0;
       const plannedDays = luckyRes.status === 'fulfilled' ? luckyRes.value.data.length : 0;
-      setStats({ dreamCount: totalDreams, plannedDays, dailyYorum: 0 });
+      setStats({ dreamCount: totalDreams, plannedDays });
     } catch {
-      setStats({ dreamCount: 0, plannedDays: 0, dailyYorum: 0 });
+      setStats({ dreamCount: 0, plannedDays: 0 });
     } finally {
       setLoadingStats(false);
       setRefreshing(false);
@@ -148,13 +147,9 @@ export default function ProfileScreen() {
             {loadingStats ? <StatSkeleton colors={colors} /> : <Text style={S.statValue}>{stats?.plannedDays ?? 0}</Text>}
             <Text style={S.statLabel}>{t('profile.stats.plannedDays')}</Text>
           </View>
-          <View style={[S.statItem, S.statBorderRight]}>
+          <View style={S.statItem}>
             {loadingStats ? <StatSkeleton colors={colors} /> : <Text style={S.statValue}>{stats?.dreamCount ?? 0}</Text>}
             <Text style={S.statLabel}>{t('profile.stats.dreamCount')}</Text>
-          </View>
-          <View style={S.statItem}>
-            {loadingStats ? <StatSkeleton colors={colors} /> : <Text style={S.statValue}>{stats?.dailyYorum ?? 0}</Text>}
-            <Text style={S.statLabel}>{t('profile.stats.dailyComment')}</Text>
           </View>
         </View>
 
@@ -181,7 +176,7 @@ export default function ProfileScreen() {
             </View>
             <TouchableOpacity
               style={S.upgradeButton}
-              accessibilityLabel="Premium'a yükselt"
+              accessibilityLabel={t('profile.premium.upgrade')}
               accessibilityRole="button"
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/premium' as any); }}
             >
@@ -218,7 +213,7 @@ export default function ProfileScreen() {
           style={S.logoutButton}
           onPress={handleLogout}
           activeOpacity={0.8}
-          accessibilityLabel="Çıkış yap"
+          accessibilityLabel={t('profile.logout')}
           accessibilityRole="button"
         >
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />

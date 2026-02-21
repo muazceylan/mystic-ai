@@ -441,7 +441,7 @@ export default function DreamsScreen() {
           {pending && (
             <View style={styles.pendingPill}>
               <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 6 }} />
-              <Text style={styles.pendingPillText}>Kozmik şifre çözülüyor…</Text>
+              <Text style={styles.pendingPillText}>{t('dreams.pending')}</Text>
             </View>
           )}
 
@@ -453,23 +453,23 @@ export default function DreamsScreen() {
               <TouchableOpacity
                 style={styles.speakBtn}
                 onPress={() => handleSpeak(dream)}
-                accessibilityLabel={speaking ? 'Sesli okumayı durdur' : 'Sesli oku'}
+                accessibilityLabel={speaking ? t('dreams.stop') : t('dreams.speak')}
                 accessibilityRole="button"
               >
                 <Ionicons name={speaking ? 'stop-circle' : 'volume-high'} size={17} color={colors.accent} />
-                <Text style={styles.speakText}>{speaking ? 'Durdur' : 'Sesli Oku'}</Text>
+                <Text style={styles.speakText}>{speaking ? t('dreams.stop') : t('dreams.speak')}</Text>
               </TouchableOpacity>
 
               {/* 🌙 Yorum */}
               <View style={styles.section}>
-                <Text style={styles.sectionHead}>🌙 Rüyanın Kozmik Şifresi</Text>
+                <Text style={styles.sectionHead}>🌙 {t('dreams.cosmic')}</Text>
                 <Text style={styles.interpText}>{interpretation}</Text>
               </View>
 
               {/* ✨ Fırsatlar */}
               {opportunities.length > 0 && (
                 <View style={[styles.section, styles.sectionGreen]}>
-                  <Text style={[styles.sectionHead, {color: colors.green}]}>✨ Fırsatlar</Text>
+                  <Text style={[styles.sectionHead, {color: colors.green}]}>✨ {t('dreams.opportunitiesSection')}</Text>
                   {opportunities.map((op, i) => (
                     <View key={i} style={styles.bulletRow}>
                       <Ionicons name="checkmark-circle" size={15} color={colors.green} style={{marginTop:3}} />
@@ -482,7 +482,7 @@ export default function DreamsScreen() {
               {/* ⚠️ Uyarılar */}
               {warnings.length > 0 && (
                 <View style={[styles.section, styles.sectionOrange]}>
-                  <Text style={[styles.sectionHead, {color: colors.orange}]}>⚠️ Dikkat Edilmesi Gerekenler</Text>
+                  <Text style={[styles.sectionHead, {color: colors.orange}]}>⚠️ {t('dreams.warningsSection')}</Text>
                   {warnings.map((w, i) => (
                     <View key={i} style={styles.bulletRow}>
                       <Ionicons name="alert-circle" size={15} color={colors.orange} style={{marginTop:3}} />
@@ -521,10 +521,10 @@ export default function DreamsScreen() {
           {!isToday(selectedDate) && (
             <TouchableOpacity
               onPress={() => setSelectedDate(new Date())}
-              accessibilityLabel="Bugüne dön"
+              accessibilityLabel={t('dreams.backToToday')}
               accessibilityRole="button"
             >
-              <Text style={styles.dateTodayBtn}>Bugüne dön</Text>
+              <Text style={styles.dateTodayBtn}>{t('dreams.backToToday')}</Text>
             </TouchableOpacity>
           )}
         </View>

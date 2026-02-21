@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 
 interface BadgeProps {
   label: string;
@@ -43,7 +43,7 @@ function createStyles(C: ThemeColors) {
     badge_success: { backgroundColor: C.luckBg },
     badge_warning: { backgroundColor: C.neutralBg },
     badge_error: { backgroundColor: C.cautionBg },
-    text: { fontSize: 12, fontWeight: '600' },
+    text: { ...TYPOGRAPHY.Caption, fontWeight: '600' },
     text_default: { color: C.subtext },
     text_primary: { color: C.primary },
     text_success: { color: C.success },

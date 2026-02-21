@@ -380,16 +380,16 @@ export default function BirthTimeScreen() {
               <TouchableOpacity
                 style={styles.modalTextButton}
                 onPress={() => setShowPicker(false)}
-                accessibilityLabel="İptal"
+                accessibilityLabel={t('common.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalTextButtonLabel}>Iptal</Text>
+                <Text style={styles.modalTextButtonLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalTextButton, !isValidInput() && styles.modalTextButtonDisabled]}
                 onPress={handleConfirm}
                 disabled={!isValidInput()}
-                accessibilityLabel="Saati onayla"
+                accessibilityLabel={t('editBirthInfo.confirmTime')}
                 accessibilityRole="button"
               >
                 <Text
@@ -398,7 +398,7 @@ export default function BirthTimeScreen() {
                     !isValidInput() && styles.modalTextButtonLabelDisabled,
                   ]}
                 >
-                  Tamam
+                  {t('common.ok')}
                 </Text>
               </TouchableOpacity>
             </View>

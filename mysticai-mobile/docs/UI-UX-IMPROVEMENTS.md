@@ -1,10 +1,31 @@
 # Mystic AI — Mobil UI / UX İyileştirme Planı
 
-Bu doküman, repo içindeki hızlı değerlendirmeye dayanarak önerilen tüm UI/UX geliştirmelerini listeler. Seninle maddeleri tek tek işleyip PR'lara dönüştüreceğiz — önce hangi maddeyle başlamak istediğini söyle.
+Bu doküman, repo içindeki kapsamlı analize dayanarak önerilen tüm UI/UX geliştirmelerini listeler. Seninle maddeleri tek tek işleyip PR'lara dönüştüreceğiz — önce hangi maddeyle başlamak istediğini söyle.
 
 ## Özet
 - Amaç: Okunabilirlik, erişilebilirlik, görsel tutarlılık, performans ve onboarding dönüşümünü artırmak.
 - Kapsam: Onboarding, Ana Ekran (Transit, Günün Sırrı, SWOT), Tasarım Sistemi, A11y, Performans, Kod yapısı.
+
+---
+
+# 🔍 UI/UX Analiz Raporu (Güncel)
+
+**Tarih:** 21 Şubat 2025  
+**Kapsam:** Ana ekranlar, onboarding, profil, rüyalar, takvim, tasarım sistemi
+
+---
+
+## Mevcut Durum Özeti
+
+### Güçlü Yönler ✅
+- **Tasarım tokenları**: `tokens.ts` (tipografi, spacing, radius) ve merkezi `colors.ts` mevcut.
+- **Atomic bileşenler**: Button, Card, IconButton, Badge, Skeleton, ErrorStateCard, SafeScreen.
+- **Erişilebilirlik**: accessibilityLabel, accessibilityRole, hitSlop, maxFontSizeMultiplier kullanımı.
+- **A11y token**: minTouchTarget 44px, liveRegion desteği tanımlı.
+- **i18n**: Metinler genelde çeviri dosyalarından alınıyor.
+- **Hata yönetimi**: ErrorStateCard + retry CTA tüm fetch akışlarında.
+- **Özet-detay pattern**: Transit ve Günün Sırrı için "Detayları Göster/Gizle".
+- **Slider**: Aktif slide için scale/opacity animasyonu mevcut.
 
 ## Hızlı Kazançlar (High impact, Low effort)
 1. [x] Kontrast ve metin kontrast testleri — düşük kontrastlı metinleri güncelle (AA uyumu).
@@ -87,5 +108,79 @@ Bu doküman, repo içindeki hızlı değerlendirmeye dayanarak önerilen tüm UI
 - [ ] E2E testler (Detox / Playwright)
 
 ---
-Hazırsan sıradaki maddeyi seç; öneri: "Hata durumları" ile başla.
 
+## 📋 Ekran Bazlı Detaylı Analiz
+
+### Ana Sayfa (home.tsx)
+| Alan | Durum | Öneri |
+|------|-------|-------|
+| Boyut | ~1326 satır | TransitCard, WisdomCard, SwotSection, ServiceSlider bileşenlerine böl |
+| Profil blok | LV. 2 (%15) sabit | Gerçek seviye sistemi veya gizlenmeli |
+| Slider | 3.2 sn otomatik geçiş | Kullanıcı etkileşiminde duraklat |
+| Günün Sırrı | ACTION_MAP, RETRO_CAUTION vb. TR | i18n'e taşı |
+| SkyPulse / SWOT | ErrorStateCard + retry | ✅ İyi |
+
+### Onboarding (birth-date.tsx vb.)
+| Alan | Durum | Öneri |
+|------|-------|-------|
+| Modal metinleri | "Tarih secin", "Henuz secilmedi", "Iptal", "Tamam" | i18n key kullan |
+
+### Profil (profile.tsx)
+| Alan | Durum | Öneri |
+|------|-------|-------|
+| dailyYorum | Her zaman 0 | Backend verisi veya UI'dan kaldır |
+| LV.2 (%15) | Sabit | Gerçek veri veya kaldır |
+
+### Rüyalar (dreams.tsx)
+| Alan | Durum | Öneri |
+|------|-------|-------|
+| Hardcoded | "Kozmik şifre çözülüyor…", "Sesli Oku", "Durdur" | i18n |
+| Section başlıkları | "✨ Fırsatlar", "⚠️ Uyarılar" | i18n |
+
+### Takvim (calendar.tsx)
+| Alan | Durum | Öneri |
+|------|-------|-------|
+| Hata mesajları | Hardcoded TR | i18n calendar.errors.* |
+
+---
+
+## 🐛 Tespit Edilen Sorunlar
+
+### 1. Hardcoded / i18n Eksikleri
+- birth-date, dreams, profile, calendar — TR stringler i18n'e taşınmalı
+- home.tsx: ACTION_MAP, RETRO_CAUTION_KEYS, SECRET_PATTERNS_BY_FOCUS
+
+### 2. UX İyileştirme Alanları
+- Ana sayfa slider: Otomatik kayma kullanıcı okurken rahatsız edebilir
+- Profil LV.2 / dailyYorum: Anlamsız veri
+- Tab bar: 6 sekme dar ekranda sıkışık; swipe tab planlanmış
+
+### 3. Kod Yapısı
+- home.tsx 1300+ satır — bileşenlere bölünmeli
+- Ortak sabitler ayrı modüllere taşınmalı
+
+### 4. Erişilebilirlik
+- maxFontSizeMultiplier tüm uzun metinlerde olmalı
+- Renk kontrastı WCAG AA kontrolü
+
+---
+
+## 📌 Yeni Öncelikli İyileştirme Listesi
+
+### Kritik
+1. [x] Hardcoded metinleri i18n'e taşı (birth-date, dreams, profile, calendar)
+2. [x] Profil LV.2 / dailyYorum — Gizle veya gerçek veriye bağla
+
+### Yüksek
+3. [x] Ana sayfa refactor — bileşenlere böl (TransitCard, WisdomCard, SwotSection, ServiceSlider)
+4. [x] Ortak sabitler — ACTION_MAP vb. ayrı dosyaya + i18n
+5. [x] Slider UX — Otomatik kaymayı kullanıcı etkileşiminde duraklat
+
+### Orta
+6. [x] Font/spacing token kullanımı (TYPOGRAPHY, SPACING)
+
+
+### Uzun Vadeli
+8. A/B testleri, E2E testler
+
+---

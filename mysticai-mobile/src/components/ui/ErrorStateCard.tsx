@@ -9,7 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { ACCESSIBILITY } from '../../constants/tokens';
+import { TYPOGRAPHY, SPACING, ACCESSIBILITY, RADIUS } from '../../constants/tokens';
 
 interface ErrorStateCardProps {
   /** Kısa açıklama — kullanıcıya ne olduğunu anlatır */
@@ -80,50 +80,48 @@ function createStyles(C: ThemeColors) {
     container: {
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 20,
-      gap: 12,
+      padding: SPACING.lgXl,
+      gap: SPACING.md,
       backgroundColor: C.card,
-      borderRadius: 16,
+      borderRadius: SPACING.lg,
       borderWidth: 1,
       borderColor: C.border,
     },
     containerCompact: {
-      padding: 14,
-      gap: 8,
-      borderRadius: 14,
+      padding: SPACING.mdLg,
+      gap: SPACING.sm,
+      borderRadius: SPACING.mdLg,
     },
-    icon: { marginBottom: 2 },
+    icon: { marginBottom: SPACING.xs },
     message: {
-      fontSize: 14,
+      ...TYPOGRAPHY.Small,
       color: C.subtext,
       textAlign: 'center',
-      lineHeight: 20,
     },
-    messageCompact: { fontSize: 12, lineHeight: 18 },
+    messageCompact: { ...TYPOGRAPHY.Caption, lineHeight: 18 },
     retryBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 6,
+      gap: SPACING.xsSm,
       backgroundColor: C.primary,
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      borderRadius: 12,
+      paddingVertical: SPACING.smMd,
+      paddingHorizontal: SPACING.lgXl,
+      borderRadius: RADIUS.md,
       minHeight: 44,
       minWidth: 140,
     },
     retryBtnCompact: {
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      borderRadius: 10,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.lg,
+      borderRadius: RADIUS.sm,
       minHeight: 44,
       minWidth: 120,
     },
     retryText: {
-      fontSize: 14,
-      fontWeight: '700',
+      ...TYPOGRAPHY.SmallBold,
       color: C.white,
     },
-    retryTextCompact: { fontSize: 13 },
+    retryTextCompact: { ...TYPOGRAPHY.SmallAlt },
   });
 }

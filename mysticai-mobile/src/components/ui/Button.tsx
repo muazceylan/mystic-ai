@@ -8,7 +8,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 
 interface ButtonProps {
   title: string;
@@ -103,9 +103,9 @@ function createStyles(C: ThemeColors) {
     ghost: { backgroundColor: 'transparent' },
     disabled: { opacity: 0.5 },
     text: { fontWeight: '600' },
-    text_sm: { fontSize: 14 },
-    text_md: { fontSize: 16 },
-    text_lg: { fontSize: 18 },
+    text_sm: { fontSize: TYPOGRAPHY.Small.fontSize, lineHeight: TYPOGRAPHY.Small.lineHeight },
+    text_md: { fontSize: TYPOGRAPHY.Body.fontSize, lineHeight: TYPOGRAPHY.Body.lineHeight },
+    text_lg: { fontSize: TYPOGRAPHY.H3.fontSize, lineHeight: TYPOGRAPHY.H3.lineHeight },
     textPrimary: { color: C.white },
     textOutline: { color: C.text },
     textGhost: { color: C.primary },

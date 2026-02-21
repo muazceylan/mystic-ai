@@ -245,9 +245,9 @@ export default function BirthDateScreen() {
           <View style={styles.modalCard}>
             {/* M3 Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalLabel}>Tarih secin</Text>
+              <Text style={styles.modalLabel}>{t('birthInfo.selectDate')}</Text>
               <Text style={styles.modalSelectedDate}>
-                {tempDate ? formatDate(tempDate) : 'Henuz secilmedi'}
+                {tempDate ? formatDate(tempDate) : t('editBirthInfo.notSelectedYet')}
               </Text>
             </View>
 
@@ -274,16 +274,16 @@ export default function BirthDateScreen() {
               <TouchableOpacity
                 style={styles.modalTextButton}
                 onPress={() => setShowPicker(false)}
-                accessibilityLabel="İptal"
+                accessibilityLabel={t('common.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalTextButtonLabel}>Iptal</Text>
+                <Text style={styles.modalTextButtonLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalTextButton, !tempDate && styles.modalTextButtonDisabled]}
                 onPress={handleConfirm}
                 disabled={!tempDate}
-                accessibilityLabel="Tarihi onayla"
+                accessibilityLabel={t('editBirthInfo.confirmDate')}
                 accessibilityRole="button"
               >
                 <Text
@@ -292,7 +292,7 @@ export default function BirthDateScreen() {
                     !tempDate && styles.modalTextButtonLabelDisabled,
                   ]}
                 >
-                  Tamam
+                  {t('common.ok')}
                 </Text>
               </TouchableOpacity>
             </View>

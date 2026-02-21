@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SPACING, ACCESSIBILITY } from '../../constants/tokens';
+import { TYPOGRAPHY, SPACING, ACCESSIBILITY } from '../../constants/tokens';
 
 interface ListItemProps {
   title: string;
@@ -142,7 +142,7 @@ function createStyles(C: ThemeColors) {
     leftIcon: { marginRight: SPACING.md },
     content: { flex: 1 },
     title: {
-      fontSize: 16,
+      ...TYPOGRAPHY.Body,
       fontWeight: '500',
       color: C.text,
     },
@@ -151,9 +151,9 @@ function createStyles(C: ThemeColors) {
       fontWeight: '600',
     },
     subtitle: {
-      fontSize: 13,
+      ...TYPOGRAPHY.SmallAlt,
       color: C.subtext,
-      marginTop: 2,
+      marginTop: SPACING.xs,
     },
   });
 }

@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
+import { TYPOGRAPHY } from '../../constants/tokens';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
@@ -22,8 +23,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          ...TYPOGRAPHY.CaptionSmall,
         },
       }}
     >

@@ -173,7 +173,93 @@
     "skyPulseLoading": "Reading the sky...",
     "skyPulseError": "Sky data could not be loaded. Moon phase and planet info failed.",
     "skyPulseRetry": "Retry loading sky data",
-    "swotSectionTitle": "In your chart this week"
+    "swotSectionTitle": "In your chart this week",
+    "secretFallback": "trust your intuition today",
+    "secretFallbackWithName": "{{name}}, trust your intuition today.",
+    "fullMoonCaution": "Full moon intensifies emotions — avoid impulsive decisions.",
+    "energyLabel": {
+      "retroCaution": "{{planets}} in retrograde — proceed with caution and calculation",
+      "retroMixed": "{{planet}} in retrograde — step back and review in this area",
+      "dolunay": "{{phase}} — emotions are intense, stay mindful",
+      "moonPhase": "{{phase}} energy — planets support you today",
+      "default": "Planets support you today — make your moves"
+    },
+    "focusLead": {
+      "ask": "In matters of love",
+      "para": "In financial flow",
+      "kariyer": "In career matters",
+      "aile": "In family relations",
+      "arkadaslik": "In social bonds",
+      "ticaret": "In business flow",
+      "genel": "In today's flow"
+    },
+    "relationTone": {
+      "married": "in relationship balance",
+      "single": "in matters of the heart",
+      "relationship": "in bonding energy",
+      "default": "in the flow of the day"
+    },
+    "focusLabel": {
+      "ask": "love",
+      "para": "money",
+      "kariyer": "career",
+      "aile": "family",
+      "arkadaslik": "social bonds",
+      "ticaret": "business",
+      "genel": "life"
+    },
+    "dailyVibeFallback": {
+      "0": "Move without rush today; the right moment will find you.",
+      "1": "A small decision can completely change the rhythm of your day.",
+      "2": "Capture a quiet moment; answers will become clear there.",
+      "3": "Choose the option that lightens your heart; the day will open with it."
+    },
+    "actionMap": {
+      "ask": {
+        "lucky": ["You can say that word you've been holding in your heart today.", "Make an unexpected gesture to strengthen the bond."],
+        "mixed": ["Manage emotional conversations carefully; be patient.", "Trust your intuition but don't rush decisions."],
+        "caution": ["Consider postponing sensitive relationship topics today.", "Focus on listening, not speaking."]
+      },
+      "para": {
+        "lucky": ["Right moment to take that financial step you've been putting off.", "Good day for short-term investment."],
+        "mixed": ["Double-check financial decisions.", "Evaluate opportunities but don't take big risks."],
+        "caution": ["Postpone major spending and investment decisions for a few days.", "Review your current financial setup."]
+      },
+      "kariyer": {
+        "lucky": ["Speak up on a topic where you can show leadership.", "Start the project that will make a difference today."],
+        "mixed": ["Strengthen existing projects; start planning new ones.", "Strengthen team communication."],
+        "caution": ["Postpone negotiations and deals; focus on groundwork.", "Take the right step, not the fast one."]
+      },
+      "aile": {
+        "lucky": ["Talk today to ease an old family tension.", "Plan quality time with loved ones."],
+        "mixed": ["Watch your words in home conversations.", "Prioritize listening."],
+        "caution": ["Consider postponing sensitive home topics today.", "Adopt a patient and understanding attitude."]
+      },
+      "arkadaslik": {
+        "lucky": ["Great day to build a genuine connection.", "Reach out to someone you haven't seen in a while."],
+        "mixed": ["Keep social plans flexible; they may change.", "Focus on depth, not surface connections."],
+        "caution": ["Avoid social conflicts; be a listener today.", "Think before making new commitments."]
+      },
+      "ticaret": {
+        "lucky": ["Right moment for a partnership offer.", "Strong position at the negotiation table."],
+        "mixed": ["Review contract details carefully.", "Don't rush business decisions."],
+        "caution": ["Postpone signing contracts; reassess terms.", "Question partners' intentions."]
+      },
+      "genel": {
+        "lucky": ["Good moment to take that step you've been postponing.", "Open space for new connections and opportunities."],
+        "mixed": ["Don't rush decisions; step back and evaluate.", "Keep energy focused; don't scatter."],
+        "caution": ["Stay observant today; save your move for tomorrow.", "Stabilize the current situation; don't expand."]
+      }
+    },
+    "secretPatterns": {
+      "ask": ["Today the tone of one word may start a deeper connection than you think.", "A short message may open the emotional clarity you've long been waiting for."],
+      "para": ["A small spending decision may turn into a great relief this week.", "An idea you'll hear during the day may simply strengthen your income."],
+      "kariyer": ["A small step taken today may open the door to the next level.", "A feedback in the middle of the day may be a sign to clarify your direction."],
+      "aile": ["A short conversation at home may soften a topic that has been building.", "A tiny show of care today may strengthen family bonds faster than expected."],
+      "arkadaslik": ["A genuine connection you build today may be the strongest support of the week.", "A short meeting plan may revive the sense of belonging you've been missing."],
+      "ticaret": ["A meeting during the day may turn into a more productive partnership than you think.", "Staying calm in a small negotiation may bring a better result than expected."],
+      "genel": ["A sign you don't notice today will repeat for you; don't miss the second one.", "A short pause during the day will bring the clarity you've long been waiting for."]
+    }
   },
   "numerology": {
     "title": "Numerology",
@@ -236,7 +322,8 @@
     "storyRefreshError": "Could not refresh story. Please try again.",
     "pdfReady": "PDF Ready",
     "pdfReadyMessage": "PDF file has been created.",
-    "pdfError": "Could not create PDF."
+    "pdfError": "Could not create PDF.",
+    "backToToday": "Back to today"
   },
   "tabs": {
     "home": "Home",
@@ -345,7 +432,13 @@
     "contract": "Contract",
     "newBeginning": "New Beginning",
     "months": "January,February,March,April,May,June,July,August,September,October,November,December",
-    "days": "Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday"
+    "days": "Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+    "errors": {
+      "natalChartNotFound": "Your natal chart was not found. Please create it first.",
+      "invalidRequest": "Invalid request. Please try again.",
+      "serviceUnavailable": "Astrology service is currently unavailable. Please try again later.",
+      "connectionError": "Connection error. Please check your internet connection."
+    }
   },
   "natalChart": {
     "retry": "Try again",

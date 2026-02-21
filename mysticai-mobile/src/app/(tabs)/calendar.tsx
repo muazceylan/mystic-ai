@@ -121,14 +121,14 @@ export default function CalendarScreen() {
         const status = err.response?.status;
         const msg = err.response?.data?.message as string | undefined;
         if (status === 404 && msg?.includes('Natal chart not found')) {
-          setError('Do\u011Fum haritan\u0131z bulunamad\u0131. L\u00FCtfen \u00F6nce do\u011Fum haritas\u0131 olu\u015Fturun.');
+          setError(t('calendar.errors.natalChartNotFound'));
         } else if (status === 400) {
-          setError(msg || 'Ge\u00E7ersiz istek. L\u00FCtfen tekrar deneyin.');
+          setError(msg || t('calendar.errors.invalidRequest'));
         } else {
-          setError('Astroloji servisi \u015Fu an ula\u015F\u0131lam\u0131yor. L\u00FCtfen daha sonra tekrar deneyin.');
+          setError(t('calendar.errors.serviceUnavailable'));
         }
       } else {
-        setError('Ba\u011Flant\u0131 hatas\u0131. \u0130nternet ba\u011Flant\u0131n\u0131z\u0131 kontrol edin.');
+        setError(t('calendar.errors.connectionError'));
       }
     } finally {
       setLoading(false);
