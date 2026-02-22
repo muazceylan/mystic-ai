@@ -121,8 +121,13 @@ public class LuckyDatesService {
     }
 
     public PlannerFullDistributionResponse calculatePlannerFullDistribution(PlannerFullDistributionRequest request) {
-        log.info("Calculating full planner distribution for user: {}, monthsAhead: {}",
-                request.userId(), request.monthsAhead());
+        log.info("Calculating full planner distribution for user: {}, monthsAhead: {}, mode: {}, categories: {}",
+                request.userId(), request.monthsAhead(), request.responseMode(),
+                request.categories() == null ? "ALL" : request.categories().size());
+        String locale = normalizeLocale(request.locale());
+        PlannerDateRange range = resolvePlannerDateRange(request);
+        boolean includeActionDetails = request.responseMode() != PlannerResponseMode.GRID_ONLY;
+        List<PlannerCategory> plannerCategories = resolvePlannerCategories(request);
 
         NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(
                         request.userId().toString())
@@ -132,25 +137,36 @@ public class LuckyDatesService {
         List<PlanetPosition> natalPlanets = parseJsonList(chart.getPlanetPositionsJson(), PlanetPosition.class);
         List<HousePlacement> natalHouses = parseJsonList(chart.getHousePlacementsJson(), HousePlacement.class);
 
-        LocalDate startDate = LocalDate.now();
-        LocalDate endDate = startDate.plusMonths(request.monthsAhead());
+        LocalDate startDate = range.startDate();
+        LocalDate endDate = range.endDate();
         List<PlannerDayInsight> dayInsights = new ArrayList<>();
 
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             List<PlanetPosition> transits = getTransitPositionsCached(date);
-            List<PlanetaryAspect> aspects = transitCalculator.calculateTransitAspects(transits, natalPlanets);
+            List<PlanetaryAspect> aspects = includeActionDetails
+                    ? transitCalculator.calculateTransitAspects(transits, natalPlanets)
+                    : List.of();
             String moonPhase = transitCalculator.getMoonPhase(date);
+            String localizedMoonPhase = localizeMoonPhase(moonPhase, locale);
             boolean mercuryRetro = transitCalculator.isRetrograde(2, date.toEpochDay());
 
             List<PlannerCategoryAction> categoryActions = new ArrayList<>();
             int totalScore = 0;
+            List<String> supportingAspects = includeActionDetails
+                    ? aspects.stream()
+                    .sorted(Comparator.comparingDouble(PlanetaryAspect::orb))
+                    .map(aspect -> localizeSupportingAspect(aspect, locale))
+                    .limit(4)
+                    .toList()
+                    : List.of();
 
-            for (PlannerCategory plannerCategory : PlannerCategory.values()) {
+            for (PlannerCategory plannerCategory : plannerCategories) {
                 GoalCategory baseGoal = plannerCategory.getBaseGoalCategory();
                 int rawScore = scoreDate(date, transits, natalPlanets, natalHouses, baseGoal);
                 int normalizedScore = normalizeScore(rawScore);
 
-                CosmicActionEngineService.ActionBundle bundle = cosmicActionEngineService.buildActions(
+                CosmicActionEngineService.ActionBundle bundle = includeActionDetails
+                        ? cosmicActionEngineService.buildActions(
                         plannerCategory,
                         date,
                         normalizedScore,
@@ -158,31 +174,25 @@ public class LuckyDatesService {
                         transits,
                         moonPhase,
                         mercuryRetro,
-                        request.userGender()
-                );
+                        request.userGender(),
+                        locale
+                )
+                        : new CosmicActionEngineService.ActionBundle(List.of(), List.of(), "", 0);
 
                 int adjustedScore = clampScore(normalizedScore + bundle.scoreAdjustment());
                 totalScore += adjustedScore;
 
-                List<String> supportingAspects = aspects.stream()
-                        .sorted(Comparator.comparingDouble(PlanetaryAspect::orb))
-                        .map(aspect -> aspect.planet1().replace("T-", "")
-                                + " " + aspect.type().getSymbol() + " "
-                                + aspect.planet2().replace("N-", ""))
-                        .limit(4)
-                        .toList();
-
                 categoryActions.add(new PlannerCategoryAction(
                         plannerCategory,
-                        plannerCategory.getTurkishName(),
+                        plannerCategory.getLabel(locale),
                         adjustedScore,
                         bundle.dos(),
                         bundle.donts(),
                         bundle.reasoning(),
                         supportingAspects,
                         mercuryRetro,
-                        moonPhase,
-                        "RULE_ENGINE"
+                        localizedMoonPhase,
+                        includeActionDetails ? "RULE_ENGINE" : "GRID_ONLY"
                 ));
             }
 
@@ -437,5 +447,88 @@ public class LuckyDatesService {
         return 0;
     }
 
+    private PlannerDateRange resolvePlannerDateRange(PlannerFullDistributionRequest request) {
+        LocalDate startDate = request.startDate();
+        LocalDate endDate = request.endDate();
+
+        if (startDate != null || endDate != null) {
+            if (startDate == null || endDate == null) {
+                throw new IllegalArgumentException("startDate and endDate must be provided together");
+            }
+            if (endDate.isBefore(startDate)) {
+                throw new IllegalArgumentException("endDate cannot be before startDate");
+            }
+            long dayCount = startDate.datesUntil(endDate.plusDays(1)).count();
+            if (dayCount > 62) {
+                throw new IllegalArgumentException("Requested planner date range is too large (max 62 days)");
+            }
+            return new PlannerDateRange(startDate, endDate);
+        }
+
+        LocalDate calculatedStart = LocalDate.now();
+        LocalDate calculatedEnd = calculatedStart.plusMonths(request.monthsAhead());
+        return new PlannerDateRange(calculatedStart, calculatedEnd);
+    }
+
+    private List<PlannerCategory> resolvePlannerCategories(PlannerFullDistributionRequest request) {
+        if (request.categories() == null || request.categories().isEmpty()) {
+            return Arrays.asList(PlannerCategory.values());
+        }
+        List<PlannerCategory> filtered = request.categories().stream().filter(Objects::nonNull).distinct().toList();
+        return filtered.isEmpty() ? Arrays.asList(PlannerCategory.values()) : filtered;
+    }
+
+    private String normalizeLocale(String locale) {
+        if (locale == null || locale.isBlank()) return "tr";
+        return locale.toLowerCase().startsWith("en") ? "en" : "tr";
+    }
+
+    private String localizeMoonPhase(String moonPhase, String locale) {
+        if ("en".equals(locale)) {
+            return switch (moonPhase) {
+                case "Yeni Ay" -> "New Moon";
+                case "Hilal (Büyüyen)" -> "Waxing Crescent";
+                case "İlk Dördün" -> "First Quarter";
+                case "Şişkin Ay (Büyüyen)" -> "Waxing Gibbous";
+                case "Dolunay" -> "Full Moon";
+                case "Şişkin Ay (Küçülen)" -> "Waning Gibbous";
+                case "Son Dördün" -> "Last Quarter";
+                case "Hilal (Küçülen)" -> "Waning Crescent";
+                default -> moonPhase;
+            };
+        }
+        return moonPhase;
+    }
+
+    private String localizeSupportingAspect(PlanetaryAspect aspect, String locale) {
+        String planet1 = aspect.planet1().replace("T-", "");
+        String planet2 = aspect.planet2().replace("N-", "");
+        if ("tr".equals(locale)) {
+            planet1 = localizePlanetNameTr(planet1);
+            planet2 = localizePlanetNameTr(planet2);
+        }
+        return planet1 + " " + aspect.type().getSymbol() + " " + planet2;
+    }
+
+    private String localizePlanetNameTr(String name) {
+        return switch (name) {
+            case "Sun" -> "Güneş";
+            case "Moon" -> "Ay";
+            case "Mercury" -> "Merkür";
+            case "Venus" -> "Venüs";
+            case "Mars" -> "Mars";
+            case "Jupiter" -> "Jüpiter";
+            case "Saturn" -> "Satürn";
+            case "Uranus" -> "Uranüs";
+            case "Neptune" -> "Neptün";
+            case "Pluto" -> "Plüton";
+            case "Chiron" -> "Kiron";
+            case "NorthNode" -> "Kuzey Ay Düğümü";
+            case "SouthNode" -> "Güney Ay Düğümü";
+            default -> name;
+        };
+    }
+
+    private record PlannerDateRange(LocalDate startDate, LocalDate endDate) {}
     private record ScoredDate(LocalDate date, int score, List<PlanetPosition> transits, List<PlanetaryAspect> aspects) {}
 }

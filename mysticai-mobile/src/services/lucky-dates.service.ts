@@ -11,6 +11,7 @@ export type PlannerCategory =
   | 'SPIRITUAL'
   | 'COLOR'
   | 'RECOMMENDATIONS';
+export type PlannerResponseMode = 'FULL' | 'GRID_ONLY';
 
 export interface LuckyDateCard {
   date: string;
@@ -42,6 +43,11 @@ export interface PlannerFullDistributionRequest {
   userId: number;
   monthsAhead?: number;
   userGender?: string;
+  locale?: string;
+  responseMode?: PlannerResponseMode;
+  categories?: PlannerCategory[];
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface PlannerCategoryAction {
@@ -73,6 +79,27 @@ export interface PlannerFullDistributionResponse {
 }
 
 const ASTROLOGY_BASE = '/api/v1/astrology';
+const plannerResponseCache = new Map<string, PlannerFullDistributionResponse>();
+const plannerInFlight = new Map<string, Promise<any>>();
+
+export const clearPlannerFullDistributionCache = () => {
+  plannerResponseCache.clear();
+  plannerInFlight.clear();
+};
+
+function buildPlannerRequestCacheKey(request: PlannerFullDistributionRequest): string {
+  const categories = (request.categories ?? []).slice().sort().join(',');
+  return [
+    request.userId,
+    request.locale ?? 'tr',
+    request.userGender ?? '',
+    request.responseMode ?? 'FULL',
+    categories,
+    request.startDate ?? '',
+    request.endDate ?? '',
+    String(request.monthsAhead ?? ''),
+  ].join('|');
+}
 
 export const calculateLuckyDates = (request: LuckyDatesRequest) =>
   api.post<LuckyDatesResponse>(`${ASTROLOGY_BASE}/lucky-dates`, {
@@ -86,8 +113,54 @@ export const fetchLuckyDatesByUser = (userId: number) =>
 export const fetchLuckyDatesByCorrelationId = (correlationId: string) =>
   api.get<LuckyDatesResponse>(`${ASTROLOGY_BASE}/lucky-dates/${correlationId}`);
 
-export const fetchPlannerFullDistribution = (request: PlannerFullDistributionRequest) =>
-  api.post<PlannerFullDistributionResponse>(`${ASTROLOGY_BASE}/planner/full-distribution`, {
+export const fetchPlannerFullDistribution = (
+  request: PlannerFullDistributionRequest,
+  options?: { preferCache?: boolean; forceRefresh?: boolean },
+): Promise<{ data: PlannerFullDistributionResponse }> => {
+  const preferCache = options?.preferCache ?? true;
+  const forceRefresh = options?.forceRefresh ?? false;
+  const normalizedRequest = {
     ...request,
-    monthsAhead: request.monthsAhead ?? 6,
+    responseMode: request.responseMode ?? 'FULL',
+    monthsAhead: (request.startDate && request.endDate)
+      ? (request.monthsAhead ?? 1)
+      : (request.monthsAhead ?? 6),
+  } satisfies PlannerFullDistributionRequest;
+  const cacheKey = buildPlannerRequestCacheKey(normalizedRequest);
+
+  if (!forceRefresh && preferCache) {
+    const cached = plannerResponseCache.get(cacheKey);
+    if (cached) {
+      return Promise.resolve({ data: cached });
+    }
+  }
+
+  if (!forceRefresh) {
+    const inflight = plannerInFlight.get(cacheKey);
+    if (inflight) return inflight;
+  }
+
+  const requestPromise = api.post<PlannerFullDistributionResponse>(
+    `${ASTROLOGY_BASE}/planner/full-distribution`,
+    normalizedRequest,
+    { timeout: 180000 },
+  ).then((response) => {
+    plannerResponseCache.set(cacheKey, response.data);
+    plannerInFlight.delete(cacheKey);
+    return response;
+  }).catch((error) => {
+    plannerInFlight.delete(cacheKey);
+    throw error;
   });
+
+  plannerInFlight.set(cacheKey, requestPromise);
+  return requestPromise;
+};
+
+export const prefetchPlannerFullDistribution = async (request: PlannerFullDistributionRequest) => {
+  try {
+    await fetchPlannerFullDistribution(request, { preferCache: true });
+  } catch {
+    // Silent prefetch failure: screen-level fetch will handle user-facing errors.
+  }
+};

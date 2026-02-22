@@ -13,11 +13,13 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   FadeIn,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +32,7 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { SafeScreen } from '../../components/ui';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
 import {
+  PlannerCategory,
   PlannerCategoryAction,
   PlannerFullDistributionResponse,
   fetchPlannerFullDistribution,
@@ -48,7 +51,7 @@ import {
 } from '../../features/planner/plannerEngine';
 import { usePlannerPreferencesStore } from '../../store/usePlannerPreferencesStore';
 
-const BACKEND_MONTHS_AHEAD = 6;
+const INITIAL_BACKEND_MONTHS_AHEAD = 2;
 const UI_FONT = Platform.OS === 'ios' ? 'Poppins' : 'Poppins';
 const SCORE_FONT = Platform.OS === 'ios' ? 'Playfair Display' : 'serif';
 
@@ -79,6 +82,112 @@ const BACKEND_CATEGORY_TO_LOCAL: Record<string, PlannerCategoryId> = {
   COLOR: 'color',
   RECOMMENDATIONS: 'recommendations',
 };
+const LOCAL_CATEGORY_TO_BACKEND: Record<PlannerCategoryId, PlannerCategory> = {
+  transit: 'TRANSIT',
+  moon: 'MOON',
+  beauty: 'BEAUTY',
+  health: 'HEALTH',
+  activity: 'ACTIVITY',
+  official: 'OFFICIAL',
+  spiritual: 'SPIRITUAL',
+  color: 'COLOR',
+  recommendations: 'RECOMMENDATIONS',
+};
+
+function hasBackendActionDetails(action: PlannerCategoryAction | undefined): boolean {
+  if (!action) return false;
+  if (action.source === 'GRID_ONLY') return false;
+  return !!(action.reasoning?.trim() || action.dos?.length || action.donts?.length || action.supportingAspects?.length);
+}
+
+function toMonthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function toIsoDate(date: Date): string {
+  return toDateKey(date);
+}
+
+function getMonthBounds(date: Date): { startDate: string; endDate: string; monthKey: string } {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return {
+    startDate: toIsoDate(start),
+    endDate: toIsoDate(end),
+    monthKey: toMonthKey(start),
+  };
+}
+
+function extractLoadedMonthKeys(response: PlannerFullDistributionResponse): string[] {
+  return Array.from(
+    new Set((response.days ?? []).map((day) => {
+      const d = new Date(day.date);
+      return toMonthKey(d);
+    })),
+  );
+}
+
+function mergePlannerDistributions(
+  prev: PlannerFullDistributionResponse | null,
+  next: PlannerFullDistributionResponse,
+): PlannerFullDistributionResponse {
+  if (!prev) return next;
+
+  const byDate = new Map<string, PlannerFullDistributionResponse['days'][number]>();
+  prev.days.forEach((day) => byDate.set(day.date, day));
+  next.days.forEach((day) => {
+    const existing = byDate.get(day.date);
+    if (!existing) {
+      byDate.set(day.date, day);
+      return;
+    }
+
+    const categoriesById = new Map(existing.categories.map((category) => [category.category, category] as const));
+    day.categories.forEach((category) => {
+      const existingCategory = categoriesById.get(category.category);
+      if (
+        existingCategory
+        && existingCategory.source === 'GRID_ONLY'
+        && category.source === 'RULE_ENGINE'
+      ) {
+        categoriesById.set(category.category, {
+          ...category,
+          // Keep the grid score stable so the detail panel ratio does not jump
+          // when only the textual detail payload is loaded.
+          score: existingCategory.score,
+        });
+        return;
+      }
+      categoriesById.set(category.category, category);
+    });
+
+    const mergedCategories = Array.from(categoriesById.values());
+    const overallScore = mergedCategories.length
+      ? Math.round(mergedCategories.reduce((sum, item) => sum + item.score, 0) / mergedCategories.length)
+      : day.overallScore;
+
+    byDate.set(day.date, {
+      ...existing,
+      ...day,
+      overallScore,
+      categories: mergedCategories,
+    });
+  });
+
+  const mergedDays = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  const startDate = mergedDays[0]?.date ?? next.startDate ?? prev.startDate;
+  const endDate = mergedDays[mergedDays.length - 1]?.date ?? next.endDate ?? prev.endDate;
+
+  return {
+    ...prev,
+    userId: next.userId ?? prev.userId,
+    monthsAhead: Math.max(prev.monthsAhead ?? 0, next.monthsAhead ?? 0),
+    startDate,
+    endDate,
+    days: mergedDays,
+    generatedAt: next.generatedAt,
+  };
+}
 
 function clamp(value: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, value));
@@ -135,8 +244,8 @@ function tonePriority(tone: PlannerTone): number {
 }
 
 function toneFromScore(score: number): PlannerTone {
-  if (score >= 80) return 'luck';
-  if (score < 50) return 'warning';
+  if (score >= 85) return 'luck';
+  if (score < 58) return 'warning';
   return 'spiritual';
 }
 
@@ -265,7 +374,7 @@ function TrendLineChart({ points, colors }: { points: TrendPoint[]; colors: Them
 }
 
 export default function CalendarScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const router = useRouter();
@@ -277,7 +386,9 @@ export default function CalendarScreen() {
   const setCategoryVisibility = usePlannerPreferencesStore((s) => s.setCategoryVisibility);
 
   const [plannerDistribution, setPlannerDistribution] = useState<PlannerFullDistributionResponse | null>(null);
+  const [loadedMonthKeys, setLoadedMonthKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [viewDate, setViewDate] = useState(() => new Date());
@@ -290,12 +401,19 @@ export default function CalendarScreen() {
   const [detailMounted, setDetailMounted] = useState(false);
 
   const detailProgress = useSharedValue(0);
+  const skeletonPulse = useSharedValue(0.72);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadingMonthKeysRef = useRef<Set<string>>(new Set());
+  const loadingDetailKeysRef = useRef<Set<string>>(new Set());
 
   const months = useMemo(() => t('calendar.months').split(','), [t]);
   const shortDays = useMemo(() => t('calendar.shortDays').split(','), [t]);
+  const plannerLocale = useMemo(
+    () => ((i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
+    [i18n.language, i18n.resolvedLanguage],
+  );
   const backendWindowEnd = useMemo(
-    () => getBackendWindowEndDate(BACKEND_MONTHS_AHEAD),
+    () => getBackendWindowEndDate(INITIAL_BACKEND_MONTHS_AHEAD),
     [],
   );
 
@@ -357,45 +475,155 @@ export default function CalendarScreen() {
     }
   }, []);
 
-  const fetchPlannerData = useCallback(async () => {
+  useEffect(() => {
+    skeletonPulse.value = withRepeat(
+      withTiming(0.34, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
+    return () => {
+      cancelAnimation(skeletonPulse);
+    };
+  }, [skeletonPulse]);
+
+  const fetchPlannerChunk = useCallback(async (params: {
+    monthsAhead?: number;
+    startDate?: string;
+    endDate?: string;
+    responseMode?: 'GRID_ONLY' | 'FULL';
+    categories?: PlannerCategory[];
+    replace?: boolean;
+    monthKeyHint?: string;
+    suppressError?: boolean;
+    skipLoadingState?: boolean;
+    skipErrorReset?: boolean;
+    preferCache?: boolean;
+    forceRefresh?: boolean;
+  }) => {
     const userId = user?.id;
     if (!userId || !chart) return;
 
-    setIsLoading(true);
-    setError(null);
+    if (params.monthKeyHint && loadingMonthKeysRef.current.has(params.monthKeyHint)) {
+      return;
+    }
+    if (params.monthKeyHint) {
+      loadingMonthKeysRef.current.add(params.monthKeyHint);
+    }
+
+    if (!params.skipLoadingState) {
+      setIsLoading(true);
+    }
+    if (!params.skipErrorReset) {
+      setError(null);
+    }
 
     try {
       const response = await fetchPlannerFullDistribution({
         userId,
-        monthsAhead: BACKEND_MONTHS_AHEAD,
+        monthsAhead: params.monthsAhead,
         userGender: user?.gender,
+        locale: plannerLocale,
+        responseMode: params.responseMode ?? 'FULL',
+        categories: params.categories,
+        startDate: params.startDate,
+        endDate: params.endDate,
+      }, {
+        preferCache: params.preferCache,
+        forceRefresh: params.forceRefresh,
       });
-      setPlannerDistribution(response.data);
+
+      setPlannerDistribution((prev) => (
+        params.replace ? response.data : mergePlannerDistributions(prev, response.data)
+      ));
+
+      const monthKeysFromResponse = extractLoadedMonthKeys(response.data);
+      setLoadedMonthKeys((prev) => Array.from(new Set([...prev, ...monthKeysFromResponse])));
     } catch (err: any) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
         const msg = err.response?.data?.message as string | undefined;
-        if (status === 404 && msg?.includes('Natal chart not found')) {
-          setError(t('calendar.errors.natalChartNotFound'));
-        } else if (status === 400) {
-          setError(msg || t('calendar.errors.invalidRequest'));
-        } else {
-          setError(t('calendar.errors.serviceUnavailable'));
+        if (!params.suppressError) {
+          if (status === 404 && msg?.includes('Natal chart not found')) {
+            setError(t('calendar.errors.natalChartNotFound'));
+          } else if (status === 400 || status === 422) {
+            setError(msg || t('calendar.errors.invalidRequest'));
+          } else {
+            setError(t('calendar.errors.serviceUnavailable'));
+          }
         }
       } else {
-        setError(t('calendar.errors.connectionError'));
+        if (!params.suppressError) {
+          setError(t('calendar.errors.connectionError'));
+        }
       }
     } finally {
-      setIsLoading(false);
+      if (params.monthKeyHint) {
+        loadingMonthKeysRef.current.delete(params.monthKeyHint);
+      }
+      if (!params.skipLoadingState) {
+        setIsLoading(false);
+      }
     }
-  }, [user?.id, user?.gender, chart, t]);
+  }, [user?.id, user?.gender, chart, plannerLocale, t]);
 
-  const fetchedRef = useRef(false);
+  const fetchPlannerData = useCallback(async () => {
+    setPlannerDistribution(null);
+    setLoadedMonthKeys([]);
+    loadingMonthKeysRef.current.clear();
+
+    const currentMonthDate = new Date();
+    const nextMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1);
+    const currentMonthBounds = getMonthBounds(currentMonthDate);
+    const nextMonthBounds = getMonthBounds(nextMonthDate);
+
+    // First render the current month quickly; prefetch the next month in a separate request
+    // so we don't hit gateway timeout with a single heavy 2-month computation.
+    await fetchPlannerChunk({
+      startDate: currentMonthBounds.startDate,
+      endDate: currentMonthBounds.endDate,
+      responseMode: 'GRID_ONLY',
+      replace: true,
+      monthKeyHint: currentMonthBounds.monthKey,
+    });
+
+    void fetchPlannerChunk({
+      startDate: nextMonthBounds.startDate,
+      endDate: nextMonthBounds.endDate,
+      responseMode: 'GRID_ONLY',
+      monthKeyHint: nextMonthBounds.monthKey,
+      suppressError: true,
+      skipLoadingState: true,
+      skipErrorReset: true,
+    });
+  }, [fetchPlannerChunk]);
+
+  const fetchPlannerMonth = useCallback(async (date: Date) => {
+    const { startDate, endDate, monthKey } = getMonthBounds(date);
+    if (loadedMonthKeys.includes(monthKey)) return;
+    await fetchPlannerChunk({
+      startDate,
+      endDate,
+      responseMode: 'GRID_ONLY',
+      monthKeyHint: monthKey,
+    });
+  }, [fetchPlannerChunk, loadedMonthKeys]);
+
+  const lastFetchKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!chart || !user?.id || fetchedRef.current) return;
-    fetchedRef.current = true;
+    if (!chart || !user?.id) return;
+    const fetchKey = `${user.id}:${plannerLocale}:${chart.calculatedAt ?? chart.id ?? 'chart'}`;
+    if (lastFetchKeyRef.current === fetchKey) return;
+    lastFetchKeyRef.current = fetchKey;
     void fetchPlannerData();
-  }, [chart, user?.id, fetchPlannerData]);
+  }, [chart, user?.id, plannerLocale, fetchPlannerData]);
+
+  useEffect(() => {
+    if (!chart || !user?.id) return;
+    if (!plannerDistribution && loadedMonthKeys.length === 0) return;
+    const currentMonthKey = toMonthKey(viewDate);
+    if (loadedMonthKeys.includes(currentMonthKey)) return;
+    void fetchPlannerMonth(viewDate);
+  }, [viewDate, loadedMonthKeys, fetchPlannerMonth, chart, user?.id, plannerDistribution]);
 
   const monthCells = useMemo(() => buildMonthGrid(viewDate), [viewDate]);
 
@@ -419,19 +647,35 @@ export default function CalendarScreen() {
   const getInsightForDate = useCallback((date: Date, category: PlannerCategoryDefinition): PlannerInsight => {
     const dateKey = toDateKey(date);
     const backendAction = backendInsightsByDate[dateKey]?.[category.id];
+    const interestTags = new Set(personalization.interestTags);
+
     if (backendAction) {
       const score = clamp(backendAction.score);
-      const signalSeed = Math.max(1, backendAction.supportingAspects.length);
+      const fallbackInsight = buildPlannerInsight({
+        date,
+        category,
+        userId: user?.id,
+        interestTags,
+        cards: [],
+        backendWindowEnd,
+        locale: plannerLocale,
+      });
+      const detailReady = hasBackendActionDetails(backendAction);
+      const supportingAspects = detailReady
+        ? backendAction.supportingAspects
+        : (fallbackInsight.supportingAspects ?? []);
+      const signalSeed = Math.max(1, supportingAspects.length);
+
       return {
         score,
         tone: toneFromScore(score),
         source: 'backend',
-        reason: backendAction.reasoning,
-        dos: backendAction.dos,
-        donts: backendAction.donts,
-        supportingAspects: backendAction.supportingAspects,
-        mercuryRetrograde: backendAction.mercuryRetrograde,
-        moonPhase: backendAction.moonPhase,
+        reason: detailReady ? backendAction.reasoning : fallbackInsight.reason,
+        dos: detailReady ? backendAction.dos : fallbackInsight.dos,
+        donts: detailReady ? backendAction.donts : fallbackInsight.donts,
+        supportingAspects,
+        mercuryRetrograde: backendAction.mercuryRetrograde ?? fallbackInsight.mercuryRetrograde,
+        moonPhase: backendAction.moonPhase || fallbackInsight.moonPhase,
         signals: {
           transit: clamp(score + signalSeed * 2),
           house: clamp(score - 4 + signalSeed),
@@ -440,8 +684,6 @@ export default function CalendarScreen() {
       };
     }
 
-    const interestTags = new Set(personalization.interestTags);
-
     return buildPlannerInsight({
       date,
       category,
@@ -449,8 +691,9 @@ export default function CalendarScreen() {
       interestTags,
       cards: [],
       backendWindowEnd,
+      locale: plannerLocale,
     });
-  }, [backendInsightsByDate, user?.id, interestKey, backendWindowEnd]);
+  }, [backendInsightsByDate, user?.id, interestKey, backendWindowEnd, plannerLocale]);
 
   const insightsByDate = useMemo<Record<string, InsightByCategory>>(() => {
     const map: Record<string, InsightByCategory> = {};
@@ -526,25 +769,34 @@ export default function CalendarScreen() {
       insights.reduce((sum, item) => sum + item.insight.score, 0) / insights.length,
     );
 
-    const tones = Array.from(
-      new Set(
-        insights
-          .map((item) => item.insight.tone)
-          .sort((a, b) => tonePriority(b) - tonePriority(a)),
-      ),
-    ).slice(0, 3) as PlannerTone[];
+    const hasWarning = insights.some((item) => item.insight.score < 58 || item.insight.tone === 'warning');
+    const hasStrongLuck = insights.some((item) => item.insight.score >= (averageScore < 55 ? 90 : 80));
+    const hasSpiritual = insights.some((item) => item.insight.tone === 'spiritual' && item.insight.score >= 45);
 
-    const top = insights.reduce((best, current) => {
+    const tones: PlannerTone[] = [];
+    if (hasWarning) tones.push('warning');
+    if ((averageScore >= 55 && hasStrongLuck) || (averageScore >= 35 && averageScore < 55 && hasStrongLuck)) {
+      tones.push('luck');
+    }
+    if (hasSpiritual && tones.length < 3) tones.push('spiritual');
+    if (!tones.length) tones.push(toneFromScore(averageScore));
+
+    const best = insights.reduce((best, current) => {
       if (!best) return current;
       return current.insight.score > best.insight.score ? current : best;
     }, insights[0]);
+    const worst = insights.reduce((best, current) => {
+      if (!best) return current;
+      return current.insight.score < best.insight.score ? current : best;
+    }, insights[0]);
+    const featured = averageScore < 50 ? worst : best;
 
     return {
       score: averageScore,
-      tones,
+      tones: tones.slice(0, 3),
       isPredicted: insights.every((item) => item.insight.source === 'predicted'),
-      selectedInsight: top.insight,
-      topCategory: top.category,
+      selectedInsight: featured.insight,
+      topCategory: featured.category,
     };
   }, [visibleCategories, insightsByDate, getInsightForDate]);
 
@@ -578,17 +830,65 @@ export default function CalendarScreen() {
     if (!selectedCategory) return t('calendar.filters.all');
     return t(selectedCategory.labelKey);
   }, [selectedCategory, t]);
+  const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
+  const selectedBackendAction = useMemo(
+    () => (selectedCategory ? backendInsightsByDate[selectedDateKey]?.[selectedCategory.id] : undefined),
+    [backendInsightsByDate, selectedDateKey, selectedCategory],
+  );
+  const selectedDetailPending = !!selectedBackendAction && !hasBackendActionDetails(selectedBackendAction);
+  const showDetailSkeleton = selectedDetailPending || isDetailLoading;
+
+  useEffect(() => {
+    if (!detailMounted) return;
+    if (!selectedCategory) return;
+
+    const dateKey = toDateKey(selectedDate);
+    const backendAction = backendInsightsByDate[dateKey]?.[selectedCategory.id];
+    if (hasBackendActionDetails(backendAction)) return;
+
+    const backendCategory = LOCAL_CATEGORY_TO_BACKEND[selectedCategory.id];
+    if (!backendCategory) return;
+
+    const requestKey = `${dateKey}:${backendCategory}:${plannerLocale}`;
+    if (loadingDetailKeysRef.current.has(requestKey)) return;
+    loadingDetailKeysRef.current.add(requestKey);
+    setIsDetailLoading(true);
+
+    void fetchPlannerChunk({
+      startDate: dateKey,
+      endDate: dateKey,
+      responseMode: 'FULL',
+      categories: [backendCategory],
+      skipLoadingState: true,
+      suppressError: true,
+      skipErrorReset: true,
+    }).finally(() => {
+      loadingDetailKeysRef.current.delete(requestKey);
+      setIsDetailLoading(false);
+    });
+  }, [
+    detailMounted,
+    selectedDate,
+    selectedCategory,
+    backendInsightsByDate,
+    plannerLocale,
+    fetchPlannerChunk,
+  ]);
 
   const actionables = useMemo(
     () => ({
-      dos: selectedSummary.selectedInsight?.dos?.length
+      dos: selectedDetailPending
+        ? []
+        : selectedSummary.selectedInsight?.dos?.length
         ? selectedSummary.selectedInsight.dos
         : buildActionables(t, selectedCategoryLabel, selectedSummary.score).dos,
-      donts: selectedSummary.selectedInsight?.donts?.length
+      donts: selectedDetailPending
+        ? []
+        : selectedSummary.selectedInsight?.donts?.length
         ? selectedSummary.selectedInsight.donts
         : buildActionables(t, selectedCategoryLabel, selectedSummary.score).donts,
     }),
-    [t, selectedCategoryLabel, selectedSummary.score, selectedSummary.selectedInsight],
+    [t, selectedCategoryLabel, selectedSummary.score, selectedSummary.selectedInsight, selectedDetailPending],
   );
 
   const trendPoints = useMemo<TrendPoint[]>(() => {
@@ -641,6 +941,9 @@ export default function CalendarScreen() {
       },
     ],
   }));
+  const skeletonPulseStyle = useAnimatedStyle(() => ({
+    opacity: skeletonPulse.value,
+  }));
 
   const headerSubtitle = useMemo(() => {
     if (!selectedSummary.selectedInsight) return t('calendar.modelEstimated');
@@ -677,11 +980,11 @@ export default function CalendarScreen() {
     setCategoryVisibility(categoryId, !currentlyVisible);
   }, [hiddenCategoryIds, visibleCategories.length, setCategoryVisibility]);
 
-  const plannerEndDate = useMemo(
-    () => (plannerDistribution?.endDate ? new Date(plannerDistribution.endDate) : backendWindowEnd),
-    [plannerDistribution?.endDate, backendWindowEnd],
+  const selectedDateHasBackendData = useMemo(
+    () => !!backendInsightsByDate[toDateKey(selectedDate)],
+    [backendInsightsByDate, selectedDate],
   );
-  const isBeyondBackendWindow = selectedDate > plannerEndDate;
+  const isBeyondBackendWindow = !selectedDateHasBackendData;
 
   if (!chart) {
     return (
@@ -1102,29 +1405,73 @@ export default function CalendarScreen() {
 
             <Text style={styles.listTitle}>{t('calendar.dosTitle')}</Text>
             <View style={styles.actionList}>
-              {actionables.dos.map((line) => (
-                <View key={`do-${line}`} style={styles.doCard}>
-                  <Text style={styles.doText}>✅ {line}</Text>
-                </View>
-              ))}
+              {showDetailSkeleton ? (
+                <>
+                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                    <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
+                    <View style={styles.skeletonLines}>
+                      <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
+                      <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                    </View>
+                  </Animated.View>
+                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                    <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
+                    <View style={styles.skeletonLines}>
+                      <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
+                    </View>
+                  </Animated.View>
+                </>
+              ) : (
+                actionables.dos.map((line) => (
+                  <View key={`do-${line}`} style={styles.doCard}>
+                    <Text style={styles.doText}>✅ {line}</Text>
+                  </View>
+                ))
+              )}
             </View>
 
             <Text style={styles.listTitle}>{t('calendar.dontsTitle')}</Text>
             <View style={styles.actionList}>
-              {actionables.donts.map((line) => (
-                <View key={`dont-${line}`} style={styles.dontCard}>
-                  <Text style={styles.dontText}>❌ {line}</Text>
-                </View>
-              ))}
+              {showDetailSkeleton ? (
+                <>
+                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                    <View style={[styles.skeletonIconPill, styles.skeletonDontAccent]} />
+                    <View style={styles.skeletonLines}>
+                      <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
+                      <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
+                    </View>
+                  </Animated.View>
+                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                    <View style={[styles.skeletonIconPill, styles.skeletonDontAccent]} />
+                    <View style={styles.skeletonLines}>
+                      <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                    </View>
+                  </Animated.View>
+                </>
+              ) : (
+                actionables.donts.map((line) => (
+                  <View key={`dont-${line}`} style={styles.dontCard}>
+                    <Text style={styles.dontText}>❌ {line}</Text>
+                  </View>
+                ))
+              )}
             </View>
 
             <View style={styles.whyBlock}>
               <Text style={styles.whyTitle}>{t('calendar.whyTitle')}</Text>
-              <Text style={styles.whyText}>
-                {t('calendar.whyTemplate', {
-                  reason: selectedSummary.selectedInsight?.reason ?? t('calendar.whyFallback'),
-                })}
-              </Text>
+              {showDetailSkeleton ? (
+                <Animated.View style={[styles.skeletonWhyWrap, skeletonPulseStyle]}>
+                  <View style={[styles.skeletonLine, styles.skeletonWhyLine1]} />
+                  <View style={[styles.skeletonLine, styles.skeletonWhyLine2]} />
+                  <View style={[styles.skeletonLine, styles.skeletonWhyLine3]} />
+                </Animated.View>
+              ) : (
+                <Text style={styles.whyText}>
+                  {t('calendar.whyTemplate', {
+                    reason: selectedSummary.selectedInsight?.reason ?? t('calendar.whyFallback'),
+                  })}
+                </Text>
+              )}
             </View>
 
             <View style={styles.sheetFooterRow}>
@@ -1812,12 +2159,67 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderWidth: 1,
       borderColor: isDark ? 'rgba(252,74,74,0.24)' : 'rgba(224,84,84,0.2)',
     },
+    skeletonActionCard: {
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: C.surfaceSoft,
+      borderWidth: 1,
+      borderColor: C.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    skeletonIconPill: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      borderWidth: 1,
+    },
+    skeletonDoAccent: {
+      backgroundColor: isDark ? 'rgba(46,204,113,0.18)' : 'rgba(22,163,74,0.14)',
+      borderColor: isDark ? 'rgba(46,204,113,0.28)' : 'rgba(22,163,74,0.2)',
+    },
+    skeletonDontAccent: {
+      backgroundColor: isDark ? 'rgba(252,74,74,0.18)' : 'rgba(224,84,84,0.14)',
+      borderColor: isDark ? 'rgba(252,74,74,0.28)' : 'rgba(224,84,84,0.2)',
+    },
+    skeletonLines: {
+      flex: 1,
+      gap: 6,
+    },
+    skeletonLine: {
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(148,163,184,0.26)' : 'rgba(148,163,184,0.22)',
+    },
+    skeletonLineLong: {
+      width: '88%',
+    },
+    skeletonLineMid: {
+      width: '64%',
+    },
+    skeletonLineShort: {
+      width: '52%',
+    },
+    skeletonWhyWrap: {
+      gap: 8,
+    },
     dontText: {
       color: C.red,
       fontSize: 12,
       lineHeight: 17,
       fontWeight: '600',
       fontFamily: UI_FONT,
+    },
+    skeletonWhyLine1: {
+      width: '96%',
+    },
+    skeletonWhyLine2: {
+      width: '82%',
+    },
+    skeletonWhyLine3: {
+      width: '67%',
     },
     whyBlock: {
       marginTop: 10,

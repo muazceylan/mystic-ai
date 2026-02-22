@@ -28,7 +28,8 @@ spring:
       # HTTP Client configuration for WebSocket support
       httpclient:
         connect-timeout: 5000
-        response-timeout: 60s
+        # Planner full-distribution requests can exceed 60s on first computation/cache warmup.
+        response-timeout: 180s
         pool:
           type: elastic
           max-connections: 1000

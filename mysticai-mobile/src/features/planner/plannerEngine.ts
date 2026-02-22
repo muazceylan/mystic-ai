@@ -3,6 +3,7 @@ import { UserProfile } from '../../store/useAuthStore';
 
 export type PlannerAudience = 'male' | 'female' | 'universal';
 export type PlannerTone = 'warning' | 'luck' | 'spiritual';
+export type PlannerLocale = 'tr' | 'en';
 export type PlannerTag =
   | 'investment'
   | 'travel'
@@ -61,7 +62,7 @@ export interface PlannerInsight {
   signals: PlannerSignals;
 }
 
-const DEFAULT_MOON_PHASES = [
+const DEFAULT_MOON_PHASES_EN = [
   'Waxing Crescent',
   'First Quarter',
   'Waxing Gibbous',
@@ -70,6 +71,17 @@ const DEFAULT_MOON_PHASES = [
   'Last Quarter',
   'Waning Crescent',
   'New Moon',
+];
+
+const DEFAULT_MOON_PHASES_TR = [
+  'Hilal (Büyüyen)',
+  'İlk Dördün',
+  'Şişkin Ay (Büyüyen)',
+  'Dolunay',
+  'Şişkin Ay (Küçülen)',
+  'Son Dördün',
+  'Hilal (Küçülen)',
+  'Yeni Ay',
 ];
 
 const GOAL_ASPECT_LIBRARY: Record<GoalCategory, string[]> = {
@@ -319,8 +331,62 @@ function findLuckyDateCard(cards: LuckyDateCard[], date: Date): LuckyDateCard | 
   return cards.find((card) => toDateKey(card.date) === target);
 }
 
-function estimateMoonPhase(seed: number): string {
-  return DEFAULT_MOON_PHASES[seed % DEFAULT_MOON_PHASES.length] ?? 'Waxing Crescent';
+function normalizePlannerLocale(locale?: string): PlannerLocale {
+  return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
+function estimateMoonPhase(seed: number, locale: PlannerLocale): string {
+  const phases = locale === 'en' ? DEFAULT_MOON_PHASES_EN : DEFAULT_MOON_PHASES_TR;
+  return phases[seed % phases.length] ?? (locale === 'en' ? 'Waxing Crescent' : 'Hilal (Büyüyen)');
+}
+
+function isNewMoonPhase(phase: string): boolean {
+  const p = phase.toLowerCase();
+  return p.includes('new moon') || p.includes('yeni ay');
+}
+
+function isWaxingMoonPhase(phase: string): boolean {
+  const p = phase.toLowerCase();
+  return p.includes('waxing') || p.includes('büyüyen');
+}
+
+function isFullMoonPhase(phase: string): boolean {
+  const p = phase.toLowerCase();
+  return p.includes('full moon') || p.includes('dolunay');
+}
+
+function localizeCategoryIdForText(category: PlannerCategoryDefinition, locale: PlannerLocale): string {
+  const id = category.id.replace(/_/g, ' ');
+  if (locale === 'en') return id;
+  return ({
+    transit: 'transit',
+    moon: 'ay',
+    beauty: 'güzellik',
+    health: 'sağlık',
+    activity: 'aktivite',
+    official: 'resmi',
+    spiritual: 'manevi',
+    color: 'renk',
+    recommendations: 'öneriler',
+  } as Record<string, string>)[category.id] ?? id;
+}
+
+function localizePredictedAspect(aspect: string, locale: PlannerLocale): string {
+  if (locale === 'en') return aspect;
+  return aspect
+    .replaceAll('Sun', 'Güneş')
+    .replaceAll('Moon', 'Ay')
+    .replaceAll('Mercury', 'Merkür')
+    .replaceAll('Venus', 'Venüs')
+    .replaceAll('Jupiter', 'Jüpiter')
+    .replaceAll('Saturn', 'Satürn')
+    .replaceAll('Mars', 'Mars')
+    .replaceAll('Midheaven', 'Tepe Noktası')
+    .replaceAll('Descendant', 'Alçalan')
+    .replaceAll('House', 'Ev')
+    .replaceAll('Trine', 'Üçgen')
+    .replaceAll('Sextile', 'Sekstil')
+    .replaceAll('Conjunction', 'Kavuşum');
 }
 
 function countHouseSignals(reason: string): number {
@@ -378,12 +444,13 @@ function derivePredictedSignals(
 function buildPredictedAspects(
   category: PlannerCategoryDefinition,
   seed: string,
+  locale: PlannerLocale,
 ): string[] {
   const bank = GOAL_ASPECT_LIBRARY[category.backendGoal];
   const hash = hashSeed(seed);
   return [
-    bank[hash % bank.length] ?? bank[0] ?? 'Sun Trine Moon',
-    bank[(hash + 1) % bank.length] ?? bank[1] ?? 'Jupiter Sextile Venus',
+    localizePredictedAspect(bank[hash % bank.length] ?? bank[0] ?? 'Sun Trine Moon', locale),
+    localizePredictedAspect(bank[(hash + 1) % bank.length] ?? bank[1] ?? 'Jupiter Sextile Venus', locale),
   ];
 }
 
@@ -391,55 +458,136 @@ function buildPredictedReason(
   date: Date,
   category: PlannerCategoryDefinition,
   score: number,
+  locale: PlannerLocale,
 ): string {
-  const day = date.toLocaleDateString('en-US', { weekday: 'long' });
+  const day = date.toLocaleDateString(locale === 'en' ? 'en-US' : 'tr-TR', { weekday: 'long' });
+  const categoryText = localizeCategoryIdForText(category, locale);
   if (score >= 80) {
-    return `${day} carries high alignment for ${category.id.replace(/_/g, ' ')} actions.`;
+    return locale === 'en'
+      ? `${day} carries high alignment for ${categoryText} actions.`
+      : `${day} günü ${categoryText} alanında yüksek uyum taşıyor.`;
   }
   if (score >= 55) {
-    return `${day} supports gradual progress; use disciplined timing for ${category.id.replace(/_/g, ' ')}.`;
+    return locale === 'en'
+      ? `${day} supports gradual progress; use disciplined timing for ${categoryText}.`
+      : `${day} günü kademeli ilerlemeyi destekler; ${categoryText} için disiplinli zamanlama kullan.`;
   }
-  return `${day} is volatile for ${category.id.replace(/_/g, ' ')}. Prefer planning over action.`;
+  return locale === 'en'
+    ? `${day} is volatile for ${categoryText}. Prefer planning over action.`
+    : `${day} günü ${categoryText} için dalgalı olabilir. Eylem yerine planı öne al.`;
 }
 
 function buildPredictedActions(
   category: PlannerCategoryDefinition,
   score: number,
+  locale: PlannerLocale,
 ): { dos: string[]; donts: string[] } {
-  const label = category.id.replace(/_/g, ' ');
-  if (score >= 80) {
+  const label = localizeCategoryIdForText(category, locale);
+  if (score >= 90) {
     return {
-      dos: [
-        `High-impact ${label} tasks can be executed today.`,
-        'Time-block your first 90 minutes for one clear move.',
-      ],
-      donts: [
-        'Do not split focus across too many priorities.',
-        'Avoid impulsive decisions without a final review.',
-      ],
+      dos: locale === 'en'
+        ? [
+          `High-impact ${label} tasks can be executed today.`,
+          'Time-block your first 90 minutes for one clear move.',
+          'Use the strongest window for visible outcomes or key conversations.',
+        ]
+        : [
+          `${label} alanında yüksek etkili işleri bugün öne alabilirsin.`,
+          'İlk 90 dakikayı tek net hamle için blokla.',
+          'Güçlü pencereyi görünür çıktı veya önemli görüşme için kullan.',
+        ],
+      donts: locale === 'en'
+        ? ['Do not skip final checks just because momentum is high.']
+        : ['Momentum yüksek diye son kontrolleri atlama.'],
+    };
+  }
+  if (score >= 70) {
+    return {
+      dos: locale === 'en'
+        ? [
+          `Use today to advance and optimize your ${label} plan.`,
+          'Run a quality check before critical commitments.',
+          'Bundle similar tasks to preserve focus.',
+        ]
+        : [
+          `Bugünü ${label} planını ilerletmek ve optimize etmek için kullan.`,
+          'Kritik taahhütlerden önce kalite kontrol yap.',
+          'Odak kaybını azaltmak için benzer işleri grupla.',
+        ],
+      donts: locale === 'en'
+        ? [
+          'Avoid over-committing to new items.',
+          'Do not skip detail review on important tasks.',
+        ]
+        : [
+          'Yeni taahhütleri gereksiz artırma.',
+          'Önemli işlerde detay kontrolünü atlama.',
+        ],
     };
   }
   if (score >= 50) {
     return {
-      dos: [
-        `Use today to prepare and optimize your ${label} plan.`,
-        'Run a quality check before critical commitments.',
-      ],
-      donts: [
-        'Avoid over-committing to new items.',
-        'Do not skip detail review on important tasks.',
-      ],
+      dos: locale === 'en'
+        ? [
+          `Use today to prepare and optimize your ${label} plan.`,
+          'Work with smaller steps and confirmations.',
+        ]
+        : [
+          `Bugünü ${label} planını hazırlamak ve optimize etmek için kullan.`,
+          'Küçük adımlar ve teyitlerle ilerle.',
+        ],
+      donts: locale === 'en'
+        ? [
+          'Avoid over-committing to new items.',
+          'Do not skip detail review on important tasks.',
+          'Do not rush decisions with incomplete information.',
+        ]
+        : [
+          'Yeni taahhütleri gereksiz artırma.',
+          'Önemli işlerde detay kontrolünü atlama.',
+          'Eksik veriyle acele karar verme.',
+        ],
     };
   }
-  return {
-    dos: [
-      'Keep the day in observation and low-risk execution mode.',
-      'Focus on one small but concrete improvement.',
-    ],
-    donts: [
+
+  const lowScoreActivityCaution = category.id === 'activity'
+    ? (locale === 'en'
+      ? 'Avoid high-intensity activities; prefer light, restorative plans.'
+      : 'Yüksek yoğunluklu aktivitelerden kaçın; hafif ve toparlayıcı planları tercih et.')
+    : null;
+  const lowScoreOfficialCaution = category.id === 'official'
+    ? (locale === 'en'
+      ? 'Postpone critical signatures and formal submissions if possible.'
+      : 'Kritik imza ve resmi başvuruları mümkünse ertele.')
+    : null;
+
+  const donts = locale === 'en'
+    ? [
       'Avoid irreversible signatures or high-risk spending.',
       `Do not force major ${label} decisions today.`,
-    ],
+      'Avoid emotional overreactions and overloaded schedules.',
+      ...(lowScoreActivityCaution ? [lowScoreActivityCaution] : []),
+      ...(lowScoreOfficialCaution ? [lowScoreOfficialCaution] : []),
+    ]
+    : [
+      'Geri dönüşü zor imza ve yüksek riskli harcamalardan kaçın.',
+      `Bugün büyük ${label} kararlarını zorlamayın.`,
+      'Duygusal aşırılık ve aşırı yoğun programa girme.',
+      ...(lowScoreActivityCaution ? [lowScoreActivityCaution] : []),
+      ...(lowScoreOfficialCaution ? [lowScoreOfficialCaution] : []),
+    ];
+
+  return {
+    dos: locale === 'en'
+      ? [
+        'Keep the day in observation and low-risk execution mode.',
+        'Focus on one small but concrete improvement.',
+      ]
+      : [
+        'Günü gözlem ve düşük riskli uygulama modunda tut.',
+        'Küçük ama somut bir iyileştirmeye odaklan.',
+      ],
+    donts,
   };
 }
 
@@ -457,13 +605,15 @@ export function buildPlannerInsight(params: {
   interestTags: Set<PlannerTag>;
   cards: LuckyDateCard[];
   backendWindowEnd: Date;
+  locale?: string;
 }): PlannerInsight {
   const { date, category, userId, interestTags, cards, backendWindowEnd } = params;
+  const locale = normalizePlannerLocale(params.locale);
   const dateKey = toDateKey(date);
   const seed = `${dateKey}:${category.id}:${userId ?? 0}`;
   const dayHash = hashSeed(seed);
   const card = date <= backendWindowEnd ? findLuckyDateCard(cards, date) : undefined;
-  const moonPhase = card?.moonPhase ?? estimateMoonPhase(dayHash);
+  const moonPhase = card?.moonPhase ?? estimateMoonPhase(dayHash, locale);
   const mercuryRetrograde = card?.mercuryRetrograde ?? (category.backendGoal === 'CONTRACT' && dayHash % 11 === 0);
 
   const signals = card
@@ -477,9 +627,9 @@ export function buildPlannerInsight(params: {
   );
   const baseScore = card?.successScore ?? Math.round((signals.transit + signals.house + signals.natal) / 3);
   const moonBonus =
-    moonPhase.toLowerCase().includes('new') ? 8
-      : moonPhase.toLowerCase().includes('waxing') ? 4
-        : moonPhase.toLowerCase().includes('full') ? -4
+    isNewMoonPhase(moonPhase) ? 8
+      : isWaxingMoonPhase(moonPhase) ? 4
+        : isFullMoonPhase(moonPhase) ? -4
           : 0;
   const interestBoost = category.tags.some((tag) => interestTags.has(tag)) ? 6 : 0;
   const retroPenalty = mercuryRetrograde ? 10 : 0;
@@ -487,18 +637,18 @@ export function buildPlannerInsight(params: {
   const score = clamp(
     Math.round(baseScore * 0.52 + signalScore * 0.48 + moonBonus + interestBoost - retroPenalty),
   );
-  const actionables = buildPredictedActions(category, score);
+  const actionables = buildPredictedActions(category, score, locale);
 
   return {
     score,
     tone: toneFromScore(score, category.tone),
     source: card ? 'backend' : 'predicted',
-    reason: card?.reason ?? buildPredictedReason(date, category, score),
+    reason: card?.reason ?? buildPredictedReason(date, category, score, locale),
     dos: actionables.dos,
     donts: actionables.donts,
     supportingAspects: card?.supportingAspects?.length
       ? card.supportingAspects
-      : buildPredictedAspects(category, seed),
+      : buildPredictedAspects(category, seed, locale),
     mercuryRetrograde,
     moonPhase,
     signals,
