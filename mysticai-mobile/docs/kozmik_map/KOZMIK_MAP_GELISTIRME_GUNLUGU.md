@@ -1111,3 +1111,717 @@ Sonuç:
 - üst kart yüksekliği azaldı
 - scroll alanı rahatladı
 - kullanıcı ilk bakışta temel bilgileri daha hızlı tarayabiliyor
+
+### 10.18 Tasarım Refactor (Frontend Designer Pass): Astro Atlas Düzeni
+
+Kullanıcı geri bildirimi sonrası `Kozmik Harita` üst alanı ve sayfanın üst hiyerarşisi yeniden tasarlandı.
+
+#### 10.18.1 Tasarım Yönü
+
+Yeni görsel yaklaşım:
+- **Astro Atlas / Dossier** dili
+- koyu başlık plakası + açık içerik gövdesi
+- veriyi "tek bakışta okunur" bloklara ayıran editoryal kart sistemi
+
+Amaç:
+- sadece minimal değil, karakterli ve profesyonel bir görünüm
+- bilgi yoğunluğunu korurken göz yorgunluğunu azaltmak
+
+#### 10.18.2 Kozmik Harita Hero Kartı Baştan Tasarlandı
+
+`NatalChartHeroCard` yeniden yazıldı:
+- koyu üst başlık plakası (`KOZMİK HARİTA DOSYASI`)
+- isim / temel kimlik satırı
+- `Yer` + `Sistem (Tropikal • Placidus)` meta chip'leri
+- `Kozmik İmza` paneli (Güneş / Ay / Yükselen için daha şık satır kartları)
+- hızlı metrikler:
+  - `Gezegen`
+  - `Ev`
+  - `Açı`
+- teknik akordiyonlara yönlendiren daha profesyonel alt not
+
+Not:
+- hero içi natal wheel önizlemesi hâlâ kapalı (`showWheelPreview=false`) ve teknik akordiyona bırakılmıştır.
+
+#### 10.18.3 Sayfa Üst Yapısı Yeniden Stilize Edildi
+
+`natal-chart` üst kabuğunda görsel hiyerarşi iyileştirildi:
+- `fixedTopStack` spacing ve separator çizgisi güncellendi
+- `scrollContent` spacing daha okunabilir ritme çekildi
+- `Kozmik Harita Profilleri` kartı daha editoryal/premium kart görünümüne geçirildi
+- profil kartına meta tag satırı eklendi:
+  - toplam profil sayısı
+  - mod durumu (`Okuma modu` / `Karşılaştırma modu • x/2 seçili`)
+
+#### 10.18.4 Karşılaştırma Alanı Görsel Dili Güncellendi
+
+Karşılaştırma bloğu (`compareCard`) üst bölüm stil güncellemesi:
+- kart kenar/zemin dengesi iyileştirildi
+- başlık Türkçeleştirilmiş ve sadeleştirilmiş:
+  - `Sinastri / Synastry` → `Sinastri Atölyesi`
+- çağrı butonu daha güçlü kontrastlı koyu tonlu CTA haline getirildi
+
+Sonuç:
+- sayfanın üst kısmı artık tek tek eklenmiş kartlar gibi değil, aynı tasarım ailesine ait bir ürün ekranı gibi görünür
+- kozmik harita bölümü daha profesyonel ve "tasarlanmış" bir kimlik kazandı
+
+### 10.19 Scroll Kurtarma (Sticky Kozmik Harita + Doğal Kaybolan Profil Kartı)
+
+Kritik hata düzeltmesi:
+- kullanıcı `scroll` hareketinin çalışmadığını bildirdi
+
+Kök neden:
+- üstteki büyük sabit alan (`fixedTopStack`) scroll dışında kaldığı için kullanıcı hero/profil kartı üzerinden kaydırma başlatınca sayfa tepkisiz hissediliyordu
+
+Yapısal çözüm:
+- `Kozmik Harita Profilleri` kartı artık **scroll içinde** yer alır (en üstte)
+- kullanıcı aşağı kaydırdığında kart doğal olarak yukarı kayıp görünümden çıkar
+- en üste dönünce doğal olarak tekrar görünür
+- `Kozmik Harita` hero kartı scroll içine alındı ve `stickyHeader` olarak sabitlendi
+
+Teknik uygulama:
+- `MainVerticalScroll` içine:
+  1. profil kartı
+  2. sticky `NatalChartHeroCard`
+  3. compare + akordiyon içerikleri
+- `stickyHeaderIndices={chart ? [1] : []}`
+- eski scroll-state ile profil kartı gizleme (`showProfileSwitcherOnTop`) mantığı kaldırıldı
+
+Sonuç:
+- kaydırma hareketi hero kartın üzerinden de başlatılabilir
+- `Kozmik Harita` kartı görünür kalma hedefi korunur (sticky)
+- profil kartı ekstra state yönetimi olmadan kaybolup geri gelir
+
+### 10.20 Yıldız Harita Bilgileri (Açılır/Kapanır Hero + Etkileşim Köprüleri)
+
+Kullanıcı geri bildirimine göre üst hero kartı yeniden güncellendi:
+
+#### 10.20.1 İsim Değişikliği ve Varsayılan Durum
+
+- `KOZMİK HARİTA DOSYASI` → `YILDIZ HARİTA BİLGİLERİ`
+- kart artık açılır/kapanır yapıdadır
+- varsayılan durum **kapalı** (özet başlık görünür, detay gövde gizli)
+- profil değiştiğinde tekrar kapalıya döner
+
+#### 10.20.2 Renk Dili (Uygulama Paletine Uyum)
+
+Koyu/siyah başlık plakasının yerine uygulamanın tema renkleri kullanıldı:
+- `primaryTint`
+- `violetBg`
+- `card / surfaceAlt`
+- tema metin/border renkleri
+
+Amaç:
+- mevcut ürün renk sistemine daha iyi uyum
+- üst bölümde sert siyah blok etkisini kaldırmak
+
+#### 10.20.3 Teknik Terim Çevirisi
+
+`System - Tropical Placidus` ifadesi kullanıcı dostu Türkçeye çevrildi:
+- `Harita Sistemi`
+- `Tropikal Zodyak • Placidus Ev Sistemi`
+
+#### 10.20.4 Big Three Etkileşimi (Hero İçinden Detaya Git)
+
+`Kozmik İmza` bölümündeki:
+- Güneş
+- Ay
+- Yükselen
+
+satırlarına dokunulduğunda mevcut Big Three detay bottom sheet'i açılır.
+
+#### 10.20.5 Metrik Kısayolları (Gezegen / Ev / Açı)
+
+Hero karttaki metrik chip'leri etkileşimli hale getirildi:
+- `12 Gezegen` → `Gezegen Konumları` akordiyonuna gider ve açar
+- `12 Ev` → `Ev Konumları` akordiyonuna gider ve açar
+- `22 Açı` → `Gezegensel Açılar` akordiyonuna gider ve açar
+
+Teknik not:
+- hedef akordiyon önce açılır
+- ardından kayıtlı layout bilgisi üzerinden `scrollTo` ile ilgili bölüme kaydırılır
+- sticky hero yüksekliği hesaba katılarak üstte görünür pozisyon ayarlanır
+
+### 10.21 Karşılaştırma / Sinastri Atölyesi Profesyonel Revizyonu
+
+Bu fazda karşılaştırma modülü hem teknik stabilizasyon hem de anlatım kalitesi açısından yeniden ele alındı.
+
+#### 10.21.1 `Eksenler yüklenemedi` Hatası İçin Güvenli Fallback
+
+`MatchTraitsService` içinde trait ekseni üretim hattı (scoring + notes + card axes) herhangi bir sebeple hata verirse endpoint artık `500` düşürmek yerine fallback payload döndürür.
+
+Kazanımlar:
+- Karşılaştırma ekranı tamamen kırılmaz
+- Kullanıcı kart üretmeye devam edebilir
+- Log üzerinden hata takibi korunur
+
+#### 10.21.2 Sinastri Panelinde Ham Açı Listesi Yerine Anlamlandırılmış İçgörü Kartları
+
+`Öne Çıkan Çapraz Açılar` alanı yeniden tasarlandı:
+- yeni başlık: `Çapraz Etkileşimlerin İlişkiye Yansıması`
+- her açı için:
+  - iki taraflı gezegen eşleşmesi
+  - tema etiketi (çekim / zihinsel akış / duygusal güven vb.)
+  - ilişkiye etkisi (samimi ve yorumlayıcı dil)
+  - yönetim notu (uygulamalı öneri)
+
+Amaç:
+- `Güneş Üçgen Ay` gibi ifadeyi sadece teknik veri olmaktan çıkarıp "ikiniz arasında ne üretiyor?" sorusuna cevap vermek
+
+#### 10.21.3 `Yıldız Analizleri` Bölümünü İki Tarafı Karşılaştıran Yapıya Taşıma
+
+Her analiz akordiyonunun içinde yeni `İki Taraf Nasıl Çalışıyor?` paneli eklendi:
+- `Kişi A` tarafında baskın gezegen temaları
+- `Kişi B` tarafında baskın gezegen temaları
+- ortak dinamik / denge notu
+
+Bu sayede kullanıcı yalnızca "ilişkide ne var" değil, "kim hangi taraftan bu dinamiği taşıyor" bilgisini de okur.
+
+#### 10.21.4 Anlamsız Metodoloji Notu Kaldırıldı
+
+Backend `SynastryScoreBreakdown.methodologyNote` alanındaki:
+- `AI yorumu geldikçe anlatım derinleşir`
+
+ifadesi kaldırıldı (`null` döndürülüyor) ve mobilde ilgili render da gösterilmez hale getirildi.
+
+#### 10.21.5 Match Sonuç Ekranında Sade Mod (Graceful Degradation)
+
+Trait endpoint geçici hata verirse:
+- kırmızı hata kartı yerine uyarı + `sade mod` gösterilir
+- yerel (fallback) kategori eksenleri render edilir
+- kullanıcı `Detay eksenleri tekrar dene` ile yeniden deneyebilir
+
+Bu yaklaşım, kullanıcı deneyimini hata ekranına kilitlemek yerine akışı sürdürür.
+
+#### 10.21.6 `Yıldız Kartımızı Oluştur` Kart Tasarımı (Instagram-Ready)
+
+Paylaşım kartı (`MatchCard`) baştan tasarlandı:
+- premium / editoryal kompozisyon
+- krem-altın-mavi rafine palet
+- daha güçlü tipografik hiyerarşi
+- daha temiz kişi karşılaştırma düzeni
+- merkezde `Kozmik Uyum` madalyonu
+- özet + karşılaştırmalı eksenler dengeli yerleşim
+
+Amaç:
+- Instagram feed paylaşımında daha "premium ürün" hissi
+- daha az dağınık, daha yüksek okunabilirlik
+
+### 10.22 Karşılaştırma Modülü Stabilizasyonu (Revizyon 2)
+
+Kullanıcı geri bildirimi sonrası sinastri ekranı ikinci kez iyileştirildi:
+
+#### 10.22.1 Detay Eksenler İçin Controller-Seviyesi Güvenli Fallback
+
+`MatchTraitsController` artık trait endpoint zincirinde oluşabilecek hatalarda doğrudan `200` + fallback `MatchTraitsResponse` döndürür.
+
+Amaç:
+- `Eksenler yüklenemedi` gibi kırmızı hata deneyimini azaltmak
+- ana sinastri analizi akışını durdurmamak
+
+#### 10.22.2 Frontend’de Broken Detay Eksen Bölümünü Zorla Göstermeme
+
+Trait endpoint hata verirse:
+- detay eksen kartları render edilmez
+- bunun yerine kısa bir bilgilendirme kartı görünür
+- kullanıcı isterse `Tekrar dene` ile endpoint'i yeniden çağırabilir
+
+Not:
+- Yıldız kartı üretimi için minimal eksen fallback verisi arka planda korunur
+
+#### 10.22.3 `Çapraz Etkileşimlerin İlişkiye Yansıması` Alt Akordiyon Yapısı
+
+Bu bölümdeki her etkileşim kartı alt-akordiyona çevrildi:
+- başlıkta açı özeti
+- kısa meta (iki taraf + tema)
+- açıldığında:
+  - ilişki dinamiği açıklaması
+  - karşılaştırmalı yorum
+  - ilişki yönetimi notu
+
+Amaç:
+- ekranın bir anda fazla uzamasını önlemek
+- kullanıcının tek tek odaklanarak okumasını sağlamak
+
+#### 10.22.4 `Yıldız Kartı` Tasarımı (Revizyon 2)
+
+Önceki paylaşım kartı tasarımı kullanıcı tarafından zayıf bulunduğu için yeniden tasarlandı:
+- yeni tema: `obsidian / petrol / bakır`
+- yeni tipografi: `Cochin + AvenirNext` (platform fallback’li)
+- daha sade ama premium görsel hiyerarşi
+- performans için kart içi mini eksen render (hafif custom row), ağır component bağımlılığı azaltıldı
+
+### 10.23 Yıldız Kartı (Referans Tasarıma Uyumlu Neon Sinastri Kartı)
+
+Kullanıcının paylaştığı referans görseller doğrultusunda `Yıldız Kartı` üçüncü kez yeniden tasarlandı.
+
+#### 10.23.1 İlişki Türüne Göre Dinamik Kart Başlığı
+
+Kart üst başlığı artık seçilen karşılaştırma tipine göre otomatik değişir:
+- `LOVE` → `EŞ UYUMU • SYNASTRY KARTI`
+- `FRIENDSHIP` → `ARKADAŞLIK UYUMU • SYNASTRY KARTI`
+- `BUSINESS` → `İŞ ORTAKLIĞI UYUMU • SYNASTRY KARTI`
+- `FAMILY` → `AİLE UYUMU • SYNASTRY KARTI`
+- `RIVAL` → `REKABET DİNAMİĞİ • SYNASTRY KARTI`
+
+#### 10.23.2 Kart İçeriği Artık Karşılaştırma Sonucundan Beslenir
+
+Yıldız kartı draft’ına şu veriler taşındı:
+- `relationshipType`
+- `scoreBreakdown` (`overall`, `love`, `communication`, `spiritualBond`)
+
+Bu sayede kart içindeki metrikler ve panel başlıkları karşılaştırma türüne göre anlamlı hale gelir.
+
+#### 10.23.3 Referans Görsele Yakın Neon Galaksi Stil
+
+Yeni tasarım özellikleri:
+- pembe/mor neon galaksi arka plan
+- parlak kalp merkez kompozisyonu
+- büyük script isim satırı
+- neon skor bandı (`GENEL UYUM`)
+- 2x2 insight panel düzeni
+
+#### 10.23.4 Performans Notu
+
+Paylaşım kartı üretiminde daha stabil capture için:
+- kart içi mini eksenler custom hafif component ile çizildi
+- ağır bar component yerine kısa/neon track yapısı kullanıldı
+- hesaplanan panel/metrik içerikleri `useMemo` ile üretildi
+
+### 10.24 Yıldız Kartı Tekrar Açılış Bug Fix
+
+Sorun:
+- `Yıldız Kartı Önizleme` ekranından geri dönüldüğünde kart draft verisi unmount sırasında store'dan temizleniyordu.
+- Aynı karşılaştırma sonucu için `MatchResultScreen` tekrar render olmadığı için draft yeniden yazılmıyordu.
+- Sonuç: ikinci kez tıklamada kart oluşmuyordu.
+
+Çözüm:
+- `MatchCardPreviewScreen` unmount cleanup içindeki `clearDraft()` kaldırıldı.
+- Draft verisi kullanıcı geri dönse bile korunur; aynı kart tekrar açıldığında yeniden capture/generate çalışır.
+
+### 10.25 Yıldız Kartı Boyut / Ton / iOS Fotoğraf İzni Fix
+
+#### 10.25.1 Kart Kesilme Hissi İçin Boyut Artırımı
+
+Yıldız kartı dikey kompozisyonu uzatıldı:
+- kart render boyutu: `360x450` → `360x540`
+- capture export boyutu: `1080x1350` → `1080x1620`
+- preview aspect ratio: `4:5` → `2:3`
+
+Amaç:
+- panel içeriklerinin daha rahat yerleşmesi
+- kartın alt bölümünün sıkışık/kesik görünmemesi
+
+#### 10.25.2 Üstteki Özet Metin Satırı Kaldırıldı
+
+İsim satırının altında görünen kısa özet cümlesi (örn. "Bu iki haritanın uyumu...") kart üst alanından kaldırıldı.
+
+Neden:
+- kullanıcı geri bildirimine göre görsel hiyerarşiyi bozuyordu
+- referans tasarımdaki temiz üst alan estetiğini engelliyordu
+
+#### 10.25.3 Daha Light Neon Ton
+
+Kart arka plan ve panel renkleri daha açık/pastel-neon tona çekildi:
+- ana gradient daha parlak mor/pembe
+- panel yüzeyleri ve border'lar daha aydınlık
+- preview background tonu açıldı
+
+#### 10.25.4 iOS Galeriye Kaydetme Crash Fix (`Info.plist`)
+
+`expo-media-library` kullanımı için iOS izin açıklama metinleri `app.json` içine eklendi:
+- `NSPhotoLibraryUsageDescription`
+- `NSPhotoLibraryAddUsageDescription`
+
+Not:
+- Bu değişiklikten sonra iOS build’in yeniden alınması gerekir (hot reload yetmez).
+
+### 10.26 Resmi İlişki Metrikleri (Backend Source of Truth)
+
+Frontend’de türetilen (heuristic) kart metrikleri yerine backend kaynaklı resmi ilişki metrikleri eklendi.
+
+#### 10.26.1 Backend: `displayMetrics` Alanı
+
+`SynastryResponse` içine yeni alan eklendi:
+- `displayMetrics[]` (`id`, `label`, `score`)
+
+Bu metrikler ilişki tipine göre backend `SynastryService` tarafından rule-based hesaplanır.
+
+#### 10.26.2 İlişki Tipine Göre Resmi Metrik Setleri
+
+Örnekler:
+- `LOVE`: Aşk / İletişim / Güven / Tutku
+- `FRIENDSHIP`: Eğlence / İletişim / Güven / Destek
+- `BUSINESS`: İş Birliği / İletişim / Strateji / Güven
+- `FAMILY`: Şefkat / İletişim / Güven / Dayanışma
+- `RIVAL`: Rekabet / Strateji / Odak / Gerilim
+
+#### 10.26.3 Frontend Kullanımı (Kart + Sinastri Panel + Sonuç Ekranı)
+
+Resmi metrikler artık sadece paylaşım kartında değil, şu alanlarda da gösterilir:
+- `MatchResultScreen` (özetin altında)
+- `SynastryProPanel` (skor grid altında)
+- `Yıldız Kartı` (`displayMetrics` varsa frontend fallback yerine bunları kullanır)
+
+#### 10.26.4 Fallback Stratejisi
+
+Backend `displayMetrics` yoksa:
+- mevcut frontend fallback (heuristic) metrik hesapları devreye girer
+- kullanıcı arayüzü boş kalmaz
+
+### 10.27 Yıldız Kartı Tasarım Yenileme (Pastel / Lila Referans Stil)
+
+Kullanıcının paylaştığı açık tonlu referans görsele göre `Yıldız Kartı` (synastry share card) görsel dili yeniden düzenlendi.
+
+#### 10.27.1 Tasarım Yönü
+
+- Neon/pembe ağırlıklı koyu görünüm yerine açık pastel lila tema
+- Yumuşak galaksi dokusu + parlak yıldız/sparkle detayları
+- Cam panel (glass-card) hissi veren yarı saydam bilgi kutuları
+- Daha zarif başlık hiyerarşisi ve okunabilir kontrast
+
+#### 10.27.2 Korunan Dinamikler
+
+Sadece görsel katman değiştirildi; aşağıdaki dinamik davranışlar korunur:
+- ilişki tipine göre başlık (`Eş Uyumu`, `Arkadaşlık Uyumu` vb.)
+- backend kaynaklı resmi `displayMetrics`
+- karşılaştırma sonucuna göre panel içerikleri (`buildPanels`)
+- kişi adları / burçlar / açı sayısı / skorlar
+
+#### 10.27.3 Teknik Not
+
+`MatchCard.tsx` içinde:
+- arka plan SVG kompozisyonu (sparkle/hearts/clouds) yeniden çizildi
+- skor bandı gradient kapsül formuna getirildi
+- metrik ve içgörü panelleri pastel temaya uygun yeniden stillendi
+- footer etiket metninde `LOVE` için hashtag `#aşk` kullanımı güncellendi
+
+### 10.28 Yıldız Kartı Kesilme / Yerleşim Revizyonu
+
+Kullanıcı geri bildirimi doğrultusunda kartın üst kompozisyonu sadeleştirildi ve kesilme hissini azaltmak için kart yüksekliği artırıldı.
+
+#### 10.28.1 Değişiklikler
+
+- Kart yüksekliği `540 -> 620` artırıldı
+- Kart önizleme/capture oranı yeni yüksekliğe göre güncellendi
+- Üstteki özet cümle (`"Bu iki haritanın uyumu..."` tipi satır) kaldırıldı
+- Merkezdeki büyük kalp görseli kaldırıldı
+- İsim bloğu ile skor kapsülü arasına daha temiz dekoratif boşluk bırakıldı (referans görsele daha yakın kompozisyon)
+
+#### 10.28.2 Capture/Preview Güncellemesi
+
+- hidden render canvas: `360x620`
+- export output: `1080x1860`
+- preview aspect ratio: `360/620`
+
+### 10.29 Yıldız Kartı Tipografi ve Boşluk İnce Ayarı
+
+Kullanıcı geri bildirimine göre:
+- İsimler ile `Genel Uyum` kapsülü arasındaki boşluk azaltıldı
+- Kartın alt bölümündeki küçük metinler (metrik satırı, panel içerikleri, footer yazıları) büyütüldü
+
+Amaç: mobil önizlemede daha az “boşluk kaybı” ve daha okunur paylaşım kartı.
+
+### 10.30 Yıldız Kartı Alt Taşma (Bottom Clipping) Düzeltmesi
+
+- Kart yüksekliği tekrar artırıldı: `620 -> 660`
+- Alt alana kontrollü boşluk bırakmak için footer sonrası ekstra spacer eklendi
+- Capture/export/preview oranları yeni yüksekliğe göre güncellendi (`1080x1980`, `360x660`)
+
+Amaç: alt footer/metinlerin kesilmeden görünmesi ve altta küçük bir nefes alanı bırakılması.
+
+### 10.31 Yıldız Kartı Panel İçi Düzen (Başlığa Özel Layout)
+
+Kullanıcı talebine göre paylaşım kartındaki 4 bilgi paneli, özellikle `LOVE` (eş/aşk uyumu) kartında başlığa özel görsel düzen ile render edilir hale getirildi.
+
+#### 10.31.1 LOVE Kartı Özel Panel Düzeni
+
+- `Sevgi Dili`: iki kişi için ayrı satır (`Ad: ifade biçimi`) + vurgu balonu
+- `Duygusal Bağ`: `Güçlü yanlarınız` satırı + `Altın kural` balonu + dipnot
+- `Çekim & Tutku`: kısa açıklama + `Dikkat` balonu + dipnot
+- `Güven & Bağlılık`: güven cümlesi + `İstikrarı besleyen anahtar` balonu + dipnot
+
+#### 10.31.2 Dinamik Veri Kaynağı
+
+Bu özel layout statik metin değildir; içerik şu kaynaklardan türetilir:
+- `traitAxes` (dominant/balancing etiketleri ve notları)
+- `overallScore`
+- `cardSummary / aiSummary`
+
+Diğer ilişki tiplerinde mevcut generic panel render fallback’i korunur.
+
+### 10.32 Yıldız Kartı Önizleme Alt Detay Tasarımı (Kısa Özet Bilgiler)
+
+`Yıldız Kartı Önizleme` ekranında kartın altında kısa özet bilgiler için tasarlanmış bir bilgi bloğu eklendi.
+
+#### 10.32.1 İçerik
+
+- `Kart Türü` / `Genel Uyum` / `Açı Sayısı` hızlı özet pill’leri
+- Backend kaynaklı resmi `displayMetrics` skor rozetleri (varsa)
+- `Öne Çıkan Tema` ve `Dikkat Notu` mini kartları
+
+#### 10.32.2 Veri Kaynağı
+
+Özet bilgiler şu kaynaklardan türetilir:
+- `draft.displayMetrics`
+- `draft.traitAxes`
+- `draft.cardSummary` / `draft.aiSummary`
+
+Amaç: kullanıcı kartı paylaşmadan önce, kartın ne anlattığını kısa ve okunur şekilde görsün.
+
+### 10.33 Yıldız Kartı: Tüm İlişki Tipleri İçin Özel Panel Düzeni
+
+`LOVE` kartında uygulanan başlığa özel panel düzeni, diğer ilişki tiplerine de genişletildi.
+
+#### 10.33.1 Özel Düzen Eklenen Kart Tipleri
+
+- `FRIENDSHIP`: `Ortak İlgi`, `Eğlence Tarzı`, `Güven & Sırlar`, `Destek & Şefkat`
+- `BUSINESS`: `Ortak Hedef`, `Karar & İletişim`, `Rol Dağılımı`, `Güven & Sorumluluk`
+- `FAMILY`: `Şefkat Dili`, `Ev İçi Ritim`, `Duygu & İletişim`, `Dayanışma`
+- `RIVAL`: `Rekabet Dili`, `Zihinsel Oyun`, `Gerilim Noktası`, `Kazanma Stratejisi`
+
+#### 10.33.2 Tasarım Mantığı
+
+Her kart tipi için paneller artık:
+- kişi bazlı satır düzeni (`duo`) gereken yerlerde
+- `lead + callout + footnote` yapısı gereken yerlerde
+- ilişki tipine uygun dil (arkadaşlık/iş/aile/rekabet) ile
+
+render edilir. İçerik statik değildir; `traitAxes`, `summary` ve skorlar üzerinden üretilir.
+
+### 10.34 Yıldız Kartı Önizleme Temizliği ve Arkadaşlık Kartı Metin Kısaltma
+
+Kullanıcı geri bildirimi sonrası iki düzeltme yapıldı:
+
+#### 10.34.1 Önizleme Alt Detay Bloğu Kaldırıldı
+
+`Yıldız Kartı Önizleme` ekranına eklenen `Kısa Özet Bilgiler` bloğu kaldırıldı.
+
+Gerekçe:
+- kullanıcı beklentisi kartın kendisine odaklanmak
+- ekstra bilgi bloğunun yanlış anlaşılması (kart içi panel metinleriyle karışması)
+
+#### 10.34.2 FRIENDSHIP Panel Metinleri Kısaltıldı
+
+`Arkadaşlık Uyumu` kartındaki şu panellerde metinler paylaşım kartına daha uygun olacak şekilde kısaltıldı:
+- `Ortak İlgi`
+- `Eğlence Tarzı`
+- `Güven & Sırlar`
+- `Destek & Şefkat`
+
+Özellikle:
+- vurgu cümleleri
+- `callout`
+- `footnote`
+
+daha kısa, daha okunur mikro-kopyaya çevrildi.
+
+### 10.35 Tüm İlişki Tiplerinde Mikro-Kopya Sıkılaştırma + Alt Boşluk Düzeltmesi
+
+Kullanıcı geri bildirimi sonrası iki iyileştirme birlikte yapıldı:
+
+#### 10.35.1 Tüm İlişki Tiplerinde Panel Metinleri Kısaltıldı
+
+Sadece `FRIENDSHIP` değil, tüm kart tiplerinde panel metinleri paylaşım kartına uygun olacak şekilde sıkılaştırıldı:
+- `LOVE`
+- `FRIENDSHIP`
+- `BUSINESS`
+- `FAMILY`
+- `RIVAL`
+- generic fallback panel render
+
+Özellikle:
+- lead / callout / footnote metinleri
+- panel içi clip limitleri
+- generic fallback açıklama cümleleri
+
+daha kısa ve daha okunur hale getirildi.
+
+#### 10.35.2 Kart Alt Taşma Tekrar Düzeltildi (Boşluk Bırakılarak)
+
+- kart yüksekliği artırıldı: `660 -> 720`
+- alt footer spacer büyütüldü (bilinçli nefes alanı için)
+- preview/capture/export oranları güncellendi:
+  - `360x720`
+  - `1080x2160`
+
+Amaç: alt metinlerin kesilmemesi ve footer altında küçük bir boşluk kalması.
+
+### 10.36 Sinastri Stabilizasyonu + Hero Scroll Davranışı + Kişi Ekleme (Cinsiyet)
+
+Bu fazda kullanıcı geri bildirimine göre sinastri detay eksenleri, çapraz etkileşim akordiyon başlık taşması, `Yıldız Harita Bilgileri` scroll davranışı ve kişi ekleme formu birlikte iyileştirildi.
+
+#### 10.36.1 `Detay Eksenler` Geçici Uyarısı Kaldırıldı (Kalıcı Degrade)
+
+- `MatchResultScreen` içindeki `Detay eksenler geçici olarak kapatıldı` uyarı kartı kaldırıldı.
+- Trait endpoint hata verse bile frontend artık kategori kartlarını rule-based fallback ile göstermeye devam ediyor.
+- Sadece veri hiç yoksa nötr durum kartı gösteriliyor; hata varsa küçük `Tekrar dene` butonu kalıyor.
+
+#### 10.36.2 Kök Sebep Analizi ve Backend Çözümü
+
+Asıl kırılma noktası:
+- `MatchTraitsService` içinde kategori skorlama + LLM not üretimi aynı `try/catch` içindeydi.
+- `LlmNotesService` hata verdiğinde tüm trait response boş dönüyor, UI hata akışına düşüyordu.
+
+Kalıcı çözüm:
+- kategori skorlama rule-based olarak her durumda çalışır
+- LLM not üretimi ayrı `try/catch` içine alındı
+- LLM patlarsa kategoriler ve kart eksenleri notsuz ama dolu şekilde dönmeye devam eder
+
+#### 10.36.3 `Çapraz Etkileşimlerin İlişkiye Yansıması` Başlık Taşma Fix
+
+Ekran görüntüsündeki dikey harf-harf yazılma sorunu için:
+- `AccordionSection` başlık/subtitle alanına `minWidth: 0` ve `numberOfLines` sınırları eklendi
+- header sağ badge alanı daraltıldı / shrink davranışı düzeltildi
+- sonuç: başlıklar dar cihazlarda dikey kolon gibi kırılmıyor
+
+#### 10.36.4 `Yıldız Harita Bilgileri` + Profil Kartı Scroll Davranışı
+
+- `12 gezegen / 12 ev / 22 açı` metriklerine tıklanınca:
+  - `Kozmik Harita Profilleri` gizlenir
+  - `Yıldız Harita Bilgileri` otomatik kapanır
+  - ilgili akordiyon (`Gezegen Konumları / Ev Konumları / Gezegen Açılar`) açılır
+  - scroll otomatik olarak hedef bölüme gider
+- `Yıldız Harita Bilgileri` açıkken kullanıcı aşağı kaydırırsa kart otomatik kapanır
+- `Kozmik Harita Profilleri` scroll ile yukarıdan kaybolur, en üste dönünce tekrar görünür
+
+#### 10.36.5 Kişi Ekleme Formu (Local Picker Odaklı UX + Cinsiyet)
+
+- kişi ekleme akışında konum seçimi yerel liste odaklı moda alındı (Google Places öneri akışı devre dışı)
+- il/ilçe seçiminde liste tabanlı seçim ve arama akışı korundu
+- forma `Cinsiyet (Opsiyonel)` alanı eklendi
+
+Yeni cinsiyet alanı:
+- kayıtlı kişi verisine kaydedilir (`saved_persons.gender`)
+- karşılaştırma isteğine taşınır (`SynastryRequest.userGender`)
+- AI ilişki analizi prompt’unda `Kişi A / Kişi B cinsiyet` bağlamı olarak kullanılır (hitap tonu amaçlı)
+
+#### 10.36.6 Backend/Mobile Sözleşme Güncellemeleri
+
+- `SavedPersonRequest.gender`
+- `SavedPersonResponse.gender`
+- `SavedPersonResponse.relationshipType` (frontend uyumluluğu için alias)
+- `SynastryRequest.userGender`
+- DB migration: `V5__Add_Gender_To_Saved_Persons.sql`
+
+#### 10.36.7 Scroll Top'ta Profil/Kişi Ekle Kartının Geri Görünmeme Fix'i
+
+Kullanıcı geri bildirimi sonrası:
+- `Kozmik Harita Profilleri` kartı artık koşullu render ile DOM’dan kaldırılmıyor
+- üstte sabit bir slot içinde tutulup yükseklik/opacity ile gizleniyor
+
+Amaç:
+- sticky header index kaymasını önlemek
+- scroll en üste gelindiğinde `Kişi Ekle` alanının garanti şekilde tekrar görünmesi
+
+#### 10.36.8 Sinastri Akordiyon Header Redesign (Mobil Taşma Fix)
+
+Sinastri modülünde dar ekranlarda görülen:
+- başlığın harf harf alt alta kırılması
+- badge’lerin başlıkla üst üste binmesi
+
+sorunları için akordiyon header yapısı yeniden tasarlandı.
+
+Değişiklikler:
+- `AccordionSection` bileşenine `headerMeta` alanı eklendi
+- durum badge’leri sağ sütundan alınarak başlık/subtitle altındaki ayrı satıra taşındı
+- `Çapraz Etkileşimlerin İlişkiye Yansıması` kartlarında orb etiketi kısa forma geçirildi (`Çok güçlü` vb.)
+- `Karşılaştırmalı Yıldız Analizleri` alt başlıklarında tone/score badge’leri wrap destekli hale getirildi
+
+Sonuç:
+- mobil ekranda başlık okunurluğu arttı
+- badge taşmaları/üst üste binme problemi giderildi
+
+#### 10.36.9 Hero Metriklerinden Akordiyonlara Zorunlu Scroll Fix'i
+
+`12 Gezegen / 12 Ev / 22 Açı` metriklerine tıklanınca:
+- ilgili akordiyonun açık kalması
+- layout animasyonu sırasında doğru scroll konumuna inmesi
+
+için `jumpToAccordionSection` güçlendirildi.
+
+Teknik yaklaşım:
+- hedef akordiyon `openAccordionKey` ile zorunlu açılır
+- tek sefer yerine çoklu zamanlanmış scroll denemesi yapılır (`40 / 140 / 280 / 460 / 700ms`)
+- hedef layout geç oluşsa bile sonraki denemelerde doğru konuma iner
+- son aşamada `measureLayout` ile hedef akordiyon wrapper'ı scroll container'a göre doğrudan ölçülür (daha kesin odak)
+
+Ek iyileştirme:
+- scroll hedefi sadece üst hizalama değil, görünür alanın orta bandına gelecek şekilde hesaplanır
+- böylece açılan akordiyon gövdesi ekranın altında kalma sorunu azalır
+
+Sonraki ince ayar:
+- kullanıcı geri bildirimi üzerine hedefleme `orta` yerine `üst-orta` banda çekildi
+- metrik tıklaması sonrası akordiyon header’ı daha yukarıda konumlanır, içerik daha görünür kalır
+
+Ek scroll odak düzeltmesi:
+- akordiyon hedef koordinatı sadece iç kart `onLayout` verisine bırakılmadı
+- wrapper seviyesinde (liste içi gerçek sıra konumu) layout ölçümü eklenerek scroll hedefi düzeltildi
+- amaç: `12 Gezegen / 12 Ev / 22 Açı` tıklamalarında yanlış bölgeye odaklanma sorununu azaltmak
+
+#### 10.36.10 Kişi Ekleme > Doğum Lokasyonu Alanı Sadeleştirme (Frontend Redesign)
+
+Kullanıcı geri bildirimi doğrultusunda `Doğum Lokasyonu` alanı yeniden tasarlandı:
+
+- üstteki tekrar eden klasik form satırları (`İl / Şehir`, `İlçe`) kaldırıldı
+- daha sade bir `Konum Seçimi` kartı eklendi
+- kart içinde:
+  - `Ülke` seçim kartı
+  - yan yana `İl / Şehir` ve `İlçe` seçim kartları
+  - `Seçilen Doğum Lokasyonu` özet kutusu
+
+Amaç:
+- aynı bilgiyi iki kez gösteren satırları kaldırmak
+- seçim akışını mobile-first, daha okunur ve daha az kalabalık hale getirmek
+- inline liste picker ile uyumlu tek bir seçim deneyimi sağlamak
+
+Ek UX iyileştirmesi:
+- `İl / Şehir` (ve local picker açılan diğer adımlar) tıklandığında modal içi scroll otomatik olarak inline liste paneline iner
+- kullanıcı listeyi görmek için aşağı kaydırmak zorunda kalmaz
+
+#### 10.36.11 Kişi Ekleme > Konum Picker Scroll ve Metin Sadeleştirme
+
+Yeni kullanıcı geri bildirimi doğrultusunda `Kişi Ekle` modalındaki konum seçim akışı sadeleştirildi ve auto-scroll davranışı güçlendirildi:
+
+- `İl / Şehir` tıklamasında inline liste paneline scroll hedefi artırıldı
+- sabit `+28px` yerine modal viewport yüksekliğine göre dinamik offset kullanılıyor
+- hedef artık daha aşağıya (ekran orta bandına yakın) kayar, liste bölümü daha görünür açılır
+
+Metin sadeleştirmesi:
+- `Doğum Lokasyonu` alan etiketi kaldırıldı
+- `Liste Tabanlı Konum Seçimi` bilgi kartı kaldırıldı
+- konum alanı yalnızca `Konum Seçimi` kartı üzerinden ilerleyen daha temiz bir hiyerarşiyle bırakıldı
+
+#### 10.36.12 AI Yorum Dil Temizliği ve Paragraf Ayrıştırma Düzeltmesi
+
+Kullanıcı geri bildirimi üzerine `AI Yorumu` bölümünde görülen İngilizce kalıntılar ve hatalı paragraf ayrımı düzeltildi:
+
+- UI öncesi astroloji terimi çevirisine ek olarak anlatım düzeyi İngilizce bağlaç/zarf temizliği eklendi
+  - örn. `sometimes`, `however`, `socially`, `emotionally` gibi kalıntılar Türkçeye çevrilir
+- fallback AI yorum bloklarında `Paragraf X` gibi teknik subtitle etiketleri kaldırıldı
+- `Analiz Katmanı X` subtitle etiketleri kaldırıldı
+- uzun metinler tek blok yerine daha doğal paragraf grupları halinde render edilir
+- tek satır sonu ile gelen LLM paragrafları normalize edilerek daha doğru bölümleme yapılır
+
+Amaç:
+- kullanıcıya tamamen Türkçeye yakın, akıcı bir AI yorum deneyimi sunmak
+- keyfi karakter kırılımı yerine daha doğal paragraf akışı sağlamak
+
+Ek bug fix (AI paragraf bölünmesi):
+- `5. ev`, `11. ev` gibi astroloji derece/ev ifadelerinde nokta cümle sonu sanıldığı için yanlış bölünme yaşanıyordu
+- cümle bölme regex'i yalnızca yeni cümle büyük harfle başlıyorsa bölünecek şekilde güncellendi
+- `Muaz'insometimes` gibi boşluksuz İngilizce kırıntılar için boşluk onarımı + ek çeviri kuralları eklendi
+
+#### 10.36.13 AI Yorumlarında Çok Dilli Artefakt Temizliği (Kök Neden + Kalıcı Fix)
+
+Kullanıcı ekran görüntüsünde görülen `poççğimiz`, `nguồnını`, `worldsine` gibi Türkçe olmayan/bozuk ifadelerin kök nedeni tespit edildi:
+
+- `natal_v2` backend normalizer JSON şemasını doğruluyordu ancak dil kalitesi/çok dilli artefakt temizliği yapmıyordu
+- frontend çeviri katmanı yalnızca astroloji terimlerini (gezegen/açı) çeviriyordu
+- bu yüzden LLM'in bazen ürettiği bozuk çok dilli tokenlar UI'a sızıyordu
+
+Kalıcı çözüm:
+- `ai-orchestrator` içinde `normalizeParagraph` ve `normalizeUiTitle` akışına `sanitizeAiLanguageArtifacts(...)` eklendi
+- yapışık iyelik+İngilizce tokenlar (`Muaz'insometimes`) ayrıştırılıp Türkçeleştiriliyor
+- gözlenen bozuk tokenlar (`worldsine`, `nguồnını`, `poççğimiz`) normalize ediliyor
+- frontend `translateAstroTermsForUi(...)` içine de aynı düzeltmeler eklendi (cache'li eski yorumları da anlık düzeltmek için)

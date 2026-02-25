@@ -8,6 +8,7 @@ import type {
   CrossAspect,
   RelationshipType,
   SynastryAnalysisSection,
+  SynastryDisplayMetric,
   SynastryResponse,
   SynastryScoreBreakdown,
 } from '../../services/synastry.service';
@@ -111,6 +112,124 @@ function toneMeta(tone: string | null | undefined, colors: ReturnType<typeof use
   }
 }
 
+function orbStrengthLabel(orb: number) {
+  if (!Number.isFinite(orb)) return 'Belirsiz orb';
+  if (orb <= 1.2) return 'Çok güçlü (yakın orb)';
+  if (orb <= 3) return 'Güçlü etki';
+  if (orb <= 5) return 'Orta güçte etki';
+  return 'Daha geniş ama hissedilir etki';
+}
+
+function orbStrengthLabelCompact(orb: number) {
+  if (!Number.isFinite(orb)) return 'Orb belirsiz';
+  if (orb <= 1.2) return 'Çok güçlü';
+  if (orb <= 3) return 'Güçlü';
+  if (orb <= 5) return 'Orta';
+  return 'Geniş orb';
+}
+
+function aspectLifeTheme(aspect: CrossAspect) {
+  const planets = [aspect.userPlanet, aspect.partnerPlanet];
+  if (planets.includes('Venus') || planets.includes('Mars')) {
+    return {
+      tag: 'Çekim ve yakınlık',
+      compare: 'Aranızdaki çekim dili, tempo ve yaklaşma biçimini belirliyor.',
+      guidance: 'Çekim yüksek olduğunda sınır ve tempo konuşması ilişkiyi korur.',
+    };
+  }
+  if (planets.includes('Mercury') || planets.includes('Jupiter')) {
+    return {
+      tag: 'Zihinsel akış',
+      compare: 'Konuşma tarzınız ve olaylara verdiğiniz anlam bu bağın yönünü etkiliyor.',
+      guidance: 'Önce niyetinizi, sonra çözüm önerinizi söylemek yanlış anlamayı azaltır.',
+    };
+  }
+  if (planets.includes('Moon') || planets.includes('Saturn') || planets.includes('Pluto')) {
+    return {
+      tag: 'Duygusal güven ve derinlik',
+      compare: 'Bir tarafın hassasiyeti diğer tarafın sınır ve yoğunluk ihtiyacıyla temas ediyor.',
+      guidance: 'Savunmaya geçmeden ihtiyaç cümlesi kurmak ilişkiyi rahatlatır.',
+    };
+  }
+  if (planets.includes('Sun')) {
+    return {
+      tag: 'Kimlik ve yön',
+      compare: 'Birlikteyken kendinizi ifade etme ve ilişkiye yön verme şekliniz öne çıkıyor.',
+      guidance: 'Rolleri netleştirmek rekabet yerine iş birliğini büyütür.',
+    };
+  }
+  return {
+    tag: 'Genel dinamik',
+    compare: 'Bu etkileşim ilişkinin tonunu ince ayarda etkileyen bir arka plan akışı oluşturuyor.',
+    guidance: 'Bu başlıktaki küçük alışkanlık değişimleri bile ilişki kalitesini yükseltebilir.',
+  };
+}
+
+function comparativeAspectNarrative(aspect: CrossAspect, personAName: string, personBName: string) {
+  const aPlanet = labelPlanet(aspect.userPlanet);
+  const bPlanet = labelPlanet(aspect.partnerPlanet);
+  const aspectLabel = translateAstroTermsForUi(aspect.aspectTurkish);
+  const theme = aspectLifeTheme(aspect);
+  const dynamic = aspect.harmonious
+    ? `${personAName} tarafındaki ${aPlanet} enerjisi ile ${personBName} tarafındaki ${bPlanet} enerjisi birbirini destekleyen bir akış kuruyor.`
+    : `${personAName} tarafındaki ${aPlanet} enerjisi ile ${personBName} tarafındaki ${bPlanet} enerjisi birbirini güçlü biçimde tetikliyor.`;
+
+  const interpretation = aspect.harmonious
+    ? 'Bu açı doğru kullanıldığında ilişkinin akışını kolaylaştırır ve ortak üretimi hızlandırır.'
+    : 'Bu açı zorlayıcı görünebilir ama doğru yönetildiğinde ilişkiyi derinleştiren bir dönüşüm alanı yaratır.';
+
+  return {
+    title: `${aPlanet} ${aspectLabel} ${bPlanet}`,
+    pairLine: `${personAName}: ${aPlanet} • ${personBName}: ${bPlanet}`,
+    tag: theme.tag,
+    dynamic,
+    compare: theme.compare,
+    interpretation,
+    guidance: theme.guidance,
+  };
+}
+
+function pickDominantPlanets(aspects: CrossAspect[], side: 'user' | 'partner') {
+  const counts = new Map<string, number>();
+  for (const aspect of aspects) {
+    const key = side === 'user' ? aspect.userPlanet : aspect.partnerPlanet;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([planet]) => labelPlanet(planet));
+}
+
+function buildComparativeSectionPanel(
+  section: SynastryAnalysisSection,
+  personAName: string,
+  personBName: string,
+) {
+  const aspects = section.aspects ?? [];
+  const userDominants = pickDominantPlanets(aspects, 'user');
+  const partnerDominants = pickDominantPlanets(aspects, 'partner');
+  const harmonious = aspects.filter((a) => a.harmonious).length;
+  const challenging = Math.max(0, aspects.length - harmonious);
+
+  const aLine = userDominants.length
+    ? `${personAName} tarafında özellikle ${userDominants.join(' ve ')} temaları bu başlıkta daha görünür çalışıyor.`
+    : `${personAName} tarafında bu başlıkta belirgin tek bir gezegen baskınlığı görünmüyor; etki daha dengeli dağılıyor.`;
+
+  const bLine = partnerDominants.length
+    ? `${personBName} tarafında özellikle ${partnerDominants.join(' ve ')} temaları ilişkiyi bu başlıkta şekillendiriyor.`
+    : `${personBName} tarafında bu başlıkta etki birden fazla gezegene dağıldığı için ritim duruma göre değişiyor.`;
+
+  const jointLine =
+    harmonious > challenging
+      ? 'Aranızdaki ortak dinamikte destekleyici açıların payı daha fazla. Birlikte hareket etmek bu başlığı hızla güçlendirir.'
+      : harmonious < challenging
+        ? 'Bu başlıkta tetikleyici açılar daha yoğun. Niyet, tempo ve sınır konuşmaları ilişki kalitesini belirler.'
+        : 'Bu başlık dengeli çalışıyor; küçük iletişim tercihleri sonucu hızlıca olumluya çevirebilir.';
+
+  return { aLine, bLine, jointLine };
+}
+
 function buildFallbackSections(aspects: CrossAspect[] | undefined | null): SynastryAnalysisSection[] {
   if (!aspects?.length) return [];
   const groups: Array<{
@@ -197,6 +316,33 @@ function ScoreTile({
         </Text>
       </View>
       {subLabel ? <Text style={[styles.scoreTileSub, { color: colors.subtext }]}>{subLabel}</Text> : null}
+    </View>
+  );
+}
+
+function OfficialMetricRow({
+  metrics,
+  colors,
+}: {
+  metrics: SynastryDisplayMetric[];
+  colors: ReturnType<typeof useTheme>['colors'];
+}) {
+  if (!metrics.length) return null;
+  return (
+    <View style={styles.officialMetricWrap}>
+      {metrics.slice(0, 4).map((metric) => (
+        <View
+          key={`official-metric-${metric.id}`}
+          style={[styles.officialMetricCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
+        >
+          <Text style={[styles.officialMetricLabel, { color: colors.subtext }]} numberOfLines={1}>
+            {metric.label}
+          </Text>
+          <Text style={[styles.officialMetricValue, { color: colors.text }]}>
+            %{clampScore(metric.score)}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -328,10 +474,96 @@ function SectionAspectList({
             {labelPlanet(aspect.userPlanet)} {translateAstroTermsForUi(aspect.aspectTurkish)} {labelPlanet(aspect.partnerPlanet)}
           </Text>
           <Text style={[styles.aspectRowMeta, { color: colors.textMuted }]}>
-            {aspect.aspectSymbol} {aspect.angle.toFixed(1)}° • orb {aspect.orb.toFixed(1)}° • {aspect.harmonious ? 'destekleyici' : 'zorlayıcı'}
+            {aspect.aspectSymbol} {orbStrengthLabel(aspect.orb)} • orb {aspect.orb.toFixed(1)}° • {aspect.harmonious ? 'destekleyen akış' : 'tetikleyici alan'}
           </Text>
         </View>
       ))}
+    </View>
+  );
+}
+
+function TopAspectInsightCards({
+  aspects,
+  colors,
+  personAName,
+  personBName,
+}: {
+  aspects: CrossAspect[];
+  colors: ReturnType<typeof useTheme>['colors'];
+  personAName: string;
+  personBName: string;
+}) {
+  const [openAspectId, setOpenAspectId] = useState<string | null>(aspects[0] ? 'aspect-0' : null);
+
+  return (
+    <View style={styles.spotlightCol}>
+      {aspects.map((aspect, idx) => {
+        const meta = comparativeAspectNarrative(aspect, personAName, personBName);
+        const id = `aspect-${idx}`;
+        const isOpen = openAspectId === id;
+        return (
+          <AccordionSection
+            key={`${aspect.userPlanet}-${aspect.aspectType}-${aspect.partnerPlanet}-${idx}`}
+            id={id}
+            title={meta.title}
+            subtitle={meta.pairLine}
+            expanded={isOpen}
+            onToggle={(sectionId) => setOpenAspectId((prev) => (prev === sectionId ? null : sectionId))}
+            icon={aspect.harmonious ? 'sparkles-outline' : 'flash-outline'}
+            headerMeta={
+              <View style={styles.spotlightHeaderBadges}>
+                <View
+                  style={[
+                    styles.spotlightTonePill,
+                    {
+                      backgroundColor: aspect.harmonious ? '#E8FFF4' : '#FFF2F2',
+                      borderColor: aspect.harmonious ? '#A7F3D0' : '#FECACA',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.spotlightTonePillText,
+                      { color: aspect.harmonious ? '#0D8B56' : '#B42318' },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {aspect.harmonious ? 'Destek' : 'Tetik'}
+                  </Text>
+                </View>
+                <View style={[styles.spotlightTonePill, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                  <Text style={[styles.spotlightTonePillText, { color: colors.textMuted }]} numberOfLines={1}>
+                    {orbStrengthLabelCompact(aspect.orb)}
+                  </Text>
+                </View>
+                <View style={[styles.spotlightTonePill, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+                  <Text style={[styles.spotlightTonePillText, { color: '#475569' }]} numberOfLines={1}>
+                    {meta.tag}
+                  </Text>
+                </View>
+              </View>
+            }
+          >
+            <View style={styles.spotlightBodyCol}>
+              <View style={styles.spotlightMetaRow}>
+                <Text style={[styles.spotlightMetaChip, { color: colors.text }]}>{meta.tag}</Text>
+                <Text style={[styles.spotlightMetaChip, { color: colors.textMuted }]}>
+                  {aspect.aspectSymbol} orb {aspect.orb.toFixed(1)}°
+                </Text>
+              </View>
+
+              <Text style={[styles.spotlightBodyText, { color: colors.subtext }]}>{meta.dynamic}</Text>
+              <Text style={[styles.spotlightBodyText, { color: colors.subtext }]}>{meta.compare}</Text>
+              <Text style={[styles.spotlightBodyStrong, { color: colors.text }]}>{meta.interpretation}</Text>
+
+              <View style={[styles.spotlightGuideBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                <Text style={[styles.spotlightGuideLabel, { color: colors.textMuted }]}>İlişki yönetimi notu</Text>
+                <Text style={[styles.spotlightGuideText, { color: colors.subtext }]}>{meta.guidance}</Text>
+              </View>
+            </View>
+          </AccordionSection>
+        );
+      })}
     </View>
   );
 }
@@ -367,6 +599,10 @@ function SynastryProPanel({
   const topAspects = useMemo(
     () => (result.crossAspects ?? []).slice().sort((a, b) => a.orb - b.orb).slice(0, 6),
     [result.crossAspects],
+  );
+  const officialMetrics = useMemo(
+    () => (result.displayMetrics ?? []).filter((m) => typeof m?.score === 'number'),
+    [result.displayMetrics],
   );
 
   const statusBadge =
@@ -407,25 +643,25 @@ function SynastryProPanel({
         <ScoreTile label="Ruhsal Bağ" value={scoreBreakdown.spiritualBond} colors={colors} subLabel="Ay / Satürn / Düğüm" />
       </View>
 
-      {scoreBreakdown.methodologyNote ? (
-        <View style={[styles.noteBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Text style={[styles.noteText, { color: colors.textMuted }]}>{scoreBreakdown.methodologyNote}</Text>
-        </View>
-      ) : null}
+      <OfficialMetricRow metrics={officialMetrics} colors={colors} />
 
       {topAspects.length > 0 ? (
         <View style={[styles.topAspectCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Text style={[styles.blockTitle, { color: colors.text }]}>Öne Çıkan Çapraz Açılar</Text>
-          <SectionAspectList aspects={topAspects} colors={colors} />
+          <Text style={[styles.blockTitle, { color: colors.text }]}>Çapraz Etkileşimlerin İlişkiye Yansıması</Text>
+          <Text style={[styles.blockSubTitle, { color: colors.subtext }]}>
+            Ham açı isimleri yerine, bu açının ikiniz arasında ne ürettiğini yorumlayan kısa içgörüler.
+          </Text>
+          <TopAspectInsightCards aspects={topAspects} colors={colors} personAName={personAName} personBName={personBName} />
         </View>
       ) : null}
 
       <View style={styles.sectionsCol}>
-        <Text style={[styles.blockTitle, { color: colors.text }]}>Yıldız Analizleri</Text>
+        <Text style={[styles.blockTitle, { color: colors.text }]}>Karşılaştırmalı Yıldız Analizleri</Text>
         {sections.map((section) => {
           const isOpen = openSectionId === section.id;
           const tone = toneMeta(section.tone, colors);
           const scoreTone = scoreChipColor(section.score, colors);
+          const comparisonPanel = buildComparativeSectionPanel(section, personAName, personBName);
           return (
             <AccordionSection
               key={section.id}
@@ -435,14 +671,18 @@ function SynastryProPanel({
               expanded={isOpen}
               onToggle={(id) => setOpenSectionId((prev) => (prev === id ? null : id))}
               icon="git-compare-outline"
-              headerRight={
+              headerMeta={
                 <View style={styles.headerBadges}>
                   <View style={[styles.inlineBadge, { backgroundColor: tone.bg, borderColor: tone.border }]}>
-                    <Text style={[styles.inlineBadgeText, { color: tone.fg }]}>{tone.label}</Text>
+                    <Text style={[styles.inlineBadgeText, { color: tone.fg }]} numberOfLines={1}>
+                      {tone.label}
+                    </Text>
                   </View>
                   {section.score != null ? (
                     <View style={[styles.inlineBadge, { backgroundColor: scoreTone.bg, borderColor: scoreTone.border }]}>
-                      <Text style={[styles.inlineBadgeText, { color: scoreTone.fg }]}>%{clampScore(section.score)}</Text>
+                      <Text style={[styles.inlineBadgeText, { color: scoreTone.fg }]} numberOfLines={1}>
+                        %{clampScore(section.score)}
+                      </Text>
                     </View>
                   ) : null}
                 </View>
@@ -452,6 +692,23 @@ function SynastryProPanel({
                 <Text style={[styles.sectionSummary, { color: colors.subtext }]}>
                   {translateAstroTermsForUi(section.summary)}
                 </Text>
+                <View style={[styles.comparePanel, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                  <Text style={[styles.comparePanelTitle, { color: colors.text }]}>İki Taraf Nasıl Çalışıyor?</Text>
+                  <View style={styles.compareBulletCol}>
+                    <View style={styles.compareBulletRow}>
+                      <View style={[styles.compareBulletDot, { backgroundColor: '#7C3AED' }]} />
+                      <Text style={[styles.compareBulletText, { color: colors.subtext }]}>{comparisonPanel.aLine}</Text>
+                    </View>
+                    <View style={styles.compareBulletRow}>
+                      <View style={[styles.compareBulletDot, { backgroundColor: '#2563EB' }]} />
+                      <Text style={[styles.compareBulletText, { color: colors.subtext }]}>{comparisonPanel.bLine}</Text>
+                    </View>
+                    <View style={styles.compareBulletRow}>
+                      <View style={[styles.compareBulletDot, { backgroundColor: '#D97706' }]} />
+                      <Text style={[styles.compareBulletText, { color: colors.subtext }]}>{comparisonPanel.jointLine}</Text>
+                    </View>
+                  </View>
+                </View>
                 <SectionAspectList aspects={section.aspects ?? []} colors={colors} />
               </View>
             </AccordionSection>
@@ -605,16 +862,26 @@ const styles = StyleSheet.create({
       fontSize: 10.5,
       lineHeight: 14,
     },
-    noteBox: {
-      borderWidth: 1,
+    officialMetricWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    officialMetricCard: {
+      width: '48%',
       borderRadius: 12,
+      borderWidth: 1,
       paddingHorizontal: 10,
       paddingVertical: 8,
+      gap: 2,
     },
-    noteText: {
-      fontSize: 11.5,
-      lineHeight: 16,
-      fontWeight: '600',
+    officialMetricLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    officialMetricValue: {
+      fontSize: 13.5,
+      fontWeight: '800',
     },
     topAspectCard: {
       borderRadius: 14,
@@ -626,19 +893,27 @@ const styles = StyleSheet.create({
       fontSize: 13.5,
       fontWeight: '800',
     },
+    blockSubTitle: {
+      marginTop: -4,
+      fontSize: 11.5,
+      lineHeight: 16,
+      fontWeight: '500',
+    },
     sectionsCol: {
       gap: 10,
     },
     headerBadges: {
       flexDirection: 'row',
       alignItems: 'center',
+      flexWrap: 'wrap',
       gap: 6,
     },
     inlineBadge: {
       borderRadius: 999,
       borderWidth: 1,
       paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingVertical: 4,
+      maxWidth: '100%',
     },
     inlineBadgeText: {
       fontSize: 10.5,
@@ -650,6 +925,40 @@ const styles = StyleSheet.create({
     sectionSummary: {
       fontSize: 12.5,
       lineHeight: 18,
+      fontWeight: '500',
+    },
+    comparePanel: {
+      borderRadius: 12,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      gap: 8,
+    },
+    comparePanelTitle: {
+      fontSize: 11.5,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    compareBulletCol: {
+      gap: 7,
+    },
+    compareBulletRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    compareBulletDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      marginTop: 4,
+      flexShrink: 0,
+    },
+    compareBulletText: {
+      flex: 1,
+      fontSize: 11.8,
+      lineHeight: 17,
       fontWeight: '500',
     },
     aspectListCol: {
@@ -681,5 +990,71 @@ const styles = StyleSheet.create({
       fontSize: 11.5,
       lineHeight: 16,
       fontWeight: '600',
+    },
+    spotlightCol: {
+      gap: 10,
+    },
+    spotlightHeaderBadges: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    spotlightTonePill: {
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 7,
+      paddingVertical: 4,
+      maxWidth: '100%',
+    },
+    spotlightTonePillText: {
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    spotlightMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    spotlightBodyCol: {
+      gap: 8,
+    },
+    spotlightMetaChip: {
+      fontSize: 10.6,
+      fontWeight: '700',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: 'rgba(148,163,184,0.08)',
+      overflow: 'hidden',
+    },
+    spotlightBodyText: {
+      fontSize: 11.8,
+      lineHeight: 17,
+      fontWeight: '500',
+    },
+    spotlightBodyStrong: {
+      fontSize: 11.8,
+      lineHeight: 17,
+      fontWeight: '700',
+    },
+    spotlightGuideBox: {
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 9,
+      paddingVertical: 8,
+      gap: 3,
+    },
+    spotlightGuideLabel: {
+      fontSize: 10.3,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    spotlightGuideText: {
+      fontSize: 11.2,
+      lineHeight: 16,
+      fontWeight: '500',
     },
 });

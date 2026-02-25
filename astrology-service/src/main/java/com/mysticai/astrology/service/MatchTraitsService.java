@@ -53,28 +53,48 @@ public class MatchTraitsService {
         }
 
         List<CrossAspect> aspects = parseCrossAspects(synastry.getCrossAspectsJson());
-        List<CategoryGroup> categories = traitScoringEngine.scoreCategories(aspects, synastry.getHarmonyScore());
+        MatchTraitsResponse response;
+        try {
+            List<CategoryGroup> categories = traitScoringEngine.scoreCategories(aspects, synastry.getHarmonyScore());
+            List<TraitAxis> allAxes = categories.stream().flatMap(g -> g.items().stream()).toList();
 
-        List<TraitAxis> allAxes = categories.stream().flatMap(g -> g.items().stream()).toList();
-        LlmNotesService.NotesResult notesResult = llmNotesService.generateNotes(allAxes, synastry.getHarmonyScore());
+            Map<String, String> notesByAxisId = Map.of();
+            String cardSummary = null;
+            try {
+                LlmNotesService.NotesResult notesResult = llmNotesService.generateNotes(allAxes, synastry.getHarmonyScore());
+                if (notesResult != null) {
+                    notesByAxisId = notesResult.notesByAxisId() != null ? notesResult.notesByAxisId() : Map.of();
+                    cardSummary = notesResult.cardSummary();
+                }
+            } catch (Exception llmError) {
+                log.warn("Match traits LLM notes failed, continuing with rule-based categories. matchId={}", matchId, llmError);
+            }
 
-        Map<String, String> notesByAxisId = notesResult.notesByAxisId();
-        List<CategoryGroup> categoriesWithNotes = traitScoringEngine.applyNotes(categories, notesByAxisId);
-        List<TraitAxis> cardAxes = traitScoringEngine.selectCardAxes(categoriesWithNotes, 8);
-        List<TraitAxis> cardAxesWithNotes = traitScoringEngine.applyNotesToAxes(cardAxes, notesByAxisId);
+            List<CategoryGroup> categoriesWithNotes = traitScoringEngine.applyNotes(categories, notesByAxisId);
+            List<TraitAxis> cardAxes = traitScoringEngine.selectCardAxes(categoriesWithNotes, 8);
+            List<TraitAxis> cardAxesWithNotes = traitScoringEngine.applyNotesToAxes(cardAxes, notesByAxisId);
 
-        String cardSummary = notesResult.cardSummary();
-        if (cardSummary == null || cardSummary.isBlank()) {
-            cardSummary = buildFallbackSummary(synastry, cardAxesWithNotes);
+            if (cardSummary == null || cardSummary.isBlank()) {
+                cardSummary = buildFallbackSummary(synastry, cardAxesWithNotes);
+            }
+
+            response = new MatchTraitsResponse(
+                    matchId,
+                    synastry.getHarmonyScore(),
+                    categoriesWithNotes,
+                    cardAxesWithNotes,
+                    cardSummary
+            );
+        } catch (Exception e) {
+            log.error("Match traits generation failed, returning fallback payload. matchId={}", matchId, e);
+            response = new MatchTraitsResponse(
+                    matchId,
+                    synastry.getHarmonyScore(),
+                    List.of(),
+                    List.of(),
+                    buildFallbackSummary(synastry, List.of())
+            );
         }
-
-        MatchTraitsResponse response = new MatchTraitsResponse(
-                matchId,
-                synastry.getHarmonyScore(),
-                categoriesWithNotes,
-                cardAxesWithNotes,
-                cardSummary
-        );
 
         cache.put(matchId, new CachedEntry(response, fingerprint, System.currentTimeMillis() + CACHE_TTL.toMillis()));
         return response;

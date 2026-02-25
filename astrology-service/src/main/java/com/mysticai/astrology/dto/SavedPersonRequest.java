@@ -17,6 +17,8 @@ public record SavedPersonRequest(
         Double longitude,
         /** IANA timezone, e.g. Europe/Istanbul */
         String timezone,
+        /** Optional: MAN, WOMAN, NON_BINARY, OTHER */
+        String gender,
         /** Backward-compatible field: LOVE, BUSINESS, FRIENDSHIP, RIVAL, FAMILY */
         String relationshipCategory,
         /** Preferred field name for mobile companion flow */

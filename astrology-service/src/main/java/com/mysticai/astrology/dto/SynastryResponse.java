@@ -31,5 +31,6 @@ public record SynastryResponse(
         String personAName,
         String personBName,
         SynastryScoreBreakdown scoreBreakdown,
-        List<SynastryAnalysisSection> analysisSections
+        List<SynastryAnalysisSection> analysisSections,
+        List<SynastryDisplayMetric> displayMetrics
 ) {}

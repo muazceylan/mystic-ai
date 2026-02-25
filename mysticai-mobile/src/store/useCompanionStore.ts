@@ -26,6 +26,7 @@ export interface SavedPerson {
   lat: number;
   lng: number;
   timezone: string | null;
+  gender?: string | null;
   relationshipType: RelationshipType | null;
   sunSign: string;
   moonSign: string;
@@ -69,7 +70,8 @@ function mapSavedPerson(res: SavedPersonResponse): SavedPerson {
     lat: res.latitude,
     lng: res.longitude,
     timezone: res.timezone ?? null,
-    relationshipType: res.relationshipCategory ?? null,
+    gender: res.gender ?? null,
+    relationshipType: (res.relationshipType ?? res.relationshipCategory) ?? null,
     sunSign: res.sunSign,
     moonSign: res.moonSign,
     risingSign: res.risingSign,

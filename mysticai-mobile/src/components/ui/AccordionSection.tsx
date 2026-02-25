@@ -19,6 +19,7 @@ type Props = {
   expanded: boolean;
   onToggle: (id: string) => void;
   onLayout?: (id: string, y: number, height: number) => void;
+  headerMeta?: React.ReactNode;
   headerRight?: React.ReactNode;
   lazy?: boolean;
   deferBodyMount?: boolean;
@@ -34,6 +35,7 @@ function AccordionSection({
   expanded,
   onToggle,
   onLayout,
+  headerMeta,
   headerRight,
   lazy = false,
   deferBodyMount = false,
@@ -113,9 +115,16 @@ function AccordionSection({
           <View style={[styles.iconWrap, { backgroundColor: colors.violetBg }]}>
             <Ionicons name={icon} size={15} color={colors.violet} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-            {subtitle ? <Text style={[styles.subtitle, { color: colors.subtext }]}>{subtitle}</Text> : null}
+          <View style={styles.headerTextCol}>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
+              {title}
+            </Text>
+            {subtitle ? (
+              <Text style={[styles.subtitle, { color: colors.subtext }]} numberOfLines={2} ellipsizeMode="tail">
+                {subtitle}
+              </Text>
+            ) : null}
+            {headerMeta ? <View style={styles.headerMetaWrap}>{headerMeta}</View> : null}
           </View>
         </View>
         <View style={styles.headerRight}>
@@ -170,9 +179,14 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  headerTextCol: {
+    flex: 1,
+    minWidth: 0,
   },
   iconWrap: {
     width: 30,
@@ -190,10 +204,16 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: 1,
   },
+  headerMetaWrap: {
+    marginTop: 6,
+  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
   body: {
     paddingHorizontal: 14,

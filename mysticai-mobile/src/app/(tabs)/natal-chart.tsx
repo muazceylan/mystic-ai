@@ -13,6 +13,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Alert,
+  Dimensions,
+  findNodeHandle,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +81,10 @@ import CosmicHotspotCard from '../../components/Astrology/CosmicHotspotCard';
 import AspectBottomSheet from '../../components/Astrology/AspectBottomSheet';
 import StructuredNatalAiInterpretation from '../../components/Astrology/StructuredNatalAiInterpretation';
 import NatalChartProPanels from '../../components/Astrology/NatalChartProPanels';
-import NatalChartHeroCard from '../../components/Astrology/NatalChartHeroCard';
+import NatalChartHeroCard, {
+  type HeroBigThreeRole,
+  type HeroMetricTarget,
+} from '../../components/Astrology/NatalChartHeroCard';
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -130,6 +135,7 @@ type DraggableNatalSectionKey = Exclude<NatalAccordionKey, 'profile_summary'>;
 type CompanionFormState = {
   name: string;
   relationshipType: RelationshipType;
+  gender?: string;
   birthDateValue: Date | null;
   birthTimeValue: Date | null;
   birthLocation: string;
@@ -149,6 +155,13 @@ const RELATIONSHIP_OPTIONS: Array<{ key: RelationshipType; label: string }> = [
   { key: 'FAMILY', label: 'Aile' },
   { key: 'RIVAL', label: 'Rakip' },
   { key: 'BUSINESS', label: 'İş' },
+];
+
+const GENDER_OPTIONS: Array<{ key: string; label: string }> = [
+  { key: 'WOMAN', label: 'Kadın' },
+  { key: 'MAN', label: 'Erkek' },
+  { key: 'NON_BINARY', label: 'Non-binary' },
+  { key: 'OTHER', label: 'Diğer' },
 ];
 
 const NATAL_SECTION_ORDER_STORAGE_KEY = 'natal_chart_section_order_v2';
@@ -252,6 +265,7 @@ function createEmptyCompanionForm(): CompanionFormState {
   return {
     name: '',
     relationshipType: 'FRIENDSHIP',
+    gender: undefined,
     birthDateValue: null,
     birthTimeValue: null,
     birthLocation: '',
@@ -330,6 +344,7 @@ function createCompanionFormFromPerson(person: SavedPerson): CompanionFormState 
   return {
     name: person.name,
     relationshipType: person.relationshipType ?? 'FRIENDSHIP',
+    gender: person.gender ?? undefined,
     birthDateValue: parseDateInput(person.birthDate),
     birthTimeValue: parseTimeInput(person.birthTime ? person.birthTime.slice(0, 5) : null),
     birthLocation: person.birthLocation,
@@ -355,6 +370,11 @@ function composeFallbackBirthLocation(form: CompanionFormState) {
 
 function relationshipLabel(type: RelationshipType | null | undefined) {
   return RELATIONSHIP_OPTIONS.find((o) => o.key === type)?.label ?? 'Arkadaş';
+}
+
+function genderLabel(gender?: string | null) {
+  if (!gender) return '';
+  return GENDER_OPTIONS.find((o) => o.key === gender)?.label ?? gender;
 }
 
 function savedPersonToChart(person: SavedPerson): NatalChartResponse {
@@ -448,8 +468,9 @@ export default function NatalChartTab() {
   const [aspectSheetVisible, setAspectSheetVisible] = useState(false);
   const [selectedBigThreeRole, setSelectedBigThreeRole] = useState<BigThreeRole | null>(null);
   const [bigThreeSheetVisible, setBigThreeSheetVisible] = useState(false);
+  const [heroInfoExpanded, setHeroInfoExpanded] = useState(false);
+  const [profileSwitcherVisible, setProfileSwitcherVisible] = useState(true);
   const [openAccordionKey, setOpenAccordionKey] = useState<NatalAccordionKey | null>(null);
-  const [showProfileSwitcherOnTop, setShowProfileSwitcherOnTop] = useState(true);
   const [sectionOrder, setSectionOrder] = useState<DraggableNatalSectionKey[]>(DEFAULT_NATAL_SECTION_ORDER);
   const [profileMode, setProfileMode] = useState<ProfileMode>('switch');
   const [companionModalVisible, setCompanionModalVisible] = useState(false);
@@ -465,8 +486,13 @@ export default function NatalChartTab() {
   const [placesSessionToken] = useState(() => `places-${Date.now()}-${Math.round(Math.random() * 100000)}`);
   const [locationPickerTarget, setLocationPickerTarget] = useState<LocationPickerTarget | null>(null);
   const [locationPickerQuery, setLocationPickerQuery] = useState('');
+  const [companionFormViewportHeight, setCompanionFormViewportHeight] = useState(0);
+  const companionFormScrollRef = useRef<ScrollView | null>(null);
+  const locationPickerInlineYRef = useRef(0);
+  const pendingLocationPickerScrollRef = useRef(false);
 
-  const googlePlacesEnabled = isGooglePlacesConfigured();
+  const googlePlacesAvailable = isGooglePlacesConfigured();
+  const companionUseGooglePlaces = false && googlePlacesAvailable;
 
   const resolvedActiveProfile = useMemo<Profile | null>(() => {
     if (activeProfile) return activeProfile;
@@ -478,11 +504,17 @@ export default function NatalChartTab() {
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCountRef = useRef(0);
   const accordionLayoutsRef = useRef<Partial<Record<NatalAccordionKey, { y: number; height: number }>>>({});
+  const accordionItemRefsRef = useRef<Partial<Record<NatalAccordionKey, any>>>({});
+  const accordionListBaseYRef = useRef(0);
   const lastKnownScrollYRef = useRef(0);
   const accordionFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sectionJumpTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const mainScrollRef = useRef<any>(null);
   const manualAccordionControlRef = useRef(false);
   const autoAccordionFocusEnabledRef = useRef(false);
   const sectionOrderHydratedRef = useRef(false);
+  const [stickyHeroHeight, setStickyHeroHeight] = useState(0);
+  const [mainScrollViewportHeight, setMainScrollViewportHeight] = useState(0);
   const [pollExhausted, setPollExhausted] = useState(false);
   const MAX_POLL_ATTEMPTS = 12;
   const POLL_INTERVAL_MS = 3000;
@@ -896,7 +928,17 @@ export default function NatalChartTab() {
   const closeFallbackLocationPicker = () => {
     setLocationPickerTarget(null);
     setLocationPickerQuery('');
+    pendingLocationPickerScrollRef.current = false;
   };
+
+  const scrollToLocationPickerInline = useCallback((animated = true) => {
+    const scrollNode = companionFormScrollRef.current;
+    if (!scrollNode) return false;
+    const centerBias = companionFormViewportHeight > 0 ? Math.round(companionFormViewportHeight * 0.28) : 140;
+    const y = Math.max(0, locationPickerInlineYRef.current + centerBias);
+    scrollNode.scrollTo({ y, animated });
+    return locationPickerInlineYRef.current > 0;
+  }, [companionFormViewportHeight]);
 
   const applyFallbackLocationSelection = (value: string) => {
     setCompanionForm((prev) => {
@@ -944,6 +986,24 @@ export default function NatalChartTab() {
     });
     closeFallbackLocationPicker();
   };
+
+  useEffect(() => {
+    if (!companionModalVisible || companionUseGooglePlaces || !locationPickerTarget) return;
+    pendingLocationPickerScrollRef.current = true;
+
+    const delays = [40, 120, 240];
+    const timers = delays.map((delay) =>
+      setTimeout(() => {
+        if (!pendingLocationPickerScrollRef.current) return;
+        const ok = scrollToLocationPickerInline(true);
+        if (ok) pendingLocationPickerScrollRef.current = false;
+      }, delay),
+    );
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [locationPickerTarget, companionModalVisible, companionUseGooglePlaces, scrollToLocationPickerInline]);
 
   const handleDeleteCompanion = (person: SavedPerson) => {
     if (!user?.id) return;
@@ -1018,7 +1078,7 @@ export default function NatalChartTab() {
 
     const name = companionForm.name.trim();
     const birthDateValue = companionForm.birthDateValue;
-    const birthLocation = (googlePlacesEnabled
+    const birthLocation = (companionUseGooglePlaces
       ? companionForm.birthLocation
       : (composeFallbackBirthLocation(companionForm) || companionForm.birthLocation)
     ).trim();
@@ -1045,6 +1105,7 @@ export default function NatalChartTab() {
       latitude: companionForm.latitude,
       longitude: companionForm.longitude,
       timezone: companionForm.timezone,
+      gender: companionForm.gender,
       relationshipType: companionForm.relationshipType,
       relationshipCategory: companionForm.relationshipType,
     };
@@ -1064,7 +1125,7 @@ export default function NatalChartTab() {
   };
 
   useEffect(() => {
-    if (!companionModalVisible || !googlePlacesEnabled) {
+    if (!companionModalVisible || !companionUseGooglePlaces) {
       setPlaceSuggestions([]);
       return;
     }
@@ -1098,7 +1159,7 @@ export default function NatalChartTab() {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [placeQuery, companionModalVisible, placesSessionToken, googlePlacesEnabled]);
+  }, [placeQuery, companionModalVisible, placesSessionToken, companionUseGooglePlaces]);
 
   const handleSelectPlaceSuggestion = async (suggestion: GooglePlaceSuggestion) => {
     setPlaceSelecting(true);
@@ -1185,6 +1246,7 @@ export default function NatalChartTab() {
         personAId,
         personBId,
         relationshipType: comparisonRelationshipType,
+        userGender: user.gender ?? null,
         locale: i18n.language,
       });
       if (started.status !== 'COMPLETED' && started.status !== 'FAILED') {
@@ -1248,13 +1310,134 @@ export default function NatalChartTab() {
     setTimeout(() => setSelectedBigThreeRole(null), 220);
   };
 
+  useEffect(() => {
+    setHeroInfoExpanded(false);
+    setProfileSwitcherVisible(true);
+    sectionJumpTimersRef.current.forEach(clearTimeout);
+    sectionJumpTimersRef.current = [];
+  }, [resolvedActiveProfile]);
+
+  useEffect(() => {
+    return () => {
+      sectionJumpTimersRef.current.forEach(clearTimeout);
+      sectionJumpTimersRef.current = [];
+    };
+  }, []);
+
   const toggleAccordion = useCallback((key: string) => {
     manualAccordionControlRef.current = true;
     setOpenAccordionKey((prev) => (prev === key ? null : (key as NatalAccordionKey)));
   }, []);
 
   const registerAccordionLayout = useCallback((id: string, y: number, height: number) => {
-    accordionLayoutsRef.current[id as NatalAccordionKey] = { y, height };
+    const key = id as NatalAccordionKey;
+    const prev = accordionLayoutsRef.current[key];
+    const looksLikeLocalChildY = y <= 1 && (prev?.y ?? 0) > 1;
+    accordionLayoutsRef.current[key] = {
+      y: looksLikeLocalChildY ? (prev?.y ?? y) : y,
+      height,
+    };
+  }, []);
+
+  const registerAccordionItemWrapperLayout = useCallback((key: DraggableNatalSectionKey, y: number, height: number) => {
+    accordionLayoutsRef.current[key] = {
+      y: Math.max(0, accordionListBaseYRef.current + y),
+      height,
+    };
+  }, []);
+
+  const jumpToAccordionSection = useCallback((targetKey: NatalAccordionKey) => {
+    manualAccordionControlRef.current = true;
+    setHeroInfoExpanded(false);
+    setProfileSwitcherVisible(false);
+    setOpenAccordionKey(targetKey);
+
+    sectionJumpTimersRef.current.forEach(clearTimeout);
+    sectionJumpTimersRef.current = [];
+
+    const attemptScroll = (attempt = 0) => {
+      const layout = accordionLayoutsRef.current[targetKey];
+      const scrollNode = mainScrollRef.current;
+      const stickyOffset = Math.max(0, stickyHeroHeight - 8);
+      const viewportHeight = mainScrollViewportHeight > 0
+        ? mainScrollViewportHeight
+        : Dimensions.get('window').height;
+
+      const scrollToComputedY = (contentY: number, measuredHeight?: number) => {
+        const visibleTopInset = stickyOffset + 10;
+        const visibleHeight = Math.max(240, viewportHeight - visibleTopInset - 22);
+        // Aggressive upper-middle alignment:
+        // put the accordion header near the upper reading band so opened content stays visible.
+        const upperMiddleOffset = Math.max(14, Math.min(84, visibleHeight * 0.16));
+        const y = Math.max(0, contentY - visibleTopInset - upperMiddleOffset);
+        if (typeof measuredHeight === 'number' && Number.isFinite(measuredHeight)) {
+          accordionLayoutsRef.current[targetKey] = { y: contentY, height: measuredHeight };
+        }
+        scrollNode.scrollTo({ y, animated: true });
+      };
+
+      const targetRef = accordionItemRefsRef.current[targetKey];
+      const nativeScrollRef = scrollNode?.getNativeScrollRef?.() ?? scrollNode;
+      const nativeScrollHandle = nativeScrollRef ? findNodeHandle(nativeScrollRef) : null;
+
+      if (targetRef && nativeScrollHandle && typeof targetRef.measureLayout === 'function' && scrollNode?.scrollTo) {
+        try {
+          targetRef.measureLayout(
+            nativeScrollHandle,
+            (_x: number, yInScrollViewport: number, _w: number, measuredHeight: number) => {
+              const contentY = Math.max(0, lastKnownScrollYRef.current + yInScrollViewport);
+              scrollToComputedY(contentY, measuredHeight);
+            },
+            () => {
+              if (layout && scrollNode?.scrollTo) {
+                scrollToComputedY(layout.y, layout.height);
+              }
+            },
+          );
+          return;
+        } catch {
+          // fallback below
+        }
+      }
+
+      if (layout && scrollNode?.scrollTo) {
+        scrollToComputedY(layout.y, layout.height);
+        return;
+      }
+
+      if (attempt >= 10) return;
+      const timer = setTimeout(
+        () => attemptScroll(attempt + 1),
+        attempt === 0 ? 90 : 120,
+      );
+      sectionJumpTimersRef.current.push(timer);
+    };
+
+    [40, 140, 280, 460, 700].forEach((delay) => {
+      const timer = setTimeout(() => {
+        setOpenAccordionKey(targetKey);
+        attemptScroll(0);
+      }, delay);
+      sectionJumpTimersRef.current.push(timer);
+    });
+  }, [stickyHeroHeight, mainScrollViewportHeight]);
+
+  const handleHeroMetricPress = useCallback((target: HeroMetricTarget) => {
+    setHeroInfoExpanded(false);
+    setProfileSwitcherVisible(false);
+    if (target === 'planet_positions') {
+      jumpToAccordionSection('planet_positions');
+      return;
+    }
+    if (target === 'house_positions') {
+      jumpToAccordionSection('house_positions');
+      return;
+    }
+    jumpToAccordionSection('aspect_list');
+  }, [jumpToAccordionSection]);
+
+  const handleHeroBigThreePress = useCallback((role: HeroBigThreeRole) => {
+    openBigThreeSheet(role as BigThreeRole);
   }, []);
 
   const autoFocusNearestAccordion = useCallback((scrollY: number) => {
@@ -1297,22 +1480,29 @@ export default function NatalChartTab() {
   const handleNatalScroll = useCallback((event: any) => {
     const y = event?.nativeEvent?.contentOffset?.y ?? 0;
     lastKnownScrollYRef.current = y;
-
-    // Hide the heavy profile switcher while reading long sections; restore near the top.
-    setShowProfileSwitcherOnTop((prev) => {
-      if (prev && y > 72) return false;
-      if (!prev && y < 12) return true;
-      return prev;
-    });
+    if (y > 24) {
+      setHeroInfoExpanded((prev) => (prev ? false : prev));
+    }
+    if (y > 72) {
+      setProfileSwitcherVisible((prev) => (prev ? false : prev));
+    } else if (y < 12) {
+      setProfileSwitcherVisible((prev) => (prev ? true : prev));
+    }
   }, []);
 
   const handleNatalScrollEndDrag = useCallback((event: any) => {
     const y = event?.nativeEvent?.contentOffset?.y ?? lastKnownScrollYRef.current;
+    if (y < 12) {
+      setProfileSwitcherVisible(true);
+    }
     queueAccordionAutoFocus(y, 140);
   }, [queueAccordionAutoFocus]);
 
   const handleNatalMomentumScrollEnd = useCallback((event: any) => {
     const y = event?.nativeEvent?.contentOffset?.y ?? lastKnownScrollYRef.current;
+    if (y < 12) {
+      setProfileSwitcherVisible(true);
+    }
     queueAccordionAutoFocus(y, 24);
   }, [queueAccordionAutoFocus]);
 
@@ -2020,7 +2210,17 @@ export default function NatalChartTab() {
     isActive,
   }: DraggableRenderItemParams<DraggableNatalSectionKey>) => (
     <ScaleDecorator activeScale={1.015}>
-      <View style={[styles.draggableSectionItemWrap, isActive && styles.draggableSectionItemWrapActive]}>
+      <View
+        ref={(node) => {
+          accordionItemRefsRef.current[item] = node;
+        }}
+        collapsable={false}
+        style={[styles.draggableSectionItemWrap, isActive && styles.draggableSectionItemWrapActive]}
+        onLayout={(event) => {
+          const { y, height } = event.nativeEvent.layout;
+          registerAccordionItemWrapperLayout(item, y, height);
+        }}
+      >
         {renderAccordionSectionByKey(item, drag, isActive)}
       </View>
     </ScaleDecorator>
@@ -2029,7 +2229,7 @@ export default function NatalChartTab() {
   const renderProfileSwitcherCard = () => (
     <View style={styles.profileSwitcherCard}>
       <View style={styles.profileSwitcherHeader}>
-        <View>
+        <View style={styles.profileSwitcherHeaderTextCol}>
           <Text style={styles.profileSwitcherTitle}>Kozmik Harita Profilleri</Text>
           <Text style={styles.profileSwitcherSub}>
             {profileMode === 'compare'
@@ -2054,6 +2254,21 @@ export default function NatalChartTab() {
             Karşılaştır
           </Text>
         </Pressable>
+      </View>
+
+      <View style={styles.profileSwitcherMetaRow}>
+        <View style={styles.profileMetaTag}>
+          <Text style={styles.profileMetaTagText}>
+            Toplam {savedPeople.length + (user ? 1 : 0)} profil
+          </Text>
+        </View>
+        <View style={[styles.profileMetaTag, profileMode === 'compare' && styles.profileMetaTagActive]}>
+          <Text style={[styles.profileMetaTagText, profileMode === 'compare' && styles.profileMetaTagTextActive]}>
+            {profileMode === 'compare'
+              ? `Karşılaştırma modu • ${selectedForComparison.length}/2 seçili`
+              : 'Okuma modu'}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.profileScrollerRow}>
@@ -2152,39 +2367,22 @@ export default function NatalChartTab() {
   );
 
   const MainVerticalScroll: any = ENABLE_SECTION_DND ? NestableScrollContainer : ScrollView;
+  const stickyHeaderIndices = chart ? [1] : [];
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.readyLayout}>
-        <View style={styles.fixedTopStack}>
-          {showProfileSwitcherOnTop ? (
-            <Reanimated.View entering={FadeIn.duration(140)} exiting={FadeOut.duration(120)}>
-              {renderProfileSwitcherCard()}
-            </Reanimated.View>
-          ) : null}
-          {!!chart && (
-            <View style={styles.fixedHeroContainer}>
-              <NatalChartHeroCard
-                name={activeProfileName || chart.name}
-                birthDate={String(chart.birthDate)}
-                birthTime={chart.birthTime}
-                birthLocation={chart.birthLocation}
-                sunSign={chart.sunSign}
-                moonSign={chart.moonSign}
-                risingSign={chart.risingSign}
-                planets={chart.planets ?? []}
-                houses={chart.houses ?? []}
-                aspects={chart.aspects ?? []}
-                planetNames={planetNames}
-                showWheelPreview={false}
-              />
-            </View>
-          )}
-        </View>
-
         <MainVerticalScroll
+          ref={mainScrollRef}
           style={styles.scroll}
+          onLayout={(event: any) => {
+            const h = event?.nativeEvent?.layout?.height;
+            if (typeof h === 'number' && h > 0) {
+              setMainScrollViewportHeight((prev) => (Math.abs(prev - h) > 2 ? h : prev));
+            }
+          }}
           contentContainerStyle={styles.scrollContent}
+          stickyHeaderIndices={stickyHeaderIndices}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
@@ -2200,12 +2398,47 @@ export default function NatalChartTab() {
             />
           }
         >
+        <Reanimated.View
+          style={[styles.fixedTopStack, !profileSwitcherVisible && styles.fixedTopStackHidden]}
+          pointerEvents={profileSwitcherVisible ? 'auto' : 'none'}
+        >
+          {renderProfileSwitcherCard()}
+        </Reanimated.View>
+
+        {!!chart && (
+          <View
+            style={styles.stickyHeroHeaderShell}
+            onLayout={(event) => setStickyHeroHeight(event.nativeEvent.layout.height)}
+          >
+            <View style={styles.fixedHeroContainer}>
+              <NatalChartHeroCard
+                name={activeProfileName || chart.name}
+                birthDate={String(chart.birthDate)}
+                birthTime={chart.birthTime}
+                birthLocation={chart.birthLocation}
+                sunSign={chart.sunSign}
+                moonSign={chart.moonSign}
+                risingSign={chart.risingSign}
+                planets={chart.planets ?? []}
+                houses={chart.houses ?? []}
+                aspects={chart.aspects ?? []}
+                planetNames={planetNames}
+                showWheelPreview={false}
+                expanded={heroInfoExpanded}
+                onToggleExpanded={() => setHeroInfoExpanded((prev) => !prev)}
+                onBigThreePress={handleHeroBigThreePress}
+                onMetricPress={handleHeroMetricPress}
+              />
+            </View>
+          </View>
+        )}
+
         {profileMode === 'compare' && (
           <View style={styles.compareCard}>
             <View style={styles.compareHeader}>
               <View style={styles.compareHeaderLeft}>
                 <Users size={16} color="#3B82F6" />
-                <Text style={styles.compareTitle}>Sinastri / Synastry</Text>
+                <Text style={styles.compareTitle}>Sinastri Atölyesi</Text>
               </View>
               {selectedForComparison.length > 0 ? (
                 <Pressable onPress={clearComparisonSelection} style={styles.compareClearBtn}>
@@ -2239,9 +2472,12 @@ export default function NatalChartTab() {
                           {getProfileName(profileItem)}
                         </Text>
                         <Text style={styles.dualChartMeta} numberOfLines={1}>
-                          {isSavedPersonProfile(profileItem)
-                            ? relationshipLabel(profileItem.relationshipType)
-                            : 'SELF'}
+                          {[
+                            isSavedPersonProfile(profileItem)
+                              ? relationshipLabel(profileItem.relationshipType)
+                              : 'SELF',
+                            genderLabel((profileItem as any)?.gender),
+                          ].filter(Boolean).join(' • ')}
                         </Text>
                         <View style={styles.dualChartSigns}>
                           <Text style={styles.dualChartSignLine}>{pSun.symbol} {pSun.name}</Text>
@@ -2282,6 +2518,8 @@ export default function NatalChartTab() {
                     compatibilityScore={comparisonOverallScore}
                     relationLabel={comparisonRelationLabel}
                     relationshipType={comparisonRelationshipType}
+                    scoreBreakdown={comparisonResult.scoreBreakdown ?? null}
+                    displayMetrics={comparisonResult.displayMetrics ?? null}
                     personAName={comparisonPersonAName}
                     personBName={comparisonPersonBName}
                     personASignLabel={comparisonPersonASignLabel}
@@ -2326,9 +2564,25 @@ export default function NatalChartTab() {
               contentContainerStyle={styles.draggableSectionsContent}
             />
           ) : (
-            <View style={styles.draggableSectionsContent}>
+            <View
+              style={styles.draggableSectionsContent}
+              onLayout={(event) => {
+                accordionListBaseYRef.current = event.nativeEvent.layout.y;
+              }}
+            >
               {visibleDraggableSectionKeys.map((item) => (
-                <View key={`static-section-${item}`} style={styles.draggableSectionItemWrap}>
+                <View
+                  key={`static-section-${item}`}
+                  ref={(node) => {
+                    accordionItemRefsRef.current[item] = node;
+                  }}
+                  collapsable={false}
+                  style={styles.draggableSectionItemWrap}
+                  onLayout={(event) => {
+                    const { y, height } = event.nativeEvent.layout;
+                    registerAccordionItemWrapperLayout(item, y, height);
+                  }}
+                >
                   {renderAccordionSectionByKey(item, () => {}, false)}
                 </View>
               ))}
@@ -2379,10 +2633,12 @@ export default function NatalChartTab() {
               </View>
 
               <ScrollView
+                ref={companionFormScrollRef}
                 style={styles.modalFormScroll}
                 contentContainerStyle={styles.modalFormContent}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
+                onLayout={(event) => setCompanionFormViewportHeight(event.nativeEvent.layout.height)}
               >
                 <View style={styles.fieldGroup}>
                   <Text style={styles.fieldLabel}>İsim</Text>
@@ -2418,6 +2674,34 @@ export default function NatalChartTab() {
                   </View>
                 </View>
 
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>Cinsiyet (Opsiyonel)</Text>
+                  <View style={styles.relationshipChipWrap}>
+                    {GENDER_OPTIONS.map((option) => {
+                      const selected = companionForm.gender === option.key;
+                      return (
+                        <Pressable
+                          key={option.key}
+                          style={[styles.relationshipChip, selected && styles.relationshipChipActive]}
+                          onPress={() =>
+                            setCompanionForm((prev) => ({
+                              ...prev,
+                              gender: prev.gender === option.key ? undefined : option.key,
+                            }))
+                          }
+                        >
+                          <Text style={[styles.relationshipChipText, selected && styles.relationshipChipTextActive]}>
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <Text style={styles.fieldHint}>
+                    Karşılaştırma yorumlarında hitap tonu ve ilişki bağlamını iyileştirmek için kullanılır.
+                  </Text>
+                </View>
+
                 <View style={styles.fieldRow}>
                   <View style={[styles.fieldGroup, { flex: 1 }]}>
                     <Text style={styles.fieldLabel}>Doğum Tarihi</Text>
@@ -2449,8 +2733,7 @@ export default function NatalChartTab() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Doğum Lokasyonu</Text>
-                  {googlePlacesEnabled ? (
+                  {companionUseGooglePlaces ? (
                     <>
                       <View style={styles.fieldInputRow}>
                         <MapPin size={16} color={colors.muted} />
@@ -2502,70 +2785,101 @@ export default function NatalChartTab() {
                     </>
                   ) : (
                     <>
-                      <View style={styles.fieldRow}>
-                        <View style={[styles.fieldGroup, { flex: 1 }]}>
-                          <Text style={styles.fieldLabel}>Ülke</Text>
-                          <Pressable style={styles.pickerField} onPress={() => openFallbackLocationPicker('country')}>
-                            <MapPin size={16} color={colors.muted} />
-                            <Text
-                              style={[
-                                styles.pickerFieldText,
-                                !companionForm.countryCode && styles.pickerFieldPlaceholder,
-                              ]}
-                            >
-                              {companionForm.countryCode ? getCountryNameByCode(companionForm.countryCode) : 'Ülke Seç'}
-                            </Text>
-                            <Text style={styles.pickerFieldAction}>Seç</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-
-                      <View style={styles.fieldRow}>
-                        <View style={[styles.fieldGroup, { flex: 1 }]}>
-                          <Text style={styles.fieldLabel}>İl / Şehir</Text>
-                          <Pressable style={styles.pickerField} onPress={() => openFallbackLocationPicker('city')}>
-                            <MapPin size={16} color={colors.muted} />
-                            <Text
-                              style={[
-                                styles.pickerFieldText,
-                                !companionForm.city && styles.pickerFieldPlaceholder,
-                              ]}
-                            >
-                              {companionForm.city || 'İl Seç'}
-                            </Text>
-                            <Text style={styles.pickerFieldAction}>Seç</Text>
-                          </Pressable>
+                      <View style={styles.locationSelectionCard}>
+                        <View style={styles.locationSelectionHeader}>
+                          <Text style={styles.locationSelectionTitle}>Konum Seçimi</Text>
+                          <Text style={styles.locationSelectionSub}>
+                            Ülke, şehir ve ilçe adımlarını aşağıdan seç.
+                          </Text>
                         </View>
 
-                        <View style={[styles.fieldGroup, { flex: 1 }]}>
-                          <Text style={styles.fieldLabel}>İlçe</Text>
+                        <Pressable
+                          style={styles.locationStepCard}
+                          onPress={() => openFallbackLocationPicker('country')}
+                        >
+                          <View style={styles.locationStepLeft}>
+                            <View style={styles.locationStepIconBadge}>
+                              <MapPin size={14} color="#5B4ACB" />
+                            </View>
+                            <View style={styles.locationStepTextCol}>
+                              <Text style={styles.locationStepLabel}>Ülke</Text>
+                              <Text style={styles.locationStepValue} numberOfLines={1}>
+                                {companionForm.countryCode ? getCountryNameByCode(companionForm.countryCode) : 'Ülke seç'}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.locationStepAction}>Değiştir</Text>
+                        </Pressable>
+
+                        <View style={styles.locationStepRow}>
+                          <Pressable
+                            style={[styles.locationStepCard, styles.locationStepCardHalf]}
+                            onPress={() => openFallbackLocationPicker('city')}
+                          >
+                            <View style={styles.locationStepLeft}>
+                              <View style={styles.locationStepIconBadge}>
+                                <MapPin size={13} color="#5B4ACB" />
+                              </View>
+                              <View style={styles.locationStepTextCol}>
+                                <Text style={styles.locationStepLabel}>İl / Şehir</Text>
+                                <Text
+                                  style={[
+                                    styles.locationStepValue,
+                                    !companionForm.city && styles.locationStepPlaceholder,
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {companionForm.city || 'Seçilmedi'}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={styles.locationStepAction}>Seç</Text>
+                          </Pressable>
+
                           <Pressable
                             style={[
-                              styles.pickerField,
-                              !companionForm.city && styles.pickerFieldDisabled,
+                              styles.locationStepCard,
+                              styles.locationStepCardHalf,
+                              !companionForm.city && styles.locationStepCardDisabled,
                             ]}
                             onPress={() => openFallbackLocationPicker('district')}
                             disabled={!companionForm.city}
                           >
-                            <MapPin size={16} color={colors.muted} />
-                            <Text
-                              style={[
-                                styles.pickerFieldText,
-                                !companionForm.district && styles.pickerFieldPlaceholder,
-                              ]}
-                            >
-                              {companionForm.district || 'İlçe Seç'}
-                            </Text>
-                            <Text style={styles.pickerFieldAction}>Seç</Text>
+                            <View style={styles.locationStepLeft}>
+                              <View style={styles.locationStepIconBadge}>
+                                <MapPin size={13} color="#5B4ACB" />
+                              </View>
+                              <View style={styles.locationStepTextCol}>
+                                <Text style={styles.locationStepLabel}>İlçe</Text>
+                                <Text
+                                  style={[
+                                    styles.locationStepValue,
+                                    !companionForm.district && styles.locationStepPlaceholder,
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {companionForm.district || (companionForm.city ? 'Seçilmedi' : 'Önce il seç')}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={styles.locationStepAction}>Seç</Text>
                           </Pressable>
                         </View>
-                      </View>
 
-                      <View style={styles.fieldInputRow}>
-                        <MapPin size={16} color={colors.muted} />
-                        <Text style={[styles.fieldTextInput, styles.readonlyLocationText]}>
-                          {composeFallbackBirthLocation(companionForm) || 'Seçim yapıldıkça konum burada oluşur'}
-                        </Text>
+                        <View style={styles.locationSelectionSummaryBox}>
+                          <View style={styles.locationSummaryHeader}>
+                            <MapPin size={14} color="#64748B" />
+                            <Text style={styles.locationSummaryTitle}>Seçilen Konum</Text>
+                          </View>
+                          <Text
+                            style={[
+                              styles.locationSummaryValue,
+                              !composeFallbackBirthLocation(companionForm) && styles.locationSummaryPlaceholder,
+                            ]}
+                          >
+                            {composeFallbackBirthLocation(companionForm) || 'Önce ülke ve şehir seçimi yap'}
+                          </Text>
+                        </View>
                       </View>
                     </>
                   )}
@@ -2589,8 +2903,17 @@ export default function NatalChartTab() {
                     </View>
                   ) : null}
 
-                  {!googlePlacesEnabled && locationPickerTarget ? (
-                    <View style={styles.locationPickerInlineCard}>
+                  {!companionUseGooglePlaces && locationPickerTarget ? (
+                    <View
+                      style={styles.locationPickerInlineCard}
+                      onLayout={(event) => {
+                        locationPickerInlineYRef.current = event.nativeEvent.layout.y;
+                        if (pendingLocationPickerScrollRef.current) {
+                          const ok = scrollToLocationPickerInline(false);
+                          if (ok) pendingLocationPickerScrollRef.current = false;
+                        }
+                      }}
+                    >
                       <View style={styles.locationPickerInlineHeader}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.locationPickerInlineTitle}>{locationPickerTitle}</Text>
@@ -2755,17 +3078,29 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   readyLayout: {
     flex: 1,
+    backgroundColor: C.bg,
   },
   fixedTopStack: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 2,
     paddingBottom: 8,
     gap: 10,
+  },
+  fixedTopStackHidden: {
+    height: 0,
+    opacity: 0,
+    overflow: 'hidden',
+    paddingTop: 0,
+    paddingBottom: 0,
+    gap: 0,
+  },
+  stickyHeroHeaderShell: {
     backgroundColor: C.bg,
+    paddingBottom: 10,
+    zIndex: 3,
   },
   fixedHeroContainer: {
     backgroundColor: C.bg,
-    gap: 10,
+    gap: 8,
   },
   heroToggleCard: {
     borderRadius: 18,
@@ -2813,10 +3148,10 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: (Platform.OS === 'ios' ? 88 : 68) + 32,
-    gap: 20,
+    gap: 16,
   },
   draggableSectionsList: {
     flexGrow: 0,
@@ -2848,52 +3183,82 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
 
   // ── Multi-profile / comparison header ────────────────────────────
   profileSwitcherCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    backgroundColor: '#FCFCFE',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 16,
-    gap: 14,
+    borderColor: '#E8EBF3',
+    padding: 14,
+    gap: 12,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
     elevation: 2,
   },
   profileSwitcherHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
   },
+  profileSwitcherHeaderTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
   profileSwitcherTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 15.5,
+    fontWeight: '800',
     color: '#0F172A',
   },
   profileSwitcherSub: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#64748B',
     marginTop: 2,
+    lineHeight: 16,
+  },
+  profileSwitcherMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  profileMetaTag: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E6EAF2',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  profileMetaTagActive: {
+    borderColor: '#D9D3FF',
+    backgroundColor: '#F3F0FF',
+  },
+  profileMetaTagText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  profileMetaTagTextActive: {
+    color: '#5B4ACB',
   },
   modeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 11,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   modeChipActive: {
-    borderColor: '#D9D3FF',
-    backgroundColor: '#F3F0FF',
+    borderColor: '#CFC5FF',
+    backgroundColor: '#F2EEFF',
   },
   modeChipText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11.5,
+    fontWeight: '700',
     color: '#475569',
   },
   modeChipTextActive: {
@@ -2908,27 +3273,27 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     flex: 1,
   },
   profileScrollerContent: {
-    paddingRight: 8,
-    gap: 12,
+    paddingRight: 10,
+    gap: 10,
   },
   profilePill: {
-    width: 78,
+    width: 80,
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   avatarCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F4F7FF',
     borderWidth: 1,
-    borderColor: '#DCE7F8',
+    borderColor: '#DDE4F2',
   },
   avatarCircleActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#C7D2FE',
+    backgroundColor: '#F1EEFF',
+    borderColor: '#CDC6FF',
   },
   avatarCircleCompare: {
     borderColor: '#E3A008',
@@ -2976,21 +3341,21 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   profilePillLabel: {
     fontSize: 11,
     color: '#334155',
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
     width: '100%',
   },
   compareCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    backgroundColor: '#FCFDFF',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E6EAF2',
-    padding: 16,
+    borderColor: '#E8EDF6',
+    padding: 14,
     gap: 12,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
     elevation: 1,
   },
   compareHeader: {
@@ -3004,8 +3369,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     gap: 8,
   },
   compareTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 14.5,
+    fontWeight: '800',
     color: '#0F172A',
   },
   compareClearBtn: {
@@ -3025,9 +3390,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     color: '#64748B',
   },
   compareHint: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: '#64748B',
+    fontSize: 11.5,
+    lineHeight: 17,
+    color: '#66758A',
   },
   dualChartRow: {
     flexDirection: 'row',
@@ -3035,11 +3400,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   dualChartPanel: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    backgroundColor: '#F7F9FD',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
+    borderColor: '#E5EAF3',
+    padding: 11,
     gap: 6,
   },
   dualChartName: {
@@ -3065,14 +3430,16 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     marginTop: 4,
   },
   compareRunBtn: {
-    backgroundColor: '#5B4ACB',
+    backgroundColor: '#1F2A44',
     borderRadius: 14,
-    paddingVertical: 13,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#2D3B5C',
   },
   compareRunBtnDisabled: {
     opacity: 0.55,
@@ -3165,6 +3532,144 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     backgroundColor: '#FFFFFF',
     padding: 12,
     gap: 10,
+  },
+  locationFormInfoCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8EBF3',
+    backgroundColor: '#F8FAFF',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  locationFormInfoTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  locationFormInfoSub: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: '#64748B',
+  },
+  locationSelectionCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E7EBF3',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    gap: 10,
+  },
+  locationSelectionHeader: {
+    gap: 2,
+  },
+  locationSelectionTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  locationSelectionSub: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#64748B',
+  },
+  locationStepRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  locationStepCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E6EAF2',
+    backgroundColor: '#FBFCFF',
+    minHeight: 54,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  locationStepCardHalf: {
+    flex: 1,
+  },
+  locationStepCardDisabled: {
+    opacity: 0.5,
+  },
+  locationStepLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  locationStepIconBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F0FF',
+    borderWidth: 1,
+    borderColor: '#DDD5FF',
+    flexShrink: 0,
+  },
+  locationStepTextCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  locationStepLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  locationStepValue: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  locationStepPlaceholder: {
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  locationStepAction: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#5B4ACB',
+    flexShrink: 0,
+  },
+  locationSelectionSummaryBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8EDF5',
+    backgroundColor: '#F8FAFF',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    gap: 5,
+  },
+  locationSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationSummaryTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  locationSummaryValue: {
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  locationSummaryPlaceholder: {
+    color: '#94A3B8',
+    fontWeight: '600',
   },
   locationPickerInlineHeader: {
     flexDirection: 'row',

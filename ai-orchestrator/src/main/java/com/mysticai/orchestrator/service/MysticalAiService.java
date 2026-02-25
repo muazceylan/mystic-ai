@@ -253,7 +253,9 @@ public class MysticalAiService {
                     extractFromPayload(event.payload(), "partnerRisingSign"),
                     extractFromPayload(event.payload(), "partnerPlanetsText"),
                     extractFromPayload(event.payload(), "relationshipType"),
-                    extractFromPayload(event.payload(), "allAspectsText"));
+                    extractFromPayload(event.payload(), "allAspectsText"),
+                    extractFromPayload(event.payload(), "userGender"),
+                    extractFromPayload(event.payload(), "partnerGender"));
         }
         return switch (event.sourceService()) {
             case DREAM     -> promptTemplates.getDreamInterpretationPrompt(
@@ -595,7 +597,7 @@ public class MysticalAiService {
 
     private String normalizeUiTitle(String raw, String fallback) {
         String src = nonBlank(raw) ? raw : fallback;
-        src = replaceTurkishTerms(src == null ? "" : src);
+        src = sanitizeAiLanguageArtifacts(replaceTurkishTerms(src == null ? "" : src));
         src = src.replaceAll("[\\{\\}\\[\\]\"]", " ")
                  .replace('_', ' ')
                  .replace('-', ' ')
@@ -663,10 +665,55 @@ public class MysticalAiService {
     private String normalizeParagraph(String raw, String fallback) {
         String s = nonBlank(raw) ? raw : fallback;
         if (s == null) return "";
-        s = s.replaceAll("[\\r\\n\\t]+", " ")
+        s = sanitizeAiLanguageArtifacts(replaceTurkishTerms(s))
+             .replaceAll("[\\r\\n\\t]+", " ")
              .replaceAll("\\s{2,}", " ")
              .trim();
         return s;
+    }
+
+    /**
+     * Cleans mixed-language artefacts occasionally produced by the LLM in Turkish natal interpretations.
+     * Example failures observed in production-like outputs:
+     *  - "Muaz'insometimes"  -> should become "Muaz'in bazen"
+     *  - "worldsine"         -> malformed token inside Turkish sentence
+     *  - "nguồnını"          -> Vietnamese fragment injected into Turkish suffix chain
+     */
+    private String sanitizeAiLanguageArtifacts(String input) {
+        if (input == null || input.isBlank()) return input == null ? "" : input;
+
+        String s = input;
+
+        // Join-point fix: Turkish possessive suffix + English token glued together
+        s = s.replaceAll(
+                "(?iu)([\\p{L}ÇĞİÖŞÜçğıöşü]+['’](?:in|ın|un|ün|nin|nın|nun|nün))(?=(?:sometimes|often|rarely|usually|however|also|socially|emotionally|himself|herself|themselves)\\b)",
+                "$1 "
+        );
+
+        // Known malformed tokens seen in AI outputs (frontend fallback also handles these for cached content)
+        s = s.replaceAll("(?iu)\\bworldsine\\b", "dünyasına");
+        s = s.replaceAll("(?iu)\\bngu[oồốổỗộơờớởỡợuưồn]*[^\\s,.!?;:]*ını\\b", "kaynağını");
+        s = s.replaceAll("(?iu)\\bpoççğimiz\\b", "yaklaşımımızla");
+
+        // Common English narrative remnants
+        s = s.replaceAll("(?iu)\\bhimself\\b", "kendini");
+        s = s.replaceAll("(?iu)\\bherself\\b", "kendini");
+        s = s.replaceAll("(?iu)\\bthemselves\\b", "kendilerini");
+        s = s.replaceAll("(?iu)\\bsometimes\\b", "bazen");
+        s = s.replaceAll("(?iu)\\boften\\b", "sık sık");
+        s = s.replaceAll("(?iu)\\brarely\\b", "nadiren");
+        s = s.replaceAll("(?iu)\\busually\\b", "genelde");
+        s = s.replaceAll("(?iu)\\bhowever\\b", "ancak");
+        s = s.replaceAll("(?iu)\\balso\\b", "ayrıca");
+        s = s.replaceAll("(?iu)\\bsocially\\b", "sosyal olarak");
+        s = s.replaceAll("(?iu)\\bemotionally\\b", "duygusal olarak");
+
+        // Clean punctuation artifacts after token repairs
+        s = s.replaceAll("\\s+,", ",")
+             .replaceAll("\\s+\\.", ".")
+             .replaceAll("\\s{2,}", " ");
+
+        return s.trim();
     }
 
     private String text(JsonNode node, String field) {

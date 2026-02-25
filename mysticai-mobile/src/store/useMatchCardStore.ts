@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { TraitAxis } from '../services/match.api';
+import type { RelationshipType, SynastryDisplayMetric, SynastryScoreBreakdown } from '../services/synastry.service';
 
 export interface MatchCardDraft {
   user1Name: string;
@@ -7,11 +8,14 @@ export interface MatchCardDraft {
   user1Sign: string;
   user2Sign: string;
   compatibilityScore: number;
+  relationshipType?: RelationshipType;
   aiSummary: string;
   cardSummary?: string | null;
   aspectsCount: number;
   relationLabel: string;
   traitAxes?: TraitAxis[];
+  scoreBreakdown?: Pick<SynastryScoreBreakdown, 'overall' | 'love' | 'communication' | 'spiritualBond'> | null;
+  displayMetrics?: SynastryDisplayMetric[] | null;
   createdAt: number;
 }
 

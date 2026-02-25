@@ -11,6 +11,7 @@ export interface SavedPersonRequest {
   latitude?: number;
   longitude?: number;
   timezone?: string;
+  gender?: string;
   relationshipType?: RelationshipType;
   relationshipCategory?: RelationshipType;
 }
@@ -25,7 +26,9 @@ export interface SavedPersonResponse {
   latitude: number;
   longitude: number;
   timezone: string | null;
+  gender?: string | null;
   relationshipCategory: RelationshipType | null;
+  relationshipType?: RelationshipType | null;
   sunSign: string;
   moonSign: string;
   risingSign: string;
@@ -73,6 +76,7 @@ export interface SynastryRequest {
   personAId?: number | null;
   personBId?: number;
   relationshipType: RelationshipType;
+  userGender?: string | null;
   locale?: string;
 }
 
@@ -93,6 +97,12 @@ export interface SynastryScoreBreakdown {
   communication: number | null;
   spiritualBond: number | null;
   methodologyNote: string | null;
+}
+
+export interface SynastryDisplayMetric {
+  id: string;
+  label: string;
+  score: number | null;
 }
 
 export interface SynastryAnalysisSection {
@@ -128,6 +138,7 @@ export interface SynastryResponse {
   calculatedAt: string;
   scoreBreakdown?: SynastryScoreBreakdown | null;
   analysisSections?: SynastryAnalysisSection[] | null;
+  displayMetrics?: SynastryDisplayMetric[] | null;
 }
 
 // ─── API Calls ────────────────────────────────────────────────────────────────

@@ -66,6 +66,7 @@ public class SavedPersonService {
                 .latitude(lat)
                 .longitude(lon)
                 .timezone(timezone)
+                .gender(normalizeGender(req.gender()))
                 .relationshipCategory(normalizeRelationship(req))
                 .sunSign(sunSign)
                 .moonSign(moonSign)
@@ -92,6 +93,7 @@ public class SavedPersonService {
         }
 
         person.setName(req.name());
+        person.setGender(normalizeGender(req.gender()));
         person.setRelationshipCategory(normalizeRelationship(req));
 
         LocalTime birthTime = req.birthTime() != null ? req.birthTime() : LocalTime.NOON;
@@ -180,6 +182,8 @@ public class SavedPersonService {
                 p.getBirthTime() != null ? p.getBirthTime().toString() : null,
                 p.getBirthLocation(), p.getLatitude(), p.getLongitude(),
                 p.getTimezone(),
+                p.getGender(),
+                p.getRelationshipCategory(),
                 p.getRelationshipCategory(),
                 p.getSunSign(), p.getMoonSign(), p.getRisingSign(),
                 planets != null ? planets : List.of(),
@@ -211,6 +215,13 @@ public class SavedPersonService {
             return null;
         }
         return raw.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeGender(String gender) {
+        if (gender == null || gender.isBlank()) {
+            return null;
+        }
+        return gender.trim().toUpperCase(Locale.ROOT);
     }
 
     private <T> List<T> readList(String json, Class<T> itemType) {

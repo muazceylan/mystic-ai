@@ -12,6 +12,8 @@ public record SynastryRequest(
         Long personBId,
         /** LOVE, BUSINESS, FRIENDSHIP, RIVAL */
         @NotNull String relationshipType,
+        /** Optional requester user gender for comparison context and AI phrasing */
+        String userGender,
         /** User's preferred language for the AI analysis: "tr" or "en" */
         String locale
 ) {}

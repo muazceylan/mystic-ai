@@ -27,6 +27,7 @@ public class SavedPerson {
     private Double latitude;
     private Double longitude;
     private String timezone;
+    private String gender;
 
     /** Relationship category hint set by user: LOVE, BUSINESS, FRIENDSHIP, RIVAL */
     private String relationshipCategory;

@@ -11,6 +11,8 @@ type TitleRule = {
   keywords: string[];
 };
 
+const SENTENCE_BOUNDARY_REGEX = /(?<=[.!?])\s+(?=(?:["“”'‘’(]*[A-ZÇĞİÖŞÜ]))/g;
+
 const TITLE_RULES: TitleRule[] = [
   { title: 'İş Hayatı ve Başarı', keywords: ['kariyer', 'meslek', 'başarı', 'hedef', 'iş hayatı', 'statü'] },
   { title: 'Duygusal Dünyan ve Sezgilerin', keywords: ['duygu', 'sezgi', 'hassas', 'güven', 'iç dünya', 'kalp'] },
@@ -27,6 +29,19 @@ function normalizeForMatch(text: string): string {
     .toLocaleLowerCase('tr-TR')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizeAiTextForParagraphs(rawText: string): string {
+  return rawText
+    .replace(/\r\n/g, '\n')
+    .replace(/\u00A0/g, ' ')
+    // LLM bazen tek satır sonu ile paragraf verir; cümle sonrası tek newline'ı paragraf kabul et.
+    .replace(/([.!?])\n(?=[A-ZÇĞİÖŞÜ])/g, '$1\n\n')
+    // Numaralı başlıkları görünür paragraf başlangıcına çevir.
+    .replace(/\n(?=\d+\.\s)/g, '\n\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function inferTurkishAiTitle(rawText?: string | null, fallback?: string | null): string {
@@ -59,7 +74,7 @@ export function inferTurkishAiTitle(rawText?: string | null, fallback?: string |
   if (best && best.score > 0) return best.title;
 
   if (cleanedText) {
-    const firstSentence = cleanedText.split(/(?<=[.!?])\s+/)[0]?.trim() ?? '';
+    const firstSentence = cleanedText.split(SENTENCE_BOUNDARY_REGEX)[0]?.trim() ?? '';
     if (firstSentence.length > 6 && firstSentence.length <= 72) return firstSentence;
   }
 
@@ -67,34 +82,70 @@ export function inferTurkishAiTitle(rawText?: string | null, fallback?: string |
 }
 
 export function splitPlainAiTextToBlocks(rawText: string): AiAccordionBlock[] {
-  const cleaned = translateAstroTermsForUi(rawText);
+  const normalizedRaw = normalizeAiTextForParagraphs(rawText);
+  const cleaned = translateAstroTermsForUi(normalizedRaw);
   if (!cleaned) return [];
 
+  const MAX_BLOCK_LEN = 520;
   const chunks = cleaned
     .split(/\n{2,}|(?:\r?\n[-*•]\s+)/g)
     .map((part) => part.trim())
     .filter(Boolean)
     .flatMap((part) => {
-      if (part.length <= 320) return [part];
-      const pieces = part.split(/(?<=[.!?])\s+/).reduce<string[]>((acc, sentence) => {
+      if (part.length <= MAX_BLOCK_LEN) return [part];
+      const pieces = part.split(SENTENCE_BOUNDARY_REGEX).reduce<string[]>((acc, sentence) => {
+        if (!sentence.trim()) return acc;
         const current = acc[acc.length - 1];
         if (!current) {
-          acc.push(sentence);
+          acc.push(sentence.trim());
           return acc;
         }
-        if ((current + ' ' + sentence).length > 320) {
-          acc.push(sentence);
+        if ((current + ' ' + sentence).length > MAX_BLOCK_LEN) {
+          acc.push(sentence.trim());
         } else {
-          acc[acc.length - 1] = `${current} ${sentence}`;
+          acc[acc.length - 1] = `${current} ${sentence.trim()}`;
         }
         return acc;
       }, []);
       return pieces;
     });
 
-  return chunks.slice(0, 12).map((body, index) => ({
-    id: `plain-${index + 1}`,
-    title: inferTurkishAiTitle(body),
-    body,
-  }));
+  return chunks
+    .filter((body) => body.length > 8)
+    .slice(0, 10)
+    .map((body, index) => ({
+      id: `plain-${index + 1}`,
+      title: inferTurkishAiTitle(body),
+      body,
+    }));
+}
+
+export function splitAiBodyToParagraphs(rawText?: string | null): string[] {
+  const cleaned = normalizeAiTextForParagraphs(translateAstroTermsForUi(rawText ?? ''));
+  if (!cleaned) return [];
+
+  const parts = cleaned
+    .split(/\n{2,}/g)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length > 1) return parts;
+
+  // Tek paragraf geldiyse çok uzun metni mantıklı yerden böl.
+  if (cleaned.length <= 260) return [cleaned];
+  const sentences = cleaned.split(SENTENCE_BOUNDARY_REGEX).map((s) => s.trim()).filter(Boolean);
+  const out: string[] = [];
+  for (const sentence of sentences) {
+    const current = out[out.length - 1];
+    if (!current) {
+      out.push(sentence);
+      continue;
+    }
+    if ((current + ' ' + sentence).length > 260) {
+      out.push(sentence);
+    } else {
+      out[out.length - 1] = `${current} ${sentence}`;
+    }
+  }
+  return out;
 }

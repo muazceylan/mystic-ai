@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import StaggeredAiText from './StaggeredAiText';
 import { AccordionSection } from '../ui';
 import { cleanAstroHeading, translateAstroTermsForUi } from '../../constants/astroLabelMap';
-import { inferTurkishAiTitle, splitPlainAiTextToBlocks } from '../../utils/astroTextProcessor';
+import { inferTurkishAiTitle, splitAiBodyToParagraphs, splitPlainAiTextToBlocks } from '../../utils/astroTextProcessor';
 
 type NatalAiSection = {
   id?: string;
@@ -172,6 +172,22 @@ function BulletInfoBlock({
   );
 }
 
+function ParagraphBlock({ text }: { text?: string | null }) {
+  const { colors } = useTheme();
+  const paragraphs = useMemo(() => splitAiBodyToParagraphs(text), [text]);
+  if (paragraphs.length === 0) return null;
+
+  return (
+    <View style={styles.paragraphGroup}>
+      {paragraphs.map((paragraph, idx) => (
+        <Text key={`paragraph-${idx}`} style={[styles.sectionBody, { color: colors.body }]}>
+          {paragraph}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 export default function StructuredNatalAiInterpretation({ text, fallbackTextStyle }: Props) {
   const { colors } = useTheme();
 
@@ -238,12 +254,12 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
 
         <View style={styles.group}>
           <Text style={[styles.groupTitle, { color: colors.text }]}>AI Analizi Bölümleri</Text>
-          {plainBlocks.map((block, idx) => (
+          {plainBlocks.map((block) => (
             <AccordionSection
               key={block.id}
               id={block.id}
               title={block.title}
-              subtitle={`Paragraf ${idx + 1}`}
+              subtitle={undefined}
               icon="document-text-outline"
               expanded={openSectionId === block.id}
               onToggle={(id) => setOpenSectionId((prev) => (prev === id ? null : id))}
@@ -251,7 +267,7 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
               deferBodyMount
             >
               <View style={styles.nestedBody}>
-                <Text style={[styles.sectionBody, { color: colors.body }]}>{block.body}</Text>
+                <ParagraphBlock text={block.body} />
               </View>
             </AccordionSection>
           ))}
@@ -292,12 +308,12 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
       {sections.length > 0 && (
         <View style={styles.group}>
           <Text style={[styles.groupTitle, { color: colors.text }]}>AI Analizi</Text>
-          {sections.map((section, idx) => (
+          {sections.map((section) => (
             <AccordionSection
               key={section._id}
               id={section._id}
               title={inferTurkishAiTitle(section.body, section.title)}
-              subtitle={`Analiz Katmanı ${idx + 1}`}
+              subtitle={undefined}
               icon="sparkles-outline"
               expanded={openSectionId === section._id}
               onToggle={(id) => setOpenSectionId((prev) => (prev === id ? null : id))}
@@ -305,9 +321,7 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
               deferBodyMount
             >
               <View style={styles.nestedBody}>
-                {cleanText(section.body) ? (
-                  <Text style={[styles.sectionBody, { color: colors.body }]}>{section.body}</Text>
-                ) : null}
+                <ParagraphBlock text={section.body} />
                 {(section.bulletPoints ?? []).length > 0 ? (
                   <View style={styles.bulletGroup}>
                     {section.bulletPoints?.map((bp, bpIdx) => (
@@ -464,6 +478,9 @@ const styles = StyleSheet.create({
   },
   nestedBody: {
     gap: 10,
+  },
+  paragraphGroup: {
+    gap: 8,
   },
   sectionCard: {
     borderRadius: 16,

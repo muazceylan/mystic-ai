@@ -803,7 +803,8 @@ public class MysticalPromptTemplates {
             String userPlanetsText,
             String partnerName, String partnerSunSign, String partnerMoonSign, String partnerRisingSign,
             String partnerPlanetsText,
-            String relationshipType, String allAspectsText) {
+            String relationshipType, String allAspectsText,
+            String userGender, String partnerGender) {
 
         String typeLabel = switch (relationshipType.toUpperCase()) {
             case "LOVE"       -> "Aşk & Romantizm";
@@ -875,6 +876,7 @@ public class MysticalPromptTemplates {
                 ══════════════════════════════════════════
                 KİŞİ A — %s
                 ══════════════════════════════════════════
+                Cinsiyet: %s
                 Güneş: %s | Ay: %s | Yükselen: %s
 
                 Tam Gezegen Haritası:
@@ -883,6 +885,7 @@ public class MysticalPromptTemplates {
                 ══════════════════════════════════════════
                 KİŞİ B — %s
                 ══════════════════════════════════════════
+                Cinsiyet: %s
                 Güneş: %s | Ay: %s | Yükselen: %s
 
                 Tam Gezegen Haritası:
@@ -894,6 +897,10 @@ public class MysticalPromptTemplates {
 
                 TÜM ÇAPRAZ AÇILAR (iki harita arasındaki sinastri aspektleri):
                 %s
+
+                NOT:
+                - Cinsiyet bilgisi sadece hitap tonu ve ilişki bağlamını anlamak içindir.
+                - Kalıp yargı kurma; yorumu öncelikle gezegenler, evler ve açılar üzerinden temellendir.
 
                 İLİŞKİ TÜRÜNE ÖZEL TALİMATLAR:
                 %s
@@ -963,8 +970,12 @@ public class MysticalPromptTemplates {
                   "cosmicAdvice": "string"
                 }
                 """.formatted(
-                userName, userSunSign, userMoonSign, userRisingSign, userPlanetsText,
-                partnerName, partnerSunSign, partnerMoonSign, partnerRisingSign, partnerPlanetsText,
+                userName,
+                (userGender == null || userGender.isBlank()) ? "Belirtilmedi" : userGender,
+                userSunSign, userMoonSign, userRisingSign, userPlanetsText,
+                partnerName,
+                (partnerGender == null || partnerGender.isBlank()) ? "Belirtilmedi" : partnerGender,
+                partnerSunSign, partnerMoonSign, partnerRisingSign, partnerPlanetsText,
                 typeLabel,
                 allAspectsText,
                 typeInstructions,

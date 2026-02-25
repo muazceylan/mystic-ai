@@ -6,7 +6,8 @@ import { useTheme } from '../../context/ThemeContext';
 import TraitCategoryCard from '../../components/match/TraitCategoryCard';
 import { useMatchTraits } from '../../hooks/useMatchTraits';
 import { useMatchCardStore } from '../../store/useMatchCardStore';
-import type { RelationshipType } from '../../services/synastry.service';
+import type { RelationshipType, SynastryDisplayMetric, SynastryScoreBreakdown } from '../../services/synastry.service';
+import type { CategoryGroup, TraitAxis } from '../../services/match.api';
 
 function extractShareVerdict(text: string | null | undefined) {
   const raw = (text ?? '').trim();
@@ -17,6 +18,89 @@ function extractShareVerdict(text: string | null | undefined) {
     .find(Boolean) ?? raw;
   const firstSentence = firstChunk.split(/(?<=[.!?])\s+/)[0]?.trim() || firstChunk;
   return firstSentence.length > 120 ? `${firstSentence.slice(0, 117).trimEnd()}...` : firstSentence;
+}
+
+function buildFallbackCategoryGroups(
+  compatibilityScore: number,
+  relationshipType: RelationshipType,
+): CategoryGroup[] {
+  const score = Math.max(0, Math.min(100, Math.round(compatibilityScore || 0)));
+  const center = 50;
+  const tilt = Math.round((score - center) * 0.5);
+  const clamp = (n: number) => Math.max(8, Math.min(92, n));
+  const relationLabel =
+    relationshipType === 'LOVE'
+      ? 'romantik ritim'
+      : relationshipType === 'BUSINESS'
+        ? 'iş birliği akışı'
+        : relationshipType === 'FAMILY'
+          ? 'aile bağı'
+          : relationshipType === 'RIVAL'
+            ? 'rekabet dengesi'
+            : 'ilişki ritmi';
+
+  return [
+    {
+      id: 'fallback_duygusal',
+      title: 'Duygusal Tempo ve Yakınlık',
+      items: [
+        {
+          id: 'sakinlik-heyecan',
+          leftLabel: 'Sakin akış',
+          rightLabel: 'Yoğun tempo',
+          score0to100: clamp(50 + tilt),
+          note: `Bu eksen ${relationLabel} içinde bir tarafın yaklaşma hızını, diğer tarafın güven ihtiyacını nasıl etkilediğinizi gösterir.`,
+        },
+        {
+          id: 'mesafe-yakinlik',
+          leftLabel: 'Alan ihtiyacı',
+          rightLabel: 'Yakınlık ihtiyacı',
+          score0to100: clamp(48 + Math.round(tilt * 0.7)),
+          note: 'Yakınlık ve kişisel alan dengesi konuşulduğunda ilişkinin yıpranma riski azalır.',
+        },
+      ],
+    },
+    {
+      id: 'fallback_iletisim',
+      title: 'İletişim ve Karar Dili',
+      items: [
+        {
+          id: 'duz-anlatim',
+          leftLabel: 'Direkt anlatım',
+          rightLabel: 'Dolaylı anlatım',
+          score0to100: clamp(52 - Math.round(tilt * 0.35)),
+          note: 'Biriniz netlik isterken diğeriniz duygu tonu arıyor olabilir; önce niyeti sonra çözümü söylemek işe yarar.',
+        },
+        {
+          id: 'hizli-karar',
+          leftLabel: 'Hızlı karar',
+          rightLabel: 'Düşünerek karar',
+          score0to100: clamp(50 + Math.round(tilt * 0.25)),
+          note: 'Karar temposu farklıysa ortak bir karar ritmi belirlemek çatışmayı azaltır.',
+        },
+      ],
+    },
+    {
+      id: 'fallback_baglilik',
+      title: 'Bağlılık ve Ortak Hedef',
+      items: [
+        {
+          id: 'esneklik-duzen',
+          leftLabel: 'Esnek akış',
+          rightLabel: 'Düzen ve plan',
+          score0to100: clamp(54 + Math.round(tilt * 0.2)),
+          note: 'Bu eksen birlikte gelecek kurarken kimin yapı, kimin hareket getirdiğini gösterir.',
+        },
+        {
+          id: 'ben-biz',
+          leftLabel: 'Bireysel alan',
+          rightLabel: 'Ortak alan',
+          score0to100: clamp(46 + Math.round(tilt * 0.4)),
+          note: 'İlişkinin uzun ömürlü olması için hem bireysel alan hem ortak amaç görünür olmalıdır.',
+        },
+      ],
+    },
+  ];
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -63,6 +147,8 @@ export interface MatchResultScreenProps {
   compatibilityScore: number;
   relationLabel: string;
   relationshipType: RelationshipType;
+  scoreBreakdown?: SynastryScoreBreakdown | null;
+  displayMetrics?: SynastryDisplayMetric[] | null;
   personAName: string;
   personBName: string;
   personASignLabel: string;
@@ -78,6 +164,8 @@ export default function MatchResultScreen({
   compatibilityScore,
   relationLabel,
   relationshipType,
+  scoreBreakdown,
+  displayMetrics,
   personAName,
   personBName,
   personASignLabel,
@@ -95,16 +183,34 @@ export default function MatchResultScreen({
 
   const categories = data?.categories ?? null;
   const cardSummary = data?.cardSummary ?? null;
+  const fallbackCategories = useMemo(
+    () => buildFallbackCategoryGroups(compatibilityScore, relationshipType),
+    [compatibilityScore, relationshipType],
+  );
+  const cardFallbackCategories = (error || !categories || categories.length === 0) ? fallbackCategories : null;
+  const effectiveCategories = (categories && categories.length > 0) ? categories : null;
+  const renderableCategories = effectiveCategories && effectiveCategories.length > 0 ? effectiveCategories : fallbackCategories;
+  const cardAxesForDraft: TraitAxis[] = useMemo(
+    () => {
+      if (data?.cardAxes?.length) return data.cardAxes.slice(0, 8);
+      return (cardFallbackCategories ?? []).flatMap((group) => group.items).slice(0, 8);
+    },
+    [data?.cardAxes, cardFallbackCategories],
+  );
 
   const visibleCategories = useMemo(() => {
-    if (!categories) return [];
-    if (showAllCategories) return categories;
-    return categories.slice(0, 4);
-  }, [categories, showAllCategories]);
+    if (!renderableCategories?.length) return [];
+    if (showAllCategories) return renderableCategories;
+    return renderableCategories.slice(0, 4);
+  }, [renderableCategories, showAllCategories]);
 
-  const canExpandCategories = (categories?.length ?? 0) > 4;
-  const summaryText = cardSummary || fallbackInsight || 'Kategori bazlı eğilim eksenleri hazırlanıyor…';
+  const canExpandCategories = (renderableCategories?.length ?? 0) > 4;
+  const summaryText = cardSummary || fallbackInsight || 'Kategori bazlı karşılaştırma eksenleri hazırlanıyor…';
   const shareVerdict = useMemo(() => extractShareVerdict(fallbackInsight), [fallbackInsight]);
+  const officialMetrics = useMemo(
+    () => (displayMetrics ?? []).filter((metric) => typeof metric?.score === 'number').slice(0, 4),
+    [displayMetrics],
+  );
 
   const draftSignature = useMemo(
     () =>
@@ -115,16 +221,30 @@ export default function MatchResultScreen({
         personASignLabel,
         personBSignLabel,
         compatibilityScore,
+        relationshipType,
         relationLabel,
         aspectsCount,
         summary: cardSummary || fallbackInsight || shareVerdict,
-        traitAxes: (data?.cardAxes ?? []).map((axis) => [axis.id, axis.score0to100, axis.note ?? '']),
+        traitAxes: cardAxesForDraft.map((axis) => [axis.id, axis.score0to100, axis.note ?? '']),
+        scoreBreakdown: scoreBreakdown
+          ? {
+              overall: scoreBreakdown.overall ?? null,
+              love: scoreBreakdown.love ?? null,
+              communication: scoreBreakdown.communication ?? null,
+              spiritualBond: scoreBreakdown.spiritualBond ?? null,
+            }
+          : null,
+        displayMetrics: officialMetrics.map((metric) => ({
+          id: metric.id,
+          label: metric.label,
+          score: metric.score ?? null,
+        })),
       }),
     [
       aspectsCount,
+      cardAxesForDraft,
       cardSummary,
       compatibilityScore,
-      data?.cardAxes,
       fallbackInsight,
       matchId,
       personAName,
@@ -132,6 +252,9 @@ export default function MatchResultScreen({
       personBName,
       personBSignLabel,
       relationLabel,
+      relationshipType,
+      scoreBreakdown,
+      officialMetrics,
       shareVerdict,
     ],
   );
@@ -147,18 +270,28 @@ export default function MatchResultScreen({
       user1Sign: personASignLabel,
       user2Sign: personBSignLabel,
       compatibilityScore,
+      relationshipType,
       aiSummary: fallbackInsight || shareVerdict,
       cardSummary: cardSummary ?? fallbackInsight ?? shareVerdict,
       aspectsCount,
       relationLabel,
-      traitAxes: (data?.cardAxes ?? []).slice(0, 8),
+      traitAxes: cardAxesForDraft,
+      scoreBreakdown: scoreBreakdown
+        ? {
+            overall: scoreBreakdown.overall ?? null,
+            love: scoreBreakdown.love ?? null,
+            communication: scoreBreakdown.communication ?? null,
+            spiritualBond: scoreBreakdown.spiritualBond ?? null,
+          }
+        : null,
+      displayMetrics: officialMetrics,
       createdAt: Date.now(),
     });
   }, [
     aspectsCount,
+    cardAxesForDraft,
     cardSummary,
     compatibilityScore,
-    data?.cardAxes,
     draftSignature,
     fallbackInsight,
     matchId,
@@ -167,6 +300,9 @@ export default function MatchResultScreen({
     personBName,
     personBSignLabel,
     relationLabel,
+    relationshipType,
+    scoreBreakdown,
+    officialMetrics,
     setMatchCardDraft,
     shareVerdict,
   ]);
@@ -191,7 +327,7 @@ export default function MatchResultScreen({
         <View style={styles.scoreRow}>
           <ScoreRing score={compatibilityScore} />
           <View style={styles.metaCol}>
-            <Text style={styles.eyebrow}>Cosmic Match</Text>
+            <Text style={styles.eyebrow}>Sinastri Atölyesi</Text>
             <Text style={styles.title}>{relationLabel}</Text>
             <Text style={styles.sub}>{aspectsCount} çapraz açı değerlendirildi</Text>
           </View>
@@ -199,9 +335,27 @@ export default function MatchResultScreen({
       </View>
 
       <View style={[styles.summaryCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-        <Text style={[styles.summaryTitle, { color: colors.text }]}>Uyum Eksenleri</Text>
+        <Text style={[styles.summaryTitle, { color: colors.text }]}>Karşılaştırmalı Özet</Text>
         <Text style={[styles.summaryBody, { color: colors.subtext }]}>{summaryText}</Text>
       </View>
+
+      {officialMetrics.length > 0 ? (
+        <View style={styles.metricsWrap}>
+          {officialMetrics.map((metric) => (
+            <View
+              key={`official-metric-${metric.id}`}
+              style={[styles.metricChip, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
+            >
+              <Text style={[styles.metricChipLabel, { color: colors.subtext }]} numberOfLines={1}>
+                {metric.label}
+              </Text>
+              <Text style={[styles.metricChipValue, { color: colors.text }]}>
+                %{Math.max(0, Math.min(100, Math.round(metric.score ?? 0)))}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.categoriesCol}>
         {loading ? (
@@ -212,21 +366,7 @@ export default function MatchResultScreen({
               Astrolojik açılardan kategori bazlı denge haritası oluşturuluyor.
             </Text>
           </View>
-        ) : error ? (
-          <View style={[styles.stateCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-            <Text style={[styles.stateTitle, { color: colors.text }]}>Eksenler yüklenemedi</Text>
-            <Text style={[styles.stateSub, { color: colors.subtext }]}>{error}</Text>
-            <Pressable
-              style={[styles.retryBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => {
-                void refetch();
-              }}
-            >
-              <RefreshCcw size={14} color={colors.text} />
-              <Text style={[styles.retryBtnText, { color: colors.text }]}>Tekrar dene</Text>
-            </Pressable>
-          </View>
-        ) : categories && categories.length > 0 ? (
+        ) : renderableCategories && renderableCategories.length > 0 ? (
           <>
             {visibleCategories.map((group) => (
               <TraitCategoryCard key={group.id} category={group} previewCount={3} />
@@ -248,6 +388,17 @@ export default function MatchResultScreen({
             <Text style={[styles.stateSub, { color: colors.subtext }]}>
               Karşılaştırma tamamlandığında kategori bazlı eksenler burada görünecek.
             </Text>
+            {!!error && (
+              <Pressable
+                style={[styles.retryBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => {
+                  void refetch();
+                }}
+              >
+                <RefreshCcw size={14} color={colors.text} />
+                <Text style={[styles.retryBtnText, { color: colors.text }]}>Tekrar dene</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </View>
@@ -391,6 +542,42 @@ const styles = StyleSheet.create({
   },
   categoriesCol: {
     gap: 10,
+  },
+  metricsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metricChip: {
+    minWidth: '48%',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  metricChipLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  metricChipValue: {
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
+  warningCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  warningTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  warningSub: {
+    fontSize: 11.5,
+    lineHeight: 17,
   },
   stateCard: {
     borderWidth: 1,

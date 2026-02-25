@@ -1,0 +1,2 @@
+ALTER TABLE saved_persons
+    ADD COLUMN IF NOT EXISTS gender VARCHAR(32) NULL;

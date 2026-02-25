@@ -145,6 +145,43 @@ const RAW_TERM_TRANSLATIONS: Array<[RegExp, string]> = [
   [/\bOpposition\b/gi, 'Karşıt Açı'],
 ];
 
+// LLM çıktılarında kalan genel İngilizce anlatım kalıntılarını UI öncesi temizler.
+// Amaç tam çeviri yapmak değil; kullanıcıya "yarım İngilizce" metin göstermemek.
+const RAW_NARRATIVE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/\bfor example\b/gi, 'örneğin'],
+  [/\bon the other hand\b/gi, 'öte yandan'],
+  [/\bin other words\b/gi, 'başka bir deyişle'],
+  [/\bas a result\b/gi, 'sonuç olarak'],
+  [/\bin general\b/gi, 'genel olarak'],
+  [/\bhowever\b/gi, 'ancak'],
+  [/\btherefore\b/gi, 'bu nedenle'],
+  [/\bmoreover\b/gi, 'üstelik'],
+  [/\badditionally\b/gi, 'ayrıca'],
+  [/\bmeanwhile\b/gi, 'bu sırada'],
+  [/\binstead\b/gi, 'yerine'],
+  [/\bespecially\b/gi, 'özellikle'],
+  [/\bgenerally\b/gi, 'genellikle'],
+  [/\bsometimes\b/gi, 'bazen'],
+  [/\boften\b/gi, 'sık sık'],
+  [/\brarely\b/gi, 'nadiren'],
+  [/\busually\b/gi, 'genelde'],
+  [/\balso\b/gi, 'ayrıca'],
+  [/\bsocially\b/gi, 'sosyal olarak'],
+  [/\bemotionally\b/gi, 'duygusal olarak'],
+  [/\bsensitive\b/gi, 'hassas'],
+  [/\bprotective\b/gi, 'koruyucu'],
+  [/\bpersonality\b/gi, 'kişilik'],
+  [/\bindicates\b/gi, 'işaret eder'],
+  [/\bshows\b/gi, 'gösterir'],
+  [/\btends to\b/gi, 'eğilimindedir'],
+  [/\bhimself\b/gi, 'kendini'],
+  [/\bherself\b/gi, 'kendini'],
+  [/\bthemselves\b/gi, 'kendilerini'],
+  [/\bbut\b/gi, 'ama'],
+  [/\band\b/gi, 've'],
+  [/\bor\b/gi, 'veya'],
+];
+
 const PLANET_NAME_EN_TR: Record<string, string> = {
   Sun: 'Güneş',
   Moon: 'Ay',
@@ -201,7 +238,28 @@ export function translateAstroTermsForUi(raw: string | null | undefined): string
     out = out.replace(regex, replacement);
   });
 
+  // LLM bazen Türkçe iyelik eki ile İngilizce kelimeyi boşluksuz birleştiriyor:
+  // "Muaz'insometimes", "Kişi'ninhimself" gibi. Önce boşluk ekleyip sonra çevir.
+  out = out.replace(
+    /([A-Za-zÇĞİÖŞÜçğıöşü]+(?:['’]?(?:in|ın|un|ün|nin|nın|nun|nün)))(?=(?:sometimes|often|rarely|usually|however|also|socially|emotionally|himself|herself|themselves)\b)/gi,
+    '$1 ',
+  );
+
+  // Gözlenen bozuk çok dilli tokenlar (cache'lenmiş eski yorumları da kurtarmak için UI tarafında tutulur)
+  out = out
+    .replace(/\bworldsine\b/gi, 'dünyasına')
+    .replace(/\bngu[oồốổỗộơờớởỡợuưồn]*[^\s,.!?;:]*ını\b/gi, 'kaynağını')
+    .replace(/\bpoççğimiz\b/gi, 'yaklaşımımızla');
+
+  RAW_NARRATIVE_TRANSLATIONS.forEach(([regex, replacement]) => {
+    out = out.replace(regex, replacement);
+  });
+
   return out
+    .replace(/\bve and\b/gi, 've')
+    .replace(/\bama but\b/gi, 'ama')
+    .replace(/\s+,/g, ',')
+    .replace(/\s+\./g, '.')
     .replace(/\s{2,}/g, ' ')
     .replace(/\bAçı Matrix\b/gi, 'Gezegen Etkileşim Tablosu')
     .trim();

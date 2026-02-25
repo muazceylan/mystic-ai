@@ -47,6 +47,7 @@ public class SynastryService {
             Long id,
             PartyType type,
             String name,
+            String gender,
             String sunSign,
             String moonSign,
             String risingSign,
@@ -78,7 +79,7 @@ public class SynastryService {
         }
 
         PartyContext personA = req.personAId() == null
-                ? buildUserParty(req.userId())
+                ? buildUserParty(req.userId(), req.userGender())
                 : buildSavedParty(req.personAId());
         PartyContext personB = buildSavedParty(personBId);
 
@@ -298,7 +299,7 @@ public class SynastryService {
                 love,
                 communication,
                 spiritual,
-                "Kural tabanlı hızlı skor: orb yakınlığı ve ana gezegen etkileşimleri ağırlıklandırılır; AI yorumu geldikçe anlatım derinleşir."
+                null
         );
     }
 
@@ -368,6 +369,216 @@ public class SynastryService {
             case "SEXTILE" -> 6.0;
             default -> 6.0;
         };
+    }
+
+    private List<SynastryDisplayMetric> buildDisplayMetrics(
+            List<CrossAspect> aspects,
+            String relationshipType,
+            SynastryScoreBreakdown scoreBreakdown
+    ) {
+        List<CrossAspect> safeAspects = aspects == null ? List.of() : aspects;
+        String type = relationshipType == null ? "FRIENDSHIP" : relationshipType.toUpperCase(Locale.ROOT);
+
+        int overall = scoreBreakdown != null && scoreBreakdown.overall() != null
+                ? Math.max(0, Math.min(100, scoreBreakdown.overall()))
+                : computeHarmonyScore(safeAspects, type);
+
+        int trust = computeFocusedScore(
+                safeAspects,
+                Set.of("Moon", "Saturn", "Venus"),
+                Set.of("Sun", "Jupiter", "Mercury", "NorthNode"),
+                "FAMILY"
+        );
+        int support = computeFocusedScore(
+                safeAspects,
+                Set.of("Moon", "Jupiter", "Venus", "Sun"),
+                Set.of("Mercury", "Saturn"),
+                "FAMILY"
+        );
+        int passion = computeFocusedScore(
+                safeAspects,
+                Set.of("Mars", "Venus", "Pluto"),
+                Set.of("Sun", "Moon"),
+                "LOVE"
+        );
+        int fun = computeFocusedScore(
+                safeAspects,
+                Set.of("Jupiter", "Venus", "Uranus", "Mars"),
+                Set.of("Mercury", "Sun", "Moon"),
+                "FRIENDSHIP"
+        );
+        int cooperation = computeFocusedScore(
+                safeAspects,
+                Set.of("Saturn", "Sun", "Jupiter", "Venus"),
+                Set.of("Mercury", "Moon"),
+                "BUSINESS"
+        );
+        int strategy = computeFocusedScore(
+                safeAspects,
+                Set.of("Mercury", "Saturn", "Pluto", "Jupiter"),
+                Set.of("Sun", "Mars"),
+                "BUSINESS"
+        );
+        int compassion = computeFocusedScore(
+                safeAspects,
+                Set.of("Moon", "Venus", "Neptune"),
+                Set.of("Sun", "Jupiter", "Saturn"),
+                "FAMILY"
+        );
+        int solidarity = computeFocusedScore(
+                safeAspects,
+                Set.of("Saturn", "Moon", "Sun", "Jupiter"),
+                Set.of("Venus", "Mercury"),
+                "FAMILY"
+        );
+        int competition = computeActivationScore(
+                safeAspects,
+                Set.of("Mars", "Sun", "Pluto"),
+                Set.of("Saturn", "Mercury")
+        );
+        int focus = computeFocusedScore(
+                safeAspects,
+                Set.of("Sun", "Saturn", "Mars"),
+                Set.of("Mercury", "Pluto"),
+                "BUSINESS"
+        );
+        int tension = computeTensionScore(
+                safeAspects,
+                Set.of("Mars", "Saturn", "Pluto", "Mercury", "Sun", "Uranus")
+        );
+
+        if (scoreBreakdown != null) {
+            // Blend canonical breakdown scores into relationship-facing metrics for stability.
+            if (scoreBreakdown.communication() != null) {
+                strategy = averageRounded(strategy, scoreBreakdown.communication());
+            }
+            if (scoreBreakdown.spiritualBond() != null) {
+                trust = averageRounded(trust, scoreBreakdown.spiritualBond());
+                support = averageRounded(support, scoreBreakdown.spiritualBond());
+                compassion = averageRounded(compassion, scoreBreakdown.spiritualBond());
+            }
+            if (scoreBreakdown.love() != null) {
+                passion = averageRounded(passion, scoreBreakdown.love());
+                fun = averageRounded(fun, scoreBreakdown.love());
+            }
+        }
+
+        return switch (type) {
+            case "LOVE" -> List.of(
+                    metric("love", "Aşk", scoreBreakdown != null ? coalesceScore(scoreBreakdown.love(), passion) : passion),
+                    metric("communication", "İletişim", scoreBreakdown != null ? coalesceScore(scoreBreakdown.communication(), strategy) : strategy),
+                    metric("trust", "Güven", trust),
+                    metric("passion", "Tutku", passion)
+            );
+            case "FRIENDSHIP" -> List.of(
+                    metric("fun", "Eğlence", fun),
+                    metric("communication", "İletişim", scoreBreakdown != null ? coalesceScore(scoreBreakdown.communication(), strategy) : strategy),
+                    metric("trust", "Güven", trust),
+                    metric("support", "Destek", support)
+            );
+            case "BUSINESS" -> List.of(
+                    metric("cooperation", "İş Birliği", cooperation),
+                    metric("communication", "İletişim", scoreBreakdown != null ? coalesceScore(scoreBreakdown.communication(), strategy) : strategy),
+                    metric("strategy", "Strateji", strategy),
+                    metric("trust", "Güven", trust)
+            );
+            case "FAMILY" -> List.of(
+                    metric("compassion", "Şefkat", compassion),
+                    metric("communication", "İletişim", scoreBreakdown != null ? coalesceScore(scoreBreakdown.communication(), strategy) : strategy),
+                    metric("trust", "Güven", trust),
+                    metric("solidarity", "Dayanışma", solidarity)
+            );
+            case "RIVAL" -> List.of(
+                    metric("competition", "Rekabet", competition),
+                    metric("strategy", "Strateji", strategy),
+                    metric("focus", "Odak", focus),
+                    metric("tension", "Gerilim", tension)
+            );
+            default -> List.of(
+                    metric("overall", "Genel", overall),
+                    metric("communication", "İletişim", scoreBreakdown != null ? coalesceScore(scoreBreakdown.communication(), strategy) : strategy),
+                    metric("trust", "Güven", trust),
+                    metric("support", "Destek", support)
+            );
+        };
+    }
+
+    private SynastryDisplayMetric metric(String id, String label, int score) {
+        return new SynastryDisplayMetric(id, label, Math.max(0, Math.min(100, score)));
+    }
+
+    private int coalesceScore(Integer preferred, int fallback) {
+        return preferred == null ? fallback : Math.max(0, Math.min(100, preferred));
+    }
+
+    private int averageRounded(int a, int b) {
+        return (int) Math.max(0, Math.min(100, Math.round((a + b) / 2.0)));
+    }
+
+    private int computeActivationScore(
+            List<CrossAspect> aspects,
+            Set<String> primaryPlanets,
+            Set<String> supportPlanets
+    ) {
+        if (aspects == null || aspects.isEmpty()) return 50;
+
+        double score = 42.0;
+        int matched = 0;
+        for (CrossAspect aspect : aspects) {
+            boolean userPrimary = primaryPlanets.contains(aspect.userPlanet());
+            boolean partnerPrimary = primaryPlanets.contains(aspect.partnerPlanet());
+            boolean userSupport = supportPlanets.contains(aspect.userPlanet());
+            boolean partnerSupport = supportPlanets.contains(aspect.partnerPlanet());
+            if (!(userPrimary || partnerPrimary || userSupport || partnerSupport)) continue;
+            matched++;
+
+            double base = switch (aspect.aspectType()) {
+                case "CONJUNCTION" -> 10.0;
+                case "OPPOSITION" -> 9.0;
+                case "SQUARE" -> 8.5;
+                case "TRINE" -> 6.5;
+                case "SEXTILE" -> 5.5;
+                default -> 2.0;
+            };
+            double weight = (userPrimary || partnerPrimary) && (userSupport || partnerSupport) ? 1.2
+                    : (userPrimary && partnerPrimary) ? 1.35
+                    : (userPrimary || partnerPrimary) ? 1.1 : 0.9;
+            double exactness = Math.max(0.4, 1.15 - (Math.max(0.0, aspect.orb()) / Math.max(1.0, getAspectOrbAllowance(aspect.aspectType()))));
+            score += base * weight * exactness;
+        }
+
+        if (matched == 0) return 50;
+        if (matched > 8) score += 4;
+        return (int) Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    private int computeTensionScore(List<CrossAspect> aspects, Set<String> focusPlanets) {
+        if (aspects == null || aspects.isEmpty()) return 35;
+        double score = 28.0;
+        int matched = 0;
+
+        for (CrossAspect aspect : aspects) {
+            if (!(focusPlanets.contains(aspect.userPlanet()) || focusPlanets.contains(aspect.partnerPlanet()))) {
+                continue;
+            }
+            matched++;
+            double base = switch (aspect.aspectType()) {
+                case "SQUARE" -> 11.0;
+                case "OPPOSITION" -> 10.0;
+                case "CONJUNCTION" -> aspect.harmonious() ? 5.0 : 8.5;
+                case "TRINE" -> 2.5;
+                case "SEXTILE" -> 2.0;
+                default -> 1.5;
+            };
+            if (aspect.harmonious()) base *= 0.65;
+
+            double exactness = Math.max(0.35, 1.15 - (Math.max(0.0, aspect.orb()) / Math.max(1.0, getAspectOrbAllowance(aspect.aspectType()))));
+            score += base * exactness;
+        }
+
+        if (matched == 0) return 35;
+        if (matched > 10) score += 4;
+        return (int) Math.max(0, Math.min(100, Math.round(score)));
     }
 
     private List<SynastryAnalysisSection> buildAnalysisSections(List<CrossAspect> aspects, String relationshipType) {
@@ -449,24 +660,24 @@ public class SynastryService {
                 ? "DESTEKLEYICI"
                 : computed.harmoniousCount() == computed.challengingCount() ? "DENGELI" : "ZORLAYICI";
 
-        CrossAspect lead = computed.topAspects().isEmpty() ? null : computed.topAspects().get(0);
-        String leadPhrase = lead == null
-                ? ""
-                : String.format(" Öne çıkan etkileşim: %s - %s %s (orb %.1f°).",
-                lead.userPlanet(), lead.partnerPlanet(), lead.aspectTurkish(), lead.orb());
-
         String dynamicLine = switch (tone) {
             case "DESTEKLEYICI" -> "Bu alanda akış doğal; ilişkiyi besleyen davranışları bilinçli tekrar etmek büyük fark yaratır.";
             case "ZORLAYICI" -> "Bu alanda sürtünme gelişim fırsatı taşır; tempo ve sınırlar konuşuldukça denge artar.";
             default -> "Bu alanda hem uyum hem gerilim birlikte çalışıyor; doğru zamanda doğru yaklaşım sonucu belirler.";
         };
 
+        String balanceLine = computed.harmoniousCount() > computed.challengingCount()
+                ? "İki tarafın da bu başlıkta birbirini destekleme kapasitesi daha baskın görünüyor."
+                : computed.harmoniousCount() < computed.challengingCount()
+                ? "Bu başlıkta tetiklenmeler daha yoğun; net sınırlar ve açık iletişim ilişkiyi rahatlatır."
+                : "Bu başlıkta etki dengede; yaklaşım biçiminiz sonucu olumluya da zorlayıcıya da taşıyabilir.";
+
         String summary = String.format(
-                "%s %d destekleyici, %d zorlayıcı açı tespit edildi.%s %s",
+                "%s %d destekleyici, %d zorlayıcı açı tespit edildi. %s %s",
                 baselineSummary,
                 computed.harmoniousCount(),
                 computed.challengingCount(),
-                leadPhrase,
+                balanceLine,
                 dynamicLine
         ).trim();
 
@@ -525,11 +736,17 @@ public class SynastryService {
             payload.put("synastryId",        synastry.getId());
             payload.put("relationshipType",  req.relationshipType());
             payload.put("userName",          personAName);
+            if (personA.gender() != null && !personA.gender().isBlank()) {
+                payload.put("userGender", personA.gender());
+            }
             payload.put("userSunSign",       personA.sunSign());
             payload.put("userMoonSign",      personA.moonSign());
             payload.put("userRisingSign",    personA.risingSign());
             payload.put("userPlanetsText",   userPlanetsText);
             payload.put("partnerName",       personBName);
+            if (personB.gender() != null && !personB.gender().isBlank()) {
+                payload.put("partnerGender", personB.gender());
+            }
             payload.put("partnerSunSign",    personB.sunSign());
             payload.put("partnerMoonSign",   personB.moonSign());
             payload.put("partnerRisingSign", personB.risingSign());
@@ -560,7 +777,7 @@ public class SynastryService {
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
-    private PartyContext buildUserParty(Long userId) {
+    private PartyContext buildUserParty(Long userId, String userGenderOverride) {
         NatalChart userChart = natalChartRepository
                 .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -571,6 +788,7 @@ public class SynastryService {
                 null,
                 PartyType.USER,
                 userChart.getName() != null && !userChart.getName().isBlank() ? userChart.getName() : "Sen",
+                normalizeGender(userGenderOverride),
                 userChart.getSunSign(),
                 userChart.getMoonSign(),
                 userChart.getRisingSign(),
@@ -592,6 +810,7 @@ public class SynastryService {
                 userId,
                 PartyType.USER,
                 resolvedName,
+                null,
                 chart.getSunSign(),
                 chart.getMoonSign(),
                 chart.getRisingSign(),
@@ -631,6 +850,7 @@ public class SynastryService {
                 person.getId(),
                 PartyType.SAVED_PERSON,
                 person.getName(),
+                normalizeGender(person.getGender()),
                 person.getSunSign(),
                 person.getMoonSign(),
                 person.getRisingSign(),
@@ -677,6 +897,11 @@ public class SynastryService {
         return isPersonA ? "Kişi A" : "Kişi B";
     }
 
+    private String normalizeGender(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.trim().toUpperCase(Locale.ROOT);
+    }
+
     /**
      * Formats a list of planet positions as a human-readable table for the AI prompt.
      * e.g. "Sun          Aries    15.22° — 10. Ev"
@@ -721,6 +946,7 @@ public class SynastryService {
         List<String> challenges = parseStringList(s.getChallengesJson());
         SynastryScoreBreakdown scoreBreakdown = buildScoreBreakdown(aspects, s.getRelationshipType(), s.getHarmonyScore());
         List<SynastryAnalysisSection> analysisSections = buildAnalysisSections(aspects, s.getRelationshipType());
+        List<SynastryDisplayMetric> displayMetrics = buildDisplayMetrics(aspects, s.getRelationshipType(), scoreBreakdown);
         return new SynastryResponse(
                 s.getId(), s.getUserId(), s.getSavedPersonId(),
                 personB != null ? personB.name() : null,
@@ -735,7 +961,8 @@ public class SynastryService {
                 personA != null ? personA.name() : null,
                 personB != null ? personB.name() : null,
                 scoreBreakdown,
-                analysisSections
+                analysisSections,
+                displayMetrics
         );
     }
 
