@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY } from '../../constants/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import {
   clearPlannerFullDistributionCache,
   prefetchPlannerFullDistribution,
@@ -30,7 +32,7 @@ function getMonthRange(date: Date) {
 
 export default function TabsLayout() {
   const { t, i18n } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
   const prefetchKeyRef = useRef<string | null>(null);
@@ -76,18 +78,146 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          backgroundColor: colors.tabBarBg,
-          borderTopWidth: 1,
-          borderTopColor: colors.tabBarBorder,
-          height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-          paddingTop: 8,
+          position: Platform.OS === 'ios' ? 'absolute' : 'relative',
+          left: Platform.OS === 'ios' ? 10 : 0,
+          right: Platform.OS === 'ios' ? 10 : 0,
+          bottom: Platform.OS === 'ios' ? 10 : 0,
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          height: Platform.OS === 'ios' ? 88 : 72,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+          paddingTop: Platform.OS === 'ios' ? 7 : 8,
+          borderRadius: Platform.OS === 'ios' ? 24 : 0,
+          overflow: Platform.OS === 'ios' ? 'hidden' : 'visible',
+          shadowColor: '#000',
+          shadowOpacity: Platform.OS === 'ios' ? (isDark ? 0.42 : 0.16) : 0.1,
+          shadowRadius: Platform.OS === 'ios' ? 22 : 8,
+          shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 12 : 3 },
+          elevation: Platform.OS === 'ios' ? 0 : 4,
         },
+        tabBarItemStyle: Platform.OS === 'ios'
+          ? { borderRadius: 16, marginHorizontal: 2, marginVertical: 2 }
+          : undefined,
+        tabBarActiveBackgroundColor: Platform.OS === 'ios'
+          ? (isDark ? 'rgba(180,148,255,0.16)' : 'rgba(122,91,234,0.10)')
+          : undefined,
+        tabBarBackground: () => (
+          <View
+            pointerEvents="none"
+            style={{
+              flex: 1,
+              borderRadius: Platform.OS === 'ios' ? 24 : 0,
+              overflow: 'hidden',
+              borderTopWidth: Platform.OS === 'ios' ? 0 : 1,
+              borderColor: colors.tabBarBorder,
+              backgroundColor: 'transparent',
+            }}
+          >
+            {Platform.OS !== 'web' ? (
+              <BlurView
+                intensity={Platform.OS === 'ios' ? (isDark ? 52 : 78) : 34}
+                tint={isDark ? 'dark' : 'light'}
+                experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+                style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+              />
+            ) : null}
+            {Platform.OS === 'ios' ? (
+              <LinearGradient
+                colors={
+                  isDark
+                    ? ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.00)']
+                    : ['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.38)', 'rgba(255,255,255,0.00)']
+                }
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 24 }}
+              />
+            ) : null}
+            <LinearGradient
+              colors={
+                isDark
+                  ? [
+                      Platform.OS === 'web' ? 'rgba(17,22,33,0.88)' : 'rgba(17,22,33,0.34)',
+                      Platform.OS === 'web' ? 'rgba(17,22,33,0.72)' : 'rgba(17,22,33,0.22)',
+                    ]
+                  : [
+                      Platform.OS === 'web' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.44)',
+                      Platform.OS === 'web' ? 'rgba(249,247,255,0.82)' : 'rgba(249,247,255,0.28)',
+                    ]
+              }
+              style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                backgroundColor: isDark
+                  ? (Platform.OS === 'ios' ? 'rgba(117,98,199,0.035)' : 'rgba(117,98,199,0.05)')
+                  : (Platform.OS === 'ios' ? 'rgba(122,91,234,0.018)' : 'rgba(122,91,234,0.025)'),
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 14,
+                right: 14,
+                height: 1,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)',
+              }}
+            />
+            {Platform.OS === 'ios' ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 10,
+                  right: 10,
+                  top: 6,
+                  height: 12,
+                  borderRadius: 10,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.52)',
+                }}
+              />
+            ) : null}
+            {Platform.OS === 'ios' ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 12,
+                  right: 12,
+                  bottom: 8,
+                  height: 18,
+                  borderRadius: 12,
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.18)',
+                }}
+              />
+            ) : null}
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                borderRadius: Platform.OS === 'ios' ? 24 : 0,
+                borderWidth: 1,
+                borderColor: Platform.OS === 'ios'
+                  ? (isDark ? 'rgba(255,255,255,0.11)' : 'rgba(236,233,246,0.95)')
+                  : colors.tabBarBorder,
+              }}
+            />
+          </View>
+        ),
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: {
           ...TYPOGRAPHY.CaptionSmall,
+          marginTop: Platform.OS === 'ios' ? -2 : 0,
         },
       }}
     >

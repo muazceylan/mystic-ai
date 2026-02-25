@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { View, Text, StyleSheet, RefreshControl, Pressable, TouchableOpacity } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -14,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import ServiceStatus from '../../components/ServiceStatus';
+import { HomeV2Screen, buildHomeV2Model } from '../../components/HomeV2';
 import {
   TransitCard,
   WisdomCard,
@@ -32,6 +34,8 @@ import {
 } from '../../components/Home/homeUtils';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
+import { useNatalChartStore } from '../../store/useNatalChartStore';
+import { useNightSkyPosterStore } from '../../store/useNightSkyPosterStore';
 import {
   useHomeBrief,
   useSkyPulse,
@@ -42,14 +46,19 @@ import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING } from '../../constants/tokens';
 import { SafeScreen } from '../../components/ui';
 import { announceForAccessibility } from '../../utils/accessibility';
+import { fetchNightSkyProjection } from '../../services/astrology.service';
 
 const STICKY_APPEAR_START = 80;
 const STICKY_APPEAR_END = 130;
+const HOME_V2_ENABLED = true;
+const NIGHT_SKY_POSTER_LINK = 'https://mysticai.app/dl?utm_source=night_sky_poster_home';
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const natalChart = useNatalChartStore((s) => s.chart);
+  const setNightSkyPosterDraft = useNightSkyPosterStore((s) => s.setDraft);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
   const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
   const router = useRouter();
@@ -225,11 +234,183 @@ export default function HomeScreen() {
     return parts.join(' · ');
   }, [user?.zodiacSign, skyPulse?.moonSignTurkish]);
 
+  const birthLocationLabel = useMemo(() => {
+    const direct = user?.birthLocation?.trim();
+    if (direct) return direct;
+    const parts = [user?.birthCity?.trim(), user?.birthCountry?.trim()].filter(Boolean);
+    return parts.length ? parts.join(', ') : null;
+  }, [user?.birthCity, user?.birthCountry, user?.birthLocation]);
+
+  const birthMoonProjectionQuery = useQuery({
+    queryKey: [
+      'astrology',
+      'home-birth-night-moon',
+      user?.id ?? null,
+      user?.birthDate ?? null,
+      user?.birthTime ?? null,
+      birthLocationLabel ?? null,
+      user?.latitude ?? user?.lat ?? null,
+      user?.longitude ?? user?.lng ?? null,
+      user?.timezone ?? null,
+    ],
+    queryFn: async () => {
+      if (!user?.birthDate || !birthLocationLabel) {
+        throw new Error('birth context missing');
+      }
+      const res = await fetchNightSkyProjection({
+        userId: user?.id,
+        name: user?.name ?? (`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || undefined),
+        birthDate: user.birthDate,
+        birthTime: user.birthTime ?? undefined,
+        birthLocation: birthLocationLabel,
+        latitude: user.latitude ?? user.lat,
+        longitude: user.longitude ?? user.lng,
+        timezone: user.timezone,
+      });
+      return res.data;
+    },
+    enabled: HOME_V2_ENABLED && !!user?.birthDate && !!birthLocationLabel,
+    staleTime: 1000 * 60 * 60 * 24 * 30, // 30 days (birth-night projection is effectively static)
+    retry: 1,
+  });
+
+  const homeV2Model = useMemo(
+    () =>
+      buildHomeV2Model({
+        user,
+        onboardingFocusPoints,
+        homeBrief,
+        skyPulse,
+        birthMoonProjection: birthMoonProjectionQuery.data ?? null,
+        cosmicSummary: dailyLifeGuideQuery.data ?? null,
+        homeBriefError: homeBriefQuery.isError,
+        cosmicSummaryError: dailyLifeGuideQuery.isError,
+      }),
+    [
+      user,
+      onboardingFocusPoints,
+      homeBrief,
+      skyPulse,
+      birthMoonProjectionQuery.data,
+      dailyLifeGuideQuery.data,
+      homeBriefQuery.isError,
+      dailyLifeGuideQuery.isError,
+    ],
+  );
+
   const scrollToSwot = useCallback(() => {
     (scrollRef.current as any)?.scrollTo({ y: swotYRef.current, animated: true });
   }, []);
 
+  const openNightSkyPosterFromHome = useCallback(() => {
+    const lat = (natalChart?.latitude ?? user?.latitude ?? user?.lat);
+    const lng = (natalChart?.longitude ?? user?.longitude ?? user?.lng);
+    const birthDate = natalChart?.birthDate ?? user?.birthDate;
+    const birthLocation = natalChart?.birthLocation ?? birthLocationLabel ?? undefined;
+    const name =
+      (natalChart?.name?.trim() || '') ||
+      (user?.name?.trim() || '') ||
+      (`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Mystic Soul');
+
+    if (!birthDate || !birthLocation || typeof lat !== 'number' || typeof lng !== 'number') {
+      router.push('/(tabs)/natal-chart');
+      return;
+    }
+
+    setNightSkyPosterDraft({
+      userId: user?.id,
+      chartId: natalChart?.id,
+      name,
+      birthDate: String(birthDate),
+      birthTime: natalChart?.birthTime ?? user?.birthTime ?? null,
+      birthLocation,
+      latitude: lat,
+      longitude: lng,
+      timezone: user?.timezone ?? undefined,
+      shareUrl: NIGHT_SKY_POSTER_LINK,
+      planets: natalChart?.planets ?? [],
+      houses: natalChart?.houses ?? [],
+      createdAt: Date.now(),
+    });
+    router.push('/night-sky-poster-preview' as any);
+  }, [
+    birthLocationLabel,
+    natalChart,
+    router,
+    setNightSkyPosterDraft,
+    user?.birthDate,
+    user?.birthTime,
+    user?.firstName,
+    user?.id,
+    user?.lastName,
+    user?.lat,
+    user?.latitude,
+    user?.lng,
+    user?.longitude,
+    user?.name,
+    user?.timezone,
+  ]);
+
   const S = makeStyles(colors, isDark);
+
+  if (HOME_V2_ENABLED) {
+    return (
+      <SafeScreen edges={['top', 'left', 'right']}>
+        <HomeV2Screen
+          model={homeV2Model}
+          isDark={isDark}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          loading={{
+            hero: skyPulseLoading || birthMoonProjectionQuery.isLoading,
+            summary: dailyLifeGuideQuery.isLoading,
+            compass: dailyLifeGuideQuery.isLoading,
+            weekly: weeklyLoading,
+          }}
+          onOpenProfile={() => router.push('/(tabs)/profile')}
+          onOpenSettings={() => router.push('/theme-settings')}
+          onOpenNotifications={() => router.push('/notifications-settings')}
+          onOpenMoonDetail={openNightSkyPosterFromHome}
+          onQuickActionPress={(id) => {
+            if (id === 'dream') {
+              router.push('/(tabs)/dreams');
+              return;
+            }
+            if (id === 'compatibility') {
+              router.push('/(tabs)/star-mate');
+              return;
+            }
+            if (id === 'planner') {
+              router.push('/(tabs)/calendar');
+              return;
+            }
+            if (id === 'chart') {
+              router.push('/(tabs)/natal-chart');
+            }
+          }}
+          onOpenDailySummary={() => router.push('/daily-summary')}
+          onOpenDecisionCompass={() => router.push('/decision-compass')}
+          onOpenDecisionCompassItem={() => router.push('/decision-compass')}
+          onOpenDecisionCompassItemDetail={(item) => {
+            if (!item.categoryKey) {
+              router.push('/decision-compass');
+              return;
+            }
+            router.push({
+              pathname: '/decision-compass-detail',
+              params: {
+                categoryKey: item.categoryKey,
+                label: item.label,
+                activityLabel: item.activityLabel ?? item.label,
+                score: String(item.score),
+                date: item.date ?? '',
+              },
+            });
+          }}
+        />
+      </SafeScreen>
+    );
+  }
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>

@@ -1,0 +1,526 @@
+import React, { useMemo, useState } from 'react';
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { SafeScreen } from '../components/ui';
+import OnboardingBackground from '../components/OnboardingBackground';
+import { useTheme } from '../context/ThemeContext';
+import { useAuthStore } from '../store/useAuthStore';
+import { fetchCosmicCategoryDetails } from '../services/cosmic.service';
+
+function todayIsoDate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseIsoDateLocal(input?: string | null): Date {
+  if (!input) return new Date();
+  const m = input.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) {
+    const d = new Date(input);
+    return Number.isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+function toIsoDateLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function addDays(baseIso: string, delta: number): string {
+  const d = parseIsoDateLocal(baseIso);
+  d.setDate(d.getDate() + delta);
+  return toIsoDateLocal(d);
+}
+
+function formatDateLongTr(input: string): string {
+  const d = parseIsoDateLocal(input);
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatDateShortTr(input: string): string {
+  const d = parseIsoDateLocal(input);
+  return d.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function sameIsoDate(a: string, b: string) {
+  return a === b;
+}
+
+function relativeDateLabelTr(input: string): string {
+  const today = todayIsoDate();
+  if (sameIsoDate(input, today)) return 'Bugün';
+  if (sameIsoDate(input, addDays(today, -1))) return 'Dün';
+  if (sameIsoDate(input, addDays(today, 1))) return 'Yarın';
+  return formatDateShortTr(input);
+}
+
+export default function DecisionCompassDetailScreen() {
+  const params = useLocalSearchParams<{
+    categoryKey?: string;
+    label?: string;
+    activityLabel?: string;
+    score?: string;
+    date?: string;
+  }>();
+  const { colors, isDark } = useTheme();
+  const { i18n } = useTranslation();
+  const { width } = useWindowDimensions();
+  const user = useAuthStore((s) => s.user);
+
+  const categoryKey = typeof params.categoryKey === 'string' ? params.categoryKey : '';
+  const label = typeof params.label === 'string' ? params.label : 'Kategori';
+  const activityLabel = typeof params.activityLabel === 'string' ? params.activityLabel : '';
+  const initialDate = typeof params.date === 'string' && params.date ? params.date : todayIsoDate();
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const scoreText = typeof params.score === 'string' ? params.score : null;
+
+  const query = useQuery({
+    queryKey: ['cosmic', 'category-details', user?.id ?? 0, categoryKey, selectedDate, user?.preferredLanguage ?? i18n.language],
+    queryFn: async () => {
+      if (!user?.id || !categoryKey) throw new Error('missing params');
+      const res = await fetchCosmicCategoryDetails({
+        userId: user.id,
+        categoryKey,
+        date: selectedDate,
+        locale: user.preferredLanguage ?? i18n.language,
+        gender: user.gender,
+        maritalStatus: user.maritalStatus,
+      });
+      return res.data;
+    },
+    enabled: !!user?.id && !!categoryKey,
+    staleTime: 1000 * 60 * 60,
+  });
+
+  const detail = query.data?.category;
+  const S = makeStyles(colors, isDark);
+  const contentMaxWidth = Platform.OS === 'web' ? Math.min(860, width - 24) : undefined;
+
+  const highlights = useMemo(() => {
+    if (!detail) return [] as string[];
+    return [...(detail.dos ?? []), ...(detail.supportingAspects ?? [])].filter(Boolean).slice(0, 6);
+  }, [detail]);
+
+  const liveScoreText = typeof detail?.score === 'number' ? String(Math.round(detail.score)) : scoreText;
+  const datePresets = useMemo(
+    () =>
+      [-3, -2, -1, 0, 1, 2, 3].map((offset) => {
+        const iso = addDays(selectedDate, offset);
+        return { iso, label: relativeDateLabelTr(iso) };
+      }),
+    [selectedDate],
+  );
+  const isDateRefreshing = query.isFetching && !!query.data;
+
+  const handleDatePickerChange = (event: DateTimePickerEvent, value?: Date) => {
+    if (Platform.OS !== 'ios') {
+      setShowDatePicker(false);
+    }
+    if (event.type === 'dismissed' || !value) return;
+    setSelectedDate(toIsoDateLocal(value));
+  };
+
+  return (
+    <SafeScreen>
+      <View style={S.container}>
+        <OnboardingBackground />
+
+        <View style={S.header}>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
+            <Ionicons name="chevron-back" size={20} color={colors.text} />
+          </Pressable>
+          <View style={S.headerTitleWrap}>
+            <Text style={S.headerTitle} numberOfLines={1}>{label}</Text>
+            <Text style={S.headerSub} numberOfLines={1}>{activityLabel || 'Gün bazlı cosmic detail'}</Text>
+          </View>
+          <Pressable onPress={() => router.push('/(tabs)/calendar')} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
+            <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={S.scroll}
+          contentContainerStyle={[S.scrollContent, contentMaxWidth ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' } : null]}
+          refreshControl={
+            <RefreshControl
+              refreshing={query.isRefetching}
+              onRefresh={() => { void query.refetch(); }}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={S.heroCard}>
+            <View style={S.heroTopGlow} />
+            <View style={S.heroRow}>
+              <View style={S.heroLeft}>
+                <Text style={S.heroLabel}>Kategori</Text>
+                <Text style={S.heroTitle} numberOfLines={2}>{label}</Text>
+                <Text style={S.heroDate}>{formatDateLongTr(selectedDate)}</Text>
+              </View>
+              {liveScoreText ? (
+                <View style={S.heroScorePill}>
+                  <Text style={S.heroScoreValue}>{liveScoreText}</Text>
+                  <Text style={S.heroScoreSub}>Skor</Text>
+                </View>
+              ) : null}
+            </View>
+            <View style={S.datePickerRow}>
+              <Pressable onPress={() => setSelectedDate((prev) => addDays(prev, -1))} style={({ pressed }) => [S.dateStepBtn, pressed && S.pressed]}>
+                <Ionicons name="chevron-back" size={14} color={colors.subtext} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS === 'web') return;
+                  setShowDatePicker((v) => !v);
+                }}
+                style={({ pressed }) => [S.dateCenterPill, pressed && S.pressed]}
+              >
+                <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+                <Text style={S.dateCenterText}>{formatDateLongTr(selectedDate)}</Text>
+              </Pressable>
+              <Pressable onPress={() => setSelectedDate((prev) => addDays(prev, 1))} style={({ pressed }) => [S.dateStepBtn, pressed && S.pressed]}>
+                <Ionicons name="chevron-forward" size={14} color={colors.subtext} />
+              </Pressable>
+              <Pressable onPress={() => setSelectedDate(todayIsoDate())} style={({ pressed }) => [S.dateTodayBtn, pressed && S.pressed]}>
+                <Text style={S.dateTodayText}>Bugün</Text>
+              </Pressable>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={S.datePresetScrollContent}
+              style={S.datePresetScroll}
+            >
+              {datePresets.map((preset) => {
+                const active = preset.iso === selectedDate;
+                return (
+                  <Pressable
+                    key={preset.iso}
+                    onPress={() => setSelectedDate(preset.iso)}
+                    style={({ pressed }) => [
+                      S.datePresetChip,
+                      active && S.datePresetChipActive,
+                      pressed && S.pressed,
+                    ]}
+                  >
+                    <Text style={[S.datePresetText, active && S.datePresetTextActive]}>{preset.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            {Platform.OS !== 'web' && showDatePicker ? (
+              <View style={S.datePickerNativeWrap}>
+                <DateTimePicker
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  value={parseIsoDateLocal(selectedDate)}
+                  onChange={handleDatePickerChange}
+                  maximumDate={new Date(2100, 11, 31)}
+                  minimumDate={new Date(2000, 0, 1)}
+                />
+              </View>
+            ) : null}
+            <View style={S.dateHintRow}>
+              <Ionicons
+                name={isDateRefreshing ? 'sync-outline' : 'sparkles-outline'}
+                size={13}
+                color={isDateRefreshing ? colors.primary : colors.subtext}
+              />
+              <Text style={[S.dateHintText, isDateRefreshing && S.dateHintTextActive]}>
+                {isDateRefreshing
+                  ? `${formatDateLongTr(selectedDate)} için detaylar yenileniyor…`
+                  : 'Tarihi değiştirerek farklı günlerin önerilerini karşılaştırabilirsin.'}
+              </Text>
+            </View>
+            {detail?.reasoning ? (
+              <Text style={S.heroBody}>{detail.reasoning}</Text>
+            ) : (
+              <Text style={S.heroBodyMuted}>Kategori detayları yükleniyor veya henüz hazır değil.</Text>
+            )}
+          </View>
+
+          {query.isLoading ? (
+            <View style={S.panel}><Text style={S.panelText}>Detaylar yükleniyor…</Text></View>
+          ) : query.isError ? (
+            <View style={S.panel}>
+              <Text style={S.panelTitle}>Detay alınamadı</Text>
+              <Text style={S.panelText}>Ağ veya servis sorunu olabilir.</Text>
+              <Pressable onPress={() => { void query.refetch(); }} style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}>
+                <Text style={S.retryBtnText}>Tekrar Dene</Text>
+              </Pressable>
+            </View>
+          ) : detail ? (
+            <>
+              <View style={S.panel}>
+                <Text style={S.panelTitle}>Yapılacaklar</Text>
+                {(detail.dos?.length ? detail.dos : ['Bugün bu alanda küçük ama net bir adım at.']).map((item, idx) => (
+                  <View key={`do-${idx}`} style={S.bulletRow}>
+                    <View style={[S.bulletDot, { backgroundColor: colors.success }]} />
+                    <Text style={S.bulletText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={S.panel}>
+                <Text style={S.panelTitle}>Kaçınılacaklar</Text>
+                {(detail.donts?.length ? detail.donts : ['Ani karar vermeden önce tabloyu tekrar gözden geçir.']).map((item, idx) => (
+                  <View key={`dont-${idx}`} style={S.bulletRow}>
+                    <View style={[S.bulletDot, { backgroundColor: isDark ? '#E5B6C6' : '#B45E79' }]} />
+                    <Text style={S.bulletText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {highlights.length ? (
+                <View style={S.panel}>
+                  <Text style={S.panelTitle}>Destekleyici Göstergeler</Text>
+                  <View style={S.tagWrap}>
+                    {highlights.map((item, idx) => (
+                      <View key={`hl-${idx}`} style={S.tagPill}>
+                        <Text style={S.tagText}>{item}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              <View style={S.panel}>
+                <View style={S.panelHeaderRow}>
+                  <Text style={S.panelTitle}>Alt Başlıklar</Text>
+                  <Text style={S.panelMeta}>{detail.subcategories?.length ?? 0} kayıt</Text>
+                </View>
+                {(detail.subcategories ?? []).slice(0, 8).map((sub, idx) => (
+                  <View key={`${sub.subCategoryKey}-${idx}`} style={S.subRow}>
+                    <View style={S.subRowLeft}>
+                      <View style={[S.subDot, { backgroundColor: sub.colorHex || colors.primary }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={S.subTitle}>{sub.label}</Text>
+                        <Text style={S.subAdvice} numberOfLines={2}>{sub.shortAdvice || sub.insight || 'Bugün bu alt başlık aktif.'}</Text>
+                      </View>
+                    </View>
+                    <View style={S.subScorePill}>
+                      <Text style={S.subScoreText}>{Math.round(sub.score)}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+        </ScrollView>
+      </View>
+    </SafeScreen>
+  );
+}
+
+function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: Platform.OS === 'web' ? 20 : 52,
+      paddingBottom: 10,
+    },
+    headerBtn: {
+      width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: C.surfaceGlass, borderWidth: 1, borderColor: C.surfaceGlassBorder,
+    },
+    headerTitleWrap: { flex: 1 },
+    headerTitle: { color: C.text, fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+    headerSub: { color: C.subtext, fontSize: 11.5, fontWeight: '600', marginTop: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 130 : Platform.OS === 'web' ? 40 : 88, gap: 10 },
+    heroCard: {
+      borderRadius: 20,
+      backgroundColor: C.surfaceGlass,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      padding: 14,
+      gap: 10,
+      overflow: 'hidden',
+    },
+    heroTopGlow: {
+      position: 'absolute', top: 0, left: 14, right: 14, height: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)',
+    },
+    heroRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+    heroLeft: { flex: 1 },
+    heroLabel: { color: C.subtext, fontSize: 11, fontWeight: '700' },
+    heroTitle: { color: C.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3, marginTop: 2 },
+    heroDate: { color: C.subtext, fontSize: 11.5, fontWeight: '600', marginTop: 4 },
+    heroScorePill: {
+      minWidth: 56, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(180,148,255,0.14)' : 'rgba(122,91,234,0.08)', paddingHorizontal: 10,
+    },
+    heroScoreValue: { color: C.primary, fontSize: 14, fontWeight: '800' },
+    heroScoreSub: { color: C.subtext, fontSize: 9.5, fontWeight: '700' },
+    heroBody: { color: C.text, fontSize: 12.5, lineHeight: 18, fontWeight: '500' },
+    heroBodyMuted: { color: C.subtext, fontSize: 12, lineHeight: 18, fontWeight: '500' },
+    datePickerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    dateStepBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.8)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(122,91,234,0.05)',
+    },
+    dateCenterPill: {
+      minHeight: 28,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(180,148,255,0.16)' : 'rgba(122,91,234,0.08)',
+    },
+    dateCenterText: { color: C.text, fontSize: 11.5, fontWeight: '700' },
+    dateTodayBtn: {
+      minHeight: 28,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surfaceGlass,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    dateTodayText: { color: C.primary, fontSize: 11.5, fontWeight: '700' },
+    datePickerNativeWrap: {
+      borderRadius: 14,
+      overflow: 'hidden',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.72)',
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      marginTop: 2,
+    },
+    datePresetScroll: {
+      marginTop: 0,
+      marginHorizontal: -2,
+    },
+    datePresetScrollContent: {
+      paddingHorizontal: 2,
+      paddingVertical: 2,
+      gap: 6,
+    },
+    datePresetChip: {
+      minHeight: 32,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.68)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)',
+    },
+    datePresetChipActive: {
+      backgroundColor: isDark ? 'rgba(180,148,255,0.14)' : 'rgba(122,91,234,0.10)',
+      borderColor: isDark ? 'rgba(180,148,255,0.18)' : 'rgba(122,91,234,0.10)',
+    },
+    datePresetText: {
+      color: C.subtext,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '700',
+    },
+    datePresetTextActive: {
+      color: C.primary,
+    },
+    dateHintRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: -1,
+    },
+    dateHintText: {
+      flex: 1,
+      color: C.subtext,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '600',
+    },
+    dateHintTextActive: {
+      color: C.text,
+    },
+    panel: {
+      borderRadius: 18, backgroundColor: C.surfaceGlass, borderWidth: 1, borderColor: C.surfaceGlassBorder,
+      padding: 14, gap: 8,
+    },
+    panelHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    panelTitle: { color: C.text, fontSize: 14.5, fontWeight: '800' },
+    panelMeta: { color: C.subtext, fontSize: 11, fontWeight: '700' },
+    panelText: { color: C.subtext, fontSize: 12, lineHeight: 18, fontWeight: '500' },
+    bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+    bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 5 },
+    bulletText: { flex: 1, color: C.text, fontSize: 12.5, lineHeight: 18, fontWeight: '500' },
+    tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    tagPill: {
+      borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.05)',
+      borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)',
+    },
+    tagText: { color: C.subtext, fontSize: 11, fontWeight: '700' },
+    subRow: {
+      borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.65)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.04)',
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    subRowLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 },
+    subDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
+    subTitle: { color: C.text, fontSize: 12.5, fontWeight: '700' },
+    subAdvice: { color: C.subtext, fontSize: 11, lineHeight: 16, fontWeight: '500', marginTop: 2 },
+    subScorePill: {
+      minWidth: 34, height: 22, borderRadius: 11,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.07)',
+      paddingHorizontal: 8,
+    },
+    subScoreText: { color: C.primary, fontSize: 11, fontWeight: '800' },
+    retryBtn: {
+      alignSelf: 'flex-start', marginTop: 4, borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      paddingHorizontal: 12, paddingVertical: 8,
+    },
+    retryBtnText: { color: C.primary, fontSize: 12, fontWeight: '700' },
+    pressed: { opacity: 0.86 },
+  });
+}
