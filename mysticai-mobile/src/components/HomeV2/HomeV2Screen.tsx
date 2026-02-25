@@ -1,10 +1,12 @@
 import React from 'react';
 import {
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   useWindowDimensions,
   View,
@@ -12,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { HomeV2DecisionCompassItem, HomeV2Model, HomeV2QuickActionId, HomeV2StatusTone } from './homeV2.types';
+import { useDecisionCompassStore } from '../../store/useDecisionCompassStore';
 
 interface HomeV2ScreenProps {
   model: HomeV2Model;
@@ -147,16 +150,37 @@ export function HomeV2Screen({
           onPressItemDetail={onOpenDecisionCompassItemDetail}
         />
 
-        <View style={S.quickRow}>
-          {model.quickActions.map((action) => (
-            <QuickActionPill
-              key={action.id}
-              S={S}
-              P={P}
-              action={action}
-              onPress={() => onQuickActionPress(action.id)}
-            />
-          ))}
+        <View style={S.quickRowShell}>
+          <LinearGradient
+            pointerEvents="none"
+            colors={isDark ? ['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.00)'] : ['rgba(255,255,255,0.85)', 'rgba(255,255,255,0.00)']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={S.quickRowFadeLeft}
+          />
+          <LinearGradient
+            pointerEvents="none"
+            colors={isDark ? ['rgba(9,14,25,0.00)', 'rgba(9,14,25,0.78)'] : ['rgba(242,238,255,0.00)', 'rgba(242,238,255,0.92)']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={S.quickRowFadeRight}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={S.quickRowContent}
+            style={S.quickRowScroll}
+          >
+            {model.quickActions.map((action) => (
+              <QuickActionPill
+                key={action.id}
+                S={S}
+                P={P}
+                action={action}
+                onPress={() => onQuickActionPress(action.id)}
+              />
+            ))}
+          </ScrollView>
         </View>
 
         <DailySummaryCard
@@ -324,7 +348,7 @@ function QuickActionPill({
   })() as keyof typeof Ionicons.glyphMap;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [S.quickPill, pressed && S.pressed]}>
+    <Pressable onPress={onPress} style={({ pressed }) => [S.quickPill, action.id === 'compatibility' && S.quickPillWide, pressed && S.pressed]}>
       <View style={S.quickIconBubble}>
         <Ionicons name={iconName} size={16} color={P.accent} />
       </View>
@@ -444,6 +468,7 @@ function TransitInsightsCard({
 
 function DecisionCompassCard({
   S,
+  P,
   items,
   overallScore,
   loading,
@@ -460,15 +485,47 @@ function DecisionCompassCard({
   onPressItem: (item: HomeV2DecisionCompassItem) => void;
   onPressItemDetail?: (item: HomeV2DecisionCompassItem) => void;
 }) {
+  const hiddenCategoryKeys = useDecisionCompassStore((state) => state.hiddenCategoryKeys);
+  const setCategoryVisibility = useDecisionCompassStore((state) => state.setCategoryVisibility);
+  const resetHiddenCategories = useDecisionCompassStore((state) => state.resetHiddenCategories);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [expandedList, setExpandedList] = React.useState(false);
   const [expandedRowId, setExpandedRowId] = React.useState<string | null>(null);
-  const visibleItems = expandedList ? items : items.slice(0, 3);
-  const extraCount = Math.max(0, items.length - 3);
-  const computedScore = items.length
-    ? Math.round(items.reduce((sum, item) => sum + item.score, 0) / items.length)
+  const filteredItems = React.useMemo(
+    () =>
+      items.filter((item) => {
+        const key = item.categoryKey?.trim();
+        return !key || !hiddenCategoryKeys.includes(key);
+      }),
+    [hiddenCategoryKeys, items],
+  );
+  const categoryOptions = React.useMemo(
+    () =>
+      items
+        .filter((item) => !!item.categoryKey)
+        .map((item) => ({
+          key: item.categoryKey!.trim(),
+          label: item.label,
+          score: item.score,
+          icon: item.icon,
+        }))
+        .filter((item, index, arr) => arr.findIndex((x) => x.key === item.key) === index)
+        .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label, 'tr')),
+    [items],
+  );
+  const visibleItems = expandedList ? filteredItems : filteredItems.slice(0, 3);
+  const extraCount = Math.max(0, filteredItems.length - 3);
+  const computedScore = filteredItems.length
+    ? Math.round(filteredItems.reduce((sum, item) => sum + item.score, 0) / filteredItems.length)
     : null;
   const headerScore = typeof overallScore === 'number' ? Math.round(overallScore) : computedScore;
-  const topChips = items.slice(0, 3);
+  const topChips = filteredItems.slice(0, 3);
+
+  React.useEffect(() => {
+    if (expandedRowId && !filteredItems.some((item) => item.id === expandedRowId)) {
+      setExpandedRowId(null);
+    }
+  }, [expandedRowId, filteredItems]);
 
   return (
     <View style={[S.cardBase, S.compassCard]}>
@@ -482,8 +539,11 @@ function DecisionCompassCard({
         </View>
 
         <View style={S.compassLegacyHeaderActions}>
-          <Pressable onPress={onPressAll} style={({ pressed }) => [S.compassSettingsBtn, pressed && S.pressed]}>
+          <Pressable onPress={() => setSettingsOpen(true)} style={({ pressed }) => [S.compassSettingsBtn, pressed && S.pressed]}>
             <Ionicons name="options-outline" size={16} color={S.__palette.iconStrong} />
+          </Pressable>
+          <Pressable onPress={onPressAll} style={({ pressed }) => [S.compassHeaderLinkBtn, pressed && S.pressed]}>
+            <Text style={S.compassHeaderLinkText}>Tümünü Gör</Text>
           </Pressable>
           <View style={[S.scoreChip, S.compassHeaderScoreChip]}>
             <Text style={S.scoreValue}>
@@ -524,6 +584,15 @@ function DecisionCompassCard({
       ) : null}
 
       <View style={S.compassListWrap}>
+        {!filteredItems.length ? (
+          <View style={S.compassAllHiddenCard}>
+            <Text style={S.compassAllHiddenTitle}>Tüm kategoriler gizlendi</Text>
+            <Text style={S.compassAllHiddenBody}>Ayarlar menüsünden görünür kategorileri tekrar açabilirsiniz.</Text>
+            <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.compassAllHiddenBtn, pressed && S.pressed]}>
+              <Text style={S.compassAllHiddenBtnText}>Kategorileri Sıfırla</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {visibleItems.map((item) => {
           const tone = compassScoreTone(item.score, S.__palette);
           const isRowExpanded = expandedRowId === item.id;
@@ -673,6 +742,58 @@ function DecisionCompassCard({
           </Pressable>
         </View>
       ) : null}
+
+      <Modal visible={settingsOpen} transparent animationType="fade" onRequestClose={() => setSettingsOpen(false)}>
+        <View style={S.compassSettingsBackdropRoot}>
+          <Pressable style={S.compassSettingsBackdrop} onPress={() => setSettingsOpen(false)} />
+          <View style={S.compassSettingsSheet}>
+            <View style={S.compassSettingsHeader}>
+              <View style={S.compassSettingsHeaderTextWrap}>
+                <Text style={S.compassSettingsKicker}>KATEGORİ GÖRÜNÜRLÜĞÜ</Text>
+                <Text style={S.compassSettingsTitle}>Karar Pusulası Ayarları</Text>
+                <Text style={S.compassSettingsSubtitle}>Ana sayfa ve detay ekranlarında hangi kategorilerin görüneceğini seç.</Text>
+              </View>
+              <Pressable onPress={() => setSettingsOpen(false)} style={({ pressed }) => [S.compassSettingsCloseBtn, pressed && S.pressed]}>
+                <Ionicons name="close" size={16} color={S.__palette.iconStrong} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={S.compassSettingsScroll} contentContainerStyle={S.compassSettingsScrollContent}>
+              {categoryOptions.map((category) => {
+                const visible = !hiddenCategoryKeys.includes(category.key);
+                const tone = compassScoreTone(category.score, S.__palette);
+                return (
+                  <View key={category.key} style={S.compassSettingsRow}>
+                    <View style={[S.compassSettingsIconBubble, { backgroundColor: tone.bg, borderColor: tone.border }]}>
+                      <Ionicons name={compassIconName(category.icon)} size={15} color={compassIconColor(category.icon, S.__palette)} />
+                    </View>
+                    <View style={S.compassSettingsRowTextWrap}>
+                      <Text style={S.compassSettingsRowTitle} numberOfLines={1}>{category.label}</Text>
+                      <Text style={S.compassSettingsRowMeta}>{category.score}%</Text>
+                    </View>
+                    <Switch
+                      value={visible}
+                      onValueChange={(next) => setCategoryVisibility(category.key, next)}
+                      thumbColor={Platform.OS === 'android' ? (visible ? '#FFFFFF' : '#F5F4FA') : undefined}
+                      trackColor={{
+                        false: P.rowStroke,
+                        true: isColorDarkModeAccent(S.__palette) ? 'rgba(194,168,255,0.38)' : 'rgba(122,91,234,0.36)',
+                      }}
+                      ios_backgroundColor={P.rowStroke}
+                    />
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            <View style={S.compassSettingsFooter}>
+              <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.compassSettingsResetBtn, pressed && S.pressed]}>
+                <Text style={S.compassSettingsResetText}>Tümünü Göster</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1207,14 +1328,44 @@ function makeStyles(P: Palette) {
       flexDirection: 'row',
       gap: 8,
     },
+    quickRowShell: {
+      position: 'relative',
+      marginHorizontal: -2,
+    },
+    quickRowScroll: {
+      marginHorizontal: -2,
+    },
+    quickRowContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 2,
+      paddingRight: 18,
+    },
+    quickRowFadeLeft: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 18,
+      zIndex: 2,
+    },
+    quickRowFadeRight: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 24,
+      zIndex: 2,
+    },
     quickPill: {
-      flex: 1,
       minHeight: 44,
       borderRadius: 22,
       backgroundColor: isDark ? 'rgba(17,23,34,0.70)' : 'rgba(255,255,255,0.96)',
       borderWidth: 1,
       borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#ECE8F7',
-      paddingHorizontal: 8,
+      minWidth: 120,
+      paddingHorizontal: 10,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -1224,6 +1375,9 @@ function makeStyles(P: Palette) {
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 4 },
       elevation: 1,
+    },
+    quickPillWide: {
+      minWidth: 138,
     },
     quickIconBubble: {
       width: 22,
@@ -1502,6 +1656,18 @@ function makeStyles(P: Palette) {
       alignItems: 'flex-end',
       gap: 8,
     },
+    compassHeaderLinkBtn: {
+      minHeight: 20,
+      paddingHorizontal: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    compassHeaderLinkText: {
+      color: P.accent,
+      fontSize: 10.5,
+      fontWeight: '700',
+      letterSpacing: -0.05,
+    },
     compassSettingsBtn: {
       width: 38,
       height: 38,
@@ -1571,6 +1737,43 @@ function makeStyles(P: Palette) {
     compassListWrap: {
       gap: 8,
       marginTop: 10,
+    },
+    compassAllHiddenCard: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: P.rowStroke,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.70)',
+      padding: 12,
+      gap: 6,
+    },
+    compassAllHiddenTitle: {
+      color: P.text,
+      fontSize: 12.5,
+      fontWeight: '800',
+      letterSpacing: -0.15,
+    },
+    compassAllHiddenBody: {
+      color: P.textSecondary,
+      fontSize: 11.5,
+      lineHeight: 16,
+      fontWeight: '600',
+    },
+    compassAllHiddenBtn: {
+      alignSelf: 'flex-start',
+      marginTop: 2,
+      minHeight: 26,
+      borderRadius: 13,
+      paddingHorizontal: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.07)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.08)',
+    },
+    compassAllHiddenBtnText: {
+      color: P.accent,
+      fontSize: 10.5,
+      fontWeight: '700',
     },
     compassRowCard: {
       borderRadius: 16,
@@ -1833,6 +2036,126 @@ function makeStyles(P: Palette) {
     compassExpandedSubScoreText: {
       fontSize: 10,
       fontWeight: '800',
+    },
+    compassSettingsBackdropRoot: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    compassSettingsBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(5,7,12,0.34)',
+    },
+    compassSettingsSheet: {
+      borderTopLeftRadius: 22,
+      borderTopRightRadius: 22,
+      backgroundColor: isDark ? 'rgba(14,19,28,0.98)' : 'rgba(252,251,255,0.98)',
+      borderTopWidth: 1,
+      borderColor: P.surfaceStroke,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      paddingBottom: Platform.OS === 'ios' ? 26 : 16,
+      maxHeight: '72%',
+      gap: 10,
+    },
+    compassSettingsHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    compassSettingsHeaderTextWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    compassSettingsKicker: {
+      color: P.textTertiary,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.1,
+    },
+    compassSettingsTitle: {
+      color: P.text,
+      fontSize: 15,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+    },
+    compassSettingsSubtitle: {
+      color: P.textSecondary,
+      fontSize: 11.5,
+      lineHeight: 16,
+      fontWeight: '600',
+    },
+    compassSettingsCloseBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.90)',
+      borderWidth: 1,
+      borderColor: P.rowStroke,
+    },
+    compassSettingsScroll: {
+      marginHorizontal: -2,
+    },
+    compassSettingsScrollContent: {
+      paddingHorizontal: 2,
+      paddingBottom: 2,
+      gap: 8,
+    },
+    compassSettingsRow: {
+      borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.76)',
+      borderWidth: 1,
+      borderColor: P.rowStroke,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    compassSettingsIconBubble: {
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+    },
+    compassSettingsRowTextWrap: {
+      flex: 1,
+      minWidth: 0,
+      gap: 1,
+    },
+    compassSettingsRowTitle: {
+      color: P.text,
+      fontSize: 12.5,
+      fontWeight: '700',
+      letterSpacing: -0.1,
+    },
+    compassSettingsRowMeta: {
+      color: P.textTertiary,
+      fontSize: 10.5,
+      fontWeight: '700',
+    },
+    compassSettingsFooter: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingTop: 2,
+    },
+    compassSettingsResetBtn: {
+      minHeight: 28,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.08)',
+    },
+    compassSettingsResetText: {
+      color: P.accent,
+      fontSize: 11,
+      fontWeight: '700',
     },
 
     weeklyListWrap: {

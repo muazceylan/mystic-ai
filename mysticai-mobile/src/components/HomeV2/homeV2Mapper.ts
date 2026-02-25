@@ -17,7 +17,7 @@ interface BuildHomeV2ModelParams {
 
 const QUICK_ACTIONS: HomeV2Model['quickActions'] = [
   { id: 'dream', label: 'Rüya Ekle' },
-  { id: 'compatibility', label: 'Uyum' },
+  { id: 'compatibility', label: 'Yıldız Eşi' },
   { id: 'planner', label: 'Planlayıcı' },
   { id: 'chart', label: 'Haritam' },
 ];
@@ -361,7 +361,7 @@ export function buildHomeV2Model(params: BuildHomeV2ModelParams): HomeV2Model {
     userName,
     infoLine,
     hero: {
-      title: 'Doğduğun Gece Ayı',
+      title: 'Doğduğun Gece Gökyüzü',
       subtitle: buildHeroSubtitle({ skyPulse, birthMoonProjection, overallScore }),
       description: heroDescription,
     },

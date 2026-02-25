@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   useWindowDimensions,
   View,
@@ -18,6 +20,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCosmicSummary } from '../hooks/useHomeQueries';
 import type { DailyLifeGuideActivity } from '../services/astrology.service';
+import { useDecisionCompassStore } from '../store/useDecisionCompassStore';
 
 interface CompassCategoryRow {
   categoryKey: string;
@@ -120,9 +123,23 @@ export default function DecisionCompassScreen() {
     () => buildCategoryRows(query.data?.dailyGuide?.activities),
     [query.data?.dailyGuide?.activities],
   );
+  const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
+  const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
+  const resetHiddenCategories = useDecisionCompassStore((s) => s.resetHiddenCategories);
+  const visibleCards = useMemo(
+    () => cards.filter((card) => !hiddenCategoryKeys.includes(card.categoryKey)),
+    [cards, hiddenCategoryKeys],
+  );
   const [expandedCategoryKey, setExpandedCategoryKey] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const S = makeStyles(colors, isDark);
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(820, width - 24) : undefined;
+
+  React.useEffect(() => {
+    if (expandedCategoryKey && !visibleCards.some((card) => card.categoryKey === expandedCategoryKey)) {
+      setExpandedCategoryKey(null);
+    }
+  }, [expandedCategoryKey, visibleCards]);
 
   return (
     <SafeScreen>
@@ -148,8 +165,12 @@ export default function DecisionCompassScreen() {
             <Text style={S.toolbarText}>{formatDateShortTr(query.data?.date)}</Text>
           </View>
           <View style={[S.toolbarPill, S.toolbarPillAction]}>
-            <Text style={S.toolbarActionText}>{cards.length} kategori</Text>
+            <Text style={S.toolbarActionText}>{visibleCards.length} kategori</Text>
           </View>
+          <Pressable onPress={() => setSettingsOpen(true)} style={({ pressed }) => [S.toolbarPill, S.toolbarSettingsPill, pressed && S.pressed]}>
+            <Ionicons name="options-outline" size={14} color={colors.primary} />
+            <Text style={S.toolbarActionText}>Kategoriler</Text>
+          </Pressable>
         </View>
 
         <ScrollView
@@ -183,14 +204,23 @@ export default function DecisionCompassScreen() {
                 <Text style={S.retryBtnText}>Tekrar Dene</Text>
               </Pressable>
             </View>
-          ) : cards.length === 0 ? (
+          ) : visibleCards.length === 0 ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>Gösterilecek alan yok</Text>
-              <Text style={S.emptyText}>Karar Pusulası verisi şu an için boş döndü.</Text>
+              <Text style={S.emptyTitle}>{cards.length ? 'Tüm kategoriler gizli' : 'Gösterilecek alan yok'}</Text>
+              <Text style={S.emptyText}>
+                {cards.length
+                  ? 'Kategori ayarlarından görünmesini istediğiniz alanları açabilirsiniz.'
+                  : 'Karar Pusulası verisi şu an için boş döndü.'}
+              </Text>
+              {cards.length ? (
+                <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}>
+                  <Text style={S.retryBtnText}>Tümünü Göster</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : (
             <View style={S.listWrap}>
-              {cards.map((card, index) => {
+              {visibleCards.map((card, index) => {
                 const tint = tintForScore(card.score, isDark);
                 const expanded = expandedCategoryKey === card.categoryKey;
                 return (
@@ -293,6 +323,58 @@ export default function DecisionCompassScreen() {
             </View>
           )}
         </ScrollView>
+
+        <Modal visible={settingsOpen} transparent animationType="fade" onRequestClose={() => setSettingsOpen(false)}>
+          <View style={S.settingsBackdropRoot}>
+            <Pressable style={S.settingsBackdrop} onPress={() => setSettingsOpen(false)} />
+            <View style={S.settingsSheet}>
+              <View style={S.settingsHeader}>
+                <View style={S.settingsHeaderTextWrap}>
+                  <Text style={S.settingsKicker}>KATEGORİ GÖRÜNÜRLÜĞÜ</Text>
+                  <Text style={S.settingsTitle}>Karar Pusulası Ayarları</Text>
+                  <Text style={S.settingsSubtitle}>Bu seçimler ana sayfa, karar pusulası ve kategori detay ekranlarında ortak kullanılır.</Text>
+                </View>
+                <Pressable onPress={() => setSettingsOpen(false)} style={({ pressed }) => [S.settingsCloseBtn, pressed && S.pressed]}>
+                  <Ionicons name="close" size={16} color={colors.text} />
+                </Pressable>
+              </View>
+
+              <ScrollView style={S.settingsScroll} contentContainerStyle={S.settingsScrollContent} showsVerticalScrollIndicator={false}>
+                {cards.map((card) => {
+                  const visible = !hiddenCategoryKeys.includes(card.categoryKey);
+                  const tint = tintForScore(card.score, isDark);
+                  return (
+                    <View key={card.categoryKey} style={S.settingsRow}>
+                      <View style={[S.settingsIconBubble, { backgroundColor: tint.bg }]}>
+                        <Ionicons name={iconForCategory(card)} size={15} color={colors.primary} />
+                      </View>
+                      <View style={S.settingsRowTextWrap}>
+                        <Text style={S.settingsRowTitle} numberOfLines={1}>{card.categoryLabel || card.activityLabel}</Text>
+                        <Text style={S.settingsRowMeta}>{Math.round(card.score)}%</Text>
+                      </View>
+                      <Switch
+                        value={visible}
+                        onValueChange={(next) => setCategoryVisibility(card.categoryKey, next)}
+                        thumbColor={Platform.OS === 'android' ? (visible ? '#FFFFFF' : '#F4F4F8') : undefined}
+                        trackColor={{
+                          false: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(122,91,234,0.18)',
+                          true: isDark ? 'rgba(180,148,255,0.40)' : 'rgba(122,91,234,0.36)',
+                        }}
+                        ios_backgroundColor={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(122,91,234,0.18)'}
+                      />
+                    </View>
+                  );
+                })}
+              </ScrollView>
+
+              <View style={S.settingsFooter}>
+                <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.settingsResetBtn, pressed && S.pressed]}>
+                  <Text style={S.settingsResetBtnText}>Tümünü Göster</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeScreen>
   );
@@ -357,6 +439,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
     },
     toolbarPillAction: {
       backgroundColor: isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.08)',
+    },
+    toolbarSettingsPill: {
+      backgroundColor: isDark ? 'rgba(180,148,255,0.08)' : 'rgba(122,91,234,0.06)',
     },
     toolbarText: {
       color: C.subtext,
@@ -584,6 +669,125 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
     subActivityScoreText: {
       fontSize: 10,
       fontWeight: '800',
+    },
+    settingsBackdropRoot: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    settingsBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(5,7,12,0.34)',
+    },
+    settingsSheet: {
+      borderTopLeftRadius: 22,
+      borderTopRightRadius: 22,
+      backgroundColor: isDark ? 'rgba(14,18,28,0.98)' : 'rgba(252,251,255,0.98)',
+      borderTopWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      paddingBottom: Platform.OS === 'ios' ? 26 : 16,
+      maxHeight: '72%',
+      gap: 10,
+    },
+    settingsHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    settingsHeaderTextWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    settingsKicker: {
+      color: C.subtext,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.1,
+    },
+    settingsTitle: {
+      color: C.text,
+      fontSize: 15,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+    },
+    settingsSubtitle: {
+      color: C.subtext,
+      fontSize: 11.5,
+      lineHeight: 16,
+      fontWeight: '600',
+    },
+    settingsCloseBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surfaceGlass,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    settingsScroll: {
+      marginHorizontal: -2,
+    },
+    settingsScrollContent: {
+      paddingHorizontal: 2,
+      paddingBottom: 2,
+      gap: 8,
+    },
+    settingsRow: {
+      borderRadius: 14,
+      backgroundColor: C.surfaceGlass,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    settingsIconBubble: {
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    settingsRowTextWrap: {
+      flex: 1,
+      minWidth: 0,
+      gap: 1,
+    },
+    settingsRowTitle: {
+      color: C.text,
+      fontSize: 12.5,
+      fontWeight: '700',
+      letterSpacing: -0.1,
+    },
+    settingsRowMeta: {
+      color: C.subtext,
+      fontSize: 10.5,
+      fontWeight: '700',
+    },
+    settingsFooter: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      paddingTop: 2,
+    },
+    settingsResetBtn: {
+      minHeight: 28,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)',
+    },
+    settingsResetBtnText: {
+      color: C.primary,
+      fontSize: 11,
+      fontWeight: '700',
     },
     pressed: {
       opacity: 0.86,

@@ -19,6 +19,7 @@ import OnboardingBackground from '../components/OnboardingBackground';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { fetchCosmicCategoryDetails } from '../services/cosmic.service';
+import { useDecisionCompassStore } from '../store/useDecisionCompassStore';
 
 function todayIsoDate() {
   const d = new Date();
@@ -85,6 +86,9 @@ export default function DecisionCompassDetailScreen() {
   const { i18n } = useTranslation();
   const { width } = useWindowDimensions();
   const user = useAuthStore((s) => s.user);
+  const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
+  const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
+  const resetHiddenCategories = useDecisionCompassStore((s) => s.resetHiddenCategories);
 
   const categoryKey = typeof params.categoryKey === 'string' ? params.categoryKey : '';
   const label = typeof params.label === 'string' ? params.label : 'Kategori';
@@ -93,6 +97,7 @@ export default function DecisionCompassDetailScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const scoreText = typeof params.score === 'string' ? params.score : null;
+  const isCategoryHidden = !!categoryKey && hiddenCategoryKeys.includes(categoryKey);
 
   const query = useQuery({
     queryKey: ['cosmic', 'category-details', user?.id ?? 0, categoryKey, selectedDate, user?.preferredLanguage ?? i18n.language],
@@ -108,7 +113,7 @@ export default function DecisionCompassDetailScreen() {
       });
       return res.data;
     },
-    enabled: !!user?.id && !!categoryKey,
+    enabled: !!user?.id && !!categoryKey && !isCategoryHidden,
     staleTime: 1000 * 60 * 60,
   });
 
@@ -261,7 +266,28 @@ export default function DecisionCompassDetailScreen() {
             )}
           </View>
 
-          {query.isLoading ? (
+          {isCategoryHidden ? (
+            <View style={S.panel}>
+              <Text style={S.panelTitle}>Bu kategori gizli</Text>
+              <Text style={S.panelText}>
+                Kategori görünürlük ayarlarında bu alan kapatıldığı için detay içeriği gösterilmiyor.
+              </Text>
+              <View style={S.hiddenActionsRow}>
+                <Pressable
+                  onPress={() => setCategoryVisibility(categoryKey, true)}
+                  style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}
+                >
+                  <Text style={S.retryBtnText}>Kategoriyi Göster</Text>
+                </Pressable>
+                <Pressable
+                  onPress={resetHiddenCategories}
+                  style={({ pressed }) => [S.hiddenGhostBtn, pressed && S.pressed]}
+                >
+                  <Text style={S.hiddenGhostBtnText}>Tümünü Göster</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : query.isLoading ? (
             <View style={S.panel}><Text style={S.panelText}>Detaylar yükleniyor…</Text></View>
           ) : query.isError ? (
             <View style={S.panel}>
@@ -515,6 +541,28 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
       paddingHorizontal: 8,
     },
     subScoreText: { color: C.primary, fontSize: 11, fontWeight: '800' },
+    hiddenActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 2,
+    },
+    hiddenGhostBtn: {
+      alignSelf: 'flex-start',
+      marginTop: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    hiddenGhostBtnText: {
+      color: C.subtext,
+      fontSize: 12,
+      fontWeight: '700',
+    },
     retryBtn: {
       alignSelf: 'flex-start', marginTop: 4, borderRadius: 12,
       backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
