@@ -1,7 +1,6 @@
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, Share } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
-import RNShare from 'react-native-share';
 
 export type ShareChannel = 'system' | 'instagram_story' | 'gallery';
 
@@ -70,11 +69,12 @@ export async function shareImage(uri: string): Promise<ShareResult> {
       return { ok: true, channel: 'system' };
     }
 
+    // Fallback: React Native Share (Expo Go uyumlu)
     try {
-      await RNShare.open({
+      await Share.share({
         url: uri,
-        type: 'image/png',
-        failOnCancel: false,
+        title: 'Yıldız kartını paylaş',
+        message: 'Yıldız kartımı seninle paylaşıyorum!',
       });
       logShareAnalytics({ channel: 'system', success: true, fallbackUsed: true });
       return { ok: true, channel: 'system', fallbackUsed: true };
@@ -137,34 +137,31 @@ export async function instagramStory(
     fallbackToSystemShare?: boolean;
   },
 ): Promise<ShareResult> {
+  // Expo Go'da doğrudan Instagram Story API yok; sistem paylaşımı kullanıyoruz.
+  // Kullanıcı paylaşım ekranından Instagram'ı seçebilir.
   const fallbackToSystemShare = options?.fallbackToSystemShare ?? true;
 
+  const canOpen =
+    Platform.OS === 'ios' || Platform.OS === 'android'
+      ? await Linking.canOpenURL('instagram-stories://share')
+      : false;
+
+  if (!canOpen && !fallbackToSystemShare) {
+    throw new ShareServiceError(
+      'INSTAGRAM_UNAVAILABLE',
+      'Instagram Story şu anda açılamıyor. İsterseniz sistem paylaşımı ile devam edebilirsiniz.',
+    );
+  }
+
   try {
-    const canOpen =
-      Platform.OS === 'ios' || Platform.OS === 'android'
-        ? await Linking.canOpenURL('instagram-stories://share')
-        : false;
-
-    if (!canOpen) {
-      throw new ShareServiceError(
-        'INSTAGRAM_UNAVAILABLE',
-        'Instagram Story şu anda açılamıyor. İsterseniz sistem paylaşımı ile devam edebilirsiniz.',
-      );
-    }
-
-    await RNShare.shareSingle({
-      social: RNShare.Social.INSTAGRAM_STORIES,
-      backgroundImage: uri,
-      backgroundTopColor: '#120A2E',
-      backgroundBottomColor: '#0B1739',
-      attributionURL: options?.attributionURL,
-      appId: options?.appId,
-      type: 'image/png',
-      failOnCancel: false,
-    } as any);
-
-    logShareAnalytics({ channel: 'instagram_story', success: true });
-    return { ok: true, channel: 'instagram_story' };
+    await shareImage(uri);
+    logShareAnalytics({ channel: 'instagram_story', success: true, fallbackUsed: true });
+    return {
+      ok: true,
+      channel: 'instagram_story',
+      fallbackUsed: true,
+      message: "Paylaşım ekranı açıldı. Instagram'ı seçerek Story paylaşabilirsiniz.",
+    };
   } catch (e: any) {
     const error =
       e instanceof ShareServiceError
@@ -173,32 +170,8 @@ export async function instagramStory(
             'INSTAGRAM_SHARE_FAILED',
             e?.message ?? 'Instagram Story paylaşımı başlatılamadı.',
           );
-
-    if (!fallbackToSystemShare) {
-      logShareAnalytics({ channel: 'instagram_story', success: false, reason: error.message });
-      throw error;
-    }
-
-    try {
-      await shareImage(uri);
-      logShareAnalytics({
-        channel: 'instagram_story',
-        success: true,
-        fallbackUsed: true,
-      });
-      return {
-        ok: true,
-        channel: 'instagram_story',
-        fallbackUsed: true,
-        message: 'Instagram Story açılamadı, sistem paylaşımı açıldı.',
-      };
-    } catch (fallbackError: any) {
-      const message = fallbackError?.message ?? error.message;
-      logShareAnalytics({ channel: 'instagram_story', success: false, reason: message });
-      throw fallbackError instanceof ShareServiceError
-        ? fallbackError
-        : new ShareServiceError('INSTAGRAM_SHARE_FAILED', message);
-    }
+    logShareAnalytics({ channel: 'instagram_story', success: false, reason: error.message });
+    throw error;
   }
 }
 
