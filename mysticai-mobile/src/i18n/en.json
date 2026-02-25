@@ -259,6 +259,33 @@
       "arkadaslik": ["A genuine connection you build today may be the strongest support of the week.", "A short meeting plan may revive the sense of belonging you've been missing."],
       "ticaret": ["A meeting during the day may turn into a more productive partnership than you think.", "Staying calm in a small negotiation may bring a better result than expected."],
       "genel": ["A sign you don't notice today will repeat for you; don't miss the second one.", "A short pause during the day will bring the clarity you've long been waiting for."]
+    },
+    "dailyGuide": {
+      "kicker": "Cosmic Life Guide",
+      "title": "Today's Decision Compass",
+      "subtitle": "Shows only priority opportunities and risks. Tap a card for details.",
+      "overall": "Overall",
+      "loading": "Preparing today's activity scores...",
+      "error": "The cosmic life guide could not be prepared right now.",
+      "retry": "Try again",
+      "showAll": "Show All",
+      "hideMid": "Hide Mid Scores",
+      "showAllCount": "Show All ({{count}})",
+      "showFocusOnly": "Focus Cards Only",
+      "goPlanner": "Go to Planner",
+      "allHidden": "You hid all activities. Re-enable them from settings.",
+      "settingsTitle": "Decision Compass Settings",
+      "settingsSubtitle": "Hide activities you do not want to see on the home screen.",
+      "resetHidden": "Reset Hidden Items",
+      "subcategoryCount": "{{count}} sub-categories",
+      "expanded": "Open",
+      "tapForDetails": "Details",
+      "footerHint": "Home shows short guidance only. Technical astrology details are inside the modal.",
+      "analysisTitle": "Cosmic Analysis",
+      "whyToday": "Why Today?",
+      "astroInfo": "Astro Data",
+      "practicalInsight": "Practical Insight",
+      "triggers": "Triggers"
     }
   },
   "numerology": {
@@ -502,8 +529,9 @@
     "scoreLegend": {
       "high": "80-100 strong window",
       "mid": "50-79 balanced",
-      "low": "0-49 critical"
+      "low": "5-49 critical"
     },
+    "subcategoryLegendTitle": "{{category}} sub-categories",
     "categoryDock": "Category Dock",
     "customizeCategories": "Customize categories",
     "customize": "Settings",
@@ -511,6 +539,13 @@
     "minimumCategoryHint": "At least one category must stay enabled.",
     "filters": {
       "all": "All"
+    },
+    "cosmicCoreLabels": {
+      "finance": "Finance",
+      "career": "Career",
+      "social": "Social",
+      "home": "Home",
+      "spirituality": "Spirituality"
     },
     "actionAlertTitle": "Action-focused alert",
     "actionAlertMessage": "{{date}} shows %{{score}} alignment for {{category}}. Do not miss this window.",
@@ -523,7 +558,8 @@
     "whyFallback": "Transit and natal signals open a cautious but productive lane today.",
     "openDeepDive": "Cosmic Blueprint",
     "deepDiveTitle": "Daily Cosmic Blueprint",
-    "technicalBreakdown": "Technical Breakdown",
+    "technicalBreakdown": "Star Categories",
+    "starCategories": "Star Categories",
     "signalTransit": "Transit Signal",
     "signalHouse": "House Alignment Signal",
     "signalNatal": "Natal Resonance",
@@ -546,6 +582,11 @@
     "categories": {
       "transit": "Transit",
       "moon": "Moon",
+      "date": "Date",
+      "marriage": "Marriage",
+      "partnerHarmony": "Relationship Harmony",
+      "family": "Home Tasks",
+      "jointFinance": "Finance",
       "beauty": "Beauty",
       "health": "Health",
       "activity": "Activity",
@@ -554,7 +595,7 @@
       "recommendations": "Recommendations",
       "investment": "Investment",
       "travel": "Travel",
-      "spiritual": "Spiritual",
+      "spiritual": "Spirituality",
       "strategicBusiness": "Strategic Business",
       "barberShaving": "Barber/Shaving",
       "muscleRecovery": "Muscle Recovery",
@@ -567,6 +608,11 @@
     "categoryDescriptions": {
       "transit": "Daily transit impact and overall energy flow.",
       "moon": "Moon phase/sign based emotional and timing guidance.",
+      "date": "Timing for dates, romantic meetings, and low-pressure connection windows.",
+      "marriage": "Timing for engagement, marriage, wedding, and commitment decisions.",
+      "partnerHarmony": "Guidance for spouse/partner communication, empathy, harmony, and emotional tone.",
+      "family": "Home rhythm, cleaning, repair, and living-space planning decisions.",
+      "jointFinance": "Timing for budgeting, spending, payment planning, and finance decisions.",
       "beauty": "Timing for grooming, aesthetics, epilation, and care routines.",
       "health": "Guidance for diet, checks, treatment timing, and body rhythm.",
       "activity": "Home, shopping, technology, and social activity decisions.",
@@ -575,7 +621,7 @@
       "recommendations": "Daily action summary and focus recommendations.",
       "investment": "Timing for financial moves, investments, and cash flow.",
       "travel": "Trips, relocation, and long-distance connections.",
-      "spiritual": "Meditation, introspection, and spiritual practice.",
+      "spiritual": "Meditation, prayer/worship, and inner spiritual practices.",
       "strategicBusiness": "High-impact business decisions and leadership moves.",
       "barberShaving": "Shaving, grooming, and personal appearance routines.",
       "muscleRecovery": "Post-workout recovery and performance balancing.",

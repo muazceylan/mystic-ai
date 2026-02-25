@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { PlanetaryAspect } from '../../services/astrology.service';
 import { getAspectHookText, isHarmoniousAspect } from '../../constants/aspect-glossary';
+import { formatAspectAngleHuman, labelAspectType, translateAstroTermsForUi } from '../../constants/astroLabelMap';
 import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 
@@ -103,15 +104,13 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
         {p1Name} & {p2Name}
       </Text>
       <Text style={[s.typeLabel, { color: glowColor }]}>
-        {aspect.type === 'CONJUNCTION' ? t('natalChart.conjunction') :
-         aspect.type === 'OPPOSITION' ? t('natalChart.opposition') :
-         aspect.type === 'TRINE' ? t('natalChart.trine') : t('natalChart.square')}
+        {labelAspectType(aspect.type)}
         {' \u00B7 '}
-        {aspect.angle.toFixed(1)}\u00B0
+        {formatAspectAngleHuman(aspect)}
       </Text>
 
       {/* Hook text */}
-      <Text style={s.hookText}>{hookText}</Text>
+      <Text style={s.hookText}>{translateAstroTermsForUi(hookText)}</Text>
     </Animated.View>
   );
 }

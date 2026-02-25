@@ -9,6 +9,11 @@ import java.util.Arrays;
 public enum PlannerCategory {
     TRANSIT("Transit", "Transit", GoalCategory.CAREER),
     MOON("Ay", "Moon", GoalCategory.NEW_BEGINNING),
+    DATE("Date", "Date", GoalCategory.MARRIAGE),
+    MARRIAGE("Evlilik", "Marriage", GoalCategory.MARRIAGE),
+    RELATIONSHIP_HARMONY("İlişki Uyumu", "Relationship Harmony", GoalCategory.MARRIAGE),
+    FAMILY("Aile", "Family", GoalCategory.NEW_BEGINNING),
+    FINANCE("Finans", "Finance", GoalCategory.CONTRACT),
     BEAUTY("Güzellik", "Beauty", GoalCategory.NEW_BEGINNING),
     HEALTH("Sağlık", "Health", GoalCategory.MARRIAGE),
     ACTIVITY("Aktivite", "Activity", GoalCategory.CAREER),
@@ -41,8 +46,16 @@ public enum PlannerCategory {
     }
 
     public static PlannerCategory from(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("Unknown planner category: " + raw);
+        }
+        String normalized = switch (raw.trim().toUpperCase()) {
+            case "PARTNER_HARMONY" -> "RELATIONSHIP_HARMONY";
+            case "JOINT_FINANCE" -> "FINANCE";
+            default -> raw.trim().toUpperCase();
+        };
         return Arrays.stream(values())
-                .filter(value -> value.name().equalsIgnoreCase(raw))
+                .filter(value -> value.name().equalsIgnoreCase(normalized))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown planner category: " + raw));
     }

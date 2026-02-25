@@ -19,6 +19,7 @@ import {
   getAspectHookText,
   isHarmoniousAspect,
 } from '../../constants/aspect-glossary';
+import { formatAspectAngleHuman, labelAspectType, translateAstroTermsForUi } from '../../constants/astroLabelMap';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -121,15 +122,22 @@ export default function AspectBottomSheet({
                 <Text style={[s.aspectSymbol, { color: accentColor }]}>{aspSym}</Text>
                 <Text style={[s.planetSymbol, { color: accentColor }]}>{p2Sym}</Text>
               </View>
-              <Text style={s.typeTitle}>{glossary.term}</Text>
+              <Text style={s.typeTitle}>{labelAspectType(aspect.type, true)}</Text>
               <Text style={s.angleText}>
-                {aspect.angle.toFixed(1)}\u00B0 \u00B7 orb {aspect.orb.toFixed(2)}\u00B0
+                {formatAspectAngleHuman(aspect)}
               </Text>
             </View>
 
             <View style={s.section}>
               <Text style={[s.sectionLabel, { color: accentColor }]}>Bu Aci Ne Anlama Geliyor?</Text>
-              <Text style={s.sectionText}>{glossary.longDesc}</Text>
+              <Text style={s.sectionText}>{translateAstroTermsForUi(glossary.longDesc)}</Text>
+            </View>
+
+            <View style={[s.summaryBox, { backgroundColor: accentColor + '12', borderColor: accentColor + '25' }]}>
+              <Text style={[s.summaryTitle, { color: accentColor }]}>Kozmik Dinamik (Özet)</Text>
+              <Text style={s.summaryText}>
+                {p1Name} ile {p2Name} arasında {labelAspectType(aspect.type).toLowerCase()} çalışıyor; bu da ilişkili konuda {harmonious ? 'akış ve destek' : 'gerilim üzerinden büyüme'} teması yaratır.
+              </Text>
             </View>
 
             {p1Glossary && (
@@ -137,7 +145,7 @@ export default function AspectBottomSheet({
                 <Text style={[s.sectionLabel, { color: accentColor }]}>
                   {p1Sym} {p1Name}
                 </Text>
-                <Text style={s.sectionText}>{p1Glossary.longDesc}</Text>
+                <Text style={s.sectionText}>{translateAstroTermsForUi(p1Glossary.longDesc)}</Text>
               </View>
             )}
 
@@ -146,13 +154,13 @@ export default function AspectBottomSheet({
                 <Text style={[s.sectionLabel, { color: accentColor }]}>
                   {p2Sym} {p2Name}
                 </Text>
-                <Text style={s.sectionText}>{p2Glossary.longDesc}</Text>
+                <Text style={s.sectionText}>{translateAstroTermsForUi(p2Glossary.longDesc)}</Text>
               </View>
             )}
 
             <View style={[s.hookSection, { backgroundColor: accentColor + '0F' }]}>
               <Text style={[s.hookLabel, { color: accentColor }]}>Sana Ozel</Text>
-              <Text style={s.hookText}>{hookText}</Text>
+              <Text style={s.hookText}>{translateAstroTermsForUi(hookText)}</Text>
             </View>
 
             <TouchableOpacity
@@ -215,6 +223,15 @@ function createStyles(C: ThemeColors) {
       borderRadius: 14,
       marginBottom: 16,
     },
+    summaryBox: {
+      borderRadius: 14,
+      borderWidth: 1,
+      padding: 12,
+      gap: 6,
+      marginBottom: 16,
+    },
+    summaryTitle: { fontSize: 12.5, fontWeight: '800' },
+    summaryText: { fontSize: 12.5, lineHeight: 18, color: C.textMuted },
     hookLabel: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
     hookText: {
       fontSize: 13,

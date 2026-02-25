@@ -8,6 +8,12 @@ export const queryKeys = {
     ['oracle', 'home-brief', params ?? {}] as const,
   skyPulse: () => ['astrology', 'sky-pulse'] as const,
   weeklySwot: (userId: number) => ['astrology', 'weekly-swot', userId] as const,
+  dailyLifeGuide: (userId: number, locale?: string, date?: string) =>
+    ['astrology', 'daily-life-guide', userId, locale ?? 'tr', date ?? 'today'] as const,
+  cosmicSummary: (userId: number, locale?: string, date?: string, gender?: string, maritalStatus?: string) =>
+    ['cosmic', 'summary', userId, locale ?? 'tr', date ?? 'today', gender ?? '', maritalStatus ?? ''] as const,
+  cosmicPlanner: (userId: number, month?: string, locale?: string, gender?: string, maritalStatus?: string) =>
+    ['cosmic', 'planner', userId, month ?? '', locale ?? 'tr', gender ?? '', maritalStatus ?? ''] as const,
   natalChart: (userId: number) => ['astrology', 'natal-chart', userId] as const,
   natalChartById: (chartId: number) => ['astrology', 'natal-chart', chartId] as const,
   dreams: (userId: number) => ['dreams', 'list', userId] as const,

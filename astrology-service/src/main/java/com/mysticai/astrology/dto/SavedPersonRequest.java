@@ -15,6 +15,10 @@ public record SavedPersonRequest(
         /** Optional: if null, lat/lon is auto-resolved from birthLocation */
         Double latitude,
         Double longitude,
-        /** LOVE, BUSINESS, FRIENDSHIP, RIVAL */
-        String relationshipCategory
+        /** IANA timezone, e.g. Europe/Istanbul */
+        String timezone,
+        /** Backward-compatible field: LOVE, BUSINESS, FRIENDSHIP, RIVAL, FAMILY */
+        String relationshipCategory,
+        /** Preferred field name for mobile companion flow */
+        String relationshipType
 ) {}

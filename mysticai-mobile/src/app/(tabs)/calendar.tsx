@@ -16,6 +16,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   FadeIn,
+  FadeInDown,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -31,12 +32,23 @@ import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { SafeScreen } from '../../components/ui';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
+import { COSMIC_DOCK_LABEL_OVERRIDE_KEYS, PLANNER_LOCAL_TO_COSMIC_CATEGORY } from '../../constants/CosmicConstants';
 import {
   PlannerCategory,
   PlannerCategoryAction,
   PlannerFullDistributionResponse,
   fetchPlannerFullDistribution,
 } from '../../services/lucky-dates.service';
+import {
+  CosmicCategoryDetail,
+  CosmicCategoryDetailsResponse,
+  CosmicDayDetailResponse,
+  CosmicLegendItem,
+  CosmicPlannerDay,
+  CosmicPlannerResponse,
+  fetchCosmicCategoryDetails,
+  fetchCosmicPlanner,
+} from '../../services/cosmic.service';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import {
@@ -74,6 +86,11 @@ interface TrendPoint {
 const BACKEND_CATEGORY_TO_LOCAL: Record<string, PlannerCategoryId> = {
   TRANSIT: 'transit',
   MOON: 'moon',
+  DATE: 'date',
+  MARRIAGE: 'marriage',
+  RELATIONSHIP_HARMONY: 'partnerHarmony',
+  FAMILY: 'family',
+  FINANCE: 'jointFinance',
   BEAUTY: 'beauty',
   HEALTH: 'health',
   ACTIVITY: 'activity',
@@ -82,9 +99,14 @@ const BACKEND_CATEGORY_TO_LOCAL: Record<string, PlannerCategoryId> = {
   COLOR: 'color',
   RECOMMENDATIONS: 'recommendations',
 };
-const LOCAL_CATEGORY_TO_BACKEND: Record<PlannerCategoryId, PlannerCategory> = {
+const LOCAL_CATEGORY_TO_BACKEND: Partial<Record<PlannerCategoryId, PlannerCategory>> = {
   transit: 'TRANSIT',
   moon: 'MOON',
+  date: 'DATE',
+  marriage: 'MARRIAGE',
+  partnerHarmony: 'RELATIONSHIP_HARMONY',
+  family: 'FAMILY',
+  jointFinance: 'FINANCE',
   beauty: 'BEAUTY',
   health: 'HEALTH',
   activity: 'ACTIVITY',
@@ -93,6 +115,19 @@ const LOCAL_CATEGORY_TO_BACKEND: Record<PlannerCategoryId, PlannerCategory> = {
   color: 'COLOR',
   recommendations: 'RECOMMENDATIONS',
 };
+const LOCAL_CATEGORY_TO_COSMIC = PLANNER_LOCAL_TO_COSMIC_CATEGORY;
+const CORE_SYNC_DOCK_ORDER: PlannerCategoryId[] = [
+  'transit',
+  'moon',
+  'beauty',
+  'health',
+  'jointFinance',
+  'activity',
+  'official',
+  'partnerHarmony',
+  'family',
+  'spiritual',
+];
 
 function hasBackendActionDetails(action: PlannerCategoryAction | undefined): boolean {
   if (!action) return false;
@@ -292,6 +327,76 @@ function buildActionables(
   };
 }
 
+function buildPlannerInsightFromCosmicDetail(params: {
+  categoryDetail: CosmicCategoryDetail;
+  moonPhase: string;
+  mercuryRetrograde: boolean;
+  fallback?: PlannerInsight | null;
+}): PlannerInsight {
+  const { categoryDetail, moonPhase, mercuryRetrograde, fallback } = params;
+  const score = clamp(categoryDetail.score);
+  const supportingAspects = (categoryDetail.supportingAspects ?? []).filter(Boolean);
+  const signalSeed = Math.max(1, supportingAspects.length);
+  const topSub = (categoryDetail.subcategories ?? [])[0];
+  const lowSub = (categoryDetail.subcategories ?? []).slice().sort((a, b) => a.score - b.score)[0];
+
+  return {
+    score,
+    tone: toneFromScore(score),
+    source: 'backend',
+    reason: categoryDetail.reasoning || topSub?.insight || fallback?.reason || '',
+    dos: categoryDetail.dos?.length ? categoryDetail.dos : (fallback?.dos ?? []),
+    donts: categoryDetail.donts?.length ? categoryDetail.donts : (fallback?.donts ?? []),
+    supportingAspects: supportingAspects.length
+      ? supportingAspects
+      : [
+        ...(topSub?.triggerNotes ?? []),
+        ...(lowSub && lowSub !== topSub ? lowSub.triggerNotes ?? [] : []),
+      ].filter(Boolean).slice(0, 6),
+    mercuryRetrograde,
+    moonPhase: moonPhase || fallback?.moonPhase || '',
+    signals: {
+      transit: clamp(score + signalSeed * 2),
+      house: clamp(score - 4 + signalSeed),
+      natal: clamp(score - 2 + signalSeed),
+    },
+  };
+}
+
+function iconForCosmicSubcategory(categoryKey: string | null | undefined, subCategoryKey: string): keyof typeof Ionicons.glyphMap {
+  const sub = (subCategoryKey ?? '').toLowerCase();
+  const cat = (categoryKey ?? '').toLowerCase();
+
+  if (sub.includes('hair_cut')) return 'cut-outline';
+  if (sub.includes('skin') || sub.includes('aesthetic') || sub.includes('nail')) return 'sparkles-outline';
+  if (sub.includes('hair_reduction')) return 'flash-outline';
+  if (sub.includes('diet')) return 'leaf-outline';
+  if (sub.includes('treatment') || sub.includes('checkup')) return 'medkit-outline';
+  if (sub.includes('operation')) return 'warning-outline';
+  if (sub.includes('sport')) return 'fitness-outline';
+  if (sub.includes('vacation') || sub.includes('travel')) return 'airplane-outline';
+  if (sub.includes('culture_art')) return 'color-palette-outline';
+  if (sub.includes('party') || sub.includes('social')) return 'people-outline';
+  if (sub.includes('shopping') || sub.includes('big_purchase')) return 'cart-outline';
+  if (sub.includes('repair') || sub.includes('renovation')) return 'hammer-outline';
+  if (sub.includes('housework') || sub.includes('cleaning') || sub.includes('moving') || sub.includes('decoration') || sub.includes('plant')) return 'home-outline';
+  if (sub.includes('investment') || sub.includes('debt') || sub.includes('finance')) return 'wallet-outline';
+  if (sub.includes('law') || sub.includes('official_documents') || sub.includes('applications') || sub.includes('public_affairs')) return 'document-text-outline';
+  if (sub.includes('meeting') || sub.includes('thesis') || sub.includes('career_education')) return 'briefcase-outline';
+  if (sub.includes('new_job') || sub.includes('seniority') || sub.includes('entrepreneurship') || sub.includes('resignation')) return 'business-outline';
+  if (sub.includes('worship') || sub.includes('prayer') || sub.includes('ritual') || sub.includes('meditation') || sub.includes('inner_journey')) return 'sparkles-outline';
+  if (sub.includes('green') || sub.includes('pink') || sub.includes('yellow') || sub.includes('blue') || sub.includes('purple')) return 'color-fill-outline';
+  if (sub.includes('timing') || sub.includes('communication') || sub.includes('energy')) return 'bulb-outline';
+
+  return cat === 'transit'
+    ? 'planet-outline'
+    : cat === 'moon'
+      ? 'moon-outline'
+      : cat === 'color'
+        ? 'color-palette-outline'
+        : 'ellipse-outline';
+}
+
 function TrendLineChart({ points, colors }: { points: TrendPoint[]; colors: ThemeColors }) {
   if (!points.length) return null;
 
@@ -386,6 +491,9 @@ export default function CalendarScreen() {
   const setCategoryVisibility = usePlannerPreferencesStore((s) => s.setCategoryVisibility);
 
   const [plannerDistribution, setPlannerDistribution] = useState<PlannerFullDistributionResponse | null>(null);
+  const [cosmicPlannerByMonth, setCosmicPlannerByMonth] = useState<Record<string, CosmicPlannerResponse>>({});
+  const [cosmicDayDetailsByDate, setCosmicDayDetailsByDate] = useState<Record<string, CosmicDayDetailResponse>>({});
+  const [failedCosmicDetailKeys, setFailedCosmicDetailKeys] = useState<Record<string, true>>({});
   const [loadedMonthKeys, setLoadedMonthKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -404,7 +512,14 @@ export default function CalendarScreen() {
   const skeletonPulse = useSharedValue(0.72);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadingMonthKeysRef = useRef<Set<string>>(new Set());
+  const loadingCosmicMonthKeysRef = useRef<Set<string>>(new Set());
   const loadingDetailKeysRef = useRef<Set<string>>(new Set());
+  const loadingCosmicDayDetailKeysRef = useRef<Set<string>>(new Set());
+  const subCategoryCardLayoutsRef = useRef<Record<string, { y: number; height: number }>>({});
+  const subAnalysisBlockOffsetYRef = useRef(0);
+  const subAnalysisListOffsetYRef = useRef(0);
+  const seenSubCategoryHapticKeysRef = useRef<Set<string>>(new Set());
+  const lastSubCategoryHapticAtRef = useRef(0);
 
   const months = useMemo(() => t('calendar.months').split(','), [t]);
   const shortDays = useMemo(() => t('calendar.shortDays').split(','), [t]);
@@ -425,6 +540,12 @@ export default function CalendarScreen() {
 
   const availableCategories = personalization.available;
   const visibleCategories = personalization.visible;
+  const visibleDockCategories = useMemo(() => {
+    const ordered = CORE_SYNC_DOCK_ORDER
+      .map((id) => visibleCategories.find((category) => category.id === id))
+      .filter((category): category is PlannerCategoryDefinition => !!category);
+    return ordered.length ? ordered : visibleCategories;
+  }, [visibleCategories]);
   const interestTagList = useMemo(
     () => Array.from(personalization.interestTags),
     [personalization.interestTags],
@@ -435,13 +556,16 @@ export default function CalendarScreen() {
   );
 
   useEffect(() => {
-    if (
-      activeFilter !== 'ALL'
-      && !visibleCategories.some((category) => category.id === activeFilter)
-    ) {
-      setActiveFilter('ALL');
+    const firstVisible = visibleDockCategories[0]?.id ?? visibleCategories[0]?.id;
+    if (!firstVisible) return;
+    if (activeFilter === 'ALL') {
+      setActiveFilter(firstVisible);
+      return;
     }
-  }, [activeFilter, visibleCategories]);
+    if (!visibleCategories.some((category) => category.id === activeFilter)) {
+      setActiveFilter(firstVisible);
+    }
+  }, [activeFilter, visibleCategories, visibleDockCategories]);
 
   const closeDetailPanel = useCallback(() => {
     detailProgress.value = withTiming(0, {
@@ -522,6 +646,7 @@ export default function CalendarScreen() {
         userId,
         monthsAhead: params.monthsAhead,
         userGender: user?.gender,
+        maritalStatus: user?.maritalStatus,
         locale: plannerLocale,
         responseMode: params.responseMode ?? 'FULL',
         categories: params.categories,
@@ -568,8 +693,11 @@ export default function CalendarScreen() {
 
   const fetchPlannerData = useCallback(async () => {
     setPlannerDistribution(null);
+    setCosmicDayDetailsByDate({});
+    setFailedCosmicDetailKeys({});
     setLoadedMonthKeys([]);
     loadingMonthKeysRef.current.clear();
+    loadingCosmicDayDetailKeysRef.current.clear();
 
     const currentMonthDate = new Date();
     const nextMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1);
@@ -625,6 +753,28 @@ export default function CalendarScreen() {
     void fetchPlannerMonth(viewDate);
   }, [viewDate, loadedMonthKeys, fetchPlannerMonth, chart, user?.id, plannerDistribution]);
 
+  useEffect(() => {
+    if (!user?.id || !chart) return;
+    const monthKey = toMonthKey(viewDate);
+    if (cosmicPlannerByMonth[monthKey]) return;
+    if (loadingCosmicMonthKeysRef.current.has(monthKey)) return;
+    loadingCosmicMonthKeysRef.current.add(monthKey);
+
+    void fetchCosmicPlanner({
+      userId: user.id,
+      month: monthKey,
+      locale: plannerLocale,
+      gender: user.gender,
+      maritalStatus: user.maritalStatus,
+    }).then((response) => {
+      setCosmicPlannerByMonth((prev) => ({ ...prev, [monthKey]: response.data }));
+    }).catch(() => {
+      // Silent fallback: planner can continue with existing rule-engine visuals.
+    }).finally(() => {
+      loadingCosmicMonthKeysRef.current.delete(monthKey);
+    });
+  }, [user?.id, user?.gender, user?.maritalStatus, chart, viewDate, plannerLocale, cosmicPlannerByMonth]);
+
   const monthCells = useMemo(() => buildMonthGrid(viewDate), [viewDate]);
 
   const backendInsightsByDate = useMemo<Record<string, Partial<Record<PlannerCategoryId, PlannerCategoryAction>>>>(() => {
@@ -644,22 +794,78 @@ export default function CalendarScreen() {
     return mapped;
   }, [plannerDistribution]);
 
+  const currentCosmicPlanner = useMemo(
+    () => cosmicPlannerByMonth[toMonthKey(viewDate)] ?? null,
+    [cosmicPlannerByMonth, viewDate],
+  );
+  const cosmicPlannerDaysByDate = useMemo<Record<string, CosmicPlannerDay>>(() => {
+    const map: Record<string, CosmicPlannerDay> = {};
+    currentCosmicPlanner?.days?.forEach((day) => {
+      map[toDateKey(day.date)] = day;
+    });
+    return map;
+  }, [currentCosmicPlanner]);
+  const activeCosmicCategoryKey = useMemo(
+    () => (activeFilter === 'ALL' ? null : (LOCAL_CATEGORY_TO_COSMIC[activeFilter] ?? null)),
+    [activeFilter],
+  );
+  const activeCosmicLegend = useMemo<CosmicLegendItem[]>(
+    () => {
+      if (!activeCosmicCategoryKey) return [];
+      const baseLegend = currentCosmicPlanner?.legendsByCategory?.[activeCosmicCategoryKey] ?? [];
+      const selectedDayDots = cosmicPlannerDaysByDate[toDateKey(selectedDate)]?.dotsByCategory?.[activeCosmicCategoryKey] ?? [];
+      if (!selectedDayDots.length) return baseLegend;
+
+      const dotOrder = new Map(
+        selectedDayDots.map((dot, index) => [dot.subCategoryKey, { score: dot.score, index }] as const),
+      );
+
+      return baseLegend.slice().sort((a, b) => {
+        const aMeta = dotOrder.get(a.subCategoryKey);
+        const bMeta = dotOrder.get(b.subCategoryKey);
+        if (aMeta && bMeta) {
+          if (bMeta.score !== aMeta.score) return bMeta.score - aMeta.score;
+          return aMeta.index - bMeta.index;
+        }
+        if (aMeta) return -1;
+        if (bMeta) return 1;
+        return a.label.localeCompare(b.label);
+      });
+    },
+    [currentCosmicPlanner, activeCosmicCategoryKey, cosmicPlannerDaysByDate, selectedDate],
+  );
+
   const getInsightForDate = useCallback((date: Date, category: PlannerCategoryDefinition): PlannerInsight => {
     const dateKey = toDateKey(date);
-    const backendAction = backendInsightsByDate[dateKey]?.[category.id];
     const interestTags = new Set(personalization.interestTags);
+    const fallbackInsight = buildPlannerInsight({
+      date,
+      category,
+      userId: user?.id,
+      interestTags,
+      cards: [],
+      backendWindowEnd,
+      locale: plannerLocale,
+    });
+
+    const cosmicCategoryKey = LOCAL_CATEGORY_TO_COSMIC[category.id];
+    const cosmicDayDetail = cosmicDayDetailsByDate[dateKey];
+    const cosmicCategoryDetail = cosmicCategoryKey
+      ? cosmicDayDetail?.categories?.[cosmicCategoryKey]
+      : undefined;
+    if (cosmicCategoryDetail) {
+      return buildPlannerInsightFromCosmicDetail({
+        categoryDetail: cosmicCategoryDetail,
+        moonPhase: cosmicDayDetail?.moonPhase ?? fallbackInsight.moonPhase,
+        mercuryRetrograde: cosmicDayDetail?.mercuryRetrograde ?? fallbackInsight.mercuryRetrograde,
+        fallback: fallbackInsight,
+      });
+    }
+
+    const backendAction = backendInsightsByDate[dateKey]?.[category.id];
 
     if (backendAction) {
       const score = clamp(backendAction.score);
-      const fallbackInsight = buildPlannerInsight({
-        date,
-        category,
-        userId: user?.id,
-        interestTags,
-        cards: [],
-        backendWindowEnd,
-        locale: plannerLocale,
-      });
       const detailReady = hasBackendActionDetails(backendAction);
       const supportingAspects = detailReady
         ? backendAction.supportingAspects
@@ -684,16 +890,8 @@ export default function CalendarScreen() {
       };
     }
 
-    return buildPlannerInsight({
-      date,
-      category,
-      userId: user?.id,
-      interestTags,
-      cards: [],
-      backendWindowEnd,
-      locale: plannerLocale,
-    });
-  }, [backendInsightsByDate, user?.id, interestKey, backendWindowEnd, plannerLocale]);
+    return fallbackInsight;
+  }, [backendInsightsByDate, cosmicDayDetailsByDate, user?.id, interestKey, backendWindowEnd, plannerLocale]);
 
   const insightsByDate = useMemo<Record<string, InsightByCategory>>(() => {
     const map: Record<string, InsightByCategory> = {};
@@ -739,11 +937,16 @@ export default function CalendarScreen() {
       }
 
       const insight = dayInsights[category.id] ?? getInsightForDate(date, category);
+      const cosmicCategoryKey = LOCAL_CATEGORY_TO_COSMIC[category.id];
+      const cosmicScore = cosmicCategoryKey
+        ? cosmicPlannerDaysByDate[dateKey]?.categoryScores?.[cosmicCategoryKey]
+        : undefined;
+      const syncedScore = typeof cosmicScore === 'number' ? clamp(cosmicScore) : insight.score;
       return {
-        score: insight.score,
-        tones: [insight.tone],
+        score: syncedScore,
+        tones: [toneFromScore(syncedScore)],
         isPredicted: insight.source === 'predicted',
-        selectedInsight: insight,
+        selectedInsight: { ...insight, score: syncedScore, tone: toneFromScore(syncedScore) },
         topCategory: category,
       };
     }
@@ -798,7 +1001,7 @@ export default function CalendarScreen() {
       selectedInsight: featured.insight,
       topCategory: featured.category,
     };
-  }, [visibleCategories, insightsByDate, getInsightForDate]);
+  }, [visibleCategories, insightsByDate, getInsightForDate, cosmicPlannerDaysByDate]);
 
   const cellSummaries = useMemo(() => {
     const now = new Date();
@@ -828,49 +1031,182 @@ export default function CalendarScreen() {
 
   const selectedCategoryLabel = useMemo(() => {
     if (!selectedCategory) return t('calendar.filters.all');
-    return t(selectedCategory.labelKey);
+    return t(COSMIC_DOCK_LABEL_OVERRIDE_KEYS[selectedCategory.id] ?? selectedCategory.labelKey);
   }, [selectedCategory, t]);
   const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
-  const selectedBackendAction = useMemo(
-    () => (selectedCategory ? backendInsightsByDate[selectedDateKey]?.[selectedCategory.id] : undefined),
-    [backendInsightsByDate, selectedDateKey, selectedCategory],
+  const selectedCosmicCategoryKey = useMemo(
+    () => (selectedCategory ? (LOCAL_CATEGORY_TO_COSMIC[selectedCategory.id] ?? null) : null),
+    [selectedCategory],
   );
-  const selectedDetailPending = !!selectedBackendAction && !hasBackendActionDetails(selectedBackendAction);
+  const selectedCosmicDayDetail = useMemo(
+    () => cosmicDayDetailsByDate[selectedDateKey],
+    [cosmicDayDetailsByDate, selectedDateKey],
+  );
+  const selectedCosmicCategoryDetail = useMemo(
+    () => (selectedCosmicCategoryKey ? (selectedCosmicDayDetail?.categories?.[selectedCosmicCategoryKey] ?? undefined) : undefined),
+    [selectedCosmicDayDetail, selectedCosmicCategoryKey],
+  );
+  const selectedCosmicDetailRequestKey = useMemo(
+    () => (selectedCosmicCategoryKey ? `${selectedDateKey}:${selectedCosmicCategoryKey}:${plannerLocale}` : null),
+    [selectedCosmicCategoryKey, selectedDateKey, plannerLocale],
+  );
+  const selectedCosmicSubcategoryList = useMemo(
+    () => (selectedCosmicCategoryDetail?.subcategories ?? []).slice().sort((a, b) => b.score - a.score),
+    [selectedCosmicCategoryDetail],
+  );
+  const selectedDetailPending = !!selectedCosmicCategoryKey
+    && !selectedCosmicCategoryDetail
+    && !(selectedCosmicDetailRequestKey && failedCosmicDetailKeys[selectedCosmicDetailRequestKey]);
   const showDetailSkeleton = selectedDetailPending || isDetailLoading;
+
+  useEffect(() => {
+    subCategoryCardLayoutsRef.current = {};
+    subAnalysisBlockOffsetYRef.current = 0;
+    subAnalysisListOffsetYRef.current = 0;
+    seenSubCategoryHapticKeysRef.current.clear();
+    lastSubCategoryHapticAtRef.current = 0;
+  }, [selectedCosmicDetailRequestKey, detailMounted]);
+
+  const onSubCategoryCardLayout = useCallback((key: string, y: number, height: number) => {
+    subCategoryCardLayoutsRef.current[key] = {
+      y: subAnalysisBlockOffsetYRef.current + subAnalysisListOffsetYRef.current + y,
+      height,
+    };
+  }, []);
+
+  const onDetailContentScroll = useCallback((event: any) => {
+    if (!detailMounted) return;
+    if (showDetailSkeleton) return;
+    if (!selectedCosmicSubcategoryList.length) return;
+
+    const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+    const viewportH = event?.nativeEvent?.layoutMeasurement?.height ?? 0;
+    if (viewportH <= 0) return;
+
+    const visibleTop = offsetY;
+    const visibleBottom = offsetY + viewportH;
+    const now = Date.now();
+
+    for (const sub of selectedCosmicSubcategoryList) {
+      const key = `${selectedCosmicDetailRequestKey ?? selectedDateKey}:${sub.subCategoryKey}`;
+      if (seenSubCategoryHapticKeysRef.current.has(key)) continue;
+      const layout = subCategoryCardLayoutsRef.current[key];
+      if (!layout) continue;
+      const cardTop = layout.y;
+      const cardBottom = layout.y + layout.height;
+      const isVisible = cardBottom > visibleTop + 8 && cardTop < visibleBottom - 8;
+      if (!isVisible) continue;
+
+      seenSubCategoryHapticKeysRef.current.add(key);
+      if (now - lastSubCategoryHapticAtRef.current < 80) break;
+      lastSubCategoryHapticAtRef.current = now;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+      break;
+    }
+  }, [
+    detailMounted,
+    selectedCosmicSubcategoryList,
+    selectedCosmicDetailRequestKey,
+    selectedDateKey,
+    showDetailSkeleton,
+  ]);
 
   useEffect(() => {
     if (!detailMounted) return;
     if (!selectedCategory) return;
 
     const dateKey = toDateKey(selectedDate);
-    const backendAction = backendInsightsByDate[dateKey]?.[selectedCategory.id];
-    if (hasBackendActionDetails(backendAction)) return;
+    const cosmicCategoryKey = LOCAL_CATEGORY_TO_COSMIC[selectedCategory.id];
+    if (!cosmicCategoryKey) {
+      const backendAction = backendInsightsByDate[dateKey]?.[selectedCategory.id];
+      if (hasBackendActionDetails(backendAction)) return;
+      const backendCategory = LOCAL_CATEGORY_TO_BACKEND[selectedCategory.id];
+      if (!backendCategory) return;
+      const requestKey = `${dateKey}:${backendCategory}:${plannerLocale}`;
+      if (loadingDetailKeysRef.current.has(requestKey)) return;
+      loadingDetailKeysRef.current.add(requestKey);
+      setIsDetailLoading(true);
 
-    const backendCategory = LOCAL_CATEGORY_TO_BACKEND[selectedCategory.id];
-    if (!backendCategory) return;
+      void fetchPlannerChunk({
+        startDate: dateKey,
+        endDate: dateKey,
+        responseMode: 'FULL',
+        categories: [backendCategory],
+        skipLoadingState: true,
+        suppressError: true,
+        skipErrorReset: true,
+      }).finally(() => {
+        loadingDetailKeysRef.current.delete(requestKey);
+        setIsDetailLoading(false);
+      });
+      return;
+    }
 
-    const requestKey = `${dateKey}:${backendCategory}:${plannerLocale}`;
-    if (loadingDetailKeysRef.current.has(requestKey)) return;
-    loadingDetailKeysRef.current.add(requestKey);
+    if (cosmicDayDetailsByDate[dateKey]?.categories?.[cosmicCategoryKey]) return;
+
+    const requestKey = `${dateKey}:${cosmicCategoryKey}:${plannerLocale}`;
+    if (failedCosmicDetailKeys[requestKey]) return;
+    if (loadingCosmicDayDetailKeysRef.current.has(requestKey)) return;
+    loadingCosmicDayDetailKeysRef.current.add(requestKey);
     setIsDetailLoading(true);
 
-    void fetchPlannerChunk({
-      startDate: dateKey,
-      endDate: dateKey,
-      responseMode: 'FULL',
-      categories: [backendCategory],
-      skipLoadingState: true,
-      suppressError: true,
-      skipErrorReset: true,
+    void fetchCosmicCategoryDetails({
+      userId: user?.id ?? 0,
+      categoryKey: cosmicCategoryKey,
+      date: dateKey,
+      locale: plannerLocale,
+      gender: user?.gender,
+      maritalStatus: user?.maritalStatus,
+    }).then((response) => {
+      const payload = response.data as CosmicCategoryDetailsResponse;
+      setCosmicDayDetailsByDate((prev) => {
+        const existing = prev[dateKey];
+        const nextDay: CosmicDayDetailResponse = existing
+          ? {
+              ...existing,
+              moonPhase: payload.moonPhase || existing.moonPhase,
+              mercuryRetrograde: payload.mercuryRetrograde ?? existing.mercuryRetrograde,
+              categories: {
+                ...(existing.categories ?? {}),
+                [payload.categoryKey]: payload.category,
+              },
+              generatedAt: payload.generatedAt || existing.generatedAt,
+            }
+          : {
+              userId: payload.userId,
+              date: payload.date,
+              locale: payload.locale,
+              moonPhase: payload.moonPhase,
+              mercuryRetrograde: payload.mercuryRetrograde,
+              categories: { [payload.categoryKey]: payload.category },
+              generatedAt: payload.generatedAt,
+            };
+        return { ...prev, [dateKey]: nextDay };
+      });
+      setFailedCosmicDetailKeys((prev) => {
+        if (!prev[requestKey]) return prev;
+        const next = { ...prev };
+        delete next[requestKey];
+        return next;
+      });
+    }).catch(() => {
+      // Silent fallback to existing planner insight paths.
+      setFailedCosmicDetailKeys((prev) => ({ ...prev, [requestKey]: true }));
     }).finally(() => {
-      loadingDetailKeysRef.current.delete(requestKey);
+      loadingCosmicDayDetailKeysRef.current.delete(requestKey);
       setIsDetailLoading(false);
     });
   }, [
     detailMounted,
     selectedDate,
     selectedCategory,
+    selectedCosmicCategoryKey,
     backendInsightsByDate,
+    cosmicDayDetailsByDate,
+    failedCosmicDetailKeys,
+    user?.id,
+    user?.gender,
+    user?.maritalStatus,
     plannerLocale,
     fetchPlannerChunk,
   ]);
@@ -1114,10 +1450,14 @@ export default function CalendarScreen() {
                     const isSelected = sameDay(date, selectedDate);
                     const ringColor = getRingColor(summary.score);
                     const dayColor = inMonth ? colors.text : colors.subtext;
+                    const dateKey = toDateKey(date);
+                    const cosmicDots = activeCosmicCategoryKey
+                      ? (cosmicPlannerDaysByDate[dateKey]?.dotsByCategory?.[activeCosmicCategoryKey] ?? []).slice(0, 3)
+                      : [];
 
                     return (
                       <TouchableOpacity
-                        key={toDateKey(date)}
+                        key={dateKey}
                         style={styles.dayCell}
                         onPress={() => onPressDay(date)}
                         accessibilityRole="button"
@@ -1160,8 +1500,18 @@ export default function CalendarScreen() {
                             <View style={styles.multiDotRow}>
                               {summary.tones.slice(0, 3).map((tone) => (
                                 <View
-                                  key={`${toDateKey(date)}-${tone}`}
+                                  key={`${dateKey}-${tone}`}
                                   style={[styles.multiDot, { backgroundColor: getToneDotColor(tone) }]}
+                                />
+                              ))}
+                            </View>
+                          )}
+                          {activeFilter !== 'ALL' && cosmicDots.length > 0 && (
+                            <View style={styles.multiDotRow}>
+                              {cosmicDots.map((dot) => (
+                                <View
+                                  key={`${dateKey}-${dot.subCategoryKey}`}
+                                  style={[styles.multiDot, { backgroundColor: dot.colorHex }]}
                                 />
                               ))}
                             </View>
@@ -1198,6 +1548,22 @@ export default function CalendarScreen() {
               </View>
             </View>
 
+            {activeFilter !== 'ALL' && activeCosmicLegend.length > 0 && (
+              <View style={styles.subLegendCard}>
+                <Text style={styles.subLegendTitle}>
+                  {t('calendar.subcategoryLegendTitle', { category: selectedCategoryLabel })}
+                </Text>
+                <View style={styles.subLegendList}>
+                  {activeCosmicLegend.map((item) => (
+                    <View key={`${activeCosmicCategoryKey}-${item.subCategoryKey}`} style={styles.subLegendRow}>
+                      <View style={[styles.subLegendDot, { backgroundColor: item.colorHex }]} />
+                      <Text style={styles.subLegendText}>{item.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <View style={styles.dockHeader}>
               <Text style={styles.dockTitle}>{t('calendar.categoryDock')}</Text>
               <TouchableOpacity
@@ -1212,31 +1578,20 @@ export default function CalendarScreen() {
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dockRow}>
-              <TouchableOpacity
-                style={[styles.categoryChip, activeFilter === 'ALL' && styles.categoryChipActive]}
-                onPress={() => onPressCategory('ALL')}
-                accessibilityRole="button"
-                accessibilityLabel={t('calendar.filters.all')}
-              >
-                <Ionicons name="apps-outline" size={16} color={activeFilter === 'ALL' ? colors.white : colors.subtext} />
-                <Text style={[styles.categoryChipText, activeFilter === 'ALL' && styles.categoryChipTextActive]}>
-                  {t('calendar.filters.all')}
-                </Text>
-              </TouchableOpacity>
-
-              {visibleCategories.map((category) => {
+              {visibleDockCategories.map((category) => {
                 const isActive = activeFilter === category.id;
+                const dockLabel = t(COSMIC_DOCK_LABEL_OVERRIDE_KEYS[category.id] ?? category.labelKey);
                 return (
                   <TouchableOpacity
                     key={category.id}
                     style={[styles.categoryChip, isActive && styles.categoryChipActive]}
                     onPress={() => onPressCategory(category.id)}
                     accessibilityRole="button"
-                    accessibilityLabel={t(category.labelKey)}
+                    accessibilityLabel={dockLabel}
                   >
                     <Ionicons name={category.icon as any} size={16} color={isActive ? colors.white : colors.subtext} />
                     <Text style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]}>
-                      {t(category.labelKey)}
+                      {dockLabel}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -1403,60 +1758,6 @@ export default function CalendarScreen() {
               </View>
             </View>
 
-            <Text style={styles.listTitle}>{t('calendar.dosTitle')}</Text>
-            <View style={styles.actionList}>
-              {showDetailSkeleton ? (
-                <>
-                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
-                    <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
-                    <View style={styles.skeletonLines}>
-                      <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
-                      <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-                    </View>
-                  </Animated.View>
-                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
-                    <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
-                    <View style={styles.skeletonLines}>
-                      <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
-                    </View>
-                  </Animated.View>
-                </>
-              ) : (
-                actionables.dos.map((line) => (
-                  <View key={`do-${line}`} style={styles.doCard}>
-                    <Text style={styles.doText}>✅ {line}</Text>
-                  </View>
-                ))
-              )}
-            </View>
-
-            <Text style={styles.listTitle}>{t('calendar.dontsTitle')}</Text>
-            <View style={styles.actionList}>
-              {showDetailSkeleton ? (
-                <>
-                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
-                    <View style={[styles.skeletonIconPill, styles.skeletonDontAccent]} />
-                    <View style={styles.skeletonLines}>
-                      <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
-                      <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
-                    </View>
-                  </Animated.View>
-                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
-                    <View style={[styles.skeletonIconPill, styles.skeletonDontAccent]} />
-                    <View style={styles.skeletonLines}>
-                      <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-                    </View>
-                  </Animated.View>
-                </>
-              ) : (
-                actionables.donts.map((line) => (
-                  <View key={`dont-${line}`} style={styles.dontCard}>
-                    <Text style={styles.dontText}>❌ {line}</Text>
-                  </View>
-                ))
-              )}
-            </View>
-
             <View style={styles.whyBlock}>
               <Text style={styles.whyTitle}>{t('calendar.whyTitle')}</Text>
               {showDetailSkeleton ? (
@@ -1473,6 +1774,139 @@ export default function CalendarScreen() {
                 </Text>
               )}
             </View>
+
+            <ScrollView
+              style={styles.detailScrollView}
+              contentContainerStyle={styles.detailScrollContent}
+              showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={onDetailContentScroll}
+            >
+              <Text style={styles.listTitle}>{t('calendar.dosTitle')}</Text>
+              <View style={styles.actionList}>
+                {showDetailSkeleton ? (
+                  <>
+                    <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                      <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
+                      <View style={styles.skeletonLines}>
+                        <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
+                        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                      </View>
+                    </Animated.View>
+                    <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                      <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
+                      <View style={styles.skeletonLines}>
+                        <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
+                      </View>
+                    </Animated.View>
+                  </>
+                ) : (
+                  actionables.dos.map((line) => (
+                    <View key={`do-${line}`} style={styles.doCard}>
+                      <Text style={styles.doText}>✅ {line}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
+
+              <Text style={styles.listTitle}>{t('calendar.dontsTitle')}</Text>
+              <View style={styles.actionList}>
+                {showDetailSkeleton ? (
+                  <>
+                    <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                      <View style={[styles.skeletonIconPill, styles.skeletonDontAccent]} />
+                      <View style={styles.skeletonLines}>
+                        <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
+                        <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
+                      </View>
+                    </Animated.View>
+                    <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                      <View style={[styles.skeletonIconPill, styles.skeletonDontAccent]} />
+                      <View style={styles.skeletonLines}>
+                        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                      </View>
+                    </Animated.View>
+                  </>
+                ) : (
+                  actionables.donts.map((line) => (
+                    <View key={`dont-${line}`} style={styles.dontCard}>
+                      <Text style={styles.dontText}>❌ {line}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
+
+              {!showDetailSkeleton && selectedCosmicSubcategoryList.length > 0 && (
+                <View
+                  style={styles.subAnalysisBlock}
+                  onLayout={(event) => {
+                    subAnalysisBlockOffsetYRef.current = event.nativeEvent.layout.y;
+                  }}
+                >
+                  <Text style={styles.subAnalysisTitle}>{t('calendar.starCategories')}</Text>
+                  <View
+                    style={styles.subAnalysisList}
+                    onLayout={(event) => {
+                      subAnalysisListOffsetYRef.current = event.nativeEvent.layout.y;
+                    }}
+                  >
+                    {selectedCosmicSubcategoryList.map((sub, index) => {
+                      const subKey = `${selectedCosmicDetailRequestKey ?? selectedDateKey}:${sub.subCategoryKey}`;
+                      return (
+                        <Animated.View
+                          key={`${selectedCosmicCategoryKey}-${sub.subCategoryKey}`}
+                          entering={FadeInDown.delay(Math.min(index * 18, 120)).duration(220)}
+                          style={styles.subAnalysisCard}
+                          onLayout={(event) => {
+                            const { y, height } = event.nativeEvent.layout;
+                            onSubCategoryCardLayout(subKey, y, height);
+                          }}
+                        >
+                          <View style={styles.subAnalysisGlowWrap}>
+                            <View style={[styles.subAnalysisGlow, { backgroundColor: sub.colorHex, shadowColor: sub.colorHex }]} />
+                          </View>
+                          <View style={styles.subAnalysisContent}>
+                            <View style={styles.subAnalysisTopRow}>
+                              <View style={styles.subAnalysisLeft}>
+                                <View style={[styles.subAnalysisIconWrap, { backgroundColor: `${sub.colorHex}18`, borderColor: `${sub.colorHex}33` }]}>
+                                  <Ionicons
+                                    name={iconForCosmicSubcategory(selectedCosmicCategoryKey, sub.subCategoryKey)}
+                                    size={14}
+                                    color={sub.colorHex}
+                                  />
+                                </View>
+                                <View style={styles.subAnalysisTextWrap}>
+                                  <Text style={styles.subAnalysisName} numberOfLines={1}>{sub.label}</Text>
+                                  <Text style={styles.subAnalysisInsight} numberOfLines={3}>
+                                    {sub.insight || sub.shortAdvice}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text style={styles.subAnalysisScore}>%{sub.score}</Text>
+                            </View>
+
+                            {!!sub.technicalExplanation && (
+                              <Text style={styles.subAnalysisTechnical} numberOfLines={3}>
+                                {sub.technicalExplanation}
+                              </Text>
+                            )}
+
+                            <View style={styles.subAnalysisBarTrack}>
+                              <View
+                                style={[
+                                  styles.subAnalysisBarFill,
+                                  { width: `${clamp(sub.score)}%`, backgroundColor: sub.colorHex },
+                                ]}
+                              />
+                            </View>
+                          </View>
+                        </Animated.View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
 
             <View style={styles.sheetFooterRow}>
               <TouchableOpacity
@@ -1523,7 +1957,7 @@ export default function CalendarScreen() {
 
               <ScrollView contentContainerStyle={styles.blueprintScrollContent}>
                 <View style={styles.blueprintSection}>
-                  <Text style={styles.blueprintSectionTitle}>{t('calendar.technicalBreakdown')}</Text>
+                  <Text style={styles.blueprintSectionTitle}>{t('calendar.starCategories')}</Text>
 
                   <View style={styles.signalRow}>
                     <Text style={styles.signalLabel}>{t('calendar.signalTransit')}</Text>
@@ -1818,6 +2252,40 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontSize: 11,
       fontFamily: UI_FONT,
     },
+    subLegendCard: {
+      marginTop: 10,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      padding: 12,
+      gap: 8,
+    },
+    subLegendTitle: {
+      color: C.text,
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: UI_FONT,
+    },
+    subLegendList: {
+      gap: 8,
+    },
+    subLegendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    subLegendDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+    },
+    subLegendText: {
+      color: C.text,
+      fontSize: 12,
+      fontWeight: '600',
+      fontFamily: UI_FONT,
+    },
     dockHeader: {
       marginTop: 10,
       flexDirection: 'row',
@@ -2072,6 +2540,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderWidth: 1,
       borderColor: C.surfaceGlassBorder,
       maxHeight: '88%',
+      overflow: 'hidden',
     },
     sheetHandle: {
       width: 44,
@@ -2242,6 +2711,124 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       lineHeight: 18,
       fontFamily: UI_FONT,
     },
+    detailScrollView: {
+      marginTop: 6,
+      flexShrink: 1,
+      minHeight: 0,
+    },
+    detailScrollContent: {
+      paddingBottom: 40,
+    },
+    subAnalysisBlock: {
+      marginTop: 10,
+      borderRadius: 14,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      gap: 8,
+    },
+    subAnalysisTitle: {
+      color: C.text,
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.3,
+      fontFamily: UI_FONT,
+    },
+    subAnalysisList: {
+      gap: 8,
+    },
+    subAnalysisCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.surface,
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      overflow: 'hidden',
+    },
+    subAnalysisGlowWrap: {
+      width: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+      paddingLeft: 4,
+    },
+    subAnalysisGlow: {
+      width: 3,
+      alignSelf: 'stretch',
+      borderRadius: 999,
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 0 },
+      opacity: 0.95,
+    },
+    subAnalysisContent: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingRight: 10,
+      gap: 7,
+    },
+    subAnalysisTopRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    subAnalysisLeft: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      flex: 1,
+    },
+    subAnalysisIconWrap: {
+      width: 24,
+      height: 24,
+      borderRadius: 8,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 1,
+    },
+    subAnalysisTextWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    subAnalysisName: {
+      color: C.text,
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: UI_FONT,
+    },
+    subAnalysisInsight: {
+      color: C.subtext,
+      fontSize: 11,
+      lineHeight: 16,
+      fontFamily: UI_FONT,
+    },
+    subAnalysisScore: {
+      color: C.text,
+      fontSize: 12,
+      fontWeight: '800',
+      fontFamily: UI_FONT,
+    },
+    subAnalysisTechnical: {
+      color: C.subtext,
+      fontSize: 10,
+      lineHeight: 14,
+      fontFamily: UI_FONT,
+      opacity: 0.9,
+    },
+    subAnalysisBarTrack: {
+      height: 3,
+      borderRadius: 999,
+      overflow: 'hidden',
+      backgroundColor: C.borderMuted,
+    },
+    subAnalysisBarFill: {
+      height: '100%',
+      borderRadius: 999,
+    },
     sheetFooterRow: {
       marginTop: 12,
       flexDirection: 'row',
@@ -2327,7 +2914,8 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     blueprintSectionTitle: {
       color: C.text,
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '600',
+      letterSpacing: 0.35,
       fontFamily: UI_FONT,
     },
     signalRow: {

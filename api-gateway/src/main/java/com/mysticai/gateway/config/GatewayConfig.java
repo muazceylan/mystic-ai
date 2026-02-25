@@ -19,6 +19,10 @@ public class GatewayConfig {
                 .route("astrology-service", r -> r
                         .path("/api/v1/astrology/**")
                         .uri("lb://astrology-service"))
+                // Cosmic scoring endpoints (hosted in astrology-service)
+                .route("cosmic-service", r -> r
+                        .path("/api/v1/cosmic/**")
+                        .uri("lb://astrology-service"))
                 // Dream Journal (hosted in astrology-service)
                 .route("dream-journal", r -> r
                         .path("/api/v1/dreams/**")

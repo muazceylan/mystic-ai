@@ -30,6 +30,7 @@ public class LuckyDatesService {
     private final LuckyDatesResultRepository luckyDatesResultRepository;
     private final TransitCalculator transitCalculator;
     private final CosmicActionEngineService cosmicActionEngineService;
+    private final DailyLifeGuideService dailyLifeGuideService;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
@@ -152,6 +153,7 @@ public class LuckyDatesService {
 
             List<PlannerCategoryAction> categoryActions = new ArrayList<>();
             int totalScore = 0;
+            Map<String, Integer> syncedGroupScores = loadDecisionCompassGroupScores(request, locale, date);
             List<String> supportingAspects = includeActionDetails
                     ? aspects.stream()
                     .sorted(Comparator.comparingDouble(PlanetaryAspect::orb))
@@ -162,8 +164,10 @@ public class LuckyDatesService {
 
             for (PlannerCategory plannerCategory : plannerCategories) {
                 GoalCategory baseGoal = plannerCategory.getBaseGoalCategory();
-                int rawScore = scoreDate(date, transits, natalPlanets, natalHouses, baseGoal);
-                int normalizedScore = normalizeScore(rawScore);
+                Integer syncedScore = resolveSyncedPlannerCategoryScore(plannerCategory, syncedGroupScores);
+                int normalizedScore = syncedScore != null
+                        ? clampScore(syncedScore)
+                        : normalizeScore(scoreDate(date, transits, natalPlanets, natalHouses, baseGoal));
 
                 CosmicActionEngineService.ActionBundle bundle = includeActionDetails
                         ? cosmicActionEngineService.buildActions(
@@ -179,7 +183,9 @@ public class LuckyDatesService {
                 )
                         : new CosmicActionEngineService.ActionBundle(List.of(), List.of(), "", 0);
 
-                int adjustedScore = clampScore(normalizedScore + bundle.scoreAdjustment());
+                int adjustedScore = syncedScore != null
+                        ? clampScore(normalizedScore)
+                        : clampScore(normalizedScore + bundle.scoreAdjustment());
                 totalScore += adjustedScore;
 
                 categoryActions.add(new PlannerCategoryAction(
@@ -192,7 +198,9 @@ public class LuckyDatesService {
                         supportingAspects,
                         mercuryRetro,
                         localizedMoonPhase,
-                        includeActionDetails ? "RULE_ENGINE" : "GRID_ONLY"
+                        includeActionDetails
+                                ? (syncedScore != null ? "LIFE_GUIDE_SYNC" : "RULE_ENGINE")
+                                : "GRID_ONLY"
                 ));
             }
 
@@ -435,7 +443,52 @@ public class LuckyDatesService {
     }
 
     private int clampScore(int score) {
-        return Math.max(0, Math.min(100, score));
+        return Math.max(5, Math.min(100, score));
+    }
+
+    private Map<String, Integer> loadDecisionCompassGroupScores(
+            PlannerFullDistributionRequest request,
+            String locale,
+            LocalDate date
+    ) {
+        try {
+            DailyLifeGuideResponse response = dailyLifeGuideService.getDailyGuide(
+                    new DailyLifeGuideRequest(
+                            request.userId(),
+                            locale,
+                            request.userGender(),
+                            request.maritalStatus(),
+                            date
+                    )
+            );
+            if (response.groups() == null || response.groups().isEmpty()) {
+                return Map.of();
+            }
+            return response.groups().stream().collect(Collectors.toMap(
+                    DailyLifeGuideGroupSummary::groupKey,
+                    DailyLifeGuideGroupSummary::averageScore,
+                    (a, b) -> a,
+                    HashMap::new
+            ));
+        } catch (Exception e) {
+            log.warn("Decision Compass sync score load failed for user {} date {}", request.userId(), date, e);
+            return Map.of();
+        }
+    }
+
+    private Integer resolveSyncedPlannerCategoryScore(PlannerCategory plannerCategory, Map<String, Integer> groupScores) {
+        String groupKey = switch (plannerCategory) {
+            case BEAUTY -> "beauty";
+            case FINANCE -> "finance";
+            case ACTIVITY -> "activity";
+            case OFFICIAL -> "official";
+            case DATE, MARRIAGE, RELATIONSHIP_HARMONY -> "social";
+            case HEALTH -> "health";
+            case FAMILY -> "home";
+            case SPIRITUAL -> "spiritual";
+            default -> null;
+        };
+        return groupKey == null ? null : groupScores.get(groupKey);
     }
 
     private int getSignIndex(String sign) {

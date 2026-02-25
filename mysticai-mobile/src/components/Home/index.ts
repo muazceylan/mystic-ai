@@ -5,5 +5,6 @@ export { ServiceSlider } from './ServiceSlider';
 export { CosmicSnapshotHero } from './CosmicSnapshotHero';
 export { QuickActionsRow } from './QuickActionsRow';
 export { CollectiveTicker } from './CollectiveTicker';
+export { DailyGuideWidget } from './DailyGuideWidget';
 export * from './homeConstants';
 export * from './homeUtils';

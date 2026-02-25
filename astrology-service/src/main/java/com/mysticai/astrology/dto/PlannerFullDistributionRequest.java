@@ -14,6 +14,7 @@ public record PlannerFullDistributionRequest(
         @NotNull Long userId,
         @Min(1) @Max(6) int monthsAhead,
         String userGender,
+        String maritalStatus,
         String locale,
         PlannerResponseMode responseMode,
         List<PlannerCategory> categories,

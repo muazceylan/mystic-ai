@@ -22,6 +22,8 @@ public record NatalChartResponse(
         List<PlanetPosition> planets,
         List<HousePlacement> houses,
         List<PlanetaryAspect> aspects,
+        List<NatalPlanetComboInsight> planetComboInsights,
+        List<NatalHouseComboInsight> houseComboInsights,
         String aiInterpretation,
         String interpretationStatus,
         LocalDateTime calculatedAt

@@ -65,7 +65,50 @@ public class MysticalPromptTemplates {
             - reasoning 1-2 cümle olmalı; ilgili transit/natal açı adını içermeli.
             - Merkür retrosu varsa donts içinde sözleşme/iletişim uyarısı mutlaka olmalı.
             - Skor verilen veriden türetilmeli; uydurma abartı yapma.
-            - Dil: Türkçe.
+            - Dil kuralı: payload içinde locale=en ise TÜM çıktı İngilizce olmalı. locale=tr veya yoksa TÜM çıktı Türkçe olmalı. Karışık dil kullanma.
+            - Kaderci, korkutucu veya kesin hüküm veren dil kullanma. "enerji", "eğilim", "uygun pencere" gibi olasılıksal dil kullan.
+            - Finans kategorisinde yatırım tavsiyesi verme; risk, planlama ve doğrulama odaklı kal.
+            - Sağlık kategorisinde teşhis/tedavi iddiası verme; rutin, takip, doktor teyidi dili kullan.
+
+            KATEGORİ KILAVUZU (category alanına göre ton ve içerik):
+            - TRANSIT: retro, ay fazı, sert/yumuşak açı yoğunluğu, natal tetiklenme dili.
+            - MOON: ay fazı + duygusal ritim + zamanlama önerileri.
+            - DATE: flört, buluşma, ilk izlenim, mesajlaşma tonu; düşük skorda gerilimli konuşmaları azalt.
+            - MARRIAGE: nişan/nikah/düğün/taahhüt, evrak ve planlama; düşük skorda imza/tarih kesinleştirmeyi azalt.
+            - RELATIONSHIP_HARMONY: eş/partner iletişimi, empati, uzlaşma; düşük skorda suçlayıcı dilden kaçınma.
+            - FAMILY: aile içi iletişim, ev düzeni, rol paylaşımı, ziyaret planı.
+            - FINANCE: bütçe, ödeme planı, harcama disiplini, finansal doğrulama; acele karar uyarıları.
+            - BEAUTY: cinsiyete ve bağlama uygun bakım önerileri; düşük skorda agresif işlemlerden kaçınma.
+            - HEALTH: sağlık rutini, takip, toparlanma; düşük skorda yüksek yoğunluktan kaçınma.
+            - ACTIVITY: yapılabilir aktiviteler + düşük skorda yoğun/riski yüksek aktiviteleri sınırlama.
+            - OFFICIAL: evrak, başvuru, resmi süreçler; düşük skorda ikinci kontrol vurgusu.
+            - SPIRITUAL: dua/meditasyon/ritüel; düşük skorda sade ve topraklayıcı pratikler.
+            - COLOR: destekleyici/kaçınılacak renkler ve kullanım bağlamı.
+            - RECOMMENDATIONS: genel gün özeti; yüksek skorda fırsat, düşük skorda dikkat maddeleri baskın.
+
+            ALT KATEGORİ TETİKLEYİCİ ODAKLARI (varsa payload içindeki sub-category/detaylara göre kullan):
+            - BEAUTY.hair_cut: Ay fazı (büyüyen = uzama, küçülen = form koruma), Boğa/Terazi teması.
+            - BEAUTY.skin_care: Venüs/Neptün uyumu; Ay Akrep vurgusunda agresif işlemlerde temkin.
+            - BEAUTY.aesthetic: Venüs direct vurgusu; sert Mars etkilerinde acele/kanama riski uyarısı.
+            - BEAUTY.hair_reduction: Küçülen Ay ve Oğlak/Kova teması verim lehine yorumlanabilir.
+            - HEALTH.diet_detox: Küçülen Ay + Satürn disiplini; dolunayda aşırı yüklenme uyarısı.
+            - HEALTH.checkup: Merkür netliği, randevu/evrak/sonuç takibi vurgusu.
+            - HEALTH.treatment / HEALTH.operation: şifa/direnç dili kullan; teşhis veya tıbbi kesinlik iddiası verme.
+            - CAREER.new_job: 10. ev / Jüpiter-MC / otorite figürleriyle izlenim.
+            - CAREER.entrepreneurship: Mars-Jüpiter cesareti + liderlik + kontrollü risk.
+            - CAREER.resignation / CAREER.seniority: Satürn/Uranüs etkileriyle uzun vadeli istikrar ve hak ediş dengesi.
+            - OFFICIAL.official_documents / applications / meeting: Merkür-Satürn netlik, ikinci kontrol, evrak hatası azaltma.
+            - OFFICIAL.law: 9. ev / Jüpiter / Terazi temasıyla adalet ve süreç sabrı vurgusu.
+            - HOME.cleaning / renovation / decoration / plant_care: Ay burcu + 4. ev ritmi + düzen/kalıcılık.
+            - SPIRITUAL.prayer / worship / meditation / inner_journey / ritual: 9. ve 12. ev, Neptün-Ay temaları, topraklayıcı dil.
+            - ACTIVITY.sport / culture_art / vacation: Mars-Güneş performansı, Venüs estetiği, 9. ev seyahat ritmi.
+            - FINANCE.investment / big_purchase / debt_credit: Jüpiter-Satürn dengesi; yatırım tavsiyesi değil risk/doğrulama dili.
+
+            SKOR DENGESİ (çok önemli):
+            - score >= 85: dos baskın, donts az ve hedefli.
+            - 60-84: dengeli.
+            - 35-59: caution baskın ama en az 1-2 uygulanabilir do ver.
+            - <35: donts baskın, dos yalnızca güvenli/koruyucu adımlar olsun.
             """, luckyDatesData);
     }
 
@@ -250,6 +293,14 @@ public class MysticalPromptTemplates {
 
             ÖNEMLİ YAZIM KURALLARI:
 
+            0. TON AYARI — "BİLİMSEL SAMİMİYET":
+               Dilin hem teknik doğruluğu korusun hem de insana temas etsin.
+               "Siz" dili kullanma. Yalnızca "Sen" veya kapsayıcı bir "Biz" kullan.
+               Kaderci / kesin hüküm veren cümlelerden kaçın:
+               - "Kesin olacak" yerine "tetiklenebilir", "öne çıkabilir", "hissedebilirsin" kullan.
+               Teknik dili soğuk bırakma; her önemli kavramı kısa bir günlük hayat örneğiyle bağla.
+               Örnek: "8. ev vurgusu" → "güven, paylaşım ve kriz anlarında kontrolü bırakma temaları".
+
             1. İLK PARAGRAF — GEZEGENSEl AÇILAR İLE AÇ:
                Yorumun İLK paragrafında, verideki Kavuşum (Conjunction), Kare (Square) ve
                Karşıt (Opposition) açılarını sentezleyerek kişinin temel psikolojik dinamiğini
@@ -275,6 +326,20 @@ public class MysticalPromptTemplates {
                Format: "Merkür Başak burcunda 12°34'de" şeklinde kullan.
                Açı orb'larını da belirt: "(orb: 2.15°)" gibi.
 
+            5. GEZEGEN YORUM MİKRO-YAPISI (özellikle Güneş, Ay, Merkür, Venüs, Mars için):
+               Her gezegen anlatımında mümkün olduğunca şu akışı uygula:
+               - GİRİŞ: Gezegenin temel enerjisini hissettir ("Güneş yaşam kıvılcımın..." gibi)
+               - KARAKTER ANALİZİ: Burç + ev yerleşimini samimi dille açıkla
+               - DERİNLİK: Zorluklar + potansiyel yetenekler + gündelik hayat örneği
+               Teknik terimleri (ör. Kare açı, 8. ev) mutlaka yaşam senaryosuna bağla.
+
+            6. ÜÇLÜ KOMBİNASYON MANTIĞI (KRİTİK):
+               Gezegen yorumlarını statik kalıp cümlelerle yazma.
+               Her yorumda "Gezegen + Burç + Ev" kombinasyonunu neden-sonuç ilişkisiyle açıkla.
+               Örnek yaklaşım:
+               "Kullanıcının [Gezegen]'i [Ev]'de ve [Burç]'ta. Bu nedenle [karakter eğilimi] daha çok [davranış biçimi] olarak çalışır."
+               "2. ev paradır" gibi tek cümlelik ezber açıklamalardan kaçın; kombinasyonun kişilik ve karar alma üzerindeki etkisini anlat.
+
             YORUM YAPISI:
             1. KOZMİK PORTRENİN ÖZÜ (Büyük Üçlü + Ana Açılar sentezi — psikolojik profil)
             2. İÇ ÇATIŞMALAR VE GÜÇ MERKEZLERİ (Kare ve Karşıt açıların yarattığı dinamikler)
@@ -286,10 +351,69 @@ public class MysticalPromptTemplates {
             8. GİZLİ YETENEKLER (12. ev, Neptün, Plüton etkileri ve derin dönüşüm)
             9. KUZEY DÜĞÜMÜ VE RUHSAL MİSYON (Kuzey Düğümü'nün burcu, evi ve açılarının gösterdiği evrim yolu)
 
-            Cevabını derin, tutarlı ve ilham verici bir şekilde yaz.
-            En az 800 kelime, en fazla 1500 kelime arasında tut.
-            Kadim bilgelikle, ama modern insana da hitap edecek şekilde konuş.
-            Türkçe açı terimlerini kullan: Kavuşum, Kare, Üçgen, Karşıt.
+            ÇIKTI FORMATI — SADECE JSON (markdown yok, açıklama yok):
+            {
+              "version": "natal_v2",
+              "tone": "scientific_warm",
+              "opening": "2-4 cümle. İlk paragraf; ana gerilim ve ana güç merkezleri.",
+              "coreSummary": "2-4 cümle. Büyük üçlü + ana temaların özeti.",
+              "sections": [
+                {
+                  "id": "core_portrait",
+                  "title": "Kozmik Portrenin Özü",
+                  "body": "Detaylı yorum. Derece/orb referansları kullan.",
+                  "dailyLifeExample": "Günlük hayat senaryosu",
+                  "bulletPoints": [
+                    {
+                      "title": "Duygusal Zeka",
+                      "detail": "1-3 cümle. Teknik terimleri günlük hayata bağla."
+                    },
+                    {
+                      "title": "İlişki Dinamiği",
+                      "detail": "1-3 cümle. Kısa ama somut örnek ver."
+                    }
+                  ]
+                }
+              ],
+              "planetHighlights": [
+                {
+                  "planetId": "sun",
+                  "title": "Güneş: yaşam kıvılcımın",
+                  "intro": "Gezegenin temel enerjisini hissettir",
+                  "character": "Burç + ev yerleşimini samimi dille açıkla",
+                  "depth": "Zorluklar + yetenekler + büyüme alanı",
+                  "dailyLifeExample": "Teknik terimi günlük hayat örneğiyle bağla",
+                  "analysisLines": [
+                    { "icon": "sparkles", "title": "Karakter Analizi", "text": "Bu konumun kişiliğe verdiği ton" },
+                    { "icon": "rocket", "title": "Seni Nasıl Etkiler?", "text": "Karar alma / davranış etkisi" },
+                    { "icon": "warning", "title": "Dikkat Etmen Gerekenler", "text": "Dengelemen gereken gölge taraf" },
+                    { "icon": "star", "title": "Öne Çıkan Özellikler", "text": "Yetenek / avantaj alanları" }
+                  ]
+                }
+              ],
+              "closing": "2-4 cümlelik kapanış. Cesaret veren ama kaderci olmayan ton."
+            }
+
+            JSON KURALLARI:
+            - "version" tam olarak "natal_v2" olmalı.
+            - "sections" en az 6, en fazla 9 öğe içermeli.
+            - "sections[].id" snake_case olsun (ör. core_portrait, inner_conflicts).
+            - "sections[].title" kullanıcıya gösterilecek TÜRKÇE başlık olmalı (örn: "Duygusal Zeka", "Kariyer Potansiyeli").
+            - "sections[].title" içinde teknik kod, snake_case, ALL_CAPS, aspect enum adı kullanma (örn. SUN_TRINE_MARS, CONJUNCTION yasak).
+            - Her section mümkünse 2-5 adet "bulletPoints" üretmeli; kısa başlık + açıklama formatında.
+            - "planetHighlights" en az 5 öğe içermeli ve şu planetId'ler öncelikli olmalı:
+              sun, moon, mercury, venus, mars. Mümkünse chiron ve north_node da ekle.
+            - planetId değerleri küçük harf/snake_case olmalı:
+              sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto, chiron, north_node
+            - "planetHighlights[].title" kullanıcı dostu Türkçe olmalı; teknik ID veya İngilizce kod kullanma.
+            - Her planetHighlights öğesinde "analysisLines" üretmeye çalış (özellikle sun/moon/mercury/venus/mars).
+            - "analysisLines" başlıkları şu stile yakın olmalı:
+              "Karakter Analizi", "Seni Nasıl Etkiler?", "Dikkat Etmen Gerekenler", "Öne Çıkan Özellikler"
+            - Tüm metin alanları Türkçe olmalı.
+            - Teknik terimleri (8. ev, Kare açı, orb) günlük hayat örnekleriyle bağla.
+            - Kaderci, korkutucu, kesin hüküm veren dil kullanma.
+            - Toplam içerik derin ve tutarlı olmalı (yaklaşık 900-1600 kelime eşdeğeri).
+            - JSON dışında HİÇBİR ŞEY yazma.
             """, chartData);
     }
 
@@ -685,6 +809,7 @@ public class MysticalPromptTemplates {
             case "LOVE"       -> "Aşk & Romantizm";
             case "BUSINESS"   -> "İş & Ortaklık";
             case "FRIENDSHIP" -> "Arkadaşlık & Dostluk";
+            case "FAMILY"     -> "Aile & Yakın Bağlar";
             case "RIVAL"      -> "Rekabet & Rakip Dinamiği";
             default           -> relationshipType;
         };
@@ -719,6 +844,15 @@ public class MysticalPromptTemplates {
                     • Uranüs açıları: bu arkadaşlık ne kadar özgürleştirici?
                     ZORLUKLAR: Farklı yaşam felsefeleri (Jüpiter-Satürn kareleri),
                     iletişim tarzı farklılıkları (Merkür açıları), sınır sorunları.
+                    """;
+            case "FAMILY" -> """
+                    AİLE ANALİZİ ODAĞI:
+                    • Ay-Ay ve Ay-Satürn açıları: duygusal güven, bakım verme, sınırlar
+                    • Güneş-Ay ve Güneş-Güneş: kimlik ifadesi ve aile içi görünürlük dinamiği
+                    • Venüs-Jüpiter: sıcaklık, destek, affedicilik ve birlikte büyüme potansiyeli
+                    • 4. ev / 10. ev temaları: kökler, roller, sorumluluk paylaşımı
+                    ZORLUKLAR: kuşak çatışması, eleştiri-destek dengesi, duygusal geri çekilme,
+                    fazla fedakarlık veya kontrol etme eğilimi. Gelişim fırsatlarını somutlaştır.
                     """;
             case "RIVAL" -> """
                     RAKİP ANALİZİ ODAĞI:
@@ -764,6 +898,11 @@ public class MysticalPromptTemplates {
                 İLİŞKİ TÜRÜNE ÖZEL TALİMATLAR:
                 %s
 
+                ÖZET GÖREV (ÖNCELİKLİ):
+                "Bu iki harita arasındaki uyumu %s perspektifinden analiz et. Güçlü bağlar,
+                zorlayıcı açılar ve gelişim fırsatlarını 3 kısa paragrafta özetle."
+                Bu özet, harmonyInsight alanına yazılmalıdır.
+
                 ══════════════════════════════════════════
                 UYUM SKORU HESAPLAMA
                 ══════════════════════════════════════════
@@ -800,7 +939,9 @@ public class MysticalPromptTemplates {
                 ÇIKTI KURALLARI — DERECE VE EV REFERANSI ZORUNLU
                 ══════════════════════════════════════════
                 - harmonyScore: 0-100 arası TAM SAYI (hesapladığın uyum puanı)
-                - harmonyInsight: 2-3 cümle. Genel enerji dinamiği. Öne çıkan 1-2 açıyı derece/orb ile belirt.
+                - harmonyInsight: TAM OLARAK 3 kısa paragraf. Her paragraf 2-3 cümle.
+                  Paragraf 1: güçlü bağlar. Paragraf 2: zorlayıcı açılar. Paragraf 3: gelişim fırsatları.
+                  Genel enerji dinamiğini ver; öne çıkan 1-2 açıyı derece/orb ile belirt.
                   Skoru doğal bir cümle içinde geç. Örnek: "Bu iki haritanın uyumu 72 puan..."
                 - strengths: TAM OLARAK 3 madde. Her biri 1-2 cümle.
                   ZORUNLU: Her maddede gezegen adı + burç + ev + açı tipi + orb referansı olmalı.
@@ -827,6 +968,7 @@ public class MysticalPromptTemplates {
                 typeLabel,
                 allAspectsText,
                 typeInstructions,
+                typeLabel,
                 relationshipType.toUpperCase(), getKeyPlanetsForType(relationshipType)
         );
     }
@@ -836,6 +978,7 @@ public class MysticalPromptTemplates {
             case "LOVE"       -> "Venüs, Mars, Ay, Güneş";
             case "BUSINESS"   -> "Satürn, Merkür, Jüpiter, Güneş";
             case "FRIENDSHIP" -> "Jüpiter, Güneş, Ay, Merkür, Venüs";
+            case "FAMILY"     -> "Ay, Güneş, Satürn, Venüs, Jüpiter";
             case "RIVAL"      -> "Mars, Satürn, Plüton, Güneş";
             default           -> "Güneş, Ay, Venüs, Mars";
         };

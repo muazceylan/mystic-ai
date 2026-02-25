@@ -22,6 +22,7 @@ import {
   CosmicSnapshotHero,
   QuickActionsRow,
   CollectiveTicker,
+  DailyGuideWidget,
   SERVICE_SLIDE_IDS,
 } from '../../components/Home';
 import {
@@ -34,6 +35,7 @@ import { useOnboardingStore } from '../../store/useOnboardingStore';
 import {
   useHomeBrief,
   useSkyPulse,
+  useCosmicSummary,
 } from '../../hooks/useHomeQueries';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -46,7 +48,7 @@ const STICKY_APPEAR_END = 130;
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
   const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
@@ -67,6 +69,16 @@ export default function HomeScreen() {
 
   const homeBriefQuery = useHomeBrief(dailySecretParams);
   const skyPulseQuery = useSkyPulse();
+  const dailyLifeGuideQuery = useCosmicSummary(
+    user?.id
+      ? {
+          userId: user.id,
+          locale: user.preferredLanguage ?? i18n.language,
+          userGender: user.gender,
+          maritalStatus: user.maritalStatus,
+        }
+      : null,
+  );
 
   const homeBrief = homeBriefQuery.data ?? null;
   const secretLoading = homeBriefQuery.isLoading;
@@ -77,6 +89,7 @@ export default function HomeScreen() {
   const weeklyError = homeBriefQuery.isError;
 
   const refetchHomeBrief = useCallback(() => homeBriefQuery.refetch(), [homeBriefQuery.refetch]);
+  const refetchDailyGuide = useCallback(() => dailyLifeGuideQuery.refetch(), [dailyLifeGuideQuery.refetch]);
 
   const SERVICE_SLIDES = useMemo(
     () => SERVICE_SLIDE_IDS.map((s) => ({ ...s, title: t(s.key) })),
@@ -319,6 +332,15 @@ export default function HomeScreen() {
             loading={skyPulseLoading}
             dailyVibeText={dailyVibeText}
             onPress={() => router.push('/(tabs)/calendar')}
+          />
+
+          <DailyGuideWidget
+            data={dailyLifeGuideQuery.data?.dailyGuide ?? null}
+            focusCards={dailyLifeGuideQuery.data?.focusCards ?? null}
+            loading={dailyLifeGuideQuery.isLoading}
+            error={dailyLifeGuideQuery.isError}
+            onRetry={refetchDailyGuide}
+            onOpenPlanner={() => router.push('/(tabs)/calendar')}
           />
 
           {/* ═══════════════════════════════════════════

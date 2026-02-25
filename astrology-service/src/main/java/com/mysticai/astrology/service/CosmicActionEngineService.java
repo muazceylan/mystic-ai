@@ -234,6 +234,197 @@ public class CosmicActionEngineService {
                             "When lunar conditions are sensitive, avoid late-night decisions that disrupt sleep rhythm."));
                 }
             }
+            case DATE -> {
+                dos.add(t(english,
+                        "Flört/date planını düşük baskılı tut: kısa buluşma, kahve, yürüyüş veya sakin bir etkinlik seç.",
+                        "Keep dating plans low-pressure: choose a short meetup, coffee, walk, or a calm activity."));
+                dos.add(t(english,
+                        "İlk izlenim için sade ama özenli stil, net iletişim ve rahat akış hedefle.",
+                        "Aim for a simple but polished style, clear communication, and an easy flow for first impressions."));
+
+                if ((venusJupiterSoft || venusNeptuneTrine) && score >= 60) {
+                    dos.add(t(english,
+                            "Romantik davet, ilk buluşma veya ilişkiyi yumuşak bir adımla ilerletmek için uygun pencere.",
+                            "A favorable window for a romantic invitation, first date, or gently moving a connection forward."));
+                    reasons.add(t(english,
+                            "Venüs destekli açılar çekim ve sosyal akışta daha sıcak bir atmosfer kuruyor.",
+                            "Venus-supported aspects create a warmer atmosphere for attraction and social flow."));
+                    scoreAdjustment += 6;
+                }
+                if ((moonInTaurus || moonInCancer) && score >= 50) {
+                    dos.add(t(english,
+                            "Sakin mekanlar, lezzet odaklı buluşmalar ve güven hissi veren planlar daha uyumlu çalışır.",
+                            "Calm venues, food-centered meetups, and plans that create a sense of safety work better."));
+                }
+                if (mercuryMarsHard || lowScore) {
+                    donts.add(t(english,
+                            "İlk buluşmada sert sorgulama, geçmiş hesaplaşması ve ilişkiyi hızlı tanımlama baskısı kurma.",
+                            "Avoid harsh questioning, past-accounting, or pressuring a relationship definition on a first date."));
+                    donts.add(t(english,
+                            "Mesajlaşmada alınganlık ve ani tepkiyle tonu bozma.",
+                            "Do not derail the tone with touchiness or impulsive reactions in messaging."));
+                    reasons.add(t(english,
+                            "Merkür-Mars sertliği iletişimde yanlış anlaşılma ve gereksiz gerilim riskini artırıyor.",
+                            "Mercury-Mars friction increases misunderstanding and unnecessary tension risk in communication."));
+                    scoreAdjustment -= 7;
+                }
+                if (fullMoon || veryLowScore) {
+                    donts.add(t(english,
+                            "Duygusal yükseliş varken eski defter açma veya ilişkiyi kader kararı gibi konuşma.",
+                            "Avoid reopening old stories or framing the relationship as a fate-level decision during emotional surges."));
+                }
+            }
+            case MARRIAGE -> {
+                dos.add(t(english,
+                        "Nişan/nikah/düğün planı için görev listesi, bütçe kalemleri ve takvim senkronizasyonu yap.",
+                        "Organize a task list, budget items, and timeline sync for engagement/civil marriage/wedding planning."));
+                dos.add(t(english,
+                        "Ailelerle iletişimde beklenti ve rol paylaşımını netleştirmek için kısa bir plan çıkar.",
+                        "Create a short plan to clarify expectations and role-sharing in family communication."));
+
+                if ((saturnMercurySoft || jupiterSunSoft) && score >= 65) {
+                    dos.add(t(english,
+                            "Nikah evrakları, düğün sözleşmeleri ve resmi rezervasyonlar için kontrollü ama verimli pencere.",
+                            "A controlled yet productive window for civil marriage documents, wedding contracts, and formal reservations."));
+                    dos.add(t(english,
+                            "Uzun vadeli birliktelik konuşmalarında tarih, bütçe ve öncelikleri somutlaştır.",
+                            "Make dates, budget, and priorities concrete in long-term commitment conversations."));
+                    reasons.add(t(english,
+                            "Satürn-Merkür/Jüpiter destekleri ciddi kararları yapılandırma ve netleştirme gücü veriyor.",
+                            "Saturn-Mercury/Jupiter support helps structure and clarify serious decisions."));
+                    scoreAdjustment += 7;
+                }
+                if (mercuryRetrograde || mercuryMarsHard) {
+                    donts.add(t(english,
+                            "Nikah/düğün sözleşmesi, salon anlaşması veya ödeme planını son kontrolsüz imzalama.",
+                            "Do not sign marriage/wedding contracts, venue agreements, or payment plans without a final review."));
+                    donts.add(t(english,
+                            "Aileler arası hassas konuları sert dil veya acele tarih baskısıyla yönetme.",
+                            "Do not manage sensitive family topics with a harsh tone or rushed date pressure."));
+                    reasons.add(t(english,
+                            "Merkür etkileri resmi detaylar ve iletişim tonunda hata payını büyütüyor.",
+                            "Mercury conditions widen error margins in formal details and communication tone."));
+                    scoreAdjustment -= 8;
+                }
+                if (lowScore) {
+                    donts.add(t(english,
+                            "Düşük uyum gününde geri dönüşü zor tarih/rezervasyon kararlarını bir gün daha düşünmeden kesinleştirme.",
+                            "On low-compatibility days, do not finalize hard-to-reverse dates/reservations without an extra review day."));
+                }
+            }
+            case RELATIONSHIP_HARMONY -> {
+                dos.add(t(english,
+                        "İletişimde önce duygu düzenlemesi sonra konu başlığı yaklaşımını kullan; dinleme süresini uzat.",
+                        "Use a regulate-first, topic-second approach in communication and extend listening time."));
+                dos.add(t(english,
+                        "Günün ilişkisel odağını seç: destek, planlama veya sakin zaman; hepsini aynı anda zorlamayın.",
+                        "Choose one relational focus for the day: support, planning, or calm time; do not force all at once."));
+
+                if ((venusJupiterSoft || moonInCancer || moonInPisces) && score >= 55) {
+                    dos.add(t(english,
+                            "Barışma, yumuşak konuşma, takdir cümleleri ve yakınlık kurma için uygun atmosfer.",
+                            "A suitable atmosphere for reconciliation, gentle talks, appreciation, and closeness."));
+                    dos.add(t(english,
+                            "Eş/partner ile gelecek hafta planı, ev düzeni veya ortak rutinleri konuşmak verimli olabilir.",
+                            "It can be productive to discuss next week plans, home rhythm, or shared routines with your partner."));
+                    reasons.add(t(english,
+                            "Venüs/Ay destekleri duygusal senkron ve empatiyi güçlendiriyor.",
+                            "Venus/Moon support strengthens emotional sync and empathy."));
+                    scoreAdjustment += 6;
+                }
+                if (mercuryMarsHard || hardAspectCount >= 2 || lowScore) {
+                    donts.add(t(english,
+                            "Suçlayıcı dil, eski defter açma ve mesaj üzerinden uzun tartışma başlatma.",
+                            "Avoid accusatory language, reopening old issues, and starting long arguments over messages."));
+                    donts.add(t(english,
+                            "Sinirliyken ilişkiye dair nihai karar konuşması yapma.",
+                            "Do not discuss final relationship decisions while angry."));
+                    reasons.add(t(english,
+                            "Sert Merkür/Mars teması ilişkisel iletişimde hızla savunmaya geçme riskini artırıyor.",
+                            "Hard Mercury/Mars themes increase the risk of quickly shifting into defensiveness."));
+                    scoreAdjustment -= 7;
+                }
+                if (fullMoon || veryLowScore) {
+                    donts.add(t(english,
+                            "Duygusal yoğunlukta 'ya hep ya hiç' konuşmaları ve restleşme dilini büyütme.",
+                            "Avoid escalating all-or-nothing conversations and showdown language during emotional intensity."));
+                }
+            }
+            case FAMILY -> {
+                dos.add(t(english,
+                        "Aile/ev düzeni için kısa gündem oluştur: alışveriş, görev paylaşımı, ziyaret ve rutinleri sırala.",
+                        "Create a short family/home agenda: sequence shopping, role-sharing, visits, and routines."));
+                dos.add(t(english,
+                        "Ev içi iletişimde beklentileri net ama yumuşak ifade et; küçük düzenlemeler daha iyi sonuç verir.",
+                        "Express expectations clearly but gently at home; small adjustments work better."));
+
+                if ((moonInTaurus || moonInCancer) && score >= 50) {
+                    dos.add(t(english,
+                            "Ev düzeni, dekorasyon, birlikte yemek planı ve bakım/şefkat temalı aile aktiviteleri destekli.",
+                            "Home organization, decor, shared meal planning, and care-oriented family activities are supported."));
+                    reasons.add(t(english,
+                            "Ay'ın toprak/su vurgusu aile ve ev temalarını daha akıcı hale getiriyor.",
+                            "Earth/water Moon emphasis makes family and home themes flow more smoothly."));
+                    scoreAdjustment += 4;
+                }
+                if (saturnMercurySoft && score >= 60) {
+                    dos.add(t(english,
+                            "Aile içi resmi işler (okul, randevu, belge takibi) için net planlama yapılabilir.",
+                            "Good for clear planning of family-related formal tasks (school, appointments, document follow-up)."));
+                }
+                if (mercuryRetrograde) {
+                    donts.add(t(english,
+                            "Aile buluşma saatlerini ve adres detaylarını teyitsiz bırakma.",
+                            "Do not leave family meetup times and address details unconfirmed."));
+                }
+                if (lowScore || hardAspectCount >= 2) {
+                    donts.add(t(english,
+                            "Ev içinde eleştiri dozunu yükseltme; küçük konuları kişiselleştirme.",
+                            "Do not raise criticism levels at home or personalize small issues."));
+                    donts.add(t(english,
+                            "Aynı güne fazla misafir/ziyaret sıkıştırıp gerginlik yaratma.",
+                            "Avoid packing too many guests/visits into one day and creating tension."));
+                    scoreAdjustment -= 5;
+                }
+            }
+            case FINANCE -> {
+                dos.add(t(english,
+                        "Bütçe gözden geçirme, ödeme planı, harcama sınıflandırması ve nakit akışı takibi yap.",
+                        "Review budget, payment planning, spending categories, and cashflow tracking."));
+                dos.add(t(english,
+                        "Planlı alım için fiyat karşılaştırması ve ihtiyaç/istek ayrımı yap.",
+                        "For planned purchases, compare prices and separate needs from wants."));
+
+                if ((saturnMercurySoft || jupiterSunSoft) && score >= 60) {
+                    dos.add(t(english,
+                            "Tasarruf hedefi, borç yapılandırma planı ve uzun vadeli finans çerçevesi kurmak için uygun pencere.",
+                            "A favorable window for setting savings goals, debt restructuring plans, and a long-term finance framework."));
+                    dos.add(t(english,
+                            "Finansal belge/teklif karşılaştırmalarını tabloya dökerek net karar zemini oluştur.",
+                            "Turn financial document/offer comparisons into a table to build a clearer decision base."));
+                    reasons.add(t(english,
+                            "Satürn-Merkür/Jüpiter desteği finansal planlamada disiplin ve perspektif sağlar.",
+                            "Saturn-Mercury/Jupiter support adds discipline and perspective to financial planning."));
+                    scoreAdjustment += 6;
+                }
+                if (mercuryRetrograde || mercuryMarsHard) {
+                    donts.add(t(english,
+                            "Dürtüsel harcama, acele yatırım kararı veya teknik detayı okunmamış ödeme/sözleşme yapma.",
+                            "Avoid impulsive spending, rushed investment decisions, or payments/contracts without reading technical details."));
+                    donts.add(t(english,
+                            "IBAN/tutar/taksit detaylarını ikinci kontrol olmadan onaylama.",
+                            "Do not approve IBAN/amount/installment details without a second check."));
+                    reasons.add(t(english,
+                            "Merkür temalı baskılar finansal iletişim ve belge detaylarında hata riskini yükseltiyor.",
+                            "Mercury-related pressure raises error risk in financial communication and document details."));
+                    scoreAdjustment -= 8;
+                }
+                if (lowScore) {
+                    donts.add(t(english,
+                            "Düşük uyum gününde yüksek riskli kaldıraç, borçlanma veya büyük alışverişe girme.",
+                            "On low-compatibility days, avoid high-risk leverage, borrowing, or major purchases."));
+                }
+            }
             case BEAUTY -> {
                 boolean male = isMale(userGender);
 
@@ -640,6 +831,21 @@ public class CosmicActionEngineService {
     private String genericCaution(PlannerCategory category, int score, boolean english) {
         if (score < 30) {
             return switch (category) {
+                case DATE -> t(english,
+                        "İlişkisel iletişimde acele karar yerine yavaş ve net ilerleyin.",
+                        "Move slowly and clearly in dating communication instead of making rushed decisions.");
+                case MARRIAGE -> t(english,
+                        "Evlilik/taahhüt planlarında detay teyidi olmadan nihai karar vermeyin.",
+                        "Do not make final marriage/commitment decisions without verifying the details.");
+                case RELATIONSHIP_HARMONY -> t(english,
+                        "Tartışma büyürse konuyu zamana yayın; kırıcı dil kullanmayın.",
+                        "If tension grows, spread the conversation over time and avoid hurtful language.");
+                case FAMILY -> t(english,
+                        "Ev/aile gündemini sade tutun; aynı gün çok konu yüklemeyin.",
+                        "Keep the home/family agenda simple; do not overload one day with too many topics.");
+                case FINANCE -> t(english,
+                        "Finansal kararları ikinci kontrol ve soğuma süresi olmadan kesinleştirmeyin.",
+                        "Do not finalize financial decisions without a second review and a cooling-off period.");
                 case ACTIVITY -> t(english,
                         "Bugünü düşük yoğunlukta tut; programı gereksiz kalabalıklaştırma.",
                         "Keep the day low intensity; avoid overloading the schedule.");

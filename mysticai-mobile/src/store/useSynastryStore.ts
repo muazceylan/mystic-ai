@@ -3,6 +3,7 @@ import {
   SavedPersonResponse,
   SynastryResponse,
   RelationshipType,
+  SynastryRequest,
   addSavedPerson,
   getSavedPeople,
   deleteSavedPerson,
@@ -28,6 +29,7 @@ interface SynastryState {
     type: RelationshipType,
     locale?: string
   ) => Promise<SynastryResponse>;
+  analyzePair: (req: SynastryRequest) => Promise<SynastryResponse>;
   pollSynastry: (synastryId: number) => Promise<SynastryResponse>;
   clearSynastry: () => void;
   clearError: () => void;
@@ -62,9 +64,13 @@ export const useSynastryStore = create<SynastryState>()((set, get) => ({
   },
 
   analyze: async (userId, savedPersonId, type, locale) => {
+    return get().analyzePair({ userId, savedPersonId, relationshipType: type, locale });
+  },
+
+  analyzePair: async (req) => {
     set({ isAnalyzing: true, currentSynastry: null, error: null });
     try {
-      const res = await analyzeSynastry({ userId, savedPersonId, relationshipType: type, locale });
+      const res = await analyzeSynastry(req);
       set({ currentSynastry: res.data, isAnalyzing: false });
       return res.data;
     } catch (e: any) {

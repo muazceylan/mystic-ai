@@ -13,10 +13,13 @@ public record SavedPersonResponse(
         String birthLocation,
         Double latitude,
         Double longitude,
+        String timezone,
         String relationshipCategory,
         String sunSign,
         String moonSign,
         String risingSign,
         List<PlanetPosition> planets,
+        List<HousePlacement> houses,
+        List<PlanetaryAspect> aspects,
         LocalDateTime createdAt
 ) {}

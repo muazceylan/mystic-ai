@@ -260,6 +260,33 @@
       "arkadaslik": ["bugün kuracağın samimi bir bağlantı, haftanın en güçlü desteği olabilir.", "kısa bir buluşma planı, uzun zamandır eksik kalan aidiyet hissini canlandırabilir."],
       "ticaret": ["gün içindeki bir tanışma, sandığından daha verimli bir iş birliğine dönebilir.", "küçük bir pazarlıkta sakin kalman, tahminden daha iyi bir sonuç getirebilir."],
       "genel": ["bugün fark etmediğin bir işaret senin için tekrar edecek; ikinciyi kaçırma.", "gün içinde kısa bir duraklama, uzun süredir beklediğin netliği getirecek."]
+    },
+    "dailyGuide": {
+      "kicker": "Kozmik Yaşam Rehberi",
+      "title": "Bugünün Karar Pusulası",
+      "subtitle": "Sadece öne çıkan fırsat ve riskleri gösterir. Detay için karta dokun.",
+      "overall": "Genel",
+      "loading": "Günlük aktivite skorları hazırlanıyor...",
+      "error": "Kozmik yaşam rehberi şu an hazırlanamadı.",
+      "retry": "Tekrar dene",
+      "showAll": "Tümünü Gör",
+      "hideMid": "Orta Skorları Gizle",
+      "showAllCount": "Tümünü Gör ({{count}})",
+      "showFocusOnly": "Sadece Odak Kartları",
+      "goPlanner": "Planlayıcıya Git",
+      "allHidden": "Tüm aktiviteleri gizledin. Ayarlardan tekrar açabilirsin.",
+      "settingsTitle": "Karar Pusulası Ayarları",
+      "settingsSubtitle": "Ana sayfada görmek istemediğin aktiviteleri gizle.",
+      "resetHidden": "Gizlenenleri Sıfırla",
+      "subcategoryCount": "{{count}} alt kategori",
+      "expanded": "Açık",
+      "tapForDetails": "Detay",
+      "footerHint": "Ana ekranda kısa tavsiye görünür. Teknik astroloji detayları modal içinde yer alır.",
+      "analysisTitle": "Kozmik Analiz",
+      "whyToday": "Neden Bugün?",
+      "astroInfo": "Astro Bilgi",
+      "practicalInsight": "Pratik Tavsiye",
+      "triggers": "Tetikleyiciler"
     }
   },
   "numerology": {
@@ -503,8 +530,9 @@
     "scoreLegend": {
       "high": "80-100 güçlü pencere",
       "mid": "50-79 dengeli",
-      "low": "0-49 kritik"
+      "low": "5-49 kritik"
     },
+    "subcategoryLegendTitle": "{{category}} alt kategorileri",
     "categoryDock": "Kategori Dock",
     "customizeCategories": "Kategorileri özelleştir",
     "customize": "Ayarlar",
@@ -512,6 +540,13 @@
     "minimumCategoryHint": "En az bir kategori açık kalmalı.",
     "filters": {
       "all": "Tümü"
+    },
+    "cosmicCoreLabels": {
+      "finance": "Finans",
+      "career": "Kariyer",
+      "social": "Sosyal",
+      "home": "Ev İşleri",
+      "spirituality": "Maneviyat"
     },
     "actionAlertTitle": "Aksiyon odaklı bildirim",
     "actionAlertMessage": "{{date}} tarihinde {{category}} için %{{score}} uyum görünüyor. Bu günü kaçırma.",
@@ -524,7 +559,8 @@
     "whyFallback": "Transit ve natal sinyaller bugün temkinli ama üretken bir alan açıyor.",
     "openDeepDive": "Cosmic Blueprint",
     "deepDiveTitle": "Günün Kozmik Blueprint'i",
-    "technicalBreakdown": "Teknik Kırılım",
+    "technicalBreakdown": "Yıldız Kategorileri",
+    "starCategories": "Yıldız Kategorileri",
     "signalTransit": "Transit Sinyali",
     "signalHouse": "Ev Uyum Sinyali",
     "signalNatal": "Natal Rezonans",
@@ -547,6 +583,11 @@
     "categories": {
       "transit": "Transit",
       "moon": "Ay",
+      "date": "Date",
+      "marriage": "Evlilik",
+      "partnerHarmony": "İlişki Uyumu",
+      "family": "Ev İşleri",
+      "jointFinance": "Finans",
       "beauty": "Güzellik",
       "health": "Sağlık",
       "activity": "Aktivite",
@@ -555,7 +596,7 @@
       "recommendations": "Öneriler",
       "investment": "Yatırım",
       "travel": "Seyahat",
-      "spiritual": "Manevi",
+      "spiritual": "Maneviyat",
       "strategicBusiness": "Stratejik İş",
       "barberShaving": "Tıraş/Berber",
       "muscleRecovery": "Kas Toparlanma",
@@ -568,6 +609,11 @@
     "categoryDescriptions": {
       "transit": "Günlük transit etkileri ve genel enerji akışı.",
       "moon": "Ay fazı, ay burcu ve duygusal ritim bazlı planlama.",
+      "date": "Buluşma, flört enerjisi ve romantik zamanlama önerileri.",
+      "marriage": "Nişan, nikah, düğün ve evlilik kararlarının zamanlaması.",
+      "partnerHarmony": "Eş/partner iletişimi, uyum, empati ve duygusal denge zamanlaması.",
+      "family": "Ev düzeni, temizlik, tadilat ve yaşam alanı planlaması kararları.",
+      "jointFinance": "Bütçe, harcama, ödeme planı ve finansal karar zamanlaması.",
       "beauty": "Saç/sakal, estetik, epilasyon ve bakım zamanlaması.",
       "health": "Diyet, kontrol, tedavi ve beden ritmi önerileri.",
       "activity": "Ev işleri, alışveriş, teknoloji ve sosyal aktivite kararları.",
@@ -576,7 +622,7 @@
       "recommendations": "Günlük aksiyon özeti ve odak önerileri.",
       "investment": "Finansal hamle, yatırım ve para akışı zamanlaması.",
       "travel": "Yolculuk, taşınma ve uzak bağlantılar.",
-      "spiritual": "Meditasyon, içe dönüş ve ruhsal pratikler.",
+      "spiritual": "Meditasyon, dua/ibadet ve içe dönüş pratikleri.",
       "strategicBusiness": "Yüksek etkili iş kararları ve liderlik hamleleri.",
       "barberShaving": "Tıraş, saç/sakal bakımı ve kişisel görünüm.",
       "muscleRecovery": "Antrenman sonrası toparlanma ve performans dengeleme.",

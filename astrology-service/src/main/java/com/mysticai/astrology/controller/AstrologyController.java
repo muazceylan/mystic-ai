@@ -5,10 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.dto.*;
 import com.mysticai.astrology.entity.ZodiacSign;
 import com.mysticai.astrology.service.AstrologyService;
+import com.mysticai.astrology.service.DailyLifeGuideService;
 import com.mysticai.astrology.service.LuckyDatesService;
+import com.mysticai.astrology.service.NightSkyPosterService;
+import com.mysticai.astrology.service.PosterEndpointGuardService;
 import com.mysticai.astrology.service.SkyPulseService;
 import com.mysticai.astrology.service.WeeklySwotService;
 import com.mysticai.common.event.AiAnalysisEvent;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -29,6 +33,9 @@ public class AstrologyController {
 
     private final AstrologyService astrologyService;
     private final LuckyDatesService luckyDatesService;
+    private final DailyLifeGuideService dailyLifeGuideService;
+    private final NightSkyPosterService nightSkyPosterService;
+    private final PosterEndpointGuardService posterEndpointGuardService;
     private final SkyPulseService skyPulseService;
     private final WeeklySwotService weeklySwotService;
     private final RabbitTemplate rabbitTemplate;
@@ -192,6 +199,16 @@ public class AstrologyController {
     }
 
     /**
+     * Daily activity-level life guide (Kozmik Yaşam Rehberi) for home dashboard.
+     */
+    @PostMapping("/life-guide/daily")
+    public ResponseEntity<DailyLifeGuideResponse> getDailyLifeGuide(
+            @Valid @RequestBody DailyLifeGuideRequest request
+    ) {
+        return ResponseEntity.ok(dailyLifeGuideService.getDailyGuide(request));
+    }
+
+    /**
      * Get all lucky dates results for a user
      */
     @GetMapping("/lucky-dates/user/{userId}")
@@ -223,6 +240,46 @@ public class AstrologyController {
     @GetMapping("/sky-pulse")
     public ResponseEntity<SkyPulseResponse> getSkyPulse() {
         return ResponseEntity.ok(skyPulseService.getSkyPulse());
+    }
+
+    /**
+     * Real birth-night sky projection using Swiss Ephemeris horizontal coordinates (azimuth/altitude).
+     */
+    @PostMapping("/posters/night-sky/projection")
+    public ResponseEntity<NightSkyProjectionResponse> projectNightSky(
+            HttpServletRequest httpRequest,
+            @RequestBody NightSkyProjectionRequest request
+    ) {
+        posterEndpointGuardService.checkProjection(httpRequest, request);
+        return ResponseEntity.ok(nightSkyPosterService.projectNightSky(request));
+    }
+
+    /**
+     * Creates a personalized short-lived share token/link for the night-sky poster.
+     */
+    @PostMapping("/posters/night-sky/share-link")
+    public ResponseEntity<NightSkyPosterShareLinkResponse> createNightSkyPosterShareLink(
+            HttpServletRequest httpRequest,
+            @RequestBody NightSkyPosterShareLinkRequest request
+    ) {
+        posterEndpointGuardService.checkShareLink(httpRequest, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nightSkyPosterService.createNightSkyShareLink(request));
+    }
+
+    /**
+     * Resolves public poster share token payload (for web share landing page / mobile preview restore).
+     */
+    @GetMapping("/posters/night-sky/share/{token}")
+    public ResponseEntity<NightSkyPosterShareTokenResolveResponse> resolveNightSkyPosterShareToken(
+            HttpServletRequest httpRequest,
+            @PathVariable String token
+    ) {
+        posterEndpointGuardService.checkShareResolve(httpRequest, token);
+        try {
+            return ResponseEntity.ok(nightSkyPosterService.resolveNightSkyShareToken(token));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
     /**

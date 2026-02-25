@@ -20,6 +20,10 @@ public class Synastry {
 
     private Long userId;
     private Long savedPersonId;
+    private Long personAId;
+    private Long personBId;
+    private String personAType;
+    private String personBType;
 
     /** LOVE, BUSINESS, FRIENDSHIP, RIVAL */
     private String relationshipType;

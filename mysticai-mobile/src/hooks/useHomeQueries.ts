@@ -3,11 +3,14 @@ import {
   fetchSkyPulse,
   fetchWeeklySwot,
   fetchLatestNatalChart,
+  fetchDailyLifeGuide,
   SkyPulseResponse,
   WeeklySwotResponse,
   NatalChartResponse,
+  DailyLifeGuideResponse,
 } from '../services/astrology.service';
 import { fetchDailySecret, fetchHomeBrief, DailySecret, HomeBrief } from '../services/oracle.service';
+import { fetchCosmicSummary, CosmicSummaryResponse } from '../services/cosmic.service';
 import { queryKeys } from '../lib/queryKeys';
 
 /** ms until midnight local time (min 5 min) */
@@ -28,13 +31,29 @@ function msUntilEndOfWeek(): number {
   return Math.max(endOfSunday.getTime() - now.getTime(), 60 * 60 * 1000);
 }
 
-export type { DailySecret, HomeBrief, SkyPulseResponse, WeeklySwotResponse, NatalChartResponse };
+export type {
+  DailySecret,
+  HomeBrief,
+  SkyPulseResponse,
+  WeeklySwotResponse,
+  NatalChartResponse,
+  DailyLifeGuideResponse,
+} from '../services/astrology.service';
+export type { CosmicSummaryResponse } from '../services/cosmic.service';
 
 interface DailySecretParams {
   name?: string;
   birthDate?: string;
   maritalStatus?: string;
   focusPoint?: string;
+}
+
+interface DailyLifeGuideParams {
+  userId?: number;
+  locale?: string;
+  userGender?: string;
+  maritalStatus?: string;
+  date?: string;
 }
 
 export function useDailySecret(params: DailySecretParams | null) {
@@ -92,6 +111,50 @@ export function useWeeklySwot(userId: number | undefined) {
     },
     enabled: !!userId,
     staleTime: msUntilEndOfWeek(), // pazar sonu 23:59'a kadar geçerli
+  });
+}
+
+export function useDailyLifeGuide(params: DailyLifeGuideParams | null) {
+  return useQuery({
+    queryKey: queryKeys.dailyLifeGuide(params?.userId ?? 0, params?.locale, params?.date),
+    queryFn: async () => {
+      if (!params?.userId) throw new Error('userId required');
+      const res = await fetchDailyLifeGuide({
+        userId: params.userId,
+        locale: params.locale,
+        userGender: params.userGender,
+        maritalStatus: params.maritalStatus,
+        date: params.date,
+      });
+      return res.data;
+    },
+    enabled: !!params?.userId,
+    staleTime: msUntilMidnight(),
+  });
+}
+
+export function useCosmicSummary(params: DailyLifeGuideParams | null) {
+  return useQuery({
+    queryKey: queryKeys.cosmicSummary(
+      params?.userId ?? 0,
+      params?.locale,
+      params?.date,
+      params?.userGender,
+      params?.maritalStatus,
+    ),
+    queryFn: async () => {
+      if (!params?.userId) throw new Error('userId required');
+      const res = await fetchCosmicSummary({
+        userId: params.userId,
+        locale: params.locale,
+        date: params.date,
+        gender: params.userGender,
+        maritalStatus: params.maritalStatus,
+      });
+      return res.data as CosmicSummaryResponse;
+    },
+    enabled: !!params?.userId,
+    staleTime: msUntilMidnight(),
   });
 }
 

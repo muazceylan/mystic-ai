@@ -4,6 +4,11 @@ export type GoalCategory = 'MARRIAGE' | 'CAREER' | 'CONTRACT' | 'NEW_BEGINNING';
 export type PlannerCategory =
   | 'TRANSIT'
   | 'MOON'
+  | 'DATE'
+  | 'MARRIAGE'
+  | 'RELATIONSHIP_HARMONY'
+  | 'FAMILY'
+  | 'FINANCE'
   | 'BEAUTY'
   | 'HEALTH'
   | 'ACTIVITY'
@@ -43,6 +48,7 @@ export interface PlannerFullDistributionRequest {
   userId: number;
   monthsAhead?: number;
   userGender?: string;
+  maritalStatus?: string;
   locale?: string;
   responseMode?: PlannerResponseMode;
   categories?: PlannerCategory[];
@@ -93,6 +99,7 @@ function buildPlannerRequestCacheKey(request: PlannerFullDistributionRequest): s
     request.userId,
     request.locale ?? 'tr',
     request.userGender ?? '',
+    request.maritalStatus ?? '',
     request.responseMode ?? 'FULL',
     categories,
     request.startDate ?? '',

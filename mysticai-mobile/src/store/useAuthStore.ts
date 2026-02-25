@@ -21,10 +21,16 @@ export interface UserProfile {
   birthLocation?: string;
   birthCountry?: string;
   birthCity?: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
   birthTimeUnknown?: boolean;
   timezone?: string;
   gender?: string;
   maritalStatus?: string;
+  relationshipStage?: string;
+  hasChildren?: boolean;
   focusPoint?: string;
   zodiacSign?: string;
   preferredLanguage?: string;

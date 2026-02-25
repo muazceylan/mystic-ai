@@ -23,5 +23,11 @@ public record NatalChartRequest(
         LocalTime birthTime,
 
         @NotBlank(message = "Birth location is required")
-        String birthLocation
+        String birthLocation,
+
+        Double latitude,
+
+        Double longitude,
+
+        String timezone
 ) {}

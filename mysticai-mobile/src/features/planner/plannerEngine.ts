@@ -13,11 +13,20 @@ export type PlannerTag =
   | 'health'
   | 'social'
   | 'fitness'
-  | 'vehicle';
+  | 'vehicle'
+  | 'romance'
+  | 'family'
+  | 'legal'
+  | 'healing';
 
 export type PlannerCategoryId =
   | 'transit'
   | 'moon'
+  | 'date'
+  | 'marriage'
+  | 'partnerHarmony'
+  | 'family'
+  | 'jointFinance'
   | 'beauty'
   | 'health'
   | 'activity'
@@ -115,6 +124,66 @@ export const PLANNER_CATEGORIES: PlannerCategoryDefinition[] = [
     plannerCategory: 'MOON',
     backendGoal: 'NEW_BEGINNING',
     weights: { transit: 0.36, house: 0.28, natal: 0.36 },
+  },
+  {
+    id: 'date',
+    labelKey: 'calendar.categories.date',
+    descriptionKey: 'calendar.categoryDescriptions.date',
+    icon: 'wine-outline',
+    audience: 'universal',
+    tags: ['romance', 'social'],
+    tone: 'luck',
+    plannerCategory: 'DATE',
+    backendGoal: 'MARRIAGE',
+    weights: { transit: 0.41, house: 0.27, natal: 0.32 },
+  },
+  {
+    id: 'marriage',
+    labelKey: 'calendar.categories.marriage',
+    descriptionKey: 'calendar.categoryDescriptions.marriage',
+    icon: 'diamond-outline',
+    audience: 'universal',
+    tags: ['romance', 'family', 'legal'],
+    tone: 'warning',
+    plannerCategory: 'MARRIAGE',
+    backendGoal: 'MARRIAGE',
+    weights: { transit: 0.44, house: 0.31, natal: 0.25 },
+  },
+  {
+    id: 'partnerHarmony',
+    labelKey: 'calendar.categories.partnerHarmony',
+    descriptionKey: 'calendar.categoryDescriptions.partnerHarmony',
+    icon: 'chatbubbles-outline',
+    audience: 'universal',
+    tags: ['romance', 'family', 'social'],
+    tone: 'luck',
+    plannerCategory: 'RELATIONSHIP_HARMONY',
+    backendGoal: 'MARRIAGE',
+    weights: { transit: 0.34, house: 0.29, natal: 0.37 },
+  },
+  {
+    id: 'family',
+    labelKey: 'calendar.categories.family',
+    descriptionKey: 'calendar.categoryDescriptions.family',
+    icon: 'people-outline',
+    audience: 'universal',
+    tags: ['family', 'social', 'health'],
+    tone: 'luck',
+    plannerCategory: 'FAMILY',
+    backendGoal: 'NEW_BEGINNING',
+    weights: { transit: 0.33, house: 0.37, natal: 0.3 },
+  },
+  {
+    id: 'jointFinance',
+    labelKey: 'calendar.categories.jointFinance',
+    descriptionKey: 'calendar.categoryDescriptions.jointFinance',
+    icon: 'wallet-outline',
+    audience: 'universal',
+    tags: ['investment', 'family', 'legal'],
+    tone: 'warning',
+    plannerCategory: 'FINANCE',
+    backendGoal: 'CONTRACT',
+    weights: { transit: 0.47, house: 0.29, natal: 0.24 },
   },
   {
     id: 'beauty',
@@ -226,9 +295,157 @@ function resolveAudience(gender: string | undefined): PlannerAudience | 'neutral
   return 'neutral';
 }
 
+type RelationshipMode =
+  | 'single_not_looking'
+  | 'single_open'
+  | 'dating'
+  | 'serious'
+  | 'engaged'
+  | 'married'
+  | 'separated'
+  | 'divorced'
+  | 'widowed';
+
+const RELATIONSHIP_CATEGORY_BONUS: Record<RelationshipMode, Partial<Record<PlannerCategoryId, number>>> = {
+  single_not_looking: {
+    date: -9,
+    marriage: -10,
+    partnerHarmony: -2,
+    family: 2,
+    jointFinance: 1,
+    recommendations: 2,
+    spiritual: 2,
+  },
+  single_open: {
+    date: 10,
+    marriage: 3,
+    partnerHarmony: 5,
+    family: 1,
+    beauty: 3,
+    recommendations: 2,
+  },
+  dating: {
+    date: 12,
+    partnerHarmony: 8,
+    marriage: 4,
+    beauty: 2,
+    recommendations: 2,
+  },
+  serious: {
+    date: 8,
+    partnerHarmony: 12,
+    marriage: 7,
+    family: 4,
+    jointFinance: 3,
+  },
+  engaged: {
+    marriage: 14,
+    official: 5,
+    jointFinance: 7,
+    family: 8,
+    partnerHarmony: 6,
+    date: 4,
+  },
+  married: {
+    partnerHarmony: 14,
+    family: 12,
+    jointFinance: 11,
+    official: 3,
+    date: -20,
+    marriage: -20,
+  },
+  separated: {
+    official: 9,
+    spiritual: 6,
+    health: 5,
+    recommendations: 5,
+    partnerHarmony: 2,
+    date: -8,
+    marriage: -12,
+  },
+  divorced: {
+    official: 8,
+    spiritual: 6,
+    health: 5,
+    recommendations: 4,
+    date: -10,
+    marriage: -16,
+    partnerHarmony: -6,
+  },
+  widowed: {
+    spiritual: 10,
+    family: 7,
+    health: 5,
+    recommendations: 4,
+    date: -12,
+    marriage: -16,
+    partnerHarmony: -4,
+  },
+};
+
+const RELATIONSHIP_HIDDEN_CATEGORIES: Partial<Record<RelationshipMode, PlannerCategoryId[]>> = {
+  single_not_looking: ['date'],
+  married: ['date', 'marriage'],
+  separated: ['marriage'],
+  divorced: ['date', 'marriage'],
+  widowed: ['date', 'marriage'],
+};
+
+const RELATIONSHIP_PINNED_CATEGORIES: Partial<Record<RelationshipMode, PlannerCategoryId[]>> = {
+  single_open: ['date', 'partnerHarmony'],
+  dating: ['date', 'partnerHarmony'],
+  serious: ['partnerHarmony', 'date', 'family'],
+  engaged: ['marriage', 'official', 'jointFinance', 'family'],
+  married: ['partnerHarmony', 'family', 'jointFinance'],
+  separated: ['official', 'health', 'spiritual'],
+  divorced: ['official', 'health', 'spiritual'],
+  widowed: ['spiritual', 'health', 'family'],
+};
+
+function resolveRelationshipMode(user: UserProfile | null): RelationshipMode {
+  const marital = normalizeText(user?.maritalStatus);
+  const stage = normalizeText(user?.relationshipStage);
+  const focus = normalizeText(user?.focusPoint);
+
+  if (/(nisan|nişan|engaged|fiance|fiancé)/.test(marital) || /(engaged|fiance|fiancé|nisan|nişanlı)/.test(stage)) {
+    return 'engaged';
+  }
+  if (/(evli|married)/.test(marital)) {
+    if (/(separate|separated|ayri|ayrı|ayrilik|ayrılık)/.test(stage)) return 'separated';
+    return 'married';
+  }
+  if (/(bosan|boşan|divorc)/.test(marital)) return 'divorced';
+  if (/(dul|widow|widowed)/.test(marital)) return 'widowed';
+  if (/(separate|separated|ayri|ayrı|ayrilik|ayrılık)/.test(marital) || /(separate|separated|ayri|ayrı)/.test(stage)) {
+    return 'separated';
+  }
+
+  if (/(serious|ciddi|exclusive|committed)/.test(stage)) return 'serious';
+  if (/(dating|flort|flört|seeing|talking)/.test(stage)) return 'dating';
+  if (/(not.?looking|kapali|kapalı|yalniz|yalnız|self)/.test(stage)) return 'single_not_looking';
+  if (/(open|date|dating|flort|flört|ask|aşk|love|iliski|ilişki)/.test(stage)) return 'single_open';
+
+  if (/(ask|aşk|love|iliski|ilişki|romance|dating|flort|flört)/.test(focus)) {
+    return 'single_open';
+  }
+  return 'single_not_looking';
+}
+
+function getRelationshipHiddenSet(mode: RelationshipMode): Set<PlannerCategoryId> {
+  return new Set(RELATIONSHIP_HIDDEN_CATEGORIES[mode] ?? []);
+}
+
+function getRelationshipCategoryBonus(mode: RelationshipMode, categoryId: PlannerCategoryId): number {
+  return RELATIONSHIP_CATEGORY_BONUS[mode][categoryId] ?? 0;
+}
+
 export function extractInterestTags(user: UserProfile | null): Set<PlannerTag> {
   const tags = new Set<PlannerTag>();
-  const raw = `${user?.focusPoint ?? ''},${user?.maritalStatus ?? ''},${user?.gender ?? ''}`
+  if (user?.hasChildren) {
+    tags.add('family');
+    tags.add('social');
+  }
+  const raw = `${user?.focusPoint ?? ''},${user?.maritalStatus ?? ''},${user?.relationshipStage ?? ''},${user?.gender ?? ''},${user?.hasChildren ?? ''}`
     .toLowerCase();
 
   if (/(para|finans|money|yatirim|investment|borsa|trade|ticaret)/.test(raw)) {
@@ -240,6 +457,18 @@ export function extractInterestTags(user: UserProfile | null): Set<PlannerTag> {
   }
   if (/(ask|aşk|love|iliski|relationship|evlilik|marriage|aile|social|arkadas)/.test(raw)) {
     tags.add('social');
+  }
+  if (/(ask|aşk|love|romance|date|dating|flort|flört|iliski|ilişki)/.test(raw)) {
+    tags.add('romance');
+  }
+  if (/(aile|family|cocuk|çocuk|ebeveyn|parent)/.test(raw)) {
+    tags.add('family');
+  }
+  if (/(hukuk|legal|evrak|resmi|official|sozlesme|sözleşme|nikah)/.test(raw)) {
+    tags.add('legal');
+  }
+  if (/(iyiles|iyileş|healing|sifa|şifa|yas|yas süreci|grief)/.test(raw)) {
+    tags.add('healing');
   }
   if (/(saglik|sağlık|health|fitness|spor|wellness)/.test(raw)) {
     tags.add('health');
@@ -268,16 +497,23 @@ export function buildPersonalizedCategories(
 } {
   const audience = resolveAudience(user?.gender);
   const interestTags = extractInterestTags(user);
+  const relationshipMode = resolveRelationshipMode(user);
+  const relationshipHidden = getRelationshipHiddenSet(relationshipMode);
 
   const scoped = PLANNER_CATEGORIES.filter((category) => {
+    if (relationshipHidden.has(category.id)) return false;
     if (category.audience === 'universal') return true;
     if (audience === 'neutral') return true;
     return category.audience === audience;
   });
 
   const ranked = [...scoped].sort((a, b) => {
-    const scoreA = getRelevanceScore(a, audience, interestTags);
-    const scoreB = getRelevanceScore(b, audience, interestTags);
+    const pinRankA = getRelationshipPinRank(relationshipMode, a.id);
+    const pinRankB = getRelationshipPinRank(relationshipMode, b.id);
+    if (pinRankA !== pinRankB) return pinRankA - pinRankB;
+
+    const scoreA = getRelevanceScore(a, audience, interestTags, relationshipMode);
+    const scoreB = getRelevanceScore(b, audience, interestTags, relationshipMode);
     if (scoreA !== scoreB) return scoreB - scoreA;
     return a.id.localeCompare(b.id);
   });
@@ -294,6 +530,7 @@ function getRelevanceScore(
   category: PlannerCategoryDefinition,
   audience: PlannerAudience | 'neutral',
   interests: Set<PlannerTag>,
+  relationshipMode: RelationshipMode,
 ): number {
   const audienceScore =
     category.audience === 'universal'
@@ -305,7 +542,15 @@ function getRelevanceScore(
           : 0;
   const interestScore = category.tags.reduce((acc, tag) => acc + (interests.has(tag) ? 2 : 0), 0);
   const spiritualScore = category.tone === 'spiritual' && interests.has('spiritual') ? 1 : 0;
-  return audienceScore + interestScore + spiritualScore;
+  const relationshipBonus = getRelationshipCategoryBonus(relationshipMode, category.id);
+  return audienceScore + interestScore + spiritualScore + relationshipBonus;
+}
+
+function getRelationshipPinRank(mode: RelationshipMode, categoryId: PlannerCategoryId): number {
+  const pins = RELATIONSHIP_PINNED_CATEGORIES[mode];
+  if (!pins) return Number.MAX_SAFE_INTEGER;
+  const index = pins.indexOf(categoryId);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
 }
 
 export function toDateKey(date: Date | string): string {
@@ -356,11 +601,16 @@ function isFullMoonPhase(phase: string): boolean {
 }
 
 function localizeCategoryIdForText(category: PlannerCategoryDefinition, locale: PlannerLocale): string {
-  const id = category.id.replace(/_/g, ' ');
+  const id = category.id.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
   if (locale === 'en') return id;
   return ({
     transit: 'transit',
     moon: 'ay',
+    date: 'date',
+    marriage: 'evlilik',
+    partnerHarmony: 'eş uyumu',
+    family: 'aile',
+    jointFinance: 'ortak finans',
     beauty: 'güzellik',
     health: 'sağlık',
     activity: 'aktivite',
@@ -560,6 +810,26 @@ function buildPredictedActions(
       ? 'Postpone critical signatures and formal submissions if possible.'
       : 'Kritik imza ve resmi başvuruları mümkünse ertele.')
     : null;
+  const lowScoreDateCaution = category.id === 'date'
+    ? (locale === 'en'
+      ? 'Avoid emotionally loaded first meetings; prefer short and low-pressure plans.'
+      : 'Duygusal yükü yüksek ilk buluşmalardan kaçın; kısa ve düşük baskılı planları tercih et.')
+    : null;
+  const lowScoreMarriageCaution = category.id === 'marriage'
+    ? (locale === 'en'
+      ? 'Avoid locking wedding dates or family commitments without double confirmation.'
+      : 'Düğün tarihi veya aile taahhütlerini çift teyit almadan netleştirme.')
+    : null;
+  const lowScorePartnerHarmonyCaution = category.id === 'partnerHarmony'
+    ? (locale === 'en'
+      ? 'Avoid score-keeping and unresolved topics late at night.'
+      : 'Gece geç saatlerde hesap tutma ve çözümsüz konuları açmaktan kaçın.')
+    : null;
+  const lowScoreJointFinanceCaution = category.id === 'jointFinance'
+    ? (locale === 'en'
+      ? 'Avoid shared debt decisions or large joint purchases today.'
+      : 'Bugün ortak borç kararları ve büyük ortak harcamalardan kaçın.')
+    : null;
 
   const donts = locale === 'en'
     ? [
@@ -568,6 +838,10 @@ function buildPredictedActions(
       'Avoid emotional overreactions and overloaded schedules.',
       ...(lowScoreActivityCaution ? [lowScoreActivityCaution] : []),
       ...(lowScoreOfficialCaution ? [lowScoreOfficialCaution] : []),
+      ...(lowScoreDateCaution ? [lowScoreDateCaution] : []),
+      ...(lowScoreMarriageCaution ? [lowScoreMarriageCaution] : []),
+      ...(lowScorePartnerHarmonyCaution ? [lowScorePartnerHarmonyCaution] : []),
+      ...(lowScoreJointFinanceCaution ? [lowScoreJointFinanceCaution] : []),
     ]
     : [
       'Geri dönüşü zor imza ve yüksek riskli harcamalardan kaçın.',
@@ -575,6 +849,10 @@ function buildPredictedActions(
       'Duygusal aşırılık ve aşırı yoğun programa girme.',
       ...(lowScoreActivityCaution ? [lowScoreActivityCaution] : []),
       ...(lowScoreOfficialCaution ? [lowScoreOfficialCaution] : []),
+      ...(lowScoreDateCaution ? [lowScoreDateCaution] : []),
+      ...(lowScoreMarriageCaution ? [lowScoreMarriageCaution] : []),
+      ...(lowScorePartnerHarmonyCaution ? [lowScorePartnerHarmonyCaution] : []),
+      ...(lowScoreJointFinanceCaution ? [lowScoreJointFinanceCaution] : []),
     ];
 
   return {

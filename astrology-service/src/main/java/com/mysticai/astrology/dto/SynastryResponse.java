@@ -23,5 +23,13 @@ public record SynastryResponse(
         String cosmicAdvice,
         /** PENDING, COMPLETED, FAILED */
         String status,
-        LocalDateTime calculatedAt
+        LocalDateTime calculatedAt,
+        Long personAId,
+        Long personBId,
+        String personAType,
+        String personBType,
+        String personAName,
+        String personBName,
+        SynastryScoreBreakdown scoreBreakdown,
+        List<SynastryAnalysisSection> analysisSections
 ) {}

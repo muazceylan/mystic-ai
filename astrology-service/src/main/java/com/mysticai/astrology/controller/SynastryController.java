@@ -23,8 +23,8 @@ public class SynastryController {
     /** POST /api/v1/synastry — trigger a new synastry analysis */
     @PostMapping
     public ResponseEntity<SynastryResponse> analyze(@Valid @RequestBody SynastryRequest request) {
-        log.info("Synastry request: userId={}, personId={}, type={}",
-                request.userId(), request.savedPersonId(), request.relationshipType());
+        log.info("Synastry request: userId={}, personAId={}, personBId={}, savedPersonId={}, type={}",
+                request.userId(), request.personAId(), request.personBId(), request.savedPersonId(), request.relationshipType());
         return ResponseEntity.status(HttpStatus.CREATED).body(synastryService.analyze(request));
     }
 

@@ -54,6 +54,7 @@ export default function TabsLayout() {
     void prefetchPlannerFullDistribution({
       userId: user.id,
       userGender: user.gender,
+      maritalStatus: user.maritalStatus,
       locale: plannerLocale,
       responseMode: 'GRID_ONLY',
       startDate: currentRange.startDate,
@@ -63,12 +64,13 @@ export default function TabsLayout() {
     void prefetchPlannerFullDistribution({
       userId: user.id,
       userGender: user.gender,
+      maritalStatus: user.maritalStatus,
       locale: plannerLocale,
       responseMode: 'GRID_ONLY',
       startDate: nextRange.startDate,
       endDate: nextRange.endDate,
     });
-  }, [user?.id, user?.gender, chart, plannerLocale]);
+  }, [user?.id, user?.gender, user?.maritalStatus, chart, plannerLocale]);
 
   return (
     <Tabs
@@ -122,6 +124,21 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'moon' : 'moon-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="star-mate"
+        options={{
+          title: (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en')
+            ? 'Star Mate'
+            : 'Yıldız Eşi',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'sparkles' : 'sparkles-outline'}
               size={24}
               color={color}
             />

@@ -168,7 +168,17 @@ public class NatalChartCalculator {
             double latitude,
             double longitude
     ) {
-        double julDay = toJulianDay(birthDate, birthTime);
+        return calculatePlanetPositions(birthDate, birthTime, latitude, longitude, null);
+    }
+
+    public List<PlanetPosition> calculatePlanetPositions(
+            LocalDate birthDate,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            String timezone
+    ) {
+        double julDay = toJulianDay(birthDate, birthTime, resolveZoneId(timezone));
         double[] houseCusps = new double[13];  // cusps[1..12]
         double[] ascmc = new double[10];
         sw.swe_houses(julDay, 0, latitude, longitude, (int) 'P', houseCusps, ascmc);
@@ -221,7 +231,17 @@ public class NatalChartCalculator {
             double latitude,
             double longitude
     ) {
-        double julDay = toJulianDay(birthDate, birthTime);
+        return calculateHouses(birthDate, birthTime, latitude, longitude, null);
+    }
+
+    public List<HousePlacement> calculateHouses(
+            LocalDate birthDate,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            String timezone
+    ) {
+        double julDay = toJulianDay(birthDate, birthTime, resolveZoneId(timezone));
         double[] houseCusps = new double[13];
         double[] ascmc = new double[10];
         sw.swe_houses(julDay, 0, latitude, longitude, (int) 'P', houseCusps, ascmc);
@@ -252,7 +272,17 @@ public class NatalChartCalculator {
             double latitude,
             double longitude
     ) {
-        double julDay = toJulianDay(birthDate, birthTime);
+        return calculateAscendant(birthDate, birthTime, latitude, longitude, null);
+    }
+
+    public String calculateAscendant(
+            LocalDate birthDate,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            String timezone
+    ) {
+        double julDay = toJulianDay(birthDate, birthTime, resolveZoneId(timezone));
         double[] houseCusps = new double[13];
         double[] ascmc = new double[10];
         sw.swe_houses(julDay, 0, latitude, longitude, (int) 'P', houseCusps, ascmc);
@@ -271,7 +301,17 @@ public class NatalChartCalculator {
             double latitude,
             double longitude
     ) {
-        double julDay = toJulianDay(birthDate, birthTime);
+        return getAscendantDegree(birthDate, birthTime, latitude, longitude, null);
+    }
+
+    public double getAscendantDegree(
+            LocalDate birthDate,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            String timezone
+    ) {
+        double julDay = toJulianDay(birthDate, birthTime, resolveZoneId(timezone));
         double[] houseCusps = new double[13];
         double[] ascmc = new double[10];
         sw.swe_houses(julDay, 0, latitude, longitude, (int) 'P', houseCusps, ascmc);
@@ -287,7 +327,17 @@ public class NatalChartCalculator {
             double latitude,
             double longitude
     ) {
-        double julDay = toJulianDay(birthDate, birthTime);
+        return getMcDegree(birthDate, birthTime, latitude, longitude, null);
+    }
+
+    public double getMcDegree(
+            LocalDate birthDate,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            String timezone
+    ) {
+        double julDay = toJulianDay(birthDate, birthTime, resolveZoneId(timezone));
         double[] houseCusps = new double[13];
         double[] ascmc = new double[10];
         sw.swe_houses(julDay, 0, latitude, longitude, (int) 'P', houseCusps, ascmc);
@@ -300,7 +350,15 @@ public class NatalChartCalculator {
      * From Sep 2016 onward, permanently UTC+3.
      */
     public double getTurkeyUtcOffset(LocalDate date, LocalTime time) {
-        ZonedDateTime zdt = ZonedDateTime.of(LocalDateTime.of(date, time), ISTANBUL_ZONE);
+        return getUtcOffset(date, time, null);
+    }
+
+    /**
+     * Returns the actual UTC offset in hours for the provided timezone and instant.
+     * Falls back to Europe/Istanbul when timezone is null/invalid.
+     */
+    public double getUtcOffset(LocalDate date, LocalTime time, String timezone) {
+        ZonedDateTime zdt = ZonedDateTime.of(LocalDateTime.of(date, time), resolveZoneId(timezone));
         return zdt.getOffset().getTotalSeconds() / 3600.0;
     }
 
@@ -308,8 +366,12 @@ public class NatalChartCalculator {
      * Get Sun sign derived from SwissEph calculation (replaces date-range approach).
      */
     public String calculateSunSign(LocalDate birthDate) {
+        return calculateSunSign(birthDate, null);
+    }
+
+    public String calculateSunSign(LocalDate birthDate, String timezone) {
         // Use noon UTC as default when no time is given
-        double julDay = toJulianDay(birthDate, LocalTime.NOON);
+        double julDay = toJulianDay(birthDate, LocalTime.NOON, resolveZoneId(timezone));
         double[] result = new double[6];
         StringBuffer errBuf = new StringBuffer();
         sw.swe_calc_ut(julDay, SweConst.SE_SUN, SweConst.SEFLG_SWIEPH, result, errBuf);
@@ -321,7 +383,11 @@ public class NatalChartCalculator {
      * Get Moon sign derived from SwissEph calculation.
      */
     public String calculateMoonSign(LocalDate birthDate) {
-        double julDay = toJulianDay(birthDate, LocalTime.NOON);
+        return calculateMoonSign(birthDate, null);
+    }
+
+    public String calculateMoonSign(LocalDate birthDate, String timezone) {
+        double julDay = toJulianDay(birthDate, LocalTime.NOON, resolveZoneId(timezone));
         double[] result = new double[6];
         StringBuffer errBuf = new StringBuffer();
         sw.swe_calc_ut(julDay, SweConst.SE_MOON, SweConst.SEFLG_SWIEPH, result, errBuf);
@@ -400,7 +466,11 @@ public class NatalChartCalculator {
      *   - From Sep 2016: permanently UTC+3
      */
     private double toJulianDay(LocalDate date, LocalTime time) {
-        ZonedDateTime localZdt = ZonedDateTime.of(LocalDateTime.of(date, time), ISTANBUL_ZONE);
+        return toJulianDay(date, time, ISTANBUL_ZONE);
+    }
+
+    private double toJulianDay(LocalDate date, LocalTime time, ZoneId zoneId) {
+        ZonedDateTime localZdt = ZonedDateTime.of(LocalDateTime.of(date, time), zoneId);
         ZonedDateTime utcZdt = localZdt.withZoneSameInstant(ZoneOffset.UTC);
 
         int year  = utcZdt.getYear();
@@ -411,6 +481,17 @@ public class NatalChartCalculator {
                 + utcZdt.getSecond() / 3600.0;
 
         return SweDate.getJulDay(year, month, day, utcHour, SweDate.SE_GREG_CAL);
+    }
+
+    private ZoneId resolveZoneId(String timezone) {
+        if (timezone == null || timezone.isBlank()) {
+            return ISTANBUL_ZONE;
+        }
+        try {
+            return ZoneId.of(timezone);
+        } catch (Exception ignored) {
+            return ISTANBUL_ZONE;
+        }
     }
 
     /**

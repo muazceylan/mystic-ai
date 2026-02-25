@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
+import java.util.Locale;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -27,28 +29,23 @@ public class SavedPersonService {
         log.info("Adding saved person '{}' for userId={}", req.name(), req.userId());
 
         LocalTime birthTime = req.birthTime() != null ? req.birthTime() : LocalTime.NOON;
+        String timezone = normalizeTimezone(req.timezone());
 
         // Resolve coordinates
-        double lat, lon;
-        if (req.latitude() != null && req.longitude() != null) {
-            lat = req.latitude();
-            lon = req.longitude();
-        } else {
-            double[] coords = calculator.parseLocation(req.birthLocation());
-            lat = coords[0];
-            lon = coords[1];
-        }
+        double[] coords = resolveCoordinates(req);
+        double lat = coords[0];
+        double lon = coords[1];
 
         // High-precision chart calculation
-        List<PlanetPosition> planets = calculator.calculatePlanetPositions(req.birthDate(), birthTime, lat, lon);
-        List<HousePlacement> houses  = calculator.calculateHouses(req.birthDate(), birthTime, lat, lon);
+        List<PlanetPosition> planets = calculator.calculatePlanetPositions(req.birthDate(), birthTime, lat, lon, timezone);
+        List<HousePlacement> houses  = calculator.calculateHouses(req.birthDate(), birthTime, lat, lon, timezone);
         List<PlanetaryAspect> aspects = calculator.calculateAspects(planets);
 
-        String sunSign    = calculator.calculateSunSign(req.birthDate());
-        String moonSign   = calculator.calculateMoonSign(req.birthDate());
-        String risingSign = calculator.calculateAscendant(req.birthDate(), birthTime, lat, lon);
-        double ascDeg     = calculator.getAscendantDegree(req.birthDate(), birthTime, lat, lon);
-        double mcDeg      = calculator.getMcDegree(req.birthDate(), birthTime, lat, lon);
+        String sunSign    = calculator.calculateSunSign(req.birthDate(), timezone);
+        String moonSign   = calculator.calculateMoonSign(req.birthDate(), timezone);
+        String risingSign = calculator.calculateAscendant(req.birthDate(), birthTime, lat, lon, timezone);
+        double ascDeg     = calculator.getAscendantDegree(req.birthDate(), birthTime, lat, lon, timezone);
+        double mcDeg      = calculator.getMcDegree(req.birthDate(), birthTime, lat, lon, timezone);
 
         String planetsJson, housesJson, aspectsJson;
         try {
@@ -68,7 +65,8 @@ public class SavedPersonService {
                 .birthLocation(req.birthLocation())
                 .latitude(lat)
                 .longitude(lon)
-                .relationshipCategory(req.relationshipCategory())
+                .timezone(timezone)
+                .relationshipCategory(normalizeRelationship(req))
                 .sunSign(sunSign)
                 .moonSign(moonSign)
                 .risingSign(risingSign)
@@ -81,7 +79,7 @@ public class SavedPersonService {
 
         SavedPerson saved = savedPersonRepository.save(person);
         log.info("Saved person id={} for userId={}", saved.getId(), req.userId());
-        return mapToResponse(saved, planets);
+        return mapToResponse(saved, planets, houses, aspects);
     }
 
     @Transactional
@@ -94,19 +92,23 @@ public class SavedPersonService {
         }
 
         person.setName(req.name());
-        person.setRelationshipCategory(req.relationshipCategory());
+        person.setRelationshipCategory(normalizeRelationship(req));
+
+        LocalTime birthTime = req.birthTime() != null ? req.birthTime() : LocalTime.NOON;
+        String timezone = normalizeTimezone(req.timezone());
+        double[] coords = resolveCoordinates(req);
 
         // Recalculate if birth data changed
         boolean birthChanged = !person.getBirthDate().equals(req.birthDate())
-                || (req.birthTime() != null && !person.getBirthTime().equals(req.birthTime()))
-                || !person.getBirthLocation().equals(req.birthLocation());
+                || !Objects.equals(person.getBirthTime(), birthTime)
+                || !Objects.equals(person.getBirthLocation(), req.birthLocation())
+                || !Objects.equals(person.getLatitude(), coords[0])
+                || !Objects.equals(person.getLongitude(), coords[1])
+                || !Objects.equals(person.getTimezone(), timezone);
 
         if (birthChanged) {
-            LocalTime birthTime = req.birthTime() != null ? req.birthTime() : LocalTime.NOON;
-            double[] coords = calculator.parseLocation(req.birthLocation());
-
-            List<PlanetPosition> planets  = calculator.calculatePlanetPositions(req.birthDate(), birthTime, coords[0], coords[1]);
-            List<HousePlacement> houses   = calculator.calculateHouses(req.birthDate(), birthTime, coords[0], coords[1]);
+            List<PlanetPosition> planets  = calculator.calculatePlanetPositions(req.birthDate(), birthTime, coords[0], coords[1], timezone);
+            List<HousePlacement> houses   = calculator.calculateHouses(req.birthDate(), birthTime, coords[0], coords[1], timezone);
             List<PlanetaryAspect> aspects = calculator.calculateAspects(planets);
 
             try {
@@ -118,28 +120,33 @@ public class SavedPersonService {
             }
 
             person.setBirthDate(req.birthDate());
-            person.setBirthTime(req.birthTime() != null ? req.birthTime() : LocalTime.NOON);
+            person.setBirthTime(birthTime);
             person.setBirthLocation(req.birthLocation());
             person.setLatitude(coords[0]);
             person.setLongitude(coords[1]);
-            person.setSunSign(calculator.calculateSunSign(req.birthDate()));
-            person.setMoonSign(calculator.calculateMoonSign(req.birthDate()));
-            person.setRisingSign(calculator.calculateAscendant(req.birthDate(), birthTime, coords[0], coords[1]));
+            person.setTimezone(timezone);
+            person.setSunSign(calculator.calculateSunSign(req.birthDate(), timezone));
+            person.setMoonSign(calculator.calculateMoonSign(req.birthDate(), timezone));
+            person.setRisingSign(calculator.calculateAscendant(req.birthDate(), birthTime, coords[0], coords[1], timezone));
+            person.setAscendantDegree(calculator.getAscendantDegree(req.birthDate(), birthTime, coords[0], coords[1], timezone));
+            person.setMcDegree(calculator.getMcDegree(req.birthDate(), birthTime, coords[0], coords[1], timezone));
+        } else {
+            person.setTimezone(timezone);
         }
 
-        return mapToResponse(savedPersonRepository.save(person), null);
+        return mapToResponse(savedPersonRepository.save(person), null, null, null);
     }
 
     public SavedPersonResponse getById(Long personId) {
         SavedPerson p = savedPersonRepository.findById(personId)
                 .orElseThrow(() -> new IllegalArgumentException("Saved person not found: " + personId));
-        return mapToResponse(p, null);
+        return mapToResponse(p, null, null, null);
     }
 
     public List<SavedPersonResponse> getByUser(Long userId) {
         return savedPersonRepository.findAllByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(p -> mapToResponse(p, null))
+                .map(p -> mapToResponse(p, null, null, null))
                 .toList();
     }
 
@@ -152,25 +159,71 @@ public class SavedPersonService {
         log.info("Deleted saved person id={} for userId={}", personId, userId);
     }
 
-    private SavedPersonResponse mapToResponse(SavedPerson p, List<PlanetPosition> preloaded) {
-        List<PlanetPosition> planets = preloaded;
-        if (planets == null && p.getPlanetPositionsJson() != null) {
-            try {
-                planets = objectMapper.readValue(p.getPlanetPositionsJson(),
-                        objectMapper.getTypeFactory().constructCollectionType(List.class, PlanetPosition.class));
-            } catch (JsonProcessingException e) {
-                planets = List.of();
-            }
-        }
+    private SavedPersonResponse mapToResponse(
+            SavedPerson p,
+            List<PlanetPosition> preloadedPlanets,
+            List<HousePlacement> preloadedHouses,
+            List<PlanetaryAspect> preloadedAspects
+    ) {
+        List<PlanetPosition> planets = preloadedPlanets != null
+                ? preloadedPlanets
+                : readList(p.getPlanetPositionsJson(), PlanetPosition.class);
+        List<HousePlacement> houses = preloadedHouses != null
+                ? preloadedHouses
+                : readList(p.getHousePlacementsJson(), HousePlacement.class);
+        List<PlanetaryAspect> aspects = preloadedAspects != null
+                ? preloadedAspects
+                : readList(p.getAspectsJson(), PlanetaryAspect.class);
         return new SavedPersonResponse(
                 p.getId(), p.getUserId(), p.getName(),
                 p.getBirthDate(),
                 p.getBirthTime() != null ? p.getBirthTime().toString() : null,
                 p.getBirthLocation(), p.getLatitude(), p.getLongitude(),
+                p.getTimezone(),
                 p.getRelationshipCategory(),
                 p.getSunSign(), p.getMoonSign(), p.getRisingSign(),
                 planets != null ? planets : List.of(),
+                houses != null ? houses : List.of(),
+                aspects != null ? aspects : List.of(),
                 p.getCreatedAt()
         );
+    }
+
+    private double[] resolveCoordinates(SavedPersonRequest req) {
+        if (req.latitude() != null && req.longitude() != null) {
+            return new double[]{req.latitude(), req.longitude()};
+        }
+        return calculator.parseLocation(req.birthLocation());
+    }
+
+    private String normalizeTimezone(String timezone) {
+        if (timezone == null || timezone.isBlank()) {
+            return "Europe/Istanbul";
+        }
+        return timezone.trim();
+    }
+
+    private String normalizeRelationship(SavedPersonRequest req) {
+        String raw = req.relationshipType() != null && !req.relationshipType().isBlank()
+                ? req.relationshipType()
+                : req.relationshipCategory();
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return raw.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private <T> List<T> readList(String json, Class<T> itemType) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(
+                    json,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, itemType)
+            );
+        } catch (JsonProcessingException e) {
+            return List.of();
+        }
     }
 }

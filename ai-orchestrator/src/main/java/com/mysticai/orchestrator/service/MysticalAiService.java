@@ -2,6 +2,8 @@ package com.mysticai.orchestrator.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.orchestrator.dto.OracleInterpretationRequest;
 import com.mysticai.orchestrator.prompt.MysticalPromptTemplates;
@@ -68,6 +70,10 @@ public class MysticalAiService {
                 response = extractJsonObject(response);
             }
 
+            if (event.analysisType() == AiAnalysisEvent.AnalysisType.NATAL_CHART) {
+                response = normalizeNatalChartJson(response);
+            }
+
             // Only normalize zodiac/planet names to Turkish when locale is Turkish.
             // For English responses, keep the original English terms.
             if (!hasLocale || "tr".equals(locale)) {
@@ -87,7 +93,7 @@ public class MysticalAiService {
     private boolean expectsJsonResponse(AiAnalysisEvent event) {
         if (event.analysisType() == null) return false;
         return switch (event.analysisType()) {
-            case DREAM_SYNTHESIS, WEEKLY_SWOT, RELATIONSHIP_ANALYSIS -> true;
+            case NATAL_CHART, DREAM_SYNTHESIS, WEEKLY_SWOT, RELATIONSHIP_ANALYSIS -> true;
             default -> false;
         };
     }
@@ -360,6 +366,351 @@ public class MysticalAiService {
     }
 
     /**
+     * Backend-side validator/normalizer for the structured natal JSON schema.
+     * Ensures the mobile app receives a stable shape even if the model returns
+     * partial, malformed, or legacy-like data.
+     */
+    private String normalizeNatalChartJson(String response) {
+        try {
+            JsonNode parsed = objectMapper.readTree(response);
+            if (parsed == null || !parsed.isObject()) {
+                logger.warn("Natal JSON normalization: response is not an object, building fallback envelope");
+                return buildFallbackNatalJson(response);
+            }
+
+            ObjectNode root = (ObjectNode) parsed;
+            ObjectNode out = objectMapper.createObjectNode();
+            out.put("version", "natal_v2");
+            out.put("tone", nonBlank(text(root, "tone")) ? text(root, "tone") : "scientific_warm");
+            out.put("opening", normalizeParagraph(text(root, "opening"),
+                    "Haritanın ana temasını okurken güçlü tarafların ve gelişim alanların birlikte görünür. Bu yorum, potansiyellerini daha net fark etmen için yapılandırıldı."));
+            out.put("coreSummary", normalizeParagraph(text(root, "coreSummary"),
+                    "Büyük üçlü ve ana açılar bir araya geldiğinde karakterinde hem sezgisel hem stratejik çalışan bir denge dikkat çeker."));
+
+            ArrayNode sections = normalizeNatalSections(root.path("sections"));
+            if (sections.isEmpty()) {
+                sections.add(createFallbackSection());
+            }
+            out.set("sections", sections);
+
+            ArrayNode planetHighlights = normalizeNatalPlanetHighlights(root.path("planetHighlights"));
+            out.set("planetHighlights", planetHighlights);
+
+            out.put("closing", normalizeParagraph(text(root, "closing"),
+                    "Bu harita bir kader hükmü değil, farkındalık haritasıdır. Güçlü taraflarını bilinçli kullandıkça zorlayıcı temaları da daha yaratıcı yönetebilirsin."));
+
+            return objectMapper.writeValueAsString(out);
+        } catch (Exception e) {
+            logger.warn("Natal JSON normalization failed, returning fallback envelope: {}", e.getMessage());
+            return buildFallbackNatalJson(response);
+        }
+    }
+
+    private String buildFallbackNatalJson(String rawResponse) {
+        try {
+            ObjectNode out = objectMapper.createObjectNode();
+            out.put("version", "natal_v2");
+            out.put("tone", "scientific_warm");
+            out.put("opening", "Harita yorumu teknik olarak düzeltildi ve güvenli formata alındı.");
+            out.put("coreSummary", "AI çıktısı beklenen JSON şemasına uymadığı için normalize edilmiş bir yapı üretildi.");
+
+            ArrayNode sections = objectMapper.createArrayNode();
+            ObjectNode section = objectMapper.createObjectNode();
+            section.put("id", "normalized_recovery");
+            section.put("title", "Yorum Dönüştürme Notu");
+            section.put("body", "Yorum metni otomatik olarak normalize edildi. Aşağıdaki içerik ham yanıttan kurtarılan özet metindir.");
+            section.put("dailyLifeExample", "Yorumu tekrar oluşturduğunda başlıklar ve maddeler daha zengin gelecektir.");
+            ArrayNode bullets = objectMapper.createArrayNode();
+            ObjectNode bp = objectMapper.createObjectNode();
+            bp.put("title", "Ham İçerik Özeti");
+            bp.put("detail", truncate(normalizeParagraph(rawResponse, "İçerik alınamadı."), 240));
+            bullets.add(bp);
+            section.set("bulletPoints", bullets);
+            sections.add(section);
+            out.set("sections", sections);
+
+            out.set("planetHighlights", objectMapper.createArrayNode());
+            out.put("closing", "İçerik yapısı düzeltildi; yorumun yeniden üretimi ile daha detaylı bölüm kartları oluşacaktır.");
+            return objectMapper.writeValueAsString(out);
+        } catch (Exception e) {
+            return "{\"version\":\"natal_v2\",\"tone\":\"scientific_warm\",\"opening\":\"Yorum normalizasyonu başarısız oldu.\",\"coreSummary\":\"Ham çıktı korunamadı.\",\"sections\":[],\"planetHighlights\":[],\"closing\":\"Lütfen tekrar deneyin.\"}";
+        }
+    }
+
+    private ArrayNode normalizeNatalSections(JsonNode sectionsNode) {
+        ArrayNode out = objectMapper.createArrayNode();
+        if (sectionsNode == null || !sectionsNode.isArray()) return out;
+
+        int index = 0;
+        for (JsonNode node : sectionsNode) {
+            if (out.size() >= 9) break;
+            if (node == null || !node.isObject()) continue;
+            ObjectNode section = objectMapper.createObjectNode();
+
+            String rawId = nonBlank(text(node, "id")) ? text(node, "id") : text(node, "title");
+            String rawTitle = text(node, "title");
+            String body = normalizeParagraph(firstNonBlank(
+                    text(node, "body"),
+                    text(node, "text"),
+                    text(node, "content"),
+                    text(node, "description")), "Bu bölüm için yorum özeti hazırlanamadı.");
+            String daily = normalizeParagraph(firstNonBlank(
+                    text(node, "dailyLifeExample"),
+                    text(node, "daily_life_example"),
+                    text(node, "example")), "Günlük hayatta bu tema kararlarını ve ilişkilerini küçük ama etkili biçimde yönlendirebilir.");
+
+            section.put("id", normalizeSnakeCase(rawId, "section_" + (index + 1)));
+            section.put("title", normalizeUiTitle(rawTitle, "Bölüm " + (index + 1)));
+            section.put("body", body);
+            section.put("dailyLifeExample", daily);
+            section.set("bulletPoints", normalizeBulletPoints(node.path("bulletPoints"), body, daily));
+
+            out.add(section);
+            index += 1;
+        }
+        return out;
+    }
+
+    private ArrayNode normalizeNatalPlanetHighlights(JsonNode planetNode) {
+        ArrayNode out = objectMapper.createArrayNode();
+        if (planetNode == null || !planetNode.isArray()) return out;
+
+        int count = 0;
+        for (JsonNode node : planetNode) {
+            if (count >= 12) break;
+            if (node == null || !node.isObject()) continue;
+
+            String rawPlanetId = firstNonBlank(text(node, "planetId"), text(node, "planet"), text(node, "id"));
+            String planetId = normalizePlanetId(rawPlanetId);
+            if (!nonBlank(planetId)) {
+                continue;
+            }
+
+            String intro = normalizeParagraph(text(node, "intro"),
+                    "Bu yerleşim karakterinin önemli bir temasını görünür kılar.");
+            String character = normalizeParagraph(text(node, "character"),
+                    "Burç ve ev yerleşimi bu gezegenin sende nasıl çalıştığını belirginleştirir.");
+            String depth = normalizeParagraph(text(node, "depth"),
+                    "Bu konum hem yetenek hem gelişim alanı barındırır; gölge tarafı fark etmek potansiyeli açar.");
+            String daily = normalizeParagraph(firstNonBlank(text(node, "dailyLifeExample"), text(node, "daily_life_example")),
+                    "Günlük kararlarında bu enerjiyi bilinçli kullandığında daha dengeli sonuç alırsın.");
+
+            ObjectNode outNode = objectMapper.createObjectNode();
+            outNode.put("planetId", planetId);
+            outNode.put("title", normalizeUiTitle(text(node, "title"), defaultPlanetTitle(planetId)));
+            outNode.put("intro", intro);
+            outNode.put("character", character);
+            outNode.put("depth", depth);
+            outNode.put("dailyLifeExample", daily);
+            outNode.set("analysisLines", normalizeAnalysisLines(node.path("analysisLines"), character, intro, depth, daily));
+            out.add(outNode);
+            count += 1;
+        }
+        return out;
+    }
+
+    private ArrayNode normalizeBulletPoints(JsonNode bulletNode, String body, String daily) {
+        ArrayNode out = objectMapper.createArrayNode();
+        if (bulletNode != null && bulletNode.isArray()) {
+            for (JsonNode bp : bulletNode) {
+                if (out.size() >= 5) break;
+                if (bp == null || bp.isNull()) continue;
+                ObjectNode item = objectMapper.createObjectNode();
+                if (bp.isTextual()) {
+                    item.put("title", "Ana Nokta");
+                    item.put("detail", truncate(normalizeParagraph(bp.asText(), ""), 180));
+                } else if (bp.isObject()) {
+                    String title = normalizeUiTitle(firstNonBlank(text(bp, "title"), text(bp, "label"), text(bp, "name")), "Ana Nokta");
+                    String detail = truncate(normalizeParagraph(firstNonBlank(text(bp, "detail"), text(bp, "text"), text(bp, "body")), ""), 200);
+                    if (!nonBlank(detail)) continue;
+                    item.put("title", title);
+                    item.put("detail", detail);
+                } else {
+                    continue;
+                }
+                out.add(item);
+            }
+        }
+
+        if (out.isEmpty()) {
+            out.add(bullet("Ana Tema", truncate(body, 180)));
+            out.add(bullet("Günlük Hayata Yansıması", truncate(daily, 180)));
+        }
+        return out;
+    }
+
+    private ArrayNode normalizeAnalysisLines(JsonNode linesNode, String character, String intro, String depth, String daily) {
+        ArrayNode out = objectMapper.createArrayNode();
+        if (linesNode != null && linesNode.isArray()) {
+            for (JsonNode line : linesNode) {
+                if (out.size() >= 6) break;
+                if (line == null || !line.isObject()) continue;
+                String text = normalizeParagraph(firstNonBlank(text(line, "text"), text(line, "detail"), text(line, "body")), "");
+                if (!nonBlank(text)) continue;
+                ObjectNode item = objectMapper.createObjectNode();
+                item.put("icon", normalizeLineIcon(text(line, "icon")));
+                item.put("title", normalizeUiTitle(text(line, "title"), "Analiz"));
+                item.put("text", truncate(text, 220));
+                out.add(item);
+            }
+        }
+
+        if (out.isEmpty()) {
+            out.add(analysisLine("sparkles", "Karakter Analizi", truncate(character, 220)));
+            out.add(analysisLine("rocket", "Seni Nasıl Etkiler?", truncate(firstNonBlank(intro, daily), 220)));
+            out.add(analysisLine("warning", "Dikkat Etmen Gerekenler", truncate(depth, 220)));
+            out.add(analysisLine("star", "Öne Çıkan Özellikler", truncate(daily, 220)));
+        }
+
+        return out;
+    }
+
+    private ObjectNode createFallbackSection() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "core_portrait");
+        section.put("title", "Kozmik Portrenin Özü");
+        section.put("body", "Haritanın ana temaları normalize edilerek güvenli görüntüleme formatına taşındı.");
+        section.put("dailyLifeExample", "Günlük hayatta bu tema, kararlarını alırken hangi iç güdünün öne çıktığını daha iyi fark etmene yardım eder.");
+        ArrayNode bullets = objectMapper.createArrayNode();
+        bullets.add(bullet("Yapısal Not", "AI çıktısı eksik alanlar içerdiği için backend tarafından tamamlandı."));
+        bullets.add(bullet("Görüntüleme", "Mobil ekranın başlık/büllet düzeni korunarak yorum gösterilecek."));
+        section.set("bulletPoints", bullets);
+        return section;
+    }
+
+    private ObjectNode bullet(String title, String detail) {
+        ObjectNode n = objectMapper.createObjectNode();
+        n.put("title", normalizeUiTitle(title, "Ana Nokta"));
+        n.put("detail", normalizeParagraph(detail, ""));
+        return n;
+    }
+
+    private ObjectNode analysisLine(String icon, String title, String text) {
+        ObjectNode n = objectMapper.createObjectNode();
+        n.put("icon", normalizeLineIcon(icon));
+        n.put("title", normalizeUiTitle(title, "Analiz"));
+        n.put("text", normalizeParagraph(text, ""));
+        return n;
+    }
+
+    private String normalizeUiTitle(String raw, String fallback) {
+        String src = nonBlank(raw) ? raw : fallback;
+        src = replaceTurkishTerms(src == null ? "" : src);
+        src = src.replaceAll("[\\{\\}\\[\\]\"]", " ")
+                 .replace('_', ' ')
+                 .replace('-', ' ')
+                 .replaceAll("\\s+", " ")
+                 .trim();
+        if (src.isEmpty()) return fallback;
+        if (src.equals(src.toUpperCase())) {
+            src = toTitleCase(src.toLowerCase());
+        }
+        return truncate(src, 64);
+    }
+
+    private String normalizeLineIcon(String raw) {
+        String icon = (raw == null ? "" : raw.trim().toLowerCase());
+        return switch (icon) {
+            case "sparkles", "sparkles-outline", "star", "star-outline", "rocket", "rocket-outline",
+                 "warning", "warning-outline", "people", "people-outline" -> icon.replace("-outline", "");
+            default -> "sparkles";
+        };
+    }
+
+    private String normalizePlanetId(String raw) {
+        if (!nonBlank(raw)) return "";
+        String p = raw.trim().toLowerCase()
+                .replace(" ", "_")
+                .replace("-", "_")
+                .replace("northnode", "north_node")
+                .replace("north node", "north_node")
+                .replace("southnode", "south_node");
+
+        return switch (p) {
+            case "sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn",
+                 "uranus", "neptune", "pluto", "chiron", "north_node" -> p;
+            default -> normalizeSnakeCase(p, p);
+        };
+    }
+
+    private String defaultPlanetTitle(String planetId) {
+        return switch (planetId) {
+            case "sun" -> "Güneş: yaşam kıvılcımın";
+            case "moon" -> "Ay: duygusal merkezin";
+            case "mercury" -> "Merkür: zihin ve ifade biçimin";
+            case "venus" -> "Venüs: ilişki ve zevk alanın";
+            case "mars" -> "Mars: hareket ve mücadele enerjin";
+            case "jupiter" -> "Jüpiter: büyüme ve anlam arayışın";
+            case "saturn" -> "Satürn: yapı ve sorumluluk alanın";
+            case "uranus" -> "Uranüs: özgürleşme dürtün";
+            case "neptune" -> "Neptün: sezgi ve hayal gücün";
+            case "pluto" -> "Plüton: dönüşüm gücün";
+            case "chiron" -> "Kiron: şifa ve hassasiyet alanın";
+            case "north_node" -> "Kuzey Düğümü: gelişim yönün";
+            default -> "Gezegen Yerleşimi";
+        };
+    }
+
+    private String normalizeSnakeCase(String raw, String fallback) {
+        if (!nonBlank(raw)) return fallback;
+        String s = raw.trim().toLowerCase()
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "")
+                .replaceAll("_+", "_");
+        return s.isEmpty() ? fallback : truncate(s, 48);
+    }
+
+    private String normalizeParagraph(String raw, String fallback) {
+        String s = nonBlank(raw) ? raw : fallback;
+        if (s == null) return "";
+        s = s.replaceAll("[\\r\\n\\t]+", " ")
+             .replaceAll("\\s{2,}", " ")
+             .trim();
+        return s;
+    }
+
+    private String text(JsonNode node, String field) {
+        if (node == null || field == null || !node.has(field) || node.get(field).isNull()) return "";
+        JsonNode v = node.get(field);
+        if (v.isTextual()) return v.asText();
+        if (v.isNumber() || v.isBoolean()) return v.asText();
+        return "";
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) return "";
+        for (String v : values) {
+            if (nonBlank(v)) return v;
+        }
+        return "";
+    }
+
+    private boolean nonBlank(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String truncate(String value, int max) {
+        if (value == null) return "";
+        String s = value.trim();
+        if (s.length() <= max) return s;
+        if (max <= 1) return s.substring(0, Math.max(0, max));
+        return s.substring(0, max - 1).trim() + "…";
+    }
+
+    private String toTitleCase(String value) {
+        if (!nonBlank(value)) return "";
+        String[] parts = value.split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) sb.append(part.substring(1));
+        }
+        return sb.toString();
+    }
+
+    /**
      * Replaces English zodiac sign names and astrological aspect terms with their Turkish equivalents.
      * Applied to all AI responses to catch cases where the model slips into English.
      */
@@ -391,7 +742,11 @@ public class MysticalAiService {
                 // Aspects
                 .replace("Conjunction", "Kavuşum")
                 .replace("Sextile",     "Altmışlık")
-                .replace("Trine",       "Üçgen");
+                .replace("Trine",       "Üçgen")
+                .replace("Square",      "Kare")
+                .replace("Opposition",  "Karşıt")
+                .replace("Quincunx",    "Quincunx (Uyumsuz Ayar)")
+                .replace("Inconjunct",  "Quincunx (Uyumsuz Ayar)");
     }
 
     private String extractDreamContent(String payload) {
