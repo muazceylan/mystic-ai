@@ -31,6 +31,7 @@
         <module>oracle-service</module>
         <module>notification-service</module>
         <module>vision-service</module>
+        <module>spiritual-service</module>
     </modules>
 
     <properties>

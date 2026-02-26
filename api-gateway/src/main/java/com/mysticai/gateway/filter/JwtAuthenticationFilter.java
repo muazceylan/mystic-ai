@@ -30,6 +30,9 @@ public class JwtAuthenticationFilter implements GlobalFilter {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @Value("${gateway.auth.permit-all:false}")
+    private boolean permitAll;
+
     // Paths that don't require authentication
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/auth/login",
@@ -59,6 +62,18 @@ public class JwtAuthenticationFilter implements GlobalFilter {
 
         if (request.getMethod() == HttpMethod.OPTIONS) {
             return chain.filter(exchange);
+        }
+
+        if (permitAll) {
+            ServerHttpRequest mutatedRequest = request.mutate()
+                    .header("X-User-Id", request.getHeaders().getFirst("X-User-Id") != null
+                            ? request.getHeaders().getFirst("X-User-Id")
+                            : "1")
+                    .header("X-Username", request.getHeaders().getFirst("X-Username") != null
+                            ? request.getHeaders().getFirst("X-Username")
+                            : "local-dev")
+                    .build();
+            return chain.filter(exchange.mutate().request(mutatedRequest).build());
         }
 
         // Check if path is public

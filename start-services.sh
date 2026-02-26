@@ -22,9 +22,24 @@ pkill -f "dream-service" || true
 pkill -f "oracle-service" || true
 pkill -f "notification-service" || true
 pkill -f "vision-service" || true
+pkill -f "spiritual-service" || true
 pkill -f "api-gateway" || true
 
 sleep 2
+
+# Log setup
+mkdir -p logs
+ALL_LOG_FILE="logs/all-services.log"
+: > "$ALL_LOG_FILE"
+
+start_service() {
+  local service_tag="$1"
+  local service_log="$2"
+  local command="$3"
+
+  : > "$service_log"
+  nohup bash -lc "$command 2>&1 | sed -u \"s/^/[$service_tag] /\" | tee -a \"$ALL_LOG_FILE\" >> \"$service_log\"" >/dev/null 2>&1 &
+}
 
 # Build
 echo "🔨 Maven build başlatılıyor..."
@@ -34,41 +49,44 @@ echo "🚀 Servisler başlatılıyor..."
 
 # 1. Eureka
 echo "📍 Eureka Service Registry..."
-nohup java -jar service-registry/target/service-registry-*.jar > logs/eureka.log 2>&1 &
+start_service "eureka" "logs/eureka.log" "java -jar service-registry/target/service-registry-*.jar"
 sleep 15
 
 # 2. Core Services
 echo "🔐 Auth Service..."
-nohup java -jar auth-service/target/auth-service-*.jar > logs/auth.log 2>&1 &
+start_service "auth" "logs/auth.log" "java -jar auth-service/target/auth-service-*.jar"
 sleep 5
 
 echo "🤖 AI Orchestrator..."
-nohup java -jar ai-orchestrator/target/ai-orchestrator-*.jar > logs/ai.log 2>&1 &
+start_service "ai-orchestrator" "logs/ai.log" "java -jar ai-orchestrator/target/ai-orchestrator-*.jar"
 sleep 5
 
 echo "⭐ Astrology Service..."
-nohup java -jar astrology-service/target/astrology-service-*.jar > logs/astrology.log 2>&1 &
+start_service "astrology" "logs/astrology.log" "java -jar astrology-service/target/astrology-service-*.jar"
 
 echo "🔢 Numerology Service..."
-nohup java -jar numerology-service/target/numerology-service-*.jar > logs/numerology.log 2>&1 &
+start_service "numerology" "logs/numerology.log" "java -jar numerology-service/target/numerology-service-*.jar"
 
 echo "💭 Dream Service..."
-nohup java -jar dream-service/target/dream-service-*.jar > logs/dream.log 2>&1 &
+start_service "dream" "logs/dream.log" "java -jar dream-service/target/dream-service-*.jar"
 
 echo "🔮 Oracle Service..."
-nohup java -jar oracle-service/target/oracle-service-*.jar > logs/oracle.log 2>&1 &
+start_service "oracle" "logs/oracle.log" "java -jar oracle-service/target/oracle-service-*.jar"
 
 echo "🔔 Notification Service..."
-nohup java -jar notification-service/target/notification-service-*.jar > logs/notification.log 2>&1 &
+start_service "notification" "logs/notification.log" "java -jar notification-service/target/notification-service-*.jar"
 
 echo "👁️ Vision Service..."
-nohup java -jar vision-service/target/vision-service-*.jar > logs/vision.log 2>&1 &
+start_service "vision" "logs/vision.log" "java -jar vision-service/target/vision-service-*.jar"
+
+echo "🕊️ Spiritual Service..."
+start_service "spiritual" "logs/spiritual.log" "java -jar spiritual-service/target/spiritual-service-*.jar --spring.profiles.active=local"
 
 sleep 5
 
 # 4. API Gateway
 echo "🌐 API Gateway..."
-nohup java -jar api-gateway/target/api-gateway-*.jar > logs/gateway.log 2>&1 &
+start_service "gateway" "logs/gateway.log" "java -jar api-gateway/target/api-gateway-*.jar --spring.profiles.active=local"
 
 echo "✅ Tüm servisler başlatıldı!"
 echo ""
@@ -79,3 +97,5 @@ echo "  - Zipkin: http://localhost:9411"
 echo "  - RabbitMQ: http://localhost:15672"
 echo ""
 echo "📝 Loglar: logs/ dizininde"
+echo "  - Tüm servisler (tek dosya): logs/all-services.log"
+echo "  - Spiritual Service: logs/spiritual.log"

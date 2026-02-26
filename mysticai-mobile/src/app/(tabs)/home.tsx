@@ -47,6 +47,7 @@ import { TYPOGRAPHY, SPACING } from '../../constants/tokens';
 import { SafeScreen } from '../../components/ui';
 import { announceForAccessibility } from '../../utils/accessibility';
 import { fetchNightSkyProjection } from '../../services/astrology.service';
+import { HomeSpiritualSection } from '../../spiritual/components/HomeSpiritualSection';
 
 const STICKY_APPEAR_START = 80;
 const STICKY_APPEAR_END = 130;
@@ -407,6 +408,7 @@ export default function HomeScreen() {
               },
             });
           }}
+          spiritualSection={<HomeSpiritualSection variant="v2" />}
         />
       </SafeScreen>
     );
@@ -528,6 +530,9 @@ export default function HomeScreen() {
               § 3. QUICK ACTIONS (MEDIUM density)
           ═══════════════════════════════════════════ */}
           <QuickActionsRow />
+
+          {/* § 3.5 RUHSAL PRACTICES */}
+          <HomeSpiritualSection />
 
           {/* ═══════════════════════════════════════════
               § 4. COLLECTIVE DREAM TICKER (MEDIUM density)

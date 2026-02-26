@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_USER: mystic
       POSTGRES_PASSWORD: mystic123
-      POSTGRES_MULTIPLE_DATABASES: mystic_auth,mystic_tarot,mystic_astrology,mystic_numerology,mystic_dream,mystic_oracle,mystic_notification,mystic_vision
+      POSTGRES_MULTIPLE_DATABASES: mystic_auth,mystic_tarot,mystic_astrology,mystic_numerology,mystic_dream,mystic_oracle,mystic_notification,mystic_vision,mystic_spiritual
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/01-init-dbs.sh:ro
@@ -173,6 +173,34 @@ services:
       - mystic-network
     profiles:
       - monitoring
+    restart: unless-stopped
+
+  # ==========================================
+  # Spiritual Service
+  # ==========================================
+  spiritual-service:
+    build:
+      context: ./spiritual-service
+      dockerfile: Dockerfile
+    container_name: mystic-spiritual-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mystic_spiritual
+      SPRING_DATASOURCE_USERNAME: mystic
+      SPRING_DATASOURCE_PASSWORD: mystic123
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PASSWORD: mystic123
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    ports:
+      - "8091:8091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mystic-network
     restart: unless-stopped
 
 volumes:

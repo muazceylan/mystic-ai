@@ -40,6 +40,7 @@
 | **Oracle Service** | `8087` | Aggregator. Tüm servis verilerini "Daily Secret" olarak sentezler |
 | **Notification Service** | `8088` | WebSocket (STOMP) üzerinden anlık geri bildirimler |
 | **Vision Service** | `8089` | Multimodal analiz (Kahve ve El falı görselleri için AI) |
+| **Spiritual Service** | `8091` | Dua, Esmaül Hüsna, Nefes/Farkındalık, Günlük Log ve İstatistik API'leri |
 
 ---
 
@@ -78,6 +79,28 @@ React Native tarafında uygulanan 9 adımlık veri toplama ve kullanıcı oluşt
 2. **Mobile Debug:** Expo Go ile fiziksel cihazlarda performans ve arayüz testi.
 3. **E2E:** Postman ve Newman scriptleri ile uçtan uca senaryo doğrulama.
 
+---
+
+## 🕌 Ruhsal Pratikler Modülü (Dua / Esma / Nefes) - Entegrasyon Notu
+
+> Bu modül, astroloji akışını gölgelememek için mobil ana sayfada **ayrı bir modül/section** olarak konumlandırılır.
+
+### Backend (Spiritual Service)
+- **Servis Adı:** `spiritual-service`
+- **Port:** `8091`
+- **Gateway Route:** `/api/v1/spiritual/**` → `spiritual-service`
+- **Kapsam:** Günlük dua seti, Esmaül Hüsna, nefes/farkındalık egzersizleri, log ve haftalık istatistikler
+
+### Mobil (Expo React Native)
+- **Konum:** Ana sayfada `Ruhsal Pratikler` kart grubu (Home / HomeV2)
+- **Alt Akışlar:** `Bugünün Duası`, `Bugünün Esması`, `Bugünün Nefesi`, `Dua Günlüğüm`, `Ayarlar`
+- **Ek Mini Akış:** `Kısa Dualar` chip satırı (10-30 sn pratikler)
+
+### Local Test Profili (Geliştirme Kolaylığı)
+- `api-gateway` ve `spiritual-service` için `local` profile altında geçici `permitAll` desteklenir.
+- Amaç: Mobil UI'da JWT beklemeden ruhsal modül ekranlarını ve veri akışını test etmek.
+- Not: Bu ayar **production için kullanılmaz**.
+
 ## 1️⃣ Altyapı Kurulumu
 
 ### Docker Compose ile Altyapıyı Başlatma
@@ -92,6 +115,8 @@ docker-compose up -d postgres redis rabbitmq zipkin
 # Logları kontrol et
 docker-compose logs -f postgres redis rabbitmq
 ```
+
+> Not: `docker-compose.yml` içinde PostgreSQL çoklu veritabanı listesine `mystic_spiritual` eklidir. `spiritual-service` uygulaması şu aşamada `start-services.sh` / Maven ile başlatılır.
 
 ### Veritabanlarının Hazır Olduğunu Doğrulama
 
@@ -118,6 +143,7 @@ docker exec -it mystic-postgres psql -U mystic -l
 # - mystic_auth
 # - mystic_astrology
 # - mystic_dream
+# - mystic_spiritual
 # - mystic_oracle
 # - mystic_notification
 # - mystic_vision
@@ -164,10 +190,11 @@ java -jar dream-service/target/dream-service-*.jar &
 java -jar oracle-service/target/oracle-service-*.jar &
 java -jar notification-service/target/notification-service-*.jar &
 java -jar vision-service/target/vision-service-*.jar &
+SPRING_PROFILES_ACTIVE=local java -jar spiritual-service/target/spiritual-service-*.jar &
 sleep 5
 
 # 5. API Gateway (Son başlamalı)
-java -jar api-gateway/target/api-gateway-*.jar &
+SPRING_PROFILES_ACTIVE=local java -jar api-gateway/target/api-gateway-*.jar &
 ```
 
 ### Tek Komutla Tüm Servisleri Başatma (Script)
@@ -190,6 +217,7 @@ pkill -f "dream-service" || true
 pkill -f "oracle-service" || true
 pkill -f "notification-service" || true
 pkill -f "vision-service" || true
+pkill -f "spiritual-service" || true
 pkill -f "api-gateway" || true
 
 sleep 2
@@ -232,11 +260,14 @@ nohup java -jar notification-service/target/notification-service-*.jar > logs/no
 echo "👁️ Vision Service..."
 nohup java -jar vision-service/target/vision-service-*.jar > logs/vision.log 2>&1 &
 
+echo "🕌 Spiritual Service..."
+nohup java -jar spiritual-service/target/spiritual-service-*.jar --spring.profiles.active=local > logs/spiritual.log 2>&1 &
+
 sleep 5
 
 # 4. API Gateway
 echo "🌐 API Gateway..."
-nohup java -jar api-gateway/target/api-gateway-*.jar > logs/gateway.log 2>&1 &
+nohup java -jar api-gateway/target/api-gateway-*.jar --spring.profiles.active=local > logs/gateway.log 2>&1 &
 
 echo "✅ Tüm servisler başlatıldı!"
 echo ""
@@ -260,7 +291,7 @@ mkdir -p logs
 # Tüm servisleri Docker Compose ile başlat
 docker-compose up -d
 
-# Veya sadece backend servisleri
+# Veya sadece docker-compose içinde tanımlı backend servisleri
 docker-compose up -d service-registry auth-service ai-orchestrator astrology-service numerology-service dream-service oracle-service notification-service vision-service api-gateway
 
 # Logları izle
@@ -293,6 +324,7 @@ docker-compose logs -f api-gateway
 │ Oracle       │ 8087   │ Grand Synthesis                     │
 │ Notification │ 8088   │ WebSocket Notifications             │
 │ Vision       │ 8089   │ Image Analysis (Coffee/Palm)        │
+│ Spiritual    │ 8091   │ Dua/Esma/Nefes & Log API            │
 └──────────────┴────────┴─────────────────────────────────────┘
 ```
 
@@ -300,10 +332,10 @@ docker-compose logs -f api-gateway
 
 ```bash
 # Tüm portları kontrol et
-lsof -i :8761,9411,15672,8080,8081,8082,8083,8084,8085,8086,8087,8088,8089
+lsof -i :8761,9411,15672,8080,8081,8082,8083,8084,8085,8086,8087,8088,8089,8091
 
 # Veya netstat ile
-netstat -tuln | grep -E ':(8761|9411|15672|8080|8081|8082|8083|8084|8085|8086|8087|8088|8089)'
+netstat -tuln | grep -E ':(8761|9411|15672|8080|8081|8082|8083|8084|8085|8086|8087|8088|8089|8091)'
 
 # Port kullanan process'leri gör
 lsof -ti:8080 | xargs ps
@@ -547,6 +579,26 @@ curl -X POST http://localhost:8080/api/auth/login \
   -d '{"username":"testuser","password":"TestPass123!"}'
 ```
 
+### Ruhsal Modül "Yüklenemedi" Hatası
+
+```bash
+# Hata: "Dua seti yüklenemedi" / "Esma yüklenemedi"
+
+# Çözüm 1: service-registry, spiritual-service ve api-gateway'in çalıştığını doğrula
+curl http://localhost:8761
+curl http://localhost:8080/actuator/health
+
+# Çözüm 2: local profile ile çalıştır (JWT olmadan test için)
+SPRING_PROFILES_ACTIVE=local mvn -pl spiritual-service spring-boot:run
+SPRING_PROFILES_ACTIVE=local mvn -pl api-gateway spring-boot:run
+
+# Çözüm 3: Gateway üzerinden endpoint doğrula
+curl http://localhost:8080/api/v1/spiritual/daily/prayers
+curl http://localhost:8080/api/v1/spiritual/daily/asma
+curl http://localhost:8080/api/v1/spiritual/daily/meditation
+curl "http://localhost:8080/api/v1/spiritual/prayers/short?category=SUKUR&limit=5"
+```
+
 ### Maven Build Failure
 
 ```bash
@@ -595,6 +647,7 @@ npx expo start --ios --port 8800 --clear
 
 # 4. Test et
 curl http://localhost:8080/actuator/health
+curl http://localhost:8080/api/v1/spiritual/daily/prayers
 newman run docs/postman/MysticAI_Collection.json -e docs/postman/MysticAI_Environment.json
 ```
 

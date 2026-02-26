@@ -52,6 +52,10 @@ public class GatewayConfig {
                 .route("oracle-service", r -> r
                         .path("/api/v1/oracle/**")
                         .uri("lb://oracle-service"))
+                // Spiritual Service
+                .route("spiritual-service", r -> r
+                        .path("/api/v1/spiritual/**")
+                        .uri("lb://spiritual-service"))
                 // Notification Service - REST API
                 .route("notification-service", r -> r
                         .path("/api/notifications/**")
@@ -80,6 +84,9 @@ public class GatewayConfig {
                 .route("oracle-service-docs", r -> r
                         .path("/oracle-service/v3/api-docs")
                         .uri("lb://oracle-service/v3/api-docs"))
+                .route("spiritual-service-docs", r -> r
+                        .path("/spiritual-service/v3/api-docs")
+                        .uri("lb://spiritual-service/v3/api-docs"))
                 .route("notification-service-docs", r -> r
                         .path("/notification-service/v3/api-docs")
                         .uri("lb://notification-service/v3/api-docs"))

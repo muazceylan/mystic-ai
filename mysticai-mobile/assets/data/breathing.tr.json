@@ -1,0 +1,47 @@
+[
+  {
+    "id": "478_relaxation",
+    "titleTr": "4-7-8 Rahatlama",
+    "description": "Dr. Andrew Weil tarafından popülerleştirilen bu teknik, sinir sistemini sakinleştirir ve uykuya geçişi kolaylaştırır. 4 saniye nefes al, 7 saniye tut, 8 saniye yavaşça ver.",
+    "benefits": [
+      "Stresi ve kaygıyı azaltır",
+      "Uykuya dalma süresini kısaltır",
+      "Kan basıncını düzenlemeye yardımcı olur",
+      "Sinir sistemini sakinleştirir"
+    ],
+    "pattern": { "inhale": 4, "hold1": 7, "exhale": 8 },
+    "defaultDurationSec": 240,
+    "difficulty": "BEGINNER",
+    "icon": "moon-outline"
+  },
+  {
+    "id": "nadi_shodhana",
+    "titleTr": "Nadi Shodhana",
+    "description": "Yoga geleneğinden gelen bu alternatif burun nefesi tekniği, sağ ve sol beyin yarıküresini dengeleyerek zihni netleştirir. Her aşama eşit sürede yapılır.",
+    "benefits": [
+      "Zihinsel netlik ve odaklanma sağlar",
+      "Enerji kanallarını dengeleyerek iç huzur verir",
+      "Solunum kapasitesini artırır",
+      "Meditasyon için ideal hazırlık"
+    ],
+    "pattern": { "inhale": 4, "hold1": 4, "exhale": 4, "hold2": 4 },
+    "defaultDurationSec": 300,
+    "difficulty": "INTERMEDIATE",
+    "icon": "flower-outline"
+  },
+  {
+    "id": "kapalabhati",
+    "titleTr": "Ateş Nefesi (Kapalabhati)",
+    "description": "Hızlı ve ritmik nefes verme ile diyafram kaslarını çalıştıran güçlü bir pranayama tekniği. Kısa ve güçlü nefes verişlerle enerji seviyesini artırır.",
+    "benefits": [
+      "Enerji ve canlılık verir",
+      "Karın kaslarını güçlendirir",
+      "Metabolizmayı hızlandırır",
+      "Zihni canlandırır ve uyarır"
+    ],
+    "pattern": { "inhale": 1, "exhale": 1 },
+    "defaultDurationSec": 180,
+    "difficulty": "ADVANCED",
+    "icon": "flame-outline"
+  }
+]

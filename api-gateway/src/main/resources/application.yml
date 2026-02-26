@@ -55,6 +55,10 @@ eureka:
 jwt:
   secret: ${JWT_SECRET:bXlzdGljLWFpLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=}
 
+gateway:
+  auth:
+    permit-all: false
+
 management:
   endpoints:
     web:

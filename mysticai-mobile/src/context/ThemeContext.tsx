@@ -109,6 +109,13 @@ export interface ThemeColors {
   dictBorder: string;
   dictText: string;
   dictSub: string;
+  spiritualEsma: string;
+  spiritualEsmaLight: string;
+  spiritualDua: string;
+  spiritualDuaLight: string;
+  spiritualMeditation: string;
+  spiritualSurface: string;
+  spiritualBorder: string;
 }
 
 export const LIGHT: ThemeColors = {
@@ -214,6 +221,13 @@ export const LIGHT: ThemeColors = {
   dictBorder: COLORS.themeLightDictBorder,
   dictText: COLORS.themeLightDictText,
   dictSub: COLORS.themeLightDictSub,
+  spiritualEsma: '#16A34A',
+  spiritualEsmaLight: '#BBF7D0',
+  spiritualDua: '#4F46E5',
+  spiritualDuaLight: '#C7D2FE',
+  spiritualMeditation: '#7C3AED',
+  spiritualSurface: '#F8FAFC',
+  spiritualBorder: '#E2E8F0',
 };
 
 export const DARK: ThemeColors = {
@@ -319,6 +333,13 @@ export const DARK: ThemeColors = {
   dictBorder: COLORS.themeDarkDictBorder,
   dictText: COLORS.themeDarkDictText,
   dictSub: COLORS.themeDarkDictSub,
+  spiritualEsma: '#4ADE80',
+  spiritualEsmaLight: '#166534',
+  spiritualDua: '#818CF8',
+  spiritualDuaLight: '#312E81',
+  spiritualMeditation: '#A855F7',
+  spiritualSurface: '#0F172A',
+  spiritualBorder: '#1E293B',
 };
 
 const STORAGE_KEY = 'mysticai_theme_pref';

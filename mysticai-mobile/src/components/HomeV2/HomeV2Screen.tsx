@@ -36,6 +36,7 @@ interface HomeV2ScreenProps {
   onOpenDecisionCompass: () => void;
   onOpenDecisionCompassItem?: (item: HomeV2DecisionCompassItem) => void;
   onOpenDecisionCompassItemDetail?: (item: HomeV2DecisionCompassItem) => void;
+  spiritualSection?: React.ReactNode;
 }
 
 type Palette = ReturnType<typeof makePalette>;
@@ -70,6 +71,7 @@ export function HomeV2Screen({
   onOpenDecisionCompass,
   onOpenDecisionCompassItem,
   onOpenDecisionCompassItemDetail,
+  spiritualSection,
 }: HomeV2ScreenProps) {
   const { width } = useWindowDimensions();
   const P = makePalette(isDark);
@@ -182,6 +184,8 @@ export function HomeV2Screen({
             ))}
           </ScrollView>
         </View>
+
+        {spiritualSection}
 
         <DailySummaryCard
           S={S}
