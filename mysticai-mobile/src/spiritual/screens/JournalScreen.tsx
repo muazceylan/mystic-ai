@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useJournalStore } from '../store/useJournalStore';
 import type { JournalEntry } from '../types';
 
@@ -102,9 +102,12 @@ export default function JournalScreen() {
           <Text style={[styles.backBtnText, { color: TEXT + 'BB' }]}>←</Text>
         </Pressable>
         <Text style={[styles.headerTitle, { color: TEXT }]}>Zikir Günlüğüm</Text>
-        <Pressable onPress={() => router.push('/spiritual/journal/stats')}>
-          <Text style={[styles.statsLink, { color: ACCENT }]}>İstatistik</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Pressable onPress={() => router.push('/spiritual/journal/stats')}>
+            <Text style={[styles.statsLink, { color: ACCENT }]}>İstatistik</Text>
+          </Pressable>
+          <HeaderRightIcons tintColor={TEXT} />
+        </View>
       </View>
 
       {/* Mini stats bar */}

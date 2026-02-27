@@ -102,7 +102,7 @@ function createStyles(C: ThemeColors) {
       textAlign: 'center',
     },
     right: {
-      width: 40,
+      minWidth: 40,
       alignItems: 'flex-end',
       justifyContent: 'center',
     },

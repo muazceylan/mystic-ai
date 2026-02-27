@@ -88,7 +88,8 @@ import NatalChartHeroCard, {
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { AccordionSection, SafeScreen } from '../../components/ui';
+import { AccordionSection, SafeScreen, TabHeader } from '../../components/ui';
+import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import MatchResultScreen from '../../screens/match/MatchResultScreen';
 import SynastryProPanel from '../../components/Astrology/SynastryProPanel';
 
@@ -2367,7 +2368,8 @@ export default function NatalChartTab() {
   );
 
   const MainVerticalScroll: any = ENABLE_SECTION_DND ? NestableScrollContainer : ScrollView;
-  const stickyHeaderIndices = chart ? [1] : [];
+  const stickyHeaderIndices = chart ? [2] : [];
+  const tabHeaderActions = useTabHeaderActions();
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
@@ -2398,6 +2400,8 @@ export default function NatalChartTab() {
             />
           }
         >
+        <TabHeader transparent {...tabHeaderActions} />
+
         <Reanimated.View
           style={[styles.fixedTopStack, !profileSwitcherVisible && styles.fixedTopStackHidden]}
           pointerEvents={profileSwitcherVisible ? 'auto' : 'none'}

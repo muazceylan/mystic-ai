@@ -23,7 +23,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useCounterStore, selectProgress } from '../store/useCounterStore';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
@@ -237,19 +237,22 @@ export default function CounterScreen() {
             <Text style={[styles.setFlowLabel, { color: ACCENT }]}>{setFlowLabel}</Text>
           )}
         </View>
-        <Pressable
-          onPress={handleEarlySave}
-          style={styles.headerBtn}
-          hitSlop={12}
-          disabled={store.completed === 0}
-          accessibilityLabel="Kaydet ve çık"
-        >
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={24}
-            color={store.completed > 0 ? ACCENT : SUBTEXT + '44'}
-          />
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Pressable
+            onPress={handleEarlySave}
+            style={styles.headerBtn}
+            hitSlop={12}
+            disabled={store.completed === 0}
+            accessibilityLabel="Kaydet ve çık"
+          >
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={24}
+              color={store.completed > 0 ? ACCENT : SUBTEXT + '44'}
+            />
+          </Pressable>
+          <HeaderRightIcons tintColor={TEXT} />
+        </View>
       </View>
 
       {/* Counter badge (top-left overlay) */}

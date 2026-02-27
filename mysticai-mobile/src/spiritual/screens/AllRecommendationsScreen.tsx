@@ -7,7 +7,7 @@ import { buildDailyTheme, scoreContent } from '../engine/recommendationEngine';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useContentStore } from '../store/useContentStore';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen, AppHeader } from '../../components/ui';
+import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
 import type { EsmaItem, DuaItem } from '../types';
 
 type Tab = 'esma' | 'dua' | 'sure';
@@ -98,7 +98,7 @@ export default function AllRecommendationsScreen() {
         colors={isDark ? ['#0B1A12', '#0F2318', '#0B1A12'] : ['#ECFDF5', '#F0FDF4', '#ECFDF5']}
         style={s.container}
       >
-        <AppHeader title="Oneriler" onBack={() => router.back()} transparent />
+        <AppHeader title="Oneriler" onBack={() => router.back()} transparent rightActions={<HeaderRightIcons />} />
 
       <View style={s.tabRow}>
         {tabs.map((tab) => {

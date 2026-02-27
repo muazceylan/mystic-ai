@@ -19,7 +19,8 @@ import Animated, {
 import { useTranslation } from 'react-i18next';
 import { useDreamStore } from '../../store/useDreamStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { ErrorStateCard, SafeScreen } from '../../components/ui';
+import { ErrorStateCard, SafeScreen, TabHeader } from '../../components/ui';
+import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
 import type { DreamEntryResponse } from '../../services/dream.service';
@@ -774,23 +775,24 @@ export default function DreamsScreen() {
     <SafeScreen edges={['top', 'left', 'right']}>
       <LinearGradient colors={[colors.background, colors.surfaceMuted, colors.background]} style={styles.container}>
         {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>{t('tabs.dream')}</Text>
-          <Text style={styles.headerSub}>{t('dreams.subtitle')}</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.addBtn, tab === 'compose' && styles.addBtnClose]}
-          onPress={() => {
-            if (tab === 'compose') { resetCompose(); setTab('journal'); }
-            else setTab('compose');
-          }}
-          accessibilityLabel={tab === 'compose' ? t('dreams.closeCompose') : t('dreams.addNewDream')}
-          accessibilityRole="button"
-        >
-          <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+      <TabHeader
+        title={t('tabs.dream')}
+        subtitle={t('dreams.subtitle')}
+        rightActions={
+          <TouchableOpacity
+            style={[styles.addBtn, tab === 'compose' && styles.addBtnClose]}
+            onPress={() => {
+              if (tab === 'compose') { resetCompose(); setTab('journal'); }
+              else setTab('compose');
+            }}
+            accessibilityLabel={tab === 'compose' ? t('dreams.closeCompose') : t('dreams.addNewDream')}
+            accessibilityRole="button"
+          >
+            <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={colors.white} />
+          </TouchableOpacity>
+        }
+        {...useTabHeaderActions()}
+      />
 
       {/* Tab switcher */}
       {tab !== 'compose' && (
@@ -907,13 +909,9 @@ export default function DreamsScreen() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-  container: { flex: 1, paddingTop: Platform.OS === 'ios' ? 56 : 32 },
+  container: { flex: 1 },
 
-  // Header
-  header:      { flexDirection:'row', alignItems:'center', justifyContent:'space-between',
-                 paddingHorizontal:20, paddingBottom:14 },
-  headerTitle: { fontSize:25, fontWeight:'700', color:C.text, letterSpacing:0.3 },
-  headerSub:   { fontSize:12, color:C.subtext, marginTop:2 },
+  // Header (addBtn kept for rightActions slot)
   addBtn:      { width:38, height:38, borderRadius:19, backgroundColor:C.primary,
                  alignItems:'center', justifyContent:'center' },
   addBtnClose: { backgroundColor: C.overlayDark },

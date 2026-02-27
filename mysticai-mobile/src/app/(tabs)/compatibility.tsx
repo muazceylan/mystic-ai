@@ -18,7 +18,8 @@ import { RelationshipType, SavedPersonResponse } from '../../services/synastry.s
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import i18n from '../../i18n';
-import { ErrorStateCard, SafeScreen } from '../../components/ui';
+import { ErrorStateCard, SafeScreen, TabHeader } from '../../components/ui';
+import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,16 +99,11 @@ const CircularScore: React.FC<{ score: number; color: string; borderColor: strin
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
-    header: {
-      paddingTop: Platform.OS === 'ios' ? 8 : 20,
-      paddingBottom: 16,
-      paddingHorizontal: 20,
+    headerWrap: {
       backgroundColor: C.surface,
       borderBottomWidth: 1,
       borderBottomColor: C.border,
     },
-    headerTitle: { fontSize: 22, fontWeight: '700', color: C.primary },
-    headerSubtitle: { fontSize: 12, color: C.subtext, marginTop: 2 },
     scroll: { flex: 1 },
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: {
@@ -348,10 +344,11 @@ export default function CompatibilityScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('compatibility.title')}</Text>
-        <Text style={styles.headerSubtitle}>{t('compatibility.subtitle')}</Text>
-      </View>
+      <TabHeader
+        title={t('compatibility.title')}
+        subtitle={t('compatibility.subtitle')}
+        {...useTabHeaderActions()}
+      />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 

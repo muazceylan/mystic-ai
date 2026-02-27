@@ -3,7 +3,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SafeScreen, AppHeader, Card, Button, Badge } from '../../components/ui';
+import { SafeScreen, AppHeader, HeaderRightIcons, Card, Button, Badge } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, ACCESSIBILITY } from '../../constants/tokens';
 
 interface MeditationStep {
@@ -51,7 +51,7 @@ export default function MeditationDailyScreen() {
 
   return (
     <SafeScreen scroll>
-      <AppHeader title="Bugünün Nefesi" onBack={() => router.back()} />
+      <AppHeader title="Bugünün Nefesi" onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
 
       <Card variant="elevated">
         <View style={s.titleRow}>

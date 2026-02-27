@@ -22,7 +22,7 @@ import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
 import { SpiritualListItem } from '../components/SpiritualListItem';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 import type { EsmaItem, BarChartDataPoint } from '../types';
 
@@ -126,7 +126,7 @@ export default function EsmaListScreen() {
         >
           Esmaül Hüsna
         </Text>
-        <View style={styles.backBtn} />
+        <HeaderRightIcons tintColor={TEXT} />
       </View>
 
       {/* Tabs */}

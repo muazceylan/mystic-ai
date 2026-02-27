@@ -37,6 +37,7 @@ interface HomeV2ScreenProps {
   onOpenDecisionCompassItem?: (item: HomeV2DecisionCompassItem) => void;
   onOpenDecisionCompassItemDetail?: (item: HomeV2DecisionCompassItem) => void;
   spiritualSection?: React.ReactNode;
+  headerSlot?: React.ReactNode;
 }
 
 type Palette = ReturnType<typeof makePalette>;
@@ -72,6 +73,7 @@ export function HomeV2Screen({
   onOpenDecisionCompassItem,
   onOpenDecisionCompassItemDetail,
   spiritualSection,
+  headerSlot,
 }: HomeV2ScreenProps) {
   const { width } = useWindowDimensions();
   const P = makePalette(isDark);
@@ -118,15 +120,17 @@ export function HomeV2Screen({
           />
         }
       >
-        <TopBar
-          S={S}
-          P={P}
-          userName={model.userName}
-          infoLine={model.infoLine}
-          onOpenProfile={onOpenProfile}
-          onOpenSettings={onOpenSettings}
-          onOpenNotifications={onOpenNotifications}
-        />
+        {headerSlot ?? (
+          <TopBar
+            S={S}
+            P={P}
+            userName={model.userName}
+            infoLine={model.infoLine}
+            onOpenProfile={onOpenProfile}
+            onOpenSettings={onOpenSettings}
+            onOpenNotifications={onOpenNotifications}
+          />
+        )}
 
         <HeroCard
           S={S}

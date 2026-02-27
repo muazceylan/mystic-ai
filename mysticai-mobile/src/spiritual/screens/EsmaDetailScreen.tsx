@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useContentStore } from '../store/useContentStore';
 
 export default function EsmaDetailScreen() {
@@ -81,7 +81,7 @@ export default function EsmaDetailScreen() {
             {esma.nameTr.toUpperCase()}
           </Text>
         </View>
-        <View style={{ width: 40 }} />
+        <HeaderRightIcons tintColor={TEXT} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

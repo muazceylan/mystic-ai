@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useContentStore } from '../store/useContentStore';
-import { SafeScreen, AppHeader } from '../../components/ui';
+import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
 import type { BreathingTechnique } from '../types';
 
 const ACCENT = '#7C3AED';
@@ -105,6 +105,7 @@ export default function BreathingListScreen() {
         title="Nefes Teknikleri"
         onBack={() => router.back()}
         transparent
+        rightActions={<HeaderRightIcons />}
       />
 
       <FlatList

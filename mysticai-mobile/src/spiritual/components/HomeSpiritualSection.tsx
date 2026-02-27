@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { DailyRecommendationCard } from './DailyRecommendationCard';
 
 type Variant = 'v1' | 'v2';
@@ -12,46 +11,93 @@ interface HomeSpiritualSectionProps {
   variant?: Variant;
 }
 
+/* ─── Feature card data ─── */
+const FEATURES = [
+  {
+    key: 'dua',
+    route: '/spiritual/dua' as const,
+    icon: 'book-outline' as const,
+    label: 'Dualar',
+    sub: 'Günlük dualar',
+    colorKey: 'dua' as const,
+  },
+  {
+    key: 'esma',
+    route: '/spiritual/asma' as const,
+    icon: 'sparkles-outline' as const,
+    label: 'Esmalar',
+    sub: '99 Esma',
+    colorKey: 'esma' as const,
+  },
+  {
+    key: 'breath',
+    route: '/spiritual/breathing' as const,
+    icon: 'leaf-outline' as const,
+    label: 'Nefes',
+    sub: 'Nefes teknikleri',
+    colorKey: 'meditation' as const,
+  },
+] as const;
+
+const SURES = [
+  { id: 16, letter: 'ف', name: 'Fâtiha', color: 'dua' as const },
+  { id: 17, letter: 'إ', name: 'İhlâs', color: 'gold' as const },
+  { id: 18, letter: 'ف', name: 'Felak', color: 'esma' as const },
+  { id: 19, letter: 'ن', name: 'Nâs', color: 'meditation' as const },
+] as const;
+
 export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionProps) {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const { prayers, asma, meditation } = useSpiritualDaily();
-
-  const isLoading = prayers.isLoading || asma.isLoading || meditation.isLoading;
-  const hasError = prayers.isError || asma.isError || meditation.isError;
-
   const S = makeStyles(colors, isDark, variant);
+
+  /* ─── Palette helpers ─── */
+  const palette = {
+    dua: isDark ? colors.spiritualDua : colors.spiritualDua,
+    duaBg: isDark ? colors.spiritualDuaLight : colors.spiritualDuaLight + '28',
+    esma: isDark ? colors.spiritualEsma : colors.spiritualEsma,
+    esmaBg: isDark ? colors.spiritualEsmaLight : colors.spiritualEsmaLight + '28',
+    meditation: isDark ? colors.spiritualMeditation : colors.spiritualMeditation,
+    meditationBg: isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.08)',
+    gold: isDark ? colors.gold : colors.goldDark,
+    goldBg: isDark ? 'rgba(251,191,36,0.12)' : 'rgba(251,191,36,0.08)',
+  };
+
+  const featureColor = (key: 'dua' | 'esma' | 'meditation') => palette[key];
+  const featureBg = (key: 'dua' | 'esma' | 'meditation') => palette[`${key}Bg`];
+
+  const sureColor = (key: 'dua' | 'esma' | 'meditation' | 'gold') => palette[key];
 
   return (
     <View style={S.section}>
+      {/* ─── Header ─── */}
       <View style={S.headerRow}>
         <View style={S.titleWrap}>
+          <LinearGradient
+            colors={isDark
+              ? ['rgba(168,139,250,0.28)', 'rgba(124,58,237,0.08)']
+              : ['rgba(124,58,237,0.14)', 'rgba(124,58,237,0.04)']}
+            style={S.titleIconGlow}
+          />
           <View style={S.titleIcon}>
-            <Ionicons name="sparkles-outline" size={14} color={isDark ? '#FCD34D' : '#7C3AED'} />
+            <Ionicons
+              name="sparkles"
+              size={13}
+              color={isDark ? '#FCD34D' : '#7C3AED'}
+            />
           </View>
           <Text style={S.title}>Ruhsal Pratikler</Text>
-          <View style={S.livePill}>
-            <View style={S.liveDot} />
-            <Text style={S.liveText}>Günlük</Text>
-          </View>
         </View>
-        <Pressable onPress={() => router.push('/spiritual')}>
-          <Text style={S.link}>Tümünü Aç</Text>
+        <Pressable
+          onPress={() => router.push('/spiritual')}
+          style={({ pressed }) => [S.allBtn, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={S.allBtnText}>Keşfet</Text>
+          <Ionicons name="arrow-forward" size={12} color={colors.primary} />
         </Pressable>
       </View>
 
-      {hasError ? (
-        <Text style={S.helper}>
-          Ruhsal içerikler şu an yüklenemedi. Modül ekranına geçerek tekrar deneyebilirsiniz.
-        </Text>
-      ) : isLoading ? (
-        <Text style={S.helper}>Bugünün dua/esma/nefes içerikleri yükleniyor...</Text>
-      ) : (
-        <Text style={S.helper}>
-          Günlük dua, esma ve nefes egzersizi ile kısa ve düzenli pratik.
-        </Text>
-      )}
-
+      {/* ─── Günün Önerisi ─── */}
       <DailyRecommendationCard
         accentColor={isDark ? '#4CAF50' : '#16A34A'}
         surfaceColor={isDark ? '#1A3D28' : '#F0FDF4'}
@@ -61,120 +107,114 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
         onShowAll={() => router.push('/spiritual/recommendations')}
       />
 
-      <View style={S.cards}>
-        {/* Dualar */}
-        <Pressable style={S.card} onPress={() => router.push('/spiritual/dua')}>
-          <LinearGradient
-            pointerEvents="none"
-            colors={isDark ? ['rgba(99,102,241,0.14)', 'rgba(99,102,241,0.00)'] : ['rgba(99,102,241,0.08)', 'rgba(99,102,241,0.00)']}
-            style={S.cardGlow}
-          />
-          <View style={S.cardTopRow}>
-            <View style={S.cardIconWrap}>
-              <Ionicons name="book-outline" size={14} color={isDark ? '#818CF8' : '#6366F1'} />
-            </View>
-            <Text style={S.cardMetaPill}>Akış</Text>
-          </View>
-          <Text style={S.cardTitle}>Dualar</Text>
-        </Pressable>
-
-        {/* Esmalar */}
-        <Pressable style={S.card} onPress={() => router.push('/spiritual/asma')}>
-          <LinearGradient
-            pointerEvents="none"
-            colors={isDark ? ['rgba(22,163,74,0.14)', 'rgba(22,163,74,0.00)'] : ['rgba(22,163,74,0.08)', 'rgba(22,163,74,0.00)']}
-            style={S.cardGlow}
-          />
-          <View style={S.cardTopRow}>
-            <View style={S.cardIconWrap}>
-              <Ionicons name="sparkles-outline" size={14} color={isDark ? '#4ADE80' : '#16A34A'} />
-            </View>
-            <Text style={S.cardMetaPill}>Esma</Text>
-          </View>
-          <Text style={S.cardTitle}>Esmalar</Text>
-        </Pressable>
-
-        {/* Nefes Egzersizleri */}
-        <Pressable style={S.card} onPress={() => router.push('/spiritual/meditation')}>
-          <LinearGradient
-            pointerEvents="none"
-            colors={isDark ? ['rgba(124,58,237,0.14)', 'rgba(124,58,237,0.00)'] : ['rgba(124,58,237,0.08)', 'rgba(124,58,237,0.00)']}
-            style={S.cardGlow}
-          />
-          <View style={S.cardTopRow}>
-            <View style={S.cardIconWrap}>
-              <Ionicons name="leaf-outline" size={14} color={isDark ? '#A855F7' : '#7C3AED'} />
-            </View>
-            <Text style={S.cardMetaPill}>Nefes</Text>
-          </View>
-          <Text style={S.cardTitle}>Nefes Egzersizleri</Text>
-        </Pressable>
+      {/* ─── Feature Grid (2 col first row, 1 full-width) ─── */}
+      <View style={S.grid}>
+        {FEATURES.map((f, i) => {
+          const accent = featureColor(f.colorKey);
+          const bg = featureBg(f.colorKey);
+          const isWide = i === 2;
+          return (
+            <Pressable
+              key={f.key}
+              style={({ pressed }) => [
+                S.featureCard,
+                isWide && S.featureCardWide,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={() => router.push(f.route)}
+            >
+              <LinearGradient
+                pointerEvents="none"
+                colors={[accent + (isDark ? '18' : '10'), 'transparent']}
+                style={S.featureGlow}
+              />
+              <View style={[S.featureIconWrap, { backgroundColor: bg }]}>
+                <Ionicons name={f.icon} size={18} color={accent} />
+              </View>
+              <View style={S.featureTextWrap}>
+                <Text style={S.featureLabel}>{f.label}</Text>
+                <Text style={S.featureSub}>{f.sub}</Text>
+              </View>
+              <View style={[S.featureArrow, { backgroundColor: bg }]}>
+                <Ionicons name="chevron-forward" size={14} color={accent} />
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
-      {/* Sureler */}
-      <Pressable style={S.shortRowWrap} onPress={() => router.push('/spiritual/sure')}>
-        <View style={S.shortHeaderRow}>
-          <Text style={S.shortTitle}>Sureler</Text>
-          <Text style={S.shortHint}>Kur'an-ı Kerim</Text>
-        </View>
-        <View style={S.shortChips}>
-          <Pressable
-            style={S.shortChip}
-            onPress={() => router.push({ pathname: '/spiritual/dua/[id]', params: { id: 16 } })}
-          >
-            <Text style={[S.shortChipArabic, { color: isDark ? '#818CF8' : '#6366F1' }]}>ف</Text>
-            <Text style={S.shortChipText}>Fâtiha</Text>
-          </Pressable>
-          <Pressable
-            style={S.shortChip}
-            onPress={() => router.push({ pathname: '/spiritual/dua/[id]', params: { id: 17 } })}
-          >
-            <Text style={[S.shortChipArabic, { color: isDark ? '#FCD34D' : '#D97706' }]}>إ</Text>
-            <Text style={S.shortChipText}>İhlâs</Text>
-          </Pressable>
-          <Pressable
-            style={S.shortChip}
-            onPress={() => router.push({ pathname: '/spiritual/dua/[id]', params: { id: 18 } })}
-          >
-            <Ionicons name="shield-checkmark-outline" size={12} color={isDark ? '#93C5FD' : '#2563EB'} />
-            <Text style={S.shortChipText}>Felak</Text>
-          </Pressable>
-          <Pressable
-            style={S.shortChip}
-            onPress={() => router.push({ pathname: '/spiritual/dua/[id]', params: { id: 19 } })}
-          >
-            <Ionicons name="people-outline" size={12} color={isDark ? '#C4B5FD' : '#7C3AED'} />
-            <Text style={S.shortChipText}>Nâs</Text>
+      {/* ─── Sureler Strip ─── */}
+      <View style={S.sureSection}>
+        <View style={S.sureHeader}>
+          <View style={S.sureHeaderLeft}>
+            <Ionicons
+              name="book"
+              size={12}
+              color={isDark ? colors.gold : colors.goldDark}
+            />
+            <Text style={S.sureTitle}>Sureler</Text>
+          </View>
+          <Pressable onPress={() => router.push('/spiritual/sure')}>
+            <Text style={S.sureAll}>Tümü</Text>
           </Pressable>
         </View>
-      </Pressable>
+        <View style={S.sureChips}>
+          {SURES.map((s) => {
+            const clr = sureColor(s.color);
+            return (
+              <Pressable
+                key={s.id}
+                style={({ pressed }) => [
+                  S.sureChip,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() =>
+                  router.push({
+                    pathname: '/spiritual/dua/[id]',
+                    params: { id: s.id },
+                  })
+                }
+              >
+                <Text style={[S.sureArabic, { color: clr }]}>{s.letter}</Text>
+                <Text style={S.sureName}>{s.name}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
+      {/* ─── Footer Badges ─── */}
       <View style={S.footerRow}>
-        <View style={S.footerItem}>
-          <Ionicons name="shield-checkmark-outline" size={12} color={colors.subtext} />
-          <Text style={S.footerText}>Kaynak notu</Text>
-        </View>
-        <View style={S.footerItem}>
-          <Ionicons name="moon-outline" size={12} color={colors.subtext} />
-          <Text style={S.footerText}>Kısa pratik</Text>
-        </View>
-        <View style={S.footerItem}>
-          <Ionicons name="stats-chart-outline" size={12} color={colors.subtext} />
-          <Text style={S.footerText}>Günlük takip</Text>
-        </View>
+        {[
+          { icon: 'shield-checkmark-outline' as const, text: 'Kaynak notu' },
+          { icon: 'moon-outline' as const, text: 'Kısa pratik' },
+          { icon: 'stats-chart-outline' as const, text: 'Günlük takip' },
+        ].map((f) => (
+          <View key={f.text} style={S.footerItem}>
+            <Ionicons name={f.icon} size={11} color={colors.subtext} />
+            <Text style={S.footerText}>{f.text}</Text>
+          </View>
+        ))}
       </View>
     </View>
   );
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, variant: Variant) {
+/* ─── Styles ─── */
+function makeStyles(
+  C: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+  variant: Variant,
+) {
   const isV2 = variant === 'v2';
+
   return StyleSheet.create({
+    /* ── Container ── */
     section: {
       marginTop: isV2 ? 4 : 12,
       marginHorizontal: isV2 ? 0 : 20,
-      padding: isV2 ? 14 : 14,
-      borderRadius: 20,
+      padding: 16,
+      borderRadius: 22,
       borderWidth: 1,
       borderColor: isV2
         ? (isDark ? 'rgba(168,139,250,0.18)' : 'rgba(124,58,237,0.10)')
@@ -182,128 +222,194 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, v
       backgroundColor: isV2
         ? (isDark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.86)')
         : C.surface,
+      gap: 14,
     },
+
+    /* ── Header ── */
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 6,
     },
     titleWrap: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      flexShrink: 1,
+    },
+    titleIconGlow: {
+      position: 'absolute',
+      left: -6,
+      top: -6,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
     },
     titleIcon: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
+      width: 26,
+      height: 26,
+      borderRadius: 13,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(124,58,237,0.22)' : 'rgba(124,58,237,0.10)',
+      backgroundColor: isDark
+        ? 'rgba(124,58,237,0.22)'
+        : 'rgba(124,58,237,0.10)',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(168,139,250,0.22)' : 'rgba(124,58,237,0.12)',
+      borderColor: isDark
+        ? 'rgba(168,139,250,0.22)'
+        : 'rgba(124,58,237,0.12)',
     },
     title: {
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: '800',
       color: C.text,
+      letterSpacing: -0.3,
     },
-    livePill: {
+    allBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
       borderRadius: 999,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.8)' : 'rgba(248,250,252,0.95)',
+      backgroundColor: isDark
+        ? 'rgba(99,102,241,0.12)'
+        : 'rgba(99,102,241,0.06)',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(226,232,240,0.9)',
+      borderColor: isDark
+        ? 'rgba(129,140,248,0.18)'
+        : 'rgba(99,102,241,0.12)',
     },
-    liveDot: {
-      width: 5,
-      height: 5,
-      borderRadius: 999,
-      backgroundColor: isDark ? '#34D399' : '#10B981',
-    },
-    liveText: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: C.subtext,
-    },
-    link: {
-      fontSize: 12,
+    allBtnText: {
+      fontSize: 11,
       fontWeight: '700',
       color: C.primary,
     },
-    helper: {
-      fontSize: 12,
-      lineHeight: 18,
-      color: C.subtext,
-      marginBottom: 10,
+
+    /* ── Feature Grid ── */
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
     },
-    cards: {
-      gap: 8,
-    },
-    card: {
-      overflow: 'hidden',
+    featureCard: {
+      width: '48%' as unknown as number,
+      flexGrow: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
       padding: 12,
-      borderRadius: 14,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: isV2
-        ? (isDark ? 'rgba(148,163,184,0.16)' : 'rgba(226,232,240,0.85)')
-        : C.border,
-      backgroundColor: isV2
-        ? (isDark ? 'rgba(30,41,59,0.82)' : 'rgba(248,250,252,0.92)')
-        : C.background,
+      borderColor: isDark
+        ? 'rgba(148,163,184,0.14)'
+        : 'rgba(226,232,240,0.85)',
+      backgroundColor: isDark
+        ? 'rgba(30,41,59,0.70)'
+        : 'rgba(248,250,252,0.92)',
+      overflow: 'hidden',
     },
-    cardGlow: {
+    featureCardWide: {
+      width: '100%' as unknown as number,
+    },
+    featureGlow: {
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
-      height: 42,
+      height: 48,
     },
-    cardTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 6,
-    },
-    cardIconWrap: {
-      width: 24,
-      height: 24,
+    featureIconWrap: {
+      width: 38,
+      height: 38,
       borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.8)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(226,232,240,0.8)',
     },
-    cardMetaPill: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: C.subtext,
-      borderRadius: 999,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      backgroundColor: isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.75)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.14)' : 'rgba(229,231,235,0.9)',
+    featureTextWrap: {
+      flex: 1,
+      gap: 1,
     },
-    cardTitle: {
+    featureLabel: {
       fontSize: 14,
       fontWeight: '700',
       color: C.text,
     },
-    cardSub: {
-      marginTop: 4,
-      fontSize: 12,
+    featureSub: {
+      fontSize: 11,
+      fontWeight: '500',
       color: C.subtext,
     },
+    featureArrow: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    /* ── Sureler ── */
+    sureSection: {
+      borderRadius: 16,
+      padding: 12,
+      backgroundColor: isDark
+        ? 'rgba(15,23,42,0.40)'
+        : 'rgba(255,255,255,0.65)',
+      borderWidth: 1,
+      borderColor: isDark
+        ? 'rgba(148,163,184,0.10)'
+        : 'rgba(229,231,235,0.7)',
+    },
+    sureHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+    },
+    sureHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    sureTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: C.text,
+    },
+    sureAll: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: C.primary,
+    },
+    sureChips: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    sureChip: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: isDark
+        ? 'rgba(30,41,59,0.70)'
+        : 'rgba(248,250,252,0.95)',
+      borderWidth: 1,
+      borderColor: isDark
+        ? 'rgba(148,163,184,0.12)'
+        : 'rgba(226,232,240,0.8)',
+    },
+    sureArabic: {
+      fontSize: 18,
+      fontWeight: '700',
+    },
+    sureName: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: C.text,
+    },
+
+    /* ── Footer ── */
     footerRow: {
-      marginTop: 10,
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 8,
@@ -315,63 +421,18 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, v
       borderRadius: 999,
       paddingHorizontal: 8,
       paddingVertical: 5,
-      backgroundColor: isDark ? 'rgba(15,23,42,0.48)' : 'rgba(255,255,255,0.72)',
+      backgroundColor: isDark
+        ? 'rgba(15,23,42,0.48)'
+        : 'rgba(255,255,255,0.72)',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.12)' : 'rgba(229,231,235,0.8)',
+      borderColor: isDark
+        ? 'rgba(148,163,184,0.12)'
+        : 'rgba(229,231,235,0.8)',
     },
     footerText: {
       fontSize: 10,
       fontWeight: '600',
       color: C.subtext,
-    },
-    shortRowWrap: {
-      marginTop: 10,
-      borderRadius: 14,
-      padding: 10,
-      backgroundColor: isDark ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.62)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.10)' : 'rgba(229,231,235,0.7)',
-    },
-    shortHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    shortTitle: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: C.text,
-    },
-    shortHint: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: C.subtext,
-    },
-    shortChips: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    shortChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      borderRadius: 999,
-      paddingHorizontal: 10,
-      paddingVertical: 7,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.72)' : 'rgba(248,250,252,0.95)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.14)' : 'rgba(226,232,240,0.8)',
-    },
-    shortChipText: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: C.text,
-    },
-    shortChipArabic: {
-      fontSize: 14,
-      fontWeight: '700',
     },
   });
 }

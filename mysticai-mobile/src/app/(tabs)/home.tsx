@@ -44,7 +44,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING } from '../../constants/tokens';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, TabHeader } from '../../components/ui';
+import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { announceForAccessibility } from '../../utils/accessibility';
 import { fetchNightSkyProjection } from '../../services/astrology.service';
 import { HomeSpiritualSection } from '../../spiritual/components/HomeSpiritualSection';
@@ -409,6 +410,15 @@ export default function HomeScreen() {
             });
           }}
           spiritualSection={<HomeSpiritualSection variant="v2" />}
+          headerSlot={
+            <TabHeader
+              title={homeV2Model.userName}
+              subtitle={homeV2Model.infoLine}
+              onOpenProfile={() => router.push('/(tabs)/profile')}
+              onOpenSettings={() => router.push('/theme-settings')}
+              onOpenNotifications={() => router.push('/notifications-settings')}
+            />
+          }
         />
       </SafeScreen>
     );

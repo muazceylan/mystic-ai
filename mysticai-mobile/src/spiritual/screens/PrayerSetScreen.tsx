@@ -6,7 +6,7 @@ import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { usePrayerFlowStore } from '../store/usePrayerFlowStore';
 import { spiritualApi } from '../api/spiritual.api';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SafeScreen, AppHeader, ListRow, Button } from '../../components/ui';
+import { SafeScreen, AppHeader, HeaderRightIcons, ListRow, Button } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, ACCESSIBILITY } from '../../constants/tokens';
 
 export default function PrayerSetScreen() {
@@ -76,7 +76,7 @@ export default function PrayerSetScreen() {
 
     return (
       <SafeScreen scroll>
-        <AppHeader title={shortTitle} subtitle="10-30 sn hızlı erişim" onBack={() => router.back()} />
+        <AppHeader title={shortTitle} subtitle="10-30 sn hızlı erişim" onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
         {shortPrayersQuery.data.map((item, index) => (
           <ListRow
             key={item.id}
@@ -131,6 +131,7 @@ export default function PrayerSetScreen() {
         title="Bugünün Dua Seti"
         subtitle={`${date} · ${variant}`}
         onBack={() => router.back()}
+        rightActions={<HeaderRightIcons />}
       />
 
       {prayers.data.items.map((item) => (

@@ -30,7 +30,8 @@ import { useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, TabHeader } from '../../components/ui';
+import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
 import { COSMIC_DOCK_LABEL_OVERRIDE_KEYS, PLANNER_LOCAL_TO_COSMIC_CATEGORY } from '../../constants/CosmicConstants';
 import {
@@ -1364,21 +1365,21 @@ export default function CalendarScreen() {
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Animated.View entering={FadeIn.duration(300)}>
-            <View style={styles.headerRow}>
-              <View style={styles.headerTitleWrap}>
-                <Text style={styles.headerTitle}>{t('calendar.title')}</Text>
-                <Text style={styles.headerSubtitle}>{t('calendar.editorialSubtitle')}</Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.refreshButton}
-                onPress={fetchPlannerData}
-                accessibilityRole="button"
-                accessibilityLabel={t('calendar.refreshPlanner')}
-              >
-                <Ionicons name="refresh-outline" size={18} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
+            <TabHeader
+              title={t('calendar.title')}
+              subtitle={t('calendar.editorialSubtitle')}
+              rightActions={
+                <TouchableOpacity
+                  style={styles.refreshButton}
+                  onPress={fetchPlannerData}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.refreshPlanner')}
+                >
+                  <Ionicons name="refresh-outline" size={18} color={colors.primary} />
+                </TouchableOpacity>
+              }
+              {...useTabHeaderActions()}
+            />
 
             {isBeyondBackendWindow && (
               <View style={styles.noticeChip}>
@@ -2009,30 +2010,6 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       paddingBottom: 100,
       paddingHorizontal: 18,
       gap: 14,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 2,
-    },
-    headerTitleWrap: {
-      gap: 4,
-      flex: 1,
-      paddingRight: 8,
-    },
-    headerTitle: {
-      color: C.text,
-      fontSize: 28,
-      fontWeight: '700',
-      letterSpacing: 0.3,
-      fontFamily: SCORE_FONT,
-    },
-    headerSubtitle: {
-      color: C.subtext,
-      fontSize: 13,
-      lineHeight: 18,
-      fontFamily: UI_FONT,
     },
     refreshButton: {
       width: 34,

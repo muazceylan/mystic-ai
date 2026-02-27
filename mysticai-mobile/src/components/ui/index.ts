@@ -15,3 +15,4 @@ export { ListRow } from './ListRow';
 export { BottomSheet } from './BottomSheet';
 export { ProgressPill } from './ProgressPill';
 export { Chip } from './Chip';
+export { TabHeader, HeaderRightIcons } from './TabHeader';

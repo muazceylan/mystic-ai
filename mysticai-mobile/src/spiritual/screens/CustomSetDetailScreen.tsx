@@ -1,5 +1,5 @@
 /**
- * CustomSetDetailScreen — Set detay / duzenleme ekrani
+ * CustomSetDetailScreen — Set detay, rutin takip, öğe yönetimi
  */
 import React, { useState, useMemo, useCallback } from 'react';
 import {
@@ -8,6 +8,7 @@ import {
   FlatList,
   Pressable,
   TextInput,
+  Alert,
   StyleSheet,
   Modal,
   SafeAreaView,
@@ -15,74 +16,60 @@ import {
   Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { useContentStore } from '../store/useContentStore';
-import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen } from '../../components/ui';
+import { useJournalStore } from '../store/useJournalStore';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
+import { SafeScreen, HeaderRightIcons } from '../../components/ui';
+import { ProgressRing } from '../components/ProgressRing';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import type { CustomSetItem, SpiritualItemType } from '../types';
 
-const ACCENT = '#F59E0B';
-
 type AddTab = 'esma' | 'dua' | 'sure';
 
-function getTypeIcon(type: SpiritualItemType): string {
-  switch (type) {
-    case 'dua':
-      return 'book-outline';
-    case 'esma':
-      return 'sparkles-outline';
-    case 'sure':
-      return 'library-outline';
-    default:
-      return 'document-outline';
-  }
-}
+const TYPE_META: Record<string, {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  darkColor: string;
+  label: string;
+}> = {
+  esma: { icon: 'sparkles-outline', color: '#16A34A', darkColor: '#4ADE80', label: 'Esma' },
+  dua: { icon: 'book-outline', color: '#4F46E5', darkColor: '#818CF8', label: 'Dua' },
+  sure: { icon: 'library-outline', color: '#7C3AED', darkColor: '#A78BFA', label: 'Sure' },
+};
 
 export default function CustomSetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
+  const S = makeStyles(colors, isDark);
+
   const {
-    getSetById,
-    renameSet,
-    removeItem,
-    reorderItems,
-    addItem,
-    isItemInSet,
+    getSetById, renameSet, removeItem,
+    reorderItems, addItem, isItemInSet,
   } = useCustomSetStore();
   const {
-    getEsmaById,
-    getDuaById,
-    getSureById,
-    searchEsma,
-    searchDua,
-    esmaList,
-    duaList,
-    sureList,
-    pureDuaList,
+    getEsmaById, getDuaById,
+    searchEsma, sureList, pureDuaList,
   } = useContentStore();
 
   const set = getSetById(id ?? '');
+  const getEntriesByDate = useJournalStore((st) => st.getEntriesByDate);
 
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(set?.name ?? '');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addTab, setAddTab] = useState<AddTab>('esma');
   const [addSearch, setAddSearch] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  const gradColors: [string, string] = isDark
-    ? ['#1C1917', '#292524']
-    : ['#FFFBEB', '#FEF3C7'];
+  /* ─── Accent ─── */
+  const accent = isDark ? '#A78BFA' : '#7C3AED';
+  const accentSoft = isDark ? 'rgba(167,139,250,0.14)' : 'rgba(124,58,237,0.08)';
+  const doneColor = isDark ? '#4ADE80' : '#16A34A';
 
-  const TEXT = isDark ? '#FFFBEB' : '#1C1917';
-  const SUBTEXT = isDark ? '#FCD34D' : '#92400E';
-  const SURFACE = isDark ? '#292524' : '#FFFFFF';
-  const BORDER = isDark ? '#44403C' : '#FDE68A';
-  const OVERLAY = isDark ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.5)';
-
-  // Resolve item info
+  /* ─── Resolve item info ─── */
   const resolveItem = useCallback(
     (item: CustomSetItem) => {
       if (item.itemType === 'esma') {
@@ -90,21 +77,62 @@ export default function CustomSetDetailScreen() {
         return {
           name: esma?.nameTr ?? 'Bilinmeyen Esma',
           arabic: esma?.nameAr ?? '',
+          sub: esma?.meaningTr ?? '',
           target: esma?.defaultTargetCount ?? 33,
         };
       }
-      // dua or sure
       const dua = getDuaById(item.itemId);
       return {
         name: dua?.title ?? 'Bilinmeyen Dua',
-        arabic: dua?.arabic ? dua.arabic.slice(0, 30) : '',
+        arabic: dua?.arabic ? dua.arabic.slice(0, 40) : '',
+        sub: dua?.shortBenefit ?? '',
         target: dua?.defaultTargetCount ?? 3,
       };
     },
     [getEsmaById, getDuaById],
   );
 
-  // Handle name save on blur
+  /* ─── Journal-based progress per item ─── */
+  const itemKey = (it: CustomSetItem) => `${it.itemType}-${it.itemId}`;
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayEntries = getEntriesByDate(todayISO);
+
+  /** Map: "dua-5" → { completed: 20, target: 33 } (sum of today's entries) */
+  const progressMap = useMemo(() => {
+    const map: Record<string, { completed: number; target: number }> = {};
+    if (!set) return map;
+    for (const it of set.items) {
+      const key = itemKey(it);
+      const resolved = resolveItem(it);
+      const entries = todayEntries.filter(
+        (e) => e.itemType === (it.itemType === 'sure' ? 'dua' : it.itemType) && e.itemId === it.itemId,
+      );
+      const totalCompleted = entries.reduce((sum, e) => sum + e.completed, 0);
+      map[key] = { completed: totalCompleted, target: resolved.target };
+    }
+    return map;
+  }, [set, todayEntries, resolveItem]);
+
+  /** Per-item progress ratio (0..1) */
+  const getItemProgress = (it: CustomSetItem): number => {
+    const p = progressMap[itemKey(it)];
+    if (!p || p.target <= 0) return 0;
+    return Math.min(1, p.completed / p.target);
+  };
+
+  const isItemDone = (it: CustomSetItem): boolean => getItemProgress(it) >= 1;
+
+  const totalCount = set?.items.length ?? 0;
+  const completedCount = set ? set.items.filter((it) => isItemDone(it)).length : 0;
+  /** Overall progress = average of individual item progress ratios */
+  const progress = useMemo(() => {
+    if (!set || set.items.length === 0) return 0;
+    const sum = set.items.reduce((acc, it) => acc + getItemProgress(it), 0);
+    return sum / set.items.length;
+  }, [set, progressMap]);
+
+  /* ─── Name editing ─── */
   const handleNameBlur = () => {
     setEditingName(false);
     const trimmed = nameValue.trim();
@@ -115,292 +143,377 @@ export default function CustomSetDetailScreen() {
     }
   };
 
-  // Swap items for reorder
+  /* ─── Reorder ─── */
   const handleSwap = (index: number, direction: 'up' | 'down') => {
     if (!set) return;
     const items = [...set.items];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= items.length) return;
-
     const temp = items[index];
     items[index] = { ...items[targetIndex], order: index };
     items[targetIndex] = { ...temp, order: targetIndex };
     reorderItems(set.id, items);
   };
 
-  // Start routine
-  const handleStartRoutine = () => {
-    if (!set || set.items.length === 0) return;
-    const first = set.items[0];
-    const resolved = resolveItem(first);
-    router.push({
-      pathname: '/spiritual/counter',
-      params: {
-        itemType: first.itemType === 'sure' ? 'dua' : first.itemType,
-        itemId: first.itemId.toString(),
-        itemName: resolved.name,
-        target: resolved.target.toString(),
-        setItems: JSON.stringify(set.items),
-        setIndex: '0',
-      },
-    });
-  };
+  /* ─── Navigate to counter ─── */
+  const handleItemPress = useCallback(
+    (item: CustomSetItem) => {
+      if (!set || isEditMode) return;
+      const resolved = resolveItem(item);
+      router.push({
+        pathname: '/spiritual/counter',
+        params: {
+          itemType: item.itemType === 'sure' ? 'dua' : item.itemType,
+          itemId: item.itemId.toString(),
+          itemName: resolved.name,
+          target: resolved.target.toString(),
+          setItems: JSON.stringify(set.items),
+          setIndex: set.items.indexOf(item).toString(),
+        },
+      });
+    },
+    [set, isEditMode, resolveItem],
+  );
 
-  // Add modal filtered items
+  /* ─── Add modal items ─── */
   const addFilteredItems = useMemo(() => {
     const q = addSearch.toLowerCase().trim();
-    if (addTab === 'esma') {
-      return searchEsma(q);
-    }
+    if (addTab === 'esma') return searchEsma(q);
     if (addTab === 'sure') {
-      return sureList.filter((d) => {
-        if (q === '') return true;
-        return (
-          d.title.toLowerCase().includes(q) ||
-          d.meaningTr.toLowerCase().includes(q)
-        );
-      });
-    }
-    // dua (exclude sure)
-    return pureDuaList.filter((d) => {
-      if (q === '') return true;
-      return (
-        d.title.toLowerCase().includes(q) ||
-        d.meaningTr.toLowerCase().includes(q)
+      return sureList.filter((d) =>
+        q === '' || d.title.toLowerCase().includes(q) || d.meaningTr.toLowerCase().includes(q),
       );
-    });
+    }
+    return pureDuaList.filter((d) =>
+      q === '' || d.title.toLowerCase().includes(q) || d.meaningTr.toLowerCase().includes(q),
+    );
   }, [addTab, addSearch, searchEsma, sureList, pureDuaList]);
 
-  // Not found
+  /* ─── Not found ─── */
   if (!set) {
     return (
-      <SafeScreen style={{ backgroundColor: gradColors[0] }}>
-        <LinearGradient colors={gradColors} style={styles.container}>
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={48} color={ACCENT} />
-            <Text style={[styles.errorText, { color: TEXT }]}>
-              Set bulunamadi
-            </Text>
-            <Pressable
-              style={[styles.errorBtn, { backgroundColor: ACCENT }]}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.errorBtnText}>Geri Don</Text>
-            </Pressable>
-          </View>
-        </LinearGradient>
+      <SafeScreen>
+        <View style={S.emptyScreen}>
+          <Ionicons name="alert-circle-outline" size={48} color={accent} />
+          <Text style={S.emptyTitle}>Set bulunamadı</Text>
+          <Pressable style={[S.emptyBtn, { borderColor: accent }]} onPress={() => router.back()}>
+            <Text style={[S.emptyBtnText, { color: accent }]}>Geri Dön</Text>
+          </Pressable>
+        </View>
       </SafeScreen>
     );
   }
 
-  const renderItem = ({
-    item,
-    index,
-  }: {
-    item: CustomSetItem;
-    index: number;
-  }) => {
+  /* ─── Render item ─── */
+  const renderItem = ({ item, index }: { item: CustomSetItem; index: number }) => {
     const resolved = resolveItem(item);
+    const key = itemKey(item);
+    const isDone = isItemDone(item);
+    const prog = progressMap[key];
+    const pct = Math.round(getItemProgress(item) * 100);
+    const meta = TYPE_META[item.itemType] ?? TYPE_META.dua;
+    const typeColor = isDark ? meta.darkColor : meta.color;
+
     return (
-      <View
-        style={[
-          styles.itemCard,
-          { backgroundColor: SURFACE, borderColor: BORDER },
+      <Pressable
+        style={({ pressed }) => [
+          S.itemCard,
+          isDone && S.itemCardDone,
+          pressed && !isEditMode && { opacity: 0.88, transform: [{ scale: 0.98 }] },
         ]}
+        onPress={() => !isEditMode && handleItemPress(item)}
+        onLongPress={() => {
+          if (!isEditMode) {
+            Alert.alert(resolved.name, undefined, [
+              { text: 'Düzenle Moduna Geç', onPress: () => setIsEditMode(true) },
+              {
+                text: 'Sil',
+                style: 'destructive',
+                onPress: () => removeItem(set.id, item.itemType, item.itemId),
+              },
+              { text: 'Vazgeç', style: 'cancel' },
+            ]);
+          }
+        }}
       >
-        <Ionicons
-          name={getTypeIcon(item.itemType) as any}
-          size={20}
-          color={ACCENT}
-        />
-        <View style={styles.itemInfo}>
-          <Text style={[styles.itemName, { color: TEXT }]} numberOfLines={1}>
-            {resolved.name}
-          </Text>
-          {resolved.arabic ? (
-            <Text
-              style={[styles.itemArabic, { color: SUBTEXT }]}
-              numberOfLines={1}
-            >
-              {resolved.arabic}
-            </Text>
+        {/* Completion indicator */}
+        <View
+          style={[
+            S.checkBtn,
+            {
+              backgroundColor: isDone ? doneColor + '18' : pct > 0 ? accent + '12' : 'transparent',
+              borderColor: isDone ? doneColor : pct > 0 ? accent : colors.border,
+            },
+          ]}
+        >
+          {isDone ? (
+            <Ionicons name="checkmark" size={14} color={doneColor} />
+          ) : pct > 0 ? (
+            <Text style={[S.checkPct, { color: accent }]}>{pct}</Text>
           ) : null}
         </View>
 
-        {/* Reorder */}
-        <View style={styles.reorderBtns}>
-          <Pressable
-            onPress={() => handleSwap(index, 'up')}
-            hitSlop={6}
-            disabled={index === 0}
-          >
-            <Ionicons
-              name="chevron-up"
-              size={18}
-              color={index === 0 ? SUBTEXT + '44' : SUBTEXT}
-            />
-          </Pressable>
-          <Pressable
-            onPress={() => handleSwap(index, 'down')}
-            hitSlop={6}
-            disabled={index === set.items.length - 1}
-          >
-            <Ionicons
-              name="chevron-down"
-              size={18}
-              color={
-                index === set.items.length - 1 ? SUBTEXT + '44' : SUBTEXT
-              }
-            />
-          </Pressable>
+        {/* Type icon */}
+        <View style={[S.itemIcon, { backgroundColor: typeColor + '14' }]}>
+          <Ionicons name={meta.icon} size={16} color={typeColor} />
         </View>
 
-        {/* Delete */}
-        <Pressable
-          onPress={() => removeItem(set.id, item.itemType, item.itemId)}
-          hitSlop={8}
-        >
-          <Ionicons name="trash-outline" size={18} color="#EF4444" />
-        </Pressable>
-      </View>
+        {/* Content */}
+        <View style={S.itemBody}>
+          <Text
+            style={[S.itemName, isDone && { color: colors.muted, textDecorationLine: 'line-through' }]}
+            numberOfLines={1}
+          >
+            {resolved.name}
+          </Text>
+          <View style={S.itemMetaRow}>
+            {prog && prog.completed > 0 ? (
+              <Text style={[S.itemProgressText, { color: isDone ? doneColor : accent }]}>
+                {prog.completed}/{prog.target} — %{pct}
+              </Text>
+            ) : resolved.arabic ? (
+              <Text style={S.itemArabic} numberOfLines={1}>{resolved.arabic}</Text>
+            ) : resolved.sub ? (
+              <Text style={S.itemSub} numberOfLines={1}>{resolved.sub}</Text>
+            ) : null}
+            {(!prog || prog.completed === 0) && (
+              <Text style={[S.itemTarget, { color: typeColor }]}>
+                {resolved.target}x
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Edit mode: reorder + delete */}
+        {isEditMode ? (
+          <View style={S.editActions}>
+            <Pressable
+              onPress={() => handleSwap(index, 'up')}
+              hitSlop={6}
+              disabled={index === 0}
+              style={({ pressed }) => pressed && { opacity: 0.5 }}
+            >
+              <Ionicons name="chevron-up" size={18} color={index === 0 ? colors.border : colors.subtext} />
+            </Pressable>
+            <Pressable
+              onPress={() => handleSwap(index, 'down')}
+              hitSlop={6}
+              disabled={index === set.items.length - 1}
+              style={({ pressed }) => pressed && { opacity: 0.5 }}
+            >
+              <Ionicons
+                name="chevron-down"
+                size={18}
+                color={index === set.items.length - 1 ? colors.border : colors.subtext}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => removeItem(set.id, item.itemType, item.itemId)}
+              hitSlop={8}
+            >
+              <Ionicons name="trash-outline" size={16} color={colors.red} />
+            </Pressable>
+          </View>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+        )}
+      </Pressable>
     );
   };
 
   return (
-    <SafeScreen style={{ backgroundColor: gradColors[0] }}>
-      <LinearGradient colors={gradColors} style={styles.container}>
-        {/* Header with editable name */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-          <Ionicons name="chevron-back" size={24} color={TEXT} />
+    <SafeScreen>
+      {/* ─── Header ─── */}
+      <View style={S.header}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={S.backBtn}>
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
-
-        {editingName ? (
-          <TextInput
-            style={[styles.headerTitleInput, { color: TEXT, borderColor: ACCENT }]}
-            value={nameValue}
-            onChangeText={setNameValue}
-            onBlur={handleNameBlur}
-            onSubmitEditing={handleNameBlur}
-            autoFocus
-            returnKeyType="done"
-            maxLength={40}
-          />
-        ) : (
-          <Pressable onPress={() => setEditingName(true)} style={styles.titleArea}>
-            <Text style={[styles.headerTitle, { color: TEXT }]} numberOfLines={1}>
-              {set.name}
-            </Text>
-            <Ionicons name="pencil-outline" size={14} color={SUBTEXT} />
+        <View style={S.headerCenter}>
+          {editingName ? (
+            <TextInput
+              style={[S.headerInput, { color: colors.text, borderColor: accent }]}
+              value={nameValue}
+              onChangeText={setNameValue}
+              onBlur={handleNameBlur}
+              onSubmitEditing={handleNameBlur}
+              autoFocus
+              returnKeyType="done"
+              maxLength={40}
+            />
+          ) : (
+            <Pressable onPress={() => setEditingName(true)} style={S.headerTitleRow}>
+              <Text style={S.headerTitle} numberOfLines={1}>{set.name}</Text>
+              <Ionicons name="pencil-outline" size={12} color={colors.muted} />
+            </Pressable>
+          )}
+          <Text style={S.headerSub}>{totalCount} öğe</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Pressable
+            onPress={() => setIsEditMode((p) => !p)}
+            hitSlop={12}
+            style={[S.editToggle, isEditMode && { backgroundColor: accent + '22' }]}
+          >
+            <Ionicons
+              name={isEditMode ? 'checkmark' : 'create-outline'}
+              size={18}
+              color={isEditMode ? accent : colors.subtext}
+            />
           </Pressable>
-        )}
-
-        <View style={styles.backBtn} />
+          <HeaderRightIcons />
+        </View>
       </View>
 
-      {/* Items list */}
+      {/* ─── Progress card ─── */}
+      {totalCount > 0 && (
+        <View style={S.progressCard}>
+          <ProgressRing
+            size={72}
+            strokeWidth={6}
+            progress={progress}
+            color={progress >= 1 ? doneColor : accent}
+            trackColor={isDark ? 'rgba(148,163,184,0.10)' : 'rgba(0,0,0,0.05)'}
+          />
+          <View style={S.progressInner}>
+            <Text style={S.progressPercent}>
+              %{Math.round(progress * 100)}
+            </Text>
+            <Text style={S.progressHint}>tamamlandı</Text>
+          </View>
+          <View style={S.progressStats}>
+            <View style={S.progressStatRow}>
+              <View style={[S.progressStatDot, { backgroundColor: doneColor }]} />
+              <Text style={S.progressStatText}>{completedCount} tamamlanan</Text>
+            </View>
+            <View style={S.progressStatRow}>
+              <View style={[S.progressStatDot, { backgroundColor: colors.border }]} />
+              <Text style={S.progressStatText}>{totalCount - completedCount} kalan</Text>
+            </View>
+            {progress >= 1 && (
+              <View style={[S.allDoneBadge, { backgroundColor: doneColor + '18' }]}>
+                <Ionicons name="checkmark-circle" size={14} color={doneColor} />
+                <Text style={[S.allDoneText, { color: doneColor }]}>Rutin tamamlandı!</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* ─── Item list ─── */}
       <FlatList
         data={set.items}
-        keyExtractor={(item) => `${item.itemType}-${item.itemId}`}
+        keyExtractor={(item) => itemKey(item)}
         renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={S.listContent}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyItems}>
-            <Ionicons name="cube-outline" size={40} color={ACCENT + '55'} />
-            <Text style={[styles.emptyItemsText, { color: SUBTEXT }]}>
-              Henuz oge eklenmedi
-            </Text>
+          <View style={S.emptyItems}>
+            <View style={[S.emptyItemsIcon, { backgroundColor: accentSoft }]}>
+              <Ionicons name="sparkles-outline" size={32} color={accent} />
+            </View>
+            <Text style={S.emptyItemsTitle}>Henüz öğe eklenmedi</Text>
+            <Text style={S.emptyItemsSub}>Esma, dua veya sure ekleyerek rutininizi oluşturun</Text>
           </View>
         }
       />
 
-      {/* Bottom buttons */}
-      <View style={styles.bottomBar}>
+      {/* ─── Bottom bar ─── */}
+      <View style={S.bottomBar}>
         <Pressable
-          style={[styles.addBtn, { borderColor: ACCENT }]}
-          onPress={() => {
-            setAddSearch('');
-            setShowAddModal(true);
-          }}
+          style={({ pressed }) => [
+            S.addBtn,
+            { borderColor: accent },
+            pressed && { opacity: 0.8 },
+          ]}
+          onPress={() => { setAddSearch(''); setShowAddModal(true); }}
         >
-          <Ionicons name="add-circle-outline" size={20} color={ACCENT} />
-          <Text style={[styles.addBtnText, { color: ACCENT }]}>Oge Ekle</Text>
+          <Ionicons name="add-circle-outline" size={18} color={accent} />
+          <Text style={[S.addBtnText, { color: accent }]}>Öğe Ekle</Text>
         </Pressable>
 
-        {set.items.length > 0 && (
+        {totalCount > 0 && completedCount < totalCount && (
           <Pressable
-            style={[styles.startBtn, { backgroundColor: ACCENT }]}
-            onPress={handleStartRoutine}
+            style={({ pressed }) => [
+              S.startBtn,
+              { backgroundColor: accent },
+              pressed && { opacity: 0.85 },
+            ]}
+            onPress={() => {
+              /* find first incomplete item */
+              const next = set.items.find((it) => !isItemDone(it));
+              if (next) handleItemPress(next);
+            }}
           >
-            <Ionicons name="play" size={20} color="#FFFFFF" />
-            <Text style={styles.startBtnText}>Rutini Baslat</Text>
+            <Ionicons name="play" size={18} color="#FFF" />
+            <Text style={S.startBtnText}>Devam Et</Text>
           </Pressable>
+        )}
+
+        {totalCount > 0 && completedCount >= totalCount && (
+          <View style={[S.startBtn, { backgroundColor: doneColor }]}>
+            <Ionicons name="checkmark-circle" size={18} color="#FFF" />
+            <Text style={S.startBtnText}>Tamamlandı</Text>
+          </View>
         )}
       </View>
 
-      {/* Add Item Modal */}
+      {/* ─── Add Item Modal ─── */}
       <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={[styles.modalOverlay, { backgroundColor: OVERLAY }]}>
-          <SafeAreaView style={styles.modalSafe}>
+        <View style={S.modalOverlay}>
+          <SafeAreaView style={S.modalSafe}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={[styles.modalContent, { backgroundColor: isDark ? '#1C1917' : '#FFFBEB' }]}
+              style={S.modalContent}
             >
               {/* Modal header */}
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: TEXT }]}>Oge Ekle</Text>
+              <View style={S.modalHandle} />
+              <View style={S.modalHeader}>
+                <Text style={S.modalTitle}>Öğe Ekle</Text>
                 <Pressable onPress={() => setShowAddModal(false)} hitSlop={10}>
-                  <Ionicons name="close" size={24} color={TEXT} />
+                  <Ionicons name="close" size={22} color={colors.text} />
                 </Pressable>
               </View>
 
               {/* Tab chips */}
-              <View style={styles.chipRow}>
-                {(['esma', 'dua', 'sure'] as AddTab[]).map((t) => (
-                  <Pressable
-                    key={t}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: addTab === t ? ACCENT : SURFACE,
-                        borderColor: addTab === t ? ACCENT : BORDER,
-                      },
-                    ]}
-                    onPress={() => {
-                      setAddTab(t);
-                      setAddSearch('');
-                    }}
-                  >
-                    <Text
+              <View style={S.chipRow}>
+                {(['esma', 'dua', 'sure'] as AddTab[]).map((t) => {
+                  const meta = TYPE_META[t];
+                  const clr = isDark ? meta.darkColor : meta.color;
+                  const isActive = addTab === t;
+                  return (
+                    <Pressable
+                      key={t}
                       style={[
-                        styles.chipText,
-                        { color: addTab === t ? '#FFFFFF' : TEXT },
+                        S.chip,
+                        {
+                          backgroundColor: isActive ? clr + '18' : 'transparent',
+                          borderColor: isActive ? clr + '44' : colors.border,
+                        },
                       ]}
+                      onPress={() => { setAddTab(t); setAddSearch(''); }}
                     >
-                      {t === 'esma' ? 'Esma' : t === 'dua' ? 'Dua' : 'Sure'}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Ionicons name={meta.icon} size={14} color={isActive ? clr : colors.subtext} />
+                      <Text style={[S.chipText, { color: isActive ? clr : colors.subtext }]}>
+                        {meta.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
 
               {/* Search */}
-              <View
-                style={[
-                  styles.searchRow,
-                  { backgroundColor: SURFACE, borderColor: BORDER },
-                ]}
-              >
-                <Ionicons name="search" size={16} color={SUBTEXT} />
+              <View style={S.searchRow}>
+                <Ionicons name="search" size={16} color={colors.muted} />
                 <TextInput
-                  style={[styles.searchInput, { color: TEXT }]}
+                  style={[S.searchInput, { color: colors.text }]}
                   placeholder="Ara..."
-                  placeholderTextColor={TEXT + '44'}
+                  placeholderTextColor={colors.muted}
                   value={addSearch}
                   onChangeText={setAddSearch}
                 />
                 {addSearch.length > 0 && (
-                  <Pressable onPress={() => setAddSearch('')}>
-                    <Ionicons name="close-circle" size={18} color={TEXT + '88'} />
+                  <Pressable onPress={() => setAddSearch('')} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={colors.muted} />
                   </Pressable>
                 )}
               </View>
@@ -410,45 +523,30 @@ export default function CustomSetDetailScreen() {
                 data={addFilteredItems as any[]}
                 keyExtractor={(item) => item.id.toString()}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.modalListContent}
-                renderItem={({ item }) => {
+                contentContainerStyle={S.modalListContent}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item: addItem_ }) => {
                   const itemType: SpiritualItemType = addTab;
-                  const alreadyIn = isItemInSet(set.id, itemType, item.id);
-
-                  const name =
-                    addTab === 'esma'
-                      ? (item as any).nameTr
-                      : (item as any).title;
-                  const sub =
-                    addTab === 'esma'
-                      ? (item as any).meaningTr
-                      : (item as any).meaningTr;
+                  const alreadyIn = isItemInSet(set.id, itemType, addItem_.id);
+                  const meta = TYPE_META[addTab];
+                  const clr = isDark ? meta.darkColor : meta.color;
+                  const name = addTab === 'esma' ? addItem_.nameTr : addItem_.title;
+                  const sub = addItem_.meaningTr;
 
                   return (
-                    <View
-                      style={[
-                        styles.addItemRow,
-                        { borderColor: BORDER },
-                      ]}
-                    >
-                      <View style={styles.addItemInfo}>
-                        <Text
-                          style={[styles.addItemName, { color: TEXT }]}
-                          numberOfLines={1}
-                        >
-                          {name}
-                        </Text>
-                        <Text
-                          style={[styles.addItemSub, { color: SUBTEXT }]}
-                          numberOfLines={1}
-                        >
-                          {sub}
-                        </Text>
+                    <View style={S.addItemRow}>
+                      <View style={[S.addItemIcon, { backgroundColor: clr + '14' }]}>
+                        <Ionicons name={meta.icon} size={14} color={clr} />
+                      </View>
+                      <View style={S.addItemInfo}>
+                        <Text style={S.addItemName} numberOfLines={1}>{name}</Text>
+                        <Text style={S.addItemSub} numberOfLines={1}>{sub}</Text>
                       </View>
                       <Pressable
                         onPress={() => {
                           if (!alreadyIn) {
-                            addItem(set.id, itemType, item.id);
+                            addItem(set.id, itemType, addItem_.id);
+                            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                           }
                         }}
                         disabled={alreadyIn}
@@ -456,194 +554,393 @@ export default function CustomSetDetailScreen() {
                       >
                         <Ionicons
                           name={alreadyIn ? 'checkmark-circle' : 'add-circle'}
-                          size={28}
-                          color={alreadyIn ? '#10B981' : ACCENT}
+                          size={26}
+                          color={alreadyIn ? doneColor : accent}
                         />
                       </Pressable>
                     </View>
                   );
                 }}
                 ListEmptyComponent={
-                  <Text style={[styles.emptySearch, { color: SUBTEXT }]}>
-                    Sonuc bulunamadi
-                  </Text>
+                  <Text style={S.modalEmpty}>Sonuç bulunamadı</Text>
                 }
               />
             </KeyboardAvoidingView>
           </SafeAreaView>
         </View>
       </Modal>
-      </LinearGradient>
     </SafeScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
+/* ─── Styles ─── */
+function makeStyles(C: ThemeColors, isDark: boolean) {
+  const accent = isDark ? '#A78BFA' : '#7C3AED';
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 56,
-    paddingHorizontal: SPACING.lgXl,
-    paddingBottom: SPACING.md,
-  },
-  backBtn: { width: 40, alignItems: 'center', justifyContent: 'center' },
-  titleArea: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  headerTitle: { ...TYPOGRAPHY.H2 },
-  headerTitleInput: {
-    flex: 1,
-    ...TYPOGRAPHY.H2,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    paddingBottom: 4,
-  },
+  return StyleSheet.create({
+    /* Empty / Error screen */
+    emptyScreen: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: SPACING.xxl,
+      gap: SPACING.md,
+      backgroundColor: C.bg,
+    },
+    emptyTitle: { ...TYPOGRAPHY.H3, color: C.text },
+    emptyBtn: {
+      paddingHorizontal: SPACING.xl,
+      paddingVertical: SPACING.smMd,
+      borderRadius: RADIUS.full,
+      borderWidth: 1,
+    },
+    emptyBtnText: { ...TYPOGRAPHY.SmallBold },
 
-  // List
-  listContent: {
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: 16,
-    gap: SPACING.sm,
-  },
-  itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    borderWidth: 1,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    ...SHADOW.sm,
-  },
-  itemInfo: { flex: 1, gap: 2 },
-  itemName: { ...TYPOGRAPHY.BodyBold },
-  itemArabic: { ...TYPOGRAPHY.Caption, fontStyle: 'italic' },
-  reorderBtns: { gap: 2 },
+    /* Header */
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingTop: 56,
+      paddingBottom: SPACING.md,
+      gap: SPACING.sm,
+    },
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    },
+    headerCenter: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 2,
+    },
+    headerTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    headerTitle: {
+      ...TYPOGRAPHY.BodyLarge,
+      color: C.text,
+      letterSpacing: -0.3,
+    },
+    headerInput: {
+      ...TYPOGRAPHY.BodyLarge,
+      textAlign: 'center',
+      borderBottomWidth: 2,
+      paddingBottom: 2,
+      minWidth: 120,
+    },
+    headerSub: {
+      ...TYPOGRAPHY.CaptionXS,
+      color: C.subtext,
+    },
+    editToggle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    },
 
-  // Empty items
-  emptyItems: {
-    alignItems: 'center',
-    paddingTop: 60,
-    gap: SPACING.md,
-  },
-  emptyItemsText: { ...TYPOGRAPHY.Body },
+    /* Progress card */
+    progressCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: SPACING.lgXl,
+      marginBottom: SPACING.md,
+      padding: SPACING.mdLg,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
+      backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
+      gap: SPACING.md,
+    },
+    progressInner: {
+      position: 'absolute',
+      left: SPACING.mdLg,
+      width: 72,
+      height: 72,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    progressPercent: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: accent,
+      letterSpacing: -0.5,
+    },
+    progressHint: {
+      ...TYPOGRAPHY.CaptionXS,
+      color: C.subtext,
+    },
+    progressStats: {
+      flex: 1,
+      marginLeft: 72 + SPACING.md - SPACING.md, // offset for the ring
+      gap: SPACING.sm,
+    },
+    progressStatRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    progressStatDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    progressStatText: {
+      ...TYPOGRAPHY.SmallBold,
+      color: C.text,
+    },
+    allDoneBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: SPACING.smMd,
+      paddingVertical: SPACING.xs,
+      borderRadius: RADIUS.full,
+      alignSelf: 'flex-start',
+    },
+    allDoneText: {
+      ...TYPOGRAPHY.CaptionBold,
+    },
 
-  // Bottom bar
-  bottomBar: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    gap: SPACING.sm,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1.5,
-  },
-  addBtnText: { ...TYPOGRAPHY.BodyBold },
-  startBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.mdLg,
-    borderRadius: RADIUS.md,
-    ...SHADOW.md,
-  },
-  startBtnText: { ...TYPOGRAPHY.BodyBold, color: '#FFFFFF' },
+    /* List */
+    listContent: {
+      paddingHorizontal: SPACING.lgXl,
+      paddingBottom: 120,
+      gap: SPACING.sm,
+    },
 
-  // Error state
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.lg,
-  },
-  errorText: { ...TYPOGRAPHY.H3 },
-  errorBtn: {
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.md,
-  },
-  errorBtnText: { ...TYPOGRAPHY.BodyBold, color: '#FFFFFF' },
+    /* Item card */
+    itemCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.smMd,
+      padding: SPACING.md,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
+      backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
+    },
+    itemCardDone: {
+      opacity: 0.7,
+      backgroundColor: isDark ? 'rgba(30,41,59,0.35)' : 'rgba(248,250,252,0.7)',
+    },
+    checkBtn: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    itemIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: RADIUS.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    itemBody: {
+      flex: 1,
+      gap: 3,
+    },
+    itemName: {
+      ...TYPOGRAPHY.SmallBold,
+      color: C.text,
+    },
+    itemMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    itemArabic: {
+      ...TYPOGRAPHY.CaptionSmall,
+      color: C.subtext,
+      flex: 1,
+    },
+    itemSub: {
+      ...TYPOGRAPHY.CaptionSmall,
+      color: C.subtext,
+      flex: 1,
+    },
+    itemTarget: {
+      ...TYPOGRAPHY.CaptionBold,
+    },
+    itemProgressText: {
+      ...TYPOGRAPHY.CaptionBold,
+      flex: 1,
+    },
+    checkPct: {
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+    },
+    editActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
 
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalSafe: { flex: 1, justifyContent: 'flex-end' },
-  modalContent: {
-    height: '80%',
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
-    paddingTop: SPACING.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.md,
-  },
-  modalTitle: { ...TYPOGRAPHY.H3 },
+    /* Empty items */
+    emptyItems: {
+      alignItems: 'center',
+      paddingTop: 60,
+      gap: SPACING.md,
+    },
+    emptyItemsIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.xs,
+    },
+    emptyItemsTitle: {
+      ...TYPOGRAPHY.BodyBold,
+      color: C.text,
+    },
+    emptyItemsSub: {
+      ...TYPOGRAPHY.Caption,
+      color: C.subtext,
+      textAlign: 'center',
+      maxWidth: 240,
+    },
 
-  // Chips
-  chipRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.md,
-  },
-  chip: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-  },
-  chipText: { ...TYPOGRAPHY.SmallBold },
+    /* Bottom bar */
+    bottomBar: {
+      flexDirection: 'row',
+      gap: SPACING.smMd,
+      paddingHorizontal: SPACING.lgXl,
+      paddingTop: SPACING.md,
+      paddingBottom: 36,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? 'rgba(148,163,184,0.10)' : C.border,
+      backgroundColor: C.bg,
+    },
+    addBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.lg,
+      borderRadius: RADIUS.full,
+      borderWidth: 1.5,
+    },
+    addBtnText: { ...TYPOGRAPHY.SmallBold },
+    startBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+      paddingVertical: SPACING.md,
+      borderRadius: RADIUS.full,
+      ...SHADOW.sm,
+    },
+    startBtnText: { ...TYPOGRAPHY.BodyBold, color: '#FFF' },
 
-  // Search in modal
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.sm,
-    borderWidth: 1,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    gap: SPACING.sm,
-  },
-  searchInput: { flex: 1, ...TYPOGRAPHY.Body },
+    /* Modal */
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: isDark ? 'rgba(0,0,0,0.80)' : 'rgba(0,0,0,0.45)',
+    },
+    modalSafe: { flex: 1, justifyContent: 'flex-end' },
+    modalContent: {
+      height: '78%',
+      borderTopLeftRadius: RADIUS.xl,
+      borderTopRightRadius: RADIUS.xl,
+      backgroundColor: C.bg,
+      paddingTop: SPACING.sm,
+    },
+    modalHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: C.border,
+      alignSelf: 'center',
+      marginBottom: SPACING.md,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lgXl,
+      paddingBottom: SPACING.md,
+    },
+    modalTitle: { ...TYPOGRAPHY.H3, color: C.text },
 
-  modalListContent: {
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: 32,
-  },
-  addItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: SPACING.md,
-  },
-  addItemInfo: { flex: 1, gap: 2 },
-  addItemName: { ...TYPOGRAPHY.BodyBold },
-  addItemSub: { ...TYPOGRAPHY.Caption },
-  emptySearch: {
-    textAlign: 'center',
-    marginTop: 32,
-    ...TYPOGRAPHY.Small,
-  },
-});
+    /* Chips */
+    chipRow: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
+      paddingHorizontal: SPACING.lgXl,
+      paddingBottom: SPACING.md,
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: SPACING.mdLg,
+      paddingVertical: SPACING.sm,
+      borderRadius: RADIUS.full,
+      borderWidth: 1,
+    },
+    chipText: { ...TYPOGRAPHY.SmallBold },
+
+    /* Search */
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: SPACING.lgXl,
+      marginBottom: SPACING.md,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(148,163,184,0.14)' : C.border,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+      gap: SPACING.sm,
+      backgroundColor: isDark ? 'rgba(30,41,59,0.50)' : C.surface,
+    },
+    searchInput: { flex: 1, ...TYPOGRAPHY.Body },
+
+    /* Modal list */
+    modalListContent: {
+      paddingHorizontal: SPACING.lgXl,
+      paddingBottom: 32,
+    },
+    addItemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: SPACING.smMd,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: isDark ? 'rgba(148,163,184,0.08)' : C.border,
+      gap: SPACING.smMd,
+    },
+    addItemIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: RADIUS.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addItemInfo: { flex: 1, gap: 2 },
+    addItemName: { ...TYPOGRAPHY.SmallBold, color: C.text },
+    addItemSub: { ...TYPOGRAPHY.Caption, color: C.subtext },
+    modalEmpty: {
+      textAlign: 'center',
+      marginTop: 32,
+      ...TYPOGRAPHY.Body,
+      color: C.muted,
+    },
+  });
+}

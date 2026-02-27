@@ -38,7 +38,8 @@ import Reanimated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, TabHeader } from '../../components/ui';
+import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { TYPOGRAPHY } from '../../constants/tokens';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
@@ -2019,18 +2020,17 @@ export default function StarMateTabScreen() {
   return (
     <LinearGradient colors={isDark ? [colors.background, colors.bgGrad1, colors.background] : [colors.bgGrad1, colors.background, colors.bg]} style={{ flex: 1 }}>
       <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: 'transparent' }}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerEyebrow}>Yildiz Esi</Text>
-            <Text style={styles.headerTitle}>Kozmik uyumla kesfet</Text>
-            <Text style={styles.headerSubtitle}>Synastry skoru odakli eslesme ve sohbet deneyimi</Text>
-          </View>
-          <View style={styles.headerRight}>
+        <TabHeader
+          title="Yildiz Esi"
+          subtitle="Kozmik uyumla kesfet"
+          transparent
+          rightActions={
             <Pressable onPress={() => setSection('SETTINGS')} style={styles.headerIconBtn}>
               <Ionicons name="moon-outline" size={20} color={colors.primary} />
             </Pressable>
-          </View>
-        </View>
+          }
+          {...useTabHeaderActions()}
+        />
 
         <View style={styles.sectionDock}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 4 }}>
@@ -2084,34 +2084,6 @@ export default function StarMateTabScreen() {
 
 function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
   return StyleSheet.create({
-    header: {
-      paddingHorizontal: 14,
-      paddingTop: 6,
-      paddingBottom: 12,
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-    },
-    headerEyebrow: {
-      ...TYPOGRAPHY.CaptionBold,
-      color: colors.primary,
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
-    },
-    headerTitle: {
-      ...TYPOGRAPHY.H2,
-      color: colors.text,
-      marginTop: 4,
-    },
-    headerSubtitle: {
-      ...TYPOGRAPHY.Caption,
-      color: colors.subtext,
-      marginTop: 4,
-      maxWidth: 290,
-    },
-    headerRight: {
-      paddingTop: 4,
-    },
     headerIconBtn: {
       width: 38,
       height: 38,

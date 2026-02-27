@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
 import type { BarChartDataPoint } from '../types';
@@ -118,7 +118,7 @@ export default function StatsScreen() {
           <Text style={[styles.backBtnText, { color: TEXT + 'BB' }]}>←</Text>
         </Pressable>
         <Text style={[styles.headerTitle, { color: TEXT }]}>İstatistikler</Text>
-        <View style={styles.backBtn} />
+        <HeaderRightIcons tintColor={TEXT} />
       </View>
 
       {/* Period selector */}

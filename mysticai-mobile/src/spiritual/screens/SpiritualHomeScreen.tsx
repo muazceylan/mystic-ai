@@ -1,263 +1,383 @@
-import { Text, View, StyleSheet } from 'react-native';
+import React from 'react';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SafeScreen, AppHeader, Card, Button, Badge } from '../../components/ui';
-import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import { SafeScreen, TabHeader } from '../../components/ui';
+import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
+import { TYPOGRAPHY, SPACING, RADIUS, SHADOW, ACCESSIBILITY } from '../../constants/tokens';
+
+/* ─── Navigation items ─── */
+const MAIN_FEATURES: ReadonlyArray<{
+  key: string;
+  route: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  sub: string;
+  accentKey: keyof ThemeColors;
+  bgKey: keyof ThemeColors;
+}> = [
+  {
+    key: 'dua',
+    route: '/spiritual/dua',
+    icon: 'book-outline',
+    label: 'Dualar',
+    sub: 'Tüm dua koleksiyonu',
+    accentKey: 'spiritualDua',
+    bgKey: 'spiritualDuaLight',
+  },
+  {
+    key: 'esma',
+    route: '/spiritual/asma',
+    icon: 'sparkles-outline',
+    label: 'Esmalar',
+    sub: '99 Esmaül Hüsna',
+    accentKey: 'spiritualEsma',
+    bgKey: 'spiritualEsmaLight',
+  },
+  {
+    key: 'sure',
+    route: '/spiritual/sure',
+    icon: 'library-outline',
+    label: 'Sureler',
+    sub: 'Yasin, Mülk, Nebe...',
+    accentKey: 'gold',
+    bgKey: 'goldLight',
+  },
+  {
+    key: 'breath',
+    route: '/spiritual/breathing',
+    icon: 'leaf-outline',
+    label: 'Nefes Teknikleri',
+    sub: '4-7-8, Nadi Shodhana',
+    accentKey: 'spiritualMeditation',
+    bgKey: 'violetBg',
+  },
+];
+
+const QUICK_ACTIONS: ReadonlyArray<{
+  key: string;
+  route: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  sub: string;
+  accent: string;
+}> = [
+  {
+    key: 'bag',
+    route: '/spiritual/custom-sets',
+    icon: 'bag-outline',
+    label: 'Ruhsal Çantam',
+    sub: 'Kişisel setler',
+    accent: '#F59E0B',
+  },
+  {
+    key: 'journal',
+    route: '/spiritual/journal',
+    icon: 'journal-outline',
+    label: 'Günlüğüm',
+    sub: 'Takvim ve istatistik',
+    accent: '#6366F1',
+  },
+  {
+    key: 'settings',
+    route: '/spiritual/settings',
+    icon: 'settings-outline',
+    label: 'Ayarlar',
+    sub: 'Font, TTS, bildirim',
+    accent: '#64748B',
+  },
+];
 
 export default function SpiritualHomeScreen() {
-  const { prayers, asma, meditation } = useSpiritualDaily();
-  const { colors } = useTheme();
-  const s = createStyles(colors);
-
-  const isLoading = prayers.isLoading || asma.isLoading || meditation.isLoading;
-  const hasError = prayers.isError || asma.isError || meditation.isError;
+  const { colors, isDark } = useTheme();
+  const s = createStyles(colors, isDark);
 
   return (
     <SafeScreen scroll>
-      <AppHeader title="Ruhsal Pratikler" />
+      <TabHeader title="Ruhsal Pratikler" {...useTabHeaderActions()} />
 
-      {isLoading ? (
-        <Text style={[s.info, { color: colors.subtext }]}>Yükleniyor...</Text>
-      ) : null}
-      {hasError ? (
-        <Text style={[s.info, { color: colors.error }]}>
-          Ruhsal içerikler yüklenemedi. Tekrar deneyin.
-        </Text>
-      ) : null}
-
-      {/* Bugünün Duası */}
-      <Card
-        variant="elevated"
-        onPress={() => router.push('/spiritual/prayers')}
-        accessibilityLabel="Bugünün duası"
-      >
-        <View style={s.cardRow}>
-          <View style={[s.accentBar, { backgroundColor: colors.spiritualDua }]} />
-          <View style={[s.cardIcon, { backgroundColor: colors.spiritualDuaLight }]}>
-            <Ionicons name="book-outline" size={20} color={colors.spiritualDua} />
-          </View>
-          <View style={s.cardBody}>
-            <Text style={s.cardTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Bugünün Duası
+      {/* ─── Hızlı Erişim ─── */}
+      <View style={s.quickGrid}>
+        {QUICK_ACTIONS.map((q) => (
+          <Pressable
+            key={q.key}
+            style={({ pressed }) => [
+              s.quickCard,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => router.push(q.route as any)}
+            accessibilityLabel={q.label}
+          >
+            <View style={[s.quickIcon, { backgroundColor: q.accent + '18' }]}>
+              <Ionicons name={q.icon} size={18} color={q.accent} />
+            </View>
+            <Text
+              style={s.quickLabel}
+              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+            >
+              {q.label}
             </Text>
-            <Text style={s.cardSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              {prayers.data
-                ? `${prayers.data.items.length} dua · ${prayers.data.variant}`
-                : 'Dua setine git'}
+            <Text
+              style={s.quickSub}
+              numberOfLines={1}
+              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+            >
+              {q.sub}
             </Text>
-          </View>
-          {prayers.data && (
-            <Badge label={prayers.data.variant} variant="primary" />
-          )}
-        </View>
-      </Card>
-
-      {/* Bugünün Esması */}
-      <Card
-        variant="elevated"
-        onPress={() => router.push('/spiritual/asma')}
-        accessibilityLabel="Bugünün esması"
-      >
-        <View style={s.cardRow}>
-          <View style={[s.accentBar, { backgroundColor: colors.spiritualEsma }]} />
-          <View style={[s.cardIcon, { backgroundColor: colors.spiritualEsmaLight }]}>
-            <Ionicons name="sparkles-outline" size={20} color={colors.spiritualEsma} />
-          </View>
-          <View style={s.cardBody}>
-            <Text style={s.cardTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Bugünün Esması
-            </Text>
-            <Text style={s.cardSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              {asma.data
-                ? `${asma.data.transliterationTr} · ${asma.data.theme ?? 'Tema'}`
-                : 'Esmaya git'}
-            </Text>
-          </View>
-          {asma.data?.theme && (
-            <Badge label={asma.data.theme} variant="success" />
-          )}
-        </View>
-      </Card>
-
-      {/* Bugünün Nefesi */}
-      <Card
-        variant="elevated"
-        onPress={() => router.push('/spiritual/meditation')}
-        accessibilityLabel="Bugünün nefes egzersizi"
-      >
-        <View style={s.cardRow}>
-          <View style={[s.accentBar, { backgroundColor: colors.spiritualMeditation }]} />
-          <View style={[s.cardIcon, { backgroundColor: colors.violetBg }]}>
-            <Ionicons name="leaf-outline" size={20} color={colors.spiritualMeditation} />
-          </View>
-          <View style={s.cardBody}>
-            <Text style={s.cardTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Bugünün Nefesi
-            </Text>
-            <Text style={s.cardSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              {meditation.data
-                ? `${meditation.data.title} · ${Math.floor(meditation.data.durationSec / 60)} dk`
-                : 'Egzersize git'}
-            </Text>
-          </View>
-        </View>
-      </Card>
-
-      {/* Koleksiyonlar */}
-      <View style={s.row}>
-        <Card
-          style={s.half}
-          variant="elevated"
-          onPress={() => router.push('/spiritual/dua')}
-          accessibilityLabel="Tüm dualar"
-        >
-          <Ionicons name="book-outline" size={22} color={colors.spiritualDua} />
-          <Text style={s.miniTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Dualar
-          </Text>
-          <Text style={s.miniSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Tüm dua koleksiyonu
-          </Text>
-        </Card>
-        <Card
-          style={s.half}
-          variant="elevated"
-          onPress={() => router.push('/spiritual/sure')}
-          accessibilityLabel="Sureler"
-        >
-          <Ionicons name="library-outline" size={22} color="#0D9488" />
-          <Text style={s.miniTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Sureler
-          </Text>
-          <Text style={s.miniSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Yasin, Mülk, Nebe ve daha fazlası
-          </Text>
-        </Card>
+          </Pressable>
+        ))}
       </View>
 
-      <Button
-        title="Rutini Başlat"
-        size="lg"
+      {/* ─── Rutini Başlat ─── */}
+      <Pressable
+        style={({ pressed }) => [
+          s.routineBtn,
+          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+        ]}
         onPress={() => router.push('/spiritual/prayers/flow')}
         accessibilityLabel="Dua rutinini başlat"
-      />
+      >
+        <LinearGradient
+          colors={isDark
+            ? ['#4F46E5', '#7C3AED']
+            : ['#6366F1', '#8B5CF6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.routineGradient}
+        >
+          <View style={s.routineInner}>
+            <View style={s.routineIconWrap}>
+              <Ionicons name="play" size={18} color="#FFF" />
+            </View>
+            <View style={s.routineTextWrap}>
+              <Text
+                style={s.routineTitle}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                Rutini Başlat
+              </Text>
+              <Text
+                style={s.routineSub}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                Günlük dua akışına geç
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.7)" />
+          </View>
+        </LinearGradient>
+      </Pressable>
 
-      {/* Ruhsal Çantam + Nefes Teknikleri */}
-      <View style={s.row}>
-        <Card
-          style={s.half}
-          onPress={() => router.push('/spiritual/custom-sets')}
-          accessibilityLabel="Ruhsal çantam"
-        >
-          <Ionicons name="bag-outline" size={22} color="#F59E0B" />
-          <Text style={s.miniTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Ruhsal Çantam
+      {/* ─── Keşfet ─── */}
+      <View style={s.sectionHeader}>
+        <View style={s.sectionTitleRow}>
+          <View style={s.sectionDot} />
+          <Text
+            style={s.sectionTitle}
+            maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+          >
+            Keşfet
           </Text>
-          <Text style={s.miniSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Kişisel setler
-          </Text>
-        </Card>
-        <Card
-          style={s.half}
-          onPress={() => router.push('/spiritual/breathing')}
-          accessibilityLabel="Nefes teknikleri"
-        >
-          <Ionicons name="leaf-outline" size={22} color={colors.spiritualMeditation} />
-          <Text style={s.miniTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Nefes Teknikleri
-          </Text>
-          <Text style={s.miniSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            4-7-8, Nadi Shodhana...
-          </Text>
-        </Card>
+        </View>
       </View>
 
-      {/* Bottom row: Journal + Settings */}
-      <View style={s.row}>
-        <Card
-          style={s.half}
-          onPress={() => router.push('/spiritual/journal')}
-          accessibilityLabel="Dua günlüğüm"
-        >
-          <Ionicons name="journal-outline" size={22} color={colors.spiritualDua} />
-          <Text style={s.miniTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Günlüğüm
-          </Text>
-          <Text style={s.miniSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Takvim ve istatistik
-          </Text>
-        </Card>
-        <Card
-          style={s.half}
-          onPress={() => router.push('/spiritual/settings')}
-          accessibilityLabel="Ruhsal pratik ayarları"
-        >
-          <Ionicons name="settings-outline" size={22} color={colors.subtext} />
-          <Text style={s.miniTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Ayarlar
-          </Text>
-          <Text style={s.miniSub} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Font, TTS, bildirim
-          </Text>
-        </Card>
+      <View style={s.featureGrid}>
+        {MAIN_FEATURES.map((f) => {
+          const accent = colors[f.accentKey];
+          const bg = colors[f.bgKey];
+          return (
+            <Pressable
+              key={f.key}
+              style={({ pressed }) => [
+                s.featureCard,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+              ]}
+              onPress={() => router.push(f.route as any)}
+              accessibilityLabel={f.label}
+            >
+              <LinearGradient
+                pointerEvents="none"
+                colors={[accent + (isDark ? '14' : '0A'), 'transparent']}
+                style={s.featureGlow}
+              />
+              <View style={[s.featureIcon, { backgroundColor: bg + (isDark ? '' : '30') }]}>
+                <Ionicons name={f.icon} size={20} color={accent} />
+              </View>
+              <View style={s.featureBody}>
+                <Text
+                  style={s.featureLabel}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  {f.label}
+                </Text>
+                <Text
+                  style={s.featureSub}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  {f.sub}
+                </Text>
+              </View>
+              <View style={[s.featureArrow, { backgroundColor: accent + '14' }]}>
+                <Ionicons name="chevron-forward" size={16} color={accent} />
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
+
+      {/* bottom spacer */}
+      <View style={{ height: SPACING.xl }} />
     </SafeScreen>
   );
 }
 
-function createStyles(C: ThemeColors) {
+/* ─── Styles ─── */
+function createStyles(C: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
-    info: {
-      ...TYPOGRAPHY.Body,
-      textAlign: 'center',
+    /* Section headers */
+    sectionHeader: {
+      marginTop: SPACING.lgXl,
+      marginBottom: SPACING.md,
+      paddingHorizontal: SPACING.xs,
     },
-    cardRow: {
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    sectionDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: isDark ? '#818CF8' : '#6366F1',
+    },
+    sectionTitle: {
+      ...TYPOGRAPHY.BodyLarge,
+      color: C.text,
+      letterSpacing: -0.3,
+    },
+
+    /* Feature cards */
+    featureGrid: {
+      gap: SPACING.smMd,
+    },
+    featureCard: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.md,
+      padding: SPACING.mdLg,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(148,163,184,0.14)' : C.border,
+      backgroundColor: isDark ? 'rgba(30,41,59,0.65)' : C.surface,
+      overflow: 'hidden',
+      ...SHADOW.sm,
     },
-    accentBar: {
-      width: 3,
-      height: 36,
-      borderRadius: 2,
+    featureGlow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 50,
     },
-    cardIcon: {
-      width: 36,
-      height: 36,
+    featureIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: RADIUS.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    featureBody: {
+      flex: 1,
+      gap: 2,
+    },
+    featureLabel: {
+      ...TYPOGRAPHY.BodyBold,
+      color: C.text,
+    },
+    featureSub: {
+      ...TYPOGRAPHY.Caption,
+      color: C.subtext,
+    },
+    featureArrow: {
+      width: 30,
+      height: 30,
       borderRadius: RADIUS.sm,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    cardBody: {
+
+    /* Routine button */
+    routineBtn: {
+      marginTop: SPACING.mdLg,
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+      ...SHADOW.md,
+    },
+    routineGradient: {
+      borderRadius: RADIUS.lg,
+    },
+    routineInner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: SPACING.lg,
+      gap: SPACING.md,
+    },
+    routineIconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    routineTextWrap: {
       flex: 1,
       gap: 2,
     },
-    cardTitle: {
+    routineTitle: {
       ...TYPOGRAPHY.BodyBold,
-      color: C.text,
+      color: '#FFFFFF',
     },
-    cardSub: {
+    routineSub: {
       ...TYPOGRAPHY.Caption,
-      color: C.subtext,
+      color: 'rgba(255,255,255,0.72)',
     },
-    row: {
+
+    /* Quick actions */
+    quickGrid: {
       flexDirection: 'row',
-      gap: SPACING.md,
+      gap: SPACING.smMd,
     },
-    half: {
+    quickCard: {
       flex: 1,
-      gap: SPACING.xs,
+      alignItems: 'center',
+      gap: SPACING.sm,
+      paddingVertical: SPACING.lg,
+      paddingHorizontal: SPACING.sm,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
+      backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
     },
-    miniTitle: {
+    quickIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    quickLabel: {
       ...TYPOGRAPHY.SmallBold,
       color: C.text,
-      marginTop: SPACING.xs,
+      textAlign: 'center',
     },
-    miniSub: {
-      ...TYPOGRAPHY.Caption,
+    quickSub: {
+      ...TYPOGRAPHY.CaptionXS,
       color: C.subtext,
+      textAlign: 'center',
     },
   });
 }

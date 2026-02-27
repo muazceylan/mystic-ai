@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useContentStore } from '../store/useContentStore';
 
 type TextTab = 'arabic' | 'transliteration' | 'meaning';
@@ -104,7 +104,7 @@ export default function DuaDetailScreen() {
             <Text style={[styles.categoryText, { color: ACCENT }]}>{dua.category}</Text>
           </View>
         </View>
-        <View style={{ width: 40 }} />
+        <HeaderRightIcons tintColor={TEXT} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

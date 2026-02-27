@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
-import { SafeScreen, AppHeader } from '../../components/ui';
+import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
 import { BreathTimer } from '../components/BreathTimer';
 
 const ACCENT = '#7C3AED';
@@ -63,6 +63,7 @@ export default function BreathingSessionScreen() {
             title="Nefes Tekniği"
             onBack={() => router.back()}
             transparent
+            rightActions={<HeaderRightIcons />}
           />
           <View style={s.errorWrap}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
@@ -113,6 +114,7 @@ export default function BreathingSessionScreen() {
           title={technique.titleTr}
           onBack={() => router.back()}
           transparent
+          rightActions={<HeaderRightIcons />}
         />
 
       <ScrollView
