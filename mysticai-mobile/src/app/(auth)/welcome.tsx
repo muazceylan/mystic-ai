@@ -57,7 +57,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       marginBottom: 24,
     },
     inputContainer: {
-      backgroundColor: C.white,
+      backgroundColor: C.inputBg,
       borderWidth: 1,
       borderColor: C.border,
       borderRadius: 14,
@@ -103,7 +103,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       gap: 14,
     },
     socialButton: {
-      backgroundColor: C.white,
+      backgroundColor: C.surface,
       borderWidth: 1,
       borderColor: C.border,
       borderRadius: 14,
