@@ -26,11 +26,26 @@ public class MeditationExercise {
     @Column(nullable = false, length = 160)
     private String title;
 
+    @Column(name = "title_tr", length = 160)
+    private String titleTr;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "benefits_json", columnDefinition = "TEXT")
+    private String benefitsJson;
+
     @Column(nullable = false, length = 24)
     private String type;
 
     @Column(name = "focus_theme", nullable = false, length = 64)
     private String focusTheme;
+
+    @Column(name = "difficulty", length = 24)
+    private String difficulty;
+
+    @Column(length = 64)
+    private String icon;
 
     @Column(name = "duration_sec", nullable = false)
     private Integer durationSec;

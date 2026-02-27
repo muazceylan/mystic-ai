@@ -25,7 +25,7 @@ import java.util.Map;
 @Slf4j
 public class SpiritualDataLoader implements CommandLineRunner {
 
-    private final asmaulHusnaRepository;
+    private final AsmaulHusnaRepository asmaulHusnaRepository;
     private final PrayerRepository prayerRepository;
     private final MeditationExerciseRepository meditationExerciseRepository;
     private final ObjectMapper objectMapper;
@@ -73,7 +73,7 @@ public class SpiritualDataLoader implements CommandLineRunner {
                     .reflectionTextTr(getString(item, "meaningTr"))
                     .shortBenefitTr(getString(item, "shortBenefit"))
                     .theme(extractFirstTag(item))
-                    .tagsJson(getString(item, "tags"))
+                    .tagsJson(serializeList(item, "tags"))
                     .recommendedDhikrCount(getInteger(item, "defaultTargetCount"))
                     .sourceProvider(extractSourceProvider(item))
                     .sourceNote(extractSourceNote(item))
@@ -127,7 +127,7 @@ public class SpiritualDataLoader implements CommandLineRunner {
                     .transliterationTr(getString(item, "transliteration"))
                     .meaningTr(getString(item, "meaningTr"))
                     .shortBenefitTr(getString(item, "shortBenefit"))
-                    .tagsJson(getString(item, "tags"))
+                    .tagsJson(serializeList(item, "tags"))
                     .relatedAyahRef(ayahRef)
                     .recommendedRepeatCount(getInteger(item, "defaultTargetCount"))
                     .estimatedReadSeconds(estimateReadTime(getString(item, "arabic")))
@@ -221,6 +221,18 @@ public class SpiritualDataLoader implements CommandLineRunner {
         return value instanceof List ? (List<String>) value : null;
     }
 
+    private String serializeList(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof List) {
+            try {
+                return objectMapper.writeValueAsString(value);
+            } catch (Exception e) {
+                return value.toString();
+            }
+        }
+        return value != null ? value.toString() : null;
+    }
+
     @SuppressWarnings("unchecked")
     private String extractFirstTag(Map<String, Object> item) {
         List<String> tags = getList(item, "tags");
@@ -229,9 +241,12 @@ public class SpiritualDataLoader implements CommandLineRunner {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> extractSource(Map<String, Object> item) {
-        List<Map<String, Object>> sources = getList(item, "sources");
-        if (sources != null && !sources.isEmpty()) {
-            return sources.get(0);
+        Object value = item.get("sources");
+        if (value instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.getFirst();
+            if (first instanceof Map) {
+                return (Map<String, Object>) first;
+            }
         }
         return Map.of();
     }

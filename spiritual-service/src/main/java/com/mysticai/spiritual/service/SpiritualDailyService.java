@@ -63,11 +63,14 @@ public class SpiritualDailyService {
                 prayer.getArabicText(),
                 prayer.getTransliterationTr(),
                 prayer.getMeaningTr(),
+                prayer.getShortBenefitTr(),
+                prayer.getTagsJson(),
                 prayer.getRecommendedRepeatCount(),
                 prayer.getEstimatedReadSeconds(),
                 prayer.getIsFavoritable(),
                 favorite,
-                prayer.getDisclaimerText()
+                prayer.getDisclaimerText(),
+                prayer.getDifficultyLevel()
         );
     }
 
@@ -110,8 +113,10 @@ public class SpiritualDailyService {
                 asma.getId(),
                 asma.getOrderNo(),
                 asma.getArabicName(),
+                asma.getNameTr(),
                 asma.getTransliterationTr(),
                 asma.getMeaningTr(),
+                asma.getShortBenefitTr(),
                 asma.getReflectionTextTr(),
                 asma.getTheme(),
                 asma.getRecommendedDhikrCount(),
@@ -139,8 +144,10 @@ public class SpiritualDailyService {
                         a.getId(),
                         a.getOrderNo(),
                         a.getArabicName(),
+                        a.getNameTr(),
                         a.getTransliterationTr(),
                         a.getMeaningTr(),
+                        a.getShortBenefitTr(),
                         a.getTheme(),
                         a.getRecommendedDhikrCount()
                 ))
@@ -161,11 +168,15 @@ public class SpiritualDailyService {
                 asma.getId(),
                 asma.getOrderNo(),
                 asma.getArabicName(),
+                asma.getNameTr(),
                 asma.getTransliterationTr(),
                 asma.getMeaningTr(),
+                asma.getShortBenefitTr(),
                 asma.getReflectionTextTr(),
                 asma.getTheme(),
+                asma.getTagsJson(),
                 asma.getRecommendedDhikrCount(),
+                asma.getSourceProvider(),
                 asma.getSourceNote()
         );
     }
@@ -187,8 +198,13 @@ public class SpiritualDailyService {
                 daily.getSelectionScope(),
                 exercise.getId(),
                 exercise.getTitle(),
+                exercise.getTitleTr(),
+                exercise.getDescription(),
+                exercise.getBenefitsJson(),
                 exercise.getType(),
                 exercise.getFocusTheme(),
+                exercise.getDifficulty(),
+                exercise.getIcon(),
                 exercise.getDurationSec(),
                 exercise.getStepsJson(),
                 exercise.getBreathingPatternJson(),

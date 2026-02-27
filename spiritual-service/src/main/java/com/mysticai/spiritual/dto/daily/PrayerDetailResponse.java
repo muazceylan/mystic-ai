@@ -9,10 +9,13 @@ public record PrayerDetailResponse(
         String arabicText,
         String transliterationTr,
         String meaningTr,
+        String shortBenefitTr,
+        String tagsJson,
         Integer recommendedRepeatCount,
         Integer estimatedReadSeconds,
         Boolean isFavoritable,
         Boolean isFavorite,
-        String disclaimerText
+        String disclaimerText,
+        Integer difficultyLevel
 ) {
 }

@@ -44,6 +44,15 @@ public class Prayer {
     @Column(name = "meaning_tr", columnDefinition = "TEXT", nullable = false)
     private String meaningTr;
 
+    @Column(name = "short_benefit_tr", columnDefinition = "TEXT")
+    private String shortBenefitTr;
+
+    @Column(name = "tags_json", columnDefinition = "TEXT")
+    private String tagsJson;
+
+    @Column(name = "related_ayah_ref", length = 32)
+    private String relatedAyahRef;
+
     @Column(name = "recommended_repeat_count", nullable = false)
     private Integer recommendedRepeatCount;
 

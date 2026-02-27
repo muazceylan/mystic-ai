@@ -26,17 +26,29 @@ public class AsmaulHusna {
     @Column(name = "arabic_name", nullable = false, length = 128)
     private String arabicName;
 
+    @Column(name = "name_tr", length = 128)
+    private String nameTr;
+
     @Column(name = "transliteration_tr", nullable = false, length = 128)
     private String transliterationTr;
 
     @Column(name = "meaning_tr", nullable = false, length = 256)
     private String meaningTr;
 
+    @Column(name = "short_benefit_tr", columnDefinition = "TEXT")
+    private String shortBenefitTr;
+
     @Column(name = "reflection_text_tr", columnDefinition = "TEXT", nullable = false)
     private String reflectionTextTr;
 
     @Column(length = 64)
     private String theme;
+
+    @Column(name = "tags_json", columnDefinition = "TEXT")
+    private String tagsJson;
+
+    @Column(name = "source_provider", length = 64)
+    private String sourceProvider;
 
     @Column(name = "source_note", columnDefinition = "TEXT")
     private String sourceNote;
