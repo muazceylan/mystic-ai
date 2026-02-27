@@ -15,6 +15,7 @@ const ONBOARDING_STEPS = [
   'gender',
   'marital-status',
   'focus-point',
+  'notification-permission',
   'natal-chart',
 ];
 
@@ -62,6 +63,7 @@ export default function AuthLayout() {
         <Stack.Screen name="gender" />
         <Stack.Screen name="marital-status" />
         <Stack.Screen name="focus-point" />
+        <Stack.Screen name="notification-permission" />
         <Stack.Screen name="natal-chart" />
       </Stack>
     </>

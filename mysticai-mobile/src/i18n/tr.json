@@ -478,7 +478,15 @@
     "family": "Aile",
     "familyDesc": "Aile ilişkileri",
     "spiritual": "Ruhani",
-    "spiritualDesc": "Maneviyat"
+    "spiritualDesc": "Maneviyat",
+    "beauty": "Güzellik",
+    "beautyDesc": "Güzellik & Bakım",
+    "finance": "Finans",
+    "financeDesc": "Finans & Yatırım",
+    "social": "Sosyal",
+    "socialDesc": "Sosyal yaşam",
+    "home": "Ev",
+    "homeDesc": "Ev İşleri"
   },
   "gender": {
     "female": "Kadın",
@@ -680,14 +688,23 @@
     "pluto": "Plüton",
     "chiron": "Kiron",
     "northNode": "Kuzey Düğümü",
-    "onboardingAnalyzeTitle": "Doğum Haritamı Analiz Et",
-    "onboardingAnalyzeDesc": "Henüz yeniyim, gezegenlerimi ve evlerimi öğrenmek istiyorum",
-    "onboardingSkipTitle": "Uygulamaya Geç",
-    "onboardingSkipDesc": "Astroloji tecrübem var, uygulamaya geçmek istiyorum",
-    "onboardingSyncMessage": "Haritanız yıldızlarla senkronize ediliyor...",
-    "onboardingRegisterError": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
-    "accessibilityAnalyzeChart": "Doğum haritamı analiz et",
-    "accessibilityGoToApp": "Uygulamaya geç"
+    "onboardingSetupTitle": "Hesabınız Hazırlanıyor",
+    "onboardingSetupSubtitle": "Doğum haritanız oluşturuluyor ve kozmik profiliniz hazırlanıyor...",
+    "onboardingStepRegister": "Hesap oluşturuluyor",
+    "onboardingStepChart": "Doğum haritası hazırlanıyor",
+    "onboardingStepReady": "Her şey hazır!",
+    "onboardingRegisterError": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin."
+  },
+  "notificationPermission": {
+    "title": "Bildirimleri Aç",
+    "subtitle": "Kozmik fırsatları kaçırmamak için bildirimlere izin verin. Size neler göndereceğiz:",
+    "reason_dailyHoroscope": "Günlük burç yorumunuz ve gökyüzü rehberiniz",
+    "reason_lunarEvents": "Ay tutulması, dolunay gibi önemli kozmik olaylar",
+    "reason_cosmicOpportunities": "Haritanıza özel şans ve fırsat bildirimleri",
+    "reason_dreamReminder": "Rüya günlüğünüze yazmayı unutmayın hatırlatması",
+    "privacyNote": "Bildirimleri istediğiniz zaman ayarlardan kapatabilirsiniz.",
+    "allow": "Bildirimlere İzin Ver",
+    "skip": "Şimdilik Geç"
   },
   "premium": {
     "title": "Premium",

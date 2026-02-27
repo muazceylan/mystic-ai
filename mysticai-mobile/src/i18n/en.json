@@ -477,7 +477,15 @@
     "family": "Family",
     "familyDesc": "Family relations",
     "spiritual": "Spiritual",
-    "spiritualDesc": "Spirituality"
+    "spiritualDesc": "Spirituality",
+    "beauty": "Beauty",
+    "beautyDesc": "Beauty & Care",
+    "finance": "Finance",
+    "financeDesc": "Finance & Investment",
+    "social": "Social",
+    "socialDesc": "Social life",
+    "home": "Home",
+    "homeDesc": "Home & Living"
   },
   "gender": {
     "female": "Female",
@@ -679,14 +687,23 @@
     "pluto": "Pluto",
     "chiron": "Chiron",
     "northNode": "North Node",
-    "onboardingAnalyzeTitle": "Analyze My Birth Chart",
-    "onboardingAnalyzeDesc": "I'm new to astrology, I want to learn about my planets and houses",
-    "onboardingSkipTitle": "Go to App",
-    "onboardingSkipDesc": "I have astrology experience, I want to go to the app",
-    "onboardingSyncMessage": "Your chart is syncing with the stars...",
-    "onboardingRegisterError": "An error occurred during registration. Please try again.",
-    "accessibilityAnalyzeChart": "Analyze my birth chart",
-    "accessibilityGoToApp": "Go to app"
+    "onboardingSetupTitle": "Setting Up Your Account",
+    "onboardingSetupSubtitle": "Creating your birth chart and preparing your cosmic profile...",
+    "onboardingStepRegister": "Creating account",
+    "onboardingStepChart": "Preparing birth chart",
+    "onboardingStepReady": "All set!",
+    "onboardingRegisterError": "An error occurred during registration. Please try again."
+  },
+  "notificationPermission": {
+    "title": "Enable Notifications",
+    "subtitle": "Allow notifications so you never miss cosmic opportunities. Here's what we'll send:",
+    "reason_dailyHoroscope": "Your daily horoscope and sky guide",
+    "reason_lunarEvents": "Important cosmic events like eclipses and full moons",
+    "reason_cosmicOpportunities": "Luck and opportunity alerts based on your chart",
+    "reason_dreamReminder": "Reminders to log your dreams in your journal",
+    "privacyNote": "You can turn off notifications anytime in settings.",
+    "allow": "Allow Notifications",
+    "skip": "Maybe Later"
   },
   "premium": {
     "monthly": "Monthly",

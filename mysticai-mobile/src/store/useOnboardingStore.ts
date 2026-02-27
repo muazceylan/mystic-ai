@@ -111,7 +111,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     if (current.includes(id)) {
       return { focusPoints: current.filter((p) => p !== id) };
     }
-    if (current.length >= 3) return state;
     return { focusPoints: [...current, id] };
   }),
   setFocusPoints: (focusPoints) => set({ focusPoints }),

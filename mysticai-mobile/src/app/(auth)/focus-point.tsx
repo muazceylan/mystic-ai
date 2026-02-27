@@ -15,6 +15,10 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   health: 'medkit',
   family: 'people',
   spiritual: 'sparkles',
+  beauty: 'flower',
+  finance: 'trending-up',
+  social: 'chatbubbles',
+  home: 'home',
 };
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
@@ -129,7 +133,6 @@ export default function FocusPointScreen() {
   const { colors } = useTheme();
   const store = useOnboardingStore();
   const styles = makeStyles(colors);
-  const isMaxSelected = store.focusPoints.length >= 3;
   const canContinue = store.focusPoints.length > 0;
 
   return (
@@ -143,36 +146,32 @@ export default function FocusPointScreen() {
           {t('auth.focusPointSubtitle')}
         </Text>
         <Text style={styles.selectionHint}>
-          {t('auth.focusPointHint')} ({store.focusPoints.length}/3)
+          {t('auth.focusPointHint')} ({store.focusPoints.length})
         </Text>
 
         <View style={styles.grid}>
           {FOCUS_POINTS.map((point) => {
             const selected = store.focusPoints.includes(point.id);
-            const dimmed = !selected && isMaxSelected;
             return (
               <TouchableOpacity
                 key={point.id}
                 style={[
                   styles.card,
                   selected && styles.cardSelected,
-                  dimmed && styles.cardDimmed,
                 ]}
                 onPress={() => store.toggleFocusPoint(point.id)}
-                disabled={dimmed}
                 accessibilityLabel={t(`focusPoints.${point.id}`)}
                 accessibilityRole="button"
               >
                 <Ionicons
                   name={ICON_MAP[point.id] || 'sparkles'}
                   size={20}
-                  color={selected ? colors.primary : dimmed ? colors.disabledText : colors.subtext}
+                  color={selected ? colors.primary : colors.subtext}
                 />
                 <Text
                   style={[
                     styles.cardText,
                     selected && styles.cardTextSelected,
-                    dimmed && styles.cardTextDimmed,
                   ]}
                 >
                   {t(`focusPoints.${point.id}`)}
@@ -195,7 +194,7 @@ export default function FocusPointScreen() {
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
           disabled={!canContinue}
-          onPress={() => router.push('/natal-chart')}
+          onPress={() => router.push('/notification-permission')}
           accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >

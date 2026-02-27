@@ -565,11 +565,16 @@ public class MysticalPromptTemplates {
     private String focusLabel(String focusPoint) {
         if (focusPoint == null) return "yaşam";
         String f = focusPoint.toLowerCase();
-        if (f.contains("ask") || f.contains("aşk")) return "aşk ve ilişki";
-        if (f.contains("para")) return "para ve finans";
-        if (f.contains("kariyer")) return "kariyer";
-        if (f.contains("aile")) return "aile";
-        if (f.contains("arkadas") || f.contains("arkadaş")) return "arkadaşlık ve sosyal";
+        if (f.contains("love") || f.contains("ask") || f.contains("aşk")) return "aşk ve ilişki";
+        if (f.contains("money") || f.contains("para")) return "para ve finans";
+        if (f.contains("career") || f.contains("kariyer")) return "kariyer";
+        if (f.contains("family") || f.contains("aile")) return "aile";
+        if (f.contains("health") || f.contains("sağlık") || f.contains("saglik")) return "sağlık ve wellness";
+        if (f.contains("spiritual") || f.contains("ruhani")) return "maneviyat ve ruhani gelişim";
+        if (f.contains("beauty")) return "güzellik ve bakım";
+        if (f.contains("finance")) return "finans ve yatırım";
+        if (f.contains("social") || f.contains("arkadas") || f.contains("arkadaş")) return "sosyal yaşam ve ilişkiler";
+        if (f.contains("home") || f.contains("ev")) return "ev ve yaşam düzeni";
         if (f.contains("ticaret")) return "iş ve ticaret";
         return "genel yaşam";
     }

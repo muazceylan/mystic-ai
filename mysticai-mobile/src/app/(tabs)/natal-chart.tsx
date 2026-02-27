@@ -413,6 +413,7 @@ export default function NatalChartTab() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
+  const tabHeaderActions = useTabHeaderActions();
   const styles = makeStyles(colors);
   const ASPECT_INFO = useMemo(() => getAspectInfo(colors, t), [colors, t]);
   const planetNames: Record<string, string> = useMemo(() => ({
@@ -2369,7 +2370,6 @@ export default function NatalChartTab() {
 
   const MainVerticalScroll: any = ENABLE_SECTION_DND ? NestableScrollContainer : ScrollView;
   const stickyHeaderIndices = chart ? [2] : [];
-  const tabHeaderActions = useTabHeaderActions();
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>

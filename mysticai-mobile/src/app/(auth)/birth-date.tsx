@@ -1,15 +1,28 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
-import CalendarPicker from '../../components/CalendarPicker';
+import WheelPicker from '../../components/WheelPicker';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { getZodiacSign } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+
+const MONTHS_TR = [
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+];
+const MONTHS_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function getDaysInMonth(month: number, year: number): number {
+  return new Date(year, month, 0).getDate();
+}
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -24,36 +37,60 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
     },
     title: {
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: '700',
       color: C.text,
-      marginBottom: 8,
+      marginBottom: 6,
+      textAlign: 'center',
     },
     subtitle: {
       fontSize: 14,
       color: C.subtext,
       textAlign: 'center',
-      marginBottom: 24,
+      marginBottom: 28,
+      lineHeight: 20,
     },
-    input: {
+    pickerCard: {
       width: '100%',
+      borderRadius: 20,
       backgroundColor: C.surface,
       borderWidth: 1,
       borderColor: C.border,
-      borderRadius: 12,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
+      overflow: 'hidden',
+      paddingVertical: 4,
+    },
+    pickerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      justifyContent: 'center',
+      paddingHorizontal: 8,
     },
-    inputText: {
-      flex: 1,
-      fontSize: 16,
-      color: C.text,
+    selectedDateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginTop: 16,
+      paddingVertical: 10,
     },
-    placeholder: {
-      color: C.disabledText,
+    selectedDateText: {
+      fontSize: 15,
+      color: C.primary,
+      fontWeight: '600',
+    },
+    zodiacBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: C.primarySoftBg,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    zodiacText: {
+      fontSize: 13,
+      color: C.primary,
+      fontWeight: '600',
     },
     footer: {
       flexDirection: 'row',
@@ -81,225 +118,123 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
       backgroundColor: C.primary,
     },
-    primaryDisabled: {
-      backgroundColor: C.disabled,
-    },
     primaryText: {
       color: C.white,
       fontSize: 15,
       fontWeight: '600',
     },
-    primaryTextDisabled: {
-      color: C.disabledText,
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: 24,
-    },
-    modalCard: {
-      width: '100%',
-      backgroundColor: C.surface,
-      borderRadius: 28,
-      overflow: 'hidden',
-      maxHeight: '85%',
-      elevation: 8,
-      shadowColor: C.shadow,
-      shadowOpacity: 0.15,
-      shadowRadius: 20,
-      shadowOffset: { width: 0, height: 8 },
-    },
-    modalHeader: {
-      paddingHorizontal: 24,
-      paddingTop: 20,
-      paddingBottom: 16,
-    },
-    modalLabel: {
-      fontSize: 12,
-      fontWeight: '500',
-      color: C.subtext,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: 8,
-    },
-    modalSelectedDate: {
-      fontSize: 22,
-      fontWeight: '700',
-      color: C.text,
-    },
-    modalDivider: {
-      height: 1,
-      backgroundColor: C.border,
-    },
-    calendarScroll: {
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-    },
-    modalActions: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      gap: 8,
-    },
-    modalTextButton: {
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 20,
-    },
-    modalTextButtonDisabled: {
-      opacity: 0.4,
-    },
-    modalTextButtonLabel: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: C.primary,
-    },
-    modalTextButtonLabelDisabled: {
-      color: C.disabledText,
-    },
   });
 }
 
 export default function BirthDateScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const store = useOnboardingStore();
-  const [showPicker, setShowPicker] = useState(false);
-  const [tempDate, setTempDate] = useState<Date | null>(store.birthDate);
-  const styles = makeStyles(colors);
+  const s = makeStyles(colors);
 
-  const handleConfirm = () => {
-    if (tempDate) {
-      store.setBirthDate(tempDate);
-      const zodiac = getZodiacSign(tempDate.getMonth() + 1, tempDate.getDate());
-      store.setZodiacSign(zodiac);
-    }
-    setShowPicker(false);
-  };
+  const now = new Date();
+  const initial = store.birthDate || new Date(1995, 0, 1);
+  const [day, setDay] = useState(initial.getDate());
+  const [month, setMonth] = useState(initial.getMonth() + 1);
+  const [year, setYear] = useState(initial.getFullYear());
 
-  const formatDate = (date: Date) => {
-    const day = date.getDate();
-    const months = t('calendar.months').split(',');
-    return `${day} ${months[date.getMonth()]} ${date.getFullYear()}`;
-  };
+  const months = i18n.language === 'tr' ? MONTHS_TR : MONTHS_EN;
+  const maxDay = getDaysInMonth(month, year);
 
-  const canContinue = Boolean(store.birthDate);
+  useEffect(() => {
+    if (day > maxDay) setDay(maxDay);
+  }, [month, year, maxDay, day]);
+
+  const safeDay = Math.min(day, maxDay);
+
+  useEffect(() => {
+    const date = new Date(year, month - 1, safeDay);
+    store.setBirthDate(date);
+    store.setZodiacSign(getZodiacSign(month, safeDay));
+  }, [safeDay, month, year]);
+
+  const dayItems = useMemo(
+    () => Array.from({ length: maxDay }, (_, i) => ({ value: i + 1, label: String(i + 1) })),
+    [maxDay],
+  );
+  const monthItems = useMemo(
+    () => months.map((m, i) => ({ value: i + 1, label: m })),
+    [months],
+  );
+  const yearItems = useMemo(
+    () =>
+      Array.from({ length: now.getFullYear() - 1920 + 1 }, (_, i) => ({
+        value: 1920 + i,
+        label: String(1920 + i),
+      })),
+    [],
+  );
+
+  const zodiac = getZodiacSign(month, safeDay);
+  const formattedDate = `${safeDay} ${months[month - 1]} ${year}`;
 
   return (
     <SafeScreen>
-      <View style={styles.container}>
+      <View style={s.container}>
         <OnboardingBackground />
 
-        <View style={styles.content}>
-        <Text style={styles.title}>{t('auth.birthDateTitle')}</Text>
-        <Text style={styles.subtitle}>
-          {t('auth.birthDateSubtitle')}
-        </Text>
+        <View style={s.content}>
+          <Text style={s.title}>{t('auth.birthDateTitle')}</Text>
+          <Text style={s.subtitle}>{t('auth.birthDateSubtitle')}</Text>
 
-        <TouchableOpacity
-          style={styles.input}
-          onPress={() => setShowPicker(true)}
-          accessibilityLabel={t('editBirthInfo.accessibilitySelectDate')}
-          accessibilityRole="button"
-        >
-          <Ionicons name="calendar-outline" size={20} color={store.birthDate ? colors.primary : colors.disabledText} />
-          <Text style={[styles.inputText, !store.birthDate && styles.placeholder]}>
-            {store.birthDate ? formatDate(store.birthDate) : t('birthInfo.selectDate')}
-          </Text>
-          {store.birthDate && (
-            <Animated.View entering={FadeIn.duration(300)}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-            </Animated.View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.outlineButton}
-          onPress={() => router.back()}
-          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
-          accessibilityRole="button"
-        >
-          <Text style={styles.outlineText}>{t('common.back')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
-          accessibilityLabel={t('common.continue')}
-          accessibilityRole="button"
-          disabled={!canContinue}
-          onPress={() => canContinue && router.push('/birth-time')}
-        >
-          <Text style={[styles.primaryText, !canContinue && styles.primaryTextDisabled]}>
-            {t('common.continue')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Material Design 3 style calendar modal */}
-      <Modal visible={showPicker} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            {/* M3 Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalLabel}>{t('birthInfo.selectDate')}</Text>
-              <Text style={styles.modalSelectedDate}>
-                {tempDate ? formatDate(tempDate) : t('editBirthInfo.notSelectedYet')}
-              </Text>
-            </View>
-
-            <View style={styles.modalDivider} />
-
-            {/* Calendar */}
-            <ScrollView
-              style={styles.calendarScroll}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-            >
-              <CalendarPicker
-                selectedDate={tempDate}
-                onSelect={setTempDate}
-                maximumDate={new Date()}
-                minimumDate={new Date(1920, 0, 1)}
+          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={s.pickerCard}>
+            <View style={s.pickerRow}>
+              <WheelPicker
+                items={dayItems}
+                selectedValue={day}
+                onValueChange={(v) => setDay(v as number)}
+                width={70}
               />
-            </ScrollView>
-
-            <View style={styles.modalDivider} />
-
-            {/* M3 Action buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalTextButton}
-                onPress={() => setShowPicker(false)}
-                accessibilityLabel={t('common.cancel')}
-                accessibilityRole="button"
-              >
-                <Text style={styles.modalTextButtonLabel}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalTextButton, !tempDate && styles.modalTextButtonDisabled]}
-                onPress={handleConfirm}
-                disabled={!tempDate}
-                accessibilityLabel={t('editBirthInfo.confirmDate')}
-                accessibilityRole="button"
-              >
-                <Text
-                  style={[
-                    styles.modalTextButtonLabel,
-                    !tempDate && styles.modalTextButtonLabelDisabled,
-                  ]}
-                >
-                  {t('common.ok')}
-                </Text>
-              </TouchableOpacity>
+              <WheelPicker
+                items={monthItems}
+                selectedValue={month}
+                onValueChange={(v) => setMonth(v as number)}
+                width={130}
+              />
+              <WheelPicker
+                items={yearItems}
+                selectedValue={year}
+                onValueChange={(v) => setYear(v as number)}
+                width={90}
+              />
             </View>
-          </View>
+          </Animated.View>
+
+          <Animated.View entering={FadeIn.duration(400).delay(300)} style={s.selectedDateRow}>
+            <Ionicons name="calendar" size={16} color={colors.primary} />
+            <Text style={s.selectedDateText}>{formattedDate}</Text>
+            {zodiac && (
+              <View style={s.zodiacBadge}>
+                <Text style={s.zodiacText}>{zodiac}</Text>
+              </View>
+            )}
+          </Animated.View>
         </View>
-      </Modal>
-    </View>
+
+        <View style={s.footer}>
+          <TouchableOpacity
+            style={s.outlineButton}
+            onPress={() => router.back()}
+            accessibilityLabel={t('editBirthInfo.accessibilityBack')}
+            accessibilityRole="button"
+          >
+            <Text style={s.outlineText}>{t('common.back')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.primaryButton}
+            accessibilityLabel={t('common.continue')}
+            accessibilityRole="button"
+            onPress={() => router.push('/birth-time')}
+          >
+            <Text style={s.primaryText}>{t('common.continue')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeScreen>
   );
 }

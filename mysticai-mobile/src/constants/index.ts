@@ -285,6 +285,10 @@ export const FOCUS_POINTS = [
   { id: 'health', title: 'Sağlık', emoji: '❤️', description: 'Fiziksel wellness' },
   { id: 'family', title: 'Aile', emoji: '👨‍👩‍👧', description: 'Aile ilişkileri' },
   { id: 'spiritual', title: 'Ruhani', emoji: '✨', description: 'Maneviyat' },
+  { id: 'beauty', title: 'Güzellik', emoji: '💅', description: 'Güzellik & Bakım' },
+  { id: 'finance', title: 'Finans', emoji: '📈', description: 'Finans & Yatırım' },
+  { id: 'social', title: 'Sosyal', emoji: '🤝', description: 'Sosyal yaşam' },
+  { id: 'home', title: 'Ev', emoji: '🏠', description: 'Ev İşleri' },
 ];
 
 // Gender options

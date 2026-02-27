@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios/dist/browser/axios.cjs';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
@@ -11,8 +12,6 @@ import { COUNTRIES } from '../../constants/index';
 import { login as loginApi, register, updateProfile } from '../../services/auth';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
-
-type Choice = 'analyze' | 'skip' | null;
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -24,115 +23,113 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     content: {
       flex: 1,
       justifyContent: 'center',
-      gap: 16,
+      alignItems: 'center',
+      gap: 24,
     },
-    optionCard: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      backgroundColor: C.surface,
-      borderWidth: 1,
-      borderColor: C.border,
-      borderRadius: 14,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      gap: 12,
-    },
-    optionSelected: {
-      borderColor: C.primary,
-      backgroundColor: C.primarySoft,
-    },
-    optionTextContainer: {
-      flex: 1,
-    },
-    optionTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: C.text,
-    },
-    optionTitleSelected: {
-      color: C.primary,
-    },
-    optionSubtitle: {
-      marginTop: 4,
-      fontSize: 12,
-      color: C.subtext,
-    },
-    checkBadge: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      backgroundColor: C.primary,
+    iconCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: C.primarySoftBg,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: C.text,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 14,
+      color: C.subtext,
+      textAlign: 'center',
+      lineHeight: 20,
+      paddingHorizontal: 16,
+    },
+    stepsContainer: {
+      width: '100%',
+      gap: 12,
+      marginTop: 8,
+    },
+    stepRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 8,
+    },
+    stepDot: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepDotActive: {
+      backgroundColor: C.primary,
+    },
+    stepDotPending: {
+      backgroundColor: C.surfaceAlt,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    stepDotDone: {
+      backgroundColor: C.success,
+    },
+    stepText: {
+      fontSize: 14,
+      color: C.subtext,
+      flex: 1,
+    },
+    stepTextActive: {
+      color: C.text,
+      fontWeight: '600',
+    },
+    stepTextDone: {
+      color: C.success,
+      fontWeight: '600',
+    },
+    errorContainer: {
+      width: '100%',
+      backgroundColor: C.redBg,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center',
+      gap: 8,
     },
     errorText: {
       color: C.error,
-      fontSize: 12,
+      fontSize: 13,
       textAlign: 'center',
     },
-    footer: {
-      flexDirection: 'row',
-      gap: 12,
-      paddingBottom: 32,
-    },
-    outlineButton: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: C.primary,
-      borderRadius: 999,
-      paddingVertical: 14,
-      alignItems: 'center',
-      backgroundColor: C.surface,
-    },
-    outlineText: {
-      color: C.primary,
-      fontSize: 15,
-      fontWeight: '600',
-    },
-    primaryButton: {
-      flex: 1,
-      borderRadius: 999,
-      paddingVertical: 14,
-      alignItems: 'center',
+    retryButton: {
       backgroundColor: C.primary,
+      borderRadius: 999,
+      paddingVertical: 10,
+      paddingHorizontal: 24,
+      marginTop: 4,
     },
-    primaryDisabled: {
-      backgroundColor: C.disabled,
-    },
-    primaryText: {
+    retryText: {
       color: C.white,
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '600',
     },
-    primaryTextDisabled: {
-      color: C.disabledText,
-    },
-    syncOverlay: {
-      position: 'absolute',
-      left: 24,
-      right: 24,
-      bottom: 100,
-      backgroundColor: C.surface,
-      borderRadius: 14,
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
+    backButton: {
       borderWidth: 1,
       borderColor: C.border,
-      shadowColor: C.shadow,
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 4,
+      borderRadius: 999,
+      paddingVertical: 10,
+      paddingHorizontal: 24,
     },
-    syncText: {
-      fontSize: 12,
+    backText: {
       color: C.subtext,
+      fontSize: 14,
+      fontWeight: '500',
     },
   });
 }
+
+type Step = 'register' | 'chart' | 'done';
 
 export default function NatalChartScreen() {
   const { t } = useTranslation();
@@ -141,9 +138,9 @@ export default function NatalChartScreen() {
   const storeLogin = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setUser = useAuthStore((state) => state.setUser);
-  const [choice, setChoice] = useState<Choice>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [currentStep, setCurrentStep] = useState<Step>('register');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const started = useRef(false);
   const styles = makeStyles(colors);
 
   const birthLocation = useMemo(() => {
@@ -187,14 +184,11 @@ export default function NatalChartScreen() {
 
   const handleRegisterAndLogin = async () => {
     const payload = buildRegisterPayload();
-
     await register(payload);
-
     const loginResponse = await loginApi({
       username: payload.username,
       password: payload.password,
     });
-
     const { accessToken, refreshToken, user } = loginResponse.data;
     storeLogin(accessToken, refreshToken, user);
   };
@@ -228,20 +222,28 @@ export default function NatalChartScreen() {
     setUser(res.data);
   };
 
-  const handleContinue = async () => {
-    if (!choice || isGenerating) return;
-
+  const runSetup = async () => {
     setErrorMessage(null);
-    setIsGenerating(true);
 
     try {
+      // Step 1: Register or update profile
+      setCurrentStep('register');
       if (isAuthenticated) {
-        // Social login user — already authenticated, just update profile
         await handleProfileUpdate();
       } else {
-        // Email registration user — register then login
         await handleRegisterAndLogin();
       }
+
+      // Step 2: Chart will be created automatically when user visits the tab
+      setCurrentStep('chart');
+
+      // Brief pause so user sees progress
+      await new Promise((r) => setTimeout(r, 800));
+
+      // Done
+      setCurrentStep('done');
+      await new Promise((r) => setTimeout(r, 400));
+
       router.replace('/(tabs)/home');
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -254,18 +256,63 @@ export default function NatalChartScreen() {
         if (status === 409 || message.includes('already exists')) {
           router.replace({
             pathname: '/(auth)/email-register',
-            params: {
-              error: t('auth.emailAlreadyExists'),
-            },
+            params: { error: t('auth.emailAlreadyExists') },
           });
           return;
         }
       }
-
       setErrorMessage(t('natalChart.onboardingRegisterError'));
-    } finally {
-      setIsGenerating(false);
     }
+  };
+
+  useEffect(() => {
+    if (!started.current) {
+      started.current = true;
+      runSetup();
+    }
+  }, []);
+
+  const stepIcon = (step: Step, label: string, index: number) => {
+    const steps: Step[] = ['register', 'chart', 'done'];
+    const currentIdx = steps.indexOf(currentStep);
+    const stepIdx = steps.indexOf(step);
+    const isDone = stepIdx < currentIdx || currentStep === 'done';
+    const isActive = stepIdx === currentIdx && !errorMessage;
+
+    return (
+      <Animated.View
+        entering={FadeInDown.duration(400).delay(index * 150)}
+        style={styles.stepRow}
+      >
+        <View
+          style={[
+            styles.stepDot,
+            isDone && styles.stepDotDone,
+            isActive && styles.stepDotActive,
+            !isDone && !isActive && styles.stepDotPending,
+          ]}
+        >
+          {isDone ? (
+            <Ionicons name="checkmark" size={16} color={colors.white} />
+          ) : isActive ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Text style={{ color: colors.disabledText, fontSize: 13, fontWeight: '600' }}>
+              {index + 1}
+            </Text>
+          )}
+        </View>
+        <Text
+          style={[
+            styles.stepText,
+            isDone && styles.stepTextDone,
+            isActive && styles.stepTextActive,
+          ]}
+        >
+          {label}
+        </Text>
+      </Animated.View>
+    );
   };
 
   return (
@@ -274,89 +321,36 @@ export default function NatalChartScreen() {
         <OnboardingBackground />
 
         <View style={styles.content}>
-        <TouchableOpacity
-          style={[styles.optionCard, choice === 'analyze' && styles.optionSelected]}
-          onPress={() => setChoice('analyze')}
-          accessibilityLabel={t('natalChart.accessibilityAnalyzeChart')}
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="chatbubble-ellipses"
-            size={20}
-            color={choice === 'analyze' ? colors.primary : colors.subtext}
-          />
-          <View style={styles.optionTextContainer}>
-            <Text style={[styles.optionTitle, choice === 'analyze' && styles.optionTitleSelected]}>
-              {t('natalChart.onboardingAnalyzeTitle')}
-            </Text>
-            <Text style={styles.optionSubtitle}>
-              {t('natalChart.onboardingAnalyzeDesc')}
-            </Text>
+          <Animated.View entering={FadeIn.duration(500)} style={styles.iconCircle}>
+            <Ionicons name="planet" size={36} color={colors.primary} />
+          </Animated.View>
+
+          <Animated.Text entering={FadeIn.duration(500).delay(100)} style={styles.title}>
+            {t('natalChart.onboardingSetupTitle')}
+          </Animated.Text>
+          <Animated.Text entering={FadeIn.duration(500).delay(200)} style={styles.subtitle}>
+            {t('natalChart.onboardingSetupSubtitle')}
+          </Animated.Text>
+
+          <View style={styles.stepsContainer}>
+            {stepIcon('register', t('natalChart.onboardingStepRegister'), 0)}
+            {stepIcon('chart', t('natalChart.onboardingStepChart'), 1)}
+            {stepIcon('done', t('natalChart.onboardingStepReady'), 2)}
           </View>
-          {choice === 'analyze' && (
-            <View style={styles.checkBadge}>
-              <Ionicons name="checkmark" size={12} color={colors.white} />
-            </View>
+
+          {errorMessage && (
+            <Animated.View entering={FadeIn.duration(300)} style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={24} color={colors.error} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={runSetup}>
+                <Text style={styles.retryText}>{t('common.retry')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                <Text style={styles.backText}>{t('common.back')}</Text>
+              </TouchableOpacity>
+            </Animated.View>
           )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.optionCard, choice === 'skip' && styles.optionSelected]}
-          onPress={() => setChoice('skip')}
-          accessibilityLabel={t('natalChart.accessibilityGoToApp')}
-          accessibilityRole="button"
-        >
-          <Ionicons name="home" size={20} color={choice === 'skip' ? colors.primary : colors.subtext} />
-          <View style={styles.optionTextContainer}>
-            <Text style={[styles.optionTitle, choice === 'skip' && styles.optionTitleSelected]}>
-              {t('natalChart.onboardingSkipTitle')}
-            </Text>
-            <Text style={styles.optionSubtitle}>
-              {t('natalChart.onboardingSkipDesc')}
-            </Text>
-          </View>
-          {choice === 'skip' && (
-            <View style={styles.checkBadge}>
-              <Ionicons name="checkmark" size={12} color={colors.white} />
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-      </View>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.outlineButton}
-          onPress={() => router.back()}
-          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
-          accessibilityRole="button"
-        >
-          <Text style={styles.outlineText}>{t('common.back')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.primaryButton, (!choice || isGenerating) && styles.primaryDisabled]}
-          disabled={!choice || isGenerating}
-          onPress={handleContinue}
-          accessibilityLabel={t('common.continue')}
-          accessibilityRole="button"
-        >
-          {isGenerating ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={[styles.primaryText, (!choice || isGenerating) && styles.primaryTextDisabled]}>
-              {t('common.continue')}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {isGenerating && (
-        <View style={styles.syncOverlay}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={styles.syncText}>{t('natalChart.onboardingSyncMessage')}</Text>
         </View>
-      )}
       </View>
     </SafeScreen>
   );
