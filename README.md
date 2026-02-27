@@ -86,7 +86,7 @@ Astroloji, tarot, numeroloji, ruya yorumu ve daha fazlasini yapay zeka ile birle
 ### 1. Altyapi Servislerini Baslat
 
 ```bash
-docker-compose up -d postgres rabbitmq redis
+docker-compose up -d postgres rabbitmq redis zipkin
 ```
 
 ### 2. Backend Servislerini Baslat
