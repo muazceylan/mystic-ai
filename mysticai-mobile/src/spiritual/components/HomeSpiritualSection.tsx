@@ -62,8 +62,8 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
       />
 
       <View style={S.cards}>
-        {/* Bugünün Duası */}
-        <Pressable style={S.card} onPress={() => router.push('/spiritual/prayers')}>
+        {/* Dualar */}
+        <Pressable style={S.card} onPress={() => router.push('/spiritual/dua')}>
           <LinearGradient
             pointerEvents="none"
             colors={isDark ? ['rgba(99,102,241,0.14)', 'rgba(99,102,241,0.00)'] : ['rgba(99,102,241,0.08)', 'rgba(99,102,241,0.00)']}
@@ -75,13 +75,10 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
             </View>
             <Text style={S.cardMetaPill}>Akış</Text>
           </View>
-          <Text style={S.cardTitle}>Bugünün Duası</Text>
-          <Text style={S.cardSub}>
-            {prayers.data ? `${prayers.data.items.length} dua · ${prayers.data.variant}` : 'Dua setini aç'}
-          </Text>
+          <Text style={S.cardTitle}>Dualar</Text>
         </Pressable>
 
-        {/* Bugünün Esması */}
+        {/* Esmalar */}
         <Pressable style={S.card} onPress={() => router.push('/spiritual/asma')}>
           <LinearGradient
             pointerEvents="none"
@@ -94,13 +91,10 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
             </View>
             <Text style={S.cardMetaPill}>Esma</Text>
           </View>
-          <Text style={S.cardTitle}>Bugünün Esması</Text>
-          <Text style={S.cardSub}>
-            {asma.data ? asma.data.transliterationTr : 'Esmayı gör'}
-          </Text>
+          <Text style={S.cardTitle}>Esmalar</Text>
         </Pressable>
 
-        {/* Bugünün Nefesi */}
+        {/* Nefes Egzersizleri */}
         <Pressable style={S.card} onPress={() => router.push('/spiritual/meditation')}>
           <LinearGradient
             pointerEvents="none"
@@ -113,33 +107,14 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
             </View>
             <Text style={S.cardMetaPill}>Nefes</Text>
           </View>
-          <Text style={S.cardTitle}>Bugünün Nefesi</Text>
-          <Text style={S.cardSub}>
-            {meditation.data ? `${meditation.data.durationSec}s · ${meditation.data.focusTheme}` : 'Egzersizi başlat'}
-          </Text>
+          <Text style={S.cardTitle}>Nefes Egzersizleri</Text>
         </Pressable>
       </View>
 
-      {/* Koleksiyonlar: Dualar + Sureler + Esma */}
-      <View style={S.collectionRow}>
-        <Pressable style={S.collectionChip} onPress={() => router.push('/spiritual/dua')}>
-          <Ionicons name="book-outline" size={14} color={isDark ? '#818CF8' : '#6366F1'} />
-          <Text style={S.collectionText}>Dualar</Text>
-        </Pressable>
-        <Pressable style={S.collectionChip} onPress={() => router.push('/spiritual/sure')}>
-          <Ionicons name="library-outline" size={14} color={isDark ? '#2DD4BF' : '#0D9488'} />
-          <Text style={S.collectionText}>Sureler</Text>
-        </Pressable>
-        <Pressable style={S.collectionChip} onPress={() => router.push('/spiritual/asma')}>
-          <Ionicons name="sparkles-outline" size={14} color={isDark ? '#4ADE80' : '#16A34A'} />
-          <Text style={S.collectionText}>Esma</Text>
-        </Pressable>
-      </View>
-
-      {/* Kısa Sureler */}
-      <View style={S.shortRowWrap}>
+      {/* Sureler */}
+      <Pressable style={S.shortRowWrap} onPress={() => router.push('/spiritual/sure')}>
         <View style={S.shortHeaderRow}>
-          <Text style={S.shortTitle}>Kısa Sureler</Text>
+          <Text style={S.shortTitle}>Sureler</Text>
           <Text style={S.shortHint}>Kur'an-ı Kerim</Text>
         </View>
         <View style={S.shortChips}>
@@ -172,7 +147,7 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
             <Text style={S.shortChipText}>Nâs</Text>
           </Pressable>
         </View>
-      </View>
+      </Pressable>
 
       <View style={S.footerRow}>
         <View style={S.footerItem}>
@@ -326,28 +301,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, v
       marginTop: 4,
       fontSize: 12,
       color: C.subtext,
-    },
-    collectionRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginTop: 10,
-    },
-    collectionChip: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      borderRadius: 12,
-      paddingVertical: 10,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.72)' : 'rgba(248,250,252,0.95)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.14)' : 'rgba(226,232,240,0.8)',
-    },
-    collectionText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: C.text,
     },
     footerRow: {
       marginTop: 10,

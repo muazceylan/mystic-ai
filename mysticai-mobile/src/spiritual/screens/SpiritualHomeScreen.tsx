@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { Screen, AppHeader, Card, Button, Badge } from '../../components/ui';
+import { SafeScreen, AppHeader, Card, Button, Badge } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 
 export default function SpiritualHomeScreen() {
@@ -15,7 +15,7 @@ export default function SpiritualHomeScreen() {
   const hasError = prayers.isError || asma.isError || meditation.isError;
 
   return (
-    <Screen scroll>
+    <SafeScreen scroll>
       <AppHeader title="Ruhsal Pratikler" />
 
       {isLoading ? (
@@ -203,7 +203,7 @@ export default function SpiritualHomeScreen() {
           </Text>
         </Card>
       </View>
-    </Screen>
+    </SafeScreen>
   );
 }
 

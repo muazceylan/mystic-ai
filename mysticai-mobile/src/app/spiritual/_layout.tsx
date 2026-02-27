@@ -13,7 +13,9 @@ export default function SpiritualLayout() {
       <Stack.Screen name="prayers/flow" options={{ title: 'Dua Akisi' }} />
       <Stack.Screen name="asma/index" options={{ title: 'Esmaül Hüsna', headerShown: false }} />
       <Stack.Screen name="asma/[id]" options={{ title: 'Esma Detay', headerShown: false }} />
+      <Stack.Screen name="dua/index" options={{ title: 'Dualar', headerShown: false }} />
       <Stack.Screen name="dua/[id]" options={{ title: 'Dua Detay', headerShown: false }} />
+      <Stack.Screen name="sure/index" options={{ title: 'Sureler', headerShown: false }} />
       <Stack.Screen name="counter" options={{ title: 'Zikirmatik', headerShown: false }} />
       <Stack.Screen name="meditation/index" options={{ title: 'Bugunun Nefesi' }} />
       <Stack.Screen name="meditation/session" options={{ title: 'Nefes Seansi' }} />

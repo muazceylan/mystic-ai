@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
-import { AppHeader } from '../../components/ui';
+import { SafeScreen, AppHeader } from '../../components/ui';
 import { BreathTimer } from '../components/BreathTimer';
 
 const ACCENT = '#7C3AED';
@@ -54,61 +54,66 @@ export default function BreathingSessionScreen() {
 
   if (!technique) {
     return (
-      <LinearGradient
-        colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
-        style={s.flex}
-      >
-        <AppHeader
-          title="Nefes Tekniği"
-          onBack={() => router.back()}
-          transparent
-        />
-        <View style={s.errorWrap}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
-          <Text style={s.errorText}>Teknik bulunamadı.</Text>
-          <Pressable style={s.backBtn} onPress={() => router.back()}>
-            <Text style={s.backBtnText}>Geri Dön</Text>
-          </Pressable>
-        </View>
-      </LinearGradient>
+      <SafeScreen style={{ backgroundColor: isDark ? '#1E1B2E' : '#F5F3FF' }}>
+        <LinearGradient
+          colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
+          style={s.flex}
+        >
+          <AppHeader
+            title="Nefes Tekniği"
+            onBack={() => router.back()}
+            transparent
+          />
+          <View style={s.errorWrap}>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
+            <Text style={s.errorText}>Teknik bulunamadı.</Text>
+            <Pressable style={s.backBtn} onPress={() => router.back()}>
+              <Text style={s.backBtnText}>Geri Dön</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
+      </SafeScreen>
     );
   }
 
   if (completed) {
     return (
-      <LinearGradient
-        colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
-        style={s.flex}
-      >
-        <View style={s.completedWrap}>
-          <View style={s.completedIconWrap}>
-            <Ionicons name="checkmark-circle" size={72} color={ACCENT} />
+      <SafeScreen style={{ backgroundColor: isDark ? '#1E1B2E' : '#F5F3FF' }}>
+        <LinearGradient
+          colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
+          style={s.flex}
+        >
+          <View style={s.completedWrap}>
+            <View style={s.completedIconWrap}>
+              <Ionicons name="checkmark-circle" size={72} color={ACCENT} />
+            </View>
+            <Text style={s.completedTitle}>Tebrikler!</Text>
+            <Text style={s.completedSub}>
+              {technique.titleTr} seansını başarıyla tamamladınız.
+            </Text>
+            <Pressable
+              style={s.doneBtn}
+              onPress={() => router.back()}
+            >
+              <Text style={s.doneBtnText}>Tamam</Text>
+            </Pressable>
           </View>
-          <Text style={s.completedTitle}>Tebrikler!</Text>
-          <Text style={s.completedSub}>
-            {technique.titleTr} seansını başarıyla tamamladınız.
-          </Text>
-          <Pressable
-            style={s.doneBtn}
-            onPress={() => router.back()}
-          >
-            <Text style={s.doneBtnText}>Tamam</Text>
-          </Pressable>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      </SafeScreen>
     );
   }
 
   return (
-    <LinearGradient
-      colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
-      style={s.flex}
-    >
-      <AppHeader
-        title={technique.titleTr}
-        onBack={() => router.back()}
-        transparent
-      />
+    <SafeScreen style={{ backgroundColor: isDark ? '#1E1B2E' : '#F5F3FF' }}>
+      <LinearGradient
+        colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
+        style={s.flex}
+      >
+        <AppHeader
+          title={technique.titleTr}
+          onBack={() => router.back()}
+          transparent
+        />
 
       <ScrollView
         contentContainerStyle={s.scroll}
@@ -171,7 +176,8 @@ export default function BreathingSessionScreen() {
           onComplete={handleComplete}
         />
       </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

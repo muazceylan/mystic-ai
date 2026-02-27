@@ -23,6 +23,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeScreen } from '../../components/ui';
 import { useCounterStore, selectProgress } from '../store/useCounterStore';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
@@ -219,8 +220,9 @@ export default function CounterScreen() {
     : null;
 
   return (
-    <LinearGradient colors={GRAD} style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeScreen style={{ backgroundColor: GRAD[0] }}>
+      <LinearGradient colors={GRAD} style={styles.container}>
+        <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -364,7 +366,8 @@ export default function CounterScreen() {
         surfaceColor={SURFACE_BG}
         bgColor={GRAD[0]}
       />
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

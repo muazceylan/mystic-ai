@@ -8,6 +8,7 @@ export { ErrorStateCard } from './ErrorStateCard';
 export { SafeScreen } from './SafeScreen';
 export { AccessibleText } from './AccessibleText';
 export { default as AccordionSection } from './AccordionSection';
+/** @deprecated Use SafeScreen with scroll prop instead */
 export { Screen } from './Screen';
 export { AppHeader } from './AppHeader';
 export { ListRow } from './ListRow';

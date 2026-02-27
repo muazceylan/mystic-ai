@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { SafeScreen } from '../../components/ui';
 import { useContentStore } from '../store/useContentStore';
 
 type TextTab = 'arabic' | 'transliteration' | 'meaning';
@@ -53,14 +54,16 @@ export default function DuaDetailScreen() {
 
   if (!dua) {
     return (
-      <LinearGradient colors={GRAD} style={styles.container}>
-        <View style={styles.center}>
-          <Text style={{ color: TEXT, fontSize: 15 }}>Dua bulunamadı.</Text>
-          <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-            <Text style={{ color: ACCENT, fontWeight: '700' }}>← Geri Dön</Text>
-          </Pressable>
-        </View>
-      </LinearGradient>
+      <SafeScreen style={{ backgroundColor: GRAD[0] }}>
+        <LinearGradient colors={GRAD} style={styles.container}>
+          <View style={styles.center}>
+            <Text style={{ color: TEXT, fontSize: 15 }}>Dua bulunamadı.</Text>
+            <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+              <Text style={{ color: ACCENT, fontWeight: '700' }}>← Geri Dön</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
+      </SafeScreen>
     );
   }
 
@@ -84,14 +87,15 @@ export default function DuaDetailScreen() {
   };
 
   return (
-    <LinearGradient colors={GRAD} style={styles.container}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <SafeScreen style={{ backgroundColor: GRAD[0] }}>
+      <LinearGradient colors={GRAD} style={styles.container}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-          <Ionicons name="chevron-back" size={24} color={TEXT} />
-        </Pressable>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+            <Ionicons name="chevron-back" size={24} color={TEXT} />
+          </Pressable>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: TEXT }]} numberOfLines={1}>
             {dua.title}
@@ -264,7 +268,8 @@ export default function DuaDetailScreen() {
           Bu içerikler bilgilendirme amaçlıdır. Dini hüküm ya da tıbbi tavsiye değildir.
         </Text>
       </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

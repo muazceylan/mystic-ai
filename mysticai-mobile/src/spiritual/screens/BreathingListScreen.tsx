@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useContentStore } from '../store/useContentStore';
-import { AppHeader } from '../../components/ui';
+import { SafeScreen, AppHeader } from '../../components/ui';
 import type { BreathingTechnique } from '../types';
 
 const ACCENT = '#7C3AED';
@@ -96,11 +96,12 @@ export default function BreathingListScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
-      style={s.flex}
-    >
-      <AppHeader
+    <SafeScreen style={{ backgroundColor: isDark ? '#1E1B2E' : '#F5F3FF' }}>
+      <LinearGradient
+        colors={isDark ? ['#1E1B2E', '#2D2640'] : ['#F5F3FF', '#EDE9FE']}
+        style={s.flex}
+      >
+        <AppHeader
         title="Nefes Teknikleri"
         onBack={() => router.back()}
         transparent
@@ -113,7 +114,8 @@ export default function BreathingListScreen() {
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
       />
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

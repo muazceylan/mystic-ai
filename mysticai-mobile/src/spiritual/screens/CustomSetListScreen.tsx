@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { AppHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
+import { SafeScreen } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import type { CustomSet } from '../types';
 
@@ -105,8 +106,9 @@ export default function CustomSetListScreen() {
   );
 
   return (
-    <LinearGradient colors={gradColors} style={styles.container}>
-      <AppHeader title="Ruhsal Cantam" onBack={() => router.back()} />
+    <SafeScreen style={{ backgroundColor: gradColors[0] }}>
+      <LinearGradient colors={gradColors} style={styles.container}>
+        <AppHeader title="Ruhsal Cantam" onBack={() => router.back()} />
 
       {/* Create button / inline input */}
       <View style={styles.createSection}>
@@ -164,7 +166,8 @@ export default function CustomSetListScreen() {
         ListEmptyComponent={renderEmpty}
         keyboardShouldPersistTaps="handled"
       />
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

@@ -7,7 +7,7 @@ import { buildDailyTheme, scoreContent } from '../engine/recommendationEngine';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useContentStore } from '../store/useContentStore';
 import { useTheme } from '../../context/ThemeContext';
-import { AppHeader } from '../../components/ui';
+import { SafeScreen, AppHeader } from '../../components/ui';
 import type { EsmaItem, DuaItem } from '../types';
 
 type Tab = 'esma' | 'dua' | 'sure';
@@ -93,11 +93,12 @@ export default function AllRecommendationsScreen() {
   ];
 
   return (
-    <LinearGradient
-      colors={isDark ? ['#0B1A12', '#0F2318', '#0B1A12'] : ['#ECFDF5', '#F0FDF4', '#ECFDF5']}
-      style={s.container}
-    >
-      <AppHeader title="Oneriler" onBack={() => router.back()} transparent />
+    <SafeScreen style={{ backgroundColor: isDark ? '#0B1A12' : '#ECFDF5' }}>
+      <LinearGradient
+        colors={isDark ? ['#0B1A12', '#0F2318', '#0B1A12'] : ['#ECFDF5', '#F0FDF4', '#ECFDF5']}
+        style={s.container}
+      >
+        <AppHeader title="Oneriler" onBack={() => router.back()} transparent />
 
       <View style={s.tabRow}>
         {tabs.map((tab) => {
@@ -167,7 +168,8 @@ export default function AllRecommendationsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

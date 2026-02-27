@@ -3,7 +3,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { Screen, AppHeader, Card, Button, Badge } from '../../components/ui';
+import { SafeScreen, AppHeader, Card, Button, Badge } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, ACCESSIBILITY } from '../../constants/tokens';
 
 interface MeditationStep {
@@ -29,28 +29,28 @@ export default function MeditationDailyScreen() {
 
   if (meditation.isLoading) {
     return (
-      <Screen>
+      <SafeScreen>
         <View style={s.center}>
           <Text style={[s.loadingText, { color: colors.subtext }]}>Egzersiz yükleniyor...</Text>
         </View>
-      </Screen>
+      </SafeScreen>
     );
   }
 
   if (meditation.isError || !meditation.data) {
     return (
-      <Screen>
+      <SafeScreen>
         <View style={s.center}>
           <Text style={[s.loadingText, { color: colors.error }]}>Egzersiz yüklenemedi.</Text>
         </View>
-      </Screen>
+      </SafeScreen>
     );
   }
 
   const { title, type, focusTheme, durationSec, disclaimerText } = meditation.data;
 
   return (
-    <Screen scroll>
+    <SafeScreen scroll>
       <AppHeader title="Bugünün Nefesi" onBack={() => router.back()} />
 
       <Card variant="elevated">
@@ -126,7 +126,7 @@ export default function MeditationDailyScreen() {
         onPress={() => router.push('/spiritual/meditation/session')}
         accessibilityLabel="Nefes egzersizini başlat"
       />
-    </Screen>
+    </SafeScreen>
   );
 }
 

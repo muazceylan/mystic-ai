@@ -2,7 +2,7 @@
   {
     "id": 1, "order": 1, "nameAr": "اَللَّهُ", "nameTr": "Allah", "transliteration": "Allah",
     "meaningTr": "Yüce Allah'ın özel ismi; yaratıcı, Rab, ilah anlamlarını kapsar.",
-    "shortBenefit": "Her türlü istek ve duanın kabulü", "defaultTargetCount": 33,
+    "shortBenefit": "Her türlü istek ve duanın kabulü", "defaultTargetCount": 99,
     "tags": ["tevhid", "ilah", "dua"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
   },
   {

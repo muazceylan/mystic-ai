@@ -23,6 +23,7 @@ import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
 import { SpiritualListItem } from '../components/SpiritualListItem';
 import { useTheme } from '../../context/ThemeContext';
+import { SafeScreen } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 import type { DuaItem, BarChartDataPoint } from '../types';
 
@@ -142,14 +143,15 @@ export default function DuaListScreen() {
   );
 
   return (
-    <LinearGradient colors={GRAD} style={styles.container}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <SafeScreen style={{ backgroundColor: GRAD[0] }}>
+      <LinearGradient colors={GRAD} style={styles.container}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel="Geri">
-          <Ionicons name="chevron-back" size={24} color={TEXT} />
-        </Pressable>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel="Geri">
+            <Ionicons name="chevron-back" size={24} color={TEXT} />
+          </Pressable>
         <Text
           style={[styles.headerTitle, { color: TEXT }]}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
@@ -290,7 +292,8 @@ export default function DuaListScreen() {
           )}
         </ScrollView>
       )}
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

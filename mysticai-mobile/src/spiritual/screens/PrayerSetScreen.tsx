@@ -6,7 +6,7 @@ import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { usePrayerFlowStore } from '../store/usePrayerFlowStore';
 import { spiritualApi } from '../api/spiritual.api';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { Screen, AppHeader, ListRow, Button } from '../../components/ui';
+import { SafeScreen, AppHeader, ListRow, Button } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, ACCESSIBILITY } from '../../constants/tokens';
 
 export default function PrayerSetScreen() {
@@ -46,36 +46,36 @@ export default function PrayerSetScreen() {
   if (shortMode) {
     if (shortPrayersQuery.isLoading) {
       return (
-        <Screen>
+        <SafeScreen>
           <View style={s.center}>
             <Text style={{ color: colors.subtext }}>Kısa dualar yükleniyor...</Text>
           </View>
-        </Screen>
+        </SafeScreen>
       );
     }
 
     if (shortPrayersQuery.isError || !shortPrayersQuery.data) {
       return (
-        <Screen>
+        <SafeScreen>
           <View style={s.center}>
             <Text style={{ color: colors.error }}>Kısa dualar yüklenemedi.</Text>
           </View>
-        </Screen>
+        </SafeScreen>
       );
     }
 
     if (shortPrayersQuery.data.length === 0) {
       return (
-        <Screen>
+        <SafeScreen>
           <View style={s.center}>
             <Text style={{ color: colors.subtext }}>Bu kategori için kısa dua bulunamadı.</Text>
           </View>
-        </Screen>
+        </SafeScreen>
       );
     }
 
     return (
-      <Screen scroll>
+      <SafeScreen scroll>
         <AppHeader title={shortTitle} subtitle="10-30 sn hızlı erişim" onBack={() => router.back()} />
         {shortPrayersQuery.data.map((item, index) => (
           <ListRow
@@ -88,37 +88,37 @@ export default function PrayerSetScreen() {
             onPress={() => router.push('/spiritual/prayers')}
           />
         ))}
-      </Screen>
+      </SafeScreen>
     );
   }
 
   if (prayers.isLoading) {
     return (
-      <Screen>
+      <SafeScreen>
         <View style={s.center}>
           <Text style={{ color: colors.subtext }}>Bugünün dua seti yükleniyor...</Text>
         </View>
-      </Screen>
+      </SafeScreen>
     );
   }
 
   if (prayers.isError || !prayers.data) {
     return (
-      <Screen>
+      <SafeScreen>
         <View style={s.center}>
           <Text style={{ color: colors.error }}>Dua seti yüklenemedi.</Text>
         </View>
-      </Screen>
+      </SafeScreen>
     );
   }
 
   if (prayers.data.items.length === 0) {
     return (
-      <Screen>
+      <SafeScreen>
         <View style={s.center}>
           <Text style={{ color: colors.subtext }}>Bugün için dua seti bulunamadı.</Text>
         </View>
-      </Screen>
+      </SafeScreen>
     );
   }
 
@@ -126,7 +126,7 @@ export default function PrayerSetScreen() {
   const variant = prayers.data.variant;
 
   return (
-    <Screen scroll>
+    <SafeScreen scroll>
       <AppHeader
         title="Bugünün Dua Seti"
         subtitle={`${date} · ${variant}`}
@@ -156,7 +156,7 @@ export default function PrayerSetScreen() {
         onPress={() => router.push('/spiritual/prayers/flow')}
         accessibilityLabel="Dua akışına devam et"
       />
-    </Screen>
+    </SafeScreen>
   );
 }
 

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeScreen } from '../../components/ui';
 import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
 import type { BarChartDataPoint } from '../types';
@@ -107,8 +108,9 @@ export default function StatsScreen() {
   };
 
   return (
-    <LinearGradient colors={GRAD} style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <SafeScreen style={{ backgroundColor: GRAD[0] }}>
+      <LinearGradient colors={GRAD} style={styles.container}>
+        <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -194,7 +196,8 @@ export default function StatsScreen() {
           </View>
         )}
       </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

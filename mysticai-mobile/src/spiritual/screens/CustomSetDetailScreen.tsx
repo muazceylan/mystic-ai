@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { useContentStore } from '../store/useContentStore';
 import { useTheme } from '../../context/ThemeContext';
+import { SafeScreen } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import type { CustomSetItem, SpiritualItemType } from '../types';
 
@@ -173,20 +174,22 @@ export default function CustomSetDetailScreen() {
   // Not found
   if (!set) {
     return (
-      <LinearGradient colors={gradColors} style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={ACCENT} />
-          <Text style={[styles.errorText, { color: TEXT }]}>
-            Set bulunamadi
-          </Text>
-          <Pressable
-            style={[styles.errorBtn, { backgroundColor: ACCENT }]}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.errorBtnText}>Geri Don</Text>
-          </Pressable>
-        </View>
-      </LinearGradient>
+      <SafeScreen style={{ backgroundColor: gradColors[0] }}>
+        <LinearGradient colors={gradColors} style={styles.container}>
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={ACCENT} />
+            <Text style={[styles.errorText, { color: TEXT }]}>
+              Set bulunamadi
+            </Text>
+            <Pressable
+              style={[styles.errorBtn, { backgroundColor: ACCENT }]}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.errorBtnText}>Geri Don</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
+      </SafeScreen>
     );
   }
 
@@ -264,8 +267,9 @@ export default function CustomSetDetailScreen() {
   };
 
   return (
-    <LinearGradient colors={gradColors} style={styles.container}>
-      {/* Header with editable name */}
+    <SafeScreen style={{ backgroundColor: gradColors[0] }}>
+      <LinearGradient colors={gradColors} style={styles.container}>
+        {/* Header with editable name */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={TEXT} />
@@ -469,7 +473,8 @@ export default function CustomSetDetailScreen() {
           </SafeAreaView>
         </View>
       </Modal>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 

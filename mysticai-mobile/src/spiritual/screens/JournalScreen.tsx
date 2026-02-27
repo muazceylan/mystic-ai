@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeScreen } from '../../components/ui';
 import { useJournalStore } from '../store/useJournalStore';
 import type { JournalEntry } from '../types';
 
@@ -91,8 +92,9 @@ export default function JournalScreen() {
   };
 
   return (
-    <LinearGradient colors={GRAD} style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <SafeScreen style={{ backgroundColor: GRAD[0] }}>
+      <LinearGradient colors={GRAD} style={styles.container}>
+        <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -217,7 +219,8 @@ export default function JournalScreen() {
           </View>
         )}
       />
-    </LinearGradient>
+      </LinearGradient>
+    </SafeScreen>
   );
 }
 
