@@ -51,6 +51,7 @@ public record AiAnalysisEvent(
         MONTHLY_DREAM_STORY,
         SYMBOL_MEANING,
         COLLECTIVE_PULSE_REASON,
-        RELATIONSHIP_ANALYSIS
+        RELATIONSHIP_ANALYSIS,
+        HOROSCOPE_FUSION
     }
 }

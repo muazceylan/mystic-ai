@@ -49,6 +49,7 @@ import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { announceForAccessibility } from '../../utils/accessibility';
 import { fetchNightSkyProjection } from '../../services/astrology.service';
 import { HomeSpiritualSection } from '../../spiritual/components/HomeSpiritualSection';
+import { HomeHoroscopeSection } from '../../features/horoscope/components/HomeHoroscopeSection';
 
 const STICKY_APPEAR_START = 80;
 const STICKY_APPEAR_END = 130;
@@ -410,6 +411,7 @@ export default function HomeScreen() {
             });
           }}
           spiritualSection={<HomeSpiritualSection variant="v2" />}
+          horoscopeSection={<HomeHoroscopeSection />}
           headerSlot={
             <TabHeader
               title={homeV2Model.userName}
@@ -543,6 +545,9 @@ export default function HomeScreen() {
 
           {/* § 3.5 RUHSAL PRACTICES */}
           <HomeSpiritualSection />
+
+          {/* § 3.6 HOROSCOPE */}
+          <HomeHoroscopeSection />
 
           {/* ═══════════════════════════════════════════
               § 4. COLLECTIVE DREAM TICKER (MEDIUM density)

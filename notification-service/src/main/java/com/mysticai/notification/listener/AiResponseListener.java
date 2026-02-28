@@ -61,6 +61,7 @@ public class AiResponseListener {
             case NATAL_CHART -> Notification.AnalysisType.NATAL_CHART;
             case SWOT, PERIODIC, VISION, LUCKY_DATES, WEEKLY_SWOT -> Notification.AnalysisType.ORACLE;
             case RELATIONSHIP_ANALYSIS -> Notification.AnalysisType.COMPATIBILITY;
+            case HOROSCOPE_FUSION -> Notification.AnalysisType.HOROSCOPE;
         };
     }
 
@@ -76,6 +77,7 @@ public class AiResponseListener {
             case NATAL_CHART -> "Dogum Haritaniz Olusturuldu!";
             case ORACLE -> "Gunun Sirri Hazir!";
             case COMPATIBILITY -> "Uyum Analiziniz Tamamlandi!";
+            case HOROSCOPE -> "Burc Yorumunuz Hazir!";
         };
     }
 
@@ -91,6 +93,7 @@ public class AiResponseListener {
             case NATAL_CHART -> "Dogum haritaniz olusturuldu. Kaderinizi ogrenmek icin tiklayin!";
             case ORACLE -> "Gunun sirri hazir. Bugun sizin icin ne getiriyor?";
             case COMPATIBILITY -> "Uyum analiziniz hazir. Kozmik baglantinizi kesfedin!";
+            case HOROSCOPE -> "Burc yorumunuz hazir. Yildizlarin mesajini okumak icin tiklayin!";
         };
     }
 }

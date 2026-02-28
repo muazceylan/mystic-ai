@@ -96,6 +96,28 @@ public class InterpretationController {
     }
 
     /**
+     * POST /api/ai/horoscope/fuse
+     *
+     * Synchronous horoscope fusion endpoint called by astrology-service.
+     * Accepts systemPrompt + userPrompt, returns fused horoscope JSON.
+     */
+    @PostMapping(value = "/horoscope/fuse", consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> fuseHoroscope(@RequestBody java.util.Map<String, String> body) {
+        String systemPrompt = body.getOrDefault("systemPrompt", "");
+        String userPrompt = body.getOrDefault("userPrompt", "");
+        if (userPrompt.isBlank()) {
+            return ResponseEntity.badRequest().body("{\"error\":\"userPrompt is required\"}");
+        }
+        try {
+            String result = mysticalAiService.fuseHoroscope(systemPrompt, userPrompt);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body(null);
+        }
+    }
+
+    /**
      * Health check for AI service
      */
     @GetMapping("/health")

@@ -35,6 +35,10 @@ public class GatewayConfig {
                 .route("synastry", r -> r
                         .path("/api/v1/synastry/**")
                         .uri("lb://astrology-service"))
+                // Horoscope (hosted in astrology-service)
+                .route("horoscope", r -> r
+                        .path("/api/v1/horoscope/**")
+                        .uri("lb://astrology-service"))
                 // Numerology Service (rewrite /api/numerology → /api/v1/numerology)
                 .route("numerology-service", r -> r
                         .path("/api/numerology/**")

@@ -116,6 +116,9 @@ export interface ThemeColors {
   spiritualMeditation: string;
   spiritualSurface: string;
   spiritualBorder: string;
+  horoscopeSurface: string;
+  horoscopeAccent: string;
+  horoscopeGlow: string;
 }
 
 export const LIGHT: ThemeColors = {
@@ -228,6 +231,9 @@ export const LIGHT: ThemeColors = {
   spiritualMeditation: '#7C3AED',
   spiritualSurface: '#F8FAFC',
   spiritualBorder: '#E2E8F0',
+  horoscopeSurface: '#F5F0FA',
+  horoscopeAccent: '#9D4EDD',
+  horoscopeGlow: 'rgba(157,78,221,0.15)',
 };
 
 export const DARK: ThemeColors = {
@@ -340,6 +346,9 @@ export const DARK: ThemeColors = {
   spiritualMeditation: '#A855F7',
   spiritualSurface: '#0F172A',
   spiritualBorder: '#1E293B',
+  horoscopeSurface: '#1E1040',
+  horoscopeAccent: '#A855F7',
+  horoscopeGlow: 'rgba(168,85,247,0.25)',
 };
 
 const STORAGE_KEY = 'mysticai_theme_pref';

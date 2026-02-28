@@ -64,6 +64,7 @@ public class Notification {
         NATAL_CHART,
         ORACLE,
         COMPATIBILITY,
+        HOROSCOPE,
     }
 
     public enum NotificationStatus {

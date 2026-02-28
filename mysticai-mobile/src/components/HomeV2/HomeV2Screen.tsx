@@ -37,6 +37,7 @@ interface HomeV2ScreenProps {
   onOpenDecisionCompassItem?: (item: HomeV2DecisionCompassItem) => void;
   onOpenDecisionCompassItemDetail?: (item: HomeV2DecisionCompassItem) => void;
   spiritualSection?: React.ReactNode;
+  horoscopeSection?: React.ReactNode;
   headerSlot?: React.ReactNode;
 }
 
@@ -73,6 +74,7 @@ export function HomeV2Screen({
   onOpenDecisionCompassItem,
   onOpenDecisionCompassItemDetail,
   spiritualSection,
+  horoscopeSection,
   headerSlot,
 }: HomeV2ScreenProps) {
   const { width } = useWindowDimensions();
@@ -190,6 +192,8 @@ export function HomeV2Screen({
         </View>
 
         {spiritualSection}
+
+        {horoscopeSection}
 
         <DailySummaryCard
           S={S}
@@ -543,7 +547,7 @@ function DecisionCompassCard({
         <View style={S.compassLegacyHeaderTextWrap}>
           <Text style={S.compassLegacyEyebrow}>KOZMİK YAŞAM REHBERİ</Text>
           <Text style={S.compassLegacyTitle}>Bugünün Karar Pusulası</Text>
-          <Text style={S.compassLegacySubtitle}>Satıra dokunarak kısa açıklamayı aç. Detay için butonu kullan.</Text>
+          <Text style={S.compassLegacySubtitle}>Yıldız haritana göre sana en uygun anları yüzdesel olarak belirledik. Detay için butonu kullan.</Text>
         </View>
 
         <View style={S.compassLegacyHeaderActions}>

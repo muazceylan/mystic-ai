@@ -193,6 +193,27 @@ public class MysticalAiService {
         }
     }
 
+    /**
+     * Fuses multiple upstream horoscope sources into a premium editorial text.
+     * Complex: needs best model for quality editorial output.
+     * Expects JSON body with systemPrompt and userPrompt fields.
+     */
+    public String fuseHoroscope(String systemPrompt, String userPrompt) {
+        String combined = systemPrompt + "\n\n" + userPrompt;
+        logger.info("Fusing horoscope, prompt length: {}", combined.length());
+        try {
+            String response = callAiModel(combined, true).trim();
+            // Extract JSON object
+            int start = response.indexOf('{');
+            int end = response.lastIndexOf('}');
+            if (start != -1 && end != -1) return response.substring(start, end + 1);
+            return response;
+        } catch (Exception e) {
+            logger.error("Horoscope fusion failed: {}", e.getMessage());
+            throw new RuntimeException("Horoscope fusion AI failed: " + e.getMessage(), e);
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // Internal prompt builder
     // ─────────────────────────────────────────────────────────────────────

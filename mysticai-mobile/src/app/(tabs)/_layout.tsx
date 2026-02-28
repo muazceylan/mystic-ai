@@ -235,6 +235,19 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="discover"
+        options={{
+          title: t('tabs.discover'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'compass' : 'compass-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="calendar"
         options={{
           title: t('tabs.calendar'),
@@ -258,6 +271,7 @@ export default function TabsLayout() {
               color={color}
             />
           ),
+          tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
@@ -273,6 +287,21 @@ export default function TabsLayout() {
               color={color}
             />
           ),
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="horoscope"
+        options={{
+          title: t('tabs.horoscope'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'star' : 'star-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+          tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
