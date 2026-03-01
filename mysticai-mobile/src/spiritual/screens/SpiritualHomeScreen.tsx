@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
+import { useCustomSetStore } from '../store/useCustomSetStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW, ACCESSIBILITY } from '../../constants/tokens';
 
 /* ─── Navigation items ─── */
@@ -73,6 +74,14 @@ const QUICK_ACTIONS: ReadonlyArray<{
     accent: '#F59E0B',
   },
   {
+    key: 'routine',
+    route: '/spiritual/routine-picker',
+    icon: 'layers-outline',
+    label: 'Rutin Belirle',
+    sub: 'Aktif rutin seç',
+    accent: '#7C3AED',
+  },
+  {
     key: 'journal',
     route: '/spiritual/journal',
     icon: 'journal-outline',
@@ -93,6 +102,13 @@ const QUICK_ACTIONS: ReadonlyArray<{
 export default function SpiritualHomeScreen() {
   const { colors, isDark } = useTheme();
   const s = createStyles(colors, isDark);
+
+  const activeRoutineSetId = useCustomSetStore((s) => s.activeRoutineSetId);
+  const sets = useCustomSetStore((s) => s.sets);
+  const activeSet = useMemo(
+    () => (activeRoutineSetId ? sets.find((s) => s.id === activeRoutineSetId) : undefined),
+    [activeRoutineSetId, sets],
+  );
 
   return (
     <SafeScreen scroll>
@@ -136,7 +152,13 @@ export default function SpiritualHomeScreen() {
           s.routineBtn,
           pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
         ]}
-        onPress={() => router.push('/spiritual/prayers/flow')}
+        onPress={() => {
+          if (activeSet) {
+            router.push(`/spiritual/custom-sets/${activeSet.id}` as any);
+          } else {
+            router.push('/spiritual/prayers/flow');
+          }
+        }}
         accessibilityLabel="Dua rutinini başlat"
       >
         <LinearGradient
@@ -162,7 +184,9 @@ export default function SpiritualHomeScreen() {
                 style={s.routineSub}
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
               >
-                Günlük dua akışına geç
+                {activeSet
+                  ? `📿 ${activeSet.name} • ${activeSet.items.length} öğe`
+                  : 'Günlük dua akışına geç'}
               </Text>
             </View>
             <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.7)" />

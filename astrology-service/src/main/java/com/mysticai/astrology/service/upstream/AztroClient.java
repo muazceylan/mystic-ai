@@ -14,7 +14,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class AztroClient {
 
-    private static final String BASE_URL = "https://aztro.samerat.com/";
+    private static final String BASE_URL = "https://aztro.sameerkumar.website/";
     private final RestTemplate restTemplate = new RestTemplate();
 
     public UpstreamSource fetch(String sign, String period) {

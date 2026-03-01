@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
@@ -35,7 +35,7 @@ const TYPE_META: Record<string, {
   darkColor: string;
   label: string;
 }> = {
-  esma: { icon: 'sparkles-outline', color: '#16A34A', darkColor: '#4ADE80', label: 'Esma' },
+  esma: { icon: 'sparkles-outline', color: '#B45309', darkColor: '#FBBF24', label: 'Esma' },
   dua: { icon: 'book-outline', color: '#4F46E5', darkColor: '#818CF8', label: 'Dua' },
   sure: { icon: 'library-outline', color: '#7C3AED', darkColor: '#A78BFA', label: 'Sure' },
 };
@@ -47,7 +47,7 @@ export default function CustomSetDetailScreen() {
 
   const {
     getSetById, renameSet, removeItem,
-    reorderItems, addItem, isItemInSet,
+    reorderItems, addItem, isItemInSet, updateItemTarget,
   } = useCustomSetStore();
   const {
     getEsmaById, getDuaById,
@@ -55,7 +55,7 @@ export default function CustomSetDetailScreen() {
   } = useContentStore();
 
   const set = getSetById(id ?? '');
-  const getEntriesByDate = useJournalStore((st) => st.getEntriesByDate);
+  const journalEntries = useJournalStore((st) => st.entries);
 
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(set?.name ?? '');
@@ -63,6 +63,10 @@ export default function CustomSetDetailScreen() {
   const [addTab, setAddTab] = useState<AddTab>('esma');
   const [addSearch, setAddSearch] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
+  /** Per-item target count overrides in the add modal: "esma-3" → 99 */
+  const [addItemCounts, setAddItemCounts] = useState<Record<string, number>>({});
+  /** Which item's count picker is expanded: "esma-3" or null */
+  const [expandedCountPicker, setExpandedCountPicker] = useState<string | null>(null);
 
   /* ─── Accent ─── */
   const accent = isDark ? '#A78BFA' : '#7C3AED';
@@ -78,7 +82,7 @@ export default function CustomSetDetailScreen() {
           name: esma?.nameTr ?? 'Bilinmeyen Esma',
           arabic: esma?.nameAr ?? '',
           sub: esma?.meaningTr ?? '',
-          target: esma?.defaultTargetCount ?? 33,
+          target: item.targetCount ?? esma?.defaultTargetCount ?? 33,
         };
       }
       const dua = getDuaById(item.itemId);
@@ -86,7 +90,7 @@ export default function CustomSetDetailScreen() {
         name: dua?.title ?? 'Bilinmeyen Dua',
         arabic: dua?.arabic ? dua.arabic.slice(0, 40) : '',
         sub: dua?.shortBenefit ?? '',
-        target: dua?.defaultTargetCount ?? 3,
+        target: item.targetCount ?? dua?.defaultTargetCount ?? 3,
       };
     },
     [getEsmaById, getDuaById],
@@ -96,7 +100,10 @@ export default function CustomSetDetailScreen() {
   const itemKey = (it: CustomSetItem) => `${it.itemType}-${it.itemId}`;
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const todayEntries = getEntriesByDate(todayISO);
+  const todayEntries = useMemo(
+    () => journalEntries.filter((e) => e.dateISO === todayISO),
+    [journalEntries, todayISO],
+  );
 
   /** Map: "dua-5" → { completed: 20, target: 33 } (sum of today's entries) */
   const progressMap = useMemo(() => {
@@ -160,20 +167,52 @@ export default function CustomSetDetailScreen() {
     (item: CustomSetItem) => {
       if (!set || isEditMode) return;
       const resolved = resolveItem(item);
+      const key = itemKey(item);
+      const prog = progressMap[key];
+      const alreadyDone = prog?.completed ?? 0;
+      const remaining = Math.max(0, resolved.target - alreadyDone);
+      if (remaining <= 0) return; // already completed
       router.push({
         pathname: '/spiritual/counter',
         params: {
           itemType: item.itemType === 'sure' ? 'dua' : item.itemType,
           itemId: item.itemId.toString(),
           itemName: resolved.name,
-          target: resolved.target.toString(),
+          target: remaining.toString(),
           setItems: JSON.stringify(set.items),
           setIndex: set.items.indexOf(item).toString(),
         },
       });
     },
-    [set, isEditMode, resolveItem],
+    [set, isEditMode, resolveItem, progressMap],
   );
+
+  /* ─── Count presets ─── */
+  const COUNT_PRESETS = [7, 11, 33, 99, 100, 500, 1000];
+
+  const getDefaultCount = useCallback(
+    (tab: AddTab, itemId: number): number => {
+      if (tab === 'esma') {
+        const esma = getEsmaById(itemId);
+        return esma?.defaultTargetCount ?? 33;
+      }
+      const dua = getDuaById(itemId);
+      return dua?.defaultTargetCount ?? 3;
+    },
+    [getEsmaById, getDuaById],
+  );
+
+  const getAddItemCount = useCallback(
+    (tab: AddTab, itemId: number): number => {
+      const key = `${tab}-${itemId}`;
+      return addItemCounts[key] ?? getDefaultCount(tab, itemId);
+    },
+    [addItemCounts, getDefaultCount],
+  );
+
+  const setAddItemCount = useCallback((tab: AddTab, itemId: number, count: number) => {
+    setAddItemCounts((prev) => ({ ...prev, [`${tab}-${itemId}`]: count }));
+  }, []);
 
   /* ─── Add modal items ─── */
   const addFilteredItems = useMemo(() => {
@@ -277,9 +316,26 @@ export default function CustomSetDetailScreen() {
               <Text style={S.itemSub} numberOfLines={1}>{resolved.sub}</Text>
             ) : null}
             {(!prog || prog.completed === 0) && (
-              <Text style={[S.itemTarget, { color: typeColor }]}>
-                {resolved.target}x
-              </Text>
+              <Pressable
+                onPress={() => {
+                  Alert.prompt(
+                    'Zikir Adedi',
+                    `${resolved.name} için hedef adet:`,
+                    (val) => {
+                      const num = parseInt(val, 10);
+                      if (num > 0) updateItemTarget(set.id, item.itemType, item.itemId, num);
+                    },
+                    'plain-text',
+                    String(resolved.target),
+                    'number-pad',
+                  );
+                }}
+                hitSlop={6}
+              >
+                <Text style={[S.itemTarget, { color: typeColor }]}>
+                  {resolved.target}x
+                </Text>
+              </Pressable>
             )}
           </View>
         </View>
@@ -425,7 +481,7 @@ export default function CustomSetDetailScreen() {
             { borderColor: accent },
             pressed && { opacity: 0.8 },
           ]}
-          onPress={() => { setAddSearch(''); setShowAddModal(true); }}
+          onPress={() => { setAddSearch(''); setAddItemCounts({}); setExpandedCountPicker(null); setShowAddModal(true); }}
         >
           <Ionicons name="add-circle-outline" size={18} color={accent} />
           <Text style={[S.addBtnText, { color: accent }]}>Öğe Ekle</Text>
@@ -490,7 +546,7 @@ export default function CustomSetDetailScreen() {
                           borderColor: isActive ? clr + '44' : colors.border,
                         },
                       ]}
-                      onPress={() => { setAddTab(t); setAddSearch(''); }}
+                      onPress={() => { setAddTab(t); setAddSearch(''); setExpandedCountPicker(null); }}
                     >
                       <Ionicons name={meta.icon} size={14} color={isActive ? clr : colors.subtext} />
                       <Text style={[S.chipText, { color: isActive ? clr : colors.subtext }]}>
@@ -532,32 +588,114 @@ export default function CustomSetDetailScreen() {
                   const clr = isDark ? meta.darkColor : meta.color;
                   const name = addTab === 'esma' ? addItem_.nameTr : addItem_.title;
                   const sub = addItem_.meaningTr;
+                  const pickerKey = `${addTab}-${addItem_.id}`;
+                  const isPickerOpen = expandedCountPicker === pickerKey;
+                  const selectedCount = getAddItemCount(addTab, addItem_.id);
 
                   return (
-                    <View style={S.addItemRow}>
-                      <View style={[S.addItemIcon, { backgroundColor: clr + '14' }]}>
-                        <Ionicons name={meta.icon} size={14} color={clr} />
+                    <View>
+                      <View style={S.addItemRow}>
+                        <View style={[S.addItemIcon, { backgroundColor: clr + '14' }]}>
+                          <Ionicons name={meta.icon} size={14} color={clr} />
+                        </View>
+                        <View style={S.addItemInfo}>
+                          <Text style={S.addItemName} numberOfLines={1}>{name}</Text>
+                          <Text style={S.addItemSub} numberOfLines={1}>{sub}</Text>
+                        </View>
+                        {/* Count badge */}
+                        {!alreadyIn && (
+                          <Pressable
+                            onPress={() => setExpandedCountPicker(isPickerOpen ? null : pickerKey)}
+                            style={[
+                              S.countBadge,
+                              {
+                                backgroundColor: isPickerOpen ? accent + '18' : (isDark ? 'rgba(148,163,184,0.10)' : 'rgba(0,0,0,0.04)'),
+                                borderColor: isPickerOpen ? accent + '44' : colors.border,
+                              },
+                            ]}
+                            hitSlop={4}
+                          >
+                            <Text style={[S.countBadgeText, { color: isPickerOpen ? accent : colors.text }]}>
+                              {selectedCount}x
+                            </Text>
+                            <Ionicons
+                              name={isPickerOpen ? 'chevron-up' : 'chevron-down'}
+                              size={10}
+                              color={isPickerOpen ? accent : colors.subtext}
+                            />
+                          </Pressable>
+                        )}
+                        <Pressable
+                          onPress={() => {
+                            if (!alreadyIn) {
+                              addItem(set.id, itemType, addItem_.id, selectedCount);
+                              setExpandedCountPicker(null);
+                              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            }
+                          }}
+                          disabled={alreadyIn}
+                          hitSlop={8}
+                        >
+                          <Ionicons
+                            name={alreadyIn ? 'checkmark-circle' : 'add-circle'}
+                            size={26}
+                            color={alreadyIn ? doneColor : accent}
+                          />
+                        </Pressable>
                       </View>
-                      <View style={S.addItemInfo}>
-                        <Text style={S.addItemName} numberOfLines={1}>{name}</Text>
-                        <Text style={S.addItemSub} numberOfLines={1}>{sub}</Text>
-                      </View>
-                      <Pressable
-                        onPress={() => {
-                          if (!alreadyIn) {
-                            addItem(set.id, itemType, addItem_.id);
-                            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          }
-                        }}
-                        disabled={alreadyIn}
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={alreadyIn ? 'checkmark-circle' : 'add-circle'}
-                          size={26}
-                          color={alreadyIn ? doneColor : accent}
-                        />
-                      </Pressable>
+                      {/* Count picker presets */}
+                      {isPickerOpen && !alreadyIn && (
+                        <View style={S.countPickerRow}>
+                          {COUNT_PRESETS.map((n) => (
+                            <Pressable
+                              key={n}
+                              style={[
+                                S.countChip,
+                                {
+                                  backgroundColor: selectedCount === n ? accent + '18' : 'transparent',
+                                  borderColor: selectedCount === n ? accent : colors.border,
+                                },
+                              ]}
+                              onPress={() => {
+                                setAddItemCount(addTab, addItem_.id, n);
+                                void Haptics.selectionAsync();
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  S.countChipText,
+                                  { color: selectedCount === n ? accent : colors.subtext },
+                                ]}
+                              >
+                                {n}
+                              </Text>
+                            </Pressable>
+                          ))}
+                          <Pressable
+                            style={[S.countChip, { borderColor: colors.border }]}
+                            onPress={() => {
+                              if (Platform.OS === 'ios') {
+                                Alert.prompt(
+                                  'Özel Adet',
+                                  'Zikir adedini girin:',
+                                  (val) => {
+                                    const num = parseInt(val, 10);
+                                    if (num > 0) setAddItemCount(addTab, addItem_.id, num);
+                                  },
+                                  'plain-text',
+                                  String(selectedCount),
+                                  'number-pad',
+                                );
+                              } else {
+                                // Android: Alert.prompt not available, use simple Alert
+                                Alert.alert('Özel Adet', 'iOS dışı platformlarda sayı girmek için öğeyi ekleyip ardından hedefi düzenleyebilirsiniz.');
+                              }
+                            }}
+                          >
+                            <Ionicons name="create-outline" size={12} color={colors.subtext} />
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
                   );
                 }}
@@ -601,7 +739,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: SPACING.lg,
-      paddingTop: 56,
+      paddingTop: SPACING.md,
       paddingBottom: SPACING.md,
       gap: SPACING.sm,
     },
@@ -936,6 +1074,43 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     addItemInfo: { flex: 1, gap: 2 },
     addItemName: { ...TYPOGRAPHY.SmallBold, color: C.text },
     addItemSub: { ...TYPOGRAPHY.Caption, color: C.subtext },
+
+    /* Count badge & picker */
+    countBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 4,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+    },
+    countBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+    },
+    countPickerRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      paddingLeft: 30 + SPACING.smMd,
+      paddingBottom: SPACING.sm,
+      paddingTop: 2,
+    },
+    countChip: {
+      paddingHorizontal: SPACING.smMd,
+      paddingVertical: 5,
+      borderRadius: RADIUS.full,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    countChipText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+
     modalEmpty: {
       textAlign: 'center',
       marginTop: 32,

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../../utils/haptics';
 import { useTheme } from '../../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../../constants/tokens';
 import { AccessibleText } from '../../../components/ui/AccessibleText';

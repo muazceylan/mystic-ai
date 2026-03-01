@@ -21,4 +21,5 @@ public class HoroscopeResponse {
     private List<String> highlights;
     private HoroscopeSections sections;
     private HoroscopeMeta meta;
+    private List<UpstreamSource> sources;
 }

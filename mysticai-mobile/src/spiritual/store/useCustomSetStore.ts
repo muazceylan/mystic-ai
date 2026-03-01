@@ -10,21 +10,25 @@ import type { CustomSet, CustomSetItem, SpiritualItemType } from '../types';
 
 interface CustomSetState {
   sets: CustomSet[];
+  activeRoutineSetId: string | null;
 
   createSet: (name: string) => CustomSet;
   deleteSet: (id: string) => void;
   renameSet: (id: string, name: string) => void;
-  addItem: (setId: string, itemType: SpiritualItemType, itemId: number) => void;
+  addItem: (setId: string, itemType: SpiritualItemType, itemId: number, targetCount?: number) => void;
   removeItem: (setId: string, itemType: SpiritualItemType, itemId: number) => void;
   reorderItems: (setId: string, items: CustomSetItem[]) => void;
+  updateItemTarget: (setId: string, itemType: SpiritualItemType, itemId: number, targetCount: number) => void;
   getSetById: (id: string) => CustomSet | undefined;
   isItemInSet: (setId: string, itemType: SpiritualItemType, itemId: number) => boolean;
+  setActiveRoutine: (setId: string | null) => void;
 }
 
 export const useCustomSetStore = create<CustomSetState>()(
   persist(
     (set, get) => ({
       sets: [],
+      activeRoutineSetId: null,
 
       createSet: (name: string): CustomSet => {
         const now = new Date().toISOString();
@@ -40,7 +44,10 @@ export const useCustomSetStore = create<CustomSetState>()(
       },
 
       deleteSet: (id: string) => {
-        set((state) => ({ sets: state.sets.filter((s) => s.id !== id) }));
+        set((state) => ({
+          sets: state.sets.filter((s) => s.id !== id),
+          activeRoutineSetId: state.activeRoutineSetId === id ? null : state.activeRoutineSetId,
+        }));
       },
 
       renameSet: (id: string, name: string) => {
@@ -51,7 +58,7 @@ export const useCustomSetStore = create<CustomSetState>()(
         }));
       },
 
-      addItem: (setId: string, itemType: SpiritualItemType, itemId: number) => {
+      addItem: (setId: string, itemType: SpiritualItemType, itemId: number, targetCount?: number) => {
         set((state) => ({
           sets: state.sets.map((s) => {
             if (s.id !== setId) return s;
@@ -61,7 +68,7 @@ export const useCustomSetStore = create<CustomSetState>()(
             );
             if (exists) return s;
             const nextOrder = s.items.length;
-            const newItem: CustomSetItem = { itemType, itemId, order: nextOrder };
+            const newItem: CustomSetItem = { itemType, itemId, order: nextOrder, ...(targetCount != null && { targetCount }) };
             return {
               ...s,
               items: [...s.items, newItem],
@@ -89,6 +96,23 @@ export const useCustomSetStore = create<CustomSetState>()(
         }));
       },
 
+      updateItemTarget: (setId: string, itemType: SpiritualItemType, itemId: number, targetCount: number) => {
+        set((state) => ({
+          sets: state.sets.map((s) => {
+            if (s.id !== setId) return s;
+            return {
+              ...s,
+              items: s.items.map((it) =>
+                it.itemType === itemType && it.itemId === itemId
+                  ? { ...it, targetCount }
+                  : it,
+              ),
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        }));
+      },
+
       reorderItems: (setId: string, items: CustomSetItem[]) => {
         set((state) => ({
           sets: state.sets.map((s) =>
@@ -108,11 +132,15 @@ export const useCustomSetStore = create<CustomSetState>()(
         if (!s) return false;
         return s.items.some((it) => it.itemType === itemType && it.itemId === itemId);
       },
+
+      setActiveRoutine: (setId: string | null) => {
+        set({ activeRoutineSetId: setId });
+      },
     }),
     {
       name: 'spiritual-custom-set-store',
       storage: createJSONStorage(() => zustandStorage),
-      partialize: (state) => ({ sets: state.sets }),
+      partialize: (state) => ({ sets: state.sets, activeRoutineSetId: state.activeRoutineSetId }),
     },
   ),
 );

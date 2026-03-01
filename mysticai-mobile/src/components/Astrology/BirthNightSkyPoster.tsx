@@ -631,15 +631,17 @@ export default function BirthNightSkyPoster(props: Props) {
               {props.shareUrl}
             </Text>
           </View>
-          <View style={styles.qrShell}>
-            <QRCode
-              value={props.shareUrl}
-              size={48}
-              color="#0A0D14"
-              backgroundColor="#F8FAFC"
-              quietZone={4}
-            />
-          </View>
+          {props.shareUrl ? (
+            <View style={styles.qrShell}>
+              <QRCode
+                value={props.shareUrl}
+                size={48}
+                color="#0A0D14"
+                backgroundColor="#F8FAFC"
+                quietZone={4}
+              />
+            </View>
+          ) : null}
         </View>
       </LinearGradient>
     </View>

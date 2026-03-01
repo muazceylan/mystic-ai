@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -176,10 +176,12 @@ export default function CounterScreen() {
       });
       setShowFinish(false);
 
-      // If in set flow and there's a next item, go to it
-      if (!navigateToNextSetItem()) {
-        router.back();
-      }
+      // Delay navigation to avoid iOS modal dismiss + navigation clash
+      setTimeout(() => {
+        if (!navigateToNextSetItem()) {
+          router.back();
+        }
+      }, 400);
     },
     [store, journal, navigateToNextSetItem],
   );
@@ -197,7 +199,7 @@ export default function CounterScreen() {
       completed: store.completed,
       durationSec,
     });
-    router.back();
+    setTimeout(() => router.back(), 400);
   }, [store, journal]);
 
   const progress = selectProgress(store);
@@ -206,13 +208,13 @@ export default function CounterScreen() {
   // --- LIGHT THEME PALETTE ---
   const isEsma = store.itemType === 'esma';
   const GRAD: [string, string] = isEsma
-    ? ['#F0FDF4', '#ECFDF5']
+    ? ['#FFFBEB', '#FEF3C7']
     : ['#F5F3FF', '#EEF2FF'];
-  const ACCENT = isEsma ? '#16A34A' : '#6366F1';
-  const ACCENT_LIGHT = isEsma ? '#BBF7D0' : '#C7D2FE';
+  const ACCENT = isEsma ? '#B45309' : '#6366F1';
+  const ACCENT_LIGHT = isEsma ? '#FEF3C7' : '#C7D2FE';
   const TEXT = '#1E293B';
   const SUBTEXT = '#64748B';
-  const SURFACE_BG = isEsma ? 'rgba(240,253,244,0.95)' : 'rgba(245,243,255,0.95)';
+  const SURFACE_BG = isEsma ? 'rgba(254,243,199,0.95)' : 'rgba(245,243,255,0.95)';
 
   // Set flow indicator
   const setFlowLabel = setItems
@@ -316,10 +318,18 @@ export default function CounterScreen() {
       {/* Bottom Toolbar */}
       <View style={[styles.toolbar, { backgroundColor: SURFACE_BG, borderColor: ACCENT_LIGHT }]}>
         <ToolbarBtn
-          icon="refresh-outline"
-          label="Sıfırla"
+          icon="remove-outline"
+          label="-1"
+          color={ACCENT}
+          onPress={handleTap}
+          disabled={store.status !== 'running' || store.remaining <= 0}
+        />
+        <ToolbarBtn
+          icon="add-outline"
+          label="+1"
           color={SUBTEXT}
-          onPress={() => store.reset()}
+          onPress={() => store.increment()}
+          disabled={store.status !== 'running' || store.completed <= 0}
         />
         <ToolbarBtn
           icon="arrow-undo-outline"
@@ -335,10 +345,10 @@ export default function CounterScreen() {
           onPress={() => (store.status === 'paused' ? store.resume() : store.pause())}
         />
         <ToolbarBtn
-          icon={settings.hapticEnabled ? 'phone-portrait-outline' : 'phone-portrait'}
-          label="Titreşim"
-          color={settings.hapticEnabled ? ACCENT : SUBTEXT + '44'}
-          onPress={() => settings.update({ hapticEnabled: !settings.hapticEnabled })}
+          icon="refresh-outline"
+          label="Sıfırla"
+          color={SUBTEXT}
+          onPress={() => store.reset()}
         />
       </View>
 
@@ -406,7 +416,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 56,
+    paddingTop: 12,
     paddingHorizontal: 16,
     paddingBottom: 4,
   },

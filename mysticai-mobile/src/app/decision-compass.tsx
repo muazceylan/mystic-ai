@@ -126,6 +126,14 @@ export default function DecisionCompassScreen() {
   const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
   const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
   const resetHiddenCategories = useDecisionCompassStore((s) => s.resetHiddenCategories);
+  const initFromFocusPoints = useDecisionCompassStore((s) => s.initFromFocusPoints);
+
+  // Auto-filter by user's focus points on first load
+  React.useEffect(() => {
+    if (cards.length > 0 && user?.focusPoint) {
+      initFromFocusPoints(user.focusPoint, cards.map((c) => c.categoryKey));
+    }
+  }, [cards.length, user?.focusPoint]);
   const visibleCards = useMemo(
     () => cards.filter((card) => !hiddenCategoryKeys.includes(card.categoryKey)),
     [cards, hiddenCategoryKeys],

@@ -105,18 +105,32 @@ export async function shareImage(uri: string): Promise<ShareResult> {
 }
 
 export async function saveToGallery(uri: string): Promise<ShareResult> {
+  // 1. Request permission (writeOnly = true for iOS 14+ limited access)
+  let permission: MediaLibrary.PermissionResponse;
   try {
-    const permission = await MediaLibrary.requestPermissionsAsync();
-    if (!permission.granted) {
-      const message = buildPhotosSettingsMessage();
-      throw new ShareServiceError('MEDIA_LIBRARY_PERMISSION_DENIED', message, {
-        suggestOpenSettings: true,
-      });
-    }
+    permission = await MediaLibrary.requestPermissionsAsync(true);
+  } catch (permErr: any) {
+    // requestPermissionsAsync itself can crash on misconfigured native modules
+    const message = buildPhotosSettingsMessage();
+    logShareAnalytics({ channel: 'gallery', success: false, reason: `permission_request_failed: ${permErr?.message}` });
+    throw new ShareServiceError('MEDIA_LIBRARY_PERMISSION_DENIED', message, {
+      suggestOpenSettings: true,
+    });
+  }
 
+  if (!permission.granted) {
+    const message = buildPhotosSettingsMessage();
+    logShareAnalytics({ channel: 'gallery', success: false, reason: 'permission_denied' });
+    throw new ShareServiceError('MEDIA_LIBRARY_PERMISSION_DENIED', message, {
+      suggestOpenSettings: true,
+    });
+  }
+
+  // 2. Save to gallery
+  try {
     await MediaLibrary.saveToLibraryAsync(uri);
     logShareAnalytics({ channel: 'gallery', success: true });
-    return { ok: true, channel: 'gallery', message: 'Kart galeriye kaydedildi.' };
+    return { ok: true, channel: 'gallery', message: 'Görsel galeriye kaydedildi.' };
   } catch (e: any) {
     if (e instanceof ShareServiceError) {
       logShareAnalytics({ channel: 'gallery', success: false, reason: e.message });

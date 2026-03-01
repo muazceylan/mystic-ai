@@ -199,35 +199,42 @@ export default function DuaListScreen() {
           </View>
 
           {/* Category filter chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.catFilterRow}
-          >
-            <Pressable
-              style={[styles.catChip, !selectedCategory && { backgroundColor: ACCENT }]}
-              onPress={() => setSelectedCategory(undefined)}
+          <View style={styles.catFilterWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.catFilterRow}
             >
-              <Text style={[styles.catChipText, { color: !selectedCategory ? TAB_ACTIVE_TEXT : SUBTEXT }]}>
-                Tümü
-              </Text>
-            </Pressable>
-            {categories.map((cat) => (
               <Pressable
-                key={cat}
                 style={[
                   styles.catChip,
-                  { borderColor: BORDER, borderWidth: 1 },
-                  selectedCategory === cat && { backgroundColor: ACCENT, borderColor: ACCENT },
+                  { borderColor: !selectedCategory ? ACCENT : BORDER, backgroundColor: !selectedCategory ? ACCENT : SURFACE },
                 ]}
-                onPress={() => setSelectedCategory(selectedCategory === cat ? undefined : cat)}
+                onPress={() => setSelectedCategory(undefined)}
               >
-                <Text style={[styles.catChipText, { color: selectedCategory === cat ? TAB_ACTIVE_TEXT : SUBTEXT }]}>
-                  {categoryLabel(cat)}
+                <Text style={[styles.catChipText, { color: !selectedCategory ? TAB_ACTIVE_TEXT : SUBTEXT }]}>
+                  Tümü
                 </Text>
               </Pressable>
-            ))}
-          </ScrollView>
+              {categories.map((cat) => {
+                const isActive = selectedCategory === cat;
+                return (
+                  <Pressable
+                    key={cat}
+                    style={[
+                      styles.catChip,
+                      { borderColor: isActive ? ACCENT : BORDER, backgroundColor: isActive ? ACCENT : SURFACE },
+                    ]}
+                    onPress={() => setSelectedCategory(isActive ? undefined : cat)}
+                  >
+                    <Text style={[styles.catChipText, { color: isActive ? TAB_ACTIVE_TEXT : SUBTEXT }]}>
+                      {categoryLabel(cat)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
 
           {/* List */}
           <FlatList
@@ -303,7 +310,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 56,
+    paddingTop: SPACING.md,
     paddingHorizontal: SPACING.lgXl,
     paddingBottom: SPACING.md,
   },
@@ -331,22 +338,28 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   searchInput: { flex: 1, ...TYPOGRAPHY.Body },
+  catFilterWrapper: {
+    marginBottom: SPACING.sm,
+  },
   catFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     gap: SPACING.sm,
-    paddingBottom: SPACING.sm,
+    height: 40,
   },
   catChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   catChipText: { ...TYPOGRAPHY.CaptionBold },
-  listContent: { paddingHorizontal: SPACING.lg, paddingBottom: 32 },
+  listContent: { paddingHorizontal: SPACING.lg, paddingBottom: 100 },
   empty: { textAlign: 'center', marginTop: 32, ...TYPOGRAPHY.Small },
-  statsContent: { padding: SPACING.lg, gap: SPACING.lg, paddingBottom: 40 },
+  statsContent: { padding: SPACING.lg, gap: SPACING.lg, paddingBottom: 100 },
   chartCard: { borderRadius: RADIUS.lg, borderWidth: 1, padding: SPACING.mdLg, gap: 10 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },

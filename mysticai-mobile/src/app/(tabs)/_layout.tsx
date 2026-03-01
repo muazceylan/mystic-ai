@@ -13,6 +13,8 @@ import {
 } from '../../services/lucky-dates.service';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
+import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope.service';
+import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
 
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -36,6 +38,21 @@ export default function TabsLayout() {
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
   const prefetchKeyRef = useRef<string | null>(null);
+  const lastDateRef = useRef<string>(toIsoDate(new Date()));
+
+  // Clear daily caches when date changes (app stays open overnight)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const today = toIsoDate(new Date());
+      if (lastDateRef.current !== today) {
+        lastDateRef.current = today;
+        clearHoroscopeCache();
+        useHoroscopeStore.getState().clear();
+        clearPlannerFullDistributionCache();
+      }
+    }, 60_000); // check every minute
+    return () => clearInterval(interval);
+  }, []);
   const plannerLocale = useMemo(
     () => ((i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     [i18n.language, i18n.resolvedLanguage],
@@ -342,6 +359,27 @@ export default function TabsLayout() {
               color={color}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="spiritual"
+        options={{
+          title: 'Ruhsal',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="weekly-analysis"
+        options={{
+          title: t('home.weeklyAnalysis'),
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="transit-detail"
+        options={{
+          title: t('home.transitTitle'),
+          tabBarButton: () => null,
         }}
       />
     </Tabs>

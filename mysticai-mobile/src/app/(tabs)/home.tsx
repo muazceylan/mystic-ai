@@ -391,6 +391,8 @@ export default function HomeScreen() {
               router.push('/(tabs)/natal-chart');
             }
           }}
+          onOpenWeekly={() => router.push('/(tabs)/weekly-analysis' as any)}
+          onOpenTransit={() => router.push('/(tabs)/transit-detail' as any)}
           onOpenDailySummary={() => router.push('/daily-summary')}
           onOpenDecisionCompass={() => router.push('/decision-compass')}
           onOpenDecisionCompassItem={() => router.push('/decision-compass')}

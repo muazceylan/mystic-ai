@@ -36,6 +36,8 @@ interface HomeV2ScreenProps {
   onOpenDecisionCompass: () => void;
   onOpenDecisionCompassItem?: (item: HomeV2DecisionCompassItem) => void;
   onOpenDecisionCompassItemDetail?: (item: HomeV2DecisionCompassItem) => void;
+  onOpenWeekly?: () => void;
+  onOpenTransit?: () => void;
   spiritualSection?: React.ReactNode;
   horoscopeSection?: React.ReactNode;
   headerSlot?: React.ReactNode;
@@ -73,6 +75,8 @@ export function HomeV2Screen({
   onOpenDecisionCompass,
   onOpenDecisionCompassItem,
   onOpenDecisionCompassItemDetail,
+  onOpenWeekly,
+  onOpenTransit,
   spiritualSection,
   horoscopeSection,
   headerSlot,
@@ -208,7 +212,7 @@ export function HomeV2Screen({
           P={P}
           model={model}
           loading={!!loading?.summary}
-          onPress={onOpenDailySummary}
+          onPress={onOpenTransit}
         />
 
         <WeeklyCard
@@ -216,6 +220,7 @@ export function HomeV2Screen({
           P={P}
           model={model}
           loading={!!loading?.weekly}
+          onOpenDetail={onOpenWeekly}
         />
 
         <View style={S.footerStatusWrap}>
@@ -429,18 +434,27 @@ function TransitInsightsCard({
   P: Palette;
   model: HomeV2Model;
   loading: boolean;
-  onPress: () => void;
+  onPress?: () => void;
 }) {
   const transit = model.transitToday;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [S.cardBase, S.transitCard, pressed && S.pressed]}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [S.cardBase, S.transitCard, onPress && pressed && S.pressed]}
+    >
       <View style={S.cardTopHighlight} />
       <View style={S.sectionHeaderRow}>
         <Text style={S.sectionTitle}>Günün Transitleri</Text>
-        <View style={S.transitHeaderBadge}>
-          <Ionicons name="planet-outline" size={12} color={S.__palette.accent} />
-          <Text style={S.transitHeaderBadgeText}>Bugün</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={S.transitHeaderBadge}>
+            <Ionicons name="planet-outline" size={12} color={S.__palette.accent} />
+            <Text style={S.transitHeaderBadgeText}>Bugün</Text>
+          </View>
+          {onPress && (
+            <Ionicons name="chevron-forward" size={14} color={S.__palette.chevron} />
+          )}
         </View>
       </View>
 
@@ -468,11 +482,6 @@ function TransitInsightsCard({
             <Text style={[S.transitPointText, loading && S.loadingText]} numberOfLines={1}>{point}</Text>
           </View>
         ))}
-      </View>
-
-      <View style={S.transitFooterRow}>
-        <Text style={S.transitFooterText}>Detaylı yorum için dokun</Text>
-        <Ionicons name="chevron-forward" size={16} color={S.__palette.chevron} />
       </View>
     </Pressable>
   );
@@ -814,21 +823,32 @@ function WeeklyCard({
   S,
   model,
   loading,
+  onOpenDetail,
 }: {
   S: ReturnType<typeof makeStyles>;
   P: Palette;
   model: HomeV2Model;
   loading: boolean;
+  onOpenDetail?: () => void;
 }) {
   const [expandedId, setExpandedId] = React.useState<HomeV2Model['weeklyItems'][number]['id'] | null>(null);
 
   return (
     <View style={[S.cardBase, S.weeklyCard]}>
       <View style={S.cardTopHighlight} />
-      <View style={S.sectionHeaderRow}>
+      <Pressable
+        style={S.sectionHeaderRow}
+        onPress={onOpenDetail}
+        disabled={!onOpenDetail}
+      >
         <Text style={S.sectionTitle}>Bu Hafta</Text>
-        <Text style={S.sectionDateText}>{model.weekRangeLabel}</Text>
-      </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={S.sectionDateText}>{model.weekRangeLabel}</Text>
+          {onOpenDetail && (
+            <Ionicons name="chevron-forward" size={14} color={S.__palette.chevron} />
+          )}
+        </View>
+      </Pressable>
 
       <View style={S.weeklyListWrap}>
         {model.weeklyItems.map((row) => (

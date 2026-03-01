@@ -11,24 +11,27 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class FreeHoroscopeApiClient {
 
-    private static final String BASE_URL = "https://horoscope-app-api.vercel.app/api/v1/get-horoscope";
+    private static final String BASE_URL = "https://freehoroscopeapi.com/api/v1/get-horoscope";
     private final RestTemplate restTemplate = new RestTemplate();
 
     public UpstreamSource fetch(String sign, String period) {
         try {
             String endpoint = period.equals("weekly")
-                    ? BASE_URL + "/weekly?sign=" + capitalize(sign)
-                    : BASE_URL + "/daily?sign=" + capitalize(sign) + "&day=TODAY";
+                    ? BASE_URL + "/weekly?sign=" + sign.toLowerCase()
+                    : BASE_URL + "/daily?sign=" + sign.toLowerCase();
             JsonNode response = restTemplate.getForObject(endpoint, JsonNode.class);
-            if (response != null && response.has("data")) {
-                JsonNode data = response.get("data");
-                String text = data.has("horoscope_data")
-                        ? data.get("horoscope_data").asText()
-                        : data.toString();
-                return UpstreamSource.builder()
-                        .name("freehoroscopeapi")
-                        .text(text)
-                        .build();
+            if (response != null) {
+                String text = response.has("horoscope")
+                        ? response.get("horoscope").asText()
+                        : response.has("data") && response.get("data").has("horoscope_data")
+                            ? response.get("data").get("horoscope_data").asText()
+                            : response.toString();
+                if (text != null && !text.isBlank()) {
+                    return UpstreamSource.builder()
+                            .name("freehoroscopeapi")
+                            .text(text)
+                            .build();
+                }
             }
         } catch (Exception e) {
             log.warn("FreeHoroscopeApi fetch failed for {}: {}", sign, e.getMessage());

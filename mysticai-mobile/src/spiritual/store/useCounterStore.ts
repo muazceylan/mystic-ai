@@ -23,6 +23,7 @@ export interface CounterState {
   // Actions
   start: (params: { itemType: 'esma' | 'dua'; itemId: number; itemName: string; target: number; hapticEnabled?: boolean }) => void;
   tap: () => void;
+  increment: () => void;
   undo: () => void;
   reset: () => void;
   pause: () => void;
@@ -87,6 +88,15 @@ export const useCounterStore = create<CounterState>((set, get) => ({
         history: newHistory,
       });
     }
+  },
+
+  increment: () => {
+    const { remaining, completed, status, target } = get();
+    if (status !== 'running' || completed <= 0) return;
+    set({
+      remaining: remaining + 1,
+      completed: completed - 1,
+    });
   },
 
   undo: () => {

@@ -14,7 +14,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
+import { useTheme } from '../../context/ThemeContext';
 import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
 import type { BarChartDataPoint } from '../types';
@@ -23,15 +25,16 @@ type Period = '7d' | '30d' | 'all';
 
 export default function StatsScreen() {
   const journal = useJournalStore();
+  const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const [period, setPeriod] = useState<Period>('7d');
 
-  const GRAD: [string, string] = ['#0F1B2D', '#060E1A'];
-  const ACCENT = '#60A5FA';
-  const TEXT = '#E0EEFF';
-  const SUBTEXT = '#93C5FD';
-  const SURFACE = '#162032';
-  const BORDER = '#1E3A5F';
+  const GRAD: [string, string] = isDark ? ['#0F1B2D', '#060E1A'] : [colors.bg, colors.bgGrad1];
+  const ACCENT = isDark ? '#60A5FA' : colors.primary;
+  const TEXT = isDark ? '#E0EEFF' : colors.text;
+  const SUBTEXT = isDark ? '#93C5FD' : colors.subtext;
+  const SURFACE = isDark ? '#162032' : colors.surface;
+  const BORDER = isDark ? '#1E3A5F' : colors.border;
 
   const dateRange = useMemo(() => {
     const today = new Date();
@@ -110,12 +113,12 @@ export default function StatsScreen() {
   return (
     <SafeScreen style={{ backgroundColor: GRAD[0] }}>
       <LinearGradient colors={GRAD} style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: TEXT + 'BB' }]}>←</Text>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="chevron-back" size={24} color={TEXT} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: TEXT }]}>İstatistikler</Text>
         <HeaderRightIcons tintColor={TEXT} />
@@ -132,7 +135,7 @@ export default function StatsScreen() {
             ]}
             onPress={() => setPeriod(p)}
           >
-            <Text style={[styles.periodText, { color: period === p ? '#0F1B2D' : TEXT + 'AA' }]}>
+            <Text style={[styles.periodText, { color: period === p ? (isDark ? '#0F1B2D' : '#FFFFFF') : TEXT + 'AA' }]}>
               {periodLabel[p]}
             </Text>
           </Pressable>
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 56,
+    paddingTop: 12,
     paddingHorizontal: 20,
     paddingBottom: 12,
   },

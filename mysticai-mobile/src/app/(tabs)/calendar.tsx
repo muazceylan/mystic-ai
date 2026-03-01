@@ -25,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
@@ -2006,7 +2006,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       backgroundColor: C.background,
     },
     scrollContent: {
-      paddingTop: Platform.OS === 'ios' ? 60 : 24,
+      paddingTop: Platform.OS === 'ios' ? 8 : 8,
       paddingBottom: 100,
       paddingHorizontal: 18,
       gap: 14,

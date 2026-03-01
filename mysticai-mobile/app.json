@@ -22,7 +22,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Yıldız kartlarını galeriye kaydedebilmen için fotoğraf kütüphanene erişim izni istiyoruz.",
+          "savePhotosPermission": "Oluşturduğun yıldız kartlarını galeriye kaydetmek için fotoğraf kütüphanene yazma izni istiyoruz.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ],
     "scheme": "mystic-ai",
     "experiments": {

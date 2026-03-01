@@ -6,6 +6,7 @@ export interface CustomSetItem {
   itemType: SpiritualItemType;
   itemId: number;
   order: number;
+  targetCount?: number;
 }
 
 export interface CustomSet {

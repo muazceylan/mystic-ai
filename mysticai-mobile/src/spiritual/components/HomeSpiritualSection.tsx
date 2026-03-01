@@ -37,6 +37,14 @@ const FEATURES = [
     sub: 'Nefes teknikleri',
     colorKey: 'meditation' as const,
   },
+  {
+    key: 'routine',
+    route: '/spiritual/routine-picker' as const,
+    icon: 'layers-outline' as const,
+    label: 'Rutin Belirle',
+    sub: 'Ruhsal çantam',
+    colorKey: 'dua' as const,
+  },
 ] as const;
 
 const SURES = [
@@ -99,29 +107,27 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
 
       {/* ─── Günün Önerisi ─── */}
       <DailyRecommendationCard
-        accentColor={isDark ? '#4CAF50' : '#16A34A'}
-        surfaceColor={isDark ? '#1A3D28' : '#F0FDF4'}
-        textColor={isDark ? '#F0FFF4' : '#14532D'}
-        subtextColor={isDark ? '#86EFAC' : '#166534'}
-        borderColor={isDark ? '#2D5A3D' : '#BBF7D0'}
+        accentColor={colors.spiritualEsma}
+        surfaceColor={isDark ? colors.spiritualEsmaLight : colors.spiritualEsmaLight + '28'}
+        textColor={isDark ? '#FFFBEB' : '#78350F'}
+        subtextColor={isDark ? '#FDE68A' : '#92400E'}
+        borderColor={isDark ? '#92400E' : colors.spiritualEsmaLight}
         onShowAll={() => router.push('/spiritual/recommendations')}
       />
 
       {/* ─── Feature Grid (2 col first row, 1 full-width) ─── */}
       <View style={S.grid}>
-        {FEATURES.map((f, i) => {
+        {FEATURES.map((f) => {
           const accent = featureColor(f.colorKey);
           const bg = featureBg(f.colorKey);
-          const isWide = i === 2;
           return (
             <Pressable
               key={f.key}
               style={({ pressed }) => [
                 S.featureCard,
-                isWide && S.featureCardWide,
                 pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
               ]}
-              onPress={() => router.push(f.route)}
+              onPress={() => router.push(f.route as any)}
             >
               <LinearGradient
                 pointerEvents="none"
@@ -129,11 +135,11 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
                 style={S.featureGlow}
               />
               <View style={[S.featureIconWrap, { backgroundColor: bg }]}>
-                <Ionicons name={f.icon} size={18} color={accent} />
+                <Ionicons name={f.icon} size={16} color={accent} />
               </View>
               <View style={S.featureTextWrap}>
-                <Text style={S.featureLabel}>{f.label}</Text>
-                <Text style={S.featureSub}>{f.sub}</Text>
+                <Text style={S.featureLabel} numberOfLines={1}>{f.label}</Text>
+                <Text style={S.featureSub} numberOfLines={1}>{f.sub}</Text>
               </View>
               <View style={[S.featureArrow, { backgroundColor: bg }]}>
                 <Ionicons name="chevron-forward" size={14} color={accent} />
@@ -296,8 +302,9 @@ function makeStyles(
       flexGrow: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
-      padding: 12,
+      gap: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 10,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: isDark
@@ -308,9 +315,6 @@ function makeStyles(
         : 'rgba(248,250,252,0.92)',
       overflow: 'hidden',
     },
-    featureCardWide: {
-      width: '100%' as unknown as number,
-    },
     featureGlow: {
       position: 'absolute',
       top: 0,
@@ -319,9 +323,9 @@ function makeStyles(
       height: 48,
     },
     featureIconWrap: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
+      width: 34,
+      height: 34,
+      borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -330,19 +334,19 @@ function makeStyles(
       gap: 1,
     },
     featureLabel: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
       color: C.text,
     },
     featureSub: {
-      fontSize: 11,
+      fontSize: 10.5,
       fontWeight: '500',
       color: C.subtext,
     },
     featureArrow: {
-      width: 26,
-      height: 26,
-      borderRadius: 8,
+      width: 24,
+      height: 24,
+      borderRadius: 7,
       alignItems: 'center',
       justifyContent: 'center',
     },

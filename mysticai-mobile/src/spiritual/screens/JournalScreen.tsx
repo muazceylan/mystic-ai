@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
+import { useTheme } from '../../context/ThemeContext';
 import { useJournalStore } from '../store/useJournalStore';
 import type { JournalEntry } from '../types';
 
@@ -39,14 +41,15 @@ function formatDateLabel(dateISO: string): string {
 
 export default function JournalScreen() {
   const journal = useJournalStore();
+  const { colors, isDark } = useTheme();
   const [filter, setFilter] = useState<FilterType>('all');
 
-  const GRAD: [string, string] = ['#1A1033', '#0D0720'];
-  const ACCENT = '#9C6FEA';
-  const TEXT = '#F3EEFF';
-  const SUBTEXT = '#C4B5FD';
-  const SURFACE = '#24193E';
-  const BORDER = '#3D2F6A';
+  const GRAD: [string, string] = isDark ? ['#1A1033', '#0D0720'] : [colors.bg, colors.bgGrad1];
+  const ACCENT = isDark ? '#9C6FEA' : colors.primary;
+  const TEXT = isDark ? '#F3EEFF' : colors.text;
+  const SUBTEXT = isDark ? '#C4B5FD' : colors.subtext;
+  const SURFACE = isDark ? '#24193E' : colors.surface;
+  const BORDER = isDark ? '#3D2F6A' : colors.border;
 
   const sections = useMemo<Section[]>(() => {
     const filtered = journal.entries.filter(
@@ -94,12 +97,12 @@ export default function JournalScreen() {
   return (
     <SafeScreen style={{ backgroundColor: GRAD[0] }}>
       <LinearGradient colors={GRAD} style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: TEXT + 'BB' }]}>←</Text>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="chevron-back" size={24} color={TEXT} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: TEXT }]}>Zikir Günlüğüm</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 56,
+    paddingTop: 12,
     paddingHorizontal: 20,
     paddingBottom: 12,
   },

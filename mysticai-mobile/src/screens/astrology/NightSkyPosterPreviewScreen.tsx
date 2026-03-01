@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import ViewShot from 'react-native-view-shot';
@@ -33,6 +33,9 @@ import {
   saveToGallery,
   shareImage,
 } from '../../services/share.service';
+import { useNatalChartStore } from '../../store/useNatalChartStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { fetchLatestNatalChart } from '../../services/astrology.service';
 
 type ShareAction = 'share' | 'instagram' | 'save' | 'pdf' | null;
 type VariantOption = { key: NightSkyPosterVariant; label: string; sub: string };
@@ -75,7 +78,59 @@ export default function NightSkyPosterPreviewScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const draft = useNightSkyPosterStore((s) => s.draft);
+  const setDraft = useNightSkyPosterStore((s) => s.setDraft);
   const clearDraft = useNightSkyPosterStore((s) => s.clearDraft);
+  const cachedChart = useNatalChartStore((s) => s.chart);
+  const user = useAuthStore((s) => s.user);
+  const [bootstrapLoading, setBootstrapLoading] = useState(false);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const bootstrapAttemptedRef = useRef(false);
+
+  // Auto-build draft from natal chart store or API when draft is missing
+  useEffect(() => {
+    if (draft || bootstrapAttemptedRef.current) return;
+    bootstrapAttemptedRef.current = true;
+
+    const buildDraftFromChart = (chart: typeof cachedChart) => {
+      if (!chart) return;
+      setDraft({
+        userId: user?.id ?? chart.userId,
+        chartId: chart.id,
+        name: user?.name || user?.firstName || chart.name || 'Mystic Soul',
+        birthDate: String(chart.birthDate),
+        birthTime: chart.birthTime ?? null,
+        birthLocation: chart.birthLocation ?? '',
+        latitude: chart.latitude,
+        longitude: chart.longitude,
+        shareUrl: '',
+        planets: chart.planets ?? [],
+        houses: chart.houses ?? [],
+        createdAt: Date.now(),
+      });
+    };
+
+    if (cachedChart) {
+      buildDraftFromChart(cachedChart);
+      return;
+    }
+
+    // Fetch from API
+    const userId = user?.id;
+    if (!userId) {
+      setBootstrapError('Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun.');
+      return;
+    }
+
+    setBootstrapLoading(true);
+    fetchLatestNatalChart(userId)
+      .then((res) => {
+        buildDraftFromChart(res.data);
+      })
+      .catch(() => {
+        setBootstrapError('Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun.');
+      })
+      .finally(() => setBootstrapLoading(false));
+  }, [draft, cachedChart, user, setDraft]);
 
   const viewShotRef = useRef<ViewShot | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
@@ -197,6 +252,7 @@ export default function NightSkyPosterPreviewScreen() {
   useEffect(() => {
     return () => {
       clearDraft();
+      bootstrapAttemptedRef.current = false;
     };
   }, [clearDraft]);
 
@@ -326,14 +382,28 @@ export default function NightSkyPosterPreviewScreen() {
     return (
       <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={styles.emptyWrap}>
-          <Ionicons name="moon-outline" size={28} color={colors.violet} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Poster verisi bulunamadı</Text>
-          <Text style={[styles.emptySub, { color: colors.subtext }]}>
-            Önce harita ekranından "Doğduğun Gece Posteri" butonuna dokun.
-          </Text>
-          <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={() => router.back()}>
-            <Text style={styles.primaryBtnText}>Geri Dön</Text>
-          </Pressable>
+          {bootstrapLoading ? (
+            <>
+              <ActivityIndicator size="large" color={colors.violet} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Harita yükleniyor…</Text>
+              <Text style={[styles.emptySub, { color: colors.subtext }]}>
+                Doğum haritanız hazırlanıyor, lütfen bekleyin.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="moon-outline" size={28} color={colors.violet} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                {bootstrapError ?? 'Poster verisi bulunamadı'}
+              </Text>
+              <Text style={[styles.emptySub, { color: colors.subtext }]}>
+                Önce Haritam ekranından doğum haritanızı oluşturun.
+              </Text>
+              <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={() => router.back()}>
+                <Text style={styles.primaryBtnText}>Geri Dön</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </SafeScreen>
     );

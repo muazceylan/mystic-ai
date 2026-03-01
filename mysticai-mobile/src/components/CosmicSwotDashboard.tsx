@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
   FadeIn,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { SwotPoint } from '../services/astrology.service';
 import { useWeeklySwot } from '../hooks/useHomeQueries';

@@ -10,7 +10,7 @@ import {
   TouchableWithoutFeedback,
   ScrollView,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { PlanetaryAspect } from '../../services/astrology.service';
 import { PLANET_TURKISH } from '../../constants/zodiac';
 import { PLANET_GLOSSARY } from '../../constants/astrology-glossary';

@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 import { usePrayerFlowStore } from '../store/usePrayerFlowStore';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
@@ -485,7 +485,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: SPACING.lg,
-      paddingTop: 56,
+      paddingTop: SPACING.md,
       paddingBottom: SPACING.md,
       gap: SPACING.md,
     },

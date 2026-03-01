@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../../utils/haptics';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -153,7 +153,7 @@ export function CosmicFlowSection() {
           icon="planet"
           iconColor={isDark ? '#60A5FA' : '#2563EB'}
           iconBgColor={isDark ? 'rgba(96,165,250,0.12)' : 'rgba(37,99,235,0.08)'}
-          onPress={() => router.push('/(tabs)/home' as any)}
+          onPress={() => router.push('/(tabs)/transit-detail' as any)}
           index={1}
         />
         <FlowCard
@@ -162,7 +162,7 @@ export function CosmicFlowSection() {
           icon="analytics"
           iconColor={isDark ? '#34D399' : '#059669'}
           iconBgColor={isDark ? 'rgba(52,211,153,0.12)' : 'rgba(5,150,105,0.08)'}
-          onPress={() => router.push('/(tabs)/home' as any)}
+          onPress={() => router.push('/(tabs)/weekly-analysis' as any)}
           index={2}
         />
       </View>

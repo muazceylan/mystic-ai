@@ -27,6 +27,18 @@ export interface HoroscopeResponse {
     compatibility?: string;
     mood?: string;
   };
+  sources?: UpstreamSource[];
+}
+
+export interface UpstreamSource {
+  name: string;
+  text: string;
+  meta?: {
+    lucky_color?: string;
+    lucky_number?: string;
+    compatibility?: string;
+    mood?: string;
+  };
 }
 
 export interface ZodiacSignData {

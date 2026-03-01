@@ -1,11 +1,8 @@
 package com.mysticai.astrology.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.dto.*;
-import com.mysticai.astrology.prompt.HoroscopeFusionPrompt;
-import com.mysticai.astrology.service.upstream.AztroClient;
 import com.mysticai.astrology.service.upstream.FreeHoroscopeApiClient;
 import com.mysticai.astrology.service.upstream.OhmandaClient;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +17,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +25,6 @@ public class HoroscopeFusionService {
 
     private final FreeHoroscopeApiClient freeHoroscopeApiClient;
     private final OhmandaClient ohmandaClient;
-    private final AztroClient aztroClient;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -52,78 +45,101 @@ public class HoroscopeFusionService {
             Object cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
                 log.debug("Horoscope cache HIT: {}", cacheKey);
-                if (cached instanceof HoroscopeResponse hr) return hr;
-                return objectMapper.convertValue(cached, HoroscopeResponse.class);
+                HoroscopeResponse cachedResponse;
+                if (cached instanceof HoroscopeResponse hr) {
+                    cachedResponse = hr;
+                } else {
+                    cachedResponse = objectMapper.convertValue(cached, HoroscopeResponse.class);
+                }
+                if (cachedResponse.getSources() != null) {
+                    return cachedResponse;
+                }
+                log.info("Cached response missing sources, re-fetching: {}", cacheKey);
             }
         } catch (Exception e) {
             log.warn("Redis read failed for {}: {}", cacheKey, e.getMessage());
         }
 
-        // 2. Parallel fetch from upstream APIs
-        List<UpstreamSource> sources = fetchUpstreamSources(sign, period);
+        // 2. Fetch: Ohmanda first, FreeHoroscope as fallback
+        List<UpstreamSource> sources = new ArrayList<>();
+        String rawText = null;
+        String sourceName = null;
 
-        if (sources.isEmpty()) {
-            // Try stale cache
+        // Try Ohmanda
+        try {
+            UpstreamSource ohmanda = ohmandaClient.fetch(sign);
+            if (ohmanda != null && ohmanda.getText() != null && !ohmanda.getText().isBlank()) {
+                rawText = ohmanda.getText();
+                sourceName = ohmanda.getName();
+                sources.add(ohmanda);
+            }
+        } catch (Exception e) {
+            log.warn("Ohmanda failed for {}: {}", sign, e.getMessage());
+        }
+
+        // Fallback: FreeHoroscope
+        if (rawText == null) {
+            try {
+                UpstreamSource freeApi = freeHoroscopeApiClient.fetch(sign, period);
+                if (freeApi != null && freeApi.getText() != null && !freeApi.getText().isBlank()) {
+                    rawText = freeApi.getText();
+                    sourceName = freeApi.getName();
+                    sources.add(freeApi);
+                }
+            } catch (Exception e) {
+                log.warn("FreeHoroscopeApi failed for {}: {}", sign, e.getMessage());
+            }
+        }
+
+        if (rawText == null) {
             return tryStaleCache(cacheKey, sign, period, lang, dateLabel);
         }
 
-        // 3. Fuse via AI orchestrator
-        HoroscopeResponse response = fuseViaOrchestrator(sign, period, lang, dateLabel, sources);
-
-        // 4. Cache result
-        if (response != null) {
-            Duration ttl = period.equals("weekly") ? WEEKLY_TTL : DAILY_TTL;
-            try {
-                redisTemplate.opsForValue().set(cacheKey, response, ttl);
-            } catch (Exception e) {
-                log.warn("Redis write failed for {}: {}", cacheKey, e.getMessage());
+        // 3. Translate to Turkish if needed
+        String finalText = rawText;
+        if ("tr".equalsIgnoreCase(lang)) {
+            String translated = translateToTurkish(rawText);
+            if (translated != null) {
+                finalText = translated;
             }
+        }
+
+        // 4. Build response
+        HoroscopeResponse response = HoroscopeResponse.builder()
+                .date(dateLabel)
+                .period(period)
+                .sign(sign)
+                .language(lang)
+                .highlights(List.of())
+                .sections(HoroscopeSections.builder().general(finalText).build())
+                .meta(null)
+                .sources(sources)
+                .build();
+
+        // 5. Cache
+        Duration ttl = period.equals("weekly") ? WEEKLY_TTL : DAILY_TTL;
+        try {
+            redisTemplate.opsForValue().set(cacheKey, response, ttl);
+        } catch (Exception e) {
+            log.warn("Redis write failed for {}: {}", cacheKey, e.getMessage());
         }
 
         return response;
     }
 
-    private List<UpstreamSource> fetchUpstreamSources(String sign, String period) {
-        CompletableFuture<UpstreamSource> f1 = CompletableFuture.supplyAsync(
-                () -> freeHoroscopeApiClient.fetch(sign, period));
-        CompletableFuture<UpstreamSource> f2 = CompletableFuture.supplyAsync(
-                () -> ohmandaClient.fetch(sign));
-        CompletableFuture<UpstreamSource> f3 = CompletableFuture.supplyAsync(
-                () -> aztroClient.fetch(sign, period));
-
+    /**
+     * Translate English horoscope text to Turkish using AI orchestrator.
+     * Returns null if translation fails (caller should use original text).
+     */
+    private String translateToTurkish(String englishText) {
         try {
-            CompletableFuture.allOf(f1, f2, f3).get(10, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.warn("Upstream fetch timeout/error: {}", e.getMessage());
-        }
-
-        List<UpstreamSource> sources = new ArrayList<>();
-        addIfPresent(sources, f1);
-        addIfPresent(sources, f2);
-        addIfPresent(sources, f3);
-        return sources;
-    }
-
-    private void addIfPresent(List<UpstreamSource> list, CompletableFuture<UpstreamSource> future) {
-        try {
-            UpstreamSource result = future.getNow(null);
-            if (result != null && result.getText() != null && !result.getText().isBlank()) {
-                list.add(result);
-            }
-        } catch (Exception ignored) {}
-    }
-
-    private HoroscopeResponse fuseViaOrchestrator(String sign, String period, String lang,
-                                                     String dateLabel, List<UpstreamSource> sources) {
-        try {
-            // Build sources JSON
-            String sourcesJson = objectMapper.writeValueAsString(sources);
-
-            // Build request payload for AI orchestrator
             Map<String, Object> payload = new HashMap<>();
-            payload.put("systemPrompt", HoroscopeFusionPrompt.SYSTEM_PROMPT);
-            payload.put("userPrompt", HoroscopeFusionPrompt.buildUserPrompt(sign, period, dateLabel, lang, sourcesJson));
-            payload.put("expectJsonResponse", true);
+            payload.put("systemPrompt",
+                    "You are a translator. Translate the given English horoscope text to natural, fluent Turkish. " +
+                    "Do NOT add any interpretation, commentary, or extra content. " +
+                    "Just translate the text as-is. Return only the translated text, nothing else.");
+            payload.put("userPrompt", englishText);
+            payload.put("expectJsonResponse", false);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -134,82 +150,23 @@ public class HoroscopeFusionService {
                     orchestratorUrl + "/api/ai/horoscope/fuse", entity, String.class);
 
             if (aiResponse.getStatusCode().is2xxSuccessful() && aiResponse.getBody() != null) {
-                return parseAiResponse(aiResponse.getBody(), sign, period, lang, dateLabel, sources);
+                String body = aiResponse.getBody().trim();
+                // Remove wrapping quotes if present
+                if (body.startsWith("\"") && body.endsWith("\"")) {
+                    body = body.substring(1, body.length() - 1);
+                }
+                if (!body.isBlank()) {
+                    return body;
+                }
             }
         } catch (Exception e) {
-            log.error("AI fusion failed for {} {}: {}", sign, period, e.getMessage());
+            log.warn("Translation failed, using English text: {}", e.getMessage());
         }
-
-        // Fallback: return raw upstream text without AI fusion
-        return buildFallbackResponse(sign, period, lang, dateLabel, sources);
-    }
-
-    private HoroscopeResponse parseAiResponse(String body, String sign, String period,
-                                                String lang, String dateLabel,
-                                                List<UpstreamSource> sources) {
-        try {
-            JsonNode json = objectMapper.readTree(body);
-
-            // Extract meta from aztro source if available
-            HoroscopeMeta sourceMeta = sources.stream()
-                    .filter(s -> s.getMeta() != null)
-                    .findFirst()
-                    .map(UpstreamSource::getMeta)
-                    .orElse(null);
-
-            HoroscopeSections sections = objectMapper.treeToValue(
-                    json.get("sections"), HoroscopeSections.class);
-
-            HoroscopeMeta meta = json.has("meta")
-                    ? objectMapper.treeToValue(json.get("meta"), HoroscopeMeta.class)
-                    : sourceMeta;
-
-            List<String> highlights = new ArrayList<>();
-            if (json.has("highlights") && json.get("highlights").isArray()) {
-                json.get("highlights").forEach(h -> highlights.add(h.asText()));
-            }
-
-            return HoroscopeResponse.builder()
-                    .date(dateLabel)
-                    .period(period)
-                    .sign(sign)
-                    .language(lang)
-                    .highlights(highlights)
-                    .sections(sections)
-                    .meta(meta)
-                    .build();
-        } catch (Exception e) {
-            log.error("AI response parse failed: {}", e.getMessage());
-            return buildFallbackResponse(sign, period, lang, dateLabel, sources);
-        }
-    }
-
-    private HoroscopeResponse buildFallbackResponse(String sign, String period, String lang,
-                                                      String dateLabel, List<UpstreamSource> sources) {
-        String combined = sources.stream()
-                .map(UpstreamSource::getText)
-                .collect(Collectors.joining(" "));
-
-        HoroscopeMeta meta = sources.stream()
-                .filter(s -> s.getMeta() != null)
-                .findFirst()
-                .map(UpstreamSource::getMeta)
-                .orElse(null);
-
-        return HoroscopeResponse.builder()
-                .date(dateLabel)
-                .period(period)
-                .sign(sign)
-                .language(lang)
-                .highlights(List.of())
-                .sections(HoroscopeSections.builder().general(combined).build())
-                .meta(meta)
-                .build();
+        return null;
     }
 
     private HoroscopeResponse tryStaleCache(String cacheKey, String sign, String period,
                                               String lang, String dateLabel) {
-        // Try yesterday's cache as stale
         String yesterday = LocalDate.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE);
         String staleKey = buildCacheKey(sign, period, lang, yesterday);
         try {

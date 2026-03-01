@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Platform } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 
 const ITEM_HEIGHT = 44;

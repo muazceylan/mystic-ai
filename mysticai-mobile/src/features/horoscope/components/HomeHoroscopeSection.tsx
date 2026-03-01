@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../../utils/haptics';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -83,7 +83,7 @@ export function HomeHoroscopeSection() {
           isDark={isDark}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push(`/horoscope/${userSign}` as any);
+            router.push({ pathname: `/horoscope/${userSign}` as any, params: { period: 'weekly' } });
           }}
         />
       </View>

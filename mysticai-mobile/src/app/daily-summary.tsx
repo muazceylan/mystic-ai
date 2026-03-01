@@ -286,6 +286,22 @@ export default function DailySummaryScreen() {
             ) : null}
           </Animated.View>
 
+          {skyPulse?.dailyVibe && !isInitialLoading ? (
+            <Animated.View entering={FadeInDown.delay(240).duration(460)} style={S.panel}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="moon-outline" size={16} color={colors.primary} />
+                <Text style={S.panelTitle}>Gökyüzü Nabzı</Text>
+              </View>
+              <Text style={S.weeklyTitle}>{skyPulse.dailyVibe}</Text>
+              {skyPulse.moonSignTurkish ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={S.focusSub}>Ay Burcu: {skyPulse.moonSignTurkish}</Text>
+                  {(skyPulse as any).moonPhaseTurkish ? <Text style={S.focusSub}>• {(skyPulse as any).moonPhaseTurkish}</Text> : null}
+                </View>
+              ) : null}
+            </Animated.View>
+          ) : null}
+
           {isError ? (
             <Animated.View entering={FadeIn.duration(220)} style={S.errorBanner}>
               <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#E7C0CD' : '#A85D77'} />

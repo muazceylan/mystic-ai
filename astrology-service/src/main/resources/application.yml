@@ -76,6 +76,9 @@ groq:
 ai-orchestrator:
   url: ${AI_ORCHESTRATOR_URL:http://localhost:8084}
 
+api-ninjas:
+  api-key: ${API_NINJAS_KEY:}
+
 logging:
   level:
     com.mysticai.astrology: DEBUG

@@ -8,6 +8,8 @@ import {
   removeRefreshToken,
   getToken,
 } from '../utils/storage';
+import { clearHoroscopeCache } from '../features/horoscope/services/horoscope.service';
+import { clearPlannerFullDistributionCache } from '../services/lucky-dates.service';
 
 export interface UserProfile {
   id?: number;
@@ -76,6 +78,36 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         removeToken();
         removeRefreshToken();
+
+        // Clear all user-specific stores & caches
+        try {
+          const { useNatalChartStore } = require('./useNatalChartStore');
+          useNatalChartStore.getState().clear();
+        } catch {}
+        try {
+          const { useLuckyDatesStore } = require('./useLuckyDatesStore');
+          useLuckyDatesStore.getState().clear();
+        } catch {}
+        try {
+          const { useHoroscopeStore } = require('../features/horoscope/store/useHoroscopeStore');
+          useHoroscopeStore.getState().clear();
+        } catch {}
+        try {
+          const { useSynastryStore } = require('./useSynastryStore');
+          useSynastryStore.getState().clearSynastry();
+          useSynastryStore.getState().clearError();
+        } catch {}
+        try {
+          const { useDreamStore } = require('./useDreamStore');
+          useDreamStore.getState().clearError();
+        } catch {}
+        try {
+          clearHoroscopeCache();
+        } catch {}
+        try {
+          clearPlannerFullDistributionCache();
+        } catch {}
+
         set({
           token: null,
           refreshToken: null,
