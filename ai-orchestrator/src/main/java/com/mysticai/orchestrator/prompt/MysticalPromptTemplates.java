@@ -809,18 +809,19 @@ public class MysticalPromptTemplates {
             String partnerName, String partnerSunSign, String partnerMoonSign, String partnerRisingSign,
             String partnerPlanetsText,
             String relationshipType, String allAspectsText,
-            String userGender, String partnerGender) {
+            String userGender, String partnerGender, String baseHarmonyScore) {
+        String normalizedType = (relationshipType == null || relationshipType.isBlank()) ? "LOVE" : relationshipType;
 
-        String typeLabel = switch (relationshipType.toUpperCase()) {
+        String typeLabel = switch (normalizedType.toUpperCase()) {
             case "LOVE"       -> "Aşk & Romantizm";
             case "BUSINESS"   -> "İş & Ortaklık";
             case "FRIENDSHIP" -> "Arkadaşlık & Dostluk";
             case "FAMILY"     -> "Aile & Yakın Bağlar";
             case "RIVAL"      -> "Rekabet & Rakip Dinamiği";
-            default           -> relationshipType;
+            default           -> normalizedType;
         };
 
-        String typeInstructions = switch (relationshipType.toUpperCase()) {
+        String typeInstructions = switch (normalizedType.toUpperCase()) {
             case "LOVE" -> """
                     AŞK ANALİZİ ODAĞI:
                     • Venüs-Mars açıları: cinsel çekim ve tutku akışı — derece ve orb belirt
@@ -918,6 +919,7 @@ public class MysticalPromptTemplates {
                 ══════════════════════════════════════════
                 UYUM SKORU HESAPLAMA
                 ══════════════════════════════════════════
+                Referans skor (backend hesaplaması): %s
                 Tüm gezegen çiftlerini ve açılarını değerlendirerek 0-100 arası bir harmonyScore belirle.
                 KURALLAR:
                 - Başlangıç: 50 puan
@@ -929,6 +931,8 @@ public class MysticalPromptTemplates {
                 - Karşıt açılar (-2.5, kilit gezegenler için -4)
                 - %s türü için kilit gezegenler: %s
                 - RIVAL türü için skoru ters çevir (100 - hesaplanan)
+                - harmonyScore, referans backend skorundan en fazla +/-8 sapmalı.
+                  Eğer çok güçlü kanıt yoksa referans skoru koru.
                 Sonucu 0-100 aralığına sınırla. Ondalık olmadan TAM SAYI ver.
 
                 ══════════════════════════════════════════
@@ -985,7 +989,8 @@ public class MysticalPromptTemplates {
                 allAspectsText,
                 typeInstructions,
                 typeLabel,
-                relationshipType.toUpperCase(), getKeyPlanetsForType(relationshipType)
+                baseHarmonyScore,
+                normalizedType.toUpperCase(), getKeyPlanetsForType(normalizedType)
         );
     }
 

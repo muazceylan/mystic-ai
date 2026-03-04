@@ -71,60 +71,371 @@ function safeArray<T = unknown>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
+const TECHNICAL_RECOVERY_MARKERS = [
+  'json şemasına',
+  'normalize edilmiş',
+  'teknik olarak düzeltildi',
+  'yorum dönüştürme notu',
+  'ham içerik özeti',
+  'normalizasyon',
+  'recovery',
+];
+
+function unwrapCodeFence(text: string): string {
+  const trimmed = text.trim();
+  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch?.[1]) return fencedMatch[1].trim();
+  return trimmed;
+}
+
+function normalizeJsonCandidate(text: string): string {
+  let normalized = text
+    .trim()
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'");
+
+  normalized = normalized.replace(/,\s*([}\]])/g, '$1');
+  normalized = normalized.replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)/g, '$1"$2"$3');
+
+  if (/'[^']+'\s*:/.test(normalized)) {
+    normalized = normalized.replace(/([{,]\s*)'([^']+?)'(\s*:)/g, '$1"$2"$3');
+  }
+  normalized = normalized.replace(
+    /:\s*'([^'\\]*(?:\\.[^'\\]*)*)'(\s*[,}\]])/g,
+    (_match, value: string, suffix: string) => `: "${value.replace(/"/g, '\\"')}"${suffix}`,
+  );
+  return normalized;
+}
+
+function unwrapStringifiedJson(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('"') || !trimmed.endsWith('"')) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    return typeof parsed === 'string' ? parsed.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 function extractJsonObjectBlock(text: string): string {
   const trimmed = text.trim();
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) return trimmed;
-  const start = trimmed.indexOf('{');
-  const end = trimmed.lastIndexOf('}');
-  if (start >= 0 && end > start) {
-    return trimmed.slice(start, end + 1);
+
+  let start = -1;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let idx = 0; idx < trimmed.length; idx += 1) {
+    const char = trimmed[idx];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === '{') {
+      if (start === -1) start = idx;
+      depth += 1;
+      continue;
+    }
+    if (char === '}') {
+      if (depth <= 0) continue;
+      depth -= 1;
+      if (start !== -1 && depth === 0) {
+        return trimmed.slice(start, idx + 1);
+      }
+    }
+  }
+
+  if (start >= 0) {
+    const end = trimmed.lastIndexOf('}');
+    if (end > start) return trimmed.slice(start, end + 1);
   }
   return trimmed;
 }
 
-function parseStructuredNatalAi(text: string): NatalAiStructuredPayload | null {
-  const jsonBlock = extractJsonObjectBlock(text);
-  try {
-    const parsed = JSON.parse(jsonBlock) as NatalAiStructuredPayload;
-    const sections = safeArray<NatalAiSection>(parsed.sections).filter(
-      (s) => cleanText(s?.title) || cleanText(s?.body),
-    );
-    const planetHighlights = safeArray<NatalAiPlanetHighlight>(parsed.planetHighlights).filter(
-      (p) =>
-        cleanText(p?.title) ||
-        cleanText(p?.intro) ||
-        cleanText(p?.character) ||
-        cleanText(p?.depth),
-    );
+function addUniqueCandidate(target: string[], candidate: string | null | undefined) {
+  if (typeof candidate !== 'string') return;
+  const trimmed = candidate.trim();
+  if (!trimmed || target.includes(trimmed)) return;
+  target.push(trimmed);
+}
 
-    const looksStructured =
-      parsed?.version === 'natal_v2' ||
-      Boolean(cleanText(parsed.opening)) ||
-      sections.length > 0 ||
-      planetHighlights.length > 0;
+function buildJsonCandidates(text: string): string[] {
+  const candidates: string[] = [];
+  const raw = text.trim();
+  const unwrapped = unwrapCodeFence(raw);
+  const normalized = normalizeJsonCandidate(unwrapped);
+  const stringified = unwrapStringifiedJson(unwrapped);
 
-    if (!looksStructured) return null;
+  addUniqueCandidate(candidates, raw);
+  addUniqueCandidate(candidates, unwrapped);
+  addUniqueCandidate(candidates, extractJsonObjectBlock(unwrapped));
+  addUniqueCandidate(candidates, normalized);
+  addUniqueCandidate(candidates, extractJsonObjectBlock(normalized));
 
-    return {
-      version: parsed.version,
-      tone: parsed.tone,
-      opening: cleanText(parsed.opening) ?? undefined,
-      coreSummary: cleanText(parsed.coreSummary) ?? undefined,
-      sections: sections.map((section) => ({
-        ...section,
-        title: cleanText(section.title) ?? undefined,
-        body: cleanText(section.body) ?? undefined,
-        dailyLifeExample: cleanText(section.dailyLifeExample) ?? undefined,
-        bulletPoints: safeArray<{ title?: string; detail?: string }>(section.bulletPoints)
-          .map((bp) => ({
-            title: cleanText(bp?.title) ?? undefined,
-            detail: cleanText(bp?.detail) ?? undefined,
+  if (stringified) {
+    const normalizedInner = normalizeJsonCandidate(stringified);
+    addUniqueCandidate(candidates, stringified);
+    addUniqueCandidate(candidates, extractJsonObjectBlock(stringified));
+    addUniqueCandidate(candidates, normalizedInner);
+    addUniqueCandidate(candidates, extractJsonObjectBlock(normalizedInner));
+  }
+
+  return candidates.slice(0, 12);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function normalizeBulletPoints(value: unknown): Array<{ title?: string; detail?: string }> {
+  const mapped = safeArray<unknown>(value)
+    .map((item): { title?: string; detail?: string } | null => {
+      if (typeof item === 'string') {
+        const detail = cleanText(item) ?? undefined;
+        return detail ? { title: 'Ana Nokta', detail } : null;
+      }
+      const record = asRecord(item);
+      if (!record) return null;
+      return {
+        title: cleanText(record.title ?? record.label ?? record.name) ?? undefined,
+        detail: cleanText(record.detail ?? record.text ?? record.body) ?? undefined,
+      };
+    });
+  return mapped.filter((bp): bp is { title?: string; detail?: string } => Boolean(bp && (bp.title || bp.detail)));
+}
+
+function normalizeSections(value: unknown): NatalAiSection[] {
+  const arraySource = safeArray<unknown>(value);
+  const mapSource = asRecord(value);
+
+  const source = arraySource.length > 0
+    ? arraySource
+    : Object.entries(mapSource ?? {}).map(([id, section]) => ({ ...(asRecord(section) ?? {}), id }));
+
+  return source
+    .map((item) => {
+      const section = asRecord(item);
+      if (!section) return null;
+      return {
+        id: cleanText(section.id) ?? undefined,
+        title: cleanText(section.title ?? section.heading ?? section.name) ?? undefined,
+        body: cleanText(section.body ?? section.text ?? section.content ?? section.description) ?? undefined,
+        dailyLifeExample: cleanText(
+          section.dailyLifeExample ?? section.daily_life_example ?? section.example,
+        ) ?? undefined,
+        bulletPoints: normalizeBulletPoints(section.bulletPoints ?? section.bullets),
+      } as NatalAiSection;
+    })
+    .filter((section): section is NatalAiSection => Boolean(section && (section.title || section.body)));
+}
+
+function normalizePlanetHighlights(value: unknown): NatalAiPlanetHighlight[] {
+  return safeArray<unknown>(value)
+    .map((item) => {
+      const planet = asRecord(item);
+      if (!planet) return null;
+      return {
+        planetId: cleanText(planet.planetId ?? planet.planet ?? planet.id) ?? undefined,
+        title: cleanText(planet.title) ?? undefined,
+        intro: cleanText(planet.intro) ?? undefined,
+        character: cleanText(planet.character) ?? undefined,
+        depth: cleanText(planet.depth) ?? undefined,
+        dailyLifeExample: cleanText(planet.dailyLifeExample ?? planet.daily_life_example) ?? undefined,
+        analysisLines: safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines)
+          .map((line) => ({
+            title: cleanText(line?.title) ?? undefined,
+            text: cleanText(line?.text) ?? undefined,
+            icon: cleanText(line?.icon) ?? undefined,
           }))
-          .filter((bp) => bp.title || bp.detail),
-      })),
-      planetHighlights,
-      closing: cleanText(parsed.closing) ?? undefined,
+          .filter((line) => line.title || line.text),
+      } as NatalAiPlanetHighlight;
+    })
+    .filter((planet): planet is NatalAiPlanetHighlight => Boolean(
+      planet && (planet.title || planet.intro || planet.character || planet.depth),
+    ));
+}
+
+function toStructuredPayload(value: unknown): NatalAiStructuredPayload | null {
+  const parsed = asRecord(value);
+  if (!parsed) return null;
+
+  const sections = normalizeSections(parsed.sections ?? parsed.sectionList ?? parsed.topics);
+  const planetHighlights = normalizePlanetHighlights(
+    parsed.planetHighlights ?? parsed.planets ?? parsed.planet_insights,
+  );
+
+  const opening = cleanText(parsed.opening ?? parsed.intro ?? parsed.summary) ?? undefined;
+  const coreSummary = cleanText(parsed.coreSummary ?? parsed.overview) ?? undefined;
+  const closing = cleanText(parsed.closing ?? parsed.conclusion ?? parsed.finalNote) ?? undefined;
+
+  const looksStructured =
+    parsed.version === 'natal_v2'
+    || Boolean(opening)
+    || sections.length > 0
+    || planetHighlights.length > 0;
+
+  if (!looksStructured) return null;
+
+  return {
+    version: cleanText(parsed.version) ?? undefined,
+    tone: cleanText(parsed.tone) ?? undefined,
+    opening,
+    coreSummary,
+    sections,
+    planetHighlights,
+    closing,
+  };
+}
+
+function parseStructuredNatalAi(text: string): NatalAiStructuredPayload | null {
+  for (const candidate of buildJsonCandidates(text)) {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      if (typeof parsed === 'string') {
+        for (const innerCandidate of buildJsonCandidates(parsed)) {
+          try {
+            const innerParsed = JSON.parse(innerCandidate) as unknown;
+            const nestedPayload = toStructuredPayload(innerParsed);
+            if (nestedPayload) return nestedPayload;
+          } catch {
+            // Continue with next inner candidate.
+          }
+        }
+        continue;
+      }
+      const payload = toStructuredPayload(parsed);
+      if (payload) return payload;
+    } catch {
+      // Continue with next candidate.
+    }
+  }
+  return null;
+}
+
+function looksLikeTechnicalRecoveryPayload(payload: NatalAiStructuredPayload): boolean {
+  const haystack = [
+    payload.opening,
+    payload.coreSummary,
+    payload.closing,
+    ...(payload.sections ?? []).flatMap((section) => [
+      section.id,
+      section.title,
+      section.body,
+      section.dailyLifeExample,
+      ...safeArray<{ title?: string; detail?: string }>(section.bulletPoints).flatMap((bp) => [bp.title, bp.detail]),
+    ]),
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(' ')
+    .toLocaleLowerCase('tr-TR');
+
+  return TECHNICAL_RECOVERY_MARKERS.some((marker) => haystack.includes(marker));
+}
+
+function isTechnicalNarrative(value?: string | null): boolean {
+  const cleaned = cleanText(value);
+  if (!cleaned) return false;
+  const normalized = cleaned.toLocaleLowerCase('tr-TR');
+  return TECHNICAL_RECOVERY_MARKERS.some((marker) => normalized.includes(marker));
+}
+
+function buildRecoveryNarrative(payload: NatalAiStructuredPayload, rawText: string): string {
+  const fragments: string[] = [];
+  const push = (value?: string | null) => {
+    const cleaned = cleanText(value);
+    if (!cleaned || isTechnicalNarrative(cleaned) || fragments.includes(cleaned)) return;
+    fragments.push(cleaned);
+  };
+
+  push(payload.opening);
+  push(payload.coreSummary);
+  for (const section of payload.sections ?? []) {
+    push(section.body);
+    push(section.dailyLifeExample);
+    for (const bullet of safeArray<{ title?: string; detail?: string }>(section.bulletPoints)) {
+      push(bullet.detail);
+    }
+  }
+  for (const planet of payload.planetHighlights ?? []) {
+    push(planet.intro);
+    push(planet.character);
+    push(planet.depth);
+    push(planet.dailyLifeExample);
+  }
+  push(payload.closing);
+
+  if (fragments.length > 0) {
+    return fragments.slice(0, 8).join('\n\n');
+  }
+
+  const fallback = unwrapCodeFence(rawText);
+  if (fallback.includes('{') && fallback.includes('}')) {
+    return normalizeJsonCandidate(fallback)
+      .replace(/[{}[\]"]/g, ' ')
+      .replace(/[,;]+/g, '. ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+  return fallback;
+}
+
+function buildSafePlainText(text: string): string {
+  return unwrapCodeFence(text);
+}
+
+function parsePlainBlocks(text: string) {
+  const normalized = buildSafePlainText(text);
+  if (!normalized) return [];
+  return splitPlainAiTextToBlocks(normalized);
+}
+
+function parseAiMode(text: string, payload: NatalAiStructuredPayload | null) {
+  if (!payload) {
+    return {
+      useStructured: false,
+      plainSource: buildSafePlainText(text),
+      isRecoveryMode: false,
     };
+  }
+  const isRecoveryMode = looksLikeTechnicalRecoveryPayload(payload);
+  if (!isRecoveryMode) {
+    return {
+      useStructured: true,
+      plainSource: '',
+      isRecoveryMode: false,
+    };
+  }
+  return {
+    useStructured: false,
+    plainSource: buildRecoveryNarrative(payload, text),
+    isRecoveryMode: true,
+  };
+}
+
+function parseStructuredText(text: string): NatalAiStructuredPayload | null {
+  const payload = parseStructuredNatalAi(text);
+  if (payload) return payload;
+  try {
+    const raw = JSON.parse(text.trim()) as unknown;
+    return toStructuredPayload(raw);
   } catch {
     return null;
   }
@@ -191,8 +502,9 @@ function ParagraphBlock({ text }: { text?: string | null }) {
 export default function StructuredNatalAiInterpretation({ text, fallbackTextStyle }: Props) {
   const { colors } = useTheme();
 
-  const payload = useMemo(() => parseStructuredNatalAi(text), [text]);
-  const plainBlocks = useMemo(() => (payload ? [] : splitPlainAiTextToBlocks(text)), [payload, text]);
+  const payload = useMemo(() => parseStructuredText(text), [text]);
+  const aiMode = useMemo(() => parseAiMode(text, payload), [text, payload]);
+  const plainBlocks = useMemo(() => parsePlainBlocks(aiMode.plainSource), [aiMode.plainSource]);
   const [openSectionId, setOpenSectionId] = useState<string | null>(null);
   const [openPlanetId, setOpenPlanetId] = useState<string | null>(null);
 
@@ -202,16 +514,16 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
   }, [text]);
 
   const parsedSections = useMemo(() => {
-    if (!payload) return [];
+    if (!payload || !aiMode.useStructured) return [];
     return (payload.sections ?? []).map((section, idx) => {
       const body = cleanText(section.body) ?? '';
       const title = inferTurkishAiTitle(body, cleanText(section.title) ?? section.id ?? `Bölüm ${idx + 1}`);
       return { ...section, body, title, _id: String(section.id ?? `section-${idx + 1}`) };
     });
-  }, [payload]);
+  }, [aiMode.useStructured, payload]);
 
   const parsedPlanetHighlights = useMemo(() => {
-    if (!payload) return [];
+    if (!payload || !aiMode.useStructured) return [];
     return (payload.planetHighlights ?? []).slice(0, 8).map((planet, idx) => {
       const id = (planet.planetId ?? `planet-${idx + 1}`).toLowerCase();
       const composedBody = [
@@ -225,13 +537,27 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
       const title = inferTurkishAiTitle(composedBody, cleanText(planet.title) ?? `${id} yerleşimi`);
       return { ...planet, _id: id, _accordionTitle: title };
     });
-  }, [payload]);
+  }, [aiMode.useStructured, payload]);
 
-  if (!payload && plainBlocks.length === 0) {
-    return <StaggeredAiText text={text} style={fallbackTextStyle} />;
+  const sections = parsedSections;
+  const planetHighlights = parsedPlanetHighlights;
+
+  if (!aiMode.useStructured && plainBlocks.length === 0) {
+    return (
+      <StaggeredAiText
+        text={aiMode.plainSource || buildSafePlainText(text)}
+        style={fallbackTextStyle}
+      />
+    );
   }
 
-  if (!payload && plainBlocks.length > 0) {
+  if (!aiMode.useStructured && plainBlocks.length > 0) {
+    const plainTitle = aiMode.isRecoveryMode ? 'Yorum Onarıldı' : 'Kozmik Yorum';
+    const plainInfo = aiMode.isRecoveryMode
+      ? 'AI çıktısı şema dışıydı; içerik başlıklara ayrıştırılarak okunabilir hale getirildi.'
+      : 'Yorum metni güvenli biçimde başlıklara ayrıştırıldı. Başlıklara dokunarak alt bölümleri açabilirsin.';
+    const plainModeLabel = aiMode.isRecoveryMode ? 'Kurtarılan içerik' : 'Serbest metin';
+
     return (
       <View style={styles.container}>
         <View
@@ -245,15 +571,27 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
         >
           <View style={styles.heroHeader}>
             <Ionicons name="sparkles" size={14} color={colors.violet} />
-            <Text style={[styles.heroTitle, { color: colors.text }]}>Kozmik Yorum</Text>
+            <Text style={[styles.heroTitle, { color: colors.text }]}>{plainTitle}</Text>
           </View>
           <Text style={[styles.heroSubText, { color: colors.textSoft }]}>
-            Ham yorum metni paragraf bazlı ayrıştırıldı. Başlıklara dokunarak alt bölümleri açabilirsin.
+            {plainInfo}
           </Text>
+          <View style={styles.heroMetaRow}>
+            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.heroMetaText, { color: colors.text }]}>
+                {plainBlocks.length} bölüm
+              </Text>
+            </View>
+            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.heroMetaText, { color: colors.textSoft }]}>
+                {plainModeLabel}
+              </Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.group}>
-          <Text style={[styles.groupTitle, { color: colors.text }]}>AI Analizi Bölümleri</Text>
+          <Text style={[styles.groupTitle, { color: colors.text }]}>Yorum Akışı</Text>
           {plainBlocks.map((block) => (
             <AccordionSection
               key={block.id}
@@ -276,8 +614,6 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
     );
   }
 
-  const sections = parsedSections;
-  const planetHighlights = parsedPlanetHighlights;
   const structuredPayload = payload!;
 
   return (
@@ -302,12 +638,29 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
           {structuredPayload.coreSummary ? (
             <Text style={[styles.heroSubText, { color: colors.textSoft }]}>{structuredPayload.coreSummary}</Text>
           ) : null}
+          <View style={styles.heroMetaRow}>
+            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.heroMetaText, { color: colors.text }]}>
+                {sections.length} bölüm
+              </Text>
+            </View>
+            {planetHighlights.length > 0 ? (
+              <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.heroMetaText, { color: colors.text }]}>
+                  {planetHighlights.length} gezegen
+                </Text>
+              </View>
+            ) : null}
+            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.heroMetaText, { color: colors.textSoft }]}>Yapılandırılmış</Text>
+            </View>
+          </View>
         </View>
       )}
 
       {sections.length > 0 && (
         <View style={styles.group}>
-          <Text style={[styles.groupTitle, { color: colors.text }]}>AI Analizi</Text>
+          <Text style={[styles.groupTitle, { color: colors.text }]}>Yorum Bölümleri</Text>
           {sections.map((section) => (
             <AccordionSection
               key={section._id}
@@ -468,6 +821,22 @@ const styles = StyleSheet.create({
   heroSubText: {
     fontSize: 12.5,
     lineHeight: 18,
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  heroMetaPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  heroMetaText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   group: {
     gap: 10,

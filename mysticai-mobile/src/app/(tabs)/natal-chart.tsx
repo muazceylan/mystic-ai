@@ -240,6 +240,14 @@ function getProfileName(profile: Profile | null | undefined) {
   return profile.name || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.username || 'Ben';
 }
 
+function getProfileAvatarUri(profile: Profile | null | undefined) {
+  if (!profile) return null;
+  const value = (profile as any).avatarUri ?? (profile as any).avatarUrl ?? null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function getProfileBirthSummary(profile: Profile | null | undefined, chart: NatalChartResponse | null, t: (k: string) => string) {
   if (!profile) return '';
   if (isSavedPersonProfile(profile)) {
@@ -1214,7 +1222,7 @@ export default function NatalChartTab() {
     return idx >= 0 ? idx + 1 : null;
   }, [comparisonSelection, user?.id]);
 
-  const handleRunComparison = useCallback(async () => {
+  const handleRunComparison = useCallback(() => {
     if (!user?.id || !comparisonPair) return;
     const [first, second] = comparisonPair;
 
@@ -1240,30 +1248,38 @@ export default function NatalChartTab() {
       return;
     }
 
-    try {
-      clearSynastry();
-      const started = await useSynastryStore.getState().analyzePair({
-        userId: user.id,
-        savedPersonId: personBId,
-        personAId,
-        personBId,
+    const profileSunLabel = (profile: Profile) => {
+      const profileChart = isSavedPersonProfile(profile)
+        ? savedPersonToChart(profile)
+        : (cachedChart ?? chart);
+      const signInfo = getZodiacInfo(profileChart?.sunSign);
+      return `${signInfo.symbol} ${signInfo.name}`;
+    };
+
+    const personAAvatarUri = getProfileAvatarUri(first);
+    const personBAvatarUri = getProfileAvatarUri(second);
+
+    router.push({
+      pathname: '/(tabs)/compatibility',
+      params: {
+        autoCompare: '1',
+        personBId: String(personBId),
         relationshipType: comparisonRelationshipType,
-        userGender: user.gender ?? null,
-        locale: i18n.language,
-      });
-      if (started.status !== 'COMPLETED' && started.status !== 'FAILED') {
-        await pollSynastry(started.id);
-      }
-    } catch (e: any) {
-      Alert.alert('Analiz Hatası', e?.response?.data?.message ?? 'Sinastri analizi başlatılamadı.');
-    }
+        personAName: getProfileName(first),
+        personBName: getProfileName(second),
+        ...(personAAvatarUri ? { personAAvatarUri } : {}),
+        ...(personBAvatarUri ? { personBAvatarUri } : {}),
+        personASignLabel: profileSunLabel(first),
+        personBSignLabel: profileSunLabel(second),
+        ...(personAId != null ? { personAId: String(personAId) } : {}),
+      },
+    } as any);
   }, [
     user,
     comparisonPair,
     comparisonRelationshipType,
-    pollSynastry,
-    clearSynastry,
-    i18n.language,
+    cachedChart,
+    chart,
   ]);
 
   useEffect(() => {
@@ -1655,6 +1671,8 @@ export default function NatalChartTab() {
   const comparisonPersonBName = comparisonResult?.personBName ?? (comparisonPair ? getProfileName(comparisonPair[1]) : 'Kişi B');
   const comparisonAProfile = comparisonPair?.[0] ?? null;
   const comparisonBProfile = comparisonPair?.[1] ?? null;
+  const comparisonPersonAAvatarUri = getProfileAvatarUri(comparisonAProfile);
+  const comparisonPersonBAvatarUri = getProfileAvatarUri(comparisonBProfile);
   const comparisonAChart = comparisonAProfile
     ? (isSavedPersonProfile(comparisonAProfile) ? savedPersonToChart(comparisonAProfile) : (cachedChart ?? chart))
     : null;
@@ -2526,10 +2544,17 @@ export default function NatalChartTab() {
                     displayMetrics={comparisonResult.displayMetrics ?? null}
                     personAName={comparisonPersonAName}
                     personBName={comparisonPersonBName}
+                    personAAvatarUri={comparisonPersonAAvatarUri}
+                    personBAvatarUri={comparisonPersonBAvatarUri}
                     personASignLabel={comparisonPersonASignLabel}
                     personBSignLabel={comparisonPersonBSignLabel}
                     aspectsCount={comparisonAspectsCount}
                     fallbackInsight={comparisonResult.harmonyInsight}
+                    crossAspects={comparisonResult.crossAspects ?? []}
+                    analysisSections={comparisonResult.analysisSections ?? null}
+                    strengths={comparisonResult.strengths ?? []}
+                    challenges={comparisonResult.challenges ?? []}
+                    keyWarning={comparisonResult.keyWarning}
                     onCreateCard={openMatchCardPreview}
                     createCardDisabled={comparisonOverallScore == null}
                   />

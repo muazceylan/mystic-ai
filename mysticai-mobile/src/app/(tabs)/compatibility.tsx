@@ -1,27 +1,30 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Animated,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useAuthStore } from '../../store/useAuthStore';
-import { useSynastryStore } from '../../store/useSynastryStore';
-import { RelationshipType, SavedPersonResponse } from '../../services/synastry.service';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+
+import { useAuthStore } from '../../store/useAuthStore';
+import { useNatalChartStore } from '../../store/useNatalChartStore';
+import { useSynastryStore } from '../../store/useSynastryStore';
+import {
+  RelationshipType,
+  SavedPersonResponse,
+  SynastryRequest,
+} from '../../services/synastry.service';
 import { useTheme } from '../../context/ThemeContext';
 import i18n from '../../i18n';
 import { ErrorStateCard, SafeScreen, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import type { RelationshipType as CompareRelationshipType } from '../../types/compare';
 
 interface RelationshipTypeOption {
   key: RelationshipType;
@@ -37,73 +40,50 @@ function getRelationshipTypes(C: ReturnType<typeof useTheme>['colors']): Relatio
     { key: 'LOVE', emoji: '💍', labelTR: 'Aşk', labelEN: 'Love', color: C.pink, bgColor: C.pinkBg },
     { key: 'BUSINESS', emoji: '🤝', labelTR: 'İş', labelEN: 'Business', color: C.blue, bgColor: C.blueBg },
     { key: 'FRIENDSHIP', emoji: '🌟', labelTR: 'Arkadaş', labelEN: 'Friend', color: C.orange, bgColor: C.neutralBg },
+    { key: 'FAMILY', emoji: '🏠', labelTR: 'Aile', labelEN: 'Family', color: C.violet, bgColor: C.violetBg },
     { key: 'RIVAL', emoji: '🥊', labelTR: 'Rakip', labelEN: 'Rival', color: C.redDark, bgColor: C.redBg },
   ];
 }
 
-// ─── Circular Progress ────────────────────────────────────────────────────────
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
 
-const CircularScore: React.FC<{ score: number; color: string; borderColor: string; scoreNumberStyle: any; scoreLabelStyle: any }> = ({ score, color, borderColor, scoreNumberStyle, scoreLabelStyle }) => {
-  const animValue = useRef(new Animated.Value(0)).current;
-  const size = 160;
-  const strokeWidth = 12;
+function parsePositiveInt(value: string | string[] | undefined): number | null {
+  const raw = firstParam(value);
+  if (!raw) return null;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.floor(parsed);
+}
 
-  useEffect(() => {
-    Animated.timing(animValue, {
-      toValue: score,
-      duration: 1200,
-      useNativeDriver: false,
-    }).start();
-  }, [score]);
+function parseRelationshipType(value: string | string[] | undefined): RelationshipType | null {
+  const raw = firstParam(value);
+  if (!raw) return null;
+  const upper = raw.toUpperCase();
+  if (
+    upper === 'LOVE' ||
+    upper === 'BUSINESS' ||
+    upper === 'FRIENDSHIP' ||
+    upper === 'FAMILY' ||
+    upper === 'RIVAL'
+  ) {
+    return upper;
+  }
+  return null;
+}
 
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      {/* Light background track */}
-      <View
-        style={{
-          position: 'absolute',
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: strokeWidth,
-          borderColor: borderColor,
-        }}
-      />
-      {/* Score arc */}
-      <Animated.View
-        style={{
-          position: 'absolute',
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: strokeWidth,
-          borderColor: color,
-          borderTopColor: 'transparent',
-          borderRightColor: score > 25 ? color : 'transparent',
-          borderBottomColor: score > 50 ? color : 'transparent',
-          borderLeftColor: score > 75 ? color : 'transparent',
-          transform: [{ rotate: '-90deg' }],
-        }}
-      />
-      {/* Center text */}
-      <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={[scoreNumberStyle, { color }]}>{score}%</Text>
-        <Text style={scoreLabelStyle}>Uyum</Text>
-      </View>
-    </View>
-  );
-};
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+function mapToCompareRelationshipType(value: RelationshipType): CompareRelationshipType {
+  if (value === 'LOVE') return 'love';
+  if (value === 'BUSINESS') return 'work';
+  if (value === 'FAMILY') return 'family';
+  if (value === 'RIVAL') return 'rival';
+  return 'friend';
+}
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
-    headerWrap: {
-      backgroundColor: C.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: C.border,
-    },
     scroll: { flex: 1 },
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: {
@@ -191,6 +171,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingVertical: 20,
       alignItems: 'center',
       gap: 8,
+      minHeight: 88,
     },
     typeEmoji: { fontSize: 28 },
     typeLabel: { fontSize: 14, fontWeight: '700', color: C.text },
@@ -203,73 +184,40 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       justifyContent: 'center',
       paddingVertical: 16,
       gap: 10,
+      minHeight: 52,
     },
     analyzeButtonDisabled: { opacity: 0.6 },
     analyzeButtonText: { fontSize: 16, fontWeight: '700', color: C.white },
-    scoreCard: {
+    analysisLoadingCard: {
+      marginHorizontal: 20,
+      marginTop: 20,
+      borderRadius: 16,
+      borderWidth: 1,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 20,
-      backgroundColor: C.surface,
-      borderRadius: 20,
-      padding: 20,
-      marginBottom: 20,
-      borderWidth: 1,
-      borderColor: C.border,
-    },
-    scoreNumber: { fontSize: 34, fontWeight: '800', textAlign: 'center' },
-    scoreLabel: { fontSize: 12, color: C.subtext, textAlign: 'center', marginTop: -2 },
-    scoreInfo: { flex: 1, gap: 6 },
-    scorePersonName: { fontSize: 19, fontWeight: '700', color: C.text },
-    scoreTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    scoreTypeEmoji: { fontSize: 16 },
-    scoreTypeLabel: { fontSize: 13, color: C.primary, fontWeight: '600' },
-    harmonyInsight: { fontSize: 13, color: C.subtext, lineHeight: 19, marginTop: 2 },
-    breakdownSection: { marginBottom: 16 },
-    breakdownTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 10 },
-    breakdownCard: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 8,
-    },
-    breakdownText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 20 },
-    strengthCard: {
-      backgroundColor: C.successBg,
-      borderLeftWidth: 3,
-      borderLeftColor: C.strengthGreen,
-    },
-    challengeCard: {
-      backgroundColor: C.warningBg,
-      borderLeftWidth: 3,
-      borderLeftColor: C.warningDark,
-    },
-    warningCard: {
-      backgroundColor: C.neutralBg,
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 16,
-      borderLeftWidth: 3,
-      borderLeftColor: C.orange,
-    },
-    cosmicAdviceCard: {
-      backgroundColor: C.primarySoft,
-      borderRadius: 20,
-      padding: 20,
-      marginBottom: 20,
       gap: 10,
     },
-    cosmicAdviceTitle: { fontSize: 15, fontWeight: '700', color: C.primary },
-    cosmicAdviceText: { fontSize: 14, color: C.text, lineHeight: 22 },
+    analysisLoadingText: {
+      fontSize: 13,
+      color: C.subtext,
+      fontWeight: '600',
+      flex: 1,
+    },
+    resultSection: {
+      paddingHorizontal: 14,
+      marginTop: 8,
+      gap: 12,
+    },
     newAnalysisButton: {
       borderWidth: 1,
       borderColor: C.border,
       borderRadius: 12,
       paddingVertical: 14,
       alignItems: 'center',
-      marginBottom: 12,
       backgroundColor: C.surface,
+      minHeight: 48,
     },
     newAnalysisText: { fontSize: 14, color: C.subtext, fontWeight: '600' },
     errorCard: {
@@ -282,15 +230,30 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
       gap: 12,
     },
-    errorText: { fontSize: 14, color: C.error, textAlign: 'center' },
   });
 }
 
 export default function CompatibilityScreen() {
+  const params = useLocalSearchParams<{
+    autoCompare?: string;
+    personAId?: string;
+    personBId?: string;
+    savedPersonId?: string;
+    relationshipType?: string;
+    personAName?: string;
+    personBName?: string;
+    personAAvatarUri?: string;
+    personBAvatarUri?: string;
+    personASignLabel?: string;
+    personBSignLabel?: string;
+  }>();
+
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const RELATIONSHIP_TYPES = getRelationshipTypes(colors);
+
   const { user } = useAuthStore();
+  const natalChart = useNatalChartStore((state) => state.chart);
   const {
     savedPeople,
     currentSynastry,
@@ -298,315 +261,435 @@ export default function CompatibilityScreen() {
     isAnalyzing,
     error,
     loadSavedPeople,
-    analyze,
+    analyzePair,
     pollSynastry,
     clearSynastry,
   } = useSynastryStore();
 
   const { t } = useTranslation();
   const locale = i18n.language;
+  const userId = user?.id ?? null;
+  const tabHeaderActions = useTabHeaderActions();
 
   const [selectedPerson, setSelectedPerson] = useState<SavedPersonResponse | null>(null);
   const [selectedType, setSelectedType] = useState<RelationshipType | null>(null);
   const [isPolling, setIsPolling] = useState(false);
+  const autoRunKeyRef = useRef<string | null>(null);
+  const redirectedSynastryRef = useRef<number | null>(null);
+
+  const autoCompare = firstParam(params.autoCompare) === '1';
+  const personAIdParam = parsePositiveInt(params.personAId);
+  const personBIdParam = parsePositiveInt(params.personBId) ?? parsePositiveInt(params.savedPersonId);
+  const relationshipTypeParam = parseRelationshipType(params.relationshipType);
+
+  const userDisplayName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Sen';
 
   useEffect(() => {
-    if (user?.id) {
-      loadSavedPeople(user.id);
+    if (userId) {
+      loadSavedPeople(userId);
     }
-  }, [user?.id]);
+  }, [userId, loadSavedPeople]);
+
+  useEffect(() => {
+    if (!relationshipTypeParam) return;
+    setSelectedType(relationshipTypeParam);
+  }, [relationshipTypeParam]);
+
+  useEffect(() => {
+    if (!personBIdParam || savedPeople.length === 0) return;
+    const preselected = savedPeople.find((person) => person.id === personBIdParam) ?? null;
+    setSelectedPerson(preselected);
+  }, [personBIdParam, savedPeople]);
+
+  const runComparison = useCallback(
+    async (request: SynastryRequest) => {
+      // Allow redirect even if backend reuses the same synastry id for a new run.
+      redirectedSynastryRef.current = null;
+      clearSynastry();
+      const started = await analyzePair(request);
+      if (started.status !== 'COMPLETED' && started.status !== 'FAILED') {
+        setIsPolling(true);
+        try {
+          await pollSynastry(started.id);
+        } finally {
+          setIsPolling(false);
+        }
+      }
+    },
+    [analyzePair, pollSynastry, clearSynastry],
+  );
+
+  useEffect(() => {
+    if (!autoCompare || !userId || !personBIdParam) return;
+
+    const relation = relationshipTypeParam ?? 'FRIENDSHIP';
+    const runKey = `${userId}:${personAIdParam ?? 'self'}:${personBIdParam}:${relation}`;
+    if (autoRunKeyRef.current === runKey) return;
+    autoRunKeyRef.current = runKey;
+
+    void (async () => {
+      try {
+        await runComparison({
+          userId,
+          savedPersonId: personBIdParam,
+          personAId: personAIdParam,
+          personBId: personBIdParam,
+          relationshipType: relation,
+          userGender: user?.gender ?? null,
+          locale: i18n.language,
+        });
+      } catch (e: any) {
+        Alert.alert('Analiz Hatası', e?.response?.data?.message ?? 'Sinastri analizi başlatılamadı.');
+      }
+    })();
+  }, [
+    autoCompare,
+    userId,
+    user?.gender,
+    personAIdParam,
+    personBIdParam,
+    relationshipTypeParam,
+    runComparison,
+  ]);
 
   const handleAnalyze = async () => {
-    if (!selectedPerson || !selectedType || !user?.id) return;
+    if (!selectedPerson || !selectedType || !userId) return;
 
     try {
-      const result = await analyze(user.id, selectedPerson.id, selectedType, locale);
-
-      if (result.status === 'PENDING') {
-        setIsPolling(true);
-        await pollSynastry(result.id);
-        setIsPolling(false);
-      }
-    } catch (e) {
-      Alert.alert(t('common.error'), t('natalChart.analysisStartError'));
+      await runComparison({
+        userId,
+        savedPersonId: selectedPerson.id,
+        personBId: selectedPerson.id,
+        relationshipType: selectedType,
+        userGender: user?.gender ?? null,
+        locale,
+      });
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.response?.data?.message ?? t('natalChart.analysisStartError'));
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 70) return colors.strengthGreen;
-    if (score >= 40) return colors.orange;
-    return colors.redDark;
+  const handleRetry = async () => {
+    if (autoCompare && userId && personBIdParam) {
+      const relation = relationshipTypeParam ?? selectedType ?? 'FRIENDSHIP';
+      try {
+        await runComparison({
+          userId,
+          savedPersonId: personBIdParam,
+          personAId: personAIdParam,
+          personBId: personBIdParam,
+          relationshipType: relation,
+          userGender: user?.gender ?? null,
+          locale,
+        });
+      } catch (e: any) {
+        Alert.alert(t('common.error'), e?.response?.data?.message ?? t('natalChart.analysisStartError'));
+      }
+      return;
+    }
+    await handleAnalyze();
   };
 
   const isLoading = isAnalyzing || isPolling;
   const showResults = currentSynastry?.status === 'COMPLETED';
 
+  const activeRelationshipType =
+    currentSynastry?.relationshipType ?? selectedType ?? relationshipTypeParam ?? 'FRIENDSHIP';
+
+  const personAFromSaved = useMemo(() => {
+    if (!personAIdParam) return null;
+    return savedPeople.find((person) => person.id === personAIdParam) ?? null;
+  }, [personAIdParam, savedPeople]);
+
+  const personBFromSaved = useMemo(() => {
+    const resolvedId = currentSynastry?.personBId ?? currentSynastry?.savedPersonId ?? personBIdParam;
+    if (!resolvedId) return null;
+    return savedPeople.find((person) => person.id === resolvedId) ?? null;
+  }, [currentSynastry?.personBId, currentSynastry?.savedPersonId, personBIdParam, savedPeople]);
+
+  const personAName =
+    currentSynastry?.personAName ??
+    firstParam(params.personAName) ??
+    personAFromSaved?.name ??
+    userDisplayName;
+
+  const personBName =
+    currentSynastry?.personBName ??
+    firstParam(params.personBName) ??
+    personBFromSaved?.name ??
+    selectedPerson?.name ??
+    currentSynastry?.personName ??
+    'Partner';
+
+  const personAAvatarUri =
+    firstParam(params.personAAvatarUri) ??
+    (personAFromSaved as any)?.avatarUri ??
+    (user?.avatarUri ?? user?.avatarUrl ?? null);
+
+  const personBAvatarUri =
+    firstParam(params.personBAvatarUri) ??
+    (personBFromSaved as any)?.avatarUri ??
+    ((selectedPerson as any)?.avatarUri ?? null);
+
+  const personASignLabel =
+    firstParam(params.personASignLabel) ?? personAFromSaved?.sunSign ?? natalChart?.sunSign ?? '—';
+
+  const personBSignLabel =
+    firstParam(params.personBSignLabel) ?? personBFromSaved?.sunSign ?? selectedPerson?.sunSign ?? '—';
+
+  const showResultMode = showResults && Boolean(currentSynastry);
+  const shouldShowRedirectLoader =
+    showResultMode &&
+    currentSynastry !== null &&
+    currentSynastry !== undefined &&
+    redirectedSynastryRef.current !== currentSynastry.id;
+
+  useEffect(() => {
+    if (!showResultMode || !currentSynastry) {
+      redirectedSynastryRef.current = null;
+      return;
+    }
+
+    if (redirectedSynastryRef.current === currentSynastry.id) return;
+    redirectedSynastryRef.current = currentSynastry.id;
+
+    router.push({
+      pathname: '/compare',
+      params: {
+        matchId: String(currentSynastry.id),
+        type: mapToCompareRelationshipType(activeRelationshipType),
+        navKey: String(Date.now()),
+        leftName: personAName,
+        rightName: personBName,
+        ...(personAAvatarUri ? { leftAvatarUri: personAAvatarUri } : {}),
+        ...(personBAvatarUri ? { rightAvatarUri: personBAvatarUri } : {}),
+        ...(personASignLabel ? { leftSignLabel: personASignLabel } : {}),
+        ...(personBSignLabel ? { rightSignLabel: personBSignLabel } : {}),
+      },
+    } as any);
+
+    // Prevent returning to an empty completed state on compatibility screen.
+    clearSynastry();
+  }, [
+    activeRelationshipType,
+    clearSynastry,
+    currentSynastry,
+    personAAvatarUri,
+    personAName,
+    personASignLabel,
+    personBAvatarUri,
+    personBName,
+    personBSignLabel,
+    showResultMode,
+  ]);
+
+  if (shouldShowRedirectLoader && currentSynastry) {
+    return (
+      <SafeScreen
+        edges={['top', 'left', 'right']}
+        style={{ ...styles.container, backgroundColor: '#F7F5FB' }}
+      >
+        <View
+          style={[
+            styles.analysisLoadingCard,
+            { marginTop: 24, backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <ActivityIndicator color={colors.primary} />
+          <Text style={styles.analysisLoadingText}>
+            Karşılaştırma ekranı açılıyor...
+          </Text>
+        </View>
+      </SafeScreen>
+    );
+  }
+
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
-      {/* Header */}
       <TabHeader
         title={t('compatibility.title')}
         subtitle={t('compatibility.subtitle')}
-        {...useTabHeaderActions()}
+        {...tabHeaderActions}
       />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* ── SECTION 1: Saved People ─────────────────────────────── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('compatibility.importantPeople')}</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => router.push('/add-person')}
-              accessibilityLabel="Kişi ekle"
-              accessibilityRole="button"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="add-circle" size={26} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          {isLoadingPeople ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
-          ) : error ? (
-            <ErrorStateCard
-              message={error}
-              onRetry={() => user?.id && loadSavedPeople(user.id)}
-              style={{ marginTop: 16 }}
-              accessibilityLabel="Kişileri tekrar yükle"
-            />
-          ) : savedPeople.length === 0 ? (
-            <TouchableOpacity
-              style={styles.emptyPeopleCard}
-              onPress={() => router.push('/add-person')}
-              accessibilityLabel="Kişi ekle"
-              accessibilityRole="button"
-            >
-              <Ionicons name="person-add-outline" size={32} color={colors.subtext} />
-              <Text style={styles.emptyPeopleText}>{t('compatibility.addPerson')}</Text>
-              <Text style={styles.emptyPeopleHint}>
-                {t('compatibility.addPersonHint')}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.peopleScroll}>
-              {/* Add Person Button */}
-              <TouchableOpacity
-                style={styles.addPersonCard}
-                onPress={() => router.push('/add-person')}
-                accessibilityLabel="Kişi ekle"
-                accessibilityRole="button"
-              >
-                <View style={styles.addPersonIcon}>
-                  <Ionicons name="add" size={22} color={colors.primary} />
-                </View>
-                <Text style={styles.addPersonLabel}>{t('compatibility.add')}</Text>
-              </TouchableOpacity>
-
-              {savedPeople.map((person) => (
+        <>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t('compatibility.importantPeople')}</Text>
                 <TouchableOpacity
-                  key={person.id}
-                  style={[
-                    styles.personCard,
-                    selectedPerson?.id === person.id && styles.personCardSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedPerson(person);
-                    clearSynastry();
-                  }}
-                  accessibilityLabel={`${person.name} seç`}
+                  style={styles.addButton}
+                  onPress={() => router.push('/add-person')}
+                  accessibilityLabel="Kişi ekle"
                   accessibilityRole="button"
-                  onLongPress={() => {
-                    Alert.alert(
-                      person.name,
-                      t('compatibility.deletePersonConfirm'),
-                      [
-                        { text: t('common.cancel'), style: 'cancel' },
-                        {
-                          text: t('common.delete'),
-                          style: 'destructive',
-                          onPress: async () => {
-                            try {
-                              await useSynastryStore.getState().removePerson(person.id, user!.id!);
-                            } catch {
-                              Alert.alert(t('common.error'), t('natalChart.deletePersonError'));
-                            }
-                          },
-                        },
-                      ],
-                    );
-                  }}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
-                  <View style={[
-                    styles.personAvatar,
-                    selectedPerson?.id === person.id && styles.personAvatarSelected,
-                  ]}>
-                    <Text style={[
-                      styles.personAvatarText,
-                      selectedPerson?.id === person.id && styles.personAvatarTextSelected,
-                    ]}>
-                      {person.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <Text style={styles.personName} numberOfLines={1}>
-                    {person.name}
-                  </Text>
-                  <Text style={styles.personSign}>{person.sunSign ?? '–'}</Text>
+                  <Ionicons name="add-circle" size={26} color={colors.primary} />
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
+              </View>
 
-        {/* ── SECTION 2: Relationship Type ────────────────────────── */}
-        {selectedPerson && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>İlişki Türü</Text>
-            <View style={styles.typeGrid}>
-              {RELATIONSHIP_TYPES.map((t) => {
-                const isSelected = selectedType === t.key;
-                return (
+              {isLoadingPeople ? (
+                <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+              ) : error ? (
+                <ErrorStateCard
+                  message={error}
+                  onRetry={() => userId && loadSavedPeople(userId)}
+                  style={{ marginTop: 16 }}
+                  accessibilityLabel="Kişileri tekrar yükle"
+                />
+              ) : savedPeople.length === 0 ? (
+                <TouchableOpacity
+                  style={styles.emptyPeopleCard}
+                  onPress={() => router.push('/add-person')}
+                  accessibilityLabel="Kişi ekle"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="person-add-outline" size={32} color={colors.subtext} />
+                  <Text style={styles.emptyPeopleText}>{t('compatibility.addPerson')}</Text>
+                  <Text style={styles.emptyPeopleHint}>{t('compatibility.addPersonHint')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.peopleScroll}>
                   <TouchableOpacity
-                    key={t.key}
-                    style={[
-                      styles.typeCard,
-                      isSelected && { borderColor: t.color, backgroundColor: t.bgColor },
-                    ]}
-                    onPress={() => {
-                      setSelectedType(t.key);
-                      clearSynastry();
-                    }}
-                    accessibilityLabel={locale === 'en' ? t.labelEN : t.labelTR}
+                    style={styles.addPersonCard}
+                    onPress={() => router.push('/add-person')}
+                    accessibilityLabel="Kişi ekle"
                     accessibilityRole="button"
                   >
-                    <Text style={styles.typeEmoji}>{t.emoji}</Text>
-                    <Text style={[styles.typeLabel, isSelected && { color: t.color }]}>
-                      {locale === 'en' ? t.labelEN : t.labelTR}
-                    </Text>
+                    <View style={styles.addPersonIcon}>
+                      <Ionicons name="add" size={22} color={colors.primary} />
+                    </View>
+                    <Text style={styles.addPersonLabel}>{t('compatibility.add')}</Text>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
 
-        {/* ── ANALYZE BUTTON ──────────────────────────────────────── */}
-        {selectedPerson && selectedType && !showResults && (
-          <View style={styles.analyzeSection}>
-            <TouchableOpacity
-              style={[styles.analyzeButton, isLoading && styles.analyzeButtonDisabled]}
-              onPress={handleAnalyze}
-              disabled={isLoading}
-              accessibilityLabel={`${selectedPerson.name} ile karşılaştır`}
-              accessibilityRole="button"
-            >
-              {isLoading ? (
-                <ActivityIndicator color={colors.white} size="small" />
-              ) : (
-                <Ionicons name="sparkles" size={20} color={colors.white} />
+                  {savedPeople.map((person) => (
+                    <TouchableOpacity
+                      key={person.id}
+                      style={[
+                        styles.personCard,
+                        selectedPerson?.id === person.id && styles.personCardSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedPerson(person);
+                        clearSynastry();
+                      }}
+                      accessibilityLabel={`${person.name} seç`}
+                      accessibilityRole="button"
+                      onLongPress={() => {
+                        Alert.alert(person.name, t('compatibility.deletePersonConfirm'), [
+                          { text: t('common.cancel'), style: 'cancel' },
+                          {
+                            text: t('common.delete'),
+                            style: 'destructive',
+                            onPress: async () => {
+                              if (!userId) return;
+                              try {
+                                await useSynastryStore.getState().removePerson(person.id, userId);
+                              } catch {
+                                Alert.alert(t('common.error'), t('natalChart.deletePersonError'));
+                              }
+                            },
+                          },
+                        ]);
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.personAvatar,
+                          selectedPerson?.id === person.id && styles.personAvatarSelected,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.personAvatarText,
+                            selectedPerson?.id === person.id && styles.personAvatarTextSelected,
+                          ]}
+                        >
+                          {person.name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={styles.personName} numberOfLines={1}>
+                        {person.name}
+                      </Text>
+                      <Text style={styles.personSign}>{person.sunSign ?? '–'}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               )}
-              <Text style={styles.analyzeButtonText}>
-                {isLoading ? 'Analiz ediliyor...' : `${selectedPerson.name} ile Karşılaştır`}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ── SECTION 3: Analysis Results ─────────────────────────── */}
-        {showResults && currentSynastry && (
-          <View style={styles.section}>
-
-            {/* Match Score */}
-            <View style={styles.scoreCard}>
-              <CircularScore
-                score={currentSynastry.harmonyScore ?? 0}
-                color={getScoreColor(currentSynastry.harmonyScore ?? 0)}
-                borderColor={colors.border}
-                scoreNumberStyle={styles.scoreNumber}
-                scoreLabelStyle={styles.scoreLabel}
-              />
-              <View style={styles.scoreInfo}>
-                <Text style={styles.scorePersonName}>{currentSynastry.personName}</Text>
-                <View style={styles.scoreTypeRow}>
-                  <Text style={styles.scoreTypeEmoji}>
-                    {RELATIONSHIP_TYPES.find((t) => t.key === currentSynastry.relationshipType)?.emoji}
-                  </Text>
-                  <Text style={styles.scoreTypeLabel}>
-                    {RELATIONSHIP_TYPES.find((t) => t.key === currentSynastry.relationshipType)?.labelTR}
-                  </Text>
-                </View>
-                {currentSynastry.harmonyInsight && (
-                  <Text style={styles.harmonyInsight}>{currentSynastry.harmonyInsight}</Text>
-                )}
-              </View>
             </View>
 
-            {/* Strengths */}
-            {currentSynastry.strengths.length > 0 && (
-              <View style={styles.breakdownSection}>
-                <Text style={styles.breakdownTitle}>💚 Güçlü Noktalar</Text>
-                {currentSynastry.strengths.map((s, i) => (
-                  <View key={i} style={[styles.breakdownCard, styles.strengthCard]}>
-                    <Ionicons name="checkmark-circle" size={18} color={colors.strengthGreen} style={{ marginRight: 10, marginTop: 1 }} />
-                    <Text style={styles.breakdownText}>{s}</Text>
-                  </View>
-                ))}
+            {selectedPerson && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>İlişki Türü</Text>
+                <View style={styles.typeGrid}>
+                  {RELATIONSHIP_TYPES.map((item) => {
+                    const isSelected = selectedType === item.key;
+                    return (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={[
+                          styles.typeCard,
+                          isSelected && { borderColor: item.color, backgroundColor: item.bgColor },
+                        ]}
+                        onPress={() => {
+                          setSelectedType(item.key);
+                          clearSynastry();
+                        }}
+                        accessibilityLabel={locale === 'en' ? item.labelEN : item.labelTR}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.typeEmoji}>{item.emoji}</Text>
+                        <Text style={[styles.typeLabel, isSelected && { color: item.color }]}>
+                          {locale === 'en' ? item.labelEN : item.labelTR}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             )}
 
-            {/* Challenges */}
-            {currentSynastry.challenges.length > 0 && (
-              <View style={styles.breakdownSection}>
-                <Text style={styles.breakdownTitle}>🔥 Zorluklar</Text>
-                {currentSynastry.challenges.map((c, i) => (
-                  <View key={i} style={[styles.breakdownCard, styles.challengeCard]}>
-                    <Ionicons name="alert-circle" size={18} color={colors.warningDark} style={{ marginRight: 10, marginTop: 1 }} />
-                    <Text style={styles.breakdownText}>{c}</Text>
-                  </View>
-                ))}
+            {selectedPerson && selectedType && (
+              <View style={styles.analyzeSection}>
+                <TouchableOpacity
+                  style={[styles.analyzeButton, isLoading && styles.analyzeButtonDisabled]}
+                  onPress={handleAnalyze}
+                  disabled={isLoading}
+                  accessibilityLabel={`${selectedPerson.name} ile karşılaştır`}
+                  accessibilityRole="button"
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={colors.white} size="small" />
+                  ) : (
+                    <Ionicons name="sparkles" size={20} color={colors.white} />
+                  )}
+                  <Text style={styles.analyzeButtonText}>
+                    {isLoading ? 'Analiz ediliyor...' : 'AI Karşılaştır'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
+        </>
 
-            {/* Key Warning */}
-            {currentSynastry.keyWarning && (
-              <View style={[styles.breakdownCard, styles.warningCard]}>
-                <Ionicons name="warning" size={18} color={colors.orange} style={{ marginRight: 10, marginTop: 1 }} />
-                <Text style={[styles.breakdownText, { color: colors.warningDark }]}>
-                  {currentSynastry.keyWarning}
-                </Text>
-              </View>
-            )}
-
-            {/* Cosmic Advice */}
-            {currentSynastry.cosmicAdvice && (
-              <View style={styles.cosmicAdviceCard}>
-                <Text style={styles.cosmicAdviceTitle}>✨ Kozmik Tavsiye</Text>
-                <Text style={styles.cosmicAdviceText}>{currentSynastry.cosmicAdvice}</Text>
-              </View>
-            )}
-
-            {/* New Analysis Button */}
-            <TouchableOpacity
-              style={styles.newAnalysisButton}
-              onPress={() => {
-                clearSynastry();
-                setSelectedType(null);
-              }}
-              accessibilityLabel="Yeni analiz yap"
-              accessibilityRole="button"
-            >
-              <Text style={styles.newAnalysisText}>Yeni Analiz Yap</Text>
-            </TouchableOpacity>
+        {isLoading ? (
+          <View
+            style={[
+              styles.analysisLoadingCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.analysisLoadingText}>
+              Karşılaştırma hazırlanıyor, birkaç saniye içinde uyum ekranı açılacak.
+            </Text>
           </View>
-        )}
+        ) : null}
 
-        {/* Failed state */}
         {currentSynastry?.status === 'FAILED' && (
           <View style={styles.errorCard}>
             <ErrorStateCard
               message="Uyum analizi tamamlanamadı. Sunucu yanıt vermedi veya işlem zaman aşımına uğradı."
-              onRetry={handleAnalyze}
+              onRetry={handleRetry}
               accessibilityLabel="Analizi tekrar dene"
             />
           </View>
@@ -617,4 +700,3 @@ export default function CompatibilityScreen() {
     </SafeScreen>
   );
 }
-

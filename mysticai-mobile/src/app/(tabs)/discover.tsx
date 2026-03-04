@@ -1,65 +1,630 @@
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated from 'react-native-reanimated';
-import { useTranslation } from 'react-i18next';
-import { useTheme } from '../../context/ThemeContext';
-import { SPACING } from '../../constants/tokens';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { SafeScreen } from '../../components/ui/SafeScreen';
 import { TabHeader } from '../../components/ui/TabHeader';
-import { DiscoverSearchBar } from '../../features/discover/components/DiscoverSearchBar';
-import { HoroscopeDiscoverBanner } from '../../features/discover/components/HoroscopeDiscoverBanner';
-import { QuickLookWidget } from '../../features/discover/components/QuickLookWidget';
-import { DreamReminderBanner } from '../../features/discover/components/DreamReminderBanner';
-import { CosmicFlowSection } from '../../features/discover/components/CosmicFlowSection';
-import { ToolsGridSection } from '../../features/discover/components/ToolsGridSection';
-import { WisdomSection } from '../../features/discover/components/WisdomSection';
-import { useDiscoverSearch } from '../../features/discover/useDiscoverSearch';
+import { useTheme } from '../../context/ThemeContext';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
+import { trackEvent } from '../../services/analytics';
+import {
+  DISCOVER_CATEGORIES,
+  DISCOVER_MODULES,
+  RECOMMENDED_MODULE_KEYS,
+  TODAY_MODULE_KEYS,
+  type DiscoverCategoryKey,
+  type DiscoverModule,
+  type DiscoverModuleKey,
+} from '../../features/discover/catalog';
+
+const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 };
+const VISIBLE_CATEGORY_LIMIT = 5;
+const CATEGORY_TOGGLE_THRESHOLD = 6;
+const SEARCH_SUGGESTIONS = ['Burç', 'Transit', 'Rüya', 'Uyumluluk'];
+type DiscoverSurface = 'today_quick_access' | 'category_grid' | 'recommended';
+
+function normalizeText(value: string): string {
+  const lowered = value.toLocaleLowerCase('tr-TR');
+  const map: Record<string, string> = {
+    ç: 'c',
+    ğ: 'g',
+    ı: 'i',
+    ö: 'o',
+    ş: 's',
+    ü: 'u',
+  };
+
+  return lowered
+    .split('')
+    .map((char) => map[char] ?? char)
+    .join('');
+}
+
+function matchModule(module: DiscoverModule, query: string): boolean {
+  if (!query.trim()) {
+    return true;
+  }
+
+  const q = normalizeText(query.trim());
+  const fields = [module.title, module.subtitle, ...module.keywords].map((item) => normalizeText(item));
+
+  return fields.some((field) => field.includes(q));
+}
+
+function ModuleCard({
+  module,
+  onPress,
+  compact = false,
+}: {
+  module: DiscoverModule;
+  onPress: (module: DiscoverModule) => void;
+  compact?: boolean;
+}) {
+  const { colors, isDark } = useTheme();
+  const isComingSoon = !module.route;
+
+  return (
+    <Pressable
+      onPress={() => onPress(module)}
+      accessibilityRole="button"
+      accessibilityLabel={
+        isComingSoon ? `${module.title}, yakında geliyor` : `${module.title} modülünü aç`
+      }
+      hitSlop={HIT_SLOP}
+      style={({ pressed }) => [
+        styles.moduleCard,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          opacity: isComingSoon ? 0.64 : 1,
+        },
+        compact && styles.moduleCardCompact,
+        pressed && !isComingSoon && styles.pressed,
+      ]}
+    >
+      <View style={styles.cardGlowWrap}>
+        <LinearGradient
+          colors={
+            isDark
+              ? ['rgba(167,139,250,0.16)', 'rgba(167,139,250,0.02)']
+              : ['rgba(167,139,250,0.22)', 'rgba(167,139,250,0.04)']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cardGlow}
+        />
+      </View>
+
+      <View style={[styles.moduleIconShell, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}> 
+        <Ionicons name={isComingSoon ? 'lock-closed-outline' : module.icon} size={18} color={colors.primary} />
+      </View>
+
+      <Text numberOfLines={2} style={[styles.moduleTitle, { color: colors.text }]}>
+        {module.title}
+      </Text>
+      <Text numberOfLines={1} style={[styles.moduleSubtitle, { color: colors.subtext }]}>
+        {isComingSoon ? 'Yakında geliyor' : module.subtitle}
+      </Text>
+
+      {isComingSoon ? (
+        <View style={[styles.comingSoonBadge, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}> 
+          <Text style={[styles.comingSoonText, { color: colors.primary }]}>Yakında</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function TodayQuickCard({
+  module,
+  onPress,
+}: {
+  module: DiscoverModule;
+  onPress: (module: DiscoverModule) => void;
+}) {
+  const { colors, isDark } = useTheme();
+
+  return (
+    <Pressable
+      onPress={() => onPress(module)}
+      accessibilityRole="button"
+      accessibilityLabel={`${module.title} hızlı erişimini aç`}
+      hitSlop={HIT_SLOP}
+      style={({ pressed }) => [
+        styles.todayCard,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+        pressed && styles.pressed,
+      ]}
+    >
+      <LinearGradient
+        colors={
+          isDark
+            ? ['#2F2454', '#3A2D67']
+            : ['#B8A6EE', '#8B79D9']
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.todayCardTop}
+      >
+        <Ionicons name={module.icon} size={22} color="#FFFFFF" />
+      </LinearGradient>
+      <Text numberOfLines={2} style={[styles.todayCardTitle, { color: colors.text }]}>
+        {module.title}
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function DiscoverScreen() {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { colors, isDark } = useTheme();
+  const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
+  const [query, setQuery] = useState('');
+  const [expandedMap, setExpandedMap] = useState<Partial<Record<DiscoverCategoryKey, boolean>>>({});
 
-  const grouped = useDiscoverSearch(searchQuery);
-  const hasSearch = searchQuery.trim().length > 0;
-  const hasCosmicFlow = grouped.cosmicFlow.length > 0;
-  const hasTools = grouped.tools.length > 0;
-  const hasWisdom = grouped.wisdom.length > 0;
+  const filteredModules = useMemo(
+    () => DISCOVER_MODULES.filter((module) => matchModule(module, query)),
+    [query],
+  );
+
+  const filteredMap = useMemo(() => {
+    const map = new Map<DiscoverModuleKey, DiscoverModule>();
+    for (const module of filteredModules) {
+      map.set(module.key, module);
+    }
+    return map;
+  }, [filteredModules]);
+
+  const todayModules = useMemo(
+    () => TODAY_MODULE_KEYS.map((key) => filteredMap.get(key)).filter(Boolean) as DiscoverModule[],
+    [filteredMap],
+  );
+
+  const categoriesWithModules = useMemo(
+    () => DISCOVER_CATEGORIES.map((category) => ({
+      ...category,
+      modules: filteredModules.filter((module) => module.categoryKey === category.key),
+    })),
+    [filteredModules],
+  );
+
+  const recommendedModules = useMemo(
+    () => RECOMMENDED_MODULE_KEYS.map((key) => filteredMap.get(key)).filter(Boolean) as DiscoverModule[],
+    [filteredMap],
+  );
+
+  const hasSearch = query.trim().length > 0;
+  const totalResultCount = filteredModules.length;
+  const hasNoResults = hasSearch && totalResultCount === 0;
+
+  useEffect(() => {
+    trackEvent('discover_view');
+  }, []);
+
+  const handleSearchChange = (text: string) => {
+    setQuery(text);
+    trackEvent('discover_search_change', { query_length: text.trim().length });
+  };
+
+  const openRoute = (route: string) => {
+    router.push(route as never);
+  };
+
+  const handleModuleClick = (module: DiscoverModule, surface: DiscoverSurface) => {
+    const eventParams = {
+      module_key: module.key,
+      category_key: module.categoryKey,
+      surface,
+    };
+
+    if (!module.route) {
+      trackEvent('discover_module_click', {
+        ...eventParams,
+        available: false,
+      });
+      Alert.alert('Yakında geliyor');
+      return;
+    }
+
+    trackEvent('discover_module_click', {
+      ...eventParams,
+      available: true,
+    });
+
+    if (surface === 'recommended') {
+      trackEvent('discover_recommended_click', { module_key: module.key });
+    }
+
+    openRoute(module.route);
+  };
+
+  const toggleCategory = (categoryKey: DiscoverCategoryKey) => {
+    setExpandedMap((prev) => {
+      const nextValue = !prev[categoryKey];
+      if (nextValue) {
+        trackEvent('discover_category_open', { category_key: categoryKey });
+      }
+      return {
+        ...prev,
+        [categoryKey]: nextValue,
+      };
+    });
+  };
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
-      <TabHeader title={t('discover.title')} />
-      <Animated.ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
-      >
-        <DiscoverSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+      <View style={[styles.root, { backgroundColor: colors.bg }]}> 
+        <LinearGradient
+          colors={
+            isDark
+              ? ['#120F1E', '#171328', '#1A1631']
+              : ['#FBF9FF', '#F4EEFF', '#FFFFFF']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
 
-        {!hasSearch && <HoroscopeDiscoverBanner />}
+        <TabHeader title="Keşfet" />
 
-        {!hasSearch && <QuickLookWidget />}
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 28 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
+        >
+          <View style={[styles.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}> 
+            <Ionicons name="search" size={20} color={colors.subtext} />
+            <TextInput
+              value={query}
+              onChangeText={handleSearchChange}
+              placeholder="Modül ara (burç, transit, rüya…)"
+              placeholderTextColor={colors.subtext}
+              style={[styles.searchInput, { color: colors.text }]}
+              returnKeyType="search"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+            {query.length > 0 ? (
+              <Pressable
+                onPress={() => handleSearchChange('')}
+                accessibilityRole="button"
+                accessibilityLabel="Aramayı temizle"
+                hitSlop={HIT_SLOP}
+              >
+                <Ionicons name="close-circle" size={18} color={colors.subtext} />
+              </Pressable>
+            ) : null}
+          </View>
 
-        {!hasSearch && <DreamReminderBanner />}
+          {!hasNoResults ? (
+            <>
+              <View style={styles.sectionWrap}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Bugün</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.todayRow}
+                >
+                  {todayModules.map((module) => (
+                    <TodayQuickCard
+                      key={module.key}
+                      module={module}
+                      onPress={(item) => handleModuleClick(item, 'today_quick_access')}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
 
-        {hasCosmicFlow && !hasSearch && <CosmicFlowSection />}
+              {categoriesWithModules.map((category) => {
+                if (category.modules.length === 0) {
+                  return null;
+                }
 
-        {hasTools && <ToolsGridSection />}
+                const isExpanded = hasSearch ? true : Boolean(expandedMap[category.key]);
+                const hasOverflow = category.modules.length >= CATEGORY_TOGGLE_THRESHOLD;
+                const visibleModules = isExpanded
+                  ? category.modules
+                  : category.modules.slice(0, VISIBLE_CATEGORY_LIMIT);
 
-        {hasWisdom && <WisdomSection />}
+                return (
+                  <View key={category.key} style={styles.sectionWrap}>
+                    <View style={styles.sectionHeadRow}>
+                      <View style={styles.sectionHeadTextWrap}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{category.title}</Text>
+                        <Text numberOfLines={1} style={[styles.sectionSubtitle, { color: colors.subtext }]}>
+                          {category.subtitle}
+                        </Text>
+                      </View>
 
-        <View style={styles.bottomSpacer} />
-      </Animated.ScrollView>
+                      {hasOverflow && !hasSearch ? (
+                        <Pressable
+                          onPress={() => toggleCategory(category.key)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${category.title} kategorisini ${isExpanded ? 'daralt' : 'genişlet'}`}
+                          hitSlop={HIT_SLOP}
+                        >
+                          <Text style={[styles.categoryToggleText, { color: colors.primary }]}> 
+                            {isExpanded ? 'Daralt' : 'Tümünü gör'}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+
+                    <View style={styles.gridRow}>
+                      {visibleModules.map((module) => (
+                        <View key={module.key} style={styles.gridItemWrap}>
+                          <ModuleCard
+                            module={module}
+                            onPress={(item) => handleModuleClick(item, 'category_grid')}
+                            compact
+                          />
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
+
+              {!hasSearch && recommendedModules.length > 0 ? (
+                <View style={styles.sectionWrap}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Senin için önerilenler</Text>
+                  <View style={styles.recommendedRow}>
+                    {recommendedModules.map((module) => (
+                      <View key={module.key} style={styles.recommendedItemWrap}>
+                        <ModuleCard
+                          module={module}
+                          onPress={(item) => handleModuleClick(item, 'recommended')}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              <View style={styles.statusRow}>
+                <View style={styles.statusDot} />
+                <Text style={[styles.statusText, { color: colors.subtext }]}>Oracle aktif</Text>
+              </View>
+            </>
+          ) : (
+            <View style={[styles.zeroWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+              <Ionicons name="search-outline" size={22} color={colors.subtext} />
+              <Text style={[styles.zeroTitle, { color: colors.text }]}>Sonuç bulunamadı</Text>
+              <Text style={[styles.zeroSubtitle, { color: colors.subtext }]}>Şu aramaları deneyebilirsin:</Text>
+              <View style={styles.suggestionRow}>
+                {SEARCH_SUGGESTIONS.map((suggestion) => (
+                  <Pressable
+                    key={suggestion}
+                    onPress={() => handleSearchChange(suggestion)}
+                    style={[styles.suggestionChip, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${suggestion} için ara`}
+                    hitSlop={HIT_SLOP}
+                  >
+                    <Text style={[styles.suggestionText, { color: colors.text }]}>{suggestion}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </SafeScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingBottom: 120,
+  root: {
+    flex: 1,
   },
-  bottomSpacer: {
-    height: SPACING.xl,
+  content: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.sm,
+    gap: SPACING.lgXl,
+  },
+  searchWrap: {
+    height: 52,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    paddingHorizontal: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    ...TYPOGRAPHY.Small,
+    fontSize: 16,
+    lineHeight: 21,
+    paddingVertical: 0,
+  },
+  sectionWrap: {
+    gap: SPACING.md,
+  },
+  sectionHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  sectionHeadTextWrap: {
+    flex: 1,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.H3,
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '700',
+  },
+  sectionSubtitle: {
+    ...TYPOGRAPHY.Caption,
+    marginTop: 4,
+    fontSize: 12,
+  },
+  categoryToggleText: {
+    ...TYPOGRAPHY.CaptionBold,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  todayRow: {
+    gap: SPACING.md,
+    paddingRight: SPACING.lg,
+  },
+  todayCard: {
+    width: 172,
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  todayCardTop: {
+    height: 74,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayCardTitle: {
+    ...TYPOGRAPHY.SmallBold,
+    fontSize: 17,
+    lineHeight: 22,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: SPACING.md,
+  },
+  gridItemWrap: {
+    width: '48.6%',
+  },
+  moduleCard: {
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    padding: SPACING.md,
+    minHeight: 118,
+    overflow: 'hidden',
+  },
+  moduleCardCompact: {
+    minHeight: 110,
+  },
+  cardGlowWrap: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.72,
+  },
+  cardGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  moduleIconShell: {
+    width: 34,
+    height: 34,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  moduleTitle: {
+    ...TYPOGRAPHY.SmallBold,
+    fontSize: 16,
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  moduleSubtitle: {
+    ...TYPOGRAPHY.Caption,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  comingSoonBadge: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: SPACING.sm,
+  },
+  comingSoonText: {
+    ...TYPOGRAPHY.CaptionBold,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  recommendedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
+  recommendedItemWrap: {
+    flex: 1,
+  },
+  statusRow: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2ECC71',
+  },
+  statusText: {
+    ...TYPOGRAPHY.Caption,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  zeroWrap: {
+    marginTop: SPACING.xs,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+  },
+  zeroTitle: {
+    ...TYPOGRAPHY.H3,
+    fontSize: 20,
+    lineHeight: 24,
+    marginTop: SPACING.sm,
+  },
+  zeroSubtitle: {
+    ...TYPOGRAPHY.Small,
+    marginTop: 4,
+    marginBottom: SPACING.md,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+  suggestionChip: {
+    borderWidth: 1,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+  },
+  suggestionText: {
+    ...TYPOGRAPHY.SmallBold,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  pressed: {
+    opacity: 0.86,
   },
 });

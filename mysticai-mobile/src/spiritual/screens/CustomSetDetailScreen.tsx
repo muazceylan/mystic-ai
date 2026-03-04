@@ -16,7 +16,9 @@ import {
   Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from '../../utils/haptics';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { useContentStore } from '../store/useContentStore';
@@ -43,7 +45,10 @@ const TYPE_META: Record<string, {
 export default function CustomSetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
+  const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
   const S = makeStyles(colors, isDark);
+  const tabBarOverlayOffset = Platform.OS === 'ios' ? Math.max(0, tabBarHeight - insets.bottom) : 0;
 
   const {
     getSetById, renameSet, removeItem,
@@ -460,7 +465,7 @@ export default function CustomSetDetailScreen() {
         data={set.items}
         keyExtractor={(item) => itemKey(item)}
         renderItem={renderItem}
-        contentContainerStyle={S.listContent}
+        contentContainerStyle={[S.listContent, { paddingBottom: 120 + tabBarOverlayOffset }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={S.emptyItems}>
@@ -474,7 +479,7 @@ export default function CustomSetDetailScreen() {
       />
 
       {/* ─── Bottom bar ─── */}
-      <View style={S.bottomBar}>
+      <View style={[S.bottomBar, { paddingBottom: 36 + tabBarOverlayOffset }]}>
         <Pressable
           style={({ pressed }) => [
             S.addBtn,

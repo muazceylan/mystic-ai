@@ -76,6 +76,7 @@ interface TabHeaderProps {
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
   onOpenNotifications?: () => void;
+  showDefaultRightIcons?: boolean;
 }
 
 export function TabHeader({
@@ -87,6 +88,7 @@ export function TabHeader({
   onOpenProfile,
   onOpenSettings,
   onOpenNotifications,
+  showDefaultRightIcons = true,
 }: TabHeaderProps) {
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark, transparent);
@@ -118,22 +120,26 @@ export function TabHeader({
         {/* Right: per-screen actions + settings + notifications */}
         <View style={S.right}>
           {rightActions}
-          <Pressable
-            onPress={onOpenSettings}
-            style={({ pressed }) => [S.iconBtn, pressed && S.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-          >
-            <Ionicons name="options-outline" size={18} color={colors.text} />
-          </Pressable>
-          <Pressable
-            onPress={onOpenNotifications}
-            style={({ pressed }) => [S.iconBtn, pressed && S.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-          >
-            <Ionicons name="notifications-outline" size={18} color={colors.text} />
-          </Pressable>
+          {showDefaultRightIcons ? (
+            <>
+              <Pressable
+                onPress={onOpenSettings}
+                style={({ pressed }) => [S.iconBtn, pressed && S.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+              >
+                <Ionicons name="options-outline" size={18} color={colors.text} />
+              </Pressable>
+              <Pressable
+                onPress={onOpenNotifications}
+                style={({ pressed }) => [S.iconBtn, pressed && S.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
+              >
+                <Ionicons name="notifications-outline" size={18} color={colors.text} />
+              </Pressable>
+            </>
+          ) : null}
         </View>
       </View>
 

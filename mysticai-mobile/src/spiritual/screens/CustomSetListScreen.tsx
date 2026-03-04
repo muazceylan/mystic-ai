@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -568,7 +569,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     /* FAB */
     fab: {
       position: 'absolute',
-      bottom: 36,
+      bottom: Platform.OS === 'ios' ? 110 : 90,
       right: SPACING.lgXl,
       width: 56,
       height: 56,

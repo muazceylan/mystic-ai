@@ -27,6 +27,8 @@ export interface UserProfile {
   longitude?: number;
   lat?: number;
   lng?: number;
+  avatarUri?: string | null;
+  avatarUrl?: string | null;
   birthTimeUnknown?: boolean;
   timezone?: string;
   gender?: string;

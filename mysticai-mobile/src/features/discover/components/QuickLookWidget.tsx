@@ -8,6 +8,7 @@ import { RADIUS, SPACING, TYPOGRAPHY } from '../../../constants/tokens';
 import { AccessibleText } from '../../../components/ui/AccessibleText';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { useTranslation } from 'react-i18next';
+import { localizeSignName } from '../../../utils/matchAstroLabels';
 
 interface ChipProps {
   label: string;
@@ -43,8 +44,17 @@ const chipStyles = StyleSheet.create({
 
 export function QuickLookWidget() {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const chart = useNatalChartStore((s) => s.chart);
+  const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase();
+
+  const formatSign = (value: string | undefined) => {
+    if (!value) return '—';
+    if (lang.startsWith('tr')) {
+      return localizeSignName(value, value);
+    }
+    return value;
+  };
 
   if (!chart) {
     return (
@@ -60,19 +70,19 @@ export function QuickLookWidget() {
     <Animated.View entering={FadeInDown.duration(400)} style={styles.row}>
       <SignChip
         label={t('natalChart.sun')}
-        value={chart.sunSign}
+        value={formatSign(chart.sunSign)}
         icon="sunny-outline"
         colors={colors}
       />
       <SignChip
         label={t('natalChart.moon')}
-        value={chart.moonSign}
+        value={formatSign(chart.moonSign)}
         icon="moon-outline"
         colors={colors}
       />
       <SignChip
         label={t('natalChart.rising')}
-        value={chart.risingSign}
+        value={formatSign(chart.risingSign)}
         icon="arrow-up-outline"
         colors={colors}
       />

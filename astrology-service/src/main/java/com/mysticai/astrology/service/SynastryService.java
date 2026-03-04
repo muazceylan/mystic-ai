@@ -753,8 +753,10 @@ public class SynastryService {
             payload.put("partnerPlanetsText", partnerPlanetsText);
             payload.put("allAspectsText",    allAspectsText);
             payload.put("totalAspects",      aspects.size());
-            if (req.locale() != null) {
-                payload.put("locale", req.locale());
+            payload.put("baseHarmonyScore",  synastry.getHarmonyScore());
+            payload.put("locale", "tr");
+            if (req.locale() != null && !req.locale().isBlank()) {
+                payload.put("requestedLocale", req.locale());
             }
 
             String payloadJson = objectMapper.writeValueAsString(payload);

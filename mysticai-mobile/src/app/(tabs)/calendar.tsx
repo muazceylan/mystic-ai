@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Dimensions,
   Modal,
@@ -10,6 +11,7 @@ import {
   Switch,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Animated, {
@@ -25,13 +27,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as Haptics from '../../utils/haptics';
 import { useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { SafeScreen, TabHeader } from '../../components/ui';
-import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
 import { COSMIC_DOCK_LABEL_OVERRIDE_KEYS, PLANNER_LOCAL_TO_COSMIC_CATEGORY } from '../../constants/CosmicConstants';
 import {
@@ -46,10 +49,13 @@ import {
   CosmicDayDetailResponse,
   CosmicLegendItem,
   CosmicPlannerDay,
+  CosmicPlannerDayOverviewResponse,
   CosmicPlannerResponse,
+  fetchCosmicPlannerDayOverview,
   fetchCosmicCategoryDetails,
   fetchCosmicPlanner,
 } from '../../services/cosmic.service';
+import { createReminder, type ReminderType } from '../../services/reminder.service';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import {
@@ -63,6 +69,7 @@ import {
   toDateKey,
 } from '../../features/planner/plannerEngine';
 import { usePlannerPreferencesStore } from '../../store/usePlannerPreferencesStore';
+import { trackEvent } from '../../services/analytics';
 
 const INITIAL_BACKEND_MONTHS_AHEAD = 2;
 const UI_FONT = Platform.OS === 'ios' ? 'Poppins' : 'Poppins';
@@ -83,6 +90,8 @@ interface TrendPoint {
   label: string;
   score: number;
 }
+
+type CosmicLegendRow = CosmicLegendItem & { score?: number };
 
 const BACKEND_CATEGORY_TO_LOCAL: Record<string, PlannerCategoryId> = {
   TRANSIT: 'transit',
@@ -261,6 +270,12 @@ function getRingColor(score: number): string {
   return '#8B95A7';
 }
 
+function scoreBand(score: number): 'STRONG' | 'BALANCED' | 'CRITICAL' {
+  if (score >= 80) return 'STRONG';
+  if (score >= 50) return 'BALANCED';
+  return 'CRITICAL';
+}
+
 function getHeatColor(score: number, isDark: boolean): string {
   if (score >= 80) return isDark ? 'rgba(32,237,196,0.20)' : 'rgba(32,178,170,0.14)';
   if (score >= 50) return isDark ? 'rgba(243,192,103,0.18)' : 'rgba(227,167,77,0.12)';
@@ -279,6 +294,41 @@ function tonePriority(tone: PlannerTone): number {
   return 1;
 }
 
+function toTimeHHmm(date: Date): string {
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function normalizeLine(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ı/g, 'i')
+    .replace(/ç/g, 'c')
+    .replace(/ş/g, 's')
+    .replace(/ğ/g, 'g')
+    .replace(/ö/g, 'o')
+    .replace(/ü/g, 'u')
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim();
+}
+
+function dedupeLines(lines: string[], maxItems: number): string[] {
+  const unique = new Set<string>();
+  const output: string[] = [];
+  for (const line of lines) {
+    const clean = line?.trim();
+    if (!clean) continue;
+    const key = normalizeLine(clean);
+    if (!key || unique.has(key)) continue;
+    unique.add(key);
+    output.push(clean);
+    if (output.length >= maxItems) break;
+  }
+  return output;
+}
+
 function toneFromScore(score: number): PlannerTone {
   if (score >= 85) return 'luck';
   if (score < 58) return 'warning';
@@ -295,6 +345,7 @@ function buildActionables(
       dos: [
         t('calendar.actionTemplates.execute', { category: categoryLabel }),
         t('calendar.actionTemplates.focusBlock', { category: categoryLabel }),
+        t('calendar.actionTemplates.prepare', { category: categoryLabel }),
       ],
       donts: [
         t('calendar.actionTemplates.rush', { category: categoryLabel }),
@@ -308,10 +359,12 @@ function buildActionables(
       dos: [
         t('calendar.actionTemplates.prepare', { category: categoryLabel }),
         t('calendar.actionTemplates.review', { category: categoryLabel }),
+        t('calendar.actionTemplates.focusBlock', { category: categoryLabel }),
       ],
       donts: [
         t('calendar.actionTemplates.overCommit', { category: categoryLabel }),
         t('calendar.actionTemplates.impulse', { category: categoryLabel }),
+        t('calendar.actionTemplates.rush', { category: categoryLabel }),
       ],
     };
   }
@@ -320,10 +373,12 @@ function buildActionables(
     dos: [
       t('calendar.actionTemplates.observe', { category: categoryLabel }),
       t('calendar.actionTemplates.microStep', { category: categoryLabel }),
+      t('calendar.actionTemplates.review', { category: categoryLabel }),
     ],
     donts: [
       t('calendar.actionTemplates.signCritical', { category: categoryLabel }),
       t('calendar.actionTemplates.heavyRisk', { category: categoryLabel }),
+      t('calendar.actionTemplates.impulse', { category: categoryLabel }),
     ],
   };
 }
@@ -482,6 +537,8 @@ function TrendLineChart({ points, colors }: { points: TrendPoint[]; colors: Them
 export default function CalendarScreen() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const router = useRouter();
 
@@ -494,10 +551,22 @@ export default function CalendarScreen() {
   const [plannerDistribution, setPlannerDistribution] = useState<PlannerFullDistributionResponse | null>(null);
   const [cosmicPlannerByMonth, setCosmicPlannerByMonth] = useState<Record<string, CosmicPlannerResponse>>({});
   const [cosmicDayDetailsByDate, setCosmicDayDetailsByDate] = useState<Record<string, CosmicDayDetailResponse>>({});
+  const [cosmicDayOverviewByDate, setCosmicDayOverviewByDate] = useState<Record<string, CosmicPlannerDayOverviewResponse>>({});
   const [failedCosmicDetailKeys, setFailedCosmicDetailKeys] = useState<Record<string, true>>({});
+  const [failedCosmicOverviewDateKeys, setFailedCosmicOverviewDateKeys] = useState<Record<string, true>>({});
   const [loadedMonthKeys, setLoadedMonthKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isOverviewLoading, setIsOverviewLoading] = useState(false);
+  const [isReminderModalVisible, setIsReminderModalVisible] = useState(false);
+  const [isSavingReminder, setIsSavingReminder] = useState(false);
+  const [selectedReminderType, setSelectedReminderType] = useState<ReminderType>('DO');
+  const [reminderTime, setReminderTime] = useState(() => {
+    const d = new Date();
+    d.setHours(9, 0, 0, 0);
+    return d;
+  });
+  const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [viewDate, setViewDate] = useState(() => new Date());
@@ -516,6 +585,10 @@ export default function CalendarScreen() {
   const loadingCosmicMonthKeysRef = useRef<Set<string>>(new Set());
   const loadingDetailKeysRef = useRef<Set<string>>(new Set());
   const loadingCosmicDayDetailKeysRef = useRef<Set<string>>(new Set());
+  const loadingCosmicOverviewDateKeysRef = useRef<Set<string>>(new Set());
+  const viewedMonthEventRef = useRef<string | null>(null);
+  const daySelectedEventRef = useRef<string | null>(null);
+  const recommendationsOpenedEventRef = useRef<string | null>(null);
   const subCategoryCardLayoutsRef = useRef<Record<string, { y: number; height: number }>>({});
   const subAnalysisBlockOffsetYRef = useRef(0);
   const subAnalysisListOffsetYRef = useRef(0);
@@ -586,6 +659,13 @@ export default function CalendarScreen() {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
     }
+    const dateKey = toDateKey(date);
+    recommendationsOpenedEventRef.current = dateKey;
+    trackEvent('daily_recommendations_opened', {
+      date: dateKey,
+      surface: 'cosmic_planner',
+      destination: 'daily_recommendations_sheet',
+    });
     setSelectedDate(date);
     setDetailMounted(true);
     detailProgress.value = withTiming(1, {
@@ -694,11 +774,16 @@ export default function CalendarScreen() {
 
   const fetchPlannerData = useCallback(async () => {
     setPlannerDistribution(null);
+    setCosmicPlannerByMonth({});
     setCosmicDayDetailsByDate({});
+    setCosmicDayOverviewByDate({});
     setFailedCosmicDetailKeys({});
+    setFailedCosmicOverviewDateKeys({});
     setLoadedMonthKeys([]);
     loadingMonthKeysRef.current.clear();
+    loadingCosmicMonthKeysRef.current.clear();
     loadingCosmicDayDetailKeysRef.current.clear();
+    loadingCosmicOverviewDateKeysRef.current.clear();
 
     const currentMonthDate = new Date();
     const nextMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1);
@@ -810,12 +895,12 @@ export default function CalendarScreen() {
     () => (activeFilter === 'ALL' ? null : (LOCAL_CATEGORY_TO_COSMIC[activeFilter] ?? null)),
     [activeFilter],
   );
-  const activeCosmicLegend = useMemo<CosmicLegendItem[]>(
+  const activeCosmicLegend = useMemo<CosmicLegendRow[]>(
     () => {
       if (!activeCosmicCategoryKey) return [];
       const baseLegend = currentCosmicPlanner?.legendsByCategory?.[activeCosmicCategoryKey] ?? [];
       const selectedDayDots = cosmicPlannerDaysByDate[toDateKey(selectedDate)]?.dotsByCategory?.[activeCosmicCategoryKey] ?? [];
-      if (!selectedDayDots.length) return baseLegend;
+      if (!selectedDayDots.length) return baseLegend.map((item) => ({ ...item }));
 
       const dotOrder = new Map(
         selectedDayDots.map((dot, index) => [dot.subCategoryKey, { score: dot.score, index }] as const),
@@ -831,7 +916,10 @@ export default function CalendarScreen() {
         if (aMeta) return -1;
         if (bMeta) return 1;
         return a.label.localeCompare(b.label);
-      });
+      }).map((item) => ({
+        ...item,
+        score: dotOrder.get(item.subCategoryKey)?.score,
+      }));
     },
     [currentCosmicPlanner, activeCosmicCategoryKey, cosmicPlannerDaysByDate, selectedDate],
   );
@@ -1043,6 +1131,10 @@ export default function CalendarScreen() {
     () => cosmicDayDetailsByDate[selectedDateKey],
     [cosmicDayDetailsByDate, selectedDateKey],
   );
+  const selectedCosmicDayOverview = useMemo(
+    () => cosmicDayOverviewByDate[selectedDateKey],
+    [cosmicDayOverviewByDate, selectedDateKey],
+  );
   const selectedCosmicCategoryDetail = useMemo(
     () => (selectedCosmicCategoryKey ? (selectedCosmicDayDetail?.categories?.[selectedCosmicCategoryKey] ?? undefined) : undefined),
     [selectedCosmicDayDetail, selectedCosmicCategoryKey],
@@ -1059,6 +1151,10 @@ export default function CalendarScreen() {
     && !selectedCosmicCategoryDetail
     && !(selectedCosmicDetailRequestKey && failedCosmicDetailKeys[selectedCosmicDetailRequestKey]);
   const showDetailSkeleton = selectedDetailPending || isDetailLoading;
+  const timingWindows = useMemo(
+    () => (selectedCosmicDayOverview?.timing ?? []).slice(0, 4),
+    [selectedCosmicDayOverview],
+  );
 
   useEffect(() => {
     subCategoryCardLayoutsRef.current = {};
@@ -1212,20 +1308,80 @@ export default function CalendarScreen() {
     fetchPlannerChunk,
   ]);
 
+  useEffect(() => {
+    if (!detailMounted) return;
+    if (!user?.id) return;
+    const dateKey = toDateKey(selectedDate);
+    if (cosmicDayOverviewByDate[dateKey]) return;
+    if (failedCosmicOverviewDateKeys[dateKey]) return;
+    if (loadingCosmicOverviewDateKeysRef.current.has(dateKey)) return;
+
+    loadingCosmicOverviewDateKeysRef.current.add(dateKey);
+    setIsOverviewLoading(true);
+
+    void fetchCosmicPlannerDayOverview({
+      userId: user.id,
+      date: dateKey,
+      locale: plannerLocale,
+      gender: user.gender,
+      maritalStatus: user.maritalStatus,
+    }).then((response) => {
+      setCosmicDayOverviewByDate((prev) => ({
+        ...prev,
+        [dateKey]: response.data,
+      }));
+      setFailedCosmicOverviewDateKeys((prev) => {
+        if (!prev[dateKey]) return prev;
+        const next = { ...prev };
+        delete next[dateKey];
+        return next;
+      });
+    }).catch(() => {
+      setFailedCosmicOverviewDateKeys((prev) => ({ ...prev, [dateKey]: true }));
+    }).finally(() => {
+      loadingCosmicOverviewDateKeysRef.current.delete(dateKey);
+      setIsOverviewLoading(false);
+    });
+  }, [
+    detailMounted,
+    selectedDate,
+    cosmicDayOverviewByDate,
+    failedCosmicOverviewDateKeys,
+    user?.id,
+    user?.gender,
+    user?.maritalStatus,
+    plannerLocale,
+  ]);
+
   const actionables = useMemo(
-    () => ({
-      dos: selectedDetailPending
-        ? []
+    () => {
+      if (selectedDetailPending) {
+        return { dos: [], donts: [] };
+      }
+
+      const fallback = buildActionables(t, selectedCategoryLabel, selectedSummary.score);
+      const rawDos = selectedCosmicDayOverview?.doItems?.length
+        ? selectedCosmicDayOverview.doItems.map((item) => item.title).filter(Boolean)
         : selectedSummary.selectedInsight?.dos?.length
-        ? selectedSummary.selectedInsight.dos
-        : buildActionables(t, selectedCategoryLabel, selectedSummary.score).dos,
-      donts: selectedDetailPending
-        ? []
+          ? selectedSummary.selectedInsight.dos
+          : fallback.dos;
+      const rawDonts = selectedCosmicDayOverview?.avoidItems?.length
+        ? selectedCosmicDayOverview.avoidItems.map((item) => item.title).filter(Boolean)
         : selectedSummary.selectedInsight?.donts?.length
-        ? selectedSummary.selectedInsight.donts
-        : buildActionables(t, selectedCategoryLabel, selectedSummary.score).donts,
-    }),
-    [t, selectedCategoryLabel, selectedSummary.score, selectedSummary.selectedInsight, selectedDetailPending],
+          ? selectedSummary.selectedInsight.donts
+          : fallback.donts;
+
+      const dos = dedupeLines([...rawDos, ...fallback.dos], 5).slice(0, 5);
+      const dosKeys = new Set(dos.map((line) => normalizeLine(line)));
+      const donts = dedupeLines(rawDonts.filter((line) => !dosKeys.has(normalizeLine(line))), 4);
+      const filledDonts = donts.length >= 2 ? donts : dedupeLines([...donts, ...fallback.donts], 4);
+
+      return {
+        dos: dos.slice(0, Math.max(3, Math.min(5, dos.length))),
+        donts: filledDonts.slice(0, Math.max(2, Math.min(4, filledDonts.length))),
+      };
+    },
+    [t, selectedCategoryLabel, selectedSummary.score, selectedSummary.selectedInsight, selectedDetailPending, selectedCosmicDayOverview],
   );
 
   const trendPoints = useMemo<TrendPoint[]>(() => {
@@ -1278,6 +1434,13 @@ export default function CalendarScreen() {
       },
     ],
   }));
+  const detailSheetStaticStyle = useMemo(
+    () => ({
+      maxHeight: Math.max(340, windowHeight - insets.top - 10),
+      paddingBottom: Platform.OS === 'ios' ? Math.max(22, insets.bottom + 12) : 22,
+    }),
+    [windowHeight, insets.top, insets.bottom],
+  );
   const skeletonPulseStyle = useAnimatedStyle(() => ({
     opacity: skeletonPulse.value,
   }));
@@ -1288,6 +1451,19 @@ export default function CalendarScreen() {
       ? t('calendar.modelEstimated')
       : t('calendar.modelFromTransit');
   }, [selectedSummary, t]);
+
+  useEffect(() => {
+    if (!currentCosmicPlanner) return;
+    const currentMonthKey = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}`;
+    if (viewedMonthEventRef.current === currentMonthKey) return;
+    viewedMonthEventRef.current = currentMonthKey;
+    trackEvent('cosmic_planner_viewed', {
+      year: viewDate.getFullYear(),
+      month: viewDate.getMonth() + 1,
+      surface: 'cosmic_planner',
+      destination: 'calendar',
+    });
+  }, [currentCosmicPlanner, viewDate]);
 
   const goPrevMonth = useCallback(() => {
     setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -1303,19 +1479,110 @@ export default function CalendarScreen() {
   }, []);
 
   const onPressDay = useCallback((date: Date) => {
+    const summary = getDaySummary(date, activeFilter);
+    const dateKey = toDateKey(date);
+    const eventKey = `${dateKey}:${summary.score}:${activeFilter}`;
+    if (daySelectedEventRef.current !== eventKey) {
+      daySelectedEventRef.current = eventKey;
+      trackEvent('cosmic_planner_day_selected', {
+        date: dateKey,
+        score: summary.score,
+        band: scoreBand(summary.score),
+        surface: 'cosmic_planner',
+      });
+    }
+
     setSelectedDate(date);
     if (date.getMonth() !== viewDate.getMonth() || date.getFullYear() !== viewDate.getFullYear()) {
       setViewDate(new Date(date.getFullYear(), date.getMonth(), 1));
     }
     void Haptics.selectionAsync();
     openDetailPanel(date);
-  }, [openDetailPanel, viewDate]);
+  }, [openDetailPanel, viewDate, getDaySummary, activeFilter]);
 
   const onToggleCategory = useCallback((categoryId: PlannerCategoryId) => {
     const currentlyVisible = !hiddenCategoryIds.includes(categoryId);
     if (currentlyVisible && visibleCategories.length <= 1) return;
     setCategoryVisibility(categoryId, !currentlyVisible);
   }, [hiddenCategoryIds, visibleCategories.length, setCategoryVisibility]);
+
+  const openReminderComposer = useCallback((type: ReminderType, targetDate?: Date) => {
+    const dateToUse = targetDate ?? selectedDate;
+    setSelectedDate(dateToUse);
+    setSelectedReminderType(type);
+    setIsReminderModalVisible(true);
+    trackEvent('reminder_create_clicked', {
+      date: toDateKey(dateToUse),
+      type,
+      surface: 'cosmic_planner',
+      destination: 'reminder_modal',
+    });
+  }, [selectedDate]);
+
+  const onReminderTimePickerChange = useCallback((event: DateTimePickerEvent, value?: Date) => {
+    if (Platform.OS !== 'ios') {
+      setShowReminderTimePicker(false);
+    }
+    if (event.type === 'dismissed' || !value) return;
+    setReminderTime(value);
+  }, []);
+
+  const saveReminder = useCallback(async () => {
+    const date = toDateKey(selectedDate);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul';
+    const time = toTimeHHmm(reminderTime);
+
+    setIsSavingReminder(true);
+    try {
+      const reminder = await createReminder({
+        date,
+        time,
+        timezone,
+        type: selectedReminderType,
+        payload: {
+          plannerDate: date,
+          categoryKey: selectedCosmicCategoryKey ?? undefined,
+          recommendationId: selectedCosmicDayOverview?.doItems?.[0]?.id ?? undefined,
+        },
+      });
+      trackEvent('reminder_created', {
+        reminderId: reminder.id,
+        dateTime: reminder.dateTimeUtc,
+        type: selectedReminderType,
+        result: 'success',
+        surface: 'cosmic_planner',
+      });
+      setIsReminderModalVisible(false);
+      Alert.alert(
+        t('calendar.reminderSavedTitle'),
+        t('calendar.reminderSavedBody', {
+          date: formatDateLabel(selectedDate, months),
+          time,
+        }),
+      );
+    } catch (error: any) {
+      trackEvent('reminder_created', {
+        date,
+        type: selectedReminderType,
+        result: 'fail',
+        surface: 'cosmic_planner',
+      });
+      Alert.alert(
+        t('calendar.reminderSaveErrorTitle'),
+        error?.message || t('calendar.reminderSaveErrorBody'),
+      );
+    } finally {
+      setIsSavingReminder(false);
+    }
+  }, [
+    selectedDate,
+    reminderTime,
+    selectedReminderType,
+    selectedCosmicCategoryKey,
+    selectedCosmicDayOverview,
+    t,
+    months,
+  ]);
 
   const selectedDateHasBackendData = useMemo(
     () => !!backendInsightsByDate[toDateKey(selectedDate)],
@@ -1363,12 +1630,14 @@ export default function CalendarScreen() {
           pointerEvents="none"
         />
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Animated.View entering={FadeIn.duration(300)}>
-            <TabHeader
-              title={t('calendar.title')}
-              subtitle={t('calendar.editorialSubtitle')}
-              rightActions={
+        <Animated.View entering={FadeIn.duration(250)} style={styles.stickyHeader}>
+          <TabHeader
+            title={t('calendar.title')}
+            subtitle={t('calendar.editorialSubtitle')}
+            showAvatar={false}
+            showDefaultRightIcons={false}
+            rightActions={
+              <View style={styles.headerActionsRow}>
                 <TouchableOpacity
                   style={styles.refreshButton}
                   onPress={fetchPlannerData}
@@ -1377,10 +1646,38 @@ export default function CalendarScreen() {
                 >
                   <Ionicons name="refresh-outline" size={18} color={colors.primary} />
                 </TouchableOpacity>
-              }
-              {...useTabHeaderActions()}
-            />
+                <TouchableOpacity
+                  style={styles.refreshButton}
+                  onPress={() => setSettingsVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.customizeCategories')}
+                >
+                  <Ionicons name="options-outline" size={18} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.refreshButton}
+                  onPress={() => openReminderComposer(
+                    actionAlert ? 'WINDOW_START' : 'DO',
+                    actionAlert?.date,
+                  )}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.setReminder')}
+                >
+                  <Ionicons name="notifications-outline" size={18} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            }
+          />
+        </Animated.View>
 
+        <ScrollView
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          automaticallyAdjustKeyboardInsets={false}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View entering={FadeIn.duration(300)}>
             {isBeyondBackendWindow && (
               <View style={styles.noticeChip}>
                 <Ionicons name="sparkles-outline" size={13} color={colors.subtext} />
@@ -1557,8 +1854,13 @@ export default function CalendarScreen() {
                 <View style={styles.subLegendList}>
                   {activeCosmicLegend.map((item) => (
                     <View key={`${activeCosmicCategoryKey}-${item.subCategoryKey}`} style={styles.subLegendRow}>
-                      <View style={[styles.subLegendDot, { backgroundColor: item.colorHex }]} />
-                      <Text style={styles.subLegendText}>{item.label}</Text>
+                      <View style={styles.subLegendLeft}>
+                        <View style={[styles.subLegendDot, { backgroundColor: item.colorHex }]} />
+                        <Text style={styles.subLegendText}>{item.label}</Text>
+                      </View>
+                      <Text style={styles.subLegendScore}>
+                        %{typeof item.score === 'number' ? item.score : '--'}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -1615,6 +1917,18 @@ export default function CalendarScreen() {
               ) : (
                 <Text style={styles.alertText}>{t('calendar.actionAlertEmpty')}</Text>
               )}
+              <TouchableOpacity
+                style={styles.alertCtaButton}
+                onPress={() => openReminderComposer(
+                  actionAlert ? 'WINDOW_START' : 'DO',
+                  actionAlert?.date,
+                )}
+                accessibilityRole="button"
+                accessibilityLabel={t('calendar.setReminder')}
+              >
+                <Ionicons name="alarm-outline" size={14} color={colors.white} />
+                <Text style={styles.alertCtaText}>{t('calendar.setReminder')}</Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </ScrollView>
@@ -1736,79 +2050,179 @@ export default function CalendarScreen() {
         </Modal>
 
         <Modal
+          visible={isReminderModalVisible}
+          animationType="fade"
+          transparent
+          onRequestClose={() => {
+            if (isSavingReminder) return;
+            setIsReminderModalVisible(false);
+          }}
+        >
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              if (isSavingReminder) return;
+              setIsReminderModalVisible(false);
+            }}
+          >
+            <Pressable style={styles.reminderModalCard} onPress={(event) => event.stopPropagation()}>
+              <View style={styles.settingsHeader}>
+                <Text style={styles.settingsTitle}>{t('calendar.reminderSetupTitle')}</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isSavingReminder) return;
+                    setIsReminderModalVisible(false);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.close')}
+                >
+                  <Ionicons name="close" size={20} color={colors.subtext} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.settingsSubtitle}>{t('calendar.reminderSetupHint')}</Text>
+
+              <View style={styles.reminderTypeWrap}>
+                {(['DO', 'AVOID', 'WINDOW_START'] as ReminderType[]).map((type) => {
+                  const selected = selectedReminderType === type;
+                  const label = type === 'DO'
+                    ? t('calendar.reminderTypeDo')
+                    : type === 'AVOID'
+                      ? t('calendar.reminderTypeAvoid')
+                      : t('calendar.reminderTypeWindow');
+                  return (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.reminderTypeChip, selected && styles.reminderTypeChipActive]}
+                      onPress={() => setSelectedReminderType(type)}
+                    >
+                      <Text style={[styles.reminderTypeText, selected && styles.reminderTypeTextActive]}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity
+                style={styles.reminderTimeButton}
+                onPress={() => setShowReminderTimePicker((prev) => !prev)}
+              >
+                <Ionicons name="time-outline" size={15} color={colors.primary} />
+                <Text style={styles.reminderTimeButtonText}>
+                  {t('calendar.reminderPickTime')}: {toTimeHHmm(reminderTime)}
+                </Text>
+              </TouchableOpacity>
+
+              {Platform.OS !== 'web' && showReminderTimePicker ? (
+                <DateTimePicker
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  value={reminderTime}
+                  onChange={onReminderTimePickerChange}
+                  is24Hour
+                />
+              ) : null}
+
+              <View style={styles.reminderActionRow}>
+                <TouchableOpacity
+                  style={styles.closeSheetButton}
+                  onPress={() => setIsReminderModalVisible(false)}
+                  disabled={isSavingReminder}
+                >
+                  <Text style={styles.closeSheetButtonText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.deepDiveButton, isSavingReminder && styles.buttonDisabled]}
+                  onPress={saveReminder}
+                  disabled={isSavingReminder}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={16} color={colors.white} />
+                  <Text style={styles.deepDiveButtonText}>
+                    {isSavingReminder ? t('common.loading') : t('calendar.reminderSave')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal
           visible={detailMounted}
           transparent
           animationType="none"
           onRequestClose={closeDetailPanel}
         >
-          <Pressable style={styles.sheetBackdrop} onPress={closeDetailPanel} />
+          <View style={styles.sheetModalRoot}>
+            <Pressable style={styles.sheetBackdrop} onPress={closeDetailPanel} />
 
-          <Animated.View style={[styles.detailSheet, detailSheetStyle]}>
-            <View style={styles.sheetHandle} />
+            <Animated.View style={[styles.detailSheet, detailSheetStaticStyle, detailSheetStyle]}>
+              <View style={styles.sheetHandle} />
 
-            <View style={styles.detailHeader}>
-              <Text style={styles.detailDate}>{formatDateLabel(selectedDate, months)}</Text>
-              <Text style={styles.detailSource}>{headerSubtitle}</Text>
-            </View>
-
-            <View style={styles.bigScoreRow}>
-              <Text style={styles.bigScoreText}>%{selectedSummary.score}</Text>
-              <View style={styles.bigScoreMeta}>
-                <Text style={styles.bigScoreLabel}>{t('calendar.cosmicPotential')}</Text>
-                <Text style={styles.bigScoreCategory}>{selectedCategoryLabel}</Text>
+              <View style={styles.detailHeader}>
+                <Text style={styles.detailSheetTitle}>{t('calendar.dailyRecommendationsTitle')}</Text>
+                <Text style={styles.detailDate}>{formatDateLabel(selectedDate, months)}</Text>
+                <Text style={styles.detailSource}>{headerSubtitle}</Text>
               </View>
-            </View>
 
-            <View style={styles.whyBlock}>
-              <Text style={styles.whyTitle}>{t('calendar.whyTitle')}</Text>
-              {showDetailSkeleton ? (
-                <Animated.View style={[styles.skeletonWhyWrap, skeletonPulseStyle]}>
-                  <View style={[styles.skeletonLine, styles.skeletonWhyLine1]} />
-                  <View style={[styles.skeletonLine, styles.skeletonWhyLine2]} />
-                  <View style={[styles.skeletonLine, styles.skeletonWhyLine3]} />
-                </Animated.View>
-              ) : (
-                <Text style={styles.whyText}>
-                  {t('calendar.whyTemplate', {
-                    reason: selectedSummary.selectedInsight?.reason ?? t('calendar.whyFallback'),
-                  })}
-                </Text>
-              )}
-            </View>
+              <View style={styles.bigScoreRow}>
+                <Text style={styles.bigScoreText}>%{selectedSummary.score}</Text>
+                <View style={styles.bigScoreMeta}>
+                  <Text style={styles.bigScoreLabel}>{t('calendar.cosmicPotential')}</Text>
+                  <Text style={styles.bigScoreCategory}>{selectedCategoryLabel}</Text>
+                </View>
+              </View>
 
-            <ScrollView
-              style={styles.detailScrollView}
-              contentContainerStyle={styles.detailScrollContent}
-              showsVerticalScrollIndicator={false}
-              scrollEventThrottle={16}
-              onScroll={onDetailContentScroll}
-            >
-              <Text style={styles.listTitle}>{t('calendar.dosTitle')}</Text>
-              <View style={styles.actionList}>
+              <View style={styles.whyBlock}>
+                <Text style={styles.whyTitle}>{t('calendar.whyTitle')}</Text>
                 {showDetailSkeleton ? (
-                  <>
-                    <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
-                      <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
-                      <View style={styles.skeletonLines}>
-                        <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
-                        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-                      </View>
-                    </Animated.View>
-                    <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
-                      <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
-                      <View style={styles.skeletonLines}>
-                        <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
-                      </View>
-                    </Animated.View>
-                  </>
+                  <Animated.View style={[styles.skeletonWhyWrap, skeletonPulseStyle]}>
+                    <View style={[styles.skeletonLine, styles.skeletonWhyLine1]} />
+                    <View style={[styles.skeletonLine, styles.skeletonWhyLine2]} />
+                    <View style={[styles.skeletonLine, styles.skeletonWhyLine3]} />
+                  </Animated.View>
                 ) : (
-                  actionables.dos.map((line) => (
-                    <View key={`do-${line}`} style={styles.doCard}>
-                      <Text style={styles.doText}>✅ {line}</Text>
-                    </View>
-                  ))
+                  <Text style={styles.whyText}>
+                    {t('calendar.whyTemplate', {
+                      reason: selectedSummary.selectedInsight?.reason ?? t('calendar.whyFallback'),
+                    })}
+                  </Text>
                 )}
               </View>
+
+              <ScrollView
+                style={styles.detailScrollView}
+                contentInsetAdjustmentBehavior="never"
+                automaticallyAdjustContentInsets={false}
+                contentContainerStyle={styles.detailScrollContent}
+                showsVerticalScrollIndicator={false}
+                scrollEventThrottle={16}
+                onScroll={onDetailContentScroll}
+              >
+                <Text style={styles.listTitle}>{t('calendar.dosTitle')}</Text>
+                <View style={styles.actionList}>
+                  {showDetailSkeleton ? (
+                    <>
+                      <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                        <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
+                        <View style={styles.skeletonLines}>
+                          <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
+                          <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                        </View>
+                      </Animated.View>
+                      <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                        <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
+                        <View style={styles.skeletonLines}>
+                          <View style={[styles.skeletonLine, styles.skeletonLineMid]} />
+                        </View>
+                      </Animated.View>
+                    </>
+                  ) : (
+                    actionables.dos.map((line) => (
+                      <View key={`do-${line}`} style={styles.doCard}>
+                        <Text style={styles.doText}>✅ {line}</Text>
+                      </View>
+                    ))
+                  )}
+                </View>
 
               <Text style={styles.listTitle}>{t('calendar.dontsTitle')}</Text>
               <View style={styles.actionList}>
@@ -1835,6 +2249,56 @@ export default function CalendarScreen() {
                     </View>
                   ))
                 )}
+              </View>
+
+              <Text style={styles.listTitle}>{t('calendar.timingTitle')}</Text>
+              <View style={styles.actionList}>
+                {isOverviewLoading && !timingWindows.length ? (
+                  <Animated.View style={[styles.skeletonActionCard, skeletonPulseStyle]}>
+                    <View style={[styles.skeletonIconPill, styles.skeletonDoAccent]} />
+                    <View style={styles.skeletonLines}>
+                      <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
+                      <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                    </View>
+                  </Animated.View>
+                ) : timingWindows.length > 0 ? (
+                  timingWindows.map((window, index) => (
+                    <View key={`${window.startTime}-${window.endTime}-${index}`} style={styles.timingCard}>
+                      <View style={styles.timingTopRow}>
+                        <Text style={styles.timingRange}>{window.startTime}–{window.endTime}</Text>
+                        <View style={[
+                          styles.timingTypePill,
+                          window.type === 'STRONG' ? styles.timingTypeStrong : styles.timingTypeCaution,
+                        ]}>
+                          <Text style={styles.timingTypeText}>
+                            {window.type === 'STRONG' ? t('calendar.timingStrong') : t('calendar.timingCaution')}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.timingReason}>{window.reason}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.timingCard}>
+                    <Text style={styles.timingReason}>{t('calendar.timingFallback')}</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.reminderInlineCard}>
+                <View style={styles.reminderInlineHeader}>
+                  <Ionicons name="alarm-outline" size={15} color={colors.primary} />
+                  <Text style={styles.reminderInlineTitle}>{t('calendar.reminderSetupTitle')}</Text>
+                </View>
+                <Text style={styles.reminderInlineText}>{t('calendar.reminderSetupHint')}</Text>
+                <TouchableOpacity
+                  style={styles.reminderInlineButton}
+                  onPress={() => openReminderComposer('DO')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.setReminder')}
+                >
+                  <Text style={styles.reminderInlineButtonText}>{t('calendar.setReminder')}</Text>
+                </TouchableOpacity>
               </View>
 
               {!showDetailSkeleton && selectedCosmicSubcategoryList.length > 0 && (
@@ -1929,7 +2393,8 @@ export default function CalendarScreen() {
                 <Text style={styles.closeSheetButtonText}>{t('common.close')}</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
+            </Animated.View>
+          </View>
         </Modal>
 
         <Modal
@@ -1938,7 +2403,7 @@ export default function CalendarScreen() {
           presentationStyle="fullScreen"
           onRequestClose={() => setBlueprintVisible(false)}
         >
-          <SafeScreen edges={['top', 'left', 'right']}>
+          <SafeScreen edges={['top', 'left', 'right', 'bottom']}>
             <View style={styles.blueprintContainer}>
               <View style={styles.blueprintHeader}>
                 <View>
@@ -1956,7 +2421,11 @@ export default function CalendarScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView contentContainerStyle={styles.blueprintScrollContent}>
+              <ScrollView
+                contentInsetAdjustmentBehavior="never"
+                automaticallyAdjustContentInsets={false}
+                contentContainerStyle={styles.blueprintScrollContent}
+              >
                 <View style={styles.blueprintSection}>
                   <Text style={styles.blueprintSectionTitle}>{t('calendar.starCategories')}</Text>
 
@@ -2005,8 +2474,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flex: 1,
       backgroundColor: C.background,
     },
+    stickyHeader: {
+      paddingTop: 2,
+    },
     scrollContent: {
-      paddingTop: Platform.OS === 'ios' ? 8 : 8,
+      paddingTop: 4,
       paddingBottom: 100,
       paddingHorizontal: 18,
       gap: 14,
@@ -2020,6 +2492,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       backgroundColor: C.surfaceGlass,
       borderWidth: 1,
       borderColor: C.surfaceGlassBorder,
+    },
+    headerActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
     noticeChip: {
       alignSelf: 'flex-start',
@@ -2250,7 +2727,14 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     subLegendRow: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: 8,
+    },
+    subLegendLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
     },
     subLegendDot: {
       width: 10,
@@ -2262,6 +2746,14 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontSize: 12,
       fontWeight: '600',
       fontFamily: UI_FONT,
+    },
+    subLegendScore: {
+      color: C.text,
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: UI_FONT,
+      minWidth: 44,
+      textAlign: 'right',
     },
     dockHeader: {
       marginTop: 10,
@@ -2346,6 +2838,23 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       color: C.subtext,
       fontSize: 13,
       lineHeight: 18,
+      fontFamily: UI_FONT,
+    },
+    alertCtaButton: {
+      marginTop: 2,
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: C.primary,
+    },
+    alertCtaText: {
+      color: C.white,
+      fontSize: 12,
+      fontWeight: '700',
       fontFamily: UI_FONT,
     },
     modalBackdrop: {
@@ -2436,6 +2945,16 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       padding: 16,
       gap: 10,
     },
+    reminderModalCard: {
+      width: '100%',
+      maxWidth: 440,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.card,
+      padding: 16,
+      gap: 12,
+    },
     settingsHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -2455,6 +2974,57 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     },
     settingsList: {
       maxHeight: 360,
+    },
+    reminderTypeWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    reminderTypeChip: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.surface,
+      paddingVertical: 7,
+      paddingHorizontal: 11,
+    },
+    reminderTypeChipActive: {
+      borderColor: C.primary,
+      backgroundColor: C.primarySoft,
+    },
+    reminderTypeText: {
+      color: C.subtext,
+      fontSize: 12,
+      fontWeight: '600',
+      fontFamily: UI_FONT,
+    },
+    reminderTypeTextActive: {
+      color: C.primary,
+      fontWeight: '700',
+    },
+    reminderTimeButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    reminderTimeButtonText: {
+      color: C.text,
+      fontSize: 12,
+      fontWeight: '600',
+      fontFamily: UI_FONT,
+    },
+    reminderActionRow: {
+      marginTop: 4,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 8,
     },
     settingRow: {
       flexDirection: 'row',
@@ -2499,6 +3069,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontSize: 11,
       fontFamily: UI_FONT,
     },
+    sheetModalRoot: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
     sheetBackdrop: {
       flex: 1,
       backgroundColor: 'rgba(2,6,23,0.45)',
@@ -2530,6 +3104,12 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     detailHeader: {
       marginBottom: 8,
       gap: 4,
+    },
+    detailSheetTitle: {
+      color: C.primary,
+      fontSize: 13,
+      fontWeight: '700',
+      fontFamily: UI_FONT,
     },
     detailDate: {
       color: C.text,
@@ -2609,7 +3189,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderRadius: 12,
       paddingVertical: 10,
       paddingHorizontal: 12,
-      backgroundColor: C.surfaceSoft,
+      backgroundColor: C.surfaceAlt,
       borderWidth: 1,
       borderColor: C.border,
       flexDirection: 'row',
@@ -2656,6 +3236,91 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontSize: 12,
       lineHeight: 17,
       fontWeight: '600',
+      fontFamily: UI_FONT,
+    },
+    timingCard: {
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: C.surfaceAlt,
+      borderWidth: 1,
+      borderColor: C.border,
+      gap: 6,
+    },
+    timingTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    timingRange: {
+      color: C.text,
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: UI_FONT,
+    },
+    timingTypePill: {
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    timingTypeStrong: {
+      backgroundColor: isDark ? 'rgba(22,163,74,0.2)' : 'rgba(22,163,74,0.14)',
+    },
+    timingTypeCaution: {
+      backgroundColor: isDark ? 'rgba(234,179,8,0.20)' : 'rgba(234,179,8,0.14)',
+    },
+    timingTypeText: {
+      color: C.text,
+      fontSize: 10,
+      fontWeight: '700',
+      fontFamily: UI_FONT,
+    },
+    timingReason: {
+      color: C.subtext,
+      fontSize: 12,
+      lineHeight: 17,
+      fontFamily: UI_FONT,
+    },
+    reminderInlineCard: {
+      marginTop: 10,
+      borderRadius: 14,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      gap: 8,
+    },
+    reminderInlineHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    reminderInlineTitle: {
+      color: C.text,
+      fontSize: 13,
+      fontWeight: '700',
+      fontFamily: UI_FONT,
+    },
+    reminderInlineText: {
+      color: C.subtext,
+      fontSize: 12,
+      lineHeight: 17,
+      fontFamily: UI_FONT,
+    },
+    reminderInlineButton: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: C.primary,
+      paddingVertical: 7,
+      paddingHorizontal: 12,
+      backgroundColor: C.primarySoft,
+    },
+    reminderInlineButtonText: {
+      color: C.primary,
+      fontSize: 12,
+      fontWeight: '700',
       fontFamily: UI_FONT,
     },
     skeletonWhyLine1: {
@@ -2827,6 +3492,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontSize: 13,
       fontWeight: '700',
       fontFamily: UI_FONT,
+    },
+    buttonDisabled: {
+      opacity: 0.65,
     },
     closeSheetButton: {
       borderRadius: 12,

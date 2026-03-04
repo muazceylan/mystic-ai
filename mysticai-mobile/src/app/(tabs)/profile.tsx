@@ -6,9 +6,12 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from '../../utils/haptics';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
@@ -58,10 +61,12 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectingAvatar, setSelectingAvatar] = useState(false);
 
   const initials = `${user?.firstName ? user.firstName[0] : '?'}${
     user?.lastName ? user.lastName[0] : ''
@@ -69,6 +74,7 @@ export default function ProfileScreen() {
 
   const zodiac = user?.zodiacSign || getZodiacFromBirthDate(user?.birthDate);
   const premium = isPremium(user?.roles);
+  const avatarUri = user?.avatarUri || user?.avatarUrl || null;
 
   const fetchStats = useCallback(async (isRefresh = false) => {
     if (!user?.id) { setLoadingStats(false); return; }
@@ -106,6 +112,55 @@ export default function ProfileScreen() {
     router.replace('/(auth)/welcome');
   };
 
+  const handlePickAvatar = async () => {
+    if (!user) return;
+
+    Haptics.selectionAsync();
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t('common.error'), t('profile.avatar.permissionDenied'));
+      return;
+    }
+
+    setSelectingAvatar(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        return;
+      }
+
+      const selected = result.assets[0];
+      if (!selected?.uri) return;
+
+      setUser({
+        ...user,
+        avatarUri: selected.uri,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert(t('common.error'), t('profile.avatar.pickerError'));
+    } finally {
+      setSelectingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    if (!user) return;
+
+    setUser({
+      ...user,
+      avatarUri: null,
+    });
+    Haptics.selectionAsync();
+  };
+
   const S = makeStyles(colors);
 
   return (
@@ -128,9 +183,54 @@ export default function ProfileScreen() {
       >
         {/* ── Profile Header ── */}
         <View style={S.profileHeader}>
-          <View style={S.avatarContainer}>
-            <Text style={S.avatarText}>{initials}</Text>
-          </View>
+          <TouchableOpacity
+            style={S.avatarButton}
+            onPress={handlePickAvatar}
+            accessibilityLabel={t('profile.avatar.change')}
+            accessibilityRole="button"
+            disabled={selectingAvatar}
+            activeOpacity={0.85}
+          >
+            <View style={S.avatarContainer}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={S.avatarImage} resizeMode="cover" />
+              ) : (
+                <Text style={S.avatarText}>{initials}</Text>
+              )}
+              <View style={S.avatarEditBadge}>
+                <Ionicons
+                  name={selectingAvatar ? 'hourglass-outline' : 'camera-outline'}
+                  size={14}
+                  color="#FFFFFF"
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[S.avatarActionButton, selectingAvatar && S.avatarActionButtonDisabled]}
+            onPress={handlePickAvatar}
+            accessibilityLabel={t('profile.avatar.change')}
+            accessibilityRole="button"
+            disabled={selectingAvatar}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="images-outline" size={14} color={colors.primary} />
+            <Text style={S.avatarActionText}>
+              {selectingAvatar ? t('profile.avatar.loading') : t('profile.avatar.change')}
+            </Text>
+          </TouchableOpacity>
+          {avatarUri ? (
+            <TouchableOpacity
+              style={S.avatarRemoveButton}
+              onPress={handleRemoveAvatar}
+              accessibilityLabel={t('profile.avatar.remove')}
+              accessibilityRole="button"
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={12} color={colors.subtext} />
+              <Text style={S.avatarRemoveText}>{t('profile.avatar.remove')}</Text>
+            </TouchableOpacity>
+          ) : null}
           <Text style={S.userName}>
             {user?.firstName || t('common.unknown')}{user?.lastName ? ` ${user.lastName}` : ''}
           </Text>
@@ -236,13 +336,71 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     scrollContent: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 40 },
     // Header
     profileHeader: { alignItems: 'center', marginBottom: 20 },
+    avatarButton: {
+      minHeight: 44,
+      minWidth: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
     avatarContainer: {
       width: 84, height: 84, borderRadius: 42,
       backgroundColor: C.primarySoft,
       alignItems: 'center', justifyContent: 'center',
-      marginBottom: 12, borderWidth: 1, borderColor: C.border,
+      borderWidth: 1, borderColor: C.border,
+      overflow: 'hidden',
     },
+    avatarImage: { width: '100%', height: '100%' },
     avatarText: { color: C.primary, fontSize: 28, fontWeight: '700' },
+    avatarEditBadge: {
+      position: 'absolute',
+      right: 2,
+      bottom: 2,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.primary,
+      borderWidth: 1.5,
+      borderColor: C.surface,
+    },
+    avatarActionButton: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.surface,
+      marginBottom: 6,
+    },
+    avatarActionButtonDisabled: {
+      opacity: 0.6,
+    },
+    avatarActionText: {
+      color: C.primary,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    avatarRemoveButton: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 12,
+      marginBottom: 10,
+    },
+    avatarRemoveText: {
+      color: C.subtext,
+      fontSize: 11,
+      fontWeight: '600',
+    },
     userName: { color: C.text, fontSize: 20, fontWeight: '700', marginBottom: 4 },
     userEmail: { color: C.subtext, fontSize: 13, marginBottom: 8 },
     zodiacBadge: {

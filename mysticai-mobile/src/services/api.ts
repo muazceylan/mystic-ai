@@ -1,20 +1,42 @@
 import axios from 'axios/dist/browser/axios.cjs';
-import { Platform } from 'react-native';
 import { getToken } from '../utils/storage';
 import { useAuthStore } from '../store/useAuthStore';
-
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ??
-  (Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080');
+import { envConfig } from '../config/env';
+import {
+  createServiceNotConfiguredError,
+  logApiError,
+  logWarnOnce,
+} from './observability';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: envConfig.apiBaseUrl ?? undefined,
   timeout: 15000,
 });
 
 // Attach token to every request
 api.interceptors.request.use(async (config: any) => {
+  if (!envConfig.isApiConfigured) {
+    logWarnOnce(
+      'api',
+      'service_not_configured',
+      'API base URL missing. Requests are blocked and screens should show empty/error states.',
+      { appEnv: envConfig.appEnv },
+    );
+    throw createServiceNotConfiguredError('api');
+  }
+
   const token = await getToken();
+  const authState = useAuthStore.getState();
+  const userId =
+    authState.user?.id != null
+      ? String(authState.user.id)
+      : authState.user?.username?.trim() || 'guest';
+
+  config.headers = {
+    ...(config.headers ?? {}),
+    'X-User-Id': userId,
+  };
+
   if (token) {
     config.headers = {
       ...(config.headers ?? {}),
@@ -35,6 +57,9 @@ api.interceptors.response.use(
         if (isAuthenticated) {
           logout();
         }
+      }
+      if (status !== 401 && status !== 403) {
+        logApiError('api', error);
       }
     }
     return Promise.reject(error);

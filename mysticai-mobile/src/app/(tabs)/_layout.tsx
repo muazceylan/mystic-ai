@@ -241,7 +241,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: t('tabs.home'),
+          title: 'Ana Sayfa',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'home' : 'home-outline'}
@@ -254,7 +254,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: t('tabs.discover'),
+          title: 'Keşfet',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'compass' : 'compass-outline'}
@@ -267,10 +267,71 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: t('tabs.calendar'),
+          title: 'Planlayıcı',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'calendar' : 'calendar-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="natal-chart"
+        options={{
+          title: 'Haritam',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'planet' : 'planet-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="compatibility"
+        options={{
+          title: 'Uyum',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'heart' : 'heart-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="decision-compass-tab"
+        options={{
+          title: 'Karar Pusulası',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'compass' : 'compass-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="compare"
+        options={{
+          title: 'Uyum Analizi',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profil',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
               size={24}
               color={color}
             />
@@ -322,46 +383,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="compatibility"
-        options={{
-          title: t('tabs.compatibility'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'heart-circle' : 'heart-circle-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="natal-chart"
-        options={{
-          title: t('tabs.natalChart'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'planet' : 'planet-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t('tabs.profile'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="spiritual"
         options={{
           title: 'Ruhsal',
@@ -379,6 +400,20 @@ export default function TabsLayout() {
         name="transit-detail"
         options={{
           title: t('home.transitTitle'),
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="daily-transits"
+        options={{
+          title: t('home.transitTitle'),
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="today-actions"
+        options={{
+          title: t('home.transitActionItems'),
           tabBarButton: () => null,
         }}
       />

@@ -101,3 +101,6 @@ export interface User {
   focusPoint: string;
   createdAt: string;
 }
+
+export * from './match';
+export * from './compare';

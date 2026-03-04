@@ -11,6 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 /**
  * Service for generating mystical AI interpretations.
  * Delegates all AI calls to AiFallbackService which rotates through:
@@ -53,10 +57,8 @@ public class MysticalAiService {
                 event.correlationId(), event.analysisType(), complex);
 
         try {
-            // Prepend a language instruction if the event payload specifies a locale.
-            // This ensures the AI responds in the user's chosen language.
-            String locale = extractFromPayload(event.payload(), "locale");
-            boolean hasLocale = !"locale mevcut değil".equals(locale);
+            String locale = resolveLocaleForEvent(event);
+            boolean hasLocale = locale != null && !locale.isBlank();
             if (hasLocale) {
                 prompt = wrapWithLocale(prompt, locale);
             }
@@ -73,10 +75,13 @@ public class MysticalAiService {
             if (event.analysisType() == AiAnalysisEvent.AnalysisType.NATAL_CHART) {
                 response = normalizeNatalChartJson(response);
             }
+            if (event.analysisType() == AiAnalysisEvent.AnalysisType.RELATIONSHIP_ANALYSIS) {
+                response = normalizeRelationshipAnalysisJson(response, event.payload());
+            }
 
             // Only normalize zodiac/planet names to Turkish when locale is Turkish.
             // For English responses, keep the original English terms.
-            if (!hasLocale || "tr".equals(locale)) {
+            if (!hasLocale || locale.toLowerCase().startsWith("tr")) {
                 response = replaceTurkishTerms(response);
             }
 
@@ -276,7 +281,8 @@ public class MysticalAiService {
                     extractFromPayload(event.payload(), "relationshipType"),
                     extractFromPayload(event.payload(), "allAspectsText"),
                     extractFromPayload(event.payload(), "userGender"),
-                    extractFromPayload(event.payload(), "partnerGender"));
+                    extractFromPayload(event.payload(), "partnerGender"),
+                    extractFromPayload(event.payload(), "baseHarmonyScore"));
         }
         return switch (event.sourceService()) {
             case DREAM     -> promptTemplates.getDreamInterpretationPrompt(
@@ -284,6 +290,15 @@ public class MysticalAiService {
             case ASTROLOGY -> promptTemplates.getAstrologyInterpretationPrompt(event.payload());
             default        -> promptTemplates.getGenericInterpretationPrompt(event);
         };
+    }
+
+    private String resolveLocaleForEvent(AiAnalysisEvent event) {
+        if (event.analysisType() == AiAnalysisEvent.AnalysisType.RELATIONSHIP_ANALYSIS) {
+            return "tr";
+        }
+        String locale = extractFromPayload(event.payload(), "locale");
+        if ("locale mevcut değil".equals(locale)) return null;
+        return locale;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -388,6 +403,217 @@ public class MysticalAiService {
         return response;
     }
 
+    private String normalizeRelationshipAnalysisJson(String response, String payload) {
+        String userName = sanitizePartyName(extractFromPayload(payload, "userName"), "Kişi A");
+        String partnerName = sanitizePartyName(extractFromPayload(payload, "partnerName"), "Kişi B");
+        String relationshipType = extractFromPayload(payload, "relationshipType");
+        int baseScore = parseScore(extractFromPayload(payload, "baseHarmonyScore"), 50);
+
+        try {
+            JsonNode parsed = objectMapper.readTree(response);
+            if (parsed == null || !parsed.isObject()) {
+                return buildFallbackRelationshipJson(userName, partnerName, relationshipType, baseScore);
+            }
+
+            ObjectNode root = (ObjectNode) parsed;
+            ObjectNode out = objectMapper.createObjectNode();
+
+            int aiScore = parseScore(text(root, "harmonyScore"), baseScore);
+            int harmonyScore = constrainToReference(aiScore, baseScore, 8);
+            out.put("harmonyScore", harmonyScore);
+
+            String insightFallback = buildRelationshipInsightFallback(userName, partnerName, relationshipType, harmonyScore);
+            out.put("harmonyInsight", ensureTurkishNarrative(text(root, "harmonyInsight"), insightFallback));
+
+            List<String> strengthFallbacks = List.of(
+                    userName + " ile " + partnerName + " arasında destekleyici alanlarda doğal bir tamamlayıcılık oluşabilir.",
+                    "İletişimde kısa ve net cümleler kullanıldığında yanlış anlaşılma riski belirgin biçimde azalır.",
+                    "Ortak hedefi küçük adımlara bölmek, bağın güven ve istikrar hissini güçlendirebilir."
+            );
+            out.set("strengths", normalizeRelationshipArray(root.path("strengths"), 3, strengthFallbacks));
+
+            List<String> challengeFallbacks = List.of(
+                    "Duygusal tempo farkı zaman zaman gerilim yaratabilir; konuşma için uygun anı birlikte seçmek faydalı olur.",
+                    "Karar ritmi farklıysa biri hızlanırken diğeri geri çekilebilir; ortak karar öncesi kısa duraklama iyi gelir."
+            );
+            out.set("challenges", normalizeRelationshipArray(root.path("challenges"), 2, challengeFallbacks));
+
+            String keyWarningFallback = "En kritik risk, hızla hüküm verip niyeti konuşmadan varsayım üretmek olabilir.";
+            out.put("keyWarning", ensureTurkishNarrative(text(root, "keyWarning"), keyWarningFallback));
+
+            String adviceFallback = buildRelationshipAdviceFallback(userName, partnerName, relationshipType);
+            out.put("cosmicAdvice", ensureTurkishNarrative(text(root, "cosmicAdvice"), adviceFallback));
+
+            return objectMapper.writeValueAsString(out);
+        } catch (Exception e) {
+            logger.warn("Relationship JSON normalization failed, using Turkish fallback: {}", e.getMessage());
+            return buildFallbackRelationshipJson(userName, partnerName, relationshipType, baseScore);
+        }
+    }
+
+    private ArrayNode normalizeRelationshipArray(JsonNode source, int size, List<String> fallbacks) {
+        ArrayNode out = objectMapper.createArrayNode();
+        if (source != null && source.isArray()) {
+            for (JsonNode item : source) {
+                if (out.size() >= size) break;
+                String raw = item == null ? "" : item.asText("");
+                String fallback = fallbackForIndex(fallbacks, out.size(), "Bu başlıkta denge için küçük ve tutarlı adımlar etkili olur.");
+                String normalized = ensureTurkishNarrative(raw, fallback);
+                if (nonBlank(normalized)) {
+                    out.add(normalized);
+                }
+            }
+        }
+        while (out.size() < size) {
+            out.add(fallbackForIndex(fallbacks, out.size(), "Bu başlıkta denge için küçük ve tutarlı adımlar etkili olur."));
+        }
+        return out;
+    }
+
+    private String fallbackForIndex(List<String> values, int index, String defaultValue) {
+        if (values == null || index < 0 || index >= values.size()) return defaultValue;
+        String value = values.get(index);
+        return nonBlank(value) ? value : defaultValue;
+    }
+
+    private int parseScore(String raw, int fallback) {
+        if (!nonBlank(raw)) return Math.max(0, Math.min(100, fallback));
+        try {
+            int parsed = (int) Math.round(Double.parseDouble(raw.replace(",", ".").trim()));
+            return Math.max(0, Math.min(100, parsed));
+        } catch (Exception ignored) {
+            return Math.max(0, Math.min(100, fallback));
+        }
+    }
+
+    private int constrainToReference(int score, int reference, int maxDelta) {
+        int base = Math.max(0, Math.min(100, reference));
+        int delta = Math.max(0, maxDelta);
+        int min = Math.max(0, base - delta);
+        int max = Math.min(100, base + delta);
+        return Math.max(min, Math.min(max, score));
+    }
+
+    private String sanitizePartyName(String raw, String fallback) {
+        String value = nonBlank(raw) ? raw : fallback;
+        if (value == null) return fallback;
+        String cleaned = value.trim().replaceAll("\\s{2,}", " ");
+        if (cleaned.isBlank() || cleaned.endsWith("mevcut değil")) {
+            return fallback;
+        }
+        return truncate(cleaned, 40);
+    }
+
+    private String relationTypeLabelTr(String relationshipType) {
+        if (!nonBlank(relationshipType)) return "ilişki";
+        return switch (relationshipType.toUpperCase(Locale.ROOT)) {
+            case "LOVE" -> "aşk";
+            case "BUSINESS" -> "iş ortaklığı";
+            case "FRIENDSHIP" -> "arkadaşlık";
+            case "FAMILY" -> "aile bağı";
+            case "RIVAL" -> "rekabet";
+            default -> "ilişki";
+        };
+    }
+
+    private String buildRelationshipInsightFallback(String userName, String partnerName, String relationshipType, int score) {
+        String level = score >= 80 ? "yüksek" : score >= 60 ? "orta-yüksek" : score >= 40 ? "dalgalı" : "zorlayıcı";
+        String relation = relationTypeLabelTr(relationshipType);
+        return "%s ve %s arasında %s odağında %d puanlık, %s bir uyum görünüyor.\n\n"
+                .formatted(userName, partnerName, relation, score, level)
+                + "Destekleyici alanlarda akış doğal olabilir; zorlayıcı alanlarda iletişim temposunu birlikte ayarlamak önemli.\n\n"
+                + "Küçük ama düzenli ortak adımlar, bu eşleşmenin güçlü taraflarını daha görünür hale getirebilir.";
+    }
+
+    private String buildRelationshipAdviceFallback(String userName, String partnerName, String relationshipType) {
+        String relation = relationTypeLabelTr(relationshipType);
+        return "%s ve %s için en etkili yaklaşım, %s dinamiğinde beklentiyi baştan netleştirmek olur. "
+                .formatted(userName, partnerName, relation)
+                + "Haftada bir kısa check-in yapıp duyguyu ve ihtiyacı ayrı ayrı konuşun. "
+                + "Gerilim yükseldiğinde önce tempo düşürüp sonra tek bir konuya odaklanın. "
+                + "Bu ritim, güven ve yakınlık hissini daha sürdürülebilir hale getirebilir.";
+    }
+
+    private String buildFallbackRelationshipJson(String userName, String partnerName, String relationshipType, int baseScore) {
+        try {
+            ObjectNode out = objectMapper.createObjectNode();
+            out.put("harmonyScore", Math.max(0, Math.min(100, baseScore)));
+            out.put("harmonyInsight", buildRelationshipInsightFallback(userName, partnerName, relationshipType, baseScore));
+            out.set("strengths", normalizeRelationshipArray(objectMapper.createArrayNode(), 3, List.of(
+                    userName + " ve " + partnerName + " destekleyici başlıklarda birbirini tamamlayabilir.",
+                    "Kısa ve net iletişim kalıbı, yanlış anlaşılma riskini azaltır.",
+                    "Ortak hedeflerin küçük adımlara bölünmesi ilişki ritmini güçlendirebilir."
+            )));
+            out.set("challenges", normalizeRelationshipArray(objectMapper.createArrayNode(), 2, List.of(
+                    "Duygusal tempo farkı gündelik iletişimde sürtünme yaratabilir.",
+                    "Karar ritmi eşleşmediğinde biri hızlanırken diğeri geri çekilebilir."
+            )));
+            out.put("keyWarning", "Varsayım üzerinden konuşmak yerine niyeti netleştirmeden karar vermemek kritik olur.");
+            out.put("cosmicAdvice", buildRelationshipAdviceFallback(userName, partnerName, relationshipType));
+            return objectMapper.writeValueAsString(out);
+        } catch (Exception e) {
+            return "{\"harmonyScore\":50,\"harmonyInsight\":\"Uyum analizi Türkçe güvenli biçimde yeniden oluşturuldu.\",\"strengths\":[\"Açık iletişim dengeyi güçlendirebilir.\",\"Ortak ritim güveni artırabilir.\",\"Küçük adımlar sürdürülebilir ilerleme sağlar.\"],\"challenges\":[\"Tempo farkı gerilim yaratabilir.\",\"Karar tarzı farkı yanlış anlaşılma üretebilir.\"],\"keyWarning\":\"Varsayım yerine doğrulama yapmadan hüküm verme.\",\"cosmicAdvice\":\"Önce duyguyu, sonra çözümü konuşun.\"}";
+        }
+    }
+
+    private String ensureTurkishNarrative(String raw, String fallback) {
+        String normalized = normalizeParagraph(replaceCommonEnglishRelationshipTerms(raw), fallback);
+        if (!nonBlank(normalized)) {
+            return fallback;
+        }
+        return looksEnglishDominant(normalized)
+                ? normalizeParagraph(fallback, fallback)
+                : normalized;
+    }
+
+    private String replaceCommonEnglishRelationshipTerms(String text) {
+        if (text == null) return "";
+        return text
+                .replace("relationship", "ilişki")
+                .replace("Relationship", "İlişki")
+                .replace("compatibility", "uyum")
+                .replace("Compatibility", "Uyum")
+                .replace("communication", "iletişim")
+                .replace("Communication", "İletişim")
+                .replace("trust", "güven")
+                .replace("Trust", "Güven")
+                .replace("passion", "tutku")
+                .replace("Passion", "Tutku")
+                .replace("challenge", "zorlayıcı alan")
+                .replace("Challenge", "Zorlayıcı Alan")
+                .replace("growth", "gelişim")
+                .replace("Growth", "Gelişim")
+                .replace("advice", "öneri")
+                .replace("Advice", "Öneri")
+                .replace("warning", "uyarı")
+                .replace("Warning", "Uyarı")
+                .replace("support", "destek")
+                .replace("Support", "Destek")
+                .replace("balance", "denge")
+                .replace("Balance", "Denge")
+                .replace("trigger", "tetikleyici")
+                .replace("Trigger", "Tetikleyici")
+                .replace("pattern", "döngü")
+                .replace("Pattern", "Döngü");
+    }
+
+    private boolean looksEnglishDominant(String text) {
+        if (!nonBlank(text)) return true;
+        String lower = text.toLowerCase(Locale.ROOT);
+        int englishHits = 0;
+        String[] markers = {
+                " the ", " and ", " with ", " this ", " that ", " your ", " you ",
+                " between ", " can ", " should ", " might ", " strong ", "weak ",
+                " if ", " then ", " however ", " because ", " while "
+        };
+        String padded = " " + lower + " ";
+        for (String marker : markers) {
+            if (padded.contains(marker)) englishHits++;
+        }
+        boolean hasTurkishChars = lower.matches(".*[çğıöşü].*");
+        return englishHits >= 3 && !hasTurkishChars;
+    }
+
     /**
      * Backend-side validator/normalizer for the structured natal JSON schema.
      * Ensures the mobile app receives a stable shape even if the model returns
@@ -395,7 +621,7 @@ public class MysticalAiService {
      */
     private String normalizeNatalChartJson(String response) {
         try {
-            JsonNode parsed = objectMapper.readTree(response);
+            JsonNode parsed = tryParseNatalJsonObject(response);
             if (parsed == null || !parsed.isObject()) {
                 logger.warn("Natal JSON normalization: response is not an object, building fallback envelope");
                 return buildFallbackNatalJson(response);
@@ -431,33 +657,284 @@ public class MysticalAiService {
 
     private String buildFallbackNatalJson(String rawResponse) {
         try {
+            String recoveredNarrative = recoverNarrativeFromRawResponse(rawResponse);
+            List<String> recoveredParagraphs = splitNarrativeParagraphs(recoveredNarrative);
+
             ObjectNode out = objectMapper.createObjectNode();
             out.put("version", "natal_v2");
             out.put("tone", "scientific_warm");
-            out.put("opening", "Harita yorumu teknik olarak düzeltildi ve güvenli formata alındı.");
-            out.put("coreSummary", "AI çıktısı beklenen JSON şemasına uymadığı için normalize edilmiş bir yapı üretildi.");
+            out.put("opening", normalizeParagraph(
+                    recoveredParagraphs.size() > 0 ? recoveredParagraphs.get(0) : "",
+                    "Harita yorumunda beklenmeyen bir format geldiği için içerik sade bir akışla gösteriliyor."));
+            out.put("coreSummary", normalizeParagraph(
+                    recoveredParagraphs.size() > 1 ? recoveredParagraphs.get(1) : "",
+                    "Temel yorum korunarak başlıklara ayrıştırıldı; detaylar yeniden üretimde daha zenginleşir."));
 
             ArrayNode sections = objectMapper.createArrayNode();
-            ObjectNode section = objectMapper.createObjectNode();
-            section.put("id", "normalized_recovery");
-            section.put("title", "Yorum Dönüştürme Notu");
-            section.put("body", "Yorum metni otomatik olarak normalize edildi. Aşağıdaki içerik ham yanıttan kurtarılan özet metindir.");
-            section.put("dailyLifeExample", "Yorumu tekrar oluşturduğunda başlıklar ve maddeler daha zengin gelecektir.");
-            ArrayNode bullets = objectMapper.createArrayNode();
-            ObjectNode bp = objectMapper.createObjectNode();
-            bp.put("title", "Ham İçerik Özeti");
-            bp.put("detail", truncate(normalizeParagraph(rawResponse, "İçerik alınamadı."), 240));
-            bullets.add(bp);
-            section.set("bulletPoints", bullets);
-            sections.add(section);
+            List<String> sectionSource = recoveredParagraphs.size() > 2
+                    ? recoveredParagraphs.subList(2, recoveredParagraphs.size())
+                    : recoveredParagraphs;
+            int sectionIndex = 0;
+            for (String paragraph : sectionSource) {
+                if (sectionIndex >= 4) break;
+                String cleaned = normalizeParagraph(paragraph, "");
+                if (!nonBlank(cleaned) || cleaned.length() < 24) continue;
+                sections.add(buildRecoveredSection(sectionIndex, cleaned));
+                sectionIndex += 1;
+            }
+            if (sections.isEmpty()) {
+                sections.add(createFallbackSection());
+            }
             out.set("sections", sections);
 
             out.set("planetHighlights", objectMapper.createArrayNode());
-            out.put("closing", "İçerik yapısı düzeltildi; yorumun yeniden üretimi ile daha detaylı bölüm kartları oluşacaktır.");
+            String closingFallback = "Yorum bu aşamada sadeleştirilmiş yapıda sunuldu. Yeniden denediğinde daha detaylı bölüm kartları üretilecektir.";
+            String closing = recoveredParagraphs.size() > 2
+                    ? recoveredParagraphs.get(recoveredParagraphs.size() - 1)
+                    : closingFallback;
+            out.put("closing", normalizeParagraph(closing, closingFallback));
             return objectMapper.writeValueAsString(out);
         } catch (Exception e) {
             return "{\"version\":\"natal_v2\",\"tone\":\"scientific_warm\",\"opening\":\"Yorum normalizasyonu başarısız oldu.\",\"coreSummary\":\"Ham çıktı korunamadı.\",\"sections\":[],\"planetHighlights\":[],\"closing\":\"Lütfen tekrar deneyin.\"}";
         }
+    }
+
+    private JsonNode tryParseNatalJsonObject(String response) {
+        for (String candidate : buildNatalJsonParseCandidates(response)) {
+            try {
+                JsonNode parsed = objectMapper.readTree(candidate);
+                if (parsed != null && parsed.isObject()) {
+                    return parsed;
+                }
+                if (parsed != null && parsed.isTextual()) {
+                    String innerText = extractJsonObject(stripMarkdown(parsed.asText("")));
+                    if (!nonBlank(innerText)) continue;
+                    try {
+                        JsonNode innerParsed = objectMapper.readTree(innerText);
+                        if (innerParsed != null && innerParsed.isObject()) {
+                            return innerParsed;
+                        }
+                    } catch (Exception ignored) {
+                        // Continue with the next candidate.
+                    }
+                }
+            } catch (Exception ignored) {
+                // Continue with the next candidate.
+            }
+        }
+        return null;
+    }
+
+    private List<String> buildNatalJsonParseCandidates(String response) {
+        List<String> candidates = new ArrayList<>();
+        String raw = response == null ? "" : response.trim();
+        String markdownStripped = stripMarkdown(raw);
+        String extracted = extractJsonObject(markdownStripped);
+        String normalized = normalizeLooseJson(extracted);
+        String unwrappedStringified = unwrapStringifiedJsonCandidate(markdownStripped);
+
+        addParseCandidate(candidates, raw);
+        addParseCandidate(candidates, markdownStripped);
+        addParseCandidate(candidates, extracted);
+        addParseCandidate(candidates, normalized);
+        addParseCandidate(candidates, extractJsonObject(normalized));
+
+        if (nonBlank(unwrappedStringified)) {
+            String normalizedInner = normalizeLooseJson(unwrappedStringified);
+            addParseCandidate(candidates, unwrappedStringified);
+            addParseCandidate(candidates, extractJsonObject(unwrappedStringified));
+            addParseCandidate(candidates, normalizedInner);
+            addParseCandidate(candidates, extractJsonObject(normalizedInner));
+        }
+
+        return candidates;
+    }
+
+    private void addParseCandidate(List<String> target, String candidate) {
+        if (!nonBlank(candidate)) return;
+        String trimmed = candidate.trim();
+        if (trimmed.isEmpty() || target.contains(trimmed)) return;
+        target.add(trimmed);
+    }
+
+    private String normalizeLooseJson(String input) {
+        if (!nonBlank(input)) return "";
+        return input
+                .replace('“', '"')
+                .replace('”', '"')
+                .replace('‘', '\'')
+                .replace('’', '\'')
+                .replaceAll(",\\s*([}\\]])", "$1")
+                .replaceAll("([{,]\\s*)([A-Za-z_][A-Za-z0-9_-]*)(\\s*:)", "$1\"$2\"$3")
+                .replaceAll("([{,]\\s*)'([^']+)'(\\s*:)", "$1\"$2\"$3")
+                .replaceAll(":\\s*'([^'\\\\]*(?:\\\\.[^'\\\\]*)*)'(\\s*[,}\\]])", ": \"$1\"$2");
+    }
+
+    private String unwrapStringifiedJsonCandidate(String input) {
+        if (!nonBlank(input)) return "";
+        String trimmed = input.trim();
+        if (!(trimmed.startsWith("\"") && trimmed.endsWith("\""))) return "";
+        try {
+            JsonNode parsed = objectMapper.readTree(trimmed);
+            if (parsed != null && parsed.isTextual()) {
+                return parsed.asText("").trim();
+            }
+        } catch (Exception ignored) {
+            // Not a JSON string; ignore.
+        }
+        return "";
+    }
+
+    private String recoverNarrativeFromRawResponse(String rawResponse) {
+        if (!nonBlank(rawResponse)) return "";
+
+        List<String> fragments = new ArrayList<>();
+        for (String candidate : buildNatalJsonParseCandidates(rawResponse)) {
+            try {
+                JsonNode parsed = objectMapper.readTree(candidate);
+                collectNarrativeFragments(parsed, fragments, 0);
+                if (!fragments.isEmpty()) break;
+            } catch (Exception ignored) {
+                // Keep trying candidates.
+            }
+        }
+
+        if (!fragments.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < fragments.size() && i < 8; i++) {
+                if (sb.length() > 0) sb.append("\n\n");
+                sb.append(fragments.get(i));
+            }
+            return sb.toString();
+        }
+
+        String plain = normalizeParagraph(stripMarkdown(rawResponse), "");
+        if (plain.contains("{") && plain.contains("}")) {
+            plain = plain
+                    .replaceAll("[\\{\\}\\[\\]\"]", " ")
+                    .replaceAll("[,:;]+", ". ")
+                    .replaceAll("\\s{2,}", " ")
+                    .trim();
+        }
+        return plain;
+    }
+
+    private void collectNarrativeFragments(JsonNode node, List<String> out, int depth) {
+        if (node == null || node.isNull() || depth > 5 || out.size() >= 12) return;
+
+        if (node.isTextual()) {
+            String text = normalizeParagraph(node.asText(""), "");
+            if (text.length() < 18 || looksTechnicalRecoveryLine(text)) return;
+            addDistinctFragment(out, truncate(text, 420), 12);
+            return;
+        }
+
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                collectNarrativeFragments(child, out, depth + 1);
+                if (out.size() >= 12) break;
+            }
+            return;
+        }
+
+        if (node.isObject()) {
+            node.fields().forEachRemaining(entry -> collectNarrativeFragments(entry.getValue(), out, depth + 1));
+        }
+    }
+
+    private void addDistinctFragment(List<String> target, String candidate, int maxSize) {
+        if (!nonBlank(candidate) || target.size() >= maxSize) return;
+        for (String existing : target) {
+            if (existing.equalsIgnoreCase(candidate)) return;
+        }
+        target.add(candidate);
+    }
+
+    private boolean looksTechnicalRecoveryLine(String text) {
+        if (!nonBlank(text)) return false;
+        String lower = text.toLowerCase(Locale.ROOT);
+        return lower.contains("json şemasına")
+                || lower.contains("normalize edilmiş")
+                || lower.contains("teknik olarak düzeltildi")
+                || lower.contains("yorum dönüştürme notu")
+                || lower.contains("ham içerik özeti")
+                || lower.contains("normalizasyon");
+    }
+
+    private List<String> splitNarrativeParagraphs(String narrative) {
+        List<String> out = new ArrayList<>();
+        if (!nonBlank(narrative)) return out;
+
+        String normalized = narrative
+                .replace("\r\n", "\n")
+                .replace('\r', '\n')
+                .replaceAll("\\n{3,}", "\n\n")
+                .trim();
+        if (normalized.isEmpty()) return out;
+
+        String[] blocks = normalized.split("\\n{2,}");
+        for (String block : blocks) {
+            String cleaned = normalizeParagraph(block, "");
+            if (!nonBlank(cleaned) || cleaned.length() < 20) continue;
+            addDistinctFragment(out, cleaned, 8);
+        }
+
+        if (!out.isEmpty()) return out;
+
+        String[] sentences = normalized.split("(?<=[.!?])\\s+");
+        StringBuilder current = new StringBuilder();
+        for (String sentence : sentences) {
+            String part = normalizeParagraph(sentence, "");
+            if (!nonBlank(part)) continue;
+
+            if (current.length() == 0) {
+                current.append(part);
+                continue;
+            }
+
+            if (current.length() + 1 + part.length() > 280) {
+                addDistinctFragment(out, current.toString(), 8);
+                current.setLength(0);
+                current.append(part);
+            } else {
+                current.append(' ').append(part);
+            }
+        }
+        if (current.length() > 0) {
+            addDistinctFragment(out, current.toString(), 8);
+        }
+
+        return out;
+    }
+
+    private ObjectNode buildRecoveredSection(int index, String paragraph) {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "recovered_section_" + (index + 1));
+        section.put("title", defaultRecoveredSectionTitle(index));
+        section.put("body", truncate(paragraph, 420));
+        section.put("dailyLifeExample", defaultRecoveredDailyExample(index));
+        ArrayNode bullets = objectMapper.createArrayNode();
+        bullets.add(bullet("Öne Çıkan Nokta", truncate(paragraph, 180)));
+        section.set("bulletPoints", bullets);
+        return section;
+    }
+
+    private String defaultRecoveredSectionTitle(int index) {
+        return switch (index) {
+            case 0 -> "Kozmik Ana Tema";
+            case 1 -> "Duygusal ve Zihinsel Akış";
+            case 2 -> "İlişkiler ve Günlük Yaşam";
+            default -> "Gelişim Odağı";
+        };
+    }
+
+    private String defaultRecoveredDailyExample(int index) {
+        return switch (index) {
+            case 0 -> "Günlük akışta bu tema, karar verirken hangi iç sesin öne çıktığını fark etmeni sağlar.";
+            case 1 -> "İletişim ve duygu arasında denge kurduğunda daha net ve sakin ilerlersin.";
+            case 2 -> "İlişkilerde küçük ama tutarlı adımlar bu temayı somut biçimde güçlendirir.";
+            default -> "Bu başlık, bir sonraki adımı belirlerken önceliklerini sadeleştirmen için yol gösterir.";
+        };
     }
 
     private ArrayNode normalizeNatalSections(JsonNode sectionsNode) {
@@ -592,11 +1069,11 @@ public class MysticalAiService {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "core_portrait");
         section.put("title", "Kozmik Portrenin Özü");
-        section.put("body", "Haritanın ana temaları normalize edilerek güvenli görüntüleme formatına taşındı.");
+        section.put("body", "Haritanın ana temaları sade bir akışla toparlandı ve okunabilir bölüm yapısına yerleştirildi.");
         section.put("dailyLifeExample", "Günlük hayatta bu tema, kararlarını alırken hangi iç güdünün öne çıktığını daha iyi fark etmene yardım eder.");
         ArrayNode bullets = objectMapper.createArrayNode();
-        bullets.add(bullet("Yapısal Not", "AI çıktısı eksik alanlar içerdiği için backend tarafından tamamlandı."));
-        bullets.add(bullet("Görüntüleme", "Mobil ekranın başlık/büllet düzeni korunarak yorum gösterilecek."));
+        bullets.add(bullet("Yorum Akışı", "İçerik, başlık ve kısa açıklamalar halinde daha net okunacak biçime getirildi."));
+        bullets.add(bullet("Sonraki Üretim", "Yeniden üretimde daha detaylı bölüm kartları ve gezegen satırları oluşacaktır."));
         section.set("bulletPoints", bullets);
         return section;
     }

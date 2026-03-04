@@ -121,11 +121,78 @@ function orbStrengthLabel(orb: number) {
 }
 
 function orbStrengthLabelCompact(orb: number) {
-  if (!Number.isFinite(orb)) return 'Orb belirsiz';
+  if (!Number.isFinite(orb)) return 'Etki belirsiz';
   if (orb <= 1.2) return 'Çok güçlü';
   if (orb <= 3) return 'Güçlü';
   if (orb <= 5) return 'Orta';
-  return 'Geniş orb';
+  return 'Daha yumuşak';
+}
+
+type PlanetBehaviorProfile = {
+  tendency: string;
+  pressure: string;
+  support: string;
+};
+
+const PLANET_BEHAVIOR_MAP: Record<string, PlanetBehaviorProfile> = {
+  Sun: {
+    tendency: 'kendini net ifade edip yön vermek ister',
+    pressure: 'fazla görünürlük baskısı hissettiğinde sertleşebilir',
+    support: 'takdir ve net rol paylaşımı',
+  },
+  Moon: {
+    tendency: 'duygusal güveni önceleyip hassas sinyalleri hızlı alır',
+    pressure: 'belirsizlikte içine çekilebilir',
+    support: 'yumuşak ton ve duyguyu isimlendirme',
+  },
+  Mercury: {
+    tendency: 'konuşarak netleşmek ister',
+    pressure: 'anlaşılmadığını düşündüğünde tekrar tekrar açıklayabilir',
+    support: 'kısa ve net soru-cevap akışı',
+  },
+  Venus: {
+    tendency: 'yakınlık ve nezaket diliyle bağ kurar',
+    pressure: 'mesafe artınca değersiz hissedebilir',
+    support: 'küçük ama düzenli sıcak temas',
+  },
+  Mars: {
+    tendency: 'hızlı aksiyon ve netlik arar',
+    pressure: 'beklemede kaldığında sabırsızlaşabilir',
+    support: 'zaman kutusu ve net adım planı',
+  },
+  Jupiter: {
+    tendency: 'büyük resme bakar ve umut üretir',
+    pressure: 'detay yükünde dağılabilir',
+    support: 'öncelik sıralaması ve kısa yol haritası',
+  },
+  Saturn: {
+    tendency: 'düzen, sınır ve sorumluluk üzerinden ilerler',
+    pressure: 'ani değişimde kapanabilir',
+    support: 'öngörülebilir tempo ve tutarlılık',
+  },
+  Pluto: {
+    tendency: 'derinlik ve sahicilik arar',
+    pressure: 'kontrol kaybında sertleşebilir',
+    support: 'şeffaflık ve güç savaşından kaçınma',
+  },
+};
+
+function behaviorLineForPlanet(
+  planet: string,
+  personName: string,
+  harmonious: boolean,
+) {
+  const profile = PLANET_BEHAVIOR_MAP[planet] ?? {
+    tendency: 'ilişkide dengeyi arar',
+    pressure: 'baskı altında savunmaya geçebilir',
+    support: 'net iletişim ve kısa check-in',
+  };
+
+  if (harmonious) {
+    return `${personName} genelde ${profile.tendency}. En iyi ${profile.support} ile açılır.`;
+  }
+
+  return `${personName} genelde ${profile.tendency}. Ritim zorlanınca ${profile.pressure}; bunu dengelemek için ${profile.support} iyi çalışır.`;
 }
 
 function aspectLifeTheme(aspect: CrossAspect) {
@@ -170,22 +237,24 @@ function comparativeAspectNarrative(aspect: CrossAspect, personAName: string, pe
   const bPlanet = labelPlanet(aspect.partnerPlanet);
   const aspectLabel = translateAstroTermsForUi(aspect.aspectTurkish);
   const theme = aspectLifeTheme(aspect);
-  const dynamic = aspect.harmonious
-    ? `${personAName} tarafındaki ${aPlanet} enerjisi ile ${personBName} tarafındaki ${bPlanet} enerjisi birbirini destekleyen bir akış kuruyor.`
-    : `${personAName} tarafındaki ${aPlanet} enerjisi ile ${personBName} tarafındaki ${bPlanet} enerjisi birbirini güçlü biçimde tetikliyor.`;
-
-  const interpretation = aspect.harmonious
-    ? 'Bu açı doğru kullanıldığında ilişkinin akışını kolaylaştırır ve ortak üretimi hızlandırır.'
-    : 'Bu açı zorlayıcı görünebilir ama doğru yönetildiğinde ilişkiyi derinleştiren bir dönüşüm alanı yaratır.';
+  const intersection = aspect.harmonious
+    ? 'Kesişimde birbirinizin niyetini daha hızlı okuyup ortak tempoyu kolay buluyorsunuz.'
+    : 'Kesişimde tempo farkı oluşuyor: biri hızlanırken diğeri güven için yavaşlamak isteyebiliyor.';
 
   return {
-    title: `${aPlanet} ${aspectLabel} ${bPlanet}`,
-    pairLine: `${personAName}: ${aPlanet} • ${personBName}: ${bPlanet}`,
+    title: theme.tag,
+    pairLine: aspect.harmonious
+      ? `${personAName} ve ${personBName} bu konuda birbirini destekliyor.`
+      : `${personAName} ve ${personBName} bu konuda farklı hızlarda ilerliyor.`,
+    leftCompare: behaviorLineForPlanet(aspect.userPlanet, personAName, aspect.harmonious),
+    rightCompare: behaviorLineForPlanet(aspect.partnerPlanet, personBName, aspect.harmonious),
     tag: theme.tag,
-    dynamic,
+    intersection,
     compare: theme.compare,
-    interpretation,
-    guidance: theme.guidance,
+    guidance: aspect.harmonious
+      ? 'Bu hafta bir kez “ne iyi çalıştı?” konuşması yapıp aynı davranışı tekrarlayın.'
+      : 'Gerilim yükseldiğinde 10 dakika mola verin, sonra tek konuya dönüp kısa ve net konuşun.',
+    technicalLine: `${aPlanet} ${aspectLabel} ${bPlanet}`,
   };
 }
 
@@ -548,18 +617,33 @@ function TopAspectInsightCards({
               <View style={styles.spotlightMetaRow}>
                 <Text style={[styles.spotlightMetaChip, { color: colors.text }]}>{meta.tag}</Text>
                 <Text style={[styles.spotlightMetaChip, { color: colors.textMuted }]}>
-                  {aspect.aspectSymbol} orb {aspect.orb.toFixed(1)}°
+                  Etki gücü: {orbStrengthLabelCompact(aspect.orb)}
                 </Text>
               </View>
 
-              <Text style={[styles.spotlightBodyText, { color: colors.subtext }]}>{meta.dynamic}</Text>
-              <Text style={[styles.spotlightBodyText, { color: colors.subtext }]}>{meta.compare}</Text>
-              <Text style={[styles.spotlightBodyStrong, { color: colors.text }]}>{meta.interpretation}</Text>
+              <View style={styles.spotlightCompareGrid}>
+                <View style={[styles.spotlightPersonCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                  <Text style={[styles.spotlightPersonName, { color: colors.text }]}>{personAName}</Text>
+                  <Text style={[styles.spotlightPersonText, { color: colors.subtext }]}>{meta.leftCompare}</Text>
+                </View>
+                <View style={[styles.spotlightPersonCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                  <Text style={[styles.spotlightPersonName, { color: colors.text }]}>{personBName}</Text>
+                  <Text style={[styles.spotlightPersonText, { color: colors.subtext }]}>{meta.rightCompare}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.spotlightIntersectionBox, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+                <Text style={[styles.spotlightIntersectionTitle, { color: colors.text }]}>Kesişimde ne oluyor?</Text>
+                <Text style={[styles.spotlightIntersectionText, { color: colors.subtext }]}>{meta.intersection}</Text>
+              </View>
 
               <View style={[styles.spotlightGuideBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-                <Text style={[styles.spotlightGuideLabel, { color: colors.textMuted }]}>İlişki yönetimi notu</Text>
+                <Text style={[styles.spotlightGuideLabel, { color: colors.textMuted }]}>Bu hafta deneyin</Text>
                 <Text style={[styles.spotlightGuideText, { color: colors.subtext }]}>{meta.guidance}</Text>
               </View>
+              <Text style={[styles.spotlightTechNote, { color: colors.textMuted }]}>
+                Teknik arka plan: {meta.technicalLine}
+              </Text>
             </View>
           </AccordionSection>
         );
@@ -647,9 +731,9 @@ function SynastryProPanel({
 
       {topAspects.length > 0 ? (
         <View style={[styles.topAspectCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Text style={[styles.blockTitle, { color: colors.text }]}>Çapraz Etkileşimlerin İlişkiye Yansıması</Text>
+          <Text style={[styles.blockTitle, { color: colors.text }]}>Bu Dinamikler İlişkiye Nasıl Yansıyor?</Text>
           <Text style={[styles.blockSubTitle, { color: colors.subtext }]}>
-            Ham açı isimleri yerine, bu açının ikiniz arasında ne ürettiğini yorumlayan kısa içgörüler.
+            Her kartta doğrudan karşılaştırma var: {personAName} nasıl tepki verir, {personBName} nasıl tepki verir, kesişimde ne olur.
           </Text>
           <TopAspectInsightCards aspects={topAspects} colors={colors} personAName={personAName} personBName={personBName} />
         </View>
@@ -1020,6 +1104,28 @@ const styles = StyleSheet.create({
     spotlightBodyCol: {
       gap: 8,
     },
+    spotlightCompareGrid: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      gap: 8,
+    },
+    spotlightPersonCard: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+      gap: 4,
+    },
+    spotlightPersonName: {
+      fontSize: 11.2,
+      fontWeight: '800',
+    },
+    spotlightPersonText: {
+      fontSize: 11.2,
+      lineHeight: 16,
+      fontWeight: '500',
+    },
     spotlightMetaChip: {
       fontSize: 10.6,
       fontWeight: '700',
@@ -1039,6 +1145,24 @@ const styles = StyleSheet.create({
       lineHeight: 17,
       fontWeight: '700',
     },
+    spotlightIntersectionBox: {
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 9,
+      paddingVertical: 8,
+      gap: 4,
+    },
+    spotlightIntersectionTitle: {
+      fontSize: 10.8,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.35,
+    },
+    spotlightIntersectionText: {
+      fontSize: 11.4,
+      lineHeight: 16,
+      fontWeight: '500',
+    },
     spotlightGuideBox: {
       borderWidth: 1,
       borderRadius: 10,
@@ -1056,5 +1180,11 @@ const styles = StyleSheet.create({
       fontSize: 11.2,
       lineHeight: 16,
       fontWeight: '500',
+    },
+    spotlightTechNote: {
+      fontSize: 10.4,
+      lineHeight: 15,
+      fontWeight: '500',
+      marginTop: 2,
     },
 });

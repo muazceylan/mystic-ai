@@ -1,1 +1,1 @@
-export { default } from '../../screens/TransitDetailScreen';
+export { default } from './daily-transits';

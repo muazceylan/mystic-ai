@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, ViewStyle, Platform, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Edge } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 
 const WEB_MAX_WIDTH = 920;
@@ -47,20 +46,7 @@ export function SafeScreen({
   scroll = false,
 }: SafeScreenProps) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
-
-  const edgeSet = useMemo(() => new Set(edges), [edges]);
-
-  const safeStyle: ViewStyle = useMemo(
-    () => ({
-      paddingTop: edgeSet.has('top') ? insets.top : 0,
-      paddingBottom: edgeSet.has('bottom') ? insets.bottom : 0,
-      paddingLeft: edgeSet.has('left') ? insets.left : 0,
-      paddingRight: edgeSet.has('right') ? insets.right : 0,
-    }),
-    [insets, edgeSet],
-  );
 
   const webContentStyle: ViewStyle | undefined = useMemo(() => {
     if (Platform.OS !== 'web') return undefined;
@@ -79,26 +65,31 @@ export function SafeScreen({
 
   if (scroll) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: colors.bg }, safeStyle, style]}
+      <SafeAreaView
+        edges={edges}
+        style={[styles.container, { backgroundColor: colors.bg }, style]}
       >
         <ScrollView
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          automaticallyAdjustKeyboardInsets={false}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {inner}
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: colors.bg }, safeStyle, style]}
+    <SafeAreaView
+      edges={edges}
+      style={[styles.container, { backgroundColor: colors.bg }, style]}
     >
       {inner}
-    </View>
+    </SafeAreaView>
   );
 }
 

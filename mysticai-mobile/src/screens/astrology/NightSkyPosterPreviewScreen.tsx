@@ -66,7 +66,7 @@ function buildPosterPdfHtml(imageUri: string, name: string) {
     <body>
       <div class="page">
         <div class="wrap">
-          <p class="title">The Night You Were Born • ${name}</p>
+          <p class="title">Doğduğun Gece Gökyüzü • ${name}</p>
           <img src="${imageUri}" />
         </div>
       </div>
@@ -347,19 +347,19 @@ export default function NightSkyPosterPreviewScreen() {
   const handleSave = async () => {
     await runShareAction('save', 'Kaydetme Hatası', async () => {
       const result = await saveToGallery(imageUri!);
-      await notifySuccess(result.message ?? 'Poster galeriye kaydedildi');
+      await notifySuccess(result.message ?? 'Kart galeriye kaydedildi');
     });
   };
 
   const handleExportPdf = async () => {
     await runShareAction('pdf', 'PDF Hatası', async () => {
-      const html = buildPosterPdfHtml(imageUri!, draft?.name ?? 'Poster');
+      const html = buildPosterPdfHtml(imageUri!, draft?.name ?? 'Gece Gökyüzü');
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Doğduğun Gece Posteri (PDF)',
+          dialogTitle: 'Doğduğun Gece Gökyüzü (PDF)',
         });
       }
       await notifySuccess('PDF hazırlandı');
@@ -374,7 +374,7 @@ export default function NightSkyPosterPreviewScreen() {
       }
       await retry();
     } catch {
-      await presentShareError('Poster Oluşturulamadı', new Error('Poster yeniden oluşturulamadı.'));
+      await presentShareError('Kart Oluşturulamadı', new Error('Kart yeniden oluşturulamadı.'));
     }
   };
 
@@ -394,7 +394,7 @@ export default function NightSkyPosterPreviewScreen() {
             <>
               <Ionicons name="moon-outline" size={28} color={colors.violet} />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                {bootstrapError ?? 'Poster verisi bulunamadı'}
+                {bootstrapError ?? 'Gece gökyüzü verisi bulunamadı'}
               </Text>
               <Text style={[styles.emptySub, { color: colors.subtext }]}>
                 Önce Haritam ekranından doğum haritanızı oluşturun.
@@ -448,9 +448,9 @@ export default function NightSkyPosterPreviewScreen() {
           <Ionicons name="arrow-back" size={18} color={colors.text} />
         </Pressable>
         <View style={styles.headerTextWrap}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Doğduğun Gece Posteri</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Doğduğun Gece Gökyüzü</Text>
           <Text style={[styles.headerSub, { color: colors.subtext }]}>
-            Yüksek çözünürlük PNG/PDF üret, sonra paylaş.
+            Kişisel gökyüzünü aç, paylaşılabilir kartını oluştur.
           </Text>
         </View>
       </View>
@@ -466,9 +466,9 @@ export default function NightSkyPosterPreviewScreen() {
         <View style={[styles.variantCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.variantHeader}>
             <View>
-              <Text style={[styles.variantTitle, { color: colors.text }]}>Poster Varyantı</Text>
+              <Text style={[styles.variantTitle, { color: colors.text }]}>Görünüm stili</Text>
               <Text style={[styles.variantSub, { color: colors.subtext }]}>
-                Stil değişince share token ve poster yeniden üretilir.
+                Stil değişince paylaşım kartı yeniden hazırlanır.
               </Text>
             </View>
             {(projectionLoading || shareLinkLoading) ? (
@@ -531,7 +531,7 @@ export default function NightSkyPosterPreviewScreen() {
             <View style={styles.loaderWrap}>
               <View style={[styles.loaderGhost, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]} />
               <ActivityIndicator size="large" color={colors.violet} />
-              <Text style={[styles.loaderTitle, { color: colors.text }]}>Poster oluşturuluyor…</Text>
+              <Text style={[styles.loaderTitle, { color: colors.text }]}>Kart hazırlanıyor…</Text>
               <Text style={[styles.loaderSub, { color: colors.subtext }]}>
                 9:16 yüksek çözünürlüklü görsel hazırlanıyor.
               </Text>
@@ -550,7 +550,7 @@ export default function NightSkyPosterPreviewScreen() {
           ) : (
             <View style={styles.loaderWrap}>
               <Ionicons name="warning-outline" size={24} color={colors.warning} />
-              <Text style={[styles.loaderTitle, { color: colors.text }]}>Poster oluşturulamadı</Text>
+              <Text style={[styles.loaderTitle, { color: colors.text }]}>Kart oluşturulamadı</Text>
               <Text style={[styles.loaderSub, { color: colors.subtext }]}>{error ?? 'Beklenmeyen hata.'}</Text>
               <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={handleRegenerate}>
                 <Text style={styles.primaryBtnText}>Tekrar Dene</Text>
@@ -566,7 +566,7 @@ export default function NightSkyPosterPreviewScreen() {
             disabled={loading || actionLoading != null}
           >
             <Ionicons name="refresh" size={16} color={colors.text} />
-            <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>Posteri Yeniden Oluştur</Text>
+            <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>Kartı yenile</Text>
           </Pressable>
 
           {imageUri && !loading ? (
@@ -622,7 +622,7 @@ export default function NightSkyPosterPreviewScreen() {
                 ) : (
                   <Ionicons name="document-text-outline" size={16} color={colors.text} />
                 )}
-                <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>PDF Olarak Paylaş</Text>
+                <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>PDF paylaş</Text>
               </Pressable>
             </>
           ) : null}

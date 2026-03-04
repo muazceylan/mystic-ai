@@ -17,11 +17,15 @@ public class GatewayConfig {
                         .uri("lb://auth-service"))
                 // Astrology Service
                 .route("astrology-service", r -> r
-                        .path("/api/v1/astrology/**")
+                        .path("/api/v1/astrology/**", "/api/v1/daily/**", "/api/v1/feedback")
                         .uri("lb://astrology-service"))
                 // Cosmic scoring endpoints (hosted in astrology-service)
                 .route("cosmic-service", r -> r
-                        .path("/api/v1/cosmic/**")
+                        .path("/api/v1/cosmic/**", "/api/v1/cosmic-planner/**")
+                        .uri("lb://astrology-service"))
+                // Planner reminders (hosted in astrology-service)
+                .route("planner-reminders", r -> r
+                        .path("/api/v1/reminders", "/api/v1/reminders/**")
                         .uri("lb://astrology-service"))
                 // Dream Journal (hosted in astrology-service)
                 .route("dream-journal", r -> r
@@ -34,6 +38,10 @@ public class GatewayConfig {
                 // Synastry (hosted in astrology-service)
                 .route("synastry", r -> r
                         .path("/api/v1/synastry/**")
+                        .uri("lb://astrology-service"))
+                // Match Traits comparison endpoint (hosted in astrology-service)
+                .route("match-traits", r -> r
+                        .path("/api/v1/match/**", "/api/match/**")
                         .uri("lb://astrology-service"))
                 // Horoscope (hosted in astrology-service)
                 .route("horoscope", r -> r

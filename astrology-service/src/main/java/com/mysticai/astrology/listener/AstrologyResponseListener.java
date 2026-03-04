@@ -19,6 +19,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 /**
  * Listener for AI analysis responses from the AI Orchestrator.
  * Handles both NATAL_CHART and LUCKY_DATES response types.
@@ -188,22 +193,42 @@ public class AstrologyResponseListener {
             String aiJson = event.interpretation();
             try {
                 @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> parsed = objectMapper.readValue(aiJson, java.util.Map.class);
-                synastry.setHarmonyInsight((String) parsed.get("harmonyInsight"));
-                synastry.setKeyWarning((String) parsed.get("keyWarning"));
-                synastry.setCosmicAdvice((String) parsed.get("cosmicAdvice"));
-                synastry.setStrengthsJson(objectMapper.writeValueAsString(parsed.get("strengths")));
-                synastry.setChallengesJson(objectMapper.writeValueAsString(parsed.get("challenges")));
-                // AI-calculated harmony score overrides the Java-calculated value
-                Object scoreObj = parsed.get("harmonyScore");
-                if (scoreObj instanceof Number n) {
-                    synastry.setHarmonyScore(Math.max(0, Math.min(100, n.intValue())));
-                }
+                Map<String, Object> parsed = objectMapper.readValue(aiJson, Map.class);
+
+                int baseScore = synastry.getHarmonyScore() == null
+                        ? 50
+                        : Math.max(0, Math.min(100, synastry.getHarmonyScore()));
+                synastry.setHarmonyScore(resolveHarmonyScore(parsed.get("harmonyScore"), baseScore));
+
+                String fallbackInsight = buildFallbackHarmonyInsight(synastry);
+                synastry.setHarmonyInsight(ensureTurkishText((String) parsed.get("harmonyInsight"), fallbackInsight));
+
+                List<String> strengths = normalizeTextList(
+                        parsed.get("strengths"),
+                        3,
+                        buildFallbackStrengths(synastry)
+                );
+                synastry.setStrengthsJson(objectMapper.writeValueAsString(strengths));
+
+                List<String> challenges = normalizeTextList(
+                        parsed.get("challenges"),
+                        2,
+                        buildFallbackChallenges(synastry)
+                );
+                synastry.setChallengesJson(objectMapper.writeValueAsString(challenges));
+
+                String fallbackWarning = "En kritik risk, niyeti konuşmadan varsayım üzerinden tepki vermek olabilir.";
+                synastry.setKeyWarning(ensureTurkishText((String) parsed.get("keyWarning"), fallbackWarning));
+
+                String fallbackAdvice = buildFallbackAdvice(synastry);
+                synastry.setCosmicAdvice(ensureTurkishText((String) parsed.get("cosmicAdvice"), fallbackAdvice));
             } catch (Exception parseEx) {
-                log.warn("Relationship analysis response was not JSON, storing as cosmicAdvice");
-                synastry.setCosmicAdvice(aiJson);
-                synastry.setStrengthsJson("[]");
-                synastry.setChallengesJson("[]");
+                log.warn("Relationship analysis response was not valid JSON, using Turkish fallback payload");
+                synastry.setHarmonyInsight(buildFallbackHarmonyInsight(synastry));
+                synastry.setStrengthsJson(objectMapper.writeValueAsString(buildFallbackStrengths(synastry)));
+                synastry.setChallengesJson(objectMapper.writeValueAsString(buildFallbackChallenges(synastry)));
+                synastry.setKeyWarning("En kritik risk, niyeti konuşmadan varsayım üzerinden tepki vermek olabilir.");
+                synastry.setCosmicAdvice(buildFallbackAdvice(synastry));
             }
 
             synastry.setStatus("COMPLETED");
@@ -212,6 +237,156 @@ public class AstrologyResponseListener {
         } catch (Exception e) {
             log.error("Failed to process relationship analysis response", e);
         }
+    }
+
+    private int resolveHarmonyScore(Object scoreObj, int baseScore) {
+        int base = Math.max(0, Math.min(100, baseScore));
+        int aiScore = parseIntScore(scoreObj, base);
+        int min = Math.max(0, base - 8);
+        int max = Math.min(100, base + 8);
+        return Math.max(min, Math.min(max, aiScore));
+    }
+
+    private int parseIntScore(Object scoreObj, int fallback) {
+        if (scoreObj == null) return fallback;
+        try {
+            if (scoreObj instanceof Number n) {
+                return Math.max(0, Math.min(100, n.intValue()));
+            }
+            String raw = scoreObj.toString().replace(",", ".").trim();
+            if (raw.isEmpty()) return fallback;
+            int parsed = (int) Math.round(Double.parseDouble(raw));
+            return Math.max(0, Math.min(100, parsed));
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
+    private List<String> normalizeTextList(Object raw, int size, List<String> fallback) {
+        List<String> output = new ArrayList<>();
+        if (raw instanceof List<?> list) {
+            for (Object item : list) {
+                if (output.size() >= size) break;
+                String fallbackItem = fallbackForIndex(fallback, output.size(), "Bu başlıkta küçük ama düzenli adımlar dengeyi destekler.");
+                String normalized = ensureTurkishText(item == null ? null : item.toString(), fallbackItem);
+                if (normalized != null && !normalized.isBlank()) {
+                    output.add(normalized);
+                }
+            }
+        }
+        while (output.size() < size) {
+            output.add(fallbackForIndex(fallback, output.size(), "Bu başlıkta küçük ama düzenli adımlar dengeyi destekler."));
+        }
+        return output;
+    }
+
+    private String fallbackForIndex(List<String> values, int index, String defaultValue) {
+        if (values == null || index < 0 || index >= values.size()) return defaultValue;
+        String value = values.get(index);
+        return (value == null || value.isBlank()) ? defaultValue : value;
+    }
+
+    private String ensureTurkishText(String value, String fallback) {
+        String normalized = replaceCommonEnglishTerms(value == null ? "" : value).trim();
+        if (normalized.isBlank()) return fallback;
+        if (looksEnglishDominant(normalized)) return fallback;
+        return normalized;
+    }
+
+    private String replaceCommonEnglishTerms(String text) {
+        return text
+                .replace("relationship", "ilişki")
+                .replace("Relationship", "İlişki")
+                .replace("compatibility", "uyum")
+                .replace("Compatibility", "Uyum")
+                .replace("communication", "iletişim")
+                .replace("Communication", "İletişim")
+                .replace("trust", "güven")
+                .replace("Trust", "Güven")
+                .replace("passion", "tutku")
+                .replace("Passion", "Tutku")
+                .replace("challenge", "zorlayıcı alan")
+                .replace("Challenge", "Zorlayıcı Alan")
+                .replace("growth", "gelişim")
+                .replace("Growth", "Gelişim")
+                .replace("warning", "uyarı")
+                .replace("Warning", "Uyarı")
+                .replace("advice", "öneri")
+                .replace("Advice", "Öneri")
+                .replace("support", "destek")
+                .replace("Support", "Destek")
+                .replace("balance", "denge")
+                .replace("Balance", "Denge");
+    }
+
+    private boolean looksEnglishDominant(String text) {
+        if (text == null || text.isBlank()) return true;
+        String padded = " " + text.toLowerCase(Locale.ROOT) + " ";
+        String[] markers = {
+                " the ", " and ", " with ", " this ", " that ", " your ",
+                " you ", " between ", " can ", " should ", " might ", " because "
+        };
+        int hits = 0;
+        for (String marker : markers) {
+            if (padded.contains(marker)) hits++;
+        }
+        boolean hasTurkishChars = padded.matches(".*[çğıöşü].*");
+        return hits >= 3 && !hasTurkishChars;
+    }
+
+    private List<String> buildFallbackStrengths(Synastry synastry) {
+        String a = safeName(synastry.getPersonAType(), true);
+        String b = safeName(synastry.getPersonBType(), false);
+        return List.of(
+                a + " ile " + b + " arasında destekleyici başlıklarda doğal bir tamamlayıcılık oluşabilir.",
+                "Açık ve net iletişim tercih edildiğinde yanlış anlaşılma olasılığı belirgin biçimde azalır.",
+                "Ortak hedeflerin küçük adımlara bölünmesi ilişkinin güven hissini güçlendirebilir."
+        );
+    }
+
+    private List<String> buildFallbackChallenges(Synastry synastry) {
+        return List.of(
+                "Duygusal tempo farkı zaman zaman sürtünme yaratabilir; konuşma için doğru anı seçmek rahatlatır.",
+                "Karar ritmi farklıysa biri hızlanırken diğeri geri çekilebilir; kısa bir duraklama denge sağlar."
+        );
+    }
+
+    private String buildFallbackHarmonyInsight(Synastry synastry) {
+        int score = synastry.getHarmonyScore() == null ? 50 : Math.max(0, Math.min(100, synastry.getHarmonyScore()));
+        String relation = relationLabel(synastry.getRelationshipType());
+        String a = safeName(synastry.getPersonAType(), true);
+        String b = safeName(synastry.getPersonBType(), false);
+        String level = score >= 80 ? "yüksek" : score >= 60 ? "orta-yüksek" : score >= 40 ? "dalgalı" : "zorlayıcı";
+        return "%s ve %s arasında %s odağında %d puanlık, %s bir uyum görülüyor. "
+                .formatted(a, b, relation, score, level)
+                + "Güçlü alanlarda akış doğal olabilir; zorlayıcı alanlarda tempo farkını konuşmak belirleyici olur. "
+                + "Düzenli ve kısa check-in konuşmaları bu bağı daha dengeli hale getirebilir.";
+    }
+
+    private String buildFallbackAdvice(Synastry synastry) {
+        String relation = relationLabel(synastry.getRelationshipType());
+        return "Bu %s dinamiğinde önce niyeti sonra çözümü konuşmak iyi sonuç verir. ".formatted(relation)
+                + "Haftalık kısa bir iletişim ritmi belirleyin ve aynı anda tek bir konuya odaklanın. "
+                + "Gerilim anında hız kesip duyguyu isimlendirmek, yanlış anlaşılma döngüsünü önemli ölçüde azaltır.";
+    }
+
+    private String safeName(String partyType, boolean personA) {
+        if ("USER".equalsIgnoreCase(partyType)) {
+            return personA ? "Sen" : "Karşı taraf";
+        }
+        return personA ? "Kişi A" : "Kişi B";
+    }
+
+    private String relationLabel(String relationshipType) {
+        if (relationshipType == null || relationshipType.isBlank()) return "ilişki";
+        return switch (relationshipType.toUpperCase(Locale.ROOT)) {
+            case "LOVE" -> "aşk";
+            case "BUSINESS" -> "iş ortaklığı";
+            case "FRIENDSHIP" -> "arkadaşlık";
+            case "FAMILY" -> "aile bağı";
+            case "RIVAL" -> "rekabet";
+            default -> "ilişki";
+        };
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

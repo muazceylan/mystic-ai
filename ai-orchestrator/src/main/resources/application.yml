@@ -61,6 +61,8 @@ ai:
       - groqFast
       - geminiFlash
       - groqMixtral
+  fallback:
+    allow-mock: ${AI_ALLOW_MOCK_FALLBACK:true}
 
 eureka:
   client:

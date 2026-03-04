@@ -1,213 +1,249 @@
 # Mystic AI
 
-Astroloji, tarot, numeroloji, ruya yorumu ve daha fazlasini yapay zeka ile birlestiren mistik rehberlik platformu. Spring Boot mikroservis mimarisi + React Native mobil uygulama.
+Astroloji, numeroloji, ruya yorumu ve spirituel akislari AI ile birlestiren mikroservis tabanli platform.
+Backend Spring Boot + mobil React Native (Expo Router) olarak gelistirilmektedir.
+
+## Son Revizyon (Mart 2026)
+
+- Astrology servisinde yeni `daily transits` endpoint grubu eklendi.
+- `cosmic planner` akisi ay/gun/kategori seviyesinde genisletildi.
+- Hatirlatici yonetimi icin `planner reminders` API grubu eklendi.
+- Mobil uygulamada home dashboard, compare/match ve daily ekranlari revize edildi.
 
 ## Mimari
 
 ```
-                         ┌──────────────┐
-                         │  Mobile App  │
-                         │ (React Native)│
-                         └──────┬───────┘
-                                │
-                         ┌──────▼───────┐
-                         │ API Gateway  │
-                         │    :8080     │
-                         └──────┬───────┘
-                                │
-          ┌─────────────────────┼─────────────────────┐
-          │                     │                      │
-    ┌─────▼─────┐    ┌─────────▼────────┐    ┌───────▼───────┐
-    │   Auth    │    │   Astrology      │    │    Tarot      │
-    │  :8081   │    │     :8083        │    │    :8082     │
-    └───────────┘    └──────────────────┘    └───────────────┘
-          │                     │                      │
-    ┌─────▼─────┐    ┌─────────▼────────┐    ┌───────▼───────┐
-    │  Dream   │    │   Numerology     │    │   Vision     │
-    │  :8086   │    │     :8085        │    │    :8089     │
-    └───────────┘    └──────────────────┘    └───────────────┘
-          │                     │                      │
-          └─────────────────────┼──────────────────────┘
-                                │
-                    ┌───────────▼───────────┐
-                    │   AI Orchestrator    │
-                    │       :8084          │
-                    └───────────┬───────────┘
-                                │
-                    ┌───────────▼───────────┐
-                    │    RabbitMQ / Redis   │
-                    └───────────────────────┘
+Mobile App (Expo/React Native :8090)
+                |
+                v
+        API Gateway (:8080)
+                |
+   +------------+-------------+---------------------------+
+   |            |             |                           |
+ Auth        Astrology      Dream                      Numerology
+(:8081)      (:8083)       (:8086)                    (:8085)
+   |            |
+   |            +--> Cosmic Planner / Daily Transits / Reminders / Match
+   |
+   +-----------------------------------+
+                                       |
+                                  AI Orchestrator (:8084)
+                                       |
+                                 RabbitMQ + Redis
+
+Oracle (:8087) | Notification (:8088) | Vision (:8089) | Spiritual (:8091)
+
+Service Discovery: Eureka Service Registry (:8761)
 ```
 
-## Servisler
+## Servisler ve Portlar
 
 | Servis | Port | Aciklama |
 |--------|------|----------|
-| **API Gateway** | 8080 | Tek giris noktasi, JWT filtreleme, dinamik yonlendirme |
-| **Auth Service** | 8081 | Kullanici kayit, giris, sosyal login, profil yonetimi |
-| **Astrology Service** | 8083 | Dogum haritasi hesaplama (Gunes, Ay, Yukselen) |
-| **AI Orchestrator** | 8084 | LLM gateway, prompt zenginlestirme, model secimi |
-| **Numerology Service** | 8085 | Isim ve dogum tarihine gore kader sayisi analizi |
-| **Dream Service** | 8086 | Ruya kaydi ve asenkron ruya yorumu |
-| **Oracle Service** | 8087 | Tum servis verilerini "Gunun Sirri" sentezine birlestirme |
-| **Notification Service** | 8088 | WebSocket (STOMP) ile gercek zamanli bildirimler |
-| **Vision Service** | 8089 | Kahve fali ve el fali icin goruntu analizi |
-| **Service Registry** | 8761 | Eureka servis kesfii |
+| API Gateway | 8080 | Tek giris noktasi, routing, security filtreleri |
+| Auth Service | 8081 | Kimlik dogrulama, kayit/giris, profil |
+| Astrology Service | 8083 | Natal chart, synastry, daily transits, cosmic planner |
+| AI Orchestrator | 8084 | LLM orkestrasyonu, prompt fallback ve model secimi |
+| Numerology Service | 8085 | Numeroloji analizleri |
+| Dream Service | 8086 | Ruya kaydi ve yorum |
+| Oracle Service | 8087 | Servisler arasi sentez (gunun yorumu vb.) |
+| Notification Service | 8088 | REST + WebSocket bildirim altyapisi |
+| Vision Service | 8089 | Gorsel analiz (kahve/eli vb.) |
+| Spiritual Service | 8091 | Spirituel icerik/akislari |
+| Service Registry | 8761 | Eureka service discovery |
 
-## Teknolojiler
+## Teknoloji Stack
 
-**Backend:**
-- Java 21, Spring Boot 3.4, Spring Cloud 2024.0.0
-- Spring AI (OpenAI / Anthropic / Ollama)
-- PostgreSQL (pgvector), Redis, RabbitMQ
-- JWT (JJWT 0.12.6), Resilience4j
-- Micrometer + Zipkin (distributed tracing)
+### Backend
 
-**Mobile:**
-- React Native (Expo), TypeScript
+- Java 21
+- Spring Boot 3.4.x, Spring Cloud 2024.0.0
+- Spring Cloud Gateway, Eureka
+- PostgreSQL, Redis, RabbitMQ
+- JWT (JJWT), Resilience4j, Micrometer, Zipkin
+
+### Mobile
+
+- React Native + Expo SDK 50
 - Expo Router (file-based navigation)
-- Zustand, NativeWind (Tailwind CSS)
-- Axios (REST) + StompJS (WebSocket)
+- TypeScript, Zustand, NativeWind
+- TanStack Query, Axios
 
-**Altyapi:**
-- Docker & Docker Compose
-- Maven (multi-module)
-- Spring Cloud Eureka & Gateway
+### Altyapi
 
-## Kurulum
+- Docker / Docker Compose
+- Maven multi-module monorepo
+
+## Hizli Baslangic
 
 ### Gereksinimler
 
 - Java 21+
 - Maven 3.9+
-- Docker & Docker Compose
-- Node.js 18+ (mobil icin)
+- Docker + Docker Compose
+- Node.js 18+ (onerilen 20 LTS)
 
-### 1. Altyapi Servislerini Baslat
-
-```bash
-docker-compose up -d postgres rabbitmq redis zipkin
-```
-
-### 2. Backend Servislerini Baslat
-
-Sirasiyla baslatilmalidir:
+### 1) Ortam Dosyalarini Hazirla
 
 ```bash
-# 1. Service Registry (diger servisler bunun hazir olmasini bekler)
-cd service-registry && mvn spring-boot:run
-
-# 2. Core servisler
-cd auth-service && mvn spring-boot:run
-cd ai-orchestrator && mvn spring-boot:run
-
-# 3. Business servisler
-cd astrology-service && mvn spring-boot:run
-cd dream-service && mvn spring-boot:run
-cd numerology-service && mvn spring-boot:run
-cd vision-service && mvn spring-boot:run
-cd oracle-service && mvn spring-boot:run
-cd notification-service && mvn spring-boot:run
-
-# 4. API Gateway (en son)
-cd api-gateway && mvn spring-boot:run
+cp .env.example .env
+cp mysticai-mobile/.env.example mysticai-mobile/.env
 ```
 
-Ya da toplu baslatma scripti:
+### 2) Altyapiyi Baslat
+
+```bash
+make infra
+# alternatif:
+# docker compose up -d postgres rabbitmq redis zipkin
+```
+
+### 3) Backend Servislerini Baslat
+
+Onerilen yol:
 
 ```bash
 chmod +x start-services.sh
 ./start-services.sh
 ```
 
-### 3. Mobil Uygulamayi Baslat
+Manuel yol (sirayla):
+
+```bash
+cd service-registry && mvn spring-boot:run
+cd auth-service && mvn spring-boot:run
+cd ai-orchestrator && mvn spring-boot:run
+cd astrology-service && mvn spring-boot:run
+cd numerology-service && mvn spring-boot:run
+cd dream-service && mvn spring-boot:run
+cd oracle-service && mvn spring-boot:run
+cd notification-service && mvn spring-boot:run
+cd vision-service && mvn spring-boot:run
+cd spiritual-service && mvn spring-boot:run
+cd api-gateway && mvn spring-boot:run
+```
+
+### 4) Mobil Uygulamayi Baslat
 
 ```bash
 cd mysticai-mobile
 npm install
-npx expo start
+npm run start
 ```
+
+Notlar:
+
+- Expo development server varsayilan olarak `:8090` portunda calisir.
+- Android emulatorde API icin `http://10.0.2.2:8080` kullanin.
 
 ## Ortam Degiskenleri
 
-`.env.example` dosyasini `.env` olarak kopyalayin:
+### Backend `.env`
 
-```bash
-cp .env.example .env
-```
+| Degisken | Varsayilan |
+|----------|------------|
+| `DB_HOST` | `localhost` |
+| `DB_PORT` | `5432` |
+| `DB_USER` | `mystic` |
+| `DB_PASSWORD` | `mystic123` |
+| `RABBITMQ_HOST` | `localhost` |
+| `RABBITMQ_PORT` | `5672` |
+| `REDIS_HOST` | `localhost` |
+| `REDIS_PORT` | `6379` |
+| `JWT_SECRET` | Base64 secret |
+| `GROQ_API_KEY` | AI key |
 
-Temel degiskenler:
+### Mobile `mysticai-mobile/.env`
 
-| Degisken | Varsayilan | Aciklama |
-|----------|-----------|----------|
-| `DB_HOST` | localhost | PostgreSQL host |
-| `DB_PORT` | 5432 | PostgreSQL port |
-| `DB_USER` | mystic | Veritabani kullanicisi |
-| `DB_PASSWORD` | mystic123 | Veritabani sifresi |
-| `RABBITMQ_HOST` | localhost | RabbitMQ host |
-| `REDIS_HOST` | localhost | Redis host |
-| `JWT_SECRET` | (base64 key) | JWT imzalama anahtari |
-| `GROQ_API_KEY` | - | AI servis API anahtari |
+| Degisken | Aciklama |
+|----------|----------|
+| `EXPO_PUBLIC_APP_ENV` | `dev / stage / prod` |
+| `EXPO_PUBLIC_API_BASE_URL_DEV` | Gelistirme API URL (`http://localhost:8080`) |
+| `EXPO_PUBLIC_API_BASE_URL_STAGE` | Stage API URL |
+| `EXPO_PUBLIC_API_BASE_URL_PROD` | Production API URL |
+| `EXPO_PUBLIC_USE_MOCK` | Mock data togglesi |
+| `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` | Places API anahtari |
+| `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | Maps API anahtari |
+
+## Yeni API Gruplari
+
+Gateway uzerinden cagrilir: `http://localhost:8080`
+
+### Daily Transits
+
+- `GET /api/v1/daily/transits`
+- `GET /api/v1/daily/transits/actions`
+- `POST /api/v1/daily/transits/actions/{actionId}/done`
+- `POST /api/v1/feedback`
+
+### Cosmic Planner
+
+- `GET /api/v1/cosmic-planner/month`
+- `GET /api/v1/cosmic-planner/day`
+- `GET /api/v1/cosmic-planner/day/categories`
+
+### Planner Reminders
+
+- `POST /api/v1/reminders`
+- `GET /api/v1/reminders`
+- `PATCH /api/v1/reminders/{id}`
+- `DELETE /api/v1/reminders/{id}`
 
 ## Veritabanlari
 
-Her servisin kendi PostgreSQL veritabani vardir:
+Varsayilan PostgreSQL veritabani adlari:
 
-`mystic_auth`, `mystic_astrology`, `mystic_dream`, `mystic_oracle`, `mystic_notification`, `mystic_vision`, `mystic_numerology`
+- `mystic_auth`
+- `mystic_astrology`
+- `mystic_dream`
+- `mystic_numerology`
+- `mystic_oracle`
+- `mystic_notification`
+- `mystic_vision`
+- `mystic_spiritual`
 
-## Monitoring (Opsiyonel)
+## Monitoring ve Araclar
 
 ```bash
-# Prometheus + Grafana
-docker-compose --profile monitoring up -d
+# Monitoring
+docker compose --profile monitoring up -d
 
-# pgAdmin + Redis Commander
-docker-compose --profile tools up -d
+# Tooling
+docker compose --profile tools up -d
 ```
 
-| Arac | URL | Kullanici |
-|------|-----|-----------|
-| Eureka Dashboard | http://localhost:8761 | - |
-| RabbitMQ Management | http://localhost:15672 | mystic / mystic123 |
-| pgAdmin | http://localhost:5050 | admin@mysticai.com / admin123 |
-| Grafana | http://localhost:3000 | admin / admin123 |
-| Zipkin | http://localhost:9411 | - |
-
-## API Dokumantasyonu
-
-Gateway uzerinden tum endpoint'lere erisilebilir: `http://localhost:8080/api/{service}/...`
-
-Ornek:
-```bash
-# Kayit
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@test.com","password":"pass123","fullName":"Test User"}'
-
-# Giris
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@test.com","password":"pass123"}'
-```
-
-Detayli API dokumantasyonu: [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md)
+| Arac | URL |
+|------|-----|
+| Eureka | http://localhost:8761 |
+| Swagger (Gateway) | http://localhost:8080/swagger-ui.html |
+| RabbitMQ UI | http://localhost:15672 |
+| Zipkin | http://localhost:9411 |
+| pgAdmin | http://localhost:5050 |
+| Grafana | http://localhost:3000 |
 
 ## Proje Yapisi
 
-```
+```text
 mystic-ai/
-├── api-gateway/            # API Gateway (Spring Cloud Gateway)
-├── auth-service/           # Kimlik dogrulama servisi
-├── ai-orchestrator/        # AI model yonetimi
-├── astrology-service/      # Astroloji servisi
-├── dream-service/          # Ruya yorumu servisi
-├── numerology-service/     # Numeroloji servisi
-├── oracle-service/         # Sentez servisi
-├── notification-service/   # Bildirim servisi
-├── vision-service/         # Goruntu analizi servisi
-├── service-registry/       # Eureka Server
-├── mystic-common/          # Ortak DTO ve event siniflari
-├── mysticai-mobile/        # React Native mobil uygulama
-├── docker/                 # Docker konfigurasyonlari
-└── docs/                   # Dokumantasyon
+├── service-registry/
+├── api-gateway/
+├── auth-service/
+├── astrology-service/
+├── ai-orchestrator/
+├── numerology-service/
+├── dream-service/
+├── oracle-service/
+├── notification-service/
+├── vision-service/
+├── spiritual-service/
+├── mystic-common/
+├── mysticai-mobile/
+├── docs/
+└── docker/
 ```
+
+## Ek Dokumanlar
+
+- Genel kullanim rehberi: `docs/USAGE_GUIDE.md`
+- Mobil daily transits QA checklist: `mysticai-mobile/docs/DAILY_TRANSITS_RELEASE_QA_CHECKLIST.md`
+- Mobil production readiness: `mysticai-mobile/docs/PROD_READINESS.md`

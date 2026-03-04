@@ -6,10 +6,14 @@ export const queryKeys = {
     ['oracle', 'daily-secret', params ?? {}] as const,
   homeBrief: (params?: Record<string, string | undefined>) =>
     ['oracle', 'home-brief', params ?? {}] as const,
+  homeDashboard: (userId: number | string, sign?: string) =>
+    ['oracle', 'home-dashboard', userId, sign ?? ''] as const,
   skyPulse: () => ['astrology', 'sky-pulse'] as const,
   weeklySwot: (userId: number) => ['astrology', 'weekly-swot', userId] as const,
   dailyLifeGuide: (userId: number, locale?: string, date?: string) =>
     ['astrology', 'daily-life-guide', userId, locale ?? 'tr', date ?? 'today'] as const,
+  dailyTransits: (date: string) => ['dailyTransits', date] as const,
+  dailyActions: (date: string) => ['dailyActions', date] as const,
   cosmicSummary: (userId: number, locale?: string, date?: string, gender?: string, maritalStatus?: string) =>
     ['cosmic', 'summary', userId, locale ?? 'tr', date ?? 'today', gender ?? '', maritalStatus ?? ''] as const,
   cosmicPlanner: (userId: number, month?: string, locale?: string, gender?: string, maritalStatus?: string) =>

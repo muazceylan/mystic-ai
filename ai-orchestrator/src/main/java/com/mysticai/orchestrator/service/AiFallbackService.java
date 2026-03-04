@@ -31,6 +31,7 @@ public class AiFallbackService {
     private final List<AiModelProvider> complexChain;
     private final List<AiModelProvider> simpleChain;
     private final MockInterpretationService mockService;
+    private final boolean allowMockFallback;
 
     public AiFallbackService(
             @Qualifier("groqPrimary")  AiModelProvider groqPrimary,
@@ -39,6 +40,7 @@ public class AiFallbackService {
             @Qualifier("groqFast")     AiModelProvider groqFast,
             @Value("${ai.chain.complex:groqPrimary,geminiFlash,groqMixtral,groqFast}") List<String> complexOrder,
             @Value("${ai.chain.simple:groqFast,geminiFlash,groqMixtral}") List<String> simpleOrder,
+            @Value("${ai.fallback.allow-mock:true}") boolean allowMockFallback,
             MockInterpretationService mockService) {
         Map<String, AiModelProvider> providers = new LinkedHashMap<>();
         providers.put("groqPrimary", groqPrimary);
@@ -51,6 +53,7 @@ public class AiFallbackService {
         this.simpleChain = resolveChain("simple", simpleOrder, providers,
                 List.of("groqFast", "geminiFlash", "groqMixtral"));
 
+        this.allowMockFallback = allowMockFallback;
         this.mockService = mockService;
     }
 
@@ -89,8 +92,12 @@ public class AiFallbackService {
             }
         }
 
-        log.error("[AI Chain] All {} providers exhausted — using local mock fallback",
-                chain.size());
+        if (!allowMockFallback) {
+            log.error("[AI Chain] All {} providers exhausted and mock fallback is disabled", chain.size());
+            throw new IllegalStateException("All AI providers failed and mock fallback is disabled");
+        }
+
+        log.error("[AI Chain] All {} providers exhausted — using local mock fallback", chain.size());
         return mockService.generateFallback(prompt);
     }
 
