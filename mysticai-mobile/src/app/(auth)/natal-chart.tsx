@@ -8,8 +8,10 @@ import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { COUNTRIES } from '../../constants/index';
-import { login as loginApi, register, updateProfile } from '../../services/auth';
+import { registerOnboarding, updateProfile } from '../../services/auth';
+import { ensureNatalChartForUser } from '../../services/natalChartBootstrap.service';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 
@@ -135,9 +137,9 @@ export default function NatalChartScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const onboarding = useOnboardingStore();
-  const storeLogin = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setUser = useAuthStore((state) => state.setUser);
+  const setCachedChart = useNatalChartStore((state) => state.setChart);
   const [currentStep, setCurrentStep] = useState<Step>('register');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const started = useRef(false);
@@ -182,15 +184,9 @@ export default function NatalChartScreen() {
     };
   };
 
-  const handleRegisterAndLogin = async () => {
+  const handleRegister = async () => {
     const payload = buildRegisterPayload();
-    await register(payload);
-    const loginResponse = await loginApi({
-      username: payload.username,
-      password: payload.password,
-    });
-    const { accessToken, refreshToken, user } = loginResponse.data;
-    storeLogin(accessToken, refreshToken, user);
+    await registerOnboarding(payload);
   };
 
   const handleProfileUpdate = async () => {
@@ -220,6 +216,14 @@ export default function NatalChartScreen() {
 
     const res = await updateProfile(profileData);
     setUser(res.data);
+    try {
+      const ensuredChart = await ensureNatalChartForUser(res.data);
+      if (ensuredChart) {
+        setCachedChart(ensuredChart);
+      }
+    } catch {
+      // Non-fatal: tabs layout will retry bootstrap on app entry.
+    }
   };
 
   const runSetup = async () => {
@@ -231,10 +235,10 @@ export default function NatalChartScreen() {
       if (isAuthenticated) {
         await handleProfileUpdate();
       } else {
-        await handleRegisterAndLogin();
+        await handleRegister();
       }
 
-      // Step 2: Chart will be created automatically when user visits the tab
+      // Step 2: Chart (or verification) follow-up
       setCurrentStep('chart');
 
       // Brief pause so user sees progress
@@ -244,7 +248,14 @@ export default function NatalChartScreen() {
       setCurrentStep('done');
       await new Promise((r) => setTimeout(r, 400));
 
-      router.replace('/(tabs)/home');
+      if (isAuthenticated) {
+        router.replace('/(tabs)/home');
+      } else {
+        router.replace({
+          pathname: '/(auth)/verify-email-pending',
+          params: { email: onboarding.email.trim(), source: 'register' },
+        });
+      }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;

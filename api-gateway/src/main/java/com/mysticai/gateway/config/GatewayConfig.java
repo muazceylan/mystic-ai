@@ -13,7 +13,7 @@ public class GatewayConfig {
         return builder.routes()
                 // Auth Service
                 .route("auth-service", r -> r
-                        .path("/api/auth/**")
+                        .path("/api/auth/**", "/api/v1/auth/**")
                         .uri("lb://auth-service"))
                 // Astrology Service
                 .route("astrology-service", r -> r

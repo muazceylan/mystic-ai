@@ -40,10 +40,15 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/auth/check-email",
             "/api/auth/refresh",
             "/api/auth/social-login",
+            "/api/auth/verification/resend",
+            "/api/auth/verify-email",
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/auth/check-email",
             "/api/v1/auth/refresh",
+            "/api/v1/auth/social-login",
+            "/api/v1/auth/verification/resend",
+            "/api/v1/auth/verify-email",
             "/actuator",
             "/v3/api-docs",
             "/swagger-ui",
@@ -65,13 +70,16 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         }
 
         if (permitAll) {
+            String requestedUserId = request.getHeaders().getFirst("X-User-Id");
+            String safeUserId = isNumeric(requestedUserId) ? requestedUserId : "1";
+            String requestedUsername = request.getHeaders().getFirst("X-Username");
+            String safeUsername = (requestedUsername != null && !requestedUsername.isBlank())
+                    ? requestedUsername
+                    : "local-dev";
+
             ServerHttpRequest mutatedRequest = request.mutate()
-                    .header("X-User-Id", request.getHeaders().getFirst("X-User-Id") != null
-                            ? request.getHeaders().getFirst("X-User-Id")
-                            : "1")
-                    .header("X-Username", request.getHeaders().getFirst("X-Username") != null
-                            ? request.getHeaders().getFirst("X-Username")
-                            : "local-dev")
+                    .header("X-User-Id", safeUserId)
+                    .header("X-Username", safeUsername)
                     .build();
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         }
@@ -110,6 +118,10 @@ public class JwtAuthenticationFilter implements GlobalFilter {
 
     private boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+    }
+
+    private boolean isNumeric(String value) {
+        return value != null && value.matches("\\d+");
     }
 
     private boolean validateToken(String token) {

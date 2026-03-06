@@ -1,9 +1,9 @@
 import api from './api';
 import { AuthUser } from '../store/useAuthStore';
 
-const AUTH_BASE = '/api/auth';
+const AUTH_BASE = '/api/v1/auth';
 
-export interface RegisterPayload {
+export interface OnboardingRegisterPayload {
   username: string;
   email: string;
   password: string;
@@ -28,6 +28,10 @@ export interface LoginResponse {
   tokenType: string;
   expiresIn: number;
   user: AuthUser;
+}
+
+export interface RegisterResponse {
+  status: 'PENDING_VERIFICATION' | string;
 }
 
 export interface CheckEmailResponse {
@@ -56,8 +60,27 @@ export interface UpdateProfilePayload {
   preferredLanguage?: string;
 }
 
-export const register = (payload: RegisterPayload) =>
-  api.post<AuthUser>(`${AUTH_BASE}/register`, payload);
+export const register = (email: string, password: string, name?: string) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  const nameParts = (name ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const firstName = nameParts.length > 0 ? nameParts[0] : undefined;
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+
+  return api.post<RegisterResponse>(`${AUTH_BASE}/register`, {
+    username: normalizedEmail,
+    email: normalizedEmail,
+    password,
+    firstName,
+    lastName,
+  });
+};
+
+export const registerOnboarding = (payload: OnboardingRegisterPayload) =>
+  api.post<RegisterResponse>(`${AUTH_BASE}/register`, payload);
 
 export const login = (payload: { username: string; password: string }) =>
   api.post<LoginResponse>(`${AUTH_BASE}/login`, payload);
@@ -70,6 +93,9 @@ export const checkEmailGet = (email: string) =>
 
 export const socialLogin = (provider: string, idToken: string) =>
   api.post<SocialLoginResponse>(`${AUTH_BASE}/social-login`, { provider, idToken });
+
+export const resendVerification = (email: string) =>
+  api.post<{ ok: boolean }>(`${AUTH_BASE}/verification/resend`, { email: email.trim().toLowerCase() });
 
 export const updateProfile = (payload: UpdateProfilePayload) =>
   api.put<AuthUser>(`${AUTH_BASE}/profile`, payload);

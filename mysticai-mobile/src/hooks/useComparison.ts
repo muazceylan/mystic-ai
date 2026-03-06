@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComparisonResponseDTO, RelationshipType } from '../types/compare';
 import { fetchComparison } from '../services/compare.service';
 
@@ -23,8 +23,31 @@ export function useComparison(options: UseComparisonOptions): UseComparisonResul
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
+  const previousRequestKeyRef = useRef<string>('');
+  const latestRequestIdRef = useRef(0);
+
+  const requestKey = useMemo(
+    () =>
+      [
+        options.matchId ?? 'none',
+        options.relationshipType,
+        options.leftName ?? '',
+        options.rightName ?? '',
+        options.enabled ? '1' : '0',
+      ].join('|'),
+    [options.enabled, options.leftName, options.matchId, options.relationshipType, options.rightName],
+  );
 
   const refetch = useCallback(async () => {
+    const requestId = ++latestRequestIdRef.current;
+
+    if (previousRequestKeyRef.current !== requestKey) {
+      previousRequestKeyRef.current = requestKey;
+      setData(null);
+      setError(null);
+      setIsMock(false);
+    }
+
     if (!options.matchId || !options.enabled) {
       setLoading(false);
       setError(null);
@@ -44,11 +67,19 @@ export function useComparison(options: UseComparisonOptions): UseComparisonResul
         rightName: options.rightName,
       });
 
+      if (requestId !== latestRequestIdRef.current || previousRequestKeyRef.current !== requestKey) {
+        return null;
+      }
+
       setData(result.data);
       setIsMock(result.isMock);
       setError(null);
       return result.data;
     } catch (requestError: any) {
+      if (requestId !== latestRequestIdRef.current || previousRequestKeyRef.current !== requestKey) {
+        return null;
+      }
+
       const message =
         requestError?.message ??
         requestError?.response?.data?.message ??
@@ -58,9 +89,12 @@ export function useComparison(options: UseComparisonOptions): UseComparisonResul
       setIsMock(false);
       return null;
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [
+    requestKey,
     options.enabled,
     options.leftName,
     options.matchId,

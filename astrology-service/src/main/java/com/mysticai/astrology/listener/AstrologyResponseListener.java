@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Listener for AI analysis responses from the AI Orchestrator.
@@ -39,6 +40,9 @@ public class AstrologyResponseListener {
     private final MonthlyDreamStoryRepository monthlyDreamStoryRepository;
     private final SynastryRepository synastryRepository;
     private final ObjectMapper objectMapper;
+    private static final Pattern CANNED_HARMONY_INSIGHT_PATTERN = Pattern.compile(
+            "(?is).*bu\\s+iki\\s+haritan[ıi]n\\s+uyumu\\s*\\d+\\s*puan.*güçlü\\s+bir\\s+çekim\\s+yarat[ıi]yor.*"
+    );
 
     @RabbitListener(queues = "ai.responses.astrology.queue")
     public void handleAiResponse(AiAnalysisResponseEvent event) {
@@ -198,10 +202,15 @@ public class AstrologyResponseListener {
                 int baseScore = synastry.getHarmonyScore() == null
                         ? 50
                         : Math.max(0, Math.min(100, synastry.getHarmonyScore()));
-                synastry.setHarmonyScore(resolveHarmonyScore(parsed.get("harmonyScore"), baseScore));
+                int resolvedHarmonyScore = resolveHarmonyScore(parsed.get("harmonyScore"), baseScore);
+                synastry.setHarmonyScore(resolvedHarmonyScore);
 
                 String fallbackInsight = buildFallbackHarmonyInsight(synastry);
-                synastry.setHarmonyInsight(ensureTurkishText((String) parsed.get("harmonyInsight"), fallbackInsight));
+                synastry.setHarmonyInsight(normalizeHarmonyInsight(
+                        (String) parsed.get("harmonyInsight"),
+                        fallbackInsight,
+                        resolvedHarmonyScore
+                ));
 
                 List<String> strengths = normalizeTextList(
                         parsed.get("strengths"),
@@ -290,6 +299,18 @@ public class AstrologyResponseListener {
         String normalized = replaceCommonEnglishTerms(value == null ? "" : value).trim();
         if (normalized.isBlank()) return fallback;
         if (looksEnglishDominant(normalized)) return fallback;
+        return normalized;
+    }
+
+    private String normalizeHarmonyInsight(String value, String fallback, int resolvedHarmonyScore) {
+        String normalized = ensureTurkishText(value, fallback);
+        if (normalized == null || normalized.isBlank()) {
+            return fallback;
+        }
+        if (CANNED_HARMONY_INSIGHT_PATTERN.matcher(normalized).matches()) {
+            log.warn("Detected canned harmonyInsight template text; using fallback. score={}", resolvedHarmonyScore);
+            return fallback;
+        }
         return normalized;
     }
 

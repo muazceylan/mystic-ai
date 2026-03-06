@@ -958,7 +958,8 @@ public class MysticalPromptTemplates {
                 - harmonyInsight: TAM OLARAK 3 kısa paragraf. Her paragraf 2-3 cümle.
                   Paragraf 1: güçlü bağlar. Paragraf 2: zorlayıcı açılar. Paragraf 3: gelişim fırsatları.
                   Genel enerji dinamiğini ver; öne çıkan 1-2 açıyı derece/orb ile belirt.
-                  Skoru doğal bir cümle içinde geç. Örnek: "Bu iki haritanın uyumu 72 puan..."
+                  Skoru doğal bir cümle içinde geç; SABİT örnek sayı/metin kopyalama.
+                  Kullandığın puan, bu yanıtta ürettiğin harmonyScore ile tutarlı olmalı.
                 - strengths: TAM OLARAK 3 madde. Her biri 1-2 cümle.
                   ZORUNLU: Her maddede gezegen adı + burç + ev + açı tipi + orb referansı olmalı.
                   İyi örnek: "Partnerinin 5. evindeki Venüsü, senin 9. evindeki Marsinle üçgen açı yapıyor (orb: 2.3°) — bu çiftin romantik enerjisi doğal ve sürtünmesiz akar."

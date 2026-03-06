@@ -229,7 +229,7 @@ export default function BirthDateScreen() {
             style={s.primaryButton}
             accessibilityLabel={t('common.continue')}
             accessibilityRole="button"
-            onPress={() => router.push('/birth-time')}
+            onPress={() => router.push('/(auth)/birth-time')}
           >
             <Text style={s.primaryText}>{t('common.continue')}</Text>
           </TouchableOpacity>

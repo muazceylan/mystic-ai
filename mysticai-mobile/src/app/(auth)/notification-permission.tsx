@@ -242,12 +242,12 @@ export default function NotificationPermissionScreen() {
       // Permission denied or unavailable — proceed anyway
     } finally {
       setRequesting(false);
-      router.push('/natal-chart');
+      router.push('/(auth)/natal-chart');
     }
   };
 
   const handleSkip = () => {
-    router.push('/natal-chart');
+    router.push('/(auth)/natal-chart');
   };
 
   return (

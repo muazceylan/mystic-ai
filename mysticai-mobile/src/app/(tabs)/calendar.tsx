@@ -544,6 +544,7 @@ export default function CalendarScreen() {
 
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
+  const natalChartLoading = useNatalChartStore((s) => s.isLoading);
 
   const hiddenCategoryIds = usePlannerPreferencesStore((s) => s.hiddenCategoryIds);
   const setCategoryVisibility = usePlannerPreferencesStore((s) => s.setCategoryVisibility);
@@ -1589,6 +1590,25 @@ export default function CalendarScreen() {
     [backendInsightsByDate, selectedDate],
   );
   const isBeyondBackendWindow = !selectedDateHasBackendData;
+
+  if (!chart && natalChartLoading) {
+    return (
+      <SafeScreen edges={['top', 'left', 'right']}>
+        <View style={styles.container}>
+          <OnboardingBackground />
+          <LinearGradient
+            colors={isDark ? ['rgba(10,15,32,0.7)', 'rgba(2,6,23,0.98)'] : ['rgba(226,232,240,0.4)', 'rgba(248,250,252,0.96)']}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.emptyText}>{t('calendar.loading')}</Text>
+          </View>
+        </View>
+      </SafeScreen>
+    );
+  }
 
   if (!chart) {
     return (

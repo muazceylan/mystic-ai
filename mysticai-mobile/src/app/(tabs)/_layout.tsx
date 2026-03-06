@@ -11,6 +11,7 @@ import {
   clearPlannerFullDistributionCache,
   prefetchPlannerFullDistribution,
 } from '../../services/lucky-dates.service';
+import { ensureNatalChartForUser } from '../../services/natalChartBootstrap.service';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope.service';
@@ -37,6 +38,10 @@ export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
+  const isNatalChartStale = useNatalChartStore((s) => s.isStale);
+  const setNatalChart = useNatalChartStore((s) => s.setChart);
+  const setNatalChartLoading = useNatalChartStore((s) => s.setLoading);
+  const setNatalChartError = useNatalChartStore((s) => s.setError);
   const prefetchKeyRef = useRef<string | null>(null);
   const lastDateRef = useRef<string>(toIsoDate(new Date()));
 
@@ -57,6 +62,56 @@ export default function TabsLayout() {
     () => ((i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     [i18n.language, i18n.resolvedLanguage],
   );
+
+  useEffect(() => {
+    let active = true;
+
+    if (!user?.id) {
+      setNatalChartLoading(false);
+      return undefined;
+    }
+
+    if (chart && !isNatalChartStale()) {
+      setNatalChartLoading(false);
+      return undefined;
+    }
+
+    setNatalChartLoading(true);
+    setNatalChartError(null);
+
+    const bootstrapNatalChart = async () => {
+      try {
+        const ensuredChart = await ensureNatalChartForUser(user);
+        if (!active || !ensuredChart) return;
+        setNatalChart(ensuredChart);
+      } catch (error: any) {
+        if (!active) return;
+        const message = typeof error?.response?.data?.message === 'string'
+          ? error.response.data.message
+          : typeof error?.message === 'string'
+            ? error.message
+            : null;
+        setNatalChartError(message);
+      } finally {
+        if (active) {
+          setNatalChartLoading(false);
+        }
+      }
+    };
+
+    void bootstrapNatalChart();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    user,
+    chart,
+    isNatalChartStale,
+    setNatalChart,
+    setNatalChartLoading,
+    setNatalChartError,
+  ]);
 
   useEffect(() => {
     if (!user?.id || !chart) return;

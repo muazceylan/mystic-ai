@@ -8,6 +8,8 @@ public record UserDTO(
         Long id,
         String username,
         String email,
+        String accountStatus,
+        LocalDateTime emailVerifiedAt,
         String firstName,
         String lastName,
         String name,
@@ -40,6 +42,8 @@ public record UserDTO(
         private Long id;
         private String username;
         private String email;
+        private String accountStatus;
+        private LocalDateTime emailVerifiedAt;
         private String firstName;
         private String lastName;
         private String name;
@@ -63,6 +67,8 @@ public record UserDTO(
         public UserDTOBuilder id(Long id) { this.id = id; return this; }
         public UserDTOBuilder username(String username) { this.username = username; return this; }
         public UserDTOBuilder email(String email) { this.email = email; return this; }
+        public UserDTOBuilder accountStatus(String accountStatus) { this.accountStatus = accountStatus; return this; }
+        public UserDTOBuilder emailVerifiedAt(LocalDateTime emailVerifiedAt) { this.emailVerifiedAt = emailVerifiedAt; return this; }
         public UserDTOBuilder firstName(String firstName) { this.firstName = firstName; return this; }
         public UserDTOBuilder lastName(String lastName) { this.lastName = lastName; return this; }
         public UserDTOBuilder name(String name) { this.name = name; return this; }
@@ -84,7 +90,7 @@ public record UserDTO(
         public UserDTOBuilder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public UserDTO build() {
-            return new UserDTO(id, username, email, firstName, lastName, name,
+            return new UserDTO(id, username, email, accountStatus, emailVerifiedAt, firstName, lastName, name,
                     birthDate, birthTime, birthLocation,
                     birthCountry, birthCity, birthTimeUnknown, timezone,
                     gender, maritalStatus, focusPoint, zodiacSign, preferredLanguage,

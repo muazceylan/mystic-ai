@@ -1,0 +1,145 @@
+import type { ComparisonResponseDTO } from '../../types/compare';
+
+export const compareV3Fixtures: Record<
+  'loveHighConfidence' | 'workMediumConfidence' | 'familyLowConfidence' | 'rivalWithWarning',
+  ComparisonResponseDTO
+> = {
+  loveHighConfidence: {
+    module: 'LOVE',
+    relationshipType: 'love',
+    overall: {
+      score: 82,
+      levelLabel: 'Güçlü Eşleşme',
+      confidence: 0.84,
+      confidenceLabel: 'Yüksek',
+      percentile: 88,
+    },
+    summary: {
+      headline: 'Yakınlık güçlü, denge belirleyici',
+      shortNarrative:
+        'Bu eşleşmede duygusal yakınlık ve çekim tarafı güçlü şekilde öne çıkıyor. Günlük hayatta ilgi gösterme biçimi ve konuşma zamanlaması ilişki akışını doğrudan etkileyebilir. Özellikle yoğun dönemlerde tempo farkı belirginleştiğinde kısa ve net iletişim kurmak ilişkiyi daha rahat taşır.',
+      dailyLifeHint: 'Yoğun günlerde kısa check-in ritmi kurmak güven duygusunu korur.',
+    },
+    moduleIntro: 'Bu modülde çekim, güven ve yakınlık ritmi birlikte ölçülür.',
+    metricCards: [
+      { id: 'love.attraction', title: 'Çekim', score: 86, status: 'strong', insight: 'İlgi karşılıklı ve hızlı şekilde yükseliyor.' },
+      { id: 'love.emotionalBond', title: 'Duygusal Bağ', score: 81, status: 'strong', insight: 'Duygusal bağ güvenli ve besleyici ilerliyor.' },
+      { id: 'love.trust', title: 'Güven', score: 74, status: 'balanced', insight: 'Tutarlılık beklentisi zaman zaman öne çıkıyor.' },
+      { id: 'love.romanticFlow', title: 'Romantik Akış', score: 77, status: 'balanced', insight: 'Romantik akışta sıcak bir ritim korunuyor.' },
+      { id: 'love.proximityBalance', title: 'Yakınlık Dengesi', score: 69, status: 'balanced', insight: 'Yakınlık ve alan ihtiyacı genel olarak dengede.' },
+    ],
+    topDrivers: {
+      supportive: [{ title: 'Çekim', impact: 26, why: 'İlgi ve yakınlık sinyalleri karşılıklı çalışıyor.', hint: 'Ortak keyif alanlarını düzenli artırın.' }],
+      challenging: [{ title: 'Yakınlık Dengesi', impact: 9, why: 'Alan ihtiyacı zaman zaman farklılaşıyor.', hint: 'Yakınlık beklentisini açık konuşun.' }],
+      growth: [{ title: 'Güven', impact: 14, why: 'Söz takibiyle hızlı güçlenebilecek bir alan.', hint: 'Verilen sözleri aynı hafta içinde kapatın.' }],
+    },
+    themeSections: [],
+    explainability: {
+      calculationVersion: 'compare-v3.0.0',
+      factorsUsed: ['aspect_type', 'orb_decay', 'module_weight'],
+      dataQuality: 'high',
+      generatedAt: '2026-03-06T08:00:00Z',
+      distributionWarning: null,
+      missingBirthTimeImpact: null,
+      moduleScoringProfile: 'love-v3-venus-moon-mars',
+    },
+    warningText: null,
+    technicalAspects: [],
+  },
+  workMediumConfidence: {
+    module: 'WORK',
+    relationshipType: 'work',
+    overall: {
+      score: 67,
+      levelLabel: 'Dengeli Uyum',
+      confidence: 0.64,
+      confidenceLabel: 'Orta',
+      percentile: 62,
+    },
+    summary: {
+      headline: 'Plan var, tempo ayarı önemli',
+      shortNarrative:
+        'Bu modülde planlama ve görev tamamlama tarafı dengeli bir zeminde görünüyor. Günlük iş akışında özellikle karar hızındaki farklılıklar kısa sürtünmeler yaratabilir. Gerilim anlarında tek konu kuralı ve net görev tanımı kullanmak birlikte üretimi daha sürdürülebilir hale getirir.',
+      dailyLifeHint: 'Kritik kararlarda kısa yazılı özetle onay almak tempo farkını azaltır.',
+    },
+    moduleIntro: 'Bu modülde plan, iletişim ve iş tamamlama uyumu birlikte değerlendirilir.',
+    metricCards: [],
+    topDrivers: { supportive: [], challenging: [], growth: [] },
+    themeSections: [],
+    explainability: {
+      calculationVersion: 'compare-v3.0.0',
+      factorsUsed: ['aspect_type', 'planet_pair_weight', 'confidence_damping'],
+      dataQuality: 'medium',
+      generatedAt: '2026-03-06T08:05:00Z',
+      distributionWarning: null,
+      missingBirthTimeImpact: null,
+      moduleScoringProfile: 'work-v3-mercury-saturn-mars',
+    },
+    warningText: null,
+    technicalAspects: [],
+  },
+  familyLowConfidence: {
+    module: 'FAMILY',
+    relationshipType: 'family',
+    overall: {
+      score: 59,
+      levelLabel: 'Dengeli Uyum',
+      confidence: 0.47,
+      confidenceLabel: 'Sınırlı',
+      percentile: 51,
+    },
+    summary: {
+      headline: 'Aidiyet var, netlik artmalı',
+      shortNarrative:
+        'Bu modülde aidiyet ve sorumluluk akışı temkinli bir dengeyle ilerliyor. Veri netliği sınırlı olduğu için özellikle ev bazlı detaylar daha yumuşak yorumlanmalı. Günlük hayatta beklentileri açık konuşmak ve küçük sorumluluk paylaşımı yapmak ilişkiyi daha rahat taşır.',
+      dailyLifeHint: 'Aile içi beklentileri aylık kısa konuşma ile netleştirin.',
+    },
+    moduleIntro: 'Bu modülde aidiyet, hassasiyet ve sorumluluk paylaşımı değerlendirilir.',
+    metricCards: [],
+    topDrivers: { supportive: [], challenging: [], growth: [] },
+    themeSections: [],
+    explainability: {
+      calculationVersion: 'compare-v3.0.0',
+      factorsUsed: ['aspect_type', 'orb_decay', 'confidence_damping'],
+      dataQuality: 'limited',
+      generatedAt: '2026-03-06T08:10:00Z',
+      distributionWarning: 'low_confidence_damped',
+      missingBirthTimeImpact: 'Doğum saati belirsizliği bu modülde yorum hassasiyetini azaltır.',
+      moduleScoringProfile: 'family-v3-moon-saturn-venus',
+    },
+    warningText: 'Veri netliği sınırlı olduğu için skorlar daha temkinli yorumlanmıştır.',
+    technicalAspects: [],
+  },
+  rivalWithWarning: {
+    module: 'RIVAL',
+    relationshipType: 'rival',
+    overall: {
+      score: 57,
+      levelLabel: 'Zorlayıcı Denge',
+      confidence: 0.73,
+      confidenceLabel: 'Orta',
+      percentile: 49,
+    },
+    summary: {
+      headline: 'Rekabet güçlü, kontrol kritik',
+      shortNarrative:
+        'Bu modülde rekabet ve tempo tarafı canlı görünüyor; özellikle baskı anlarında tepki hızı sonucu belirleyebilir. Günlük akışta kural yorumlarının farklılaşması gerilimi hızlı yükseltebilir. Önceden net oyun çerçevesi belirlemek ve tetiklenme anında kısa duraklama koymak dengeyi korur.',
+      dailyLifeHint: 'Kural ve sınırları oyun başlamadan önce netleştirmek gerilimi azaltır.',
+    },
+    moduleIntro: 'Bu modülde strateji, tempo ve baskı altı performans analizi yapılır.',
+    metricCards: [],
+    topDrivers: { supportive: [], challenging: [], growth: [] },
+    themeSections: [],
+    explainability: {
+      calculationVersion: 'compare-v3.0.0',
+      factorsUsed: ['module_weight', 'orb_decay', 'supportive_challenging_split'],
+      dataQuality: 'medium',
+      generatedAt: '2026-03-06T08:15:00Z',
+      distributionWarning: 'scores_clustered',
+      missingBirthTimeImpact: null,
+      moduleScoringProfile: 'rival-v3-mars-pluto-saturn',
+    },
+    warningText: 'Bu eşleşmede alanlar birbirine yakın görünüyor; sonuç daha çok genel ritimden etkileniyor.',
+    technicalAspects: [],
+  },
+};

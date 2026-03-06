@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +41,9 @@ public class SynastryService {
     private static final Set<String> FRIEND_KEY_PLANETS   = Set.of("Jupiter", "Sun", "Moon", "Mercury", "Venus");
     private static final Set<String> FAMILY_KEY_PLANETS   = Set.of("Moon", "Sun", "Saturn", "Venus", "Jupiter");
     private static final Set<String> RIVAL_KEY_PLANETS    = Set.of("Mars", "Saturn", "Pluto", "Sun");
+    private static final Pattern CANNED_HARMONY_INSIGHT_PATTERN = Pattern.compile(
+            "(?is).*bu\\s+iki\\s+haritan[ıi]n\\s+uyumu\\s*\\d+\\s*puan.*güçlü\\s+bir\\s+çekim\\s+yarat[ıi]yor.*"
+    );
 
     private enum PartyType { USER, SAVED_PERSON }
 
@@ -949,11 +953,18 @@ public class SynastryService {
         SynastryScoreBreakdown scoreBreakdown = buildScoreBreakdown(aspects, s.getRelationshipType(), s.getHarmonyScore());
         List<SynastryAnalysisSection> analysisSections = buildAnalysisSections(aspects, s.getRelationshipType());
         List<SynastryDisplayMetric> displayMetrics = buildDisplayMetrics(aspects, s.getRelationshipType(), scoreBreakdown);
+        String normalizedInsight = sanitizeHarmonyInsightForResponse(
+                s.getHarmonyInsight(),
+                s.getHarmonyScore(),
+                s.getRelationshipType(),
+                personA,
+                personB
+        );
         return new SynastryResponse(
                 s.getId(), s.getUserId(), s.getSavedPersonId(),
                 personB != null ? personB.name() : null,
                 s.getRelationshipType(), s.getHarmonyScore(),
-                aspects, s.getHarmonyInsight(), strengths, challenges,
+                aspects, normalizedInsight, strengths, challenges,
                 s.getKeyWarning(), s.getCosmicAdvice(), s.getStatus(),
                 s.getCalculatedAt(),
                 personA != null ? personA.id() : s.getPersonAId(),
@@ -966,6 +977,47 @@ public class SynastryService {
                 analysisSections,
                 displayMetrics
         );
+    }
+
+    private String sanitizeHarmonyInsightForResponse(
+            String insight,
+            Integer harmonyScore,
+            String relationshipType,
+            PartySummary personA,
+            PartySummary personB
+    ) {
+        String normalized = insight == null ? "" : insight.trim();
+        if (!normalized.isBlank() && !CANNED_HARMONY_INSIGHT_PATTERN.matcher(normalized).matches()) {
+            return normalized;
+        }
+        return buildResponseFallbackInsight(harmonyScore, relationshipType, personA, personB);
+    }
+
+    private String buildResponseFallbackInsight(
+            Integer harmonyScore,
+            String relationshipType,
+            PartySummary personA,
+            PartySummary personB
+    ) {
+        int score = harmonyScore == null ? 50 : Math.max(0, Math.min(100, harmonyScore));
+        String relation = switch ((relationshipType == null ? "" : relationshipType).toUpperCase(Locale.ROOT)) {
+            case "LOVE" -> "aşk";
+            case "BUSINESS" -> "iş ortaklığı";
+            case "FRIENDSHIP" -> "arkadaşlık";
+            case "FAMILY" -> "aile bağı";
+            case "RIVAL" -> "rekabet";
+            default -> "ilişki";
+        };
+        String personAName = personA != null && personA.name() != null && !personA.name().isBlank()
+                ? personA.name()
+                : "Kişi A";
+        String personBName = personB != null && personB.name() != null && !personB.name().isBlank()
+                ? personB.name()
+                : "Kişi B";
+
+        return "%s ve %s arasında %s odağında %d puanlık bir uyum görünüyor. "
+                .formatted(personAName, personBName, relation, score)
+                + "Güçlü başlıkları koruyup zorlayıcı alanlarda iletişim ritmini netleştirmek ilişkiyi dengeler.";
     }
 
     private List<String> parseStringList(String json) {

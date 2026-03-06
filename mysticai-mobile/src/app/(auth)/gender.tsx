@@ -181,7 +181,7 @@ export default function GenderScreen() {
         <TouchableOpacity
           style={[styles.primaryButton, !store.gender && styles.primaryDisabled]}
           disabled={!store.gender}
-          onPress={() => router.push('/marital-status')}
+          onPress={() => router.push('/(auth)/marital-status')}
           accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >

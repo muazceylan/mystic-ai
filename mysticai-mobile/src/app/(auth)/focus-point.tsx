@@ -144,7 +144,7 @@ export default function FocusPointScreen() {
         <Text style={styles.title}>{t('auth.focusPointTitle')}</Text>
         <Text style={styles.subtitle}>
           {t('auth.focusPointSubtitle')}
-        </Text>bu
+        </Text>
 
         <View style={styles.grid}>
           {FOCUS_POINTS.map((point) => {
@@ -191,7 +191,7 @@ export default function FocusPointScreen() {
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
           disabled={!canContinue}
-          onPress={() => router.push('/notification-permission')}
+          onPress={() => router.push('/(auth)/notification-permission')}
           accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >

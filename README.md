@@ -95,7 +95,7 @@ cp mysticai-mobile/.env.example mysticai-mobile/.env
 ```bash
 make infra
 # alternatif:
-# docker compose up -d postgres rabbitmq redis zipkin
+# docker compose up -d postgres rabbitmq redis zipkin mailhog
 ```
 
 ### 3) Backend Servislerini Baslat
@@ -148,9 +148,20 @@ Notlar:
 | `DB_PASSWORD` | `mystic123` |
 | `RABBITMQ_HOST` | `localhost` |
 | `RABBITMQ_PORT` | `5672` |
+| `RABBITMQ_VHOST` | `mystic` |
 | `REDIS_HOST` | `localhost` |
 | `REDIS_PORT` | `6379` |
 | `JWT_SECRET` | Base64 secret |
+| `ENV` | `local` (`local / staging / prod`) |
+| `API_PUBLIC_URL` | `http://localhost:8080` |
+| `APP_PUBLIC_URL` | bos (`https://app.<domain>` when domain is ready) |
+| `VERIFICATION_TOKEN_PEPPER` | secret pepper |
+| `VERIFICATION_TOKEN_TTL_HOURS` | `24` |
+| `VERIFICATION_RESEND_COOLDOWN_SECONDS` | `60` |
+| `VERIFICATION_RESEND_DAILY_LIMIT` | `5` |
+| `MAIL_HOST` | `localhost` (MailHog: `1025`) |
+| `MAIL_PORT` | `1025` |
+| `MAIL_FROM` | `no-reply@mysticai.local` |
 | `GROQ_API_KEY` | AI key |
 
 ### Mobile `mysticai-mobile/.env`
@@ -164,6 +175,51 @@ Notlar:
 | `EXPO_PUBLIC_USE_MOCK` | Mock data togglesi |
 | `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` | Places API anahtari |
 | `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | Maps API anahtari |
+
+## Email Verification (Domain yokken ve domain varken)
+
+Auth endpointleri:
+
+- `POST /api/v1/auth/register` -> `{ \"status\": \"PENDING_VERIFICATION\" }`
+- `POST /api/v1/auth/verification/resend` -> her zaman `{ \"ok\": true }`
+- `GET /api/v1/auth/verify-email?token=...`
+- `POST /api/v1/auth/login` -> verified degilse `401` + `EMAIL_NOT_VERIFIED`
+
+Mail linki her ortamda backend URL'sine gider:
+
+`{API_PUBLIC_URL}/api/v1/auth/verify-email?token=<rawToken>`
+
+Verify endpoint davranisi:
+
+- `ENV=local`: her zaman HTML sonucu doner (success/expired/invalid)
+- `ENV=staging`: `APP_PUBLIC_URL` varsa success durumda `302 -> {APP_PUBLIC_URL}/verify-email?result=success`, yoksa HTML fallback
+- `ENV=prod`: her zaman `302 -> {APP_PUBLIC_URL}/verify-email?result=success|expired|invalid`
+
+### Domain yokken telefon testi (ngrok/IP)
+
+1. Backend servislerini localde calistir.
+2. `ngrok http 8080` komutuyla public tunnel ac.
+3. `API_PUBLIC_URL` degerini ngrok URL yap (ornek: `https://xxxx.ngrok-free.app`).
+4. Register ol. Maildeki verify linki ngrok URL ile backend'e doner.
+5. Verify tamamlaninca:
+   - `ENV=staging` + `APP_PUBLIC_URL` yoksa HTML fallback gorunur.
+   - `APP_PUBLIC_URL` varsa success durumunda app/web verify sayfasina redirect olur.
+
+Not:
+
+- Domain olmadan universal/app links test etmek istersen, `APP_PUBLIC_URL` degerini ngrok ile yayinlanan bir verify web sayfasina verebilirsin.
+- Domain hazir oldugunda kod degisikligi gerekmiyor. Sadece env guncelle:
+  - `API_PUBLIC_URL=https://api.<domain>`
+  - `APP_PUBLIC_URL=https://app.<domain>`
+- Expo tarafinda custom scheme `mystic-ai://verify-email` tanimli. Uygulamada `/verify-email` ekrani `result` query parametresine gore durum gosterir.
+
+### RabbitMQ Retry/DLQ Isletim Notu
+
+- Worker hata aldiginda mesaj direkt requeue olmaz; `auth.email.verification.retry.queue` uzerinden gecikmeli retry alir.
+- Maks retry asildiginda mesaj `auth.email.verification.dlq` kuyruğuna tasinir.
+- Kuyruklari kontrol etmek icin RabbitMQ UI (`http://localhost:15672`) veya:
+  - `docker exec mystic-rabbitmq rabbitmqctl list_queues name messages`
+- DLQ replay ihtiyacinda mesajlari `auth.email.verification.send` routing key ile tekrar publish edin.
 
 ## Yeni API Gruplari
 
@@ -217,6 +273,7 @@ docker compose --profile tools up -d
 | Eureka | http://localhost:8761 |
 | Swagger (Gateway) | http://localhost:8080/swagger-ui.html |
 | RabbitMQ UI | http://localhost:15672 |
+| MailHog UI | http://localhost:8025 |
 | Zipkin | http://localhost:9411 |
 | pgAdmin | http://localhost:5050 |
 | Grafana | http://localhost:3000 |

@@ -243,7 +243,7 @@ export default function BirthTimeScreen() {
             accessibilityLabel={t('common.continue')}
             accessibilityRole="button"
             disabled={!canContinue}
-            onPress={() => router.push('/birth-country')}
+            onPress={() => router.push('/(auth)/birth-country')}
           >
             <Text style={[s.primaryText, !canContinue && s.primaryTextDisabled]}>
               {t('common.continue')}

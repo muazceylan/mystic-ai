@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -24,6 +24,7 @@ import { parseRelationshipTypeParam } from '../../../services/compare.service';
 import useComparison from '../../../hooks/useComparison';
 import RelationshipTypeChips from '../../../components/RelationshipTypeChips';
 import CompareHeader from '../../../components/compare/CompareHeader';
+import { trackEvent } from '../../../services/analytics';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -51,10 +52,10 @@ export default function TechnicalAnalysisScreen() {
     rightSignLabel?: string;
   }>();
 
-  const matchId = parsePositiveInt(params.matchId) ?? 1;
+  const matchId = parsePositiveInt(params.matchId);
   const relationshipType = parseRelationshipTypeParam(firstParam(params.type), 'love');
-  const leftName = firstParam(params.leftName) ?? 'Kişi 1';
-  const rightName = firstParam(params.rightName) ?? 'Kişi 2';
+  const leftName = firstParam(params.leftName) ?? '';
+  const rightName = firstParam(params.rightName) ?? '';
   const leftAvatarUri = firstParam(params.leftAvatarUri);
   const rightAvatarUri = firstParam(params.rightAvatarUri);
   const leftSignLabel = firstParam(params.leftSignLabel);
@@ -63,12 +64,12 @@ export default function TechnicalAnalysisScreen() {
   const [filter, setFilter] = useState<TechnicalFilter>('all');
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
-  const { data, loading, error, isMock, refetch } = useComparison({
+  const { data, loading, error, refetch } = useComparison({
     matchId,
     relationshipType,
     leftName,
     rightName,
-    enabled: true,
+    enabled: matchId != null,
   });
 
   const filteredAspects = useMemo(() => {
@@ -83,13 +84,37 @@ export default function TechnicalAnalysisScreen() {
 
   const palette = getRelationshipPalette(relationshipType);
 
+  useEffect(() => {
+    if (!data) return;
+    trackEvent('compare_technical_open', {
+      module: data.module,
+      relationship_type: data.relationshipType,
+      match_id: matchId ?? 0,
+      score: data.overall.score,
+      score_band: data.overall.levelLabel,
+      confidence_label: data.overall.confidenceLabel,
+      data_quality: data.explainability.dataQuality,
+      calculation_version: data.explainability.calculationVersion,
+      source: 'technical_screen_load',
+    });
+  }, [data, matchId]);
+
   const onTypeSwitch = (nextType: RelationshipType) => {
+    trackEvent('compare_tab_switch', {
+      from_module: relationshipType,
+      to_module: nextType,
+      match_id: matchId ?? 0,
+      current_score: data?.overall.score ?? null,
+      current_confidence_label: data?.overall.confidenceLabel ?? null,
+      source: 'technical',
+    });
+
     setExpandedRows({});
     router.replace({
       pathname: '/compare/technical',
       params: {
         type: nextType,
-        matchId: String(matchId),
+        ...(matchId ? { matchId: String(matchId) } : {}),
         leftName,
         rightName,
         ...(leftAvatarUri ? { leftAvatarUri } : {}),
@@ -105,7 +130,7 @@ export default function TechnicalAnalysisScreen() {
       pathname: '/compare',
       params: {
         type: relationshipType,
-        matchId: String(matchId),
+        ...(matchId ? { matchId: String(matchId) } : {}),
         leftName,
         rightName,
         ...(leftAvatarUri ? { leftAvatarUri } : {}),
@@ -206,10 +231,10 @@ export default function TechnicalAnalysisScreen() {
           </Pressable>
         </View>
 
-        {isMock ? (
-          <View style={styles.mockBanner}>
-            <AccessibleText style={styles.mockText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Canlı endpoint yerine mock detay listesi gösteriliyor.
+        {!matchId ? (
+          <View style={styles.stateCard}>
+            <AccessibleText style={styles.errorText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
+              Detaylı analiz için geçerli bir eşleşme bulunamadı. Önce uyum testi oluşturun.
             </AccessibleText>
           </View>
         ) : null}
@@ -272,26 +297,34 @@ export default function TechnicalAnalysisScreen() {
                     style={styles.aspectMeta}
                     maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                   >
-                    {aspect.themeGroup} • Orb {aspect.orb.toFixed(1)}°
+                    {aspect.themeGroup} • Orb {aspect.orb.toFixed(1)}° • {aspect.orbLabel}
                   </AccessibleText>
                 </View>
 
-                <View
-                  style={[
-                    styles.aspectTypeBadge,
-                    supportive ? styles.supportiveTypeBadge : styles.challengingTypeBadge,
-                  ]}
-                >
-                  {supportive ? (
-                    <CheckCircle2 size={12} color="#166534" />
-                  ) : (
-                    <AlertTriangle size={12} color="#9F1239" />
-                  )}
+                <View style={styles.aspectStatusWrap}>
+                  <View
+                    style={[
+                      styles.aspectTypeBadge,
+                      supportive ? styles.supportiveTypeBadge : styles.challengingTypeBadge,
+                    ]}
+                  >
+                    {supportive ? (
+                      <CheckCircle2 size={12} color="#166534" />
+                    ) : (
+                      <AlertTriangle size={12} color="#9F1239" />
+                    )}
+                    <AccessibleText
+                      style={[styles.aspectTypeText, supportive ? styles.supportiveText : styles.challengingText]}
+                      maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                    >
+                      {supportive ? 'Destekleyici' : 'Zorlayıcı'}
+                    </AccessibleText>
+                  </View>
                   <AccessibleText
-                    style={[styles.aspectTypeText, supportive ? styles.supportiveText : styles.challengingText]}
+                    style={styles.aspectIntensityText}
                     maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                   >
-                    {supportive ? 'Destekleyici' : 'Zorlayıcı'}
+                    {aspect.orbMicrocopy}
                   </AccessibleText>
                 </View>
 
@@ -302,23 +335,81 @@ export default function TechnicalAnalysisScreen() {
                 style={styles.aspectMeaning}
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
               >
-                {aspect.plainMeaning}
+                {aspect.shortInterpretation}
               </AccessibleText>
+
+              <View style={styles.astroKeyRow}>
+                <AccessibleText
+                  style={styles.astroKeyLabel}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  Astrolojik anahtar
+                </AccessibleText>
+                <AccessibleText
+                  style={styles.astroKeyText}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  {aspect.technicalKey}
+                </AccessibleText>
+              </View>
 
               {expanded ? (
                 <View style={styles.detailBox}>
+                  <View style={styles.detailSection}>
+                    <AccessibleText
+                      style={styles.detailTitle}
+                      maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                    >
+                      Karşılaştırma Yorumu
+                    </AccessibleText>
+                    <AccessibleText
+                      style={styles.detailText}
+                      maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                    >
+                      {aspect.comparisonInsight}
+                    </AccessibleText>
+                  </View>
+
+                  <View style={styles.detailDivider} />
+
+                  <View style={styles.detailSection}>
+                    <AccessibleText
+                      style={styles.detailTitle}
+                      maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                    >
+                      Günlük Hayatta
+                    </AccessibleText>
+                    <AccessibleText
+                      style={styles.detailText}
+                      maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                    >
+                      {aspect.practicalMeaning}
+                    </AccessibleText>
+                  </View>
+
                   <AccessibleText
-                    style={styles.detailTitle}
+                    style={styles.orbInsight}
                     maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                   >
-                    Öneri
+                    {aspect.orbInsight}
                   </AccessibleText>
-                  <AccessibleText
-                    style={styles.detailText}
-                    maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-                  >
-                    {aspect.advicePlain}
-                  </AccessibleText>
+
+                  <View style={styles.detailDivider} />
+
+                  <View style={styles.detailSection}>
+                    <AccessibleText
+                      style={styles.detailTitle}
+                      maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                    >
+                      Kullanım Notu
+                    </AccessibleText>
+                    <AccessibleText
+                      style={styles.detailText}
+                      maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                    >
+                      {aspect.usageHint}
+                    </AccessibleText>
+                  </View>
 
                   {aspect.planets?.length ? (
                     <AccessibleText
@@ -362,22 +453,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 108,
-    gap: 10,
+    gap: 12,
   },
   tabRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E8E1F2',
+    borderColor: '#E6DFF0',
     padding: 3,
   },
   activeTab: {
     flex: 1,
     minHeight: 44,
     borderRadius: 11,
-    backgroundColor: '#EEE5FF',
+    backgroundColor: '#F1EAFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -399,7 +490,7 @@ const styles = StyleSheet.create({
     color: '#504866',
   },
   counterCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -453,20 +544,6 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: '#5B21B6',
   },
-  mockBanner: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#D9C9FB',
-    backgroundColor: '#F4EEFF',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  mockText: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: '#6B21A8',
-    fontWeight: '700',
-  },
   stateCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -501,12 +578,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   aspectCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E7E0F1',
+    borderColor: '#E6DFF0',
     backgroundColor: '#FFFFFF',
     padding: 12,
-    gap: 8,
+    gap: 9,
   },
   aspectHead: {
     flexDirection: 'row',
@@ -519,7 +596,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   aspectTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
     color: '#251E38',
     letterSpacing: -0.3,
@@ -537,6 +614,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  aspectStatusWrap: {
+    alignItems: 'flex-end',
+    gap: 4,
+    maxWidth: 220,
   },
   supportiveTypeBadge: {
     backgroundColor: '#EAF9F0',
@@ -556,11 +638,40 @@ const styles = StyleSheet.create({
   challengingText: {
     color: '#9F1239',
   },
+  aspectIntensityText: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#6A627F',
+    fontWeight: '700',
+    textAlign: 'right',
+  },
   aspectMeaning: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
     color: '#453C5D',
     fontWeight: '600',
+  },
+  astroKeyRow: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E7DEF4',
+    backgroundColor: '#F8F4FF',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 3,
+  },
+  astroKeyLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.25,
+    textTransform: 'uppercase',
+    color: '#6B4ED8',
+  },
+  astroKeyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    color: '#352E4A',
   },
   detailBox: {
     borderRadius: 12,
@@ -569,7 +680,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FBF8FF',
     paddingHorizontal: 10,
     paddingVertical: 9,
+    gap: 10,
+  },
+  detailSection: {
     gap: 5,
+  },
+  detailDivider: {
+    height: 1,
+    backgroundColor: '#E7DEF4',
   },
   detailTitle: {
     fontSize: 13,
@@ -587,6 +705,12 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: '#5C5474',
     fontWeight: '600',
+  },
+  orbInsight: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#5E5577',
+    fontWeight: '700',
   },
   emptyCard: {
     marginTop: 2,

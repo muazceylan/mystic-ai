@@ -20,7 +20,7 @@ const ONBOARDING_STEPS = [
 ];
 
 export default function AuthLayout() {
-  const { colors } = useTheme();
+  const { colors, activeTheme } = useTheme();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
 
@@ -33,7 +33,7 @@ export default function AuthLayout() {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
       {stepInfo && (
         <View style={{ paddingTop: insets.top, backgroundColor: colors.bg }}>
           <OnboardingProgressBar
@@ -55,6 +55,9 @@ export default function AuthLayout() {
         }}
       >
         <Stack.Screen name="welcome" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="verify-email-pending" />
+        <Stack.Screen name="verify-email" />
         <Stack.Screen name="email-register" />
         <Stack.Screen name="birth-date" />
         <Stack.Screen name="birth-time" />

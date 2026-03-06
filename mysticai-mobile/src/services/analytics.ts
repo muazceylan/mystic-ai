@@ -2,5 +2,7 @@ export type AnalyticsParams = Record<string, string | number | boolean | null | 
 
 export function trackEvent(name: string, params?: AnalyticsParams): void {
   // TODO: Replace with real analytics SDK integration.
-  console.info(`[analytics][${name}]`, params ?? {});
+  if (__DEV__) {
+    console.info(`[analytics][${name}]`, params ?? {});
+  }
 }

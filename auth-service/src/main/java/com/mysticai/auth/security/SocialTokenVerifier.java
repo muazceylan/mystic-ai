@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -14,6 +15,9 @@ import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -21,6 +25,8 @@ import java.util.Map;
 public class SocialTokenVerifier {
 
     private final ObjectMapper objectMapper;
+    @Value("${auth.google.allowed-client-ids:607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com,607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com}")
+    private String allowedGoogleClientIdsRaw;
 
     public record SocialUserInfo(String socialId, String email, String firstName, String lastName) {}
 
@@ -43,9 +49,17 @@ public class SocialTokenVerifier {
             String email = (String) response.get("email");
             String givenName = (String) response.get("given_name");
             String familyName = (String) response.get("family_name");
+            String audience = (String) response.get("aud");
 
             if (sub == null || email == null) {
                 throw new IllegalArgumentException("Invalid Google token: missing sub or email");
+            }
+            Set<String> allowedGoogleClientIds = Stream.of(allowedGoogleClientIdsRaw.split(","))
+                    .map(String::trim)
+                    .filter(value -> !value.isEmpty())
+                    .collect(Collectors.toSet());
+            if (audience == null || !allowedGoogleClientIds.contains(audience)) {
+                throw new IllegalArgumentException("Invalid Google token: invalid audience");
             }
 
             return new SocialUserInfo(sub, email, givenName, familyName);

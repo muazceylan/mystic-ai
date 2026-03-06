@@ -1,0 +1,49 @@
+spring:
+  cloud:
+    discovery:
+      enabled: false
+  datasource:
+    url: jdbc:h2:mem:authdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+
+EUREKA_CLIENT_ENABLED: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+ENV: local
+API_PUBLIC_URL: http://localhost:8080
+APP_PUBLIC_URL:
+
+jwt:
+  secret: bXlzdGljLWFpLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=
+  expiration: 3600000
+  refresh-expiration: 86400000
+
+auth:
+  verification:
+    token-pepper: test-pepper
+    token-bytes: 48
+    token-ttl-hours: 24
+    resend-cooldown-seconds: 0
+    resend-daily-limit: 10
+    retry:
+      max-attempts: 2
+      delay-seconds: 1

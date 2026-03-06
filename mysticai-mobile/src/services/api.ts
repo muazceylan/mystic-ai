@@ -13,6 +13,19 @@ const api = axios.create({
   timeout: 15000,
 });
 
+function toHeaderUserId(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return String(Math.trunc(value));
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return /^\d+$/.test(trimmed) ? trimmed : null;
+  }
+
+  return null;
+}
+
 // Attach token to every request
 api.interceptors.request.use(async (config: any) => {
   if (!envConfig.isApiConfigured) {
@@ -27,14 +40,13 @@ api.interceptors.request.use(async (config: any) => {
 
   const token = await getToken();
   const authState = useAuthStore.getState();
-  const userId =
-    authState.user?.id != null
-      ? String(authState.user.id)
-      : authState.user?.username?.trim() || 'guest';
+  const userIdHeader = toHeaderUserId(authState.user?.id);
+  const usernameHeader = authState.user?.username?.trim() || undefined;
 
   config.headers = {
     ...(config.headers ?? {}),
-    'X-User-Id': userId,
+    ...(userIdHeader ? { 'X-User-Id': userIdHeader } : {}),
+    ...(usernameHeader ? { 'X-Username': usernameHeader } : {}),
   };
 
   if (token) {
@@ -52,13 +64,13 @@ api.interceptors.response.use(
   (error: any) => {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      if (status === 401 || status === 403) {
+      if (status === 401) {
         const { isAuthenticated, logout } = useAuthStore.getState();
         if (isAuthenticated) {
           logout();
         }
       }
-      if (status !== 401 && status !== 403) {
+      if (status !== 401) {
         logApiError('api', error);
       }
     }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,12 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
+import { makeRedirectUri } from 'expo-auth-session';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -23,6 +24,59 @@ import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { socialLogin, login as loginApi } from '../../services/auth';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+import { trackEvent } from '../../services/analytics';
+
+const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
+
+function firstParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    return value[0] ?? '';
+  }
+  return value ?? '';
+}
+
+function needsOnboarding(user: {
+  birthDate?: string;
+  birthCountry?: string;
+  birthCity?: string;
+  gender?: string;
+  focusPoint?: string;
+}): boolean {
+  const isBlank = (value?: string) => !value || value.trim().length === 0;
+  return (
+    isBlank(user.birthDate) ||
+    isBlank(user.birthCountry) ||
+    isBlank(user.birthCity) ||
+    isBlank(user.gender) ||
+    isBlank(user.focusPoint)
+  );
+}
+
+type GoogleAuthLikeResult = {
+  type?: string;
+  params?: Record<string, string | undefined>;
+  authentication?: { idToken?: string | null } | null;
+};
+
+function extractGoogleIdToken(result: GoogleAuthLikeResult | null | undefined): string | undefined {
+  if (!result || result.type !== 'success') return undefined;
+  return result.params?.id_token ?? result.authentication?.idToken ?? undefined;
+}
+
+function extractIdTokenFromHash(hash: string): string | undefined {
+  const normalized = hash.startsWith('#') ? hash.slice(1) : hash;
+  if (!normalized) return undefined;
+  const params = new URLSearchParams(normalized);
+  return params.get('id_token') ?? undefined;
+}
+
+function extractIdTokenFromPopupMessage(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const data = payload as Record<string, unknown>;
+  if (data.type !== WEB_GOOGLE_POPUP_MESSAGE_TYPE) return undefined;
+  const idToken = data.idToken;
+  return typeof idToken === 'string' && idToken.trim().length > 0 ? idToken : undefined;
+}
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -176,23 +230,52 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   });
 }
 
+const GOOGLE_IOS_CLIENT_ID =
+  process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
+  '607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com';
+const GOOGLE_ANDROID_CLIENT_ID =
+  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
+  '607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID =
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
+  '607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com';
+
 export default function WelcomeScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const storeLogin = useAuthStore((s) => s.login);
+  const pendingEmail = useAuthStore((s) => s.pendingEmail);
+  const setPendingEmail = useAuthStore((s) => s.setPendingEmail);
   const onboarding = useOnboardingStore();
+  const params = useLocalSearchParams<{ email?: string | string[] }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const handledGoogleTokenRef = useRef<string | null>(null);
   const styles = makeStyles(colors);
   const isFormValid = email.trim().length > 0 && password.length > 0;
 
-  const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    iosClientId: "607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com",
-    androidClientId: "607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com",
-    webClientId: "607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com",
+  useEffect(() => {
+    const prefilledEmail = (firstParam(params.email || undefined) || pendingEmail || '').trim().toLowerCase();
+    if (prefilledEmail) {
+      setEmail((prev) => prev || prefilledEmail);
+    }
+  }, [params.email, pendingEmail]);
+
+  const redirectUri = makeRedirectUri({
+    path: 'oauth2/callback',
+    scheme: 'mystic-ai',
+  });
+
+  const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    redirectUri,
+    scopes: ['openid', 'profile', 'email'],
+    selectAccount: true,
   });
 
   const handleSocialLoginResult = async (provider: string, idToken: string) => {
@@ -200,15 +283,16 @@ export default function WelcomeScreen() {
     try {
       const res = await socialLogin(provider, idToken);
       const { accessToken, refreshToken, user, isNewUser } = res.data;
+      const shouldStartOnboarding = isNewUser || needsOnboarding(user);
 
-      if (isNewUser) {
+      if (shouldStartOnboarding) {
         // Pre-fill onboarding with data from social provider
         if (user.firstName) onboarding.setFirstName(user.firstName);
         if (user.lastName) onboarding.setLastName(user.lastName);
         if (user.email) onboarding.setEmail(user.email);
         // Save token — user is authenticated but needs to complete onboarding
         storeLogin(accessToken, refreshToken, user);
-        router.replace('/birth-date');
+        router.replace('/(auth)/birth-date');
       } else {
         storeLogin(accessToken, refreshToken, user);
         router.replace('/(tabs)/home');
@@ -224,13 +308,70 @@ export default function WelcomeScreen() {
   const handleGoogleLogin = async () => {
     try {
       const result = await googlePromptAsync();
-      if (result?.type === 'success' && result.authentication?.idToken) {
-        await handleSocialLoginResult('google', result.authentication.idToken);
+      const idToken = extractGoogleIdToken(result) ?? extractGoogleIdToken(googleResponse);
+
+      if (result?.type === 'success' && idToken) {
+        handledGoogleTokenRef.current = idToken;
+        await handleSocialLoginResult('google', idToken);
+      } else if (result?.type === 'success') {
+        Alert.alert(t('common.error'), t('auth.googleLoginError'));
       }
     } catch (error) {
       Alert.alert(t('common.error'), t('auth.googleLoginError'));
     }
   };
+
+  useEffect(() => {
+    const idToken = extractGoogleIdToken(googleResponse);
+    if (!idToken) return;
+    if (handledGoogleTokenRef.current === idToken) return;
+
+    handledGoogleTokenRef.current = idToken;
+    void handleSocialLoginResult('google', idToken);
+  }, [googleResponse]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const idToken = extractIdTokenFromHash(window.location.hash);
+    if (!idToken) return;
+
+    if (window.opener && window.opener !== window) {
+      try {
+        window.opener.postMessage(
+          { type: WEB_GOOGLE_POPUP_MESSAGE_TYPE, idToken },
+          window.location.origin
+        );
+      } finally {
+        window.close();
+      }
+      return;
+    }
+
+    if (handledGoogleTokenRef.current === idToken) return;
+
+    handledGoogleTokenRef.current = idToken;
+    void handleSocialLoginResult('google', idToken);
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handlePopupMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const idToken = extractIdTokenFromPopupMessage(event.data);
+      if (!idToken) return;
+      if (handledGoogleTokenRef.current === idToken) return;
+
+      handledGoogleTokenRef.current = idToken;
+      void handleSocialLoginResult('google', idToken);
+    };
+
+    window.addEventListener('message', handlePopupMessage);
+    return () => {
+      window.removeEventListener('message', handlePopupMessage);
+    };
+  }, [handleSocialLoginResult]);
 
   const handleAppleLogin = async () => {
     try {
@@ -263,10 +404,32 @@ export default function WelcomeScreen() {
     try {
       const res = await loginApi({ username: email.trim().toLowerCase(), password });
       const { accessToken, refreshToken, user } = res.data;
+      const shouldStartOnboarding = needsOnboarding(user);
       storeLogin(accessToken, refreshToken, user);
-      router.replace('/(tabs)/home');
+      if (shouldStartOnboarding) {
+        router.replace('/(auth)/birth-date');
+      } else {
+        router.replace('/(tabs)/home');
+      }
     } catch (error: any) {
       const status = error?.response?.status;
+      const message = String(error?.response?.data?.message ?? '');
+      const code = String(error?.response?.data?.code ?? '');
+      const isEmailNotVerified =
+        status === 401 &&
+        (message === 'EMAIL_NOT_VERIFIED' ||
+          code === 'EMAIL_NOT_VERIFIED' ||
+          message.includes('EMAIL_NOT_VERIFIED'));
+
+      if (isEmailNotVerified) {
+        trackEvent('auth_login_email_not_verified', { source: 'login' });
+        setPendingEmail(email.trim().toLowerCase());
+        router.replace({
+          pathname: '/(auth)/verify-email-pending',
+          params: { email: email.trim().toLowerCase(), source: 'login' },
+        });
+        return;
+      }
       if (status === 401) {
         setErrorMessage(t('auth.invalidCredentials'));
       } else {
@@ -278,7 +441,10 @@ export default function WelcomeScreen() {
   };
 
   const handleRegister = () => {
-    router.push('/email-register');
+    router.push({
+      pathname: '/(auth)/signup',
+      params: { email: email.trim().toLowerCase() },
+    });
   };
 
   return (

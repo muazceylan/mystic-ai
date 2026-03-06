@@ -11,8 +11,8 @@ help: ## Show this help
 # Infrastructure
 # ===========================================
 
-infra: ## Start core infrastructure (PostgreSQL, RabbitMQ, Redis)
-	docker compose up -d postgres rabbitmq redis
+infra: ## Start core infrastructure (PostgreSQL, RabbitMQ, Redis, MailHog)
+	docker compose up -d postgres rabbitmq redis mailhog
 	@echo ""
 	@echo "Waiting for services to be healthy..."
 	@sleep 5

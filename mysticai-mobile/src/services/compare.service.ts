@@ -4,39 +4,41 @@ import {
   type CrossAspect,
   type SynastryResponse,
 } from './synastry.service';
+import {
+  formatFactorsList,
+  mapDistributionWarningText,
+  normalizeConfidenceLabel,
+  normalizeDataQualityLabel,
+} from './compare.presentation';
 import type {
-  CompareThemeSectionDTO,
-  ComparisonCardDTO,
+  CompareDriverDTO,
+  CompareExplainabilityDTO,
+  CompareMetricCardDTO,
+  CompareModuleCode,
+  CompareSummaryDTO,
+  CompareThemeSectionCardDTO,
+  CompareThemeSectionV3DTO,
   ComparisonResponseDTO,
-  Label,
-  MiniCategoryScoreDTO,
+  DistributionWarningKey,
+  MetricStatus,
   RelationshipType,
   TechnicalAspectDTO,
   ThemeGroup,
 } from '../types/compare';
+import {
+  MODULE_TO_RELATIONSHIP,
+  RELATIONSHIP_TO_MODULE,
+} from '../types/compare';
 
 const COMPARE_BASE = '/api/v1/match';
 
-const ALLOW_COMPARE_MOCK_FALLBACK =
-  (process.env.EXPO_PUBLIC_COMPARE_ALLOW_MOCK_FALLBACK ?? 'true').toLowerCase() !== 'false';
-
-const LABEL_PRIORITY: Record<Label, number> = {
-  Dikkat: 0,
-  Gelişim: 1,
-  Uyumlu: 2,
+const MODULE_INTRO_TEXTS: Record<CompareModuleCode, string> = {
+  LOVE: 'Bu modülde çekim, güven ve yakınlık ritmi birlikte ölçülür.',
+  WORK: 'Bu modülde plan, iletişim ve iş tamamlama uyumu birlikte değerlendirilir.',
+  FRIEND: 'Bu modülde sohbet, destek ve sınır dengesinin akışı ölçülür.',
+  FAMILY: 'Bu modülde aidiyet, hassasiyet ve sorumluluk paylaşımı değerlendirilir.',
+  RIVAL: 'Bu modülde strateji, tempo ve baskı altı performans analizi yapılır.',
 };
-
-const MAIN_TAB_TERM_REPLACEMENTS: Array<{ term: string; replacement: string }> = [
-  { term: 'orb', replacement: 'yakınlık' },
-  { term: 'kavuşum', replacement: 'yakın etkileşim' },
-  { term: 'üçgen', replacement: 'uyumlu akış' },
-  { term: 'kare', replacement: 'gerilim' },
-  { term: 'açı', replacement: 'etkileşim' },
-  { term: 'ev yerleşimi', replacement: 'yaşam alanı odağı' },
-  { term: 'cross', replacement: '' },
-  { term: 'dinamiklır', replacement: 'açılır' },
-  { term: 'dynamiclir', replacement: 'açılır' },
-];
 
 const RELATIONSHIP_TYPE_ALIASES: Record<string, RelationshipType> = {
   LOVE: 'love',
@@ -53,77 +55,6 @@ const RELATIONSHIP_TYPE_ALIASES: Record<string, RelationshipType> = {
   RAKIP: 'rival',
 };
 
-const THEME_GROUP_ALIASES: Record<string, ThemeGroup> = {
-  ASK: 'Aşk & Çekim',
-  ASK_CEKIM: 'Aşk & Çekim',
-  LOVE: 'Aşk & Çekim',
-  CEKIM: 'Aşk & Çekim',
-  ILETISIM: 'İletişim',
-  COMMUNICATION: 'İletişim',
-  GUVEN: 'Güven',
-  TRUST: 'Güven',
-  DUYGUSAL_TEMPO: 'Duygusal Tempo',
-  EMOTIONAL_TEMPO: 'Duygusal Tempo',
-  KARAR_PLAN: 'Karar & Plan',
-  DECISION_PLAN: 'Karar & Plan',
-  AILE_BAGI: 'Aile Bağı',
-  FAMILY_BOND: 'Aile Bağı',
-  DESTEK_SADAKAT: 'Destek & Sadakat',
-  SUPPORT_LOYALTY: 'Destek & Sadakat',
-  IS_BOLUMU: 'İş Bölümü',
-  WORK_SPLIT: 'İş Bölümü',
-  REKABET_STRATEJI: 'Rekabet & Strateji',
-  RIVALRY_STRATEGY: 'Rekabet & Strateji',
-  SINIRLAR: 'Sınırlar',
-  BOUNDARIES: 'Sınırlar',
-  KRIZI_YONETME: 'Krizi Yönetme',
-  CRISIS_MANAGEMENT: 'Krizi Yönetme',
-};
-
-export const RELATIONSHIP_THEME_ORDER: Record<RelationshipType, ThemeGroup[]> = {
-  love: ['Aşk & Çekim', 'İletişim', 'Güven', 'Duygusal Tempo', 'Karar & Plan'],
-  work: ['İş Bölümü', 'İletişim', 'Karar & Plan', 'Krizi Yönetme', 'Güven'],
-  friend: ['Destek & Sadakat', 'İletişim', 'Duygusal Tempo', 'Sınırlar', 'Güven'],
-  family: ['Aile Bağı', 'Güven', 'Sınırlar', 'Duygusal Tempo', 'Karar & Plan'],
-  rival: ['Rekabet & Strateji', 'Krizi Yönetme', 'Sınırlar', 'İletişim', 'Güven'],
-};
-
-export const RELATIONSHIP_MINI_CATEGORY_CONFIG: Record<
-  RelationshipType,
-  Array<{ id: string; label: string; themes: ThemeGroup[] }>
-> = {
-  love: [
-    { id: 'love', label: 'Aşk', themes: ['Aşk & Çekim'] },
-    { id: 'communication', label: 'İletişim', themes: ['İletişim'] },
-    { id: 'trust', label: 'Güven', themes: ['Güven'] },
-    { id: 'passion', label: 'Tutku', themes: ['Duygusal Tempo'] },
-  ],
-  work: [
-    { id: 'efficiency', label: 'Verim', themes: ['İş Bölümü'] },
-    { id: 'communication', label: 'İletişim', themes: ['İletişim'] },
-    { id: 'planning', label: 'Plan', themes: ['Karar & Plan'] },
-    { id: 'conflict', label: 'Çatışma', themes: ['Krizi Yönetme'] },
-  ],
-  friend: [
-    { id: 'fun', label: 'Eğlence', themes: ['Duygusal Tempo'] },
-    { id: 'support', label: 'Destek', themes: ['Destek & Sadakat'] },
-    { id: 'communication', label: 'İletişim', themes: ['İletişim'] },
-    { id: 'loyalty', label: 'Sadakat', themes: ['Güven'] },
-  ],
-  family: [
-    { id: 'bond', label: 'Bağ', themes: ['Aile Bağı'] },
-    { id: 'sensitivity', label: 'Hassasiyet', themes: ['Duygusal Tempo'] },
-    { id: 'responsibility', label: 'Sorumluluk', themes: ['Karar & Plan'] },
-    { id: 'boundaries', label: 'Sınırlar', themes: ['Sınırlar'] },
-  ],
-  rival: [
-    { id: 'strategy', label: 'Strateji', themes: ['Rekabet & Strateji'] },
-    { id: 'resilience', label: 'Dayanıklılık', themes: ['Krizi Yönetme'] },
-    { id: 'trigger', label: 'Tetikleyici', themes: ['İletişim'] },
-    { id: 'fairPlay', label: 'Adil Oyun', themes: ['Sınırlar'] },
-  ],
-};
-
 interface FetchComparisonInput {
   matchId: number;
   relationshipType: RelationshipType;
@@ -136,459 +67,56 @@ export interface FetchComparisonResult {
   isMock: boolean;
 }
 
-interface ThemeTemplate {
-  titles: string[];
-  leftTraits: string[];
-  rightTraits: string[];
-  moments: string[];
-  effects: string[];
-  advices: string[];
-  technicalAspects: Array<{ aspectName: string; planets: string[]; houses?: string[] }>;
+interface MatchTraitsV3Payload {
+  module?: string;
+  overall?: {
+    score?: number;
+    levelLabel?: string;
+    confidence?: number;
+    confidenceLabel?: string;
+    percentile?: number;
+  };
+  summary?: {
+    headline?: string;
+    shortNarrative?: string;
+    dailyLifeHint?: string;
+  };
+  metricCards?: Array<{
+    id?: string;
+    title?: string;
+    score?: number;
+    status?: string;
+    insight?: string;
+  }>;
+  topDrivers?: {
+    supportive?: Array<{ title?: string; impact?: number; why?: string; hint?: string }>;
+    challenging?: Array<{ title?: string; impact?: number; why?: string; hint?: string }>;
+    growth?: Array<{ title?: string; impact?: number; why?: string; hint?: string }>;
+  };
+  themeSections?: Array<{
+    theme?: string;
+    score?: number;
+    miniInsight?: string;
+    cards?: Array<{ title?: string; description?: string; actionHint?: string }>;
+  }>;
+  explainability?: {
+    calculationVersion?: string;
+    factorsUsed?: string[];
+    dataQuality?: string;
+    generatedAt?: string;
+    distributionWarning?: DistributionWarningKey;
+    missingBirthTimeImpact?: string | null;
+    moduleScoringProfile?: string;
+  };
 }
 
-interface RelationshipNarrativeProfile {
-  headlineOptions: string[];
-  summaryActionPhrases: string[];
-  labelPlanByTheme: Partial<Record<ThemeGroup, Label[]>>;
+function parseDistributionWarningKey(value: unknown): DistributionWarningKey {
+  const raw = asString(value, '').toLowerCase();
+  if (raw === 'scores_clustered') return 'scores_clustered';
+  if (raw === 'low_confidence_damped') return 'low_confidence_damped';
+  if (raw === 'house_precision_limited') return 'house_precision_limited';
+  return null;
 }
-
-interface MatchTraitsAxisPayload {
-  id: string;
-  leftLabel: string;
-  rightLabel: string;
-  score0to100: number | null;
-  note?: string | null;
-}
-
-interface MatchTraitsCategoryPayload {
-  id: string;
-  title: string;
-  items: MatchTraitsAxisPayload[];
-}
-
-interface MatchTraitsPayload {
-  matchId: number;
-  compatibilityScore: number | null;
-  categories: MatchTraitsCategoryPayload[];
-  cardAxes: MatchTraitsAxisPayload[];
-  cardSummary?: string | null;
-}
-
-const AXIS_TITLE_MAP: Record<string, string> = {
-  social_asocial: 'Sosyallik Dengesi',
-  calm_energetic: 'Enerji Ritmi',
-  direct_indirect: 'İfade Tarzı',
-  logic_emotion_tone: 'Mantık ve Duygu Dili',
-  expressive_hidden_emotions: 'Duyguyu Gösterme Biçimi',
-  romantic_realistic: 'Yakınlık Beklentisi',
-  spontaneous_planned: 'Planlama Ritmi',
-  risk_cautious: 'Risk Yaklaşımı',
-  tidy_relaxed: 'Düzen Esnekliği',
-  routine_change: 'Rutin ve Değişim',
-  closeness_space: 'Yakınlık ve Alan',
-  possessive_freedom: 'Özgürlük Dengesi',
-  frugal_spender: 'Kaynak Kullanımı',
-  responsible_go_with_flow: 'Sorumluluk Akışı',
-  adventure_comfort: 'Konfor ve Macera',
-  playful_serious: 'Ciddiyet Dengesi',
-};
-
-const CATEGORY_THEME_MAP: Record<RelationshipType, Record<string, ThemeGroup>> = {
-  love: {
-    communication_style: 'İletişim',
-    emotional_world: 'Aşk & Çekim',
-    relationship_dynamics: 'Aşk & Çekim',
-    decision_risk: 'Karar & Plan',
-    social_energy: 'Duygusal Tempo',
-    lifestyle_order: 'Karar & Plan',
-    money_responsibility: 'Güven',
-    fun_adventure: 'Duygusal Tempo',
-  },
-  work: {
-    communication_style: 'İletişim',
-    decision_risk: 'Karar & Plan',
-    lifestyle_order: 'İş Bölümü',
-    money_responsibility: 'İş Bölümü',
-    social_energy: 'Krizi Yönetme',
-    relationship_dynamics: 'Krizi Yönetme',
-    emotional_world: 'Güven',
-    fun_adventure: 'Krizi Yönetme',
-  },
-  friend: {
-    communication_style: 'İletişim',
-    social_energy: 'Duygusal Tempo',
-    emotional_world: 'Destek & Sadakat',
-    relationship_dynamics: 'Sınırlar',
-    fun_adventure: 'Duygusal Tempo',
-    decision_risk: 'Sınırlar',
-    lifestyle_order: 'Sınırlar',
-    money_responsibility: 'Güven',
-  },
-  family: {
-    communication_style: 'Güven',
-    emotional_world: 'Aile Bağı',
-    relationship_dynamics: 'Sınırlar',
-    decision_risk: 'Karar & Plan',
-    lifestyle_order: 'Karar & Plan',
-    money_responsibility: 'Karar & Plan',
-    social_energy: 'Duygusal Tempo',
-    fun_adventure: 'Aile Bağı',
-  },
-  rival: {
-    communication_style: 'İletişim',
-    decision_risk: 'Rekabet & Strateji',
-    relationship_dynamics: 'Rekabet & Strateji',
-    lifestyle_order: 'Krizi Yönetme',
-    money_responsibility: 'Rekabet & Strateji',
-    social_energy: 'Krizi Yönetme',
-    emotional_world: 'Sınırlar',
-    fun_adventure: 'Krizi Yönetme',
-  },
-};
-
-const AXIS_THEME_OVERRIDES: Partial<
-  Record<string, Partial<Record<RelationshipType, ThemeGroup>>>
-> = {
-  direct_indirect: {
-    family: 'İletişim',
-  },
-  logic_emotion_tone: {
-    family: 'Duygusal Tempo',
-    rival: 'Krizi Yönetme',
-  },
-  closeness_space: {
-    family: 'Sınırlar',
-    rival: 'Sınırlar',
-  },
-  romantic_realistic: {
-    work: 'Güven',
-    rival: 'Sınırlar',
-  },
-  playful_serious: {
-    work: 'Krizi Yönetme',
-    family: 'Aile Bağı',
-  },
-};
-
-const THEME_TEMPLATES: Record<ThemeGroup, ThemeTemplate> = {
-  'Aşk & Çekim': {
-    titles: ['Yakınlık Beklentisi', 'Çekim Dili', 'Romantik Akış', 'Şefkat Teması'],
-    leftTraits: [
-      'yakınlığı sözle güçlendirmek ister',
-      'ilgiyi açıkça göstermeyi sever',
-      'romantik jestleri hızlı başlatır',
-      'duyguyu görünür kılmayı önemser',
-    ],
-    rightTraits: [
-      'yakınlığı sakin anlarda derinleştirir',
-      'duyguyu önce içinde toparlar',
-      'davranış sürekliliğiyle bağ kurar',
-      'alanı koruyarak yakınlaşır',
-    ],
-    moments: ['yoğun günlerin ardından', 'beklenti konuşmalarında', 'planlar değiştiğinde', 'duygular hızlı yükseldiğinde'],
-    effects: ['tempo farkı yaratabilir', 'yakınlık dozunu konuşma ihtiyacı doğurabilir', 'anlaşılmama hissi bırakabilir', 'ritim ayarı gerektirebilir'],
-    advices: [
-      'Öneri: Güne 5 dakikalık net bir yakınlık check-in’i ile başlayın.',
-      'Öneri: Duyguyu söyleyip ardından tek bir beklentiyi netleştirin.',
-      'Öneri: Haftada bir kez sadece ikinize ait plansız zaman açın.',
-      'Öneri: Yakınlık konuşmalarında “önce duygu, sonra çözüm” sırasını izleyin.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Venüs △ Ay', planets: ['Venüs', 'Ay'], houses: ['5. Ev', '4. Ev'] },
-      { aspectName: 'Güneş ☌ Venüs', planets: ['Güneş', 'Venüs'], houses: ['1. Ev', '7. Ev'] },
-      { aspectName: 'Mars □ Ay', planets: ['Mars', 'Ay'], houses: ['8. Ev', '4. Ev'] },
-      { aspectName: 'Ay ✶ Jüpiter', planets: ['Ay', 'Jüpiter'], houses: ['4. Ev', '9. Ev'] },
-    ],
-  },
-  'İletişim': {
-    titles: ['İfade Tarzı', 'Dinleme Dengesi', 'Konu Açma Biçimi', 'Netlik Ritimleri'],
-    leftTraits: ['konuyu hızlı netleştirir', 'direkt ve kısa cümle kurar', 'soruyu doğrudan sorar', 'geri bildirimde net olur'],
-    rightTraits: ['düşünerek ve katmanlı ifade eder', 'önce dinleyip sonra cevap verir', 'yansıtarak konuşur', 'duyguyu dolaylı anlatır'],
-    moments: ['hızlı karar anlarında', 'yanlış anlaşılma yaşandığında', 'telefon mesajlaşmalarında', 'yorgunken iletişim kurulduğunda'],
-    effects: ['konuşma temposunu bölebilir', 'aynı cümlenin farklı algılanmasına yol açabilir', 'niyeti kaçırma riski yaratabilir', 'daha fazla netleştirme ihtiyacı doğurabilir'],
-    advices: [
-      'Öneri: Konuşmaya başlamadan hedefi tek cümleyle belirtin.',
-      'Öneri: Kritik konularda “tek soru - tek cevap” turu yapın.',
-      'Öneri: Mesajlaşma yerine kısa bir sesli konuşmayı tercih edin.',
-      'Öneri: Konuşma sonunda duyduğunuzu bir cümleyle geri yansıtın.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Merkür △ Kiron', planets: ['Merkür', 'Kiron'], houses: ['3. Ev', '11. Ev'] },
-      { aspectName: 'Merkür ☍ Ay', planets: ['Merkür', 'Ay'], houses: ['3. Ev', '4. Ev'] },
-      { aspectName: 'Merkür □ Mars', planets: ['Merkür', 'Mars'], houses: ['3. Ev', '8. Ev'] },
-      { aspectName: 'Merkür ✶ Satürn', planets: ['Merkür', 'Satürn'], houses: ['3. Ev', '10. Ev'] },
-    ],
-  },
-  'Güven': {
-    titles: ['Güven Dili', 'Söz-Tutum Uyumu', 'Sadakat Beklentisi', 'Dayanıklılık Çerçevesi'],
-    leftTraits: ['açık konuşmayı güven işareti görür', 'sözlerin takip edilmesini önemser', 'net sınırlarla rahat eder', 'belirsizlikte teyit ister'],
-    rightTraits: ['davranış devamlılığıyla güvenir', 'sessiz destekle bağ kurar', 'zamanla derinleşen güven kurar', 'baskı hissetmeden açılır'],
-    moments: ['belirsizlik dönemlerinde', 'rutin bozulduğunda', 'sözler ertelendiğinde', 'öncelikler değiştiğinde'],
-    effects: ['güven dilinde farklı vurgu yaratabilir', 'beklenti hızını ayrıştırabilir', 'teyit ihtiyacını artırabilir', 'zamanlama farkı oluşturabilir'],
-    advices: [
-      'Öneri: Haftalık iki küçük söz verip mutlaka takip edin.',
-      'Öneri: Güveni neyin artırdığını karşılıklı iki maddeyle yazın.',
-      'Öneri: Belirsizlikte varsayım yerine net soru sormayı kural yapın.',
-      'Öneri: Söz verilen konular için görünür bir mini plan tutun.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Satürn △ Venüs', planets: ['Satürn', 'Venüs'], houses: ['10. Ev', '7. Ev'] },
-      { aspectName: 'Ay □ Satürn', planets: ['Ay', 'Satürn'], houses: ['4. Ev', '10. Ev'] },
-      { aspectName: 'Güneş ✶ Satürn', planets: ['Güneş', 'Satürn'], houses: ['1. Ev', '10. Ev'] },
-      { aspectName: 'Venüs ☍ Satürn', planets: ['Venüs', 'Satürn'], houses: ['7. Ev', '10. Ev'] },
-    ],
-  },
-  'Duygusal Tempo': {
-    titles: ['Duygu Hızı', 'Sakinleşme Süresi', 'Paylaşım Zamanı', 'Enerji Geçişi'],
-    leftTraits: ['duyguyu anında paylaşır', 'hızlı toparlanmak ister', 'gerilimde konuşarak rahatlar', 'anlık tepki verir'],
-    rightTraits: ['duyguyu içerde işlemeyi seçer', 'sakinleşince açılır', 'önce mesafe alıp sonra konuşur', 'geçiş için süre ister'],
-    moments: ['tartışma sonrasında', 'yoğun iş günlerinde', 'beklenmedik değişimlerde', 'eşzamanlı talepler arttığında'],
-    effects: ['ritim farkını görünür kılabilir', 'yanlış zamanlama hissi doğurabilir', 'duygusal yorgunluğu artırabilir', 'karşılıklı bekleme yaratabilir'],
-    advices: [
-      'Öneri: Yoğun anda 10 dakikalık sakin alan, sonra 10 dakikalık konuşma deneyin.',
-      'Öneri: Duygu yükseldiğinde önce bedensel ritmi yavaşlatın, sonra konuyu açın.',
-      'Öneri: Geç saat konuşmalarını ertesi güne kısa notla taşıyın.',
-      'Öneri: Tartışma sonrası dönüş zamanı için ortak bir saat belirleyin.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Ay □ Mars', planets: ['Ay', 'Mars'], houses: ['4. Ev', '8. Ev'] },
-      { aspectName: 'Ay △ Neptün', planets: ['Ay', 'Neptün'], houses: ['4. Ev', '12. Ev'] },
-      { aspectName: 'Mars ☍ Ay', planets: ['Mars', 'Ay'], houses: ['8. Ev', '4. Ev'] },
-      { aspectName: 'Ay ✶ Venüs', planets: ['Ay', 'Venüs'], houses: ['4. Ev', '7. Ev'] },
-    ],
-  },
-  'Karar & Plan': {
-    titles: ['Karar Ritmi', 'Planlama Tarzı', 'Öncelik Sırası', 'Uygulama Disiplini'],
-    leftTraits: ['hızlı karar alır', 'ana resmi önce görür', 'kısa yoldan ilerlemek ister', 'adımı hızlı başlatır'],
-    rightTraits: ['alternatifleri tartar', 'detayı adım adım inceler', 'riski azaltarak ilerler', 'zamanlamayı güvenceye alır'],
-    moments: ['önemli seçimlerde', 'plan değiştirirken', 'sorumluluk paylaşımında', 'hedef baskısı arttığında'],
-    effects: ['karar temposunda sürtünme yaratabilir', 'öncelik tartışmalarını uzatabilir', 'adım sırasını karıştırabilir', 'uygulama hızını ayrıştırabilir'],
-    advices: [
-      'Öneri: Kararı iki aşamada alın: önce yön, sonra detay.',
-      'Öneri: Ortak plan için son tarih ve ilk adımı aynı cümlede netleştirin.',
-      'Öneri: Büyük kararı 24 saatlik değerlendirme penceresiyle kapatın.',
-      'Öneri: Her kararda bir “vazgeçme kriteri” belirleyin.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Mars △ Satürn', planets: ['Mars', 'Satürn'], houses: ['8. Ev', '10. Ev'] },
-      { aspectName: 'Güneş □ Satürn', planets: ['Güneş', 'Satürn'], houses: ['1. Ev', '10. Ev'] },
-      { aspectName: 'Merkür ✶ Mars', planets: ['Merkür', 'Mars'], houses: ['3. Ev', '8. Ev'] },
-      { aspectName: 'Satürn ☍ Mars', planets: ['Satürn', 'Mars'], houses: ['10. Ev', '8. Ev'] },
-    ],
-  },
-  'Aile Bağı': {
-    titles: ['Aile Dili', 'Yakınlık Sınırı', 'Bakım Beklentisi', 'Gelenek ve Esneklik'],
-    leftTraits: ['bağ hissini sık temasla güçlendirir', 'aile ritüellerini önemser', 'sorumluluğu hızlı üstlenir', 'yakınlıkta görünür ilgi ister'],
-    rightTraits: ['bağı sakin ve sürdürülebilir kurar', 'alan bırakarak yakınlaşır', 'duygusal yükü adım adım taşır', 'güvenli alan oluşunca derinleşir'],
-    moments: ['aile kararlarında', 'ziyaret planlarında', 'bakım sorumluluğu paylaşılırken', 'hassas konuşmalarda'],
-    effects: ['yakınlık tanımını farklılaştırabilir', 'sorumluluk temposunu ayırabilir', 'gelenek-esneklik dengesini zorlayabilir', 'niyetin tekrar konuşulmasını gerektirebilir'],
-    advices: [
-      'Öneri: Aile beklentilerini “olmazsa olmaz” ve “esnek” diye ayırın.',
-      'Öneri: Haftalık bakım görevlerini görünür biçimde paylaşın.',
-      'Öneri: Hassas konuşma öncesi duygusal hazır oluşu teyit edin.',
-      'Öneri: Aile planlarında yedek bir B senaryosu belirleyin.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Ay ☌ Ay', planets: ['Ay', 'Ay'], houses: ['4. Ev', '4. Ev'] },
-      { aspectName: 'Ay △ Güneş', planets: ['Ay', 'Güneş'], houses: ['4. Ev', '1. Ev'] },
-      { aspectName: 'Ay □ Merkür', planets: ['Ay', 'Merkür'], houses: ['4. Ev', '3. Ev'] },
-      { aspectName: 'Satürn ✶ Ay', planets: ['Satürn', 'Ay'], houses: ['10. Ev', '4. Ev'] },
-    ],
-  },
-  'Destek & Sadakat': {
-    titles: ['Destek Biçimi', 'Yoldaşlık Dili', 'Sadakat Vurgusu', 'Omuz Omuz Ritmi'],
-    leftTraits: ['desteği görünür eylemle verir', 'zor zamanda hızla yanında olur', 'sözünü tutarak bağ kurar', 'arkadaşlıkta netlik arar'],
-    rightTraits: ['desteği sessiz ama sürekli sunar', 'dinleyerek güç verir', 'sadakati davranışta gösterir', 'alan tanıyarak yanında kalır'],
-    moments: ['zor bir günün sonunda', 'yardım istenirken', 'ortak plan aksadığında', 'duygusal dalgalanma sırasında'],
-    effects: ['destek dilinde ufak farklar yaratabilir', 'iyi niyeti görünmez kılabilir', 'beklentiyi tekrar tanımlamayı gerektirebilir', 'sadakat ifadesini çeşitlendirebilir'],
-    advices: [
-      'Öneri: Destek istediğinizde “neye ihtiyacım var” cümlesini açık söyleyin.',
-      'Öneri: Haftada bir kısa “nasıl destek olayım?” sorusu sorun.',
-      'Öneri: Arkadaşlıkta sınırları iyi niyetle baştan netleştirin.',
-      'Öneri: Yapılan desteği görünür biçimde takdir edin.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Jüpiter △ Ay', planets: ['Jüpiter', 'Ay'], houses: ['11. Ev', '4. Ev'] },
-      { aspectName: 'Venüs ✶ Jüpiter', planets: ['Venüs', 'Jüpiter'], houses: ['7. Ev', '11. Ev'] },
-      { aspectName: 'Merkür □ Ay', planets: ['Merkür', 'Ay'], houses: ['3. Ev', '4. Ev'] },
-      { aspectName: 'Satürn △ Merkür', planets: ['Satürn', 'Merkür'], houses: ['10. Ev', '3. Ev'] },
-    ],
-  },
-  'İş Bölümü': {
-    titles: ['Görev Paylaşımı', 'Sorumluluk Dağılımı', 'Rol Netliği', 'Operasyon Akışı'],
-    leftTraits: ['işi hızla sahiplenir', 'hedef odaklı ilerler', 'kritik görevde kontrol almak ister', 'çözümü çabuk uygular'],
-    rightTraits: ['işi planlayarak dağıtır', 'detayı dengeleyerek ilerler', 'riskleri önceden işaretler', 'süreçte kaliteyi korur'],
-    moments: ['teslim tarihi yaklaşırken', 'iş yükü artarken', 'rol belirsizliğinde', 'öncelik çakışmasında'],
-    effects: ['iş yapış temposunu ayrıştırabilir', 'rol beklentisini yeniden konuşma ihtiyacı doğurabilir', 'öncelik sırasını tartıştırabilir', 'takım içi senkron gerektirebilir'],
-    advices: [
-      'Öneri: Haftalık iş dağılımını tek ekranda görünür tutun.',
-      'Öneri: Sorumlulukları “sahip”, “destek”, “takip” olarak ayırın.',
-      'Öneri: Kritik işlerde teslim öncesi 10 dakikalık hizalama yapın.',
-      'Öneri: Rol çatışmasında önce hedefi, sonra yöntemi konuşun.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Satürn △ Mars', planets: ['Satürn', 'Mars'], houses: ['10. Ev', '6. Ev'] },
-      { aspectName: 'Merkür ✶ Satürn', planets: ['Merkür', 'Satürn'], houses: ['3. Ev', '10. Ev'] },
-      { aspectName: 'Mars □ Satürn', planets: ['Mars', 'Satürn'], houses: ['6. Ev', '10. Ev'] },
-      { aspectName: 'Güneş ✶ Merkür', planets: ['Güneş', 'Merkür'], houses: ['1. Ev', '3. Ev'] },
-    ],
-  },
-  'Rekabet & Strateji': {
-    titles: ['Rekabet Düzlemi', 'Strateji Farkı', 'Güç Kullanımı', 'Hamle Zamanı'],
-    leftTraits: ['hamleyi erken yapar', 'rekabette görünür olmayı ister', 'hızlı üstünlük kurmak ister', 'risk alarak öne geçer'],
-    rightTraits: ['hamleyi saklayarak planlar', 'uzun oyunu düşünür', 'savunmayı güçlendirerek ilerler', 'denge kurup sonra atak yapar'],
-    moments: ['performans karşılaştırmalarında', 'kaynak paylaşımında', 'liderlik çekişmesinde', 'hata sonrası değerlendirmede'],
-    effects: ['güç algısında gerilim yaratabilir', 'hamle zamanını tartıştırabilir', 'adil oyun sınırını netleştirme ihtiyacı doğurabilir', 'strateji çatışması doğurabilir'],
-    advices: [
-      'Öneri: Rekabette önce ortak kural setini yazılı hale getirin.',
-      'Öneri: Hamle öncesi tek cümlelik amaç beyanı paylaşın.',
-      'Öneri: Kazan-kaybet yerine “hangi metrikte yarışıyoruz”u netleştirin.',
-      'Öneri: Tetiklenme anında 60 saniye durup hedefi yeniden söyleyin.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Mars □ Plüton', planets: ['Mars', 'Plüton'], houses: ['1. Ev', '10. Ev'] },
-      { aspectName: 'Mars ☍ Satürn', planets: ['Mars', 'Satürn'], houses: ['1. Ev', '10. Ev'] },
-      { aspectName: 'Güneş □ Mars', planets: ['Güneş', 'Mars'], houses: ['1. Ev', '6. Ev'] },
-      { aspectName: 'Plüton △ Mars', planets: ['Plüton', 'Mars'], houses: ['8. Ev', '1. Ev'] },
-    ],
-  },
-  'Sınırlar': {
-    titles: ['Sınır Netliği', 'Alan İhtiyacı', 'Yakınlık Mesafesi', 'Kişisel Çerçeve'],
-    leftTraits: ['sınırı baştan net koyar', 'kuralı açık duymak ister', 'yakın iletişimi sık kurar', 'hızlı geri dönüş bekler'],
-    rightTraits: ['esnek sınırlarla ilerler', 'alanını koruyarak bağ kurar', 'dönüş için zaman ister', 'ihtiyaç olduğunda içe çekilir'],
-    moments: ['yoğun takvim dönemlerinde', 'özel alan konuşmalarında', 'yanıt geciktiğinde', 'roller üst üste bindiğinde'],
-    effects: ['mesafe algısını farklılaştırabilir', 'sınır çizgisini yeniden konuşmayı gerektirebilir', 'tempo uyuşmazlığı yaratabilir', 'yanıt beklentisini ayrıştırabilir'],
-    advices: [
-      'Öneri: Kişisel alan kurallarını kısa ve net üç maddeye indirin.',
-      'Öneri: Cevap süresi beklentisini baştan birlikte belirleyin.',
-      'Öneri: Sınır ihlali hissinde niyeti suçlamadan ifade edin.',
-      'Öneri: Haftalık programda bireysel alan zamanını görünür işaretleyin.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Satürn □ Ay', planets: ['Satürn', 'Ay'], houses: ['10. Ev', '4. Ev'] },
-      { aspectName: 'Uranüs ☍ Venüs', planets: ['Uranüs', 'Venüs'], houses: ['11. Ev', '7. Ev'] },
-      { aspectName: 'Satürn △ Ay', planets: ['Satürn', 'Ay'], houses: ['10. Ev', '4. Ev'] },
-      { aspectName: 'Neptün ✶ Ay', planets: ['Neptün', 'Ay'], houses: ['12. Ev', '4. Ev'] },
-    ],
-  },
-  'Krizi Yönetme': {
-    titles: ['Kriz Tepkisi', 'Gerilim Yönetimi', 'Onarım Hızı', 'Çözüm Adımı'],
-    leftTraits: ['krizde hızlı aksiyon alır', 'konuyu hemen çözmek ister', 'duyguyu yükselmeden toparlamak ister', 'çatışmayı görünür konuşur'],
-    rightTraits: ['krizde sakinleşip sonra konuşur', 'önce tabloyu izler sonra adım atar', 'duygunun yatışmasını bekler', 'çatışmayı daha yumuşak yönetir'],
-    moments: ['ani anlaşmazlıklarda', 'yüksek baskı anlarında', 'hata sonrası konuşmada', 'üst üste gelen taleplerde'],
-    effects: ['kriz hızını farklılaştırabilir', 'çözüm zamanlamasında ayrışma yaratabilir', 'onarım adımını geciktirebilir', 'gerilimi kişiselleştirme riskini artırabilir'],
-    advices: [
-      'Öneri: Kriz anında önce “durum, duygu, ihtiyaç” sırasını kullanın.',
-      'Öneri: Tartışmayı tek başlıkla sınırlandırıp 15 dakikada kapatın.',
-      'Öneri: Onarım için ertesi gün kısa follow-up zamanı açın.',
-      'Öneri: Kriz konuşmalarında suçlama yerine etki cümlesi kurun.',
-    ],
-    technicalAspects: [
-      { aspectName: 'Mars □ Ay', planets: ['Mars', 'Ay'], houses: ['8. Ev', '4. Ev'] },
-      { aspectName: 'Satürn ☍ Merkür', planets: ['Satürn', 'Merkür'], houses: ['10. Ev', '3. Ev'] },
-      { aspectName: 'Mars ✶ Satürn', planets: ['Mars', 'Satürn'], houses: ['8. Ev', '10. Ev'] },
-      { aspectName: 'Merkür △ Plüton', planets: ['Merkür', 'Plüton'], houses: ['3. Ev', '8. Ev'] },
-    ],
-  },
-};
-
-const RELATIONSHIP_PROFILES: Record<RelationshipType, RelationshipNarrativeProfile> = {
-  love: {
-    headlineOptions: [
-      'Yakınlık var, ritim ayarıyla daha da güçlenebilir',
-      'Çekim güçlü, iletişim temposu yönetildiğinde akış artıyor',
-      'Duygusal bağ yüksek; netlik ve alan dengesi belirleyici',
-    ],
-    summaryActionPhrases: [
-      'Birlikte ritim konuştuğunuzda yakınlık kalitesi belirgin biçimde artar.',
-      'Özellikle hassas anlarda kısa bir niyet cümlesi ilişkiyi yumuşatır.',
-      'Hız farkını kabul etmek, tartışma yerine iş birliğini büyütür.',
-    ],
-    labelPlanByTheme: {
-      'Aşk & Çekim': ['Uyumlu', 'Gelişim', 'Dikkat'],
-      'İletişim': ['Gelişim', 'Dikkat', 'Uyumlu'],
-      'Güven': ['Gelişim', 'Uyumlu', 'Dikkat'],
-      'Duygusal Tempo': ['Dikkat', 'Gelişim', 'Uyumlu'],
-      'Karar & Plan': ['Gelişim', 'Dikkat', 'Uyumlu'],
-    },
-  },
-  work: {
-    headlineOptions: [
-      'İş birliği potansiyeli yüksek, rol netliğiyle daha verimli',
-      'Karar temposu farklı ama ortak planla güçlü sonuç üretebilir',
-      'Çalışma stili farklılıkları doğru dağılımla avantaja döner',
-    ],
-    summaryActionPhrases: [
-      'Görev sahipliğini netleştirmek, sürtünmeyi ciddi ölçüde azaltır.',
-      'Kritik kararları iki aşamalı almak ekip ritmini korur.',
-      'Gerilimli başlıklarda ortak metrikte buluşmak verimi yükseltir.',
-    ],
-    labelPlanByTheme: {
-      'İş Bölümü': ['Uyumlu', 'Gelişim', 'Dikkat'],
-      'İletişim': ['Gelişim', 'Uyumlu', 'Dikkat'],
-      'Karar & Plan': ['Gelişim', 'Dikkat', 'Uyumlu'],
-      'Krizi Yönetme': ['Dikkat', 'Gelişim', 'Uyumlu'],
-      'Güven': ['Uyumlu', 'Gelişim', 'Dikkat'],
-    },
-  },
-  friend: {
-    headlineOptions: [
-      'Arkadaşlık zemini güçlü, sınırlar netleştikçe daha rahat',
-      'Destek ve paylaşım yüksek; tempo farkı konuşuldukça kolay akıyor',
-      'Birbirinizi iyi tamamlıyorsunuz, iletişim düzeni dengeyi güçlendiriyor',
-    ],
-    summaryActionPhrases: [
-      'Destek beklentisini açık söylemek yanlış anlamayı azaltır.',
-      'Birlikte eğlenme ve dinlenme temposunu dengelemek bağı korur.',
-      'Sınırları iyi niyetle konuşmak arkadaşlığı daha sürdürülebilir yapar.',
-    ],
-    labelPlanByTheme: {
-      'Destek & Sadakat': ['Uyumlu', 'Gelişim', 'Uyumlu'],
-      'İletişim': ['Gelişim', 'Uyumlu', 'Dikkat'],
-      'Duygusal Tempo': ['Gelişim', 'Uyumlu', 'Dikkat'],
-      'Sınırlar': ['Dikkat', 'Gelişim', 'Uyumlu'],
-      'Güven': ['Uyumlu', 'Gelişim', 'Dikkat'],
-    },
-  },
-  family: {
-    headlineOptions: [
-      'Aile bağı güçlü, hassas başlıklarda ortak ritim önemli',
-      'Bağ ve sorumluluk dengesi kurulduğunda ilişki rahatlıyor',
-      'Yakınlık var; sınırlar konuşuldukça ev içi akış güçleniyor',
-    ],
-    summaryActionPhrases: [
-      'Aile içinde rol ve beklenti netliği gerginliği belirgin azaltır.',
-      'Hassas konuşmalarda zamanlama seçimi ilişkinin tonunu değiştirir.',
-      'Küçük ama tutarlı adımlar güvenli alanı büyütür.',
-    ],
-    labelPlanByTheme: {
-      'Aile Bağı': ['Uyumlu', 'Gelişim', 'Uyumlu'],
-      'Güven': ['Uyumlu', 'Gelişim', 'Dikkat'],
-      'Sınırlar': ['Dikkat', 'Gelişim', 'Uyumlu'],
-      'Duygusal Tempo': ['Gelişim', 'Dikkat', 'Uyumlu'],
-      'Karar & Plan': ['Gelişim', 'Dikkat', 'Uyumlu'],
-    },
-  },
-  rival: {
-    headlineOptions: [
-      'Rekabet yüksek; adil oyun kurallarıyla denge kurulabilir',
-      'Strateji gücü var, tetikleyiciler yönetildiğinde daha etkili',
-      'Güçlü bir rekabet var; sınırlar net olursa performans artar',
-    ],
-    summaryActionPhrases: [
-      'Çatışma anında kurala dönmek, kişiselleşmeyi azaltır.',
-      'Hedefi ve başarı ölçütünü baştan netlemek oyunu adil tutar.',
-      'Tetiklenme anlarında kısa duraklama kararı daha stratejik hale getirir.',
-    ],
-    labelPlanByTheme: {
-      'Rekabet & Strateji': ['Dikkat', 'Gelişim', 'Dikkat'],
-      'Krizi Yönetme': ['Dikkat', 'Gelişim', 'Uyumlu'],
-      'Sınırlar': ['Dikkat', 'Gelişim', 'Uyumlu'],
-      'İletişim': ['Gelişim', 'Dikkat', 'Uyumlu'],
-      'Güven': ['Gelişim', 'Dikkat', 'Uyumlu'],
-    },
-  },
-};
 
 function asObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object') return {};
@@ -607,631 +135,16 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function clampPercent(value: unknown, fallback = 50): number {
+function clampPercent(value: unknown, fallback = 60): number {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return fallback;
   return clamp(Math.round(n), 0, 100);
 }
 
-function escapeRegex(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function replaceStandaloneWord(source: string, term: string, replacement: string): string {
-  const WORD_CHARS = 'A-Za-z0-9ÇĞİÖŞÜçğıöşü';
-  const regex = new RegExp(`(^|[^${WORD_CHARS}])(${escapeRegex(term)})(?=[^${WORD_CHARS}]|$)`, 'gi');
-  return source.replace(regex, (_, leading: string) => `${leading}${replacement}`);
-}
-
-function sanitizeMainCopy(input: string, fallback: string): string {
-  let text = asString(input, fallback);
-  for (const rule of MAIN_TAB_TERM_REPLACEMENTS) {
-    text = replaceStandaloneWord(text, rule.term, rule.replacement);
-  }
-  return text.replace(/\s{2,}/g, ' ').trim();
-}
-
-function normalizeLabel(value: unknown, fallback: Label = 'Gelişim'): Label {
-  const text = asString(value, '').toLocaleLowerCase('tr-TR');
-  if (text.includes('uyum')) return 'Uyumlu';
-  if (text.includes('dikkat') || text.includes('risk')) return 'Dikkat';
-  if (text.includes('geli')) return 'Gelişim';
-  return fallback;
-}
-
-function normalizeThemeGroup(value: unknown, fallback: ThemeGroup): ThemeGroup {
-  const direct = asString(value, '');
-  if (!direct) return fallback;
-
-  const directMatch = (Object.values(THEME_GROUP_ALIASES) as ThemeGroup[]).find(
-    (item) => item.toLocaleLowerCase('tr-TR') === direct.toLocaleLowerCase('tr-TR'),
-  );
-  if (directMatch) return directMatch;
-
-  const folded = direct
-    .toUpperCase()
-    .replace(/[ÇĞİÖŞÜ]/g, (char) => {
-      if (char === 'Ç') return 'C';
-      if (char === 'Ğ') return 'G';
-      if (char === 'İ') return 'I';
-      if (char === 'Ö') return 'O';
-      if (char === 'Ş') return 'S';
-      if (char === 'Ü') return 'U';
-      return char;
-    })
-    .replace(/[^A-Z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-
-  return THEME_GROUP_ALIASES[folded] ?? fallback;
-}
-
-function isMatchTraitsPayload(value: unknown): value is MatchTraitsPayload {
-  const obj = asObject(value);
-  return Array.isArray(obj.categories) || Array.isArray(obj.cardAxes);
-}
-
-function humanizeAxisId(value: string, fallback = 'İlişki Dinamiği'): string {
-  const mapped = AXIS_TITLE_MAP[value];
-  if (mapped) return mapped;
-
-  const cleaned = value
-    .replace(/[_-]+/g, ' ')
-    .replace(/\bask\b/giu, 'Aşk')
-    .replace(/\biletisim\b/giu, 'İletişim')
-    .replace(/\bguven\b/giu, 'Güven')
-    .replace(/\bcross\b/giu, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-  if (!cleaned) return fallback;
-
-  return cleaned
-    .split(' ')
-    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
-    .join(' ');
-}
-
-function normalizeTraitsAxis(raw: unknown, index: number): MatchTraitsAxisPayload {
-  const obj = asObject(raw);
-  return {
-    id: asString(obj.id, `axis-${index + 1}`),
-    leftLabel: sanitizeMainCopy(asString(obj.leftLabel, 'Netlik arar'), 'Netlik arar'),
-    rightLabel: sanitizeMainCopy(asString(obj.rightLabel, 'Alan ister'), 'Alan ister'),
-    score0to100: clampPercent(obj.score0to100, 50),
-    note: sanitizeMainCopy(
-      asString(obj.note, ''),
-      '',
-    ),
-  };
-}
-
-function normalizeTraitsCategory(raw: unknown, index: number): MatchTraitsCategoryPayload {
-  const obj = asObject(raw);
-  return {
-    id: asString(obj.id, `category-${index + 1}`),
-    title: asString(obj.title, `Kategori ${index + 1}`),
-    items: asArray(obj.items).map((item, itemIndex) => normalizeTraitsAxis(item, itemIndex)),
-  };
-}
-
-function resolveThemeFromAxis(
-  relationshipType: RelationshipType,
-  categoryId: string,
-  axisId: string,
-): ThemeGroup {
-  const normalizedCategory = categoryId.toLowerCase();
-  const override = AXIS_THEME_OVERRIDES[axisId]?.[relationshipType];
-  if (override) return override;
-
-  const fromCategory = CATEGORY_THEME_MAP[relationshipType][normalizedCategory];
-  if (fromCategory) return fromCategory;
-
-  return RELATIONSHIP_THEME_ORDER[relationshipType][0];
-}
-
-function labelFromAxisScore(score0to100: number): Label {
-  const left = clampPercent(100 - score0to100, 50);
-  const right = clampPercent(score0to100, 50);
-  const delta = Math.abs(left - right);
-
-  if (delta <= 16) return 'Uyumlu';
-  if (delta <= 40) return 'Gelişim';
-  return 'Dikkat';
-}
-
-function intensityFromAxisScore(score0to100: number, label: Label): number {
-  const delta = Math.abs(clampPercent(100 - score0to100, 50) - clampPercent(score0to100, 50));
-  const base = label === 'Dikkat' ? 66 : label === 'Gelişim' ? 52 : 36;
-  return clamp(base + Math.round(delta * 0.45), 20, 95);
-}
-
-function relationshipMomentHint(
-  relationshipType: RelationshipType,
-  themeGroup: ThemeGroup,
-  seed: number,
-): string {
-  const template = THEME_TEMPLATES[themeGroup];
-  if (template?.moments?.length) {
-    return pick(template.moments, seed, 4);
-  }
-
-  if (relationshipType === 'work') return 'kritik teslim anlarında';
-  if (relationshipType === 'friend') return 'destek beklenen zamanlarda';
-  if (relationshipType === 'family') return 'hassas aile konuşmalarında';
-  if (relationshipType === 'rival') return 'rekabet yükseldiğinde';
-  return 'yakınlık beklentisi konuşulurken';
-}
-
-function relationshipEffectHint(
-  relationshipType: RelationshipType,
-  themeGroup: ThemeGroup,
-  label: Label,
-  seed: number,
-): string {
-  const template = THEME_TEMPLATES[themeGroup];
-  if (template?.effects?.length) {
-    return pick(template.effects, seed, 6);
-  }
-
-  if (relationshipType === 'rival') {
-    return label === 'Dikkat' ? 'gerilim yaratabilir' : 'strateji farkı doğurabilir';
-  }
-  if (relationshipType === 'work') {
-    return label === 'Dikkat' ? 'iş akışını zorlayabilir' : 'tempo farkı doğurabilir';
-  }
-  return label === 'Dikkat' ? 'ritim farkı yaratabilir' : 'iletişim ayarı gerektirebilir';
-}
-
-function normalizeMatchTraitsResponse(
-  payload: MatchTraitsPayload,
-  input: FetchComparisonInput,
-): ComparisonResponseDTO | null {
-  const leftName = asString(input.leftName, 'Kişi 1');
-  const rightName = asString(input.rightName, 'Kişi 2');
-  const relationshipType = input.relationshipType;
-  const categories = payload.categories.map((category, index) => normalizeTraitsCategory(category, index));
-
-  const axisCategoryMap = new Map<
-    string,
-    { categoryId: string; categoryTitle: string }
-  >();
-  categories.forEach((category) => {
-    category.items.forEach((axis) => {
-      axisCategoryMap.set(axis.id, {
-        categoryId: category.id,
-        categoryTitle: category.title,
-      });
-    });
-  });
-
-  const cardAxes = payload.cardAxes.map((axis, index) => normalizeTraitsAxis(axis, index));
-  const allAxes = categories.flatMap((category) =>
-    category.items.map((axis) => ({
-      axis,
-      categoryId: category.id,
-      categoryTitle: category.title,
-    })),
-  );
-
-  const selected = cardAxes.length
-    ? cardAxes.map((axis) => ({
-        axis,
-        categoryId: axisCategoryMap.get(axis.id)?.categoryId ?? 'relationship_dynamics',
-        categoryTitle: axisCategoryMap.get(axis.id)?.categoryTitle ?? 'İlişki Dinamikleri',
-      }))
-    : allAxes;
-
-  const merged = [...selected];
-  const existingIds = new Set(merged.map((item) => item.axis.id));
-  for (const candidate of allAxes) {
-    if (existingIds.has(candidate.axis.id)) continue;
-    merged.push(candidate);
-    existingIds.add(candidate.axis.id);
-    if (merged.length >= 18) break;
-  }
-
-  const cards = merged.map(({ axis, categoryId, categoryTitle }, index): ComparisonCardDTO => {
-    const rightValue = clampPercent(axis.score0to100, 50);
-    const leftValue = clampPercent(100 - rightValue, 50);
-    const themeGroup = resolveThemeFromAxis(relationshipType, categoryId, axis.id);
-    const label = labelFromAxisScore(rightValue);
-    const localSeed = hashString(`${relationshipType}-${axis.id}-${index}`);
-    const title = humanizeAxisId(axis.id, categoryTitle);
-    const advice = pick(THEME_TEMPLATES[themeGroup].advices, localSeed, 5);
-    const impact = axis.note && axis.note.trim()
-      ? sanitizeMainCopy(axis.note, '')
-      : `${leftName} daha ${axis.leftLabel.toLocaleLowerCase('tr-TR')} eğilimli, ${rightName} daha ${axis.rightLabel.toLocaleLowerCase('tr-TR')} eğilimli. Bu fark, ${relationshipMomentHint(relationshipType, themeGroup, localSeed)} ${relationshipEffectHint(relationshipType, themeGroup, label, localSeed)}.`;
-    const technical = pick(THEME_TEMPLATES[themeGroup].technicalAspects, localSeed, 9);
-
-    return {
-      id: axis.id || `${relationshipType}-axis-${index + 1}`,
-      relationshipType,
-      themeGroup,
-      title: sanitizeMainCopy(title, 'İlişki Dinamiği'),
-      leftPerson: {
-        name: leftName,
-        trait: `${leftName}: ${sanitizeMainCopy(axis.leftLabel, 'netlik arar')}`,
-      },
-      intersection: {
-        plain: sanitizeMainCopy(
-          impact,
-          `${leftName} ve ${rightName} aynı konuda farklı ritimde ilerleyebilir.`,
-        ),
-      },
-      rightPerson: {
-        name: rightName,
-        trait: `${rightName}: ${sanitizeMainCopy(axis.rightLabel, 'alan ister')}`,
-      },
-      label,
-      intensity: intensityFromAxisScore(rightValue, label),
-      leftValue,
-      rightValue,
-      advicePlain: sanitizeMainCopy(
-        advice,
-        'Öneri: Konuya başlamadan önce niyeti bir cümleyle netleştirin.',
-      ),
-      technical: {
-        aspectName: technical.aspectName,
-        orb: Number((Math.max(0.6, Math.abs(rightValue - 50) / 12)).toFixed(1)),
-        planets: technical.planets,
-        houses: technical.houses,
-      },
-    };
-  });
-
-  if (!cards.length) return null;
-
-  const themeScores = computeThemeScores(relationshipType, cards);
-  const summaryPlain = {
-    headline: buildSummary(
-      relationshipType,
-      leftName,
-      rightName,
-      themeScores[0]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][0],
-      themeScores[1]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][1],
-      hashString(`${leftName}-${rightName}-${relationshipType}-${payload.matchId}`),
-    ).headline,
-    body: sanitizeMainCopy(
-      asString(payload.cardSummary, '').trim() ||
-        buildSummary(
-          relationshipType,
-          leftName,
-          rightName,
-          themeScores[0]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][0],
-          themeScores[1]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][1],
-          hashString(`${leftName}-${rightName}-${relationshipType}-${payload.matchId}`),
-        ).body,
-      `${leftName} ve ${rightName} için karşılaştırma analizi hazırlandı.`,
-    ),
-  };
-
-  const technicalAspects = buildTechnicalAspects(cards);
-  const supportive = technicalAspects.filter((item) => item.type === 'supportive').length;
-  const challenging = technicalAspects.filter((item) => item.type === 'challenging').length;
-
-  return {
-    relationshipType,
-    overallScore: clampPercent(payload.compatibilityScore, computeOverallScore(themeScores)),
-    summaryPlain,
-    counts: { supportive, challenging },
-    themeScores,
-    cards,
-    technicalAspects,
-  };
-}
-
-function localizePlanet(value: string | undefined): string {
-  const planet = asString(value, '').toLocaleUpperCase('tr-TR');
-  if (!planet) return 'Gezegen';
-  if (planet === 'SUN') return 'Güneş';
-  if (planet === 'MOON') return 'Ay';
-  if (planet === 'MERCURY') return 'Merkür';
-  if (planet === 'VENUS') return 'Venüs';
-  if (planet === 'MARS') return 'Mars';
-  if (planet === 'JUPITER') return 'Jüpiter';
-  if (planet === 'SATURN') return 'Satürn';
-  if (planet === 'URANUS') return 'Uranüs';
-  if (planet === 'NEPTUNE') return 'Neptün';
-  if (planet === 'PLUTO') return 'Plüton';
-  if (planet === 'CHIRON') return 'Kiron';
-  return value ?? 'Gezegen';
-}
-
-function localizeAspectType(value: string | undefined, symbol: string | undefined): string {
-  const raw = asString(value, '').toLocaleUpperCase('tr-TR');
-  if (raw === 'TRINE') return symbol || 'Üçgen';
-  if (raw === 'SEXTILE') return symbol || 'Altmışlık';
-  if (raw === 'SQUARE') return symbol || 'Kare';
-  if (raw === 'OPPOSITION') return symbol || 'Karşıt';
-  if (raw === 'CONJUNCTION') return symbol || 'Kavuşum';
-  return symbol || 'Etkileşim';
-}
-
-function inferThemeFromCrossAspect(
-  aspect: CrossAspect,
-  relationshipType: RelationshipType,
-): ThemeGroup {
-  const left = localizePlanet(aspect.userPlanet).toLocaleLowerCase('tr-TR');
-  const right = localizePlanet(aspect.partnerPlanet).toLocaleLowerCase('tr-TR');
-  const haystack = `${left} ${right} ${aspect.aspectType}`.toLocaleLowerCase('tr-TR');
-
-  if (/merkür|merkur|communication/.test(haystack)) return 'İletişim';
-  if (/satürn|saturn/.test(haystack)) return relationshipType === 'rival' ? 'Sınırlar' : 'Güven';
-  if (/mars|plüton|pluton/.test(haystack)) return relationshipType === 'rival' ? 'Rekabet & Strateji' : 'Krizi Yönetme';
-  if (/ay|venüs|venus/.test(haystack)) {
-    if (relationshipType === 'family') return 'Aile Bağı';
-    if (relationshipType === 'friend') return 'Destek & Sadakat';
-    return 'Aşk & Çekim';
-  }
-
-  return RELATIONSHIP_THEME_ORDER[relationshipType][0];
-}
-
-function enrichWithSynastry(
-  base: ComparisonResponseDTO | null,
-  synastry: SynastryResponse | null | undefined,
-  input: FetchComparisonInput,
-): ComparisonResponseDTO | null {
-  if (!base && !synastry) return null;
-
-  if (!synastry) return base;
-
-  const leftName = asString(input.leftName, base?.cards[0]?.leftPerson.name ?? synastry.personAName ?? 'Kişi 1');
-  const rightName = asString(input.rightName, base?.cards[0]?.rightPerson.name ?? synastry.personBName ?? 'Kişi 2');
-  const relationshipType = input.relationshipType;
-  const aspects = Array.isArray(synastry.crossAspects) ? synastry.crossAspects : [];
-
-  const technicalFromSynastry: TechnicalAspectDTO[] = aspects.map((aspect, index) => {
-    const themeGroup = inferThemeFromCrossAspect(aspect, relationshipType);
-    const aspectTitle = `${localizePlanet(aspect.userPlanet)} ${localizeAspectType(aspect.aspectType, aspect.aspectSymbol)} ${localizePlanet(aspect.partnerPlanet)}`;
-
-    return {
-      id: `syn-${index + 1}`,
-      aspectName: aspectTitle,
-      type: aspect.harmonious ? 'supportive' : 'challenging',
-      orb: Number((Number.isFinite(aspect.orb) ? aspect.orb : 2.4).toFixed(1)),
-      themeGroup,
-      plainMeaning: sanitizeMainCopy(
-        aspect.harmonious
-          ? `${leftName} ve ${rightName} bu etkide daha uyumlu akış yakalayabilir.`
-          : `${leftName} ve ${rightName} bu etkide ritim farkı yaşayabilir.`,
-        `${leftName} ve ${rightName} bu etkide ritim farkı yaşayabilir.`,
-      ),
-      advicePlain: sanitizeMainCopy(
-        aspect.harmonious
-          ? 'Öneri: Bu güçlü akışı haftalık bir ortak ritüele dönüştürün.'
-          : 'Öneri: Tetiklenme anında konuşmayı kısa mola sonrası sürdürün.',
-        'Öneri: Konuşma öncesi niyeti tek cümleyle netleştirin.',
-      ),
-      planets: [localizePlanet(aspect.userPlanet), localizePlanet(aspect.partnerPlanet)],
-      houses: [],
-    };
-  });
-
-  let output = base;
-
-  if (!output) {
-    const cards = buildCards(relationshipType, leftName, rightName, input.matchId);
-    const themeScores = computeThemeScores(relationshipType, cards);
-    const summary = buildSummary(
-      relationshipType,
-      leftName,
-      rightName,
-      themeScores[0]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][0],
-      themeScores[1]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][1],
-      hashString(`${leftName}-${rightName}-${input.matchId}`),
-    );
-    output = {
-      relationshipType,
-      overallScore: clampPercent(synastry.harmonyScore, computeOverallScore(themeScores)),
-      summaryPlain: {
-        headline: sanitizeMainCopy(
-          summary.headline,
-          `${leftName} ve ${rightName} için karşılaştırma özeti`,
-        ),
-        body: sanitizeMainCopy(
-          asString(synastry.harmonyInsight, summary.body),
-          summary.body,
-        ),
-      },
-      counts: {
-        supportive: technicalFromSynastry.filter((item) => item.type === 'supportive').length,
-        challenging: technicalFromSynastry.filter((item) => item.type === 'challenging').length,
-      },
-      themeScores,
-      cards,
-      technicalAspects: technicalFromSynastry.length ? technicalFromSynastry : buildTechnicalAspects(cards),
-    };
-  } else {
-    output = {
-      ...output,
-      overallScore: clampPercent(
-        synastry.harmonyScore,
-        output.overallScore,
-      ),
-      summaryPlain: {
-        headline: sanitizeMainCopy(
-          output.summaryPlain.headline,
-          output.summaryPlain.headline,
-        ),
-        body: sanitizeMainCopy(
-          asString(synastry.harmonyInsight, output.summaryPlain.body),
-          output.summaryPlain.body,
-        ),
-      },
-      technicalAspects: technicalFromSynastry.length ? technicalFromSynastry : output.technicalAspects,
-      counts: {
-        supportive: (technicalFromSynastry.length ? technicalFromSynastry : output.technicalAspects).filter(
-          (item) => item.type === 'supportive',
-        ).length,
-        challenging: (technicalFromSynastry.length ? technicalFromSynastry : output.technicalAspects).filter(
-          (item) => item.type === 'challenging',
-        ).length,
-      },
-    };
-  }
-
-  return output;
-}
-
-function hashString(source: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < source.length; i += 1) {
-    hash ^= source.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function pick<T>(list: T[], seed: number, offset: number): T {
-  return list[(seed + offset) % list.length];
-}
-
-function seededInt(seed: number, min: number, max: number): number {
-  const range = max - min + 1;
-  return min + (Math.abs(seed) % range);
-}
-
-function themeScoreFromCards(cards: ComparisonCardDTO[]): number {
-  if (!cards.length) return 0;
-  const total = cards.reduce((sum, card) => {
-    const base = card.label === 'Uyumlu' ? 65 : card.label === 'Gelişim' ? 52 : 36;
-    return sum + clamp(Math.round(base + card.intensity * 0.32), 0, 100);
-  }, 0);
-  return clamp(Math.round(total / cards.length), 0, 100);
-}
-
-function buildSummary(
-  relationshipType: RelationshipType,
-  leftName: string,
-  rightName: string,
-  firstTheme: ThemeGroup,
-  secondTheme: ThemeGroup,
-  seed: number,
-): ComparisonResponseDTO['summaryPlain'] {
-  const profile = RELATIONSHIP_PROFILES[relationshipType];
-  const headline = pick(profile.headlineOptions, seed, 3);
-  const action = pick(profile.summaryActionPhrases, seed, 7);
-
-  const body = `${leftName} ve ${rightName} için ${firstTheme} ile ${secondTheme} temalarında belirgin bir ritim farkı var. Bu fark, doğru anlaşıldığında ilişkiye hareket ve derinlik katabilir. ${action}`;
-
-  return {
-    headline,
-    body,
-  };
-}
-
-function themeLabelPlan(relationshipType: RelationshipType, themeGroup: ThemeGroup): Label[] {
-  const profile = RELATIONSHIP_PROFILES[relationshipType];
-  return profile.labelPlanByTheme[themeGroup] ?? ['Gelişim', 'Uyumlu', 'Dikkat'];
-}
-
-function intensityByLabel(label: Label, seed: number): number {
-  if (label === 'Uyumlu') return seededInt(seed, 34, 63);
-  if (label === 'Gelişim') return seededInt(seed, 51, 78);
-  return seededInt(seed, 68, 94);
-}
-
-function buildCards(
-  relationshipType: RelationshipType,
-  leftName: string,
-  rightName: string,
-  matchId: number,
-): ComparisonCardDTO[] {
-  const seed = hashString(`${relationshipType}-${leftName}-${rightName}-${matchId}`);
-  const themeOrder = RELATIONSHIP_THEME_ORDER[relationshipType];
-
-  const cards: ComparisonCardDTO[] = [];
-
-  themeOrder.forEach((themeGroup, themeIndex) => {
-    const template = THEME_TEMPLATES[themeGroup];
-    const labelPlan = themeLabelPlan(relationshipType, themeGroup);
-
-    for (let index = 0; index < 3; index += 1) {
-      const localSeed = seed + themeIndex * 100 + index * 17;
-      const title = pick(template.titles, localSeed, 1);
-      const leftTrait = pick(template.leftTraits, localSeed, 2);
-      const rightTrait = pick(template.rightTraits, localSeed, 3);
-      const moment = pick(template.moments, localSeed, 4);
-      const effect = pick(template.effects, localSeed, 5);
-      const advice = pick(template.advices, localSeed, 6);
-      const label = labelPlan[(seed + themeIndex + index) % labelPlan.length];
-      const intensity = intensityByLabel(label, localSeed + 9);
-      const leftValue = clamp(seededInt(localSeed + 11, 28, 72), 0, 100);
-      const rightValue = clamp(100 - leftValue, 0, 100);
-      const technical = pick(template.technicalAspects, localSeed, 8);
-      const orb = Number((seededInt(localSeed + 14, 7, 59) / 10).toFixed(1));
-
-      cards.push({
-        id: `${relationshipType}-${themeIndex + 1}-${index + 1}`,
-        relationshipType,
-        themeGroup,
-        title,
-        leftPerson: {
-          name: leftName,
-          trait: `${leftName}: ${leftTrait}`,
-        },
-        intersection: {
-          plain: `${leftName} ${leftTrait}, ${rightName} ${rightTrait}. Bu fark, ${moment} anlarında ${effect}.`,
-        },
-        rightPerson: {
-          name: rightName,
-          trait: `${rightName}: ${rightTrait}`,
-        },
-        label,
-        intensity,
-        leftValue,
-        rightValue,
-        advicePlain: advice,
-        technical: {
-          aspectName: technical.aspectName,
-          orb,
-          planets: technical.planets,
-          houses: technical.houses,
-        },
-      });
-    }
-  });
-
-  return cards;
-}
-
-function buildTechnicalAspects(cards: ComparisonCardDTO[]): TechnicalAspectDTO[] {
-  return cards.map((card, index) => {
-    const type = card.label === 'Uyumlu' ? 'supportive' : 'challenging';
-    return {
-      id: `tech-${card.id}-${index + 1}`,
-      aspectName: card.technical?.aspectName ?? `${card.title} Dinamiği`,
-      type,
-      orb: Number((card.technical?.orb ?? (card.intensity / 20)).toFixed(1)),
-      themeGroup: card.themeGroup,
-      plainMeaning: card.intersection.plain,
-      advicePlain: card.advicePlain,
-      planets: card.technical?.planets,
-      houses: card.technical?.houses,
-    };
-  });
-}
-
-function computeThemeScores(
-  relationshipType: RelationshipType,
-  cards: ComparisonCardDTO[],
-): ComparisonResponseDTO['themeScores'] {
-  return RELATIONSHIP_THEME_ORDER[relationshipType]
-    .map((themeGroup) => {
-      const themeCards = cards.filter((card) => card.themeGroup === themeGroup);
-      if (!themeCards.length) return null;
-      return {
-        themeGroup,
-        score: themeScoreFromCards(themeCards),
-      };
-    })
-    .filter(Boolean) as ComparisonResponseDTO['themeScores'];
-}
-
-function computeOverallScore(themeScores: ComparisonResponseDTO['themeScores']): number {
-  if (!themeScores.length) return 0;
-  const total = themeScores.reduce((sum, item) => sum + item.score, 0);
-  return clamp(Math.round(total / themeScores.length), 0, 100);
+function clampConfidence(value: unknown, fallback = 0.6): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return clamp(Math.round(n * 100) / 100, 0, 1);
 }
 
 function normalizeRelationshipType(value: unknown, fallback: RelationshipType = 'love'): RelationshipType {
@@ -1257,200 +170,1173 @@ function normalizeRelationshipType(value: unknown, fallback: RelationshipType = 
   return RELATIONSHIP_TYPE_ALIASES[folded] ?? fallback;
 }
 
-function normalizeCards(
-  rawCards: unknown,
+function normalizeModule(value: unknown, fallback: RelationshipType): CompareModuleCode {
+  const raw = asString(value, '').toUpperCase();
+  if (!raw) return RELATIONSHIP_TO_MODULE[fallback];
+
+  if (raw in MODULE_TO_RELATIONSHIP) {
+    return raw as CompareModuleCode;
+  }
+
+  const relationship = normalizeRelationshipType(raw, fallback);
+  return RELATIONSHIP_TO_MODULE[relationship];
+}
+
+function normalizeStatus(value: unknown, score: number): MetricStatus {
+  const text = asString(value, '').toLowerCase();
+  if (text === 'strong' || text === 'balanced' || text === 'watch' || text === 'growth' || text === 'intense') {
+    return text;
+  }
+
+  if (score >= 80) return 'strong';
+  if (score >= 65) return 'balanced';
+  if (score >= 50) return 'watch';
+  if (score >= 35) return 'growth';
+  return 'intense';
+}
+
+function normalizeDriver(raw: unknown): CompareDriverDTO {
+  const obj = asObject(raw);
+  return {
+    title: asString(obj.title, 'Belirleyici Başlık'),
+    impact: clampPercent(obj.impact, 0),
+    why: asString(obj.why, 'Bu alanda belirgin bir etki görülüyor.'),
+    hint: asString(obj.hint, 'Küçük bir rutinle denge korunabilir.'),
+  };
+}
+
+function normalizeThemeCard(raw: unknown): CompareThemeSectionCardDTO {
+  const obj = asObject(raw);
+  return {
+    title: asString(obj.title, 'Tema Kartı'),
+    description: asString(obj.description, 'Bu tema başlığında dengeyi korumak ilişki akışını güçlendirir.'),
+    actionHint: asString(obj.actionHint, 'Kısa bir check-in rutini belirleyin.'),
+  };
+}
+
+function normalizeThemeSection(raw: unknown): CompareThemeSectionV3DTO {
+  const obj = asObject(raw);
+  return {
+    theme: asString(obj.theme, 'Tema'),
+    score: clampPercent(obj.score, 60),
+    miniInsight: asString(obj.miniInsight, 'Bu tema başlığında dengeli bir akış görünüyor.'),
+    cards: asArray(obj.cards).map(normalizeThemeCard),
+  };
+}
+
+function normalizeMetricCard(raw: unknown, index: number): CompareMetricCardDTO {
+  const obj = asObject(raw);
+  const score = clampPercent(obj.score, 60);
+  return {
+    id: asString(obj.id, `metric-${index + 1}`),
+    title: asString(obj.title, `Metrik ${index + 1}`),
+    score,
+    status: normalizeStatus(obj.status, score),
+    insight: asString(obj.insight, 'Bu alanda dengeyi korumak için karşılıklı netlik faydalı olur.'),
+  };
+}
+
+function normalizeV3Response(raw: unknown, input: FetchComparisonInput): ComparisonResponseDTO | null {
+  const obj = asObject(raw) as MatchTraitsV3Payload;
+  if (!Object.keys(obj).length) return null;
+
+  const module = normalizeModule(obj.module, input.relationshipType);
+  const relationshipType = MODULE_TO_RELATIONSHIP[module];
+
+  const overallObj = asObject(obj.overall);
+  const summaryObj = asObject(obj.summary);
+  const explainObj = asObject(obj.explainability);
+
+  const overall = {
+    score: clampPercent(overallObj.score, 60),
+    levelLabel: asString(overallObj.levelLabel, 'Dengeli Uyum'),
+    confidence: clampConfidence(overallObj.confidence, 0.6),
+    confidenceLabel: normalizeConfidenceLabel(asString(overallObj.confidenceLabel, ''), clampConfidence(overallObj.confidence, 0.6)),
+    percentile: clampPercent(overallObj.percentile, 50),
+  };
+
+  const summary: CompareSummaryDTO = {
+    headline: asString(summaryObj.headline, 'Dengeli uyum alanı görünür'),
+    shortNarrative: asString(
+      summaryObj.shortNarrative,
+      'Bu modülde genel akış dengeli görünüyor. Günlük hayatta özellikle iletişim tonu ve beklenti netliği sonuç üzerinde belirleyici olabilir. Farklı hızlarda hareket edilen anlarda kısa bir durup niyeti netleştirmek ilişkiyi daha rahat akıtır.',
+    ),
+    dailyLifeHint: asString(
+      summaryObj.dailyLifeHint,
+      'Kritik konularda önce beklentiyi, sonra adımı netleştirin.',
+    ),
+  };
+
+  const metricCards = asArray(obj.metricCards).map(normalizeMetricCard);
+  const normalizedMetricCards = metricCards.length
+    ? metricCards
+    : [
+        {
+          id: 'fallback-metric',
+          title: 'Genel Uyum',
+          score: overall.score,
+          status: normalizeStatus('balanced', overall.score),
+          insight: 'Bu modülde genel denge korunuyor; netlik arttıkça ayrışma görünür olur.',
+        },
+      ];
+
+  const topDrivers = {
+    supportive: asArray(asObject(obj.topDrivers).supportive).map(normalizeDriver),
+    challenging: asArray(asObject(obj.topDrivers).challenging).map(normalizeDriver),
+    growth: asArray(asObject(obj.topDrivers).growth).map(normalizeDriver),
+  };
+
+  const fallbackDriver: CompareDriverDTO = {
+    title: 'Denge Alanı',
+    impact: 0,
+    why: 'Bu alanda daha fazla veriyle netlik artacaktır.',
+    hint: 'Kısa rutinlerle davranış kalıbını gözlemleyin.',
+  };
+
+  const normalizedTopDrivers = {
+    supportive: topDrivers.supportive.length ? topDrivers.supportive : [fallbackDriver],
+    challenging: topDrivers.challenging.length ? topDrivers.challenging : [fallbackDriver],
+    growth: topDrivers.growth.length ? topDrivers.growth : [fallbackDriver],
+  };
+
+  const themeSections = asArray(obj.themeSections)
+    .map(normalizeThemeSection)
+    .filter((section) => section.cards.length > 0 || section.miniInsight.length > 0);
+
+  const parsedDistributionWarning = parseDistributionWarningKey(explainObj.distributionWarning);
+  const normalizedMissingBirthTimeImpact =
+    asString(explainObj.missingBirthTimeImpact, '') ||
+    (overall.confidenceLabel === 'Sınırlı'
+      ? 'Doğum saati belirsizliği bu modülde yorum hassasiyetini sınırlayabilir.'
+      : '');
+
+  const explainability: CompareExplainabilityDTO = {
+    calculationVersion: asString(explainObj.calculationVersion, 'compare-v3.0.0'),
+    factorsUsed: formatFactorsList(asArray<string>(explainObj.factorsUsed).filter(Boolean)),
+    dataQuality: normalizeDataQualityLabel(asString(explainObj.dataQuality, 'medium')),
+    generatedAt: asString(explainObj.generatedAt, new Date().toISOString()),
+    distributionWarning: parsedDistributionWarning,
+    missingBirthTimeImpact: normalizedMissingBirthTimeImpact || null,
+    moduleScoringProfile: asString(explainObj.moduleScoringProfile, `${module.toLowerCase()}-v3`),
+  };
+
+  return {
+    module,
+    relationshipType,
+    overall,
+    summary,
+    moduleIntro: MODULE_INTRO_TEXTS[module],
+    metricCards: normalizedMetricCards,
+    topDrivers: normalizedTopDrivers,
+    themeSections,
+    explainability,
+    warningText: mapDistributionWarningText(explainability.distributionWarning),
+    technicalAspects: [],
+  };
+}
+
+function localizePlanet(value: string | undefined): string {
+  const planet = asString(value, '').toLocaleUpperCase('tr-TR');
+  if (!planet) return 'Gezegen';
+  if (planet === 'SUN') return 'Güneş';
+  if (planet === 'MOON') return 'Ay';
+  if (planet === 'MERCURY') return 'Merkür';
+  if (planet === 'VENUS') return 'Venüs';
+  if (planet === 'MARS') return 'Mars';
+  if (planet === 'JUPITER') return 'Jüpiter';
+  if (planet === 'SATURN') return 'Satürn';
+  if (planet === 'URANUS') return 'Uranüs';
+  if (planet === 'NEPTUNE') return 'Neptün';
+  if (planet === 'PLUTO') return 'Plüton';
+  if (planet === 'CHIRON') return 'Kiron';
+  return value ?? 'Gezegen';
+}
+
+function localizeAspectType(value: string | undefined, symbol: string | undefined): string {
+  const raw = asString(value, '').toLocaleUpperCase('tr-TR');
+  const safeSymbol = asString(symbol, '');
+  if (raw === 'TRINE') return safeSymbol || 'Üçgen';
+  if (raw === 'SEXTILE') return safeSymbol || 'Altmışlık';
+  if (raw === 'SQUARE') return safeSymbol || 'Kare';
+  if (raw === 'OPPOSITION') return safeSymbol || 'Karşıt';
+  if (raw === 'CONJUNCTION') return safeSymbol || 'Kavuşum';
+  return safeSymbol || 'Etkileşim';
+}
+
+function inferThemeFromCrossAspect(aspect: CrossAspect, relationshipType: RelationshipType): ThemeGroup {
+  const left = localizePlanet(aspect.userPlanet).toLocaleLowerCase('tr-TR');
+  const right = localizePlanet(aspect.partnerPlanet).toLocaleLowerCase('tr-TR');
+  const stack = `${left} ${right} ${aspect.aspectType}`;
+
+  if (/merkür|merkur/.test(stack)) return 'İletişim';
+  if (/satürn|saturn/.test(stack)) return relationshipType === 'rival' ? 'Sınırlar' : 'Güven';
+  if (/mars|plüton|pluton/.test(stack)) return relationshipType === 'rival' ? 'Rekabet & Strateji' : 'Krizi Yönetme';
+  if (/ay|venüs|venus/.test(stack)) {
+    if (relationshipType === 'family') return 'Aile Bağı';
+    if (relationshipType === 'friend') return 'Destek & Sadakat';
+    return 'Aşk & Çekim';
+  }
+
+  if (relationshipType === 'work') return 'İş Bölümü';
+  if (relationshipType === 'rival') return 'Rekabet & Strateji';
+  if (relationshipType === 'family') return 'Karar & Plan';
+  if (relationshipType === 'friend') return 'Duygusal Tempo';
+  return 'Aşk & Çekim';
+}
+
+type AspectCode = 'TRINE' | 'SEXTILE' | 'SQUARE' | 'OPPOSITION' | 'CONJUNCTION' | 'OTHER';
+type PlanetCode =
+  | 'SUN'
+  | 'MOON'
+  | 'MERCURY'
+  | 'VENUS'
+  | 'MARS'
+  | 'JUPITER'
+  | 'SATURN'
+  | 'URANUS'
+  | 'NEPTUNE'
+  | 'PLUTO'
+  | 'CHIRON'
+  | 'OTHER';
+
+interface TechnicalInterpretation {
+  shortInterpretation: string;
+  comparisonInsight: string;
+  practicalMeaning: string;
+  technicalKey: string;
+  usageHint: string;
+  orbLabel: string;
+  orbMicrocopy: string;
+  orbInsight: string;
+}
+
+function normalizePlanetCode(value: string | undefined): PlanetCode {
+  const raw = asString(value, '').toLocaleUpperCase('tr-TR');
+  if (
+    raw === 'SUN' ||
+    raw === 'MOON' ||
+    raw === 'MERCURY' ||
+    raw === 'VENUS' ||
+    raw === 'MARS' ||
+    raw === 'JUPITER' ||
+    raw === 'SATURN' ||
+    raw === 'URANUS' ||
+    raw === 'NEPTUNE' ||
+    raw === 'PLUTO' ||
+    raw === 'CHIRON'
+  ) {
+    return raw;
+  }
+  return 'OTHER';
+}
+
+function normalizeAspectCode(value: string | undefined): AspectCode {
+  const raw = asString(value, '').toLocaleUpperCase('tr-TR');
+  if (
+    raw === 'TRINE' ||
+    raw === 'SEXTILE' ||
+    raw === 'SQUARE' ||
+    raw === 'OPPOSITION' ||
+    raw === 'CONJUNCTION'
+  ) {
+    return raw;
+  }
+  return 'OTHER';
+}
+
+function buildPairKey(leftPlanet: PlanetCode, rightPlanet: PlanetCode): string {
+  return [leftPlanet, rightPlanet].sort().join('_');
+}
+
+function displayName(name: string, fallback: string): string {
+  return asString(name, fallback);
+}
+
+function buildOrbLabel(orb: number): string {
+  if (orb <= 1.2) return 'Çok yakın';
+  if (orb <= 3) return 'Yakın';
+  if (orb <= 5.5) return 'Orta';
+  return 'Geniş';
+}
+
+function buildOrbInsight(orb: number): string {
+  if (orb <= 1.2) {
+    return 'Orb çok yakın olduğu için bu etki ilişki içinde hızlı, net ve tekrar eden biçimde çalışır.';
+  }
+  if (orb <= 3) {
+    return 'Orb yakın; bu etki özellikle gündelik temas ve tetik anlarında belirgin şekilde hissedilir.';
+  }
+  if (orb <= 5.5) {
+    return 'Orb orta düzeyde; etki vardır fakat çoğu zaman ilişki koşullarına göre güçlenip zayıflar.';
+  }
+  return 'Orb geniş; bu etki arka planda çalışır ve çoğunlukla belirli şartlar oluştuğunda öne çıkar.';
+}
+
+function buildOrbMicrocopy(
+  orb: number,
+  supportive: boolean,
+  relationshipType: RelationshipType,
+): string {
+  const band = orb <= 1.2 ? 'exact' : orb <= 3 ? 'close' : orb <= 5.5 ? 'medium' : 'wide';
+
+  if (relationshipType === 'love') {
+    if (supportive) {
+      if (band === 'exact') return 'Orb çok yakın; birbirinize yaklaşma ve kırgınlığı yumuşatma biçiminiz doğal bir uyumla devreye girebilir.';
+      if (band === 'close') return 'Bu etki sevgi dili, temas ritmi ve karşılıklı ilgi tarafında kısa sürede cevap üretir.';
+      if (band === 'medium') return 'Romantik potansiyel açık; güven ve yakınlık bilinçli kurulduğunda bağ daha rahat derinleşir.';
+      return 'Bu etki her gün aynı güçte işlemez; duygusal zemin sağlam olduğunda ilişkiyi toparlayan taraf olur.';
+    }
+
+    if (band === 'exact') return 'Orb çok yakın; güven, yakınlık dozu ve ilk tepki aynı anda bozulduğunda gerilim hızlı büyüyebilir.';
+    if (band === 'close') return 'Bu sürtünme sevgi dili ve zamanlama farkı büyüdüğünde ilişkiye kısa sürede yansır.';
+    if (band === 'medium') return 'Zorlayıcı tarafı var; beklentiler konuşulmadığında kırgınlık sessizce birikebilir.';
+    return 'Bu açı sürekli sorun çıkarmaz; çoğu zaman duygusal tempo dağıldığında etkisini belli eder.';
+  }
+
+  if (relationshipType === 'work') {
+    if (supportive) {
+      if (band === 'exact') return 'Orb çok yakın; karar alma ve görev paylaşımında birbirinizin hızına çabuk uyumlanabilirsiniz.';
+      if (band === 'close') return 'Bu destek iletişim netliği ve iş akışında kısa sürede verim üretir.';
+      if (band === 'medium') return 'Çalışma potansiyeli güçlü; roller netleştikçe işbirliği daha akıcı hale gelir.';
+      return 'Bu etki arka planda çalışır; yapı kurulduğunda ekip hissini sessizce güçlendirir.';
+    }
+
+    if (band === 'exact') return 'Orb çok yakın; karar anı, eleştiri tonu ve iş yükü paylaşımı aynı anda gerilim yaratabilir.';
+    if (band === 'close') return 'Bu sürtünme hız, sorumluluk ve iletişim tarzı ayrıştığında çabuk sertleşir.';
+    if (band === 'medium') return 'Zorlayıcı tarafı var; süreç belirsiz kaldığında iyi niyet bile dağınık okunabilir.';
+    return 'Bu açı her gün sorun üretmez; baskı arttığında ve roller bulanıklaştığında daha belirginleşir.';
+  }
+
+  if (relationshipType === 'friend') {
+    if (supportive) {
+      if (band === 'exact') return 'Orb çok yakın; sohbet, temas ve karşılıklı destek tarafında kolayca sıcak bir ritim kurabilirsiniz.';
+      if (band === 'close') return 'Bu etki birlikte keyif alma, haberleşme ve birbirini kollama tarafında hızlı çalışır.';
+      if (band === 'medium') return 'Arkadaşlık potansiyeli açık; sadakat ve iletişim net kaldığında bağ daha rahat oturur.';
+      return 'Bu etki sürekli önde durmaz; temas korundukça arkadaşlığın omurgasını sessizce besler.';
+    }
+
+    if (band === 'exact') return 'Orb çok yakın; öncelik verme, haberleşme sıklığı ve sadakat tanımı kısa sürede hassas noktaya dönebilir.';
+    if (band === 'close') return 'Bu sürtünme biri daha yakın, diğeri daha serbest kalmak istediğinde çabuk hissedilir.';
+    if (band === 'medium') return 'Zorlayıcı tarafı var; temas ve beklenti açık konuşulmadığında yanlış okuma artar.';
+    return 'Bu açı sürekli baskı yaratmaz; bağın ritmi bozulduğunda kırılgan tarafı daha çabuk açılır.';
+  }
+
+  if (relationshipType === 'family') {
+    if (supportive) {
+      if (band === 'exact') return 'Orb çok yakın; hassasiyet tonu, bakım dili ve yük paylaşımı tarafında birbirinizi çabuk anlayabilirsiniz.';
+      if (band === 'close') return 'Bu etki ev içi ritim, anlayış ve duygusal destek tarafında kısa sürede güven toplar.';
+      if (band === 'medium') return 'Aile bağı için sağlam bir zemin var; sorumluluklar görünür kaldıkça denge kolay kurulur.';
+      return 'Bu destek arka planda çalışır; doğru sınırlar kurulduğunda ilişkiyi sessizce toparlar.';
+    }
+
+    if (band === 'exact') return 'Orb çok yakın; yük paylaşımı, hassasiyet tonu ve sessiz beklentiler aynı anda kırılgan hale gelebilir.';
+    if (band === 'close') return 'Bu sürtünme biri daha çok taşırken diğeri bunu geç fark ettiğinde hızlıca birikir.';
+    if (band === 'medium') return 'Zorlayıcı tarafı var; sorumluluk konuşulmadığında ya da kırgınlık içe atıldığında mesafe yaratabilir.';
+    return 'Bu açı sürekli baskı yaratmaz; yük ve duygu paylaşımı dengesizleştiğinde etkisini daha net gösterir.';
+  }
+
+  if (supportive) {
+    if (band === 'exact') return 'Orb çok yakın; rekabet çizgisi net kaldığında strateji ve tempo tarafında hızlı avantaj üretebilir.';
+    if (band === 'close') return 'Bu etki baskı altında soğukkanlı kalma ve doğru hamleyi seçme becerisini çabuk toplar.';
+    if (band === 'medium') return 'Rekabet tarafında yapıcı bir potansiyel var; sınırlar net tutulduğunda daha verimli işler.';
+    return 'Bu destek her an görünmez; kurallar baştan netse performansı sessizce yukarı taşır.';
+  }
+
+  if (band === 'exact') return 'Orb çok yakın; baskı anı, güç kullanımı ve hata toleransı aynı anda sertleşebilir.';
+  if (band === 'close') return 'Bu sürtünme tempo, çerçeve ve güç kullanma biçimi ayrıştığında hızlıca yükselir.';
+  if (band === 'medium') return 'Zorlayıcı tarafı var; rekabet kişiselleştiğinde ya da sınırlar bulanıklaştığında oyun sertleşir.';
+  return 'Bu açı sürekli çatışma üretmez; baskı yükseldiğinde rekabet çizgisini beklenenden hızlı keskinleştirebilir.';
+}
+
+function aspectMechanismSentence(aspectCode: AspectCode, supportive: boolean): string {
+  if (aspectCode === 'TRINE') {
+    return 'Üçgen açı olduğu için taraflar birbirini düzeltmeye çalışmadan da rahatlık bulabilir.';
+  }
+  if (aspectCode === 'SEXTILE') {
+    return 'Altmışlık açı bu bağı kendiliğinden değil, bilinçli kullanıldığında daha verimli çalıştırır.';
+  }
+  if (aspectCode === 'CONJUNCTION') {
+    return supportive
+      ? 'Kavuşum etkisi bu temayı tek bir hatta topladığı için yakınlık hızla güç kazanır.'
+      : 'Kavuşum etkisi bu temayı tek bir hatta topladığı için gerilim çıktığında yoğunluk bir anda büyüyebilir.';
+  }
+  if (aspectCode === 'SQUARE') {
+    return 'Kare açı aynı konuya iki farklı refleks bindirdiği için sürtünme kolay tetiklenir.';
+  }
+  if (aspectCode === 'OPPOSITION') {
+    return 'Karşıt açı tarafları birbirine çekerken aynı anda karşı kutuplara da yerleştirebilir.';
+  }
+  return supportive
+    ? 'Bu açı, doğru kullanıldığında tarafların birbirini daha rahat tamamlamasını sağlar.'
+    : 'Bu açı, aynı konuda farklı baskılar oluşturduğu için yanlış okuma ve sertleşme riskini artırır.';
+}
+
+function modulePracticalArea(relationshipType: RelationshipType): string {
+  if (relationshipType === 'love') return 'yakınlık, güven ve kırgınlık sonrası toparlanma';
+  if (relationshipType === 'work') return 'görev paylaşımı, karar anları ve iletişim tonu';
+  if (relationshipType === 'friend') return 'temas sıklığı, sadakat tanımı ve birlikte keyif alma';
+  if (relationshipType === 'family') return 'yük paylaşımı, hassasiyet tonu ve ev içi düzen';
+  return 'rekabet çizgisi, baskı anları ve güç kullanma biçimi';
+}
+
+function planetActionPhrase(planet: PlanetCode): string {
+  if (planet === 'SUN') return 'kendini daha görünür ve net ortaya koyduğunda';
+  if (planet === 'MOON') return 'duygusal güven arayıp iç ritmine çekildiğinde';
+  if (planet === 'MERCURY') return 'konuyu konuşarak açmak istediğinde';
+  if (planet === 'VENUS') return 'yakınlığı daha yumuşak ve sıcak göstermeye çalıştığında';
+  if (planet === 'MARS') return 'hızlı tepki verip işi harekete dökmek istediğinde';
+  if (planet === 'JUPITER') return 'meseleyi büyütüp daha cesur ve iyimser davrandığında';
+  if (planet === 'SATURN') return 'çerçeve, sınır ve ciddiyet koyduğunda';
+  if (planet === 'URANUS') return 'alan açıp kalıbı bozmak istediğinde';
+  if (planet === 'NEPTUNE') return 'sezgiye ve akışa daha çok güvendiğinde';
+  if (planet === 'PLUTO') return 'konuya yoğunlaşıp kontrolü elde tutmaya yöneldiğinde';
+  if (planet === 'CHIRON') return 'hassas yere temas edip onarmaya çalıştığında';
+  return 'konuya kendi tarzıyla yaklaştığında';
+}
+
+function positiveReceptionPhrase(planet: PlanetCode): string {
+  if (planet === 'SUN') return 'daha net, güçlü ve desteklenmiş hissedebilir';
+  if (planet === 'MOON') return 'daha güvende ve anlaşılmış hissedebilir';
+  if (planet === 'MERCURY') return 'konuyu daha kolay anlamlandırabilir';
+  if (planet === 'VENUS') return 'yakınlığı daha rahat alabilir';
+  if (planet === 'MARS') return 'hareket etmek için net bir itki bulabilir';
+  if (planet === 'JUPITER') return 'daha umutlu ve açık bir tavır geliştirebilir';
+  if (planet === 'SATURN') return 'daha yapılandırılmış ve güvende kalabilir';
+  if (planet === 'URANUS') return 'daha serbest ve canlı hissedebilir';
+  if (planet === 'NEPTUNE') return 'daha yumuşak ve sezgisel bağ kurabilir';
+  if (planet === 'PLUTO') return 'daha derin ve kararlı bağlanabilir';
+  if (planet === 'CHIRON') return 'iyileştirici bir temas yakalayabilir';
+  return 'bunu daha rahat karşılayabilir';
+}
+
+function negativeReceptionPhrase(planet: PlanetCode): string {
+  if (planet === 'SUN') return 'kendisine meydan okunuyormuş gibi algılayabilir';
+  if (planet === 'MOON') return 'duygusal olarak geri çekilebilir';
+  if (planet === 'MERCURY') return 'yanlış anlaşıldığını düşünüp savunmaya geçebilir';
+  if (planet === 'VENUS') return 'yakınlığı soğuk ya da uyumsuz bulabilir';
+  if (planet === 'MARS') return 'tepkiyi sertleştirip hızlanabilir';
+  if (planet === 'JUPITER') return 'konuyu gereğinden fazla büyütebilir';
+  if (planet === 'SATURN') return 'daha da katılaşıp mesafe koyabilir';
+  if (planet === 'URANUS') return 'ani kopuş ya da soğuma gösterebilir';
+  if (planet === 'NEPTUNE') return 'belirsizleşip kaçınmaya yönelebilir';
+  if (planet === 'PLUTO') return 'güç mücadelesine çekilebilir';
+  if (planet === 'CHIRON') return 'eski incinmeleri yeniden yaşayabilir';
+  return 'bunu zorlayıcı okuyabilir';
+}
+
+function planetCoreMeaning(planet: PlanetCode): string {
+  if (planet === 'SUN') return 'kimlik duygusu, görünür olma biçimi ve yaşam yönü';
+  if (planet === 'MOON') return 'duygusal güvenlik ihtiyacı, alışkanlıklar ve iç ritim';
+  if (planet === 'MERCURY') return 'iletişim tarzı, zihinsel tempo ve anlam kurma şekli';
+  if (planet === 'VENUS') return 'yakınlık dili, beğeni, zevkler ve ilişki estetiği';
+  if (planet === 'MARS') return 'hareket tarzı, öfke eşiği, arzu ve tepki hızı';
+  if (planet === 'JUPITER') return 'büyüme isteği, umut, cömertlik ve genişleme eğilimi';
+  if (planet === 'SATURN') return 'sınırlar, sorumluluk, kontrol ve zamanlama duygusu';
+  if (planet === 'URANUS') return 'özgürlük ihtiyacı, sürprizler ve kalıp bozma eğilimi';
+  if (planet === 'NEPTUNE') return 'sezgi, idealizasyon, belirsizlik ve çözülme';
+  if (planet === 'PLUTO') return 'yoğunluk, güç, kontrol ve derin dönüşüm';
+  if (planet === 'CHIRON') return 'hassas nokta, incinme hafızası ve iyileşme ihtiyacı';
+  return 'ilişkinin farklı çalışan bir parçası';
+}
+
+function planetBehavior(planet: PlanetCode): string {
+  if (planet === 'SUN') return 'meseleyi görünür, net ve doğrudan ele almak';
+  if (planet === 'MOON') return 'önce duygusal zemini yoklamak ve güven aramak';
+  if (planet === 'MERCURY') return 'konuyu konuşarak, analiz ederek ve netleştirerek ilerlemek';
+  if (planet === 'VENUS') return 'yumuşaklık, beğeni ve uyum üzerinden bağ kurmak';
+  if (planet === 'MARS') return 'hızlı tepki verip harekete geçmek';
+  if (planet === 'JUPITER') return 'meseleyi büyüterek, umutla ve geniş pencereden görmek';
+  if (planet === 'SATURN') return 'ölçmek, beklemek ve kontrolü korumak';
+  if (planet === 'URANUS') return 'özgür alan açmak ve kalıbı bozmak';
+  if (planet === 'NEPTUNE') return 'sezgiyle ilerlemek ve sınırları esnetmek';
+  if (planet === 'PLUTO') return 'derine inmek ve kontrolü elde tutmak';
+  if (planet === 'CHIRON') return 'hassas noktaya temas edip onarmaya çalışmak';
+  return 'konuya farklı bir yerden yaklaşmak';
+}
+
+function aspectAngleMeaning(aspectCode: AspectCode, supportive: boolean): string {
+  if (aspectCode === 'TRINE') {
+    return 'Üçgen açı, iki gezegenin birbirini zorlamadan beslediğini ve aynı dili daha doğal konuştuğunu gösterir.';
+  }
+  if (aspectCode === 'SEXTILE') {
+    return 'Altmışlık açı, iyi bir potansiyel sunar; bu potansiyel bilinçli kullanıldığında ilişkiye açık avantaj getirir.';
+  }
+  if (aspectCode === 'CONJUNCTION') {
+    return supportive
+      ? 'Kavuşum, iki temayı tek hatta toplar; yakınlık doğru kullanılırsa güçlü bir birlik duygusu yaratır.'
+      : 'Kavuşum, iki temayı aynı noktada yoğunlaştırır; bu yüzden etki güçlüdür ve sınır iyi kurulmazsa bunaltıcı hale gelebilir.';
+  }
+  if (aspectCode === 'SQUARE') {
+    return 'Kare açı, iki ihtiyacın aynı anda alan istemesine neden olur; hareket yaratır ama kolayca sürtünmeye dönebilir.';
+  }
+  if (aspectCode === 'OPPOSITION') {
+    return 'Karşıt açı, çekim ile zıtlık duygusunu birlikte taşır; taraflar birbirini tamamlamak isterken kolayca kutuplaşabilir.';
+  }
+  return supportive
+    ? 'Bu açı iki farklı temanın birbirini destekleyecek bir düzen kurabildiğini gösterir.'
+    : 'Bu açı iki farklı temanın aynı konuda farklı baskılar ürettiğini gösterir.';
+}
+
+function moduleManifestationFrame(relationshipType: RelationshipType, supportive: boolean): string {
+  if (relationshipType === 'love') {
+    return supportive
+      ? 'Bu, yakınlık kurma biçimi, kırgınlık sonrası toparlanma ve sevgi dilinde doğal bir akış sağlayabilir.'
+      : 'Bu, yakınlık dozu, güven beklentisi ve kırgınlık ritminde farklı okumalara neden olabilir.';
+  }
+  if (relationshipType === 'work') {
+    return supportive
+      ? 'Bu, görev paylaşımı, karar alma ve iletişimde işlevsel bir düzen kurmayı kolaylaştırır.'
+      : 'Bu, görev sahipliği, karar hızı ve eleştiri tonu yüzünden işi kişiselleştirme riskini artırır.';
+  }
+  if (relationshipType === 'friend') {
+    return supportive
+      ? 'Bu, sohbetin akmasını, birlikte keyif üretmeyi ve destek vermeyi daha rahat hale getirir.'
+      : 'Bu, öncelik verme, haberleşme sıklığı ve sadakat tanımında sessiz kırılmalara yol açabilir.';
+  }
+  if (relationshipType === 'family') {
+    return supportive
+      ? 'Bu, ev içi ritmi, bakım dilini ve sorumluluk paylaşımını daha yumuşak hale getirir.'
+      : 'Bu, hassasiyet tonu, yük paylaşımı ve sessiz beklentilerin birikmesi üzerinden zorlayabilir.';
+  }
+  return supportive
+    ? 'Bu, rekabet çizgisi korunduğunda strateji ve tempoyu birbirini keskinleştiren bir avantaja çevirebilir.'
+    : 'Bu, baskı arttığında hata payını, güç mücadelesini ve sertleşen dili daha hızlı büyütebilir.';
+}
+
+function moduleAdviceFrame(relationshipType: RelationshipType, supportive: boolean): string {
+  if (relationshipType === 'love') {
+    return supportive
+      ? 'İyi gelen davranışları varsayımda bırakmayıp görünür kılmanız bu uyumu kalıcılaştırır.'
+      : 'Tetik anında kimin neye daraldığını isimlendirip sonra çözüm konuşmanız yıpranmayı azaltır.';
+  }
+  if (relationshipType === 'work') {
+    return supportive
+      ? 'İşleyen düzeni kısa ve yazılı bir çerçeveye dökmeniz bu avantajı sürdürülebilir kılar.'
+      : 'Görev, süre ve karar sahibini baştan ayırmanız gereksiz sertliği belirgin biçimde düşürür.';
+  }
+  if (relationshipType === 'friend') {
+    return supportive
+      ? 'Temas sıklığı ve destek beklentisini görünür tutmanız arkadaşlığı daha güvenli hale getirir.'
+      : 'Varsayım yerine açık cümle kurmanız küçük kırgınlıkların sessizce büyümesini engeller.';
+  }
+  if (relationshipType === 'family') {
+    return supportive
+      ? 'Ev içi ritmi küçük ama düzenli konuşmalarla güncellemeniz sıcaklığı korur.'
+      : 'Yük paylaşımını görünür hale getirmeniz sessiz yorgunluk ve kırgınlığı azaltır.';
+  }
+  return supportive
+    ? 'Kuralları baştan netleştirmeniz bu gücü verimli rekabete çevirmeyi kolaylaştırır.'
+    : 'Baskı anı için önceden belirlenmiş bir karar protokolü kurmanız hatayı ve sertleşmeyi azaltır.';
+}
+
+function buildGenericTechnicalInterpretation(params: {
+  leftPlanetCode: PlanetCode;
+  rightPlanetCode: PlanetCode;
+  leftPlanet: string;
+  rightPlanet: string;
+  leftDisplay: string;
+  rightDisplay: string;
+  supportive: boolean;
+  relationshipType: RelationshipType;
+  aspectCode: AspectCode;
+  orb: number;
+}): TechnicalInterpretation {
+  const {
+    leftPlanetCode,
+    rightPlanetCode,
+    leftPlanet,
+    rightPlanet,
+    leftDisplay,
+    rightDisplay,
+    supportive,
+    relationshipType,
+    aspectCode,
+    orb,
+  } = params;
+
+  return {
+    shortInterpretation: supportive
+      ? `Biriniz ${planetActionPhrase(leftPlanetCode)}, diğeriniz bunu daha rahat karşılayabildiği için aradaki temas daha kolay yumuşayabilir.`
+      : `Biriniz ${planetActionPhrase(leftPlanetCode)}, diğeriniz bunu daha zorlayıcı okuyabildiği için aradaki gerilim çabuk yükselebilir.`,
+    comparisonInsight: supportive
+      ? `${leftDisplay} ${planetActionPhrase(leftPlanetCode)}, ${rightDisplay} bunu tehdit değil ilişkiyi taşıyan bir sinyal gibi okuyabilir ve ${positiveReceptionPhrase(rightPlanetCode)}. ${aspectMechanismSentence(aspectCode, true)}`
+      : `${leftDisplay} ${planetActionPhrase(leftPlanetCode)}, ${rightDisplay} bunu kolayca ${negativeReceptionPhrase(rightPlanetCode)}. ${aspectMechanismSentence(aspectCode, false)}`,
+    practicalMeaning: supportive
+      ? `Bu etki özellikle ${modulePracticalArea(relationshipType)} konularında ilişkiye daha az savunma, daha fazla açıklık getirebilir.`
+      : `Bu etki özellikle ${modulePracticalArea(relationshipType)} konularında küçük farkların hızlıca yanlış okumaya dönmesine neden olabilir.`,
+    technicalKey: supportive
+      ? `${leftPlanet} tarafının getirdiği vurgu, ${rightPlanet} tarafının doğal ihtiyacında daha rahat karşılık buluyor.`
+      : `${leftPlanet} tarafının baskısı ile ${rightPlanet} tarafının ihtiyacı aynı anda öne çıktığında sürtünme büyüyebiliyor.`,
+    usageHint: moduleAdviceFrame(relationshipType, supportive),
+    orbLabel: buildOrbLabel(orb),
+    orbMicrocopy: buildOrbMicrocopy(orb, supportive, relationshipType),
+    orbInsight: buildOrbInsight(orb),
+  };
+}
+
+function buildSpecificTechnicalInterpretation(params: {
+  pairKey: string;
+  supportive: boolean;
+  relationshipType: RelationshipType;
+  leftDisplay: string;
+  rightDisplay: string;
+  aspectCode: AspectCode;
+  orb: number;
+}): TechnicalInterpretation | null {
+  const { pairKey, supportive, relationshipType, leftDisplay, rightDisplay, aspectCode, orb } = params;
+  const orbLabel = buildOrbLabel(orb);
+  const orbInsight = buildOrbInsight(orb);
+  const mechanism = aspectMechanismSentence(aspectCode, supportive);
+
+  switch (pairKey) {
+    case 'MOON_SUN':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Bir taraf kendini doğal biçimde ifade ettiğinde, diğer taraf bunu duygusal olarak daha rahat kabul edebiliyor.',
+          comparisonInsight:
+            `${leftDisplay} daha görünür ve net davrandığında ${rightDisplay} bunu tehdit değil, yakınlık kuran bir tavır gibi okuyabilir. ${mechanism}`,
+          practicalMeaning:
+            'Birlikteyken anlaşılmış hissetmek kolaylaşır; küçük kırılmalar da daha hızlı yumuşayabilir.',
+          technicalKey:
+            'Kendini ortaya koyma biçimi ile duygusal ihtiyaçlar birbirini daha kolay karşılıyor.',
+          usageHint:
+            'Bu açının gücü, duyguları ve beklentileri açık konuştuğunuzda daha da belirginleşir.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Bir taraf yön vermek isterken, diğer taraf önce duygusal olarak güvende olup olmadığını tartabilir.',
+        comparisonInsight:
+          `${leftDisplay} meseleyi daha net ve dışarıdan çözmek isterken ${rightDisplay} önce içeride ne hissettiğine bakabilir. ${mechanism}`,
+        practicalMeaning:
+          'Karar anları ve hassas konuşmalar biri için netlik, diğeri için baskı gibi yaşanabilir.',
+        technicalKey:
+          'Yön verme isteği ile duygusal güvenlik arayışı aynı anda yükseldiğinde sürtünme oluşur.',
+        usageHint:
+          'Önce duygusal zemini yumuşatıp sonra karar konuşmanız bu açının sert tarafını belirgin biçimde azaltır.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'SUN_VENUS':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Birinizin varlığı ve tavrı, diğerinizde kolayca beğeni ve sıcaklık uyandırabiliyor.',
+          comparisonInsight:
+            `${leftDisplay} kendini daha görünür ifade ettiğinde ${rightDisplay} bunu takdir ve yakınlık olarak almakta zorlanmaz. ${mechanism}`,
+          practicalMeaning:
+            'İltifat, küçük jestler ve görünür ilgi bu bağda çoğu zaman karşılıksız kalmaz.',
+          technicalKey:
+            'Görünür ilgi ile alınan sevgi dili aynı yönde aktığında bağ kurmak kolaylaşır.',
+          usageHint:
+            'Bu etkiyi büyütmek için takdiri yalnız hissetmekle bırakmayın, görünür hale getirin.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Birinizin görünür olma biçimi, diğerinizin sevgi ve estetik beklentisine tam oturmayabilir.',
+        comparisonInsight:
+          `${leftDisplay} daha doğrudan ilerlediğinde ${rightDisplay} bunu her zaman yakınlık olarak almayabilir; bazen ölçüsüz ya da kaba bulabilir. ${mechanism}`,
+        practicalMeaning:
+          'Çekim olsa bile takdir edilmediğini hissetmek veya sevgi dilini kaçırmak küçük kırgınlıkları büyütebilir.',
+        technicalKey:
+          'Görünür ifade ile alınan sevgi dili tam örtüşmediğinde sıcaklık kolayca yanlış okunur.',
+        usageHint:
+          'Hangi davranışın sizde sevgi, hangisinin sadece alışkanlık hissi yarattığını açıkça konuşmanız bu açıyı rahatlatır.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MARS_SUN':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Biriniz yön verdiğinde, diğeriniz bunu harekete çevirmekte zorlanmayabilir.',
+          comparisonInsight:
+            `${leftDisplay} niyetini ortaya koyduğunda ${rightDisplay} çoğu zaman bunu bekletmeden aksiyona çevirebilir. ${mechanism}`,
+          practicalMeaning:
+            'Birlikte karar almak, iş başlatmak ve cesaret isteyen adımları atmak daha kolay hale gelebilir.',
+          technicalKey:
+            'İrade ile hareket enerjisi aynı tarafa baktığında ilişki doğal bir ivme kazanır.',
+          usageHint:
+            'Bu enerjiyi dağılmadan kullanmak için hedefi kısa ve net tutmanız coşkuyu sonuca çevirir.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Birinizin kendini ortaya koyma biçimi, diğerinizin tepki hızını kolayca tetikleyebilir.',
+        comparisonInsight:
+          `${leftDisplay} net olmak istediğinde ${rightDisplay} bunu meydan okuma gibi algılayıp sertleşebilir. ${mechanism}`,
+        practicalMeaning:
+          'Küçük bir fikir ayrılığı bile doğru yönetilmezse hızla güç mücadelesine dönebilir.',
+        technicalKey:
+          'İrade ve tepki aynı sertlikte buluştuğunda ilişki çok hızlı gerilebilir.',
+        usageHint:
+          'Bu açıda ilk tepkiyi değil, ikinci cümleyi yönetmek çatışmayı büyümeden tutar.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MOON_VENUS':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Biriniz duygusal olarak açıldığında, diğeriniz bunu yumuşak ve şefkatli bir dille karşılayabiliyor.',
+          comparisonInsight:
+            `${leftDisplay} kırılganlığını görünür kıldığında ${rightDisplay} bunu geri çevirmek yerine çoğu zaman özenle karşılayabilir. ${mechanism}`,
+          practicalMeaning:
+            'Gönül alma, kırgınlık sonrası onarım ve küçük bakım jestleri ilişkide doğal bir yer bulabilir.',
+          technicalKey:
+            'Duygusal ihtiyaç ile sevgi gösterme biçimi aynı kapıdan geçebildiğinde yakınlık daha kolay kuruluyor.',
+          usageHint:
+            'Size iyi gelen bakım dilini küçümsemeyin; küçük ama görünür şefkat jestleri bu açının asıl gücüdür.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Birinizin sevgi gösterme biçimi, diğerinizin duygusal ihtiyacını tam karşılamayabilir.',
+        comparisonInsight:
+          `${leftDisplay} daha çok anlaşılmak isterken ${rightDisplay} durumu güzelleştirerek çözmeye çalışabilir; iyi niyet vardır ama ihtiyaç aynı değildir. ${mechanism}`,
+        practicalMeaning:
+          'Biri teselli beklerken diğeri jest sunabilir; bu da sevginin eksik değil, yanlış yerden geldiği hissini yaratabilir.',
+        technicalKey:
+          'Sevgi gösterme biçimi ile duygusal rahatlama ihtiyacı farklı çalıştığında sıcaklık boşa gidebilir.',
+        usageHint:
+          'Kimin teselli, kimin çözüm, kimin yalnız yakınlık istediğini konuşmanız bu açının sürtünmesini azaltır.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MARS_MOON':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Biriniz duygusunu açtığında, diğeriniz bunu harekete geçmek için net bir işaret olarak alabiliyor.',
+          comparisonInsight:
+            `${leftDisplay} içten tepki verdiğinde ${rightDisplay} bunu bastırmak yerine cevaplanması gereken canlı bir sinyal gibi okuyabilir. ${mechanism}`,
+          practicalMeaning:
+            'İlişkide hisler bekletilmeden konuşulabilir, temas daha canlı kurulabilir ve enerji kolay düşmeyebilir.',
+          technicalKey:
+            'Duygusal tepki ile hareket etme dürtüsü birbirini hızlandırdığı için ilişki çabuk canlanır.',
+          usageHint:
+            'Bu hızlı bağı korurken yoğun anlarda kısa bir nefes aralığı bırakmanız gereksiz taşmayı önler.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Biriniz incindiğinde, diğerinizin tepki hızı durumu yatıştırmak yerine kolayca büyütebilir.',
+        comparisonInsight:
+          `${leftDisplay} kendini güvende hissetmediğinde geri çekilebilir; ${rightDisplay} ise bunu beklemeyip hemen tepkiyle karşılayabilir. ${mechanism}`,
+        practicalMeaning:
+          'Küçük bir kırgınlık hız, sertlik veya savunma yüzünden gereğinden büyük bir tartışmaya dönebilir.',
+        technicalKey:
+          'Kırılganlık ile tepki hızı aynı anda yükseldiğinde ilişki çabuk alev alır.',
+        usageHint:
+          'Önce duyguyu, sonra tepkiyi ayırmanız bu açının kavgaya açık tarafını belirgin biçimde yavaşlatır.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MERCURY_MERCURY':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'İki tarafın düşünme ve konuşma temposu birbirini yakalamakta zorlanmıyor.',
+          comparisonInsight:
+            `${leftDisplay} ile ${rightDisplay} aynı konuyu konuşurken birbirinin nereye varmak istediğini daha hızlı çözebilir. ${mechanism}`,
+          practicalMeaning:
+            'Yanlış anlaşılma tamamen bitmese de toparlanması kolaylaşır; açıklama ihtiyacı daha kısa sürede karşılık bulur.',
+          technicalKey:
+            'Zihinsel tempo ve anlam kurma biçimi benzeştiğinde iletişim daha az enerji harcar.',
+          usageHint:
+            'Önemli konuşmalarda kısa özet cümleler kullanmanız bu avantajı daha da görünür kılar.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Aynı konu konuşulsa bile iki taraf aynı cümleden farklı anlam çıkarabilir.',
+        comparisonInsight:
+          `${leftDisplay} daha hızlı sonuca gitmek isterken ${rightDisplay} daha fazla bağlam arayabilir; niyet doğru olsa da mesaj kayabilir. ${mechanism}`,
+        practicalMeaning:
+          'Tartışma çoğu zaman iletişimsizlikten değil, aynı kelimelere farklı anlam yüklenmesinden büyür.',
+        technicalKey:
+          'Kelimeler ortak görünse de zihinsel çerçeve farklı kaldığında iletişim yorulur.',
+        usageHint:
+          'Önemli başlıklarda “bundan ne anlıyorum” cümlesini açıkça kurmanız boşa giden konuşmayı ciddi biçimde azaltır.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MARS_MERCURY':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Fikir ile eylem arasındaki geçiş hızlı olduğu için konuşmalar sonuç üretebilir.',
+          comparisonInsight:
+            `${leftDisplay} bir fikri ortaya koyduğunda ${rightDisplay} bunu yalnız yorumlamakla kalmayıp uygulamaya da taşıyabilir. ${mechanism}`,
+          practicalMeaning:
+            'Karar alıp ilerlemek kolaylaşır; konuşmaların havada kalma ihtimali azalır.',
+          technicalKey:
+            'Düşünce hızı ile harekete geçme dürtüsü aynı hatta buluştuğunda verim artar.',
+          usageHint:
+            'Bu hızın dağılmaması için önce hedefi, sonra yöntemi ayırmanız en iyi sonucu verir.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Konuşma sertleştiğinde söz ile tepki aynı anda yükselip gerilimi hızla büyütebilir.',
+        comparisonInsight:
+          `${leftDisplay} meseleyi daha keskin cümlelerle kurduğunda ${rightDisplay} bunu kişisel baskı gibi algılayıp sert karşılık verebilir. ${mechanism}`,
+        practicalMeaning:
+          'Haklı çıkma isteği konuşmanın önüne geçtiğinde tartışma çözüm üretmek yerine güç denemesine dönebilir.',
+        technicalKey:
+          'Düşünce ile tepki aynı sertlikte buluştuğunda iletişim hızla aşınır.',
+        usageHint:
+          'Ton yükseldiğinde önce konuyu daraltmanız, sonra tek cümlelik netlikle ilerlemeniz bu açıyı daha yönetilebilir kılar.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MERCURY_SATURN':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Konuşmalar daha ölçülü, ciddi ve taşıyıcı bir çerçeveye oturabilir.',
+          comparisonInsight:
+            `${leftDisplay} yapı ve netlik getirdiğinde ${rightDisplay} bunu baskı değil, güven veren bir düzen olarak alabilir. ${mechanism}`,
+          practicalMeaning:
+            'Plan yapmak, sözünde durmak ve uzun vadeli kararları netleştirmek daha kolay olabilir.',
+          technicalKey:
+            'Zihinsel tempo yapı ve sorumlulukla desteklendiğinde ilişki daha sağlam bir omurga kazanır.',
+          usageHint:
+            'Kurulan düzeni ara ara gözden geçirmeniz, ciddiyetin soğukluğa dönüşmesini engeller.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Bir tarafın ciddiyeti, diğer taraf için eleştiri ya da baskı gibi duyulabilir.',
+        comparisonInsight:
+          `${leftDisplay} meseleyi daha kontrollü ve ölçülü konuşmak isterken ${rightDisplay} bunu mesafe, yargı veya geciktirme gibi okuyabilir. ${mechanism}`,
+        practicalMeaning:
+          'İyi niyetle kurulan sınır bile ton ağırlaştığında ilişkiye soğuma ve yetersizlik duygusu getirebilir.',
+        technicalKey:
+          'Netlik arayışı ile yargılanma hissi aynı anda yükseldiğinde iletişim ağırlaşır.',
+        usageHint:
+          'Haklı çıkmak yerine neyin net, neyin henüz taslak olduğunu ayırmanız bu açının baskısını azaltır.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MARS_VENUS':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Çekim ile arzu hızlı karşılık bulduğu için ilişki kolay ısınabilir.',
+          comparisonInsight:
+            `${leftDisplay} daha çekici ve davetkar bir çizgi açtığında ${rightDisplay} buna canlı ve istekli biçimde cevap verebilir. ${mechanism}`,
+          practicalMeaning:
+            'Flört, oyun, tensel yakınlık ve karşılıklı merak daha doğal bir yer bulabilir.',
+          technicalKey:
+            'Beğeni ile istek aynı yönde yükseldiğinde ilişki güçlü bir kimya üretir.',
+          usageHint:
+            'Bu çekimi yalnız yoğun anlara bırakmayın; küçük oyunlar ve görünür takdir bağı daha canlı tutar.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Bir tarafın yakınlaşma hızı, diğer tarafın ilişki ritmine fazla hızlı gelebilir.',
+        comparisonInsight:
+          `${leftDisplay} daha hızlı ve doğrudan yakınlaşmak isterken ${rightDisplay} zamanlama, estetik ya da güven duygusuna daha fazla önem verebilir. ${mechanism}`,
+        practicalMeaning:
+          'Çekim yüksek olsa bile doz ve zamanlama konuşulmazsa biri baskı, diğeri reddedilme hissi yaşayabilir.',
+        technicalKey:
+          'Arzu temposu ile yakınlık ritmi aynı hızda işlemediğinde çekim kolayca sürtünmeye döner.',
+        usageHint:
+          'Yakınlıkta hız değil rıza ve ritim konuşmanız bu açının çekimini koruyup gerilimini azaltır.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'SATURN_VENUS':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Yakınlık ile sadakat duygusu aynı anda güçlenebildiği için bağ daha dayanıklı kurulabilir.',
+          comparisonInsight:
+            `${leftDisplay} ilişkiyi daha ciddi ve sorumlu taşıdığında ${rightDisplay} bunu soğukluk yerine önemsenmek olarak okuyabilir. ${mechanism}`,
+          practicalMeaning:
+            'İlişkide kalıcılık, sözünde durma ve bağa sahip çıkma tarafı daha görünür hale gelebilir.',
+          technicalKey:
+            'Sevgi ile sorumluluk aynı yönde çalıştığında ilişki yalnız sıcak değil, dayanıklı da olur.',
+          usageHint:
+            'Ciddiyeti duygusuzluğa çevirmemek için sevgi dilini görünür tutmanız bu açının en önemli dengesidir.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Yakınlık isteği ile korunma refleksi aynı anda yükseldiğinde araya mesafe girebilir.',
+        comparisonInsight:
+          `${leftDisplay} daha fazla yakınlık teyidi ararken ${rightDisplay} zamanı ve kontrolü bırakmak istemeyebilir. ${mechanism}`,
+        practicalMeaning:
+          'Sevgi eksik olmasa da akış ağırlaştığında bir taraf geri çekilmeyi, diğeri ise daha çok güvence aramayı seçebilir.',
+        technicalKey:
+          'Yakınlık ihtiyacı ile korunma refleksi çatıştığında ilişki ağır ama kırılgan bir tona girer.',
+        usageHint:
+          'Gecikmeyi reddedilme gibi okumadan önce güveni neyin kurduğunu konuşmanız bu açının yükünü hafifletir.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MOON_SATURN':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Duygular taşmadan tutulabildiği için ilişki zor zamanda bile omurga bulabilir.',
+          comparisonInsight:
+            `${leftDisplay} daha kırılgan hissettiğinde ${rightDisplay} bunu taşımak için sakin ve güven veren bir çerçeve sunabilir. ${mechanism}`,
+          practicalMeaning:
+            'Kriz anlarında panik yerine toparlayıcı tavır almak ve yükü birlikte taşımak daha kolay olabilir.',
+          technicalKey:
+            'Duygusal ihtiyaç yapı ve dayanıklılıkla karşılandığında ilişki güven veren bir omurga kazanır.',
+          usageHint:
+            'Dayanıklılığı duyguyu bastırmaya çevirmemek için hisleri yalnız kriz anında değil, sakin zamanda da konuşun.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Bir tarafın duygusal ihtiyacı, diğer taraf için yük ya da baskı gibi hissedilebilir.',
+        comparisonInsight:
+          `${leftDisplay} daha fazla duygusal karşılık ararken ${rightDisplay} sessizleşip yükü tek başına taşımayı seçebilir. ${mechanism}`,
+        practicalMeaning:
+          'Biri anlaşılmak isterken diğeri kontrolü kaybetmemek için geri çekildiğinde sessiz kırgınlık birikebilir.',
+        technicalKey:
+          'Duygusal ihtiyaç ile kontrol duygusu aynı anda yükseldiğinde ilişki ağırlaşır.',
+        usageHint:
+          'Sessiz dayanıklılığı sevgi kanıtı saymak yerine ihtiyaçları görünür kılmanız bu açıyı daha güvenli hale getirir.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MARS_SATURN':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Hız ile disiplin doğru birleştiğinde ilişki hem güçlü hem de sürdürülebilir sonuç üretebilir.',
+          comparisonInsight:
+            `${leftDisplay} harekete geçmek istediğinde ${rightDisplay} buna tempo, süre ve çerçeve kazandırabilir. ${mechanism}`,
+          practicalMeaning:
+            'Hedef koymak, birlikte dayanmak ve uzun soluklu işleri yürütmek daha verimli olabilir.',
+          technicalKey:
+            'Hareket gücü ile sabır aynı plana bağlandığında ilişki dağılmadan ilerler.',
+          usageHint:
+            'Kısa hedefler ve net sorumluluk dağılımı bu açının en verimli çalışma biçimidir.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Bir taraf hızlanırken diğer taraf yavaşlatmak istediği için sabırsızlık ve blokaj hissi büyüyebilir.',
+        comparisonInsight:
+          `${leftDisplay} ilerlemek istediğinde ${rightDisplay} önce riski ölçmek, yavaşlatmak ya da durdurmak isteyebilir. ${mechanism}`,
+        practicalMeaning:
+          'İlişkide biri gaz verirken diğeri fren yaptığında konu içerikten çok tempo savaşına dönüşebilir.',
+        technicalKey:
+          'Hız ile kontrol aynı anda devreye girdiğinde ilişki gaz-fren çatışmasına girer.',
+        usageHint:
+          'Önce hız sınırını, sonra hedefi konuşmanız bu açının blokaj hissini daha işlevsel hale getirir.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'MARS_PLUTO':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Yoğun enerji doğru yönlendirildiğinde ilişki güçlü bir dayanıklılık ve strateji üretebilir.',
+          comparisonInsight:
+            `${leftDisplay} ile ${rightDisplay} baskı altında kolay dağılmaz; zorlu koşullarda daha odaklı ve keskin bir mücadele gücü açabilir. ${mechanism}`,
+          practicalMeaning:
+            'Kriz anlarında geri adım atmamak, zor işleri taşımak ve stratejik kalmak daha kolay olabilir.',
+          technicalKey:
+            'Yoğunluk ve mücadele dürtüsü ortak hedefe bağlandığında ilişki yüksek dayanıklılık gösterir.',
+          usageHint:
+            'Bu yoğunluğu güç savaşına çevirmemek için hedefi ve sınırı baştan netleştirmeniz kritik önem taşır.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Güç, kontrol ve tepki aynı anda yükseldiğinde ilişki hızlıca sertleşebilir.',
+        comparisonInsight:
+          `${leftDisplay} ile ${rightDisplay} arasındaki gerilim bazen tek bir konu olmaktan çıkıp kimin geri adım atacağı meselesine dönebilir. ${mechanism}`,
+        practicalMeaning:
+          'Küçük bir sürtünme bile doğru yönetilmezse güç mücadelesi, inat ve kontrol savaşına dönüşebilir.',
+        technicalKey:
+          'Mücadele dürtüsü ile kontrol ihtiyacı birleştiğinde ilişki kolayca güç savaşına kayar.',
+        usageHint:
+          'Mesele ile egoyu erken ayırmanız bu açının yıpratıcı tarafını belirgin biçimde düşürür.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    case 'JUPITER_SUN':
+      if (supportive) {
+        return {
+          shortInterpretation:
+            'Bir tarafın yön duygusu, diğer tarafın umut ve geniş bakışıyla kolayca büyüyebilir.',
+          comparisonInsight:
+            `${leftDisplay} bir adım attığında ${rightDisplay} bunu küçültmek yerine cesaretlendiren ve alan açan tarafta kalabilir. ${mechanism}`,
+          practicalMeaning:
+            'Birbirinizi motive etmek, birlikte daha büyük düşünmek ve özgüveni artırmak daha doğal hale gelebilir.',
+          technicalKey:
+            'Görünür irade ile büyüme isteği aynı yönde ilerlediğinde ilişki birbirini cesaretlendirir.',
+          usageHint:
+            'İyimserliği korurken ölçüyü kaçırmamak için büyük hedefleri küçük adımlara bölmeniz bu açıyı daha verimli kullanır.',
+          orbLabel,
+          orbMicrocopy: buildOrbMicrocopy(orb, true, relationshipType),
+          orbInsight,
+        };
+      }
+      return {
+        shortInterpretation:
+          'Bir tarafın özgüveni ya da büyük bakışı, diğer taraf için abartı veya baskı gibi gelebilir.',
+        comparisonInsight:
+          `${leftDisplay} daha büyük, daha iddialı veya daha görünür davrandığında ${rightDisplay} bunu destek değil, ölçüsüzlük gibi okuyabilir. ${mechanism}`,
+        practicalMeaning:
+          'İyi niyetle yapılan teşvik bile zaman zaman sınır aşımı, kibir ya da abartı hissi yaratabilir.',
+        technicalKey:
+          'İrade ile büyüme isteği ölçüsüz birleştiğinde ilişki kolayca abartıya kayabilir.',
+        usageHint:
+          'Cesaret verirken sınırı, özgüveni yükseltirken gerçekliği korumanız bu açının taşmasını önler.',
+        orbLabel,
+        orbMicrocopy: buildOrbMicrocopy(orb, false, relationshipType),
+        orbInsight,
+      };
+    default:
+      return null;
+  }
+}
+
+function buildTechnicalInterpretation(params: {
+  aspect: CrossAspect;
+  relationshipType: RelationshipType;
+  leftName: string;
+  rightName: string;
+}): TechnicalInterpretation {
+  const { aspect, relationshipType, leftName, rightName } = params;
+  const leftPlanetCode = normalizePlanetCode(aspect.userPlanet);
+  const rightPlanetCode = normalizePlanetCode(aspect.partnerPlanet);
+  const leftPlanet = localizePlanet(aspect.userPlanet);
+  const rightPlanet = localizePlanet(aspect.partnerPlanet);
+  const supportive = Boolean(aspect.harmonious);
+  const aspectCode = normalizeAspectCode(aspect.aspectType);
+  const orb = Number((Number.isFinite(aspect.orb) ? aspect.orb : 2.4).toFixed(1));
+  const leftDisplay = displayName(leftName, 'Bir taraf');
+  const rightDisplay = displayName(rightName, 'diğer taraf');
+  const pairKey = buildPairKey(leftPlanetCode, rightPlanetCode);
+
+  return (
+    buildSpecificTechnicalInterpretation({
+      pairKey,
+      supportive,
+      relationshipType,
+      leftDisplay,
+      rightDisplay,
+      aspectCode,
+      orb,
+    }) ??
+    buildGenericTechnicalInterpretation({
+      leftPlanetCode,
+      rightPlanetCode,
+      leftPlanet,
+      rightPlanet,
+      leftDisplay,
+      rightDisplay,
+      supportive,
+      relationshipType,
+      aspectCode,
+      orb,
+    })
+  );
+}
+
+function mapSynastryToTechnicalAspects(
+  synastry: SynastryResponse,
   relationshipType: RelationshipType,
   leftName: string,
   rightName: string,
-): ComparisonCardDTO[] {
-  const cards = asArray(rawCards)
-    .map((item, index) => {
-      const obj = asObject(item);
-      const fallbackTheme = RELATIONSHIP_THEME_ORDER[relationshipType][index % RELATIONSHIP_THEME_ORDER[relationshipType].length];
+): TechnicalAspectDTO[] {
+  const aspects = Array.isArray(synastry.crossAspects) ? synastry.crossAspects : [];
 
-      const label = normalizeLabel(obj.label, 'Gelişim');
-      const leftTrait = sanitizeMainCopy(
-        asString(asObject(obj.leftPerson).trait, `${leftName}: netlik arar`),
-        `${leftName}: netlik arar`,
-      );
-      const rightTrait = sanitizeMainCopy(
-        asString(asObject(obj.rightPerson).trait, `${rightName}: alan ister`),
-        `${rightName}: alan ister`,
-      );
-      const impact = sanitizeMainCopy(
-        asString(asObject(obj.intersection).plain, `${leftName} ve ${rightName} aynı başlıkta farklı hızda ilerleyebilir.`),
-        `${leftName} ve ${rightName} aynı başlıkta farklı hızda ilerleyebilir.`,
-      );
-      const advice = sanitizeMainCopy(
-        asString(obj.advicePlain, 'Öneri: Konuya başlamadan önce niyeti bir cümleyle netleştirin.'),
-        'Öneri: Konuya başlamadan önce niyeti bir cümleyle netleştirin.',
-      );
+  return aspects.slice(0, 20).map((aspect, index) => {
+    const leftPlanet = localizePlanet(aspect.userPlanet);
+    const rightPlanet = localizePlanet(aspect.partnerPlanet);
+    const aspectName = `${leftPlanet} ${localizeAspectType(aspect.aspectType, aspect.aspectSymbol)} ${rightPlanet}`;
+    const supportive = Boolean(aspect.harmonious);
+    const interpretation = buildTechnicalInterpretation({
+      aspect,
+      relationshipType,
+      leftName,
+      rightName,
+    });
 
-      return {
-        id: asString(obj.id, `${relationshipType}-${index + 1}`),
-        relationshipType,
-        themeGroup: normalizeThemeGroup(obj.themeGroup, fallbackTheme),
-        title: sanitizeMainCopy(
-          asString(obj.title, 'İlişki Dinamiği').replace(/\s+\d+$/g, ''),
-          'İlişki Dinamiği',
-        ),
-        leftPerson: {
-          name: asString(asObject(obj.leftPerson).name, leftName),
-          trait: leftTrait,
-        },
-        intersection: {
-          plain: impact,
-        },
-        rightPerson: {
-          name: asString(asObject(obj.rightPerson).name, rightName),
-          trait: rightTrait,
-        },
-        label,
-        intensity: clampPercent(obj.intensity, label === 'Dikkat' ? 78 : label === 'Uyumlu' ? 48 : 62),
-        leftValue: clampPercent(obj.leftValue, 50),
-        rightValue: clampPercent(obj.rightValue, 50),
-        advicePlain: advice,
-        technical: {
-          aspectName: asString(asObject(obj.technical).aspectName, asString(obj.title, 'Teknik Dinamik')),
-          orb: Number((Number(asObject(obj.technical).orb) || 2.4).toFixed(1)),
-          planets: asArray<string>(asObject(obj.technical).planets).filter(Boolean),
-          houses: asArray<string>(asObject(obj.technical).houses).filter(Boolean),
-        },
-      } as ComparisonCardDTO;
-    })
-    .filter((card) => card.title.length > 0);
-
-  return cards;
-}
-
-function buildComparisonFromMock(input: FetchComparisonInput): ComparisonResponseDTO {
-  const leftName = asString(input.leftName, 'Kişi 1');
-  const rightName = asString(input.rightName, 'Kişi 2');
-  const relationshipType = input.relationshipType;
-
-  const cards = buildCards(relationshipType, leftName, rightName, input.matchId);
-  const themeScores = computeThemeScores(relationshipType, cards);
-  const overallScore = computeOverallScore(themeScores);
-  const technicalAspects = buildTechnicalAspects(cards);
-  const supportive = technicalAspects.filter((item) => item.type === 'supportive').length;
-  const challenging = technicalAspects.filter((item) => item.type === 'challenging').length;
-  const summaryPlain = buildSummary(
-    relationshipType,
-    leftName,
-    rightName,
-    themeScores[0]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][0],
-    themeScores[1]?.themeGroup ?? RELATIONSHIP_THEME_ORDER[relationshipType][1],
-    hashString(`${leftName}-${rightName}-${relationshipType}-${input.matchId}`),
-  );
-
-  return {
-    relationshipType,
-    overallScore,
-    summaryPlain,
-    counts: {
-      supportive,
-      challenging,
-    },
-    themeScores,
-    cards,
-    technicalAspects,
-  };
-}
-
-function normalizeBackendResponse(
-  raw: unknown,
-  input: FetchComparisonInput,
-): ComparisonResponseDTO | null {
-  const obj = asObject(raw);
-  if (!Object.keys(obj).length) return null;
-
-  if (isMatchTraitsPayload(obj)) {
-    const payload: MatchTraitsPayload = {
-      matchId: Number.isFinite(Number(obj.matchId)) ? Number(obj.matchId) : input.matchId,
-      compatibilityScore: Number.isFinite(Number(obj.compatibilityScore))
-        ? Number(obj.compatibilityScore)
-        : null,
-      categories: asArray(obj.categories).map((item, index) => normalizeTraitsCategory(item, index)),
-      cardAxes: asArray(obj.cardAxes).map((item, index) => normalizeTraitsAxis(item, index)),
-      cardSummary: asString(obj.cardSummary, ''),
+    return {
+      id: `tech-${index + 1}`,
+      aspectName,
+      type: supportive ? 'supportive' : 'challenging',
+      orb: Number((Number.isFinite(aspect.orb) ? aspect.orb : 2.4).toFixed(1)),
+      orbLabel: interpretation.orbLabel,
+      orbMicrocopy: interpretation.orbMicrocopy,
+      orbInsight: interpretation.orbInsight,
+      themeGroup: inferThemeFromCrossAspect(aspect, relationshipType),
+      shortInterpretation: interpretation.shortInterpretation,
+      comparisonInsight: interpretation.comparisonInsight,
+      practicalMeaning: interpretation.practicalMeaning,
+      technicalKey: interpretation.technicalKey,
+      usageHint: interpretation.usageHint,
+      planets: [leftPlanet, rightPlanet],
+      houses: [],
     };
-    return normalizeMatchTraitsResponse(payload, input);
-  }
-
-  const relationshipType = normalizeRelationshipType(obj.relationshipType, input.relationshipType);
-  const leftName = asString(input.leftName, 'Kişi 1');
-  const rightName = asString(input.rightName, 'Kişi 2');
-
-  const cards = normalizeCards(obj.cards, relationshipType, leftName, rightName);
-  if (!cards.length) return null;
-
-  const derivedThemeScores = computeThemeScores(relationshipType, cards);
-  const themeScores = asArray(obj.themeScores)
-    .map((entry, index) => {
-      const item = asObject(entry);
-      const fallback = derivedThemeScores[index] ?? derivedThemeScores[0];
-      if (!fallback) return null;
-      return {
-        themeGroup: normalizeThemeGroup(item.themeGroup, fallback.themeGroup),
-        score: clampPercent(item.score, fallback.score),
-      };
-    })
-    .filter(Boolean) as ComparisonResponseDTO['themeScores'];
-
-  const usableThemeScores = themeScores.length ? themeScores : derivedThemeScores;
-
-  const summary = asObject(obj.summaryPlain);
-  const summaryPlain = {
-    headline: sanitizeMainCopy(
-      asString(summary.headline, `${leftName} ve ${rightName} için güçlü bir karşılaştırma özeti`),
-      `${leftName} ve ${rightName} için güçlü bir karşılaştırma özeti`,
-    ),
-    body: sanitizeMainCopy(
-      asString(
-        summary.body,
-        `${leftName} daha farklı bir tempo isterken ${rightName} daha farklı bir yaklaşım gösterebilir. Bu farkı konuşmak uyumu artırır.`,
-      ),
-      `${leftName} daha farklı bir tempo isterken ${rightName} daha farklı bir yaklaşım gösterebilir. Bu farkı konuşmak uyumu artırır.`,
-    ),
-  };
-
-  const technicalAspectsRaw = asArray(obj.technicalAspects);
-  const technicalAspects: TechnicalAspectDTO[] = technicalAspectsRaw.length
-    ? technicalAspectsRaw
-        .map((entry, index): TechnicalAspectDTO => {
-          const item = asObject(entry);
-          const fallbackCard = cards[index % cards.length];
-
-          return {
-            id: asString(item.id, `tech-${index + 1}`),
-            aspectName: asString(item.aspectName, fallbackCard.technical?.aspectName ?? fallbackCard.title),
-            type: asString(item.type, '').toLowerCase().includes('support') ? 'supportive' : 'challenging',
-            orb: Number((Number(item.orb) || fallbackCard.technical?.orb || 2.2).toFixed(1)),
-            themeGroup: normalizeThemeGroup(item.themeGroup, fallbackCard.themeGroup),
-            plainMeaning: asString(item.plainMeaning, fallbackCard.intersection.plain),
-            advicePlain: asString(item.advicePlain, fallbackCard.advicePlain),
-            planets: asArray<string>(item.planets).filter(Boolean),
-            houses: asArray<string>(item.houses).filter(Boolean),
-          };
-        })
-        .filter((item) => Boolean(item.aspectName))
-    : buildTechnicalAspects(cards);
-
-  const supportive = technicalAspects.filter((item) => item.type === 'supportive').length;
-  const challenging = technicalAspects.filter((item) => item.type === 'challenging').length;
-
-  return {
-    relationshipType,
-    overallScore: clampPercent(obj.overallScore, computeOverallScore(usableThemeScores)),
-    summaryPlain,
-    counts: {
-      supportive,
-      challenging,
-    },
-    themeScores: usableThemeScores,
-    cards,
-    technicalAspects,
-  };
+  });
 }
 
 function toUserError(error: unknown): Error {
@@ -1472,61 +1358,6 @@ export function parseRelationshipTypeParam(
   return normalizeRelationshipType(raw, fallback);
 }
 
-export function buildMiniCategoryScores(
-  relationshipType: RelationshipType,
-  themeScores: ComparisonResponseDTO['themeScores'],
-): MiniCategoryScoreDTO[] {
-  const scoreMap = new Map<ThemeGroup, number>(
-    themeScores.map((item) => [item.themeGroup, clampPercent(item.score, 0)]),
-  );
-
-  return RELATIONSHIP_MINI_CATEGORY_CONFIG[relationshipType].map((item) => {
-    const values = item.themes
-      .map((theme) => scoreMap.get(theme))
-      .filter((score): score is number => typeof score === 'number');
-
-    const score = values.length
-      ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
-      : 0;
-
-    return {
-      id: item.id,
-      label: item.label,
-      score,
-    };
-  });
-}
-
-export function groupCardsByTheme(
-  cards: ComparisonCardDTO[],
-  relationshipType: RelationshipType,
-  themeScores: ComparisonResponseDTO['themeScores'],
-): CompareThemeSectionDTO[] {
-  const order = RELATIONSHIP_THEME_ORDER[relationshipType];
-  const scoreMap = new Map<ThemeGroup, number>(themeScores.map((item) => [item.themeGroup, item.score]));
-
-  return order
-    .map((themeGroup) => {
-      const groupedCards = cards
-        .filter((card) => card.relationshipType === relationshipType && card.themeGroup === themeGroup)
-        .sort((a, b) => {
-          const labelDelta = LABEL_PRIORITY[a.label] - LABEL_PRIORITY[b.label];
-          if (labelDelta !== 0) return labelDelta;
-          return b.intensity - a.intensity;
-        });
-
-      if (!groupedCards.length) return null;
-
-      return {
-        themeGroup,
-        score: clampPercent(scoreMap.get(themeGroup), themeScoreFromCards(groupedCards)),
-        totalCount: groupedCards.length,
-        cards: groupedCards,
-      } satisfies CompareThemeSectionDTO;
-    })
-    .filter(Boolean) as CompareThemeSectionDTO[];
-}
-
 export async function fetchComparison(
   input: FetchComparisonInput,
 ): Promise<FetchComparisonResult> {
@@ -1537,18 +1368,30 @@ export async function fetchComparison(
     const response = await api.get<unknown>(`${COMPARE_BASE}/${input.matchId}/traits`, {
       params: {
         relationshipType: input.relationshipType.toUpperCase(),
-        mode: 'comparison',
+        mode: 'comparison-v3',
       },
     });
 
-    normalized = normalizeBackendResponse(response.data, input);
+    normalized = normalizeV3Response(response.data, input);
   } catch (error) {
     lastError = error;
   }
 
   try {
     const synastryResponse = await getSynastry(input.matchId);
-    normalized = enrichWithSynastry(normalized, synastryResponse.data, input);
+    if (normalized) {
+      const leftName = input.leftName || synastryResponse.data.personAName || '';
+      const rightName = input.rightName || synastryResponse.data.personBName || '';
+      normalized = {
+        ...normalized,
+        technicalAspects: mapSynastryToTechnicalAspects(
+          synastryResponse.data,
+          normalized.relationshipType,
+          leftName,
+          rightName,
+        ),
+      };
+    }
   } catch (synastryError) {
     if (!normalized) {
       lastError = synastryError;
@@ -1562,15 +1405,9 @@ export async function fetchComparison(
     };
   }
 
-  if (!ALLOW_COMPARE_MOCK_FALLBACK) {
-    if (lastError) {
-      throw toUserError(lastError);
-    }
-    throw new Error('Uyum verisi yüklenemedi.');
+  if (lastError) {
+    throw toUserError(lastError);
   }
 
-  return {
-    data: buildComparisonFromMock(input),
-    isMock: true,
-  };
+  throw new Error('Uyum verisi yüklenemedi.');
 }

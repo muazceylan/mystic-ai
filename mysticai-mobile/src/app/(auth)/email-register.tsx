@@ -220,7 +220,7 @@ export default function EmailRegisterScreen() {
         return;
       }
 
-      router.push('/birth-date');
+      router.push('/(auth)/birth-date');
     } catch {
       setError('email', {
         message: t('emailRegister.emailCheckFailed'),

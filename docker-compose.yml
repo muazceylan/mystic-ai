@@ -79,6 +79,19 @@ services:
     restart: unless-stopped
 
   # ==========================================
+  # MailHog - Local SMTP for Dev
+  # ==========================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mystic-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - mystic-network
+    restart: unless-stopped
+
+  # ==========================================
   # pgAdmin - Database Management UI
   # ==========================================
   pgadmin:

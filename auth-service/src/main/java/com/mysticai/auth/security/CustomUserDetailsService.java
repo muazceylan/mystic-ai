@@ -1,6 +1,7 @@
 package com.mysticai.auth.security;
 
 import com.mysticai.auth.entity.User;
+import com.mysticai.auth.entity.enums.AccountStatus;
 import com.mysticai.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,6 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByUsernameIgnoreCase(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         String password = user.getPassword() != null ? user.getPassword() : "";
@@ -29,7 +31,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 password,
-                user.isEnabled(),
+                user.isEnabled() && user.getAccountStatus() == AccountStatus.ACTIVE,
                 true,
                 true,
                 true,

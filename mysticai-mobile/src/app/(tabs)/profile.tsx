@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as Haptics from '../../utils/haptics';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
@@ -59,6 +60,7 @@ function isPremium(roles?: string[]): boolean {
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const tabBarHeight = useBottomTabBarHeight();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
@@ -170,7 +172,7 @@ export default function ProfileScreen() {
         <TabHeader showAvatar={false} {...useTabHeaderActions()} />
         <ScrollView
         style={S.scroll}
-        contentContainerStyle={S.scrollContent}
+        contentContainerStyle={[S.scrollContent, { paddingBottom: tabBarHeight + 28 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -333,7 +335,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
     scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 40 },
+    scrollContent: { paddingHorizontal: 24, paddingTop: 28 },
     // Header
     profileHeader: { alignItems: 'center', marginBottom: 20 },
     avatarButton: {

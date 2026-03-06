@@ -424,7 +424,7 @@ export default function BirthCityScreen() {
         <TouchableOpacity
           style={[styles.primaryButton, !canContinue && styles.primaryDisabled]}
           disabled={!canContinue}
-          onPress={() => router.push('/gender')}
+          onPress={() => router.push('/(auth)/gender')}
           accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >

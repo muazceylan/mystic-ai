@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Platform } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Platform, Pressable } from 'react-native';
 import * as Haptics from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 
@@ -28,26 +28,38 @@ export default function WheelPicker({
 
   const selectedIndex = items.findIndex((item) => item.value === selectedValue);
 
+  const selectIndex = useCallback(
+    (index: number, animated = true) => {
+      const clamped = Math.max(0, Math.min(index, items.length - 1));
+      const nextItem = items[clamped];
+      if (!nextItem) return;
+
+      flatListRef.current?.scrollToOffset({
+        offset: clamped * ITEM_HEIGHT,
+        animated,
+      });
+
+      if (nextItem.value !== selectedValue) {
+        onValueChange(nextItem.value);
+      }
+    },
+    [items, onValueChange, selectedValue],
+  );
+
   // Initial scroll — wait for layout then scroll
   const handleLayout = useCallback(() => {
     if (!ready && selectedIndex >= 0) {
-      flatListRef.current?.scrollToOffset({
-        offset: selectedIndex * ITEM_HEIGHT,
-        animated: false,
-      });
+      selectIndex(selectedIndex, false);
       setReady(true);
     }
-  }, [ready, selectedIndex]);
+  }, [ready, selectedIndex, selectIndex]);
 
   // Subsequent value changes from parent
   useEffect(() => {
     if (ready && selectedIndex >= 0 && !isScrollingRef.current) {
-      flatListRef.current?.scrollToOffset({
-        offset: selectedIndex * ITEM_HEIGHT,
-        animated: true,
-      });
+      selectIndex(selectedIndex, true);
     }
-  }, [selectedIndex, ready]);
+  }, [selectedIndex, ready, selectIndex]);
 
   const handleScroll = useCallback(
     (e: any) => {
@@ -72,7 +84,15 @@ export default function WheelPicker({
   const renderItem = ({ item, index }: { item: { label: string; value: number | string }; index: number }) => {
     const isSelected = index === selectedIndex;
     return (
-      <View style={[styles.item, { height: ITEM_HEIGHT }]}>
+      <Pressable
+        onPress={() => selectIndex(index)}
+        style={({ pressed }) => [
+          styles.item,
+          { height: ITEM_HEIGHT },
+          pressed && styles.itemPressed,
+        ]}
+        accessibilityRole="button"
+      >
         <Text
           style={[
             styles.itemText,
@@ -82,12 +102,24 @@ export default function WheelPicker({
         >
           {item.label}
         </Text>
-      </View>
+      </Pressable>
     );
   };
 
+  const webWheelProps =
+    Platform.OS === 'web'
+      ? ({
+          onWheel: (e: any) => {
+            const deltaY = Number(e?.deltaY ?? 0);
+            if (!deltaY) return;
+            e?.preventDefault?.();
+            selectIndex(selectedIndex + (deltaY > 0 ? 1 : -1));
+          },
+        } as const)
+      : {};
+
   return (
-    <View style={[styles.container, { width, height: PICKER_HEIGHT }]}>
+    <View style={[styles.container, { width, height: PICKER_HEIGHT }]} {...(webWheelProps as any)}>
       {/* Highlight band — behind the list */}
       <View
         style={[
@@ -112,13 +144,16 @@ export default function WheelPicker({
         }}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        onScrollEndDrag={(e) => {
+          if (Platform.OS !== 'web') return;
+          isScrollingRef.current = false;
+          const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+          selectIndex(index, true);
+        }}
         onMomentumScrollEnd={(e) => {
           isScrollingRef.current = false;
           const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
-          const clamped = Math.max(0, Math.min(index, items.length - 1));
-          if (items[clamped] && items[clamped].value !== selectedValue) {
-            onValueChange(items[clamped].value);
-          }
+          selectIndex(index, true);
         }}
         contentContainerStyle={{
           paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),
@@ -144,6 +179,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   item: { justifyContent: 'center', alignItems: 'center' },
+  itemPressed: { opacity: 0.72 },
   itemText: { fontSize: 18, fontWeight: '500' },
   itemTextSelected: { fontWeight: '700', fontSize: 20 },
 });

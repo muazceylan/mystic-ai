@@ -31,6 +31,13 @@
         <array>
           <string>mystic-ai</string>
           <string>com.mysticai.app</string>
+          <string>com.mysticai.app.test</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>com.googleusercontent.apps.607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5</string>
         </array>
       </dict>
       <dict>

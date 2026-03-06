@@ -15,6 +15,8 @@ export interface UserProfile {
   id?: number;
   username?: string;
   email?: string;
+  accountStatus?: string;
+  emailVerifiedAt?: string | null;
   firstName?: string;
   lastName?: string;
   name?: string;
@@ -50,11 +52,16 @@ interface AuthState {
   isAuthenticated: boolean;
   user: UserProfile | null;
   isHydrated: boolean;
+  pendingEmail: string | null;
+  lastResendAt: number | null;
 
   login: (token: string, refreshToken: string | null, user: UserProfile) => void;
   logout: () => void;
   setUser: (user: UserProfile) => void;
   hydrate: () => Promise<void>;
+  setPendingEmail: (email: string | null) => void;
+  setLastResendAt: (timestamp: number | null) => void;
+  clearVerificationContext: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -65,6 +72,8 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       user: null,
       isHydrated: false,
+      pendingEmail: null,
+      lastResendAt: null,
 
       login: (token, refreshToken, user) => {
         setToken(token);
@@ -74,6 +83,8 @@ export const useAuthStore = create<AuthState>()(
           refreshToken,
           isAuthenticated: true,
           user,
+          pendingEmail: null,
+          lastResendAt: null,
         });
       },
 
@@ -115,10 +126,15 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           isAuthenticated: false,
           user: null,
+          pendingEmail: null,
+          lastResendAt: null,
         });
       },
 
       setUser: (user) => set({ user }),
+      setPendingEmail: (email) => set({ pendingEmail: email }),
+      setLastResendAt: (timestamp) => set({ lastResendAt: timestamp }),
+      clearVerificationContext: () => set({ pendingEmail: null, lastResendAt: null }),
 
       hydrate: async () => {
         const token = await getToken();

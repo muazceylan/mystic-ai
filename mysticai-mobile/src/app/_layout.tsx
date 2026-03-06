@@ -2,7 +2,8 @@ import 'react-native-gesture-handler';
 import '../polyfills/textEncoding';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -14,32 +15,68 @@ import { initI18n } from '../i18n';
 import { COLORS } from '../constants/colors';
 import { queryClient } from '../lib/queryClient';
 
+if (typeof window !== 'undefined') {
+  WebBrowser.maybeCompleteAuthSession();
+}
+
+const ONBOARDING_AUTH_ROUTES = new Set([
+  'birth-date',
+  'birth-time',
+  'birth-country',
+  'birth-city',
+  'gender',
+  'marital-status',
+  'focus-point',
+  'notification-permission',
+  'natal-chart',
+]);
+
+const AUTH_ROUTES = new Set([
+  'welcome',
+  'signup',
+  'verify-email-pending',
+  'verify-email',
+  'email-register',
+  'oauth2',
+  ...ONBOARDING_AUTH_ROUTES,
+]);
+
+function topLevelRoute(pathname: string): string {
+  const normalized = pathname.replace(/^\/+|\/+$/g, '');
+  if (!normalized) return '';
+  return normalized.split('/')[0] ?? '';
+}
+
 /**
  * Protected route guard.
  * Waits for BOTH auth hydration AND i18n initialization before navigating.
  * This prevents "navigate before Root Layout mounted" errors.
  */
 function useProtectedRoute(i18nReady: boolean) {
-  const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isHydrated = useAuthStore((s) => s.isHydrated);
-  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     // Must wait for both conditions before attempting any navigation
     if (!isHydrated || !i18nReady) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const currentRoute = topLevelRoute(pathname);
+    const inAuthRoute = AUTH_ROUTES.has(currentRoute);
+    const inOnboardingFlow = ONBOARDING_AUTH_ROUTES.has(currentRoute);
 
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/(auth)/welcome');
-    } else if (isAuthenticated && inAuthGroup) {
-      if (user?.birthDate) {
-        router.replace('/(tabs)/home');
+    if (!isAuthenticated) {
+      if (!inAuthRoute) {
+        router.replace('/(auth)/welcome');
       }
+      return;
     }
-  }, [isAuthenticated, isHydrated, i18nReady, segments]);
+
+    if (inAuthRoute && !inOnboardingFlow) {
+      router.replace('/(tabs)/home');
+    }
+  }, [isAuthenticated, isHydrated, i18nReady, pathname]);
 }
 
 function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
