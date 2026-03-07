@@ -4,96 +4,139 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.orchestrator.provider.AiModelProvider;
 import com.mysticai.orchestrator.provider.GeminiProvider;
 import com.mysticai.orchestrator.provider.GroqProvider;
-import org.springframework.beans.factory.annotation.Value;
+import com.mysticai.orchestrator.provider.LocalLlmProvider;
+import com.mysticai.orchestrator.provider.OpenRouterProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Registers AI model provider beans that feed into the AiFallbackService chain.
- *
- * Fallback chain for complex tasks (natal chart, dreams, monthly story):
- *   [0] Groq llama-3.3-70b-versatile  — Best quality
- *   [1] Gemini 1.5 Flash              — High RPM free tier
- *   [2] Groq mixtral-8x7b-32768       — Fast & reliable
- *   [3] Groq llama-3.1-8b-instant     — Extremely fast, highest limits
- *
- * For simple tasks (SWOT, symbol meaning, sky pulse):
- *   [0] Groq llama-3.1-8b-instant     — fastest first (saves tokens)
- *   [1] Gemini 1.5 Flash
- *   [2] Groq mixtral-8x7b-32768
- *
- * All API keys and model IDs are externalized to application.yml.
- */
 @Configuration
+@EnableConfigurationProperties(AiOrchestrationProperties.class)
 public class AiProviderConfig {
 
-    @Value("${ai.groq.api-key}")
-    private String groqApiKey;
+    private static final Logger log = LoggerFactory.getLogger(AiProviderConfig.class);
 
-    @Value("${ai.groq.base-url}")
-    private String groqBaseUrl;
+    private static final String GEMINI_KEY = "gemini";
+    private static final String GROQ_PREMIUM_KEY = "groqPremium";
+    private static final String GROQ_FAST_KEY = "groqFast";
+    private static final String OPENROUTER_KEY = "openrouter";
+    private static final String LOCAL_LLM_KEY = "localLlm";
 
-    @Value("${ai.gemini.api-key:}")
-    private String geminiApiKey;
+    private static final String DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+    private static final String DEFAULT_GROQ_PREMIUM_MODEL = "openai/gpt-oss-120b";
+    private static final String FIXED_GROQ_FAST_MODEL = "llama-3.1-8b-instant";
+    private static final String DEFAULT_OPENROUTER_MODEL = "openrouter/auto";
+    private static final String DEFAULT_LOCAL_LLM_MODEL = "gemma3:4b";
 
-    @Value("${ai.gemini.base-url}")
-    private String geminiBaseUrl;
+    @Bean
+    public AiModelProvider geminiProvider(AiOrchestrationProperties properties, ObjectMapper objectMapper) {
+        AiOrchestrationProperties.ProviderProperties p = properties.provider(GEMINI_KEY);
 
-    @Value("${ai.gemini.model}")
-    private String geminiModel;
-
-    // ── Groq providers ────────────────────────────────────────────────
-
-    /** Primary: highest quality, used first for complex tasks. */
-    @Bean("groqPrimary")
-    public AiModelProvider groqPrimary(ObjectMapper objectMapper) {
-        return new GroqProvider(
-                "Groq/llama-3.3-70b-versatile",
-                groqApiKey,
-                "llama-3.3-70b-versatile",
-                groqBaseUrl,
-                2048,
-                objectMapper
-        );
-    }
-
-    /** Tertiary: faster model, mid-tier quality fallback. */
-    @Bean("groqMixtral")
-    public AiModelProvider groqMixtral(ObjectMapper objectMapper) {
-        return new GroqProvider(
-                "Groq/mixtral-8x7b-32768",
-                groqApiKey,
-                "mixtral-8x7b-32768",
-                groqBaseUrl,
-                2048,
-                objectMapper
-        );
-    }
-
-    /** Quaternary / simple-primary: fastest model, very high rate limits. */
-    @Bean("groqFast")
-    public AiModelProvider groqFast(ObjectMapper objectMapper) {
-        return new GroqProvider(
-                "Groq/llama-3.1-8b-instant",
-                groqApiKey,
-                "llama-3.1-8b-instant",
-                groqBaseUrl,
-                1024,
-                objectMapper
-        );
-    }
-
-    // ── Google Gemini ──────────────────────────────────────────────────
-
-    /** Secondary: Google Gemini 1.5 Flash — high RPM free tier. */
-    @Bean("geminiFlash")
-    public AiModelProvider geminiFlash(ObjectMapper objectMapper) {
+        String model = readOrDefault(p.getModel(), DEFAULT_GEMINI_MODEL);
         return new GeminiProvider(
-                "Gemini/1.5-flash",
-                geminiApiKey,
-                geminiModel,
-                geminiBaseUrl,
+                GEMINI_KEY,
+                "Gemini",
+                p.getApiKey(),
+                model,
+                readOrDefault(p.getBaseUrl(), "https://generativelanguage.googleapis.com/v1beta"),
+                p.getTimeoutMs(),
+                readIntOrDefault(p.getMaxOutputTokens(), 2048),
+                readDoubleOrDefault(p.getTemperature(), 0.8),
+                p.getHeaders(),
                 objectMapper
         );
+    }
+
+    @Bean
+    public AiModelProvider groqPremiumProvider(AiOrchestrationProperties properties, ObjectMapper objectMapper) {
+        AiOrchestrationProperties.ProviderProperties p = properties.provider(GROQ_PREMIUM_KEY);
+
+        String model = readOrDefault(p.getModel(), DEFAULT_GROQ_PREMIUM_MODEL);
+        return new GroqProvider(
+                GROQ_PREMIUM_KEY,
+                "GroqPremium",
+                p.getApiKey(),
+                model,
+                readOrDefault(p.getBaseUrl(), "https://api.groq.com/openai/v1"),
+                p.getTimeoutMs(),
+                readIntOrDefault(p.getMaxOutputTokens(), 2048),
+                readDoubleOrDefault(p.getTemperature(), 0.8),
+                p.getHeaders(),
+                objectMapper
+        );
+    }
+
+    @Bean
+    public AiModelProvider groqFastProvider(AiOrchestrationProperties properties, ObjectMapper objectMapper) {
+        AiOrchestrationProperties.ProviderProperties p = properties.provider(GROQ_FAST_KEY);
+
+        String requestedModel = p.getModel();
+        if (requestedModel != null && !requestedModel.isBlank() && !FIXED_GROQ_FAST_MODEL.equals(requestedModel)) {
+            log.warn("[AI Config] groqFast model '{}' ignored, enforced model is '{}'", requestedModel, FIXED_GROQ_FAST_MODEL);
+        }
+
+        // groqFast is intentionally cheap/fast Turkish fallback, not premium long narrative model.
+        return new GroqProvider(
+                GROQ_FAST_KEY,
+                "GroqFast",
+                p.getApiKey(),
+                FIXED_GROQ_FAST_MODEL,
+                readOrDefault(p.getBaseUrl(), "https://api.groq.com/openai/v1"),
+                p.getTimeoutMs(),
+                readIntOrDefault(p.getMaxOutputTokens(), 1024),
+                readDoubleOrDefault(p.getTemperature(), 0.7),
+                p.getHeaders(),
+                objectMapper
+        );
+    }
+
+    @Bean
+    public AiModelProvider openRouterProvider(AiOrchestrationProperties properties, ObjectMapper objectMapper) {
+        AiOrchestrationProperties.ProviderProperties p = properties.provider(OPENROUTER_KEY);
+
+        String model = readOrDefault(p.getModel(), DEFAULT_OPENROUTER_MODEL);
+        return new OpenRouterProvider(
+                OPENROUTER_KEY,
+                "OpenRouter",
+                p.getApiKey(),
+                model,
+                readOrDefault(p.getBaseUrl(), "https://openrouter.ai/api/v1"),
+                p.getTimeoutMs(),
+                readIntOrDefault(p.getMaxOutputTokens(), 2048),
+                readDoubleOrDefault(p.getTemperature(), 0.8),
+                p.getHeaders(),
+                objectMapper
+        );
+    }
+
+    @Bean
+    public AiModelProvider localLlmProvider(AiOrchestrationProperties properties, ObjectMapper objectMapper) {
+        AiOrchestrationProperties.ProviderProperties p = properties.provider(LOCAL_LLM_KEY);
+        return new LocalLlmProvider(
+                LOCAL_LLM_KEY,
+                readOrDefault(p.getProviderType(), "ollama"),
+                readOrDefault(p.getModel(), DEFAULT_LOCAL_LLM_MODEL),
+                readOrDefault(p.getBaseUrl(), "http://localhost:11434"),
+                readOrDefault(p.getChatEndpoint(), "/api/generate"),
+                p.getTimeoutMs(),
+                readDoubleOrDefault(p.getTemperature(), 0.7),
+                readIntOrDefault(p.getMaxOutputTokens(), 1024),
+                p.getHeaders(),
+                objectMapper
+        );
+    }
+
+    private String readOrDefault(String value, String fallback) {
+        return (value == null || value.isBlank()) ? fallback : value;
+    }
+
+    private Integer readIntOrDefault(Integer value, Integer fallback) {
+        return value == null ? fallback : value;
+    }
+
+    private Double readDoubleOrDefault(Double value, Double fallback) {
+        return value == null ? fallback : value;
     }
 }

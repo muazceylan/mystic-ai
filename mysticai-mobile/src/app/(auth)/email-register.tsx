@@ -19,6 +19,7 @@ import { checkEmailGet } from '../../services/auth';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+import { isStrongPassword } from '../../utils/passwordPolicy';
 
 /** Ad/soyad için geçerli karakterler: harfler (Türkçe dahil), boşluk, tire, kesme */
 function maskNameInput(value: string): string {
@@ -391,10 +392,8 @@ export default function EmailRegisterScreen() {
               name="password"
               rules={{
                 required: t('auth.passwordRequired'),
-                minLength: {
-                  value: 8,
-                  message: t('auth.passwordMinLength'),
-                },
+                validate: (value) =>
+                  isStrongPassword(value) || t('auth.passwordPolicy'),
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput

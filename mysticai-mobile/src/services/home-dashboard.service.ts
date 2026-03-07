@@ -1,11 +1,8 @@
-import api from './api';
 import { fetchSkyPulse, fetchWeeklySwot, type SkyPulseResponse, type WeeklySwotResponse } from './astrology.service';
 import { fetchHomeBrief, type HomeBrief } from './oracle.service';
 import type { UserProfile } from '../store/useAuthStore';
 import { envConfig } from '../config/env';
 import { logApiError, logWarnOnce } from './observability';
-
-const HOME_DASHBOARD_ENDPOINT = '/api/v1/oracle/home-dashboard';
 
 export interface HomeDashboardUser {
   name: string;
@@ -123,6 +120,112 @@ function clampText(value: string | null | undefined, max = 96): string {
   return `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
+function compactWhitespace(value: string | null | undefined): string {
+  return (value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function safeParseJsonTwice(raw: string): unknown {
+  let current: unknown = raw;
+  for (let i = 0; i < 2; i += 1) {
+    if (typeof current !== 'string') return current;
+    const candidate = current.trim();
+    if (!(candidate.startsWith('{') || candidate.startsWith('[') || candidate.startsWith('"'))) {
+      return current;
+    }
+    try {
+      current = JSON.parse(candidate);
+    } catch {
+      return current;
+    }
+  }
+  return current;
+}
+
+function extractNarrativeFromObject(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const node = payload as Record<string, any>;
+  const fromData = node.data && typeof node.data === 'object' ? (node.data as Record<string, any>) : null;
+  const fromDataList = Array.isArray(node.data) ? node.data[0] : null;
+  return compactWhitespace(
+    node.transitSummary
+      ?? node.transit_summary
+      ?? node.horoscope
+      ?? node.summary
+      ?? node.message
+      ?? fromData?.transitSummary
+      ?? fromData?.transit_summary
+      ?? fromData?.horoscope
+      ?? fromData?.summary
+      ?? fromData?.message
+      ?? fromDataList?.horoscope
+      ?? fromDataList?.summary
+      ?? fromDataList?.message
+      ?? '',
+  );
+}
+
+function normalizeDashboardText(value: string | null | undefined, max = 96): string {
+  const raw = compactWhitespace(value);
+  if (!raw) return '';
+  const parsed = safeParseJsonTwice(raw);
+  const extracted = extractNarrativeFromObject(parsed);
+  const source = extracted || raw;
+  const sentenceMatch = source.match(/^(.+?[.!?])(?:\s|$)/);
+  const firstSentence = compactWhitespace(sentenceMatch?.[1] ?? source);
+  return clampText(firstSentence || source, max);
+}
+
+function isWeakDashboardText(value: string | null | undefined): boolean {
+  const text = compactWhitespace(value).toLocaleLowerCase('tr-TR');
+  if (!text || text.length < 24) return true;
+  return text.includes('kısa süre içinde yenilenecek')
+    || text.includes('yorum hazırlanıyor')
+    || text.includes('hazırlanıyor')
+    || text.includes('"data"')
+    || text.startsWith('{')
+    || text.startsWith('{"')
+    || text.includes('evdeki detaylar')
+    || text.includes('harekete geçirecek');
+}
+
+function firstStrongText(max: number, ...values: Array<string | null | undefined>): string {
+  for (const value of values) {
+    const normalized = normalizeDashboardText(value, max);
+    if (!isWeakDashboardText(normalized)) {
+      return normalized;
+    }
+  }
+  return normalizeDashboardText(values[0], max);
+}
+
+function buildFallbackHeadline(moonSign: string, moonPhase: string): string {
+  if (moonSign) return `${moonSign} etkisiyle günün akışı`;
+  if (moonPhase) return `${moonPhase} fazında günlük akış`;
+  return 'Bugün için günlük akış';
+}
+
+function buildFallbackAdvice(retroCount: number): string {
+  if (retroCount >= 2) return 'Önemli kararları aceleye getirmeden iki kez kontrol etmen iyi olabilir.';
+  if (retroCount === 1) return 'Mesajlarını kısa ve net tutman bugün yanlış anlaşılmaları azaltabilir.';
+  return 'Tek bir öncelik seçip onu tamamlaman gününü daha rahatlatabilir.';
+}
+
+function buildFallbackInsight(moonSign: string, moonPhase: string, retroCount: number): string {
+  if (retroCount >= 2) {
+    return 'Bugün tempoyu sakin tutup önemli mesajları göndermeden önce tekrar kontrol etmen iyi olabilir.';
+  }
+  if (retroCount === 1) {
+    return 'Bugün iletişimde net kalıp planını sade tuttuğunda daha rahat ilerleyebilirsin.';
+  }
+  if (moonSign) {
+    return `${moonSign} etkisiyle duygusal dengeyi koruman ve tek bir önceliğe odaklanman iyi gelebilir.`;
+  }
+  if (moonPhase) {
+    return `${moonPhase} fazında küçük ama kararlı adımlar gününü kolaylaştırabilir.`;
+  }
+  return 'Bugün tek bir öncelik seçip onu tamamlaman günün akışını daha net hale getirebilir.';
+}
+
 function slugify(value: string | undefined): string {
   const map: Record<string, string> = {
     ç: 'c',
@@ -221,11 +324,30 @@ function buildDashboardFromSources(
 
   const weeklyItems = mapSwotToWeekly(weeklySwot);
   const weeklyRange = weekRangeFromDate(weeklySwot?.weekStart, weeklySwot?.weekEnd);
-  const transitHeadline = clampText(homeBrief?.transitHeadline, 88);
-  const transitAdvice = clampText(homeBrief?.actionMessage, 88);
-  const transitSummary = clampText(homeBrief?.transitSummary, 88);
   const moonPhase = skyPulse?.moonPhase?.trim() || '';
   const moonSign = skyPulse?.moonSignTurkish?.trim() || '';
+  const fallbackHeadline = buildFallbackHeadline(moonSign, moonPhase);
+  const fallbackAdvice = buildFallbackAdvice(retroCount);
+  const fallbackInsight = buildFallbackInsight(moonSign, moonPhase, retroCount);
+  const transitHeadline = firstStrongText(
+    88,
+    homeBrief?.transitHeadline,
+    homeBrief?.dailyEnergy,
+    fallbackHeadline,
+  );
+  const transitAdvice = firstStrongText(
+    88,
+    homeBrief?.actionMessage,
+    homeBrief?.transitPoints?.[0],
+    fallbackAdvice,
+  );
+  const transitSummary = firstStrongText(
+    88,
+    homeBrief?.transitSummary,
+    homeBrief?.actionMessage,
+    homeBrief?.dailyEnergy,
+    fallbackInsight,
+  );
 
   return {
     user: {
@@ -237,7 +359,7 @@ function buildDashboardFromSources(
     hero: {
       title: 'Doğduğun Gece Gökyüzü',
       subtitle: moonPhase ? `Ay Fazı: ${moonPhase}` : '',
-      insightText: transitSummary,
+      insightText: transitSummary || fallbackInsight,
       ctaText: 'Gökyüzünü gör',
     },
     quickActions: STATIC_QUICK_ACTIONS,
@@ -271,19 +393,6 @@ function buildDashboardFromSources(
   };
 }
 
-function normalizeDashboardResponse(response: HomeDashboardResponse, user: UserProfile | null): HomeDashboardResponse {
-  const nameFromUser = user?.firstName?.trim() || user?.name?.trim();
-  return {
-    ...response,
-    user: {
-      ...response.user,
-      name: response.user?.name?.trim() || nameFromUser || 'Merhaba',
-    },
-    quickActions: response.quickActions?.length ? response.quickActions : STATIC_QUICK_ACTIONS,
-    oracleStatus: response.oracleStatus,
-  };
-}
-
 export async function fetchHomeDashboard({ user }: FetchHomeDashboardParams): Promise<HomeDashboardResponse> {
   if (!envConfig.isApiConfigured) {
     logWarnOnce(
@@ -293,22 +402,6 @@ export async function fetchHomeDashboard({ user }: FetchHomeDashboardParams): Pr
       { appEnv: envConfig.appEnv },
     );
     return buildDashboardFromSources(user, null, null, null);
-  }
-
-  const queryParams = {
-    userId: user?.id,
-    name: user?.firstName || user?.name,
-    birthDate: user?.birthDate,
-    maritalStatus: user?.maritalStatus,
-    focusPoint: user?.focusPoint,
-  };
-
-  try {
-    const response = await api.get<HomeDashboardResponse>(HOME_DASHBOARD_ENDPOINT, { params: queryParams });
-    return normalizeDashboardResponse(response.data, user);
-  } catch (error) {
-    logApiError('home_dashboard_fetch', error, { endpoint: HOME_DASHBOARD_ENDPOINT });
-    // merged fallback below
   }
 
   const [homeBriefResult, skyPulseResult, weeklySwotResult] = await Promise.allSettled([
@@ -328,6 +421,18 @@ export async function fetchHomeDashboard({ user }: FetchHomeDashboardParams): Pr
     weeklySwotResult.status === 'fulfilled'
       ? (weeklySwotResult.value && 'data' in weeklySwotResult.value ? weeklySwotResult.value.data : null)
       : null;
+
+  if (homeBriefResult.status === 'rejected') {
+    logApiError('home-dashboard', homeBriefResult.reason, { source: 'home-brief' });
+  }
+
+  if (skyPulseResult.status === 'rejected') {
+    logApiError('home-dashboard', skyPulseResult.reason, { source: 'sky-pulse' });
+  }
+
+  if (homeBriefResult.status === 'rejected' && skyPulseResult.status === 'rejected') {
+    throw new Error('HOME_DASHBOARD_UPSTREAM_UNAVAILABLE');
+  }
 
   return buildDashboardFromSources(user, homeBrief, skyPulse, weeklySwot);
 }

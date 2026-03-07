@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { colors, radius, shadowHero, spacing, typography } from '../../theme';
 
 interface SkyHeroCardProps {
@@ -47,6 +47,8 @@ const MOON_SIZE = spacing.xxl * 4 - spacing.xxs;
 const MOON_RING_OUTER = spacing.xxl * 7 - spacing.sm;
 const MOON_RING_MID = spacing.xxl * 5 + spacing.xs;
 const MOON_RING_INNER = spacing.xxl * 4 + spacing.sm;
+const HERO_TITLE_FONT = Platform.select({ ios: 'AvenirNext-Bold', android: 'sans-serif-condensed', default: 'System' });
+const HERO_BODY_FONT = Platform.select({ ios: 'AvenirNext-Medium', android: 'sans-serif-medium', default: 'System' });
 
 export function SkyHeroCard({
   subtitleText,
@@ -58,19 +60,21 @@ export function SkyHeroCard({
   onPress,
 }: SkyHeroCardProps) {
   const { width } = useWindowDimensions();
+  const fallbackSubtitleText = 'Ay fazı bilgisi şu an alınamadı.';
+  const fallbackInsightText = 'Gökyüzü yorumu kısa süre içinde yenilenecek.';
   const phaseText = phase?.trim() || '—';
   const illuminationValue = typeof illumination === 'number' ? illumination : 0;
   const subtitle = subtitleText?.trim();
-  const insightText = insight?.trim() || 'Veri hazırlanıyor.';
+  const insightText = insight?.trim() || fallbackInsightText;
   const fallbackSubtitle =
-    phaseText === '—' ? 'Veri hazırlanıyor.' : `Ay Fazı: ${phaseText} ▸ %${illuminationValue} Aydınlık`;
+    phaseText === '—' ? fallbackSubtitleText : `Ay Fazı: ${phaseText} ▸ %${illuminationValue} Aydınlık`;
   const safeTextWidth = Math.max(200, Math.min(312, Math.floor(width * 0.68)));
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Doğduğun Gece Gökyüzü detaylarını aç"
+      accessibilityLabel="Doğduğun Gece Gökyüzü Posterinin detaylarını aç"
       hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -122,11 +126,11 @@ export function SkyHeroCard({
           {isLoading ? (
             <Text style={styles.subTitle}>Ay fazı verisi hazırlanıyor…</Text>
           ) : (
-            <Text numberOfLines={2} style={styles.subTitle}>
+            <Text numberOfLines={3} style={styles.subTitle}>
               {subtitle || fallbackSubtitle}
             </Text>
           )}
-          <Text numberOfLines={2} style={styles.description}>{isLoading ? 'Yorum hazırlanıyor…' : insightText}</Text>
+          <Text numberOfLines={4} style={styles.description}>{isLoading ? 'Yorum hazırlanıyor…' : insightText}</Text>
         </View>
 
         <View style={styles.cta}>
@@ -192,7 +196,7 @@ const styles = StyleSheet.create({
   moonWrap: {
     position: 'absolute',
     right: -(spacing.lg + spacing.xs),
-    top: spacing.sm + 2,
+    top: -(spacing.sm + spacing.xxs),
     width: MOON_RING_OUTER + spacing.sm,
     height: MOON_RING_OUTER + spacing.sm,
     alignItems: 'center',
@@ -259,17 +263,23 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.H1,
+    fontFamily: HERO_TITLE_FONT,
+    letterSpacing: 0.2,
     color: colors.heroTitle,
     marginBottom: spacing.sm,
   },
   subTitle: {
     ...typography.Body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: HERO_BODY_FONT,
+    fontSize: 16,
+    lineHeight: 22,
     color: colors.heroBody,
   },
   description: {
     ...typography.Body,
+    fontFamily: HERO_BODY_FONT,
+    fontSize: 16,
+    lineHeight: 23,
     marginTop: spacing.sm,
     color: colors.heroBody,
   },

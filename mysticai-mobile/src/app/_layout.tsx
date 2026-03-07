@@ -33,6 +33,7 @@ const ONBOARDING_AUTH_ROUTES = new Set([
 
 const AUTH_ROUTES = new Set([
   'welcome',
+  'forgot-password',
   'signup',
   'verify-email-pending',
   'verify-email',

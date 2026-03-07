@@ -129,6 +129,16 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingHorizontal: 14,
       paddingVertical: 14,
     },
+    forgotRow: {
+      alignItems: 'flex-end',
+      marginTop: -4,
+      marginBottom: 2,
+    },
+    forgotLink: {
+      color: C.primary,
+      fontSize: 14,
+      fontWeight: '600',
+    },
     errorText: {
       color: C.error,
       fontSize: 13,
@@ -447,6 +457,13 @@ export default function WelcomeScreen() {
     });
   };
 
+  const handleForgotPassword = () => {
+    router.push({
+      pathname: '/(auth)/forgot-password',
+      params: { email: email.trim().toLowerCase() },
+    });
+  };
+
   return (
     <SafeScreen>
       <KeyboardAvoidingView
@@ -504,6 +521,17 @@ export default function WelcomeScreen() {
                   size={20}
                   color={colors.subtext}
                 />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.forgotRow}>
+              <TouchableOpacity
+                onPress={handleForgotPassword}
+                disabled={loading}
+                accessibilityLabel={t('auth.forgotPassword')}
+                accessibilityRole="button"
+              >
+                <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
               </TouchableOpacity>
             </View>
 

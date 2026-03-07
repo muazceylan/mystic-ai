@@ -1,6 +1,7 @@
 package com.mysticai.auth.config;
 
 import com.mysticai.auth.config.properties.VerificationProperties;
+import com.mysticai.auth.config.properties.PasswordResetProperties;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -27,6 +28,12 @@ public class AuthRabbitMQConfig {
     public static final String VERIFICATION_SEND_ROUTING_KEY = "auth.email.verification.send";
     public static final String VERIFICATION_RETRY_ROUTING_KEY = "auth.email.verification.retry";
     public static final String VERIFICATION_FAILED_ROUTING_KEY = "auth.email.verification.failed";
+    public static final String PASSWORD_RESET_QUEUE = "auth.email.password-reset.queue";
+    public static final String PASSWORD_RESET_RETRY_QUEUE = "auth.email.password-reset.retry.queue";
+    public static final String PASSWORD_RESET_DLQ = "auth.email.password-reset.dlq";
+    public static final String PASSWORD_RESET_SEND_ROUTING_KEY = "auth.email.password-reset.send";
+    public static final String PASSWORD_RESET_RETRY_ROUTING_KEY = "auth.email.password-reset.retry";
+    public static final String PASSWORD_RESET_FAILED_ROUTING_KEY = "auth.email.password-reset.failed";
 
     @Bean
     public TopicExchange authEventsExchange() {
@@ -71,6 +78,46 @@ public class AuthRabbitMQConfig {
         return BindingBuilder.bind(verificationDlq)
                 .to(authEventsExchange)
                 .with(VERIFICATION_FAILED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue passwordResetQueue() {
+        return QueueBuilder.durable(PASSWORD_RESET_QUEUE).build();
+    }
+
+    @Bean
+    public Queue passwordResetRetryQueue(PasswordResetProperties properties) {
+        return QueueBuilder.durable(PASSWORD_RESET_RETRY_QUEUE)
+                .withArgument("x-message-ttl", (int) properties.retryDelay().toMillis())
+                .withArgument("x-dead-letter-exchange", AUTH_EVENTS_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", PASSWORD_RESET_SEND_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Queue passwordResetDlq() {
+        return QueueBuilder.durable(PASSWORD_RESET_DLQ).build();
+    }
+
+    @Bean
+    public Binding passwordResetQueueBinding(Queue passwordResetQueue, TopicExchange authEventsExchange) {
+        return BindingBuilder.bind(passwordResetQueue)
+                .to(authEventsExchange)
+                .with(PASSWORD_RESET_SEND_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding passwordResetRetryQueueBinding(Queue passwordResetRetryQueue, TopicExchange authEventsExchange) {
+        return BindingBuilder.bind(passwordResetRetryQueue)
+                .to(authEventsExchange)
+                .with(PASSWORD_RESET_RETRY_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding passwordResetDlqBinding(Queue passwordResetDlq, TopicExchange authEventsExchange) {
+        return BindingBuilder.bind(passwordResetDlq)
+                .to(authEventsExchange)
+                .with(PASSWORD_RESET_FAILED_ROUTING_KEY);
     }
 
     @Bean

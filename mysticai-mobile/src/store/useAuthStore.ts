@@ -44,6 +44,8 @@ export interface UserProfile {
   enabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  hasPassword?: boolean;
+  provider?: string | null;
 }
 
 interface AuthState {

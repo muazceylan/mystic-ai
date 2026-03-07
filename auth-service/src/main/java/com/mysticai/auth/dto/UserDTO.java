@@ -28,7 +28,9 @@ public record UserDTO(
         Set<String> roles,
         boolean enabled,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        boolean hasPassword,
+        String provider
 ) {
     public UserDTO {
         roles = roles != null ? Set.copyOf(roles) : Set.of();
@@ -63,6 +65,8 @@ public record UserDTO(
         private boolean enabled;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        private boolean hasPassword;
+        private String provider;
 
         public UserDTOBuilder id(Long id) { this.id = id; return this; }
         public UserDTOBuilder username(String username) { this.username = username; return this; }
@@ -88,13 +92,15 @@ public record UserDTO(
         public UserDTOBuilder enabled(boolean enabled) { this.enabled = enabled; return this; }
         public UserDTOBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
         public UserDTOBuilder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
+        public UserDTOBuilder hasPassword(boolean hasPassword) { this.hasPassword = hasPassword; return this; }
+        public UserDTOBuilder provider(String provider) { this.provider = provider; return this; }
 
         public UserDTO build() {
             return new UserDTO(id, username, email, accountStatus, emailVerifiedAt, firstName, lastName, name,
                     birthDate, birthTime, birthLocation,
                     birthCountry, birthCity, birthTimeUnknown, timezone,
                     gender, maritalStatus, focusPoint, zodiacSign, preferredLanguage,
-                    roles, enabled, createdAt, updatedAt);
+                    roles, enabled, createdAt, updatedAt, hasPassword, provider);
         }
     }
 }

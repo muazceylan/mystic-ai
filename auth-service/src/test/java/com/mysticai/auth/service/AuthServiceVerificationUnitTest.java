@@ -1,5 +1,6 @@
 package com.mysticai.auth.service;
 
+import com.mysticai.auth.config.properties.PasswordResetProperties;
 import com.mysticai.auth.config.properties.VerificationProperties;
 import com.mysticai.auth.dto.LoginResponse;
 import com.mysticai.auth.dto.SocialLoginRequest;
@@ -7,8 +8,10 @@ import com.mysticai.auth.entity.User;
 import com.mysticai.auth.entity.enums.AccountStatus;
 import com.mysticai.auth.entity.token.EmailVerificationToken;
 import com.mysticai.auth.messaging.EmailVerificationPublisher;
+import com.mysticai.auth.messaging.PasswordResetEmailPublisher;
 import com.mysticai.auth.repository.UserRepository;
 import com.mysticai.auth.repository.token.EmailVerificationTokenRepository;
+import com.mysticai.auth.repository.token.PasswordResetTokenRepository;
 import com.mysticai.auth.security.JwtTokenProvider;
 import com.mysticai.auth.security.SocialTokenVerifier;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +48,13 @@ class AuthServiceVerificationUnitTest {
     private EmailVerificationTokenRepository tokenRepository;
 
     @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Mock
     private EmailVerificationPublisher emailVerificationPublisher;
+
+    @Mock
+    private PasswordResetEmailPublisher passwordResetEmailPublisher;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -63,19 +72,24 @@ class AuthServiceVerificationUnitTest {
     private NatalChartProvisioningService natalChartProvisioningService;
 
     private VerificationProperties verificationProperties;
+    private PasswordResetProperties passwordResetProperties;
     private Clock fixedClock;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         verificationProperties = new VerificationProperties("pepper", 48, 24, 60, 5, 3, 30);
+        passwordResetProperties = new PasswordResetProperties("reset-pepper", 48, 30, 60, 5, 3, 30);
         fixedClock = Clock.fixed(Instant.parse("2026-03-05T10:15:30Z"), ZoneOffset.UTC);
 
         authService = new AuthService(
                 userRepository,
                 tokenRepository,
+                passwordResetTokenRepository,
                 emailVerificationPublisher,
+                passwordResetEmailPublisher,
                 verificationProperties,
+                passwordResetProperties,
                 passwordEncoder,
                 jwtTokenProvider,
                 authenticationManager,

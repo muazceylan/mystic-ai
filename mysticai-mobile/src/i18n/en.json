@@ -53,6 +53,7 @@
       "notifications": "Notifications",
       "theme": "Theme",
       "language": "Language",
+      "security": "Security",
       "privacy": "Privacy",
       "help": "Help"
     },
@@ -101,6 +102,33 @@
     "currentDark": "Dark",
     "manual": "Manually selected",
     "automatic": "Determined by system preference"
+  },
+  "security": {
+    "title": "Security",
+    "hint": "Manage your account password settings here.",
+    "passwordPolicyError": "Password must be at least 8 characters and include uppercase, lowercase, and a special character.",
+    "setPassword": {
+      "title": "Set Password",
+      "description": "Add a password to your social login account so you can also sign in with email and password.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "submitBtn": "Set Password",
+      "success": "Your password has been set successfully.",
+      "mismatchError": "Passwords do not match.",
+      "alreadySetError": "A password is already set on this account."
+    },
+    "changePassword": {
+      "title": "Change Password",
+      "description": "Fill in the form below to change your current password.",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "submitBtn": "Change Password",
+      "success": "Your password has been changed successfully.",
+      "mismatchError": "New passwords do not match.",
+      "wrongCurrentError": "Current password is incorrect.",
+      "samePasswordError": "New password must be different from current password."
+    }
   },
   "language": {
     "title": "Language",
@@ -454,10 +482,19 @@
     "invalidEmail": "Enter a valid email address",
     "passwordRequired": "Password is required",
     "passwordMinLength": "Password must be at least 8 characters",
+    "passwordPolicy": "Password must be at least 8 characters and include uppercase, lowercase, and a special character.",
     "confirmPassword": "Confirm Password",
     "passwordsMatch": "Passwords do not match",
     "goToLogin": "Go to login screen",
     "forgotPassword": "Forgot password?",
+    "passwordReset": {
+      "title": "Reset password",
+      "subtitle": "Enter your account email. If it exists, we will send a reset link.",
+      "sendButton": "Send reset email",
+      "requestSent": "If this email is registered, a password reset link has been sent.",
+      "requestError": "Could not send reset email now. Please try again later.",
+      "backToLogin": "Back to login"
+    },
     "loginError": "Could not sign in. Please try again.",
     "invalidCredentials": "Invalid email or password.",
     "googleLoginError": "Could not sign in with Google.",

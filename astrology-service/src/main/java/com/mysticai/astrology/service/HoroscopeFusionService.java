@@ -52,7 +52,7 @@ public class HoroscopeFusionService {
                     cachedResponse = objectMapper.convertValue(cached, HoroscopeResponse.class);
                 }
                 if (cachedResponse.getSources() != null) {
-                    return cachedResponse;
+                    return normalizeResponse(cachedResponse);
                 }
                 log.info("Cached response missing sources, re-fetching: {}", cacheKey);
             }
@@ -63,14 +63,14 @@ public class HoroscopeFusionService {
         // 2. Fetch: Ohmanda first, FreeHoroscope as fallback
         List<UpstreamSource> sources = new ArrayList<>();
         String rawText = null;
-        String sourceName = null;
 
         // Try Ohmanda
         try {
             UpstreamSource ohmanda = ohmandaClient.fetch(sign);
             if (ohmanda != null && ohmanda.getText() != null && !ohmanda.getText().isBlank()) {
-                rawText = ohmanda.getText();
-                sourceName = ohmanda.getName();
+                String normalized = normalizeText(ohmanda.getText());
+                ohmanda.setText(normalized);
+                rawText = normalized;
                 sources.add(ohmanda);
             }
         } catch (Exception e) {
@@ -82,8 +82,9 @@ public class HoroscopeFusionService {
             try {
                 UpstreamSource freeApi = freeHoroscopeApiClient.fetch(sign, period);
                 if (freeApi != null && freeApi.getText() != null && !freeApi.getText().isBlank()) {
-                    rawText = freeApi.getText();
-                    sourceName = freeApi.getName();
+                    String normalized = normalizeText(freeApi.getText());
+                    freeApi.setText(normalized);
+                    rawText = normalized;
                     sources.add(freeApi);
                 }
             } catch (Exception e) {
@@ -103,9 +104,10 @@ public class HoroscopeFusionService {
                 finalText = translated;
             }
         }
+        finalText = normalizeText(finalText);
 
         // 4. Build response
-        HoroscopeResponse response = HoroscopeResponse.builder()
+        HoroscopeResponse response = normalizeResponse(HoroscopeResponse.builder()
                 .date(dateLabel)
                 .period(period)
                 .sign(sign)
@@ -114,7 +116,7 @@ public class HoroscopeFusionService {
                 .sections(HoroscopeSections.builder().general(finalText).build())
                 .meta(null)
                 .sources(sources)
-                .build();
+                .build());
 
         // 5. Cache
         Duration ttl = period.equals("weekly") ? WEEKLY_TTL : DAILY_TTL;
@@ -173,8 +175,8 @@ public class HoroscopeFusionService {
             Object stale = redisTemplate.opsForValue().get(staleKey);
             if (stale != null) {
                 log.info("Returning stale cache for {}", staleKey);
-                if (stale instanceof HoroscopeResponse hr) return hr;
-                return objectMapper.convertValue(stale, HoroscopeResponse.class);
+                if (stale instanceof HoroscopeResponse hr) return normalizeResponse(hr);
+                return normalizeResponse(objectMapper.convertValue(stale, HoroscopeResponse.class));
             }
         } catch (Exception ignored) {}
 
@@ -184,5 +186,70 @@ public class HoroscopeFusionService {
 
     private String buildCacheKey(String sign, String period, String lang, String date) {
         return String.format("horoscope:%s:%s:%s:%s", period, sign, lang, date);
+    }
+
+    private HoroscopeResponse normalizeResponse(HoroscopeResponse response) {
+        if (response == null) return null;
+
+        HoroscopeSections sections = response.getSections();
+        if (sections != null) {
+            sections.setGeneral(normalizeText(sections.getGeneral()));
+        }
+
+        if (response.getSources() != null) {
+            for (UpstreamSource source : response.getSources()) {
+                if (source != null) {
+                    source.setText(normalizeText(source.getText()));
+                }
+            }
+        }
+        return response;
+    }
+
+    private String normalizeText(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) return raw;
+        if (!(trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("\""))) {
+            return raw;
+        }
+
+        try {
+            JsonNode parsed = objectMapper.readTree(trimmed);
+            String extracted = extractText(parsed);
+            return (extracted != null && !extracted.isBlank()) ? extracted : raw;
+        } catch (Exception ignored) {
+            return raw;
+        }
+    }
+
+    private String extractText(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        if (node.isTextual()) {
+            String value = node.asText();
+            return value == null || value.isBlank() ? null : value;
+        }
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                String found = extractText(child);
+                if (found != null && !found.isBlank()) return found;
+            }
+            return null;
+        }
+        if (!node.isObject()) return null;
+
+        String[] directKeys = {"horoscope", "horoscope_data", "text", "message", "general", "content", "description"};
+        for (String key : directKeys) {
+            String found = extractText(node.get(key));
+            if (found != null && !found.isBlank()) return found;
+        }
+
+        String[] nestedKeys = {"data", "result", "payload", "response"};
+        for (String key : nestedKeys) {
+            String found = extractText(node.get(key));
+            if (found != null && !found.isBlank()) return found;
+        }
+
+        return null;
     }
 }

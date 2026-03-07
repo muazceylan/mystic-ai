@@ -11,7 +11,7 @@ spring:
       api-key: ${GROQ_API_KEY}
       chat:
         options:
-          model: llama-3.3-70b-versatile
+          model: openai/gpt-oss-120b
           max-tokens: 2048
           temperature: 0.8
 
@@ -35,34 +35,86 @@ spring:
       password: ${REDIS_PASSWORD:mystic123}
       timeout: 5000ms
 
-# ── AI Provider Fallback Chain ───────────────────────────────────────────────
-# Chain for complex tasks (natal chart, dreams, monthly story):
-#   Groq llama-3.3-70b → Gemini 1.5 Flash → Groq mixtral-8x7b → Groq llama-3.1-8b
-# Chain for simple tasks (SWOT, symbol meaning, sky pulse):
-#   Groq llama-3.1-8b  → Gemini 1.5 Flash → Groq mixtral-8x7b
 ai:
-  groq:
-    api-key: ${GROQ_API_KEY}
-    base-url: https://api.groq.com/openai/v1
-  gemini:
-    # Set GEMINI_API_KEY env var to enable Google Gemini fallback (free tier, high RPM)
-    api-key: ${GEMINI_API_KEY}
-    base-url: https://generativelanguage.googleapis.com/v1beta
-    model: gemini-1.5-flash
-  chain:
-    # Bean names from AiProviderConfig:
-    # groqPrimary, geminiFlash, groqMixtral, groqFast
-    complex:
-      - groqPrimary
-      - geminiFlash
-      - groqMixtral
-      - groqFast
-    simple:
-      - groqFast
-      - geminiFlash
-      - groqMixtral
   fallback:
     allow-mock: ${AI_ALLOW_MOCK_FALLBACK:true}
+    chains:
+      complex:
+        - gemini
+        - groqPremium
+        - groqFast
+        - openrouter
+        - localLlm
+      simple:
+        - gemini
+        - groqFast
+        - openrouter
+        - localLlm
+
+  providers:
+    gemini:
+      enabled: ${AI_GEMINI_ENABLED:true}
+      model: ${AI_GEMINI_MODEL:gemini-2.5-flash}
+      base-url: ${AI_GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+      api-key: ${GEMINI_API_KEY:}
+      timeout-ms: ${AI_GEMINI_TIMEOUT_MS:8000}
+      retry-count: ${AI_GEMINI_RETRY:1}
+      cooldown-seconds: ${AI_GEMINI_COOLDOWN:60}
+      priority: 1
+      temperature: ${AI_GEMINI_TEMPERATURE:0.8}
+      max-output-tokens: ${AI_GEMINI_MAX_OUTPUT_TOKENS:2048}
+
+    groqPremium:
+      enabled: ${AI_GROQ_PREMIUM_ENABLED:true}
+      model: ${AI_GROQ_PREMIUM_MODEL:openai/gpt-oss-120b}
+      base-url: ${AI_GROQ_BASE_URL:https://api.groq.com/openai/v1}
+      api-key: ${GROQ_API_KEY:}
+      timeout-ms: ${AI_GROQ_PREMIUM_TIMEOUT_MS:8000}
+      retry-count: ${AI_GROQ_PREMIUM_RETRY:0}
+      cooldown-seconds: ${AI_GROQ_PREMIUM_COOLDOWN:120}
+      priority: 2
+      temperature: ${AI_GROQ_PREMIUM_TEMPERATURE:0.8}
+      max-output-tokens: ${AI_GROQ_PREMIUM_MAX_OUTPUT_TOKENS:2048}
+
+    groqFast:
+      enabled: ${AI_GROQ_FAST_ENABLED:true}
+      model: llama-3.1-8b-instant
+      base-url: ${AI_GROQ_BASE_URL:https://api.groq.com/openai/v1}
+      api-key: ${GROQ_API_KEY:}
+      timeout-ms: ${AI_GROQ_FAST_TIMEOUT_MS:6000}
+      retry-count: ${AI_GROQ_FAST_RETRY:0}
+      cooldown-seconds: ${AI_GROQ_FAST_COOLDOWN:90}
+      priority: 3
+      temperature: ${AI_GROQ_FAST_TEMPERATURE:0.7}
+      max-output-tokens: ${AI_GROQ_FAST_MAX_OUTPUT_TOKENS:1024}
+
+    openrouter:
+      enabled: ${AI_OPENROUTER_ENABLED:true}
+      model: ${AI_OPENROUTER_MODEL:openrouter/auto}
+      base-url: ${AI_OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
+      api-key: ${OPENROUTER_API_KEY:}
+      timeout-ms: ${AI_OPENROUTER_TIMEOUT_MS:10000}
+      retry-count: ${AI_OPENROUTER_RETRY:0}
+      cooldown-seconds: ${AI_OPENROUTER_COOLDOWN:90}
+      priority: 4
+      temperature: ${AI_OPENROUTER_TEMPERATURE:0.8}
+      max-output-tokens: ${AI_OPENROUTER_MAX_OUTPUT_TOKENS:2048}
+      headers:
+        HTTP-Referer: ${AI_OPENROUTER_REFERER:https://mysticai.app}
+        X-Title: ${AI_OPENROUTER_TITLE:MysticAI}
+
+    localLlm:
+      enabled: ${AI_LOCAL_LLM_ENABLED:true}
+      provider-type: ${AI_LOCAL_LLM_PROVIDER_TYPE:ollama}
+      base-url: ${AI_LOCAL_LLM_BASE_URL:http://localhost:11434}
+      model: ${AI_LOCAL_LLM_MODEL:gemma3:4b}
+      chat-endpoint: ${AI_LOCAL_LLM_CHAT_ENDPOINT:/api/generate}
+      timeout-ms: ${AI_LOCAL_LLM_TIMEOUT_MS:15000}
+      retry-count: ${AI_LOCAL_LLM_RETRY:0}
+      cooldown-seconds: ${AI_LOCAL_LLM_COOLDOWN:30}
+      priority: 5
+      temperature: ${AI_LOCAL_LLM_TEMPERATURE:0.7}
+      max-output-tokens: ${AI_LOCAL_LLM_MAX_OUTPUT_TOKENS:1024}
 
 eureka:
   client:

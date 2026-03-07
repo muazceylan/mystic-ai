@@ -245,6 +245,7 @@ export default function HomeScreen() {
 
   const viewTrackedRef = useRef(false);
   const contentLoadedTrackedRef = useRef(false);
+  const emptyHeroRefetchTriedRef = useRef(false);
 
   const displayName = useMemo(() => {
     const backendName = dashboard?.user?.name?.trim();
@@ -315,6 +316,7 @@ export default function HomeScreen() {
 
   const heroSubtitle = dashboard?.hero?.subtitle?.trim() || '';
   const heroInsight = dashboard?.hero?.insightText?.trim() || '';
+  const hasHeroInsight = Boolean(heroInsight);
   const heroCtaText = dashboard?.hero?.ctaText?.trim() || 'Gökyüzünü gör';
   const heroPhase = extractHeroPhase(heroSubtitle, dashboard?.transitsToday?.moonPhase);
   const heroIllumination = extractHeroIllumination(heroSubtitle);
@@ -328,6 +330,24 @@ export default function HomeScreen() {
 
   const initialLoading = !dashboard && (isLoading || isFetching);
   const showRetry = isError && !dashboard;
+
+  useEffect(() => {
+    emptyHeroRefetchTriedRef.current = false;
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (hasHeroInsight) {
+      emptyHeroRefetchTriedRef.current = false;
+    }
+  }, [hasHeroInsight]);
+
+  useEffect(() => {
+    if (!dashboard || isFetching || hasHeroInsight || emptyHeroRefetchTriedRef.current) {
+      return;
+    }
+    emptyHeroRefetchTriedRef.current = true;
+    void refetch();
+  }, [dashboard, hasHeroInsight, isFetching, refetch]);
 
   useEffect(() => {
     if (viewTrackedRef.current || initialLoading) {
@@ -543,7 +563,7 @@ export default function HomeScreen() {
           illumination={heroIllumination}
           insight={heroInsight}
           ctaLabel={heroCtaText}
-          isLoading={initialLoading || (!heroSubtitle && !heroInsight)}
+          isLoading={initialLoading}
           onPress={handlePressSkyCard}
         />
 

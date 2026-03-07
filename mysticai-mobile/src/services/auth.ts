@@ -97,5 +97,25 @@ export const socialLogin = (provider: string, idToken: string) =>
 export const resendVerification = (email: string) =>
   api.post<{ ok: boolean }>(`${AUTH_BASE}/verification/resend`, { email: email.trim().toLowerCase() });
 
+export const forgotPassword = (email: string) =>
+  api.post<{ ok: boolean }>(`${AUTH_BASE}/password/forgot`, { email: email.trim().toLowerCase() });
+
 export const updateProfile = (payload: UpdateProfilePayload) =>
   api.put<AuthUser>(`${AUTH_BASE}/profile`, payload);
+
+export interface SetPasswordPayload {
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export const setPassword = (payload: SetPasswordPayload) =>
+  api.post<AuthUser>(`${AUTH_BASE}/set-password`, payload);
+
+export const changePassword = (payload: ChangePasswordPayload) =>
+  api.post<AuthUser>(`${AUTH_BASE}/change-password`, payload);

@@ -1,9 +1,12 @@
 package com.mysticai.auth.service;
 
+import com.mysticai.auth.config.properties.PasswordResetProperties;
 import com.mysticai.auth.config.properties.VerificationProperties;
+import com.mysticai.auth.dto.ChangePasswordRequest;
 import com.mysticai.auth.dto.LoginRequest;
 import com.mysticai.auth.dto.LoginResponse;
 import com.mysticai.auth.dto.RegisterRequest;
+import com.mysticai.auth.dto.SetPasswordRequest;
 import com.mysticai.auth.dto.SocialLoginRequest;
 import com.mysticai.auth.dto.UpdateProfileRequest;
 import com.mysticai.auth.dto.UserDTO;
@@ -12,15 +15,23 @@ import com.mysticai.auth.dto.verification.RegisterResponse;
 import com.mysticai.auth.entity.User;
 import com.mysticai.auth.entity.enums.AccountStatus;
 import com.mysticai.auth.entity.token.EmailVerificationToken;
+import com.mysticai.auth.entity.token.PasswordResetToken;
 import com.mysticai.auth.exception.domain.EmailNotVerifiedException;
+import com.mysticai.auth.exception.domain.PasswordAlreadySetException;
+import com.mysticai.auth.exception.domain.PasswordMismatchException;
+import com.mysticai.auth.exception.domain.WrongPasswordException;
 import com.mysticai.auth.messaging.EmailVerificationMessage;
 import com.mysticai.auth.messaging.EmailVerificationPublisher;
+import com.mysticai.auth.messaging.PasswordResetEmailMessage;
+import com.mysticai.auth.messaging.PasswordResetEmailPublisher;
 import com.mysticai.auth.repository.UserRepository;
 import com.mysticai.auth.repository.token.EmailVerificationTokenRepository;
+import com.mysticai.auth.repository.token.PasswordResetTokenRepository;
 import com.mysticai.auth.security.JwtTokenProvider;
 import com.mysticai.auth.security.SocialTokenVerifier;
 import com.mysticai.auth.security.SocialTokenVerifier.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -32,24 +43,35 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
+
+import static com.mysticai.auth.validation.PasswordPolicy.STRONG_PASSWORD_REGEX;
+import static com.mysticai.auth.validation.PasswordPolicy.WEAK_PASSWORD_CODE;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile(STRONG_PASSWORD_REGEX);
 
     private final UserRepository userRepository;
-    private final EmailVerificationTokenRepository tokenRepository;
+    private final EmailVerificationTokenRepository verificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailVerificationPublisher emailVerificationPublisher;
+    private final PasswordResetEmailPublisher passwordResetEmailPublisher;
     private final VerificationProperties verificationProperties;
+    private final PasswordResetProperties passwordResetProperties;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
@@ -63,10 +85,17 @@ public class AuthService {
         INVALID
     }
 
+    public enum PasswordResetOutcome {
+        SUCCESS,
+        EXPIRED,
+        INVALID
+    }
+
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
         String normalizedUsername = normalizeIdentifier(request.username());
         String normalizedEmail = normalizeIdentifier(request.email());
+        ensureStrongPassword(request.password());
 
         if (userRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
             throw new IllegalArgumentException("Username already exists");
@@ -95,6 +124,7 @@ public class AuthService {
                 .zodiacSign(request.zodiacSign())
                 .roles(Set.of("USER"))
                 .enabled(true)
+                .hasLocalPassword(true)
                 .accountStatus(AccountStatus.PENDING_VERIFICATION)
                 .emailVerifiedAt(null)
                 .build();
@@ -160,20 +190,66 @@ public class AuthService {
 
         LocalDateTime now = LocalDateTime.now(clock);
 
-        Optional<EmailVerificationToken> latestToken = tokenRepository.findTopByUserIdOrderByCreatedAtDesc(user.getId());
+        Optional<EmailVerificationToken> latestToken = verificationTokenRepository.findTopByUserIdOrderByCreatedAtDesc(user.getId());
         if (latestToken.isPresent() && latestToken.get().getCreatedAt() != null) {
-            LocalDateTime cooldownUntil = latestToken.get().getCreatedAt().plus(verificationProperties.resendCooldown());
+            LocalDateTime effectiveCreatedAt = safeCreatedAt(latestToken.get().getCreatedAt(), now);
+            LocalDateTime cooldownUntil = effectiveCreatedAt.plus(verificationProperties.resendCooldown());
             if (cooldownUntil.isAfter(now)) {
                 return new OkResponse(true);
             }
         }
 
-        long dailyCount = tokenRepository.countByUserIdAndCreatedAtAfter(user.getId(), now.minusHours(24));
+        long dailyCount = verificationTokenRepository.countByUserIdAndCreatedAtAfter(user.getId(), now.minusHours(24));
         if (dailyCount >= verificationProperties.resendDailyLimit()) {
             return new OkResponse(true);
         }
 
         issueVerificationToken(user);
+        return new OkResponse(true);
+    }
+
+    @Transactional
+    public OkResponse requestPasswordReset(String email) {
+        if (email == null || email.isBlank()) {
+            log.info("Password reset skipped: email is blank");
+            return new OkResponse(true);
+        }
+
+        String normalizedEmail = normalizeIdentifier(email);
+        Optional<User> userOpt = userRepository.findByEmailIgnoreCase(normalizedEmail);
+        if (userOpt.isEmpty()) {
+            log.info("Password reset skipped: user not found. email={}", normalizedEmail);
+            return new OkResponse(true);
+        }
+
+        User user = userOpt.get();
+        if (user.getAccountStatus() != AccountStatus.ACTIVE) {
+            log.info("Password reset skipped: user not active. userId={}, status={}", user.getId(), user.getAccountStatus());
+            return new OkResponse(true);
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        Optional<PasswordResetToken> latestToken =
+                passwordResetTokenRepository.findTopByUserIdOrderByCreatedAtDesc(user.getId());
+        if (latestToken.isPresent() && latestToken.get().getCreatedAt() != null) {
+            LocalDateTime effectiveCreatedAt = safeCreatedAt(latestToken.get().getCreatedAt(), now);
+            LocalDateTime cooldownUntil = effectiveCreatedAt.plus(passwordResetProperties.requestCooldown());
+            if (cooldownUntil.isAfter(now)) {
+                log.info("Password reset skipped: cooldown active. userId={}, cooldownUntil={}, now={}",
+                        user.getId(), cooldownUntil, now);
+                return new OkResponse(true);
+            }
+        }
+
+        long dailyCount = passwordResetTokenRepository.countByUserIdAndCreatedAtAfter(user.getId(), now.minusHours(24));
+        if (dailyCount >= passwordResetProperties.requestDailyLimit()) {
+            log.info("Password reset skipped: daily limit reached. userId={}, dailyCount={}, limit={}",
+                    user.getId(), dailyCount, passwordResetProperties.requestDailyLimit());
+            return new OkResponse(true);
+        }
+
+        issuePasswordResetToken(user);
+        log.info("Password reset token issued. userId={}, email={}", user.getId(), user.getEmail());
         return new OkResponse(true);
     }
 
@@ -184,11 +260,11 @@ public class AuthService {
         }
 
         LocalDateTime now = LocalDateTime.now(clock);
-        String tokenHash = hashToken(rawToken);
+        String tokenHash = hashToken(rawToken, verificationProperties.tokenPepper());
 
-        int consumed = tokenRepository.consumeTokenIfValid(tokenHash, now);
+        int consumed = verificationTokenRepository.consumeTokenIfValid(tokenHash, now);
         if (consumed == 0) {
-            Optional<EmailVerificationToken> notConsumableToken = tokenRepository.findByTokenHash(tokenHash);
+            Optional<EmailVerificationToken> notConsumableToken = verificationTokenRepository.findByTokenHash(tokenHash);
             if (notConsumableToken.isEmpty()) {
                 return VerificationOutcome.INVALID;
             }
@@ -197,14 +273,14 @@ public class AuthService {
             if (token.isExpired(now)) {
                 if (!token.isUsed() && !token.isRevoked()) {
                     token.setRevokedAt(now);
-                    tokenRepository.save(token);
+                    verificationTokenRepository.save(token);
                 }
                 return VerificationOutcome.EXPIRED;
             }
             return VerificationOutcome.INVALID;
         }
 
-        EmailVerificationToken token = tokenRepository.findByTokenHash(tokenHash)
+        EmailVerificationToken token = verificationTokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new IllegalStateException("Consumed token cannot be loaded: " + tokenHash));
 
         User user = token.getUser();
@@ -213,10 +289,57 @@ public class AuthService {
             user.setEmailVerifiedAt(now);
         }
 
-        tokenRepository.revokeActiveTokensByUserId(user.getId(), now);
+        verificationTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
         userRepository.save(user);
 
         return VerificationOutcome.SUCCESS;
+    }
+
+    @Transactional
+    public PasswordResetOutcome resetPassword(String rawToken, String newPassword, String confirmPassword) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return PasswordResetOutcome.INVALID;
+        }
+        if (newPassword == null || confirmPassword == null || !newPassword.equals(confirmPassword)) {
+            throw new PasswordMismatchException();
+        }
+        ensureStrongPassword(newPassword);
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        String tokenHash = hashToken(rawToken, passwordResetProperties.tokenPepper());
+
+        int consumed = passwordResetTokenRepository.consumeTokenIfValid(tokenHash, now);
+        if (consumed == 0) {
+            Optional<PasswordResetToken> notConsumableToken = passwordResetTokenRepository.findByTokenHash(tokenHash);
+            if (notConsumableToken.isEmpty()) {
+                return PasswordResetOutcome.INVALID;
+            }
+
+            PasswordResetToken token = notConsumableToken.get();
+            if (token.isExpired(now)) {
+                if (!token.isUsed() && !token.isRevoked()) {
+                    token.setRevokedAt(now);
+                    passwordResetTokenRepository.save(token);
+                }
+                return PasswordResetOutcome.EXPIRED;
+            }
+            return PasswordResetOutcome.INVALID;
+        }
+
+        PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new IllegalStateException("Consumed reset token cannot be loaded: " + tokenHash));
+
+        User user = token.getUser();
+        if (user.getPassword() != null && passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setHasLocalPassword(true);
+        userRepository.save(user);
+        passwordResetTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
+
+        return PasswordResetOutcome.SUCCESS;
     }
 
     @Transactional
@@ -281,6 +404,7 @@ public class AuthService {
                 .name(buildName(userInfo.firstName(), userInfo.lastName()))
                 .roles(Set.of("USER"))
                 .enabled(true)
+                .hasLocalPassword(false)
                 .accountStatus(AccountStatus.ACTIVE)
                 .emailVerifiedAt(now)
                 .build();
@@ -319,6 +443,53 @@ public class AuthService {
         if (!requiresOnboarding(saved)) {
             natalChartProvisioningService.ensureNatalChartIfEligible(saved);
         }
+        return toUserDTO(saved);
+    }
+
+    @Transactional
+    public UserDTO setPassword(Long userId, SetPasswordRequest request) {
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new PasswordMismatchException();
+        }
+        ensureStrongPassword(request.newPassword());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (Boolean.TRUE.equals(user.getHasLocalPassword())) {
+            throw new PasswordAlreadySetException();
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setHasLocalPassword(true);
+        User saved = userRepository.save(user);
+        return toUserDTO(saved);
+    }
+
+    @Transactional
+    public UserDTO changePassword(Long userId, ChangePasswordRequest request) {
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new PasswordMismatchException();
+        }
+        ensureStrongPassword(request.newPassword());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!Boolean.TRUE.equals(user.getHasLocalPassword())) {
+            throw new IllegalArgumentException("No local password set. Use set-password instead.");
+        }
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new WrongPasswordException();
+        }
+
+        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        User saved = userRepository.save(user);
         return toUserDTO(saved);
     }
 
@@ -364,18 +535,19 @@ public class AuthService {
     private void issueVerificationToken(User user) {
         LocalDateTime now = LocalDateTime.now(clock);
 
-        tokenRepository.revokeActiveTokensByUserId(user.getId(), now);
+        verificationTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
 
-        String rawToken = generateRawToken();
-        String tokenHash = hashToken(rawToken);
+        String rawToken = generateRawToken(verificationProperties.tokenBytes());
+        String tokenHash = hashToken(rawToken, verificationProperties.tokenPepper());
 
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
                 .user(user)
                 .tokenHash(tokenHash)
                 .expiresAt(now.plus(verificationProperties.tokenTtl()))
+                .createdAt(now)
                 .build();
 
-        tokenRepository.save(verificationToken);
+        verificationTokenRepository.save(verificationToken);
 
         EmailVerificationMessage message = new EmailVerificationMessage(
                 user.getId(),
@@ -387,20 +559,44 @@ public class AuthService {
         emailVerificationPublisher.publish(message);
     }
 
-    private String generateRawToken() {
-        byte[] bytes = new byte[verificationProperties.tokenBytes()];
+    private void issuePasswordResetToken(User user) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        passwordResetTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
+
+        String rawToken = generateRawToken(passwordResetProperties.tokenBytes());
+        String tokenHash = hashToken(rawToken, passwordResetProperties.tokenPepper());
+
+        PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+                .user(user)
+                .tokenHash(tokenHash)
+                .expiresAt(now.plus(passwordResetProperties.tokenTtl()))
+                .createdAt(now)
+                .build();
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        PasswordResetEmailMessage message = new PasswordResetEmailMessage(
+                user.getId(),
+                user.getEmail(),
+                rawToken,
+                UUID.randomUUID().toString()
+        );
+        passwordResetEmailPublisher.publish(message);
+    }
+
+    private String generateRawToken(int bytesLength) {
+        byte[] bytes = new byte[bytesLength];
         SECURE_RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    private String hashToken(String rawToken) {
+    private String hashToken(String rawToken, String pepper) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest((rawToken + verificationProperties.tokenPepper())
+            byte[] hashed = digest.digest((rawToken + pepper)
                     .getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hashed);
         } catch (Exception ex) {
-            throw new IllegalStateException("Unable to hash verification token", ex);
+            throw new IllegalStateException("Unable to hash token", ex);
         }
     }
 
@@ -424,6 +620,29 @@ public class AuthService {
         if (safeFirstName == null) return safeLastName;
         if (safeLastName == null) return safeFirstName;
         return safeFirstName + " " + safeLastName;
+    }
+
+    private void ensureStrongPassword(String password) {
+        if (password == null || !STRONG_PASSWORD_PATTERN.matcher(password).matches()) {
+            throw new IllegalArgumentException(WEAK_PASSWORD_CODE);
+        }
+    }
+
+    private LocalDateTime safeCreatedAt(LocalDateTime createdAt, LocalDateTime now) {
+        if (createdAt == null) {
+            return now;
+        }
+        if (!createdAt.isAfter(now)) {
+            return createdAt;
+        }
+
+        // created_at may be written by DB in local timezone while app clock is UTC.
+        int systemOffsetSeconds = ZoneId.systemDefault()
+                .getRules()
+                .getOffset(Instant.now(clock))
+                .getTotalSeconds();
+        LocalDateTime normalized = createdAt.minusSeconds(systemOffsetSeconds);
+        return normalized.isAfter(now) ? now : normalized;
     }
 
     private UserDTO toUserDTO(User user) {
@@ -452,6 +671,8 @@ public class AuthService {
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .hasPassword(Boolean.TRUE.equals(user.getHasLocalPassword()))
+                .provider(user.getProvider())
                 .build();
     }
 }

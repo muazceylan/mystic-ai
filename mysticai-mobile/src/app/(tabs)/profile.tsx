@@ -35,6 +35,7 @@ const SETTINGS_ITEMS = [
   { id: 'notifications', titleKey: 'profile.menu.notifications', icon: 'notifications-outline', route: '/notifications-settings' },
   { id: 'theme',         titleKey: 'profile.menu.theme',         icon: 'moon-outline',          route: '/theme-settings' },
   { id: 'language',      titleKey: 'profile.menu.language',      icon: 'globe-outline',         route: '/language-settings' },
+  { id: 'security',      titleKey: 'profile.menu.security',      icon: 'shield-checkmark-outline', route: '/security' },
   { id: 'privacy',       titleKey: 'profile.menu.privacy',       icon: 'lock-closed-outline',   route: '/privacy' },
   { id: 'help',          titleKey: 'profile.menu.help',          icon: 'help-circle-outline',   route: '/help' },
 ] as const;

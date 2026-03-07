@@ -89,6 +89,10 @@ public class User {
     @Builder.Default
     private String preferredLanguage = "tr";
 
+    @Column(name = "has_local_password")
+    @Builder.Default
+    private Boolean hasLocalPassword = false;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")

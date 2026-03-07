@@ -1,177 +1,245 @@
 package com.mysticai.orchestrator.service;
 
+import com.mysticai.orchestrator.config.AiOrchestrationProperties;
 import com.mysticai.orchestrator.provider.AiModelProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientResponseException;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Intelligent AI fallback service that rotates through a prioritized provider chain.
- *
- * On rate limit (429) or any error, it logs the failure and advances to the next provider.
- * If all providers fail, falls back to MockInterpretationService (pre-written Turkish text).
- *
- * Two chains:
- *   - complexChain: 70B → Gemini Flash → Mixtral → 8B (best quality first)
- *   - simpleChain:  8B  → Gemini Flash → Mixtral    (fastest first, saves tokens)
- */
 @Service
 public class AiFallbackService {
 
     private static final Logger log = LoggerFactory.getLogger(AiFallbackService.class);
+    private static final String LOCAL_LLM_KEY = "localLlm";
+    private static final int RAW_SNIPPET_LIMIT = 500;
 
-    private final List<AiModelProvider> complexChain;
-    private final List<AiModelProvider> simpleChain;
+    private final Map<String, AiModelProvider> providerRegistry;
+    private final AiOrchestrationProperties properties;
+    private final FailureClassifier failureClassifier;
+    private final ProviderStateManager stateManager;
     private final MockInterpretationService mockService;
-    private final boolean allowMockFallback;
 
     public AiFallbackService(
-            @Qualifier("groqPrimary")  AiModelProvider groqPrimary,
-            @Qualifier("geminiFlash")  AiModelProvider geminiFlash,
-            @Qualifier("groqMixtral") AiModelProvider groqMixtral,
-            @Qualifier("groqFast")     AiModelProvider groqFast,
-            @Value("${ai.chain.complex:groqPrimary,geminiFlash,groqMixtral,groqFast}") List<String> complexOrder,
-            @Value("${ai.chain.simple:groqFast,geminiFlash,groqMixtral}") List<String> simpleOrder,
-            @Value("${ai.fallback.allow-mock:true}") boolean allowMockFallback,
-            MockInterpretationService mockService) {
-        Map<String, AiModelProvider> providers = new LinkedHashMap<>();
-        providers.put("groqPrimary", groqPrimary);
-        providers.put("geminiFlash", geminiFlash);
-        providers.put("groqMixtral", groqMixtral);
-        providers.put("groqFast", groqFast);
-
-        this.complexChain = resolveChain("complex", complexOrder, providers,
-                List.of("groqPrimary", "geminiFlash", "groqMixtral", "groqFast"));
-        this.simpleChain = resolveChain("simple", simpleOrder, providers,
-                List.of("groqFast", "geminiFlash", "groqMixtral"));
-
-        this.allowMockFallback = allowMockFallback;
+            List<AiModelProvider> providers,
+            AiOrchestrationProperties properties,
+            FailureClassifier failureClassifier,
+            ProviderStateManager stateManager,
+            MockInterpretationService mockService
+    ) {
+        this.properties = properties;
+        this.failureClassifier = failureClassifier;
+        this.stateManager = stateManager;
         this.mockService = mockService;
+        this.providerRegistry = buildProviderRegistry(providers);
     }
 
-    /**
-     * Generates a response by walking the provider chain for the given complexity level.
-     *
-     * @param prompt  the fully-built prompt string
-     * @param complex true = natal charts / dreams / monthly story; false = SWOT / sky pulse / symbol
-     * @return AI response text (never null)
-     */
     public String generate(String prompt, boolean complex) {
-        List<AiModelProvider> chain = complex ? complexChain : simpleChain;
+        String chainName = complex ? "complex" : "simple";
+        List<String> configuredChain = complex
+                ? properties.getFallback().getChains().getComplex()
+                : properties.getFallback().getChains().getSimple();
 
-        for (int i = 0; i < chain.size(); i++) {
-            AiModelProvider provider = chain.get(i);
-            try {
-                log.info("[AI Chain] Trying provider [{}/{}]: {}",
-                        i + 1, chain.size(), provider.getName());
+        List<AiModelProvider> resolvedChain = resolveChain(chainName, configuredChain);
+        if (resolvedChain.isEmpty()) {
+            log.warn("[AI Chain] Resolved chain={} is empty", chainName);
+            return fallbackOrThrow(prompt);
+        }
 
-                String response = provider.generateResponse(prompt);
+        for (int providerIndex = 0; providerIndex < resolvedChain.size(); providerIndex++) {
+            AiModelProvider provider = resolvedChain.get(providerIndex);
+            String providerKey = provider.providerKey();
+            AiOrchestrationProperties.ProviderProperties providerProperties = properties.provider(providerKey);
 
-                if (response != null && !response.isBlank()) {
-                    log.info("[AI Chain] Success: {} ({} chars)", provider.getName(), response.length());
+            if (!providerProperties.isEnabled()) {
+                log.info("[AI Chain] Skipping {} because provider is disabled in config", providerKey);
+                continue;
+            }
+
+            if (stateManager.isCooldownActive(providerKey)) {
+                long remaining = stateManager.remainingCooldownSeconds(providerKey);
+                log.info("[AI Chain] Skipping {} because cooldown active for {}s", providerKey, remaining);
+                continue;
+            }
+
+            int maxAttempt = Math.max(providerProperties.getRetryCount(), 0);
+            for (int attempt = 0; attempt <= maxAttempt; attempt++) {
+                long startNanos = System.nanoTime();
+                try {
+                    log.info("[AI Chain] Trying provider [{}/{}]: {} retryAttempt={}",
+                            providerIndex + 1,
+                            resolvedChain.size(),
+                            provider.getName(),
+                            attempt);
+
+                    String response = provider.generateResponse(prompt);
+                    long elapsedMs = elapsedMs(startNanos);
+
+                    if (response == null || response.isBlank()) {
+                        throw new ProviderCallException(
+                                "[" + providerKey + "] empty response",
+                                AiFailureType.EMPTY_RESPONSE,
+                                null,
+                                null,
+                                null,
+                                null
+                        );
+                    }
+
+                    stateManager.markSuccess(providerKey);
+                    log.info("[AI Chain] Provider {} succeeded in {}ms model={}", providerKey, elapsedMs, provider.modelId());
                     return response;
+                } catch (Exception ex) {
+                    long elapsedMs = elapsedMs(startNanos);
+                    AiFailureType failureType = failureClassifier.classify(ex);
+                    stateManager.markFailure(providerKey, failureType, providerProperties.getCooldownSeconds(), summarizeException(ex));
+                    Instant cooldownUntil = stateManager.stateOf(providerKey).getDisabledUntil();
+
+                    FailureLogContext context = extractFailureContext(ex);
+                    log.warn("[AI Chain] Provider {} failed: {} model={} retryAttempt={} elapsedMs={} statusCode={} contentType={} rawSnippet={} cooldownUntil={} reason={}",
+                            providerKey,
+                            failureType,
+                            provider.modelId(),
+                            attempt,
+                            elapsedMs,
+                            context.statusCode(),
+                            context.contentType(),
+                            context.rawSnippet(),
+                            cooldownUntil,
+                            summarizeException(ex));
+
+                    if (LOCAL_LLM_KEY.equals(providerKey)
+                            && (failureType == AiFailureType.TIMEOUT || failureType == AiFailureType.CONNECTION_ERROR)) {
+                        log.warn("[AI Chain] Local LLM unavailable, falling back to mock");
+                        return fallbackOrThrow(prompt);
+                    }
+
+                    boolean shouldRetryAfterEmpty = failureType == AiFailureType.EMPTY_RESPONSE
+                            && attempt < maxAttempt
+                            && attempt < 1;
+                    if (shouldRetryAfterEmpty) {
+                        log.warn("[AI Chain] Provider {} retrying after EMPTY_RESPONSE attempt={}", providerKey, attempt + 1);
+                        continue;
+                    }
+
+                    boolean hasMoreAttempts = attempt < maxAttempt;
+                    if (hasMoreAttempts && failureClassifier.isRetryable(failureType)) {
+                        continue;
+                    }
+                    break;
                 }
-                log.warn("[AI Chain] {} returned empty response — advancing chain", provider.getName());
-
-            } catch (Exception e) {
-                String reason = classifyError(e);
-                String nextProvider = (i + 1 < chain.size())
-                        ? chain.get(i + 1).getName()
-                        : "local mock";
-
-                log.warn("[AI Chain] {} failed [{}]: {}. Switching to {}...",
-                        provider.getName(), reason, extractMessage(e), nextProvider);
             }
         }
 
-        if (!allowMockFallback) {
-            log.error("[AI Chain] All {} providers exhausted and mock fallback is disabled", chain.size());
-            throw new IllegalStateException("All AI providers failed and mock fallback is disabled");
-        }
-
-        log.error("[AI Chain] All {} providers exhausted — using local mock fallback", chain.size());
-        return mockService.generateFallback(prompt);
+        return fallbackOrThrow(prompt);
     }
 
-    private List<AiModelProvider> resolveChain(
-            String chainName,
-            List<String> configuredOrder,
-            Map<String, AiModelProvider> providers,
-            List<String> defaultOrder) {
+    private Map<String, AiModelProvider> buildProviderRegistry(List<AiModelProvider> providers) {
+        Map<String, AiModelProvider> registry = new LinkedHashMap<>();
+        for (AiModelProvider provider : providers) {
+            AiModelProvider previous = registry.put(provider.providerKey(), provider);
+            if (previous != null) {
+                log.warn("[AI Chain] Duplicate providerKey detected: {}. Last bean wins.", provider.providerKey());
+            }
+        }
+        return registry;
+    }
 
-        List<String> order = (configuredOrder == null || configuredOrder.isEmpty())
-                ? defaultOrder
-                : configuredOrder;
+    private List<AiModelProvider> resolveChain(String chainName, List<String> configuredChain) {
+        List<String> chainKeys = configuredChain == null ? List.of() : configuredChain;
+        log.info("[AI Chain] Selected chain={} providers={}", chainName, chainKeys);
 
         List<AiModelProvider> resolved = new ArrayList<>();
-        for (String key : order) {
-            AiModelProvider provider = providers.get(key);
+        for (String key : chainKeys) {
+            AiModelProvider provider = providerRegistry.get(key);
             if (provider == null) {
-                log.warn("[AI Chain] Unknown provider key '{}' in ai.chain.{} — skipping", key, chainName);
+                log.warn("[AI Chain] Unknown provider key '{}' in chain={} - skipping", key, chainName);
                 continue;
             }
             resolved.add(provider);
         }
 
-        if (resolved.isEmpty()) {
-            log.warn("[AI Chain] Resolved {} chain is empty, falling back to defaults: {}", chainName, defaultOrder);
-            for (String key : defaultOrder) {
-                AiModelProvider provider = providers.get(key);
-                if (provider != null) {
-                    resolved.add(provider);
-                }
-            }
-        }
-
-        log.info("[AI Chain] {} order: {}", chainName, order);
         return resolved;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────
-
-    private String classifyError(Exception e) {
-        if (isRateLimit(e)) return "Rate Limit / Quota";
-        if (isTimeout(e))   return "Timeout";
-        return "Error";
-    }
-
-    private boolean isRateLimit(Exception e) {
-        Throwable t = e;
-        while (t != null) {
-            if (t instanceof HttpClientErrorException ex && ex.getStatusCode().value() == 429) {
-                return true;
-            }
-            String msg = (t.getMessage() != null ? t.getMessage() : "").toLowerCase();
-            if (msg.contains("429") || msg.contains("rate_limit") || msg.contains("quota")
-                    || msg.contains("resource_exhausted") || msg.contains("too many")) {
-                return true;
-            }
-            t = t.getCause();
+    private String fallbackOrThrow(String prompt) {
+        if (properties.getFallback().isAllowMock()) {
+            log.warn("[AI Chain] All providers exhausted, using mock fallback");
+            return mockService.generateFallback(prompt);
         }
-        return false;
+
+        throw new IllegalStateException("All AI providers failed and mock fallback is disabled");
     }
 
-    private boolean isTimeout(Exception e) {
-        Throwable t = e;
-        while (t != null) {
-            String cn = t.getClass().getSimpleName().toLowerCase();
-            if (cn.contains("timeout") || cn.contains("sockettimeout")) return true;
-            t = t.getCause();
+    private long elapsedMs(long startedAtNanos) {
+        return (System.nanoTime() - startedAtNanos) / 1_000_000;
+    }
+
+    private String summarizeException(Throwable throwable) {
+        if (throwable == null) {
+            return "unknown";
         }
-        return false;
+        String message = throwable.getMessage();
+        if (message != null && !message.isBlank()) {
+            return message;
+        }
+        return throwable.getClass().getSimpleName();
     }
 
-    private String extractMessage(Exception e) {
-        if (e.getMessage() != null) return e.getMessage();
-        if (e.getCause() != null && e.getCause().getMessage() != null) return e.getCause().getMessage();
-        return e.getClass().getSimpleName();
+    private FailureLogContext extractFailureContext(Throwable throwable) {
+        Integer statusCode = null;
+        String contentType = null;
+        String rawSnippet = null;
+
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof ProviderCallException pce) {
+                if (statusCode == null) {
+                    statusCode = pce.getStatusCode();
+                }
+                if (contentType == null) {
+                    contentType = pce.getContentType();
+                }
+                if (rawSnippet == null) {
+                    rawSnippet = shortenSnippet(pce.getRawSnippet());
+                }
+            }
+
+            if (current instanceof RestClientResponseException ex) {
+                if (statusCode == null) {
+                    statusCode = ex.getStatusCode().value();
+                }
+                if (contentType == null && ex.getResponseHeaders() != null && ex.getResponseHeaders().getContentType() != null) {
+                    contentType = ex.getResponseHeaders().getContentType().toString();
+                }
+                if (rawSnippet == null) {
+                    rawSnippet = shortenSnippet(ex.getResponseBodyAsString());
+                }
+            }
+
+            current = current.getCause();
+        }
+
+        return new FailureLogContext(statusCode, contentType, rawSnippet);
+    }
+
+    private String shortenSnippet(String value) {
+        if (value == null) {
+            return null;
+        }
+        String singleLine = value.replaceAll("\\s+", " ").trim();
+        if (singleLine.length() <= RAW_SNIPPET_LIMIT) {
+            return singleLine;
+        }
+        return singleLine.substring(0, RAW_SNIPPET_LIMIT);
+    }
+
+    private record FailureLogContext(Integer statusCode, String contentType, String rawSnippet) {
     }
 }

@@ -81,6 +81,15 @@ auth:
     retry:
       max-attempts: ${VERIFICATION_RETRY_MAX_ATTEMPTS:3}
       delay-seconds: ${VERIFICATION_RETRY_DELAY_SECONDS:30}
+  password-reset:
+    token-pepper: ${PASSWORD_RESET_TOKEN_PEPPER:change-me-password-reset-pepper}
+    token-bytes: ${PASSWORD_RESET_TOKEN_BYTES:48}
+    token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
+    request-cooldown-seconds: ${PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS:60}
+    request-daily-limit: ${PASSWORD_RESET_REQUEST_DAILY_LIMIT:5}
+    retry:
+      max-attempts: ${PASSWORD_RESET_RETRY_MAX_ATTEMPTS:3}
+      delay-seconds: ${PASSWORD_RESET_RETRY_DELAY_SECONDS:30}
   mail:
     from: ${MAIL_FROM:no-reply@mysticai.local}
 

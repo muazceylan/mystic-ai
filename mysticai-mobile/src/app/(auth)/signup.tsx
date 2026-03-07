@@ -19,9 +19,9 @@ import { ActionModal, PrimaryButton, SecondaryButton, StatusBanner, TextField } 
 import { register, resendVerification } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { trackEvent } from '../../services/analytics';
+import { isStrongPassword } from '../../utils/passwordPolicy';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 8;
 
 function firstParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) {
@@ -174,8 +174,8 @@ export default function SignupScreen() {
       setEmailError(null);
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setPasswordError(t('auth.passwordMinLength'));
+    if (!isStrongPassword(password)) {
+      setPasswordError(t('auth.passwordPolicy'));
       valid = false;
     } else {
       setPasswordError(null);
@@ -304,7 +304,7 @@ export default function SignupScreen() {
               error={passwordError}
             />
 
-            <Text style={styles.passwordHint}>{t('auth.signup.passwordHint')}</Text>
+            <Text style={styles.passwordHint}>{t('auth.passwordPolicy')}</Text>
 
             <View style={styles.buttonRow}>
               <PrimaryButton title={t('auth.signup.createAccount')} onPress={handleSignup} loading={loading} />

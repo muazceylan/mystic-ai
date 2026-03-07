@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -63,15 +64,32 @@ public class OracleService {
                     OracleResponse oracle = tuple.getT1();
                     List<HomeBriefResponse.WeeklyCard> weeklyCards = tuple.getT2();
                     String displayName = firstNonBlank(name, username, "Kullanici");
+                    String dailyEnergy = normalizeHomeCopy(
+                            firstNonBlank(oracle.dailyVibe(), oracle.message(), "Bugün ritmini sakin tut, netlik geliyor."),
+                            "Bugün ritmini sakin tut, netlik geliyor.",
+                            120);
+                    String transitHeadline = normalizeHomeCopy(
+                            firstNonBlank(oracle.transitHeadline(), oracle.astrologyInsight(), "Günün akışı bugün lehine dönüyor."),
+                            "Günün akışı bugün lehine dönüyor.",
+                            96);
+                    String actionMessage = normalizeHomeAction(
+                            firstNonBlank(oracle.message(), "Küçük ama net bir adım at."),
+                            focusPoint);
+                    String transitSummary = normalizeHomeSummary(
+                            firstNonBlank(oracle.transitSummary(), oracle.numerologyInsight(), "Dengeyi korudukça hızlanacaksın."),
+                            actionMessage,
+                            transitHeadline,
+                            dailyEnergy,
+                            focusPoint);
 
                     return new HomeBriefResponse(
                             "Merhaba " + displayName + ", bugün haritanda neler var bakalım.",
-                            firstNonBlank(oracle.dailyVibe(), oracle.message(), "Bugün ritmini sakin tut, netlik geliyor."),
-                            firstNonBlank(oracle.transitHeadline(), oracle.astrologyInsight(), "Günün akışı bugün lehine dönüyor."),
-                            firstNonBlank(oracle.transitSummary(), oracle.numerologyInsight(), "Dengeyi korudukça hızlanacaksın."),
+                            dailyEnergy,
+                            transitHeadline,
+                            transitSummary,
                             oracle.transitPoints(),
                             toSingleSentence(oracle.secret(), "Bugün sezgine güven.", 110),
-                            firstNonBlank(oracle.message(), "Küçük ama net bir adım at."),
+                            actionMessage,
                             weeklyCards,
                             new HomeBriefResponse.Meta(
                                     firstNonBlank(oracle.promptVersion(), ORACLE_PROMPT_VERSION),
@@ -301,6 +319,71 @@ public class OracleService {
             }
         }
         return "";
+    }
+
+    private String normalizeHomeCopy(String value, String fallback, int maxLength) {
+        String source = stripTechnicalJargon(firstNonBlank(value, fallback));
+        return toSingleSentence(source, fallback, maxLength);
+    }
+
+    private String normalizeHomeAction(String action, String focusPoint) {
+        String cleaned = normalizeHomeCopy(action, "Küçük ama net bir adım at.", 110);
+        String lower = cleaned.toLowerCase(Locale.ROOT);
+        if (lower.contains("harekete geç")) {
+            return actionFallbackByFocus(focusPoint);
+        }
+        return cleaned;
+    }
+
+    private String normalizeHomeSummary(
+            String summary,
+            String actionMessage,
+            String headline,
+            String dailyEnergy,
+            String focusPoint) {
+        String cleaned = normalizeHomeCopy(summary, "Dengeyi korudukça hızlanacaksın.", 120);
+        String lower = cleaned.toLowerCase(Locale.ROOT);
+
+        if (lower.contains("evdeki detaylar") && lower.contains("harekete geçirecek")) {
+            return "Ev ve düzenle ilgili küçük işleri netleştirmen bugün karar almayı kolaylaştırır.";
+        }
+
+        if (isWeakNarrative(cleaned)) {
+            String alt = firstNonBlank(actionMessage, headline, dailyEnergy);
+            if (!alt.isBlank() && !isWeakNarrative(alt)) {
+                return toSingleSentence(alt, "Bugün tek bir öncelik seçip onu tamamla.", 120);
+            }
+            return actionFallbackByFocus(focusPoint);
+        }
+        return cleaned;
+    }
+
+    private boolean isWeakNarrative(String text) {
+        String normalized = firstNonBlank(text).toLowerCase(Locale.ROOT);
+        if (normalized.isBlank() || normalized.length() < 24) return true;
+        return normalized.contains("detaylar seni harekete geçirecek")
+                || normalized.contains("seni harekete geçirecek")
+                || normalized.contains("evdeki detaylar")
+                || normalized.contains("genel akış")
+                || normalized.contains("enerji akışı")
+                || normalized.contains("kozmik enerji");
+    }
+
+    private String actionFallbackByFocus(String focusPoint) {
+        String focus = firstNonBlank(focusPoint).toLowerCase(Locale.ROOT);
+        if (focus.contains("kariyer")) {
+            return "İş tarafında tek bir görevi bitirmeye odaklanman bugün görünür sonuç verir.";
+        }
+        if (focus.contains("aile") || focus.contains("ev")) {
+            return "Ev ve aile düzeninde tek bir eksik işi tamamlaman günün akışını rahatlatır.";
+        }
+        if (focus.contains("para")) {
+            return "Maddi konularda küçük bir plan güncellemesi yapmak bugün gereksiz stresi azaltır.";
+        }
+        if (focus.contains("ilişki") || focus.contains("ask")) {
+            return "İlişkilerde net bir cümleyle beklentini söylemen bugün yanlış anlaşılmayı azaltır.";
+        }
+        return "Bugün tek bir öncelik seçip onu tamamlaman günün geri kalanını netleştirir.";
     }
 
     private List<String> normalizeTransitPoints(List<String> points, String... fallbacks) {

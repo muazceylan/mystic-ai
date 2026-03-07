@@ -55,7 +55,13 @@ public record DailyTransitsDTO(
             String theme,
             String timeWindow,
             int confidence,
-            Technical technical
+            Technical technical,
+            String action,
+            String avoid,
+            int importance,
+            String relevance,
+            String reason,
+            String technicalReason
     ) {}
 
     public record Technical(
@@ -67,4 +73,3 @@ public record DailyTransitsDTO(
             String house
     ) {}
 }
-

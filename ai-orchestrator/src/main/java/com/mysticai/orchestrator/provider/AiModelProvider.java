@@ -8,8 +8,16 @@ package com.mysticai.orchestrator.provider;
  */
 public interface AiModelProvider {
 
+    /** Stable orchestration key (gemini, groqPremium, groqFast, openrouter). */
+    String providerKey();
+
     /** Human-readable name logged during fallback rotation. */
     String getName();
+
+    /** Model id selected for this provider instance. */
+    default String modelId() {
+        return "unknown";
+    }
 
     /**
      * Calls the underlying AI model with the given prompt.

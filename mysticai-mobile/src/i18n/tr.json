@@ -53,6 +53,7 @@
       "notifications": "Bildirimler",
       "theme": "Tema",
       "language": "Dil",
+      "security": "Güvenlik",
       "privacy": "Gizlilik",
       "help": "Yardım"
     },
@@ -101,6 +102,33 @@
     "currentDark": "Koyu",
     "manual": "Manuel olarak seçildi",
     "automatic": "Sistem tercihine göre belirlendi"
+  },
+  "security": {
+    "title": "Güvenlik",
+    "hint": "Hesabınızın şifre ayarlarını buradan yönetebilirsiniz.",
+    "passwordPolicyError": "Şifre en az 8 karakter olmalı; en az bir büyük harf, bir küçük harf ve bir özel karakter içermelidir.",
+    "setPassword": {
+      "title": "Şifre Belirle",
+      "description": "Sosyal giriş hesabınıza bir şifre ekleyerek e-posta ile de giriş yapabilirsiniz.",
+      "newPassword": "Yeni Şifre",
+      "confirmPassword": "Şifreyi Onayla",
+      "submitBtn": "Şifre Belirle",
+      "success": "Şifreniz başarıyla belirlendi.",
+      "mismatchError": "Şifreler eşleşmiyor.",
+      "alreadySetError": "Bu hesapta zaten bir şifre tanımlı."
+    },
+    "changePassword": {
+      "title": "Şifre Değiştir",
+      "description": "Mevcut şifrenizi değiştirmek için aşağıdaki formu doldurun.",
+      "currentPassword": "Mevcut Şifre",
+      "newPassword": "Yeni Şifre",
+      "confirmPassword": "Yeni Şifreyi Onayla",
+      "submitBtn": "Şifreyi Değiştir",
+      "success": "Şifreniz başarıyla değiştirildi.",
+      "mismatchError": "Yeni şifreler eşleşmiyor.",
+      "wrongCurrentError": "Mevcut şifre hatalı.",
+      "samePasswordError": "Yeni şifre mevcut şifreden farklı olmalıdır."
+    }
   },
   "language": {
     "title": "Dil",
@@ -455,10 +483,19 @@
     "invalidEmail": "Geçerli bir e-posta adresi giriniz",
     "passwordRequired": "Şifre gereklidir",
     "passwordMinLength": "Şifre en az 8 karakter olmalıdır",
+    "passwordPolicy": "Şifre en az 8 karakter olmalı; en az bir büyük harf, bir küçük harf ve bir özel karakter içermelidir.",
     "confirmPassword": "Şifre Tekrar",
     "passwordsMatch": "Şifreler eşleşmiyor",
     "goToLogin": "Giriş ekranına git",
     "forgotPassword": "Şifreni mi unuttun?",
+    "passwordReset": {
+      "title": "Şifre sıfırla",
+      "subtitle": "Hesap e-postanı gir. Kayıtlıysa sıfırlama linki göndereceğiz.",
+      "sendButton": "Sıfırlama maili gönder",
+      "requestSent": "Bu e-posta kayıtlıysa şifre sıfırlama linki gönderildi.",
+      "requestError": "Şu anda sıfırlama maili gönderilemedi. Lütfen sonra tekrar dene.",
+      "backToLogin": "Girişe dön"
+    },
     "loginError": "Giriş yapılamadı. Lütfen tekrar deneyin.",
     "invalidCredentials": "E-posta veya şifre hatalı.",
     "googleLoginError": "Google ile giriş yapılamadı.",
