@@ -26,6 +26,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        # Suppress DDL warnings for CHECK constraints on existing tables
+        hbm2ddl:
+          halt_on_error: false
 
   # RabbitMQ Configuration
   rabbitmq:
@@ -93,3 +96,9 @@ notification:
     user-destination-prefix: /user
     application-destination-prefix: /app
     topic-prefix: /topic
+
+# Expo Push Notifications
+expo:
+  push:
+    url: ${EXPO_PUSH_URL:https://exp.host/--/api/v2/push/send}
+    enabled: ${EXPO_PUSH_ENABLED:true}

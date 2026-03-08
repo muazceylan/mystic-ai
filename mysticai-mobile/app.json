@@ -10,7 +10,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mysticai.app.test",
+      "bundleIdentifier": "com.mysticai.app",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Yıldız kartlarını galeriye kaydedebilmen için fotoğraf kütüphanene erişim izni istiyoruz.",
@@ -18,11 +18,19 @@
       }
     },
     "android": {
-      "package": "com.mysticai.app.test"
+      "package": "com.mysticai.app",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
       "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#9D4EDD",
+          "sounds": []
+        }
+      ],
       [
         "expo-media-library",
         {

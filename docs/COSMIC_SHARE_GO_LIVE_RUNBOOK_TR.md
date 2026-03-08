@@ -175,7 +175,7 @@ Bu dosyada şu değerleri production’a göre güncelle:
 
 `mysticai-mobile/app.json` şu an:
 
-- `android.package = com.mysticai.app.test`
+- `android.package = com.mysticai.app`
 
 Production Play Store package farklıysa:
 

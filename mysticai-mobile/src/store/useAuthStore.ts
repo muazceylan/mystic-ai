@@ -122,6 +122,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           clearPlannerFullDistributionCache();
         } catch {}
+        try {
+          const { useNotificationStore } = require('./useNotificationStore');
+          useNotificationStore.getState().reset();
+        } catch {}
 
         set({
           token: null,

@@ -2,6 +2,7 @@ package com.mysticai.notification.listener;
 
 import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.notification.entity.Notification;
+import com.mysticai.notification.service.PushService;
 import com.mysticai.notification.service.WebSocketNotificationService;
 import com.mysticai.common.event.AiAnalysisResponseEvent;
 import lombok.RequiredArgsConstructor;
@@ -9,29 +10,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-/**
- * RabbitMQ listener for AI analysis response events.
- * Sends real-time notifications to users when their AI analysis is complete.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class AiResponseListener {
 
     private final WebSocketNotificationService notificationService;
+    private final PushService pushService;
 
     @RabbitListener(queues = "ai.responses.notification.queue")
     public void handleAiResponse(AiAnalysisResponseEvent event) {
-        log.info("Received AI response event for user {}: {}", 
+        log.info("Received AI response event for user {}: {}",
                 event.userId(), event.analysisType());
 
         try {
-            // Create notification based on analysis type
             Notification.AnalysisType analysisType = mapAnalysisType(event.analysisType());
             String title = generateTitle(analysisType);
             String message = generateMessage(analysisType);
 
-            // Send notification to user
             notificationService.sendNotification(
                     event.userId(),
                     event.correlationId(),
@@ -41,18 +37,22 @@ public class AiResponseListener {
                     event.originalPayload()
             );
 
+            // Also send push notification
+            Notification pushNotif = Notification.builder()
+                    .title(title)
+                    .body(message)
+                    .deeplink(getDeeplinkForAnalysisType(analysisType))
+                    .build();
+            pushService.sendPush(event.userId(), pushNotif);
+
             log.info("Notification sent successfully for user {}", event.userId());
         } catch (Exception e) {
-            log.error("Failed to send notification for user {}: {}", 
+            log.error("Failed to send notification for user {}: {}",
                     event.userId(), e.getMessage(), e);
         }
     }
 
-    /**
-     * Map AiAnalysisEvent.AnalysisType to Notification.AnalysisType.
-     */
-    private Notification.AnalysisType mapAnalysisType(
-            AiAnalysisEvent.AnalysisType type) {
+    private Notification.AnalysisType mapAnalysisType(AiAnalysisEvent.AnalysisType type) {
         return switch (type) {
             case INTERPRETATION,DREAM_SYNTHESIS,MONTHLY_DREAM_STORY,SYMBOL_MEANING,COLLECTIVE_PULSE_REASON -> Notification.AnalysisType.DREAM;
             case PREDICTION -> Notification.AnalysisType.TAROT;
@@ -65,9 +65,6 @@ public class AiResponseListener {
         };
     }
 
-    /**
-     * Generate notification title based on analysis type.
-     */
     private String generateTitle(Notification.AnalysisType type) {
         return switch (type) {
             case DREAM -> "Ruyaniz Yorumlandi!";
@@ -81,9 +78,6 @@ public class AiResponseListener {
         };
     }
 
-    /**
-     * Generate notification message based on analysis type.
-     */
     private String generateMessage(Notification.AnalysisType type) {
         return switch (type) {
             case DREAM -> "Ruya yorumunuz hazir. Gizli mesajlari ogrenmek icin tiklayin!";
@@ -94,6 +88,16 @@ public class AiResponseListener {
             case ORACLE -> "Gunun sirri hazir. Bugun sizin icin ne getiriyor?";
             case COMPATIBILITY -> "Uyum analiziniz hazir. Kozmik baglantinizi kesfedin!";
             case HOROSCOPE -> "Burc yorumunuz hazir. Yildizlarin mesajini okumak icin tiklayin!";
+        };
+    }
+
+    private String getDeeplinkForAnalysisType(Notification.AnalysisType type) {
+        return switch (type) {
+            case DREAM -> "/(tabs)/dreams";
+            case TAROT, ASTROLOGY, NUMEROLOGY, ORACLE -> "/(tabs)/home";
+            case NATAL_CHART -> "/(tabs)/natal-chart";
+            case COMPATIBILITY -> "/(tabs)/compatibility";
+            case HOROSCOPE -> "/(tabs)/horoscope";
         };
     }
 }

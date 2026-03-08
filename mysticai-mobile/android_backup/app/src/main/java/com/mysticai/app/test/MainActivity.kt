@@ -1,4 +1,4 @@
-package com.mysticai.app.test
+package com.mysticai.app
 
 import android.os.Build
 import android.os.Bundle

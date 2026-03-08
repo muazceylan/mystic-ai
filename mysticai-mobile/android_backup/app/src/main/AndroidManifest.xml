@@ -29,7 +29,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="mystic-ai"/>
-        <data android:scheme="com.mysticai.app.test"/>
+        <data android:scheme="com.mysticai.app"/>
         <data android:scheme="exp+mystic"/>
       </intent-filter>
     </activity>

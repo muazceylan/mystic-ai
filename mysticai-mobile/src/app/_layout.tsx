@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import '../polyfills/textEncoding';
-import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus, View, ActivityIndicator } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { StatusBar } from 'expo-status-bar';
@@ -10,10 +10,16 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCompanionStore } from '../store/useCompanionStore';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { initI18n } from '../i18n';
 import { COLORS } from '../constants/colors';
 import { queryClient } from '../lib/queryClient';
+import {
+  registerPushTokenIfNeeded,
+  setupNotificationResponseHandler,
+  setupNotificationChannel,
+} from '../utils/pushNotifications';
 
 if (typeof window !== 'undefined') {
   WebBrowser.maybeCompleteAuthSession();
@@ -90,6 +96,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
     <>
       <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
       <CompanionBootstrap />
+      <NotificationBootstrap />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -127,6 +134,53 @@ function CompanionBootstrap() {
   useEffect(() => {
     initializeForUser(user ?? null);
   }, [user]);
+
+  return null;
+}
+
+function NotificationBootstrap() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount);
+  const resetNotifications = useNotificationStore((s) => s.reset);
+  const appState = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (!isAuthenticated) {
+      resetNotifications();
+      return;
+    }
+
+    // Setup push infrastructure
+    void setupNotificationChannel();
+    void registerPushTokenIfNeeded();
+    void fetchUnreadCount();
+
+    let pushCleanup: (() => void) | null = null;
+    setupNotificationResponseHandler(isAuthenticated).then((unsub) => {
+      pushCleanup = unsub;
+    });
+
+    // AppState listener: refresh on foreground return (background → active)
+    const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (appState.current === 'background' && nextState === 'active') {
+        void fetchUnreadCount();
+      }
+      appState.current = nextState;
+    });
+
+    // Fallback polling every 5 minutes (reduced from 60s)
+    const interval = setInterval(() => {
+      void fetchUnreadCount();
+    }, 5 * 60_000);
+
+    return () => {
+      appStateSub.remove();
+      clearInterval(interval);
+      pushCleanup?.();
+    };
+  }, [isHydrated, isAuthenticated]);
 
   return null;
 }

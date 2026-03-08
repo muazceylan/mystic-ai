@@ -31,7 +31,7 @@
         <array>
           <string>mystic-ai</string>
           <string>com.mysticai.app</string>
-          <string>com.mysticai.app.test</string>
+          <string>com.mysticai.app</string>
         </array>
       </dict>
       <dict>

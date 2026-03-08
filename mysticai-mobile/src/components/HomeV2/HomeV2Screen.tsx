@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { HomeV2DecisionCompassItem, HomeV2Model, HomeV2QuickActionId, HomeV2StatusTone } from './homeV2.types';
 import { useDecisionCompassStore } from '../../store/useDecisionCompassStore';
+import { useNotificationStore } from '../../store/useNotificationStore';
 
 interface HomeV2ScreenProps {
   model: HomeV2Model;
@@ -264,7 +265,7 @@ function TopBar({
 
         <View style={S.topActions}>
           <IconCircleButton icon="options-outline" onPress={onOpenSettings} S={S} />
-          <IconCircleButton icon="notifications-outline" onPress={onOpenNotifications} S={S} />
+          <NotificationBellButton onPress={onOpenNotifications} S={S} />
         </View>
       </View>
       <Text style={S.topInfoLine} numberOfLines={1}>{infoLine}</Text>
@@ -272,18 +273,37 @@ function TopBar({
   );
 }
 
+function NotificationBellButton({ onPress, S }: { onPress: () => void; S: ReturnType<typeof makeStyles> }) {
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  return <IconCircleButton icon="notifications-outline" onPress={onPress} S={S} badge={unreadCount} />;
+}
+
 function IconCircleButton({
   icon,
   onPress,
   S,
+  badge,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   S: ReturnType<typeof makeStyles>;
+  badge?: number;
 }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [S.iconCircleBtn, pressed && S.pressed]}>
       <Ionicons name={icon} size={18} color={S.__palette.iconStrong} />
+      {badge != null && badge > 0 && (
+        <View style={{
+          position: 'absolute', top: -3, right: -3,
+          backgroundColor: '#EF4444', borderRadius: 8,
+          minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center',
+          paddingHorizontal: 3,
+        }}>
+          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '700' }}>
+            {badge > 99 ? '99+' : badge}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }

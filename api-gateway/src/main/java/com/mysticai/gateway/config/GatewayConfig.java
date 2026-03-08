@@ -70,7 +70,7 @@ public class GatewayConfig {
                         .uri("lb://spiritual-service"))
                 // Notification Service - REST API
                 .route("notification-service", r -> r
-                        .path("/api/notifications/**")
+                        .path("/api/v1/notifications/**")
                         .uri("lb://notification-service"))
                 // Vision Service
                 .route("vision-service", r -> r

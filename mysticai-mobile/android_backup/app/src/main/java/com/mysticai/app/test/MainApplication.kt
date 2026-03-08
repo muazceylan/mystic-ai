@@ -1,4 +1,4 @@
-package com.mysticai.app.test
+package com.mysticai.app
 
 import android.app.Application
 import android.content.res.Configuration
