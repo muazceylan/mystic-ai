@@ -15,6 +15,7 @@ export type DiscoverModuleKey =
   | 'calendar'
   | 'lucky_hours'
   | 'natal_chart'
+  | 'numerology'
   | 'name_analysis'
   | 'decision_compass'
   | 'spiritual_prayers'
@@ -84,7 +85,7 @@ export const DISCOVER_MODULES: DiscoverModule[] = [
   {
     key: 'transits_today',
     categoryKey: 'cosmic_flow',
-    title: 'Günün Transitleri',
+    title: 'Bugünün Gökyüzü Etkileri',
     subtitle: 'Anlık gökyüzü etkisi',
     icon: 'planet-outline',
     route: '/transits-today',
@@ -144,8 +145,18 @@ export const DISCOVER_MODULES: DiscoverModule[] = [
     title: 'İsim Analizi',
     subtitle: 'İsminin enerji izi',
     icon: 'person-outline',
-    route: '/name-analysis',
+    route: '/(tabs)/name-analysis',
     keywords: ['isim', 'analiz', 'name', 'numeroloji'],
+  },
+  {
+    key: 'numerology',
+    categoryKey: 'self_discovery',
+    title: 'Numeroloji',
+    subtitle: 'Sayıların kişisel anlamı',
+    icon: 'keypad-outline',
+    route: '/numerology',
+    keywords: ['numeroloji', 'numerology', 'sayı', 'yaşam yolu', 'life path'],
+    recommended: true,
   },
   {
     key: 'decision_compass',
@@ -252,4 +263,5 @@ export const RECOMMENDED_MODULE_KEYS: DiscoverModuleKey[] = [
   'weekly',
   'compatibility',
   'decision_compass',
+  'numerology',
 ];

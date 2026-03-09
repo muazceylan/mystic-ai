@@ -43,6 +43,16 @@ spring:
         max-concurrency: 10
         default-requeue-rejected: false
 
+  # Email (SMTP) — for admin temp password delivery
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
   # WebSocket Configuration
   websocket:
     stomp:
@@ -102,3 +112,39 @@ expo:
   push:
     url: ${EXPO_PUSH_URL:https://exp.host/--/api/v2/push/send}
     enabled: ${EXPO_PUSH_ENABLED:true}
+
+# Admin Panel Configuration
+# IMPORTANT: Override admin.jwt.secret with a strong random value in production (min 32 chars).
+admin:
+  jwt:
+    secret: ${ADMIN_JWT_SECRET:mystic-admin-dev-secret-key-change-in-prod-32+}
+    expiration-ms: ${ADMIN_JWT_EXPIRATION_MS:86400000}
+  email:
+    enabled: ${ADMIN_EMAIL_ENABLED:false}
+    from: ${ADMIN_EMAIL_FROM:noreply@mysticai.com}
+
+# Scheduled Admin Notification Dispatch
+scheduled:
+  admin-notification:
+    interval-ms: ${ADMIN_NOTIF_DISPATCH_INTERVAL_MS:60000}  # 60s default
+
+# Internal service URLs (for CMS ingest)
+services:
+  astrology:
+    base-url: ${ASTROLOGY_SERVICE_URL:http://localhost:8083}
+
+# Gateway Integration Note:
+# Add the following predicate to api-gateway routes configuration to expose admin API:
+#
+#   - id: admin-service
+#     uri: lb://notification-service
+#     predicates:
+#       - Path=/api/admin/v1/**
+#     filters:
+#       - name: RequestRateLimiter
+#         args:
+#           redis-rate-limiter.replenishRate: 20
+#           redis-rate-limiter.burstCapacity: 40
+#
+# The admin panel (mystic-admin) connects directly to notification-service (port 8088)
+# during development. In production, route through the gateway.

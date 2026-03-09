@@ -25,11 +25,11 @@ export function DailyTransitsCard({
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Günün Transitleri</Text>
+      <Text style={styles.title}>Bugünün Gökyüzü Etkileri</Text>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel="Günün transitleri ekranını aç"
+        accessibilityLabel="Bugünün Gökyüzü Etkileri ekranını aç"
         hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >

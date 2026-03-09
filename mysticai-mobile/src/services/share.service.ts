@@ -1,6 +1,7 @@
 import { Linking, Platform, Share } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
+import { trackEvent } from './analytics';
 
 export type ShareChannel = 'system' | 'instagram_story' | 'gallery';
 
@@ -39,8 +40,12 @@ type AnalyticsPayload = {
 };
 
 function logShareAnalytics(payload: AnalyticsPayload) {
-  // TODO: replace with real analytics SDK integration
-  console.info('[analytics][match_card_share]', payload);
+  trackEvent('share_service_result', {
+    share_channel: payload.channel,
+    success: payload.success,
+    fallback_used: payload.fallbackUsed ?? false,
+    reason: payload.reason ?? null,
+  });
 }
 
 function buildPhotosSettingsMessage() {
@@ -191,4 +196,3 @@ export async function instagramStory(
 
 // Backward-compatible export used in older modules.
 export const shareToInstagram = instagramStory;
-

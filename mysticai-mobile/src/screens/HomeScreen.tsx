@@ -14,7 +14,10 @@ import { SkyHeroCard } from '../components/Home/SkyHeroCard';
 import { WeeklyHighlightsCompact } from '../components/Home/WeeklyHighlightsCompact';
 import type { IconName, QuickAction, WeeklyItem } from '../components/Home/types';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { useNumerology } from '../hooks/useNumerology';
 import { trackEvent } from '../services/analytics';
+import { fetchHomeContentBundle, type HomeSection, type CmsBanner } from '../services/homeContent.service';
+import { getLockedSections, isPremiumUser } from '../services/numerology.service';
 import { useAuthStore } from '../store/useAuthStore';
 import { colors, radius, shadowSubtle, spacing, typography } from '../theme';
 
@@ -24,6 +27,7 @@ const NOTIFICATIONS_ROUTE = '/notifications';
 const SETTINGS_ROUTE = '/theme-settings';
 const TRANSITS_ROUTE_FALLBACK = '/transits-today';
 const WEEKLY_ANALYSIS_ROUTE_FALLBACK = '/(tabs)/weekly-analysis';
+const HOME_MAX_FONT_SCALE = 1.15;
 
 const QUICK_ACTION_VISUALS: Record<string, { iconName: IconName; iconColor: string; iconBg: string }> = {
   decisioncompass: {
@@ -219,12 +223,32 @@ function LoadingBlock({ height }: { height: number }) {
   return <View style={[styles.loadingBlock, { height }]} />;
 }
 
+function resolveNumerologyWidgetRoute(emptyVariant: 'none' | 'name_missing' | 'birth_date_missing' | 'both_missing') {
+  switch (emptyVariant) {
+    case 'name_missing':
+      return '/edit-profile-name';
+    case 'birth_date_missing':
+      return '/edit-birth-info';
+    case 'both_missing':
+      return '/(tabs)/profile';
+    default:
+      return '/numerology?entry_point=home_widget';
+  }
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+  const [cmsHeroBanners, setCmsHeroBanners] = useState<CmsBanner[]>([]);
+  const [cmsSections, setCmsSections] = useState<HomeSection[]>([]);
+  const homeNumerology = useNumerology({
+    user,
+    locale: user?.preferredLanguage ?? 'tr',
+    guidancePeriod: 'day',
+  });
 
   const {
     data: dashboard,
@@ -243,9 +267,17 @@ export default function HomeScreen() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    fetchHomeContentBundle(user?.preferredLanguage ?? 'tr').then((bundle) => {
+      setCmsHeroBanners(bundle.heroBanners);
+      setCmsSections(bundle.sections);
+    });
+  }, [user?.preferredLanguage]);
+
   const viewTrackedRef = useRef(false);
   const contentLoadedTrackedRef = useRef(false);
   const emptyHeroRefetchTriedRef = useRef(false);
+  const numerologyWidgetTrackedRef = useRef(false);
 
   const displayName = useMemo(() => {
     const backendName = dashboard?.user?.name?.trim();
@@ -327,6 +359,45 @@ export default function HomeScreen() {
   const transitMoonPhase = dashboard?.transitsToday?.moonPhase?.trim() || '';
   const transitMoonSign = dashboard?.transitsToday?.moonSign?.trim() || '';
   const transitRetroCount = dashboard?.transitsToday?.retroCount ?? 0;
+  const numerologyWidget = useMemo(() => {
+    if (homeNumerology.emptyVariant === 'name_missing') {
+      return {
+        state: 'name_missing',
+        title: 'Numeroloji profilin eksik',
+        body: 'İsmini eklediğinde kader ve ruh güdüsü alanları görünür.',
+        focus: null,
+        cta: 'İsmini tamamla',
+      };
+    }
+    if (homeNumerology.emptyVariant === 'birth_date_missing') {
+      return {
+        state: 'birth_date_missing',
+        title: 'Kişisel sayını açmak için doğum tarihi gerekli',
+        body: 'Yaşam yolu ve kişisel yıl katmanı doğum tarihine göre oluşur.',
+        focus: null,
+        cta: 'Doğum bilgini ekle',
+      };
+    }
+    if (homeNumerology.emptyVariant === 'both_missing') {
+      return {
+        state: 'both_missing',
+        title: 'Numeroloji profilini başlat',
+        body: 'İsim ve doğum tarihi eklendiğinde sayı profilin ve günlük rehber açılır.',
+        focus: null,
+        cta: 'Profili tamamla',
+      };
+    }
+    if (homeNumerology.data?.timing) {
+      return {
+        state: 'ready',
+        title: `Bu yıl kişisel sayın: ${homeNumerology.data.timing.personalYear}`,
+        body: homeNumerology.data.timing.shortTheme,
+        focus: homeNumerology.data.miniGuidance?.dailyFocus ?? null,
+        cta: 'Numeroloji detayına git',
+      };
+    }
+    return null;
+  }, [homeNumerology.data, homeNumerology.emptyVariant]);
 
   const initialLoading = !dashboard && (isLoading || isFetching);
   const showRetry = isError && !dashboard;
@@ -375,6 +446,30 @@ export default function HomeScreen() {
       quick_actions_count: quickActions.length,
     });
   }, [dashboard, hasToday, hasWeekly, quickActions.length]);
+
+  useEffect(() => {
+    if (numerologyWidgetTrackedRef.current || !numerologyWidget) {
+      return;
+    }
+
+    numerologyWidgetTrackedRef.current = true;
+    trackEvent('numerology_widget_viewed', {
+      source_surface: 'home_widget',
+      entry_point: 'home_widget',
+      has_birth_date: homeNumerology.missingFields.indexOf('birthDate') === -1,
+      has_name: homeNumerology.missingFields.indexOf('name') === -1,
+      is_premium_user: isPremiumUser(user?.roles),
+      locked_sections: getLockedSections(homeNumerology.data?.sectionLockState, isPremiumUser(user?.roles)).join(',') || 'none',
+      personal_year: homeNumerology.data?.timing?.personalYear ?? null,
+      dominant_number: homeNumerology.data?.combinedProfile?.dominantNumber ?? null,
+      response_version: homeNumerology.data?.contentVersion ?? homeNumerology.data?.version ?? null,
+      guidance_period: 'day',
+      cache_status: homeNumerology.cacheStatus,
+      locale: homeNumerology.data?.locale ?? user?.preferredLanguage ?? 'tr',
+      snapshot_exists: null,
+      widget_state: numerologyWidget.state,
+    });
+  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.missingFields, numerologyWidget, user?.roles]);
 
   const pushRoute = useCallback(
     (route: string) => {
@@ -475,6 +570,31 @@ export default function HomeScreen() {
     [pushRoute, weeklyAnalysisRoute],
   );
 
+  const handlePressNumerologyWidget = useCallback(() => {
+    if (!numerologyWidget) {
+      return;
+    }
+
+    const route = resolveNumerologyWidgetRoute(homeNumerology.emptyVariant);
+    trackEvent('numerology_widget_clicked', {
+      source_surface: 'home_widget',
+      entry_point: 'home_widget',
+      has_birth_date: homeNumerology.missingFields.indexOf('birthDate') === -1,
+      has_name: homeNumerology.missingFields.indexOf('name') === -1,
+      is_premium_user: isPremiumUser(user?.roles),
+      locked_sections: getLockedSections(homeNumerology.data?.sectionLockState, isPremiumUser(user?.roles)).join(',') || 'none',
+      personal_year: homeNumerology.data?.timing?.personalYear ?? null,
+      dominant_number: homeNumerology.data?.combinedProfile?.dominantNumber ?? null,
+      response_version: homeNumerology.data?.contentVersion ?? homeNumerology.data?.version ?? null,
+      guidance_period: 'day',
+      cache_status: homeNumerology.cacheStatus,
+      locale: homeNumerology.data?.locale ?? user?.preferredLanguage ?? 'tr',
+      snapshot_exists: null,
+      widget_state: numerologyWidget.state,
+    });
+    pushRoute(route);
+  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.emptyVariant, homeNumerology.missingFields, numerologyWidget, pushRoute, user?.roles]);
+
   const notificationBadgeText = notificationCount > 9 ? '9+' : String(notificationCount);
   const notificationA11y =
     notificationCount > 0
@@ -523,7 +643,7 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              <Text numberOfLines={1} style={styles.userName}>{displayName}</Text>
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.userName}>{displayName}</Text>
             </View>
 
             <View style={styles.headerActions}>
@@ -576,6 +696,46 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
+        {numerologyWidget ? (
+          <Pressable
+            onPress={handlePressNumerologyWidget}
+            accessibilityRole="button"
+            accessibilityLabel="Numeroloji kartını aç"
+            style={({ pressed }) => [styles.numerologyWidget, pressed && styles.pressed]}
+          >
+            <LinearGradient
+              colors={['#0F1A36', '#1C1B4C', '#352658']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.numerologyWidgetInner}
+            >
+              <View style={styles.numerologyWidgetHeader}>
+                <Text style={styles.numerologyWidgetKicker}>Numeroloji Rehberi</Text>
+                {homeNumerology.data?.timing?.personalYear ? (
+                  <View style={styles.numerologyYearPill}>
+                    <Text style={styles.numerologyYearPillText}>
+                      Yıl {homeNumerology.data.timing.personalYear}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.numerologyWidgetTitle}>{numerologyWidget.title}</Text>
+              <Text style={styles.numerologyWidgetBody}>{numerologyWidget.body}</Text>
+              {numerologyWidget.state === 'ready' && numerologyWidget.focus ? (
+                <Text style={styles.numerologyWidgetFocus} numberOfLines={2}>
+                  Odak: {numerologyWidget.focus}
+                </Text>
+              ) : null}
+              <View style={styles.numerologyWidgetFooter}>
+                <Text style={styles.numerologyWidgetCta}>{numerologyWidget.cta}</Text>
+                <Ionicons name="arrow-forward" size={18} color="#F8E6AF" />
+              </View>
+            </LinearGradient>
+          </Pressable>
+        ) : homeNumerology.isLoading ? (
+          <LoadingBlock height={138} />
+        ) : null}
+
         <HoroscopeSummaryCard
           sign={signName}
           theme={todayTheme}
@@ -601,6 +761,45 @@ export default function HomeScreen() {
           onPressAll={handlePressWeeklyAll}
         />
 
+        {cmsHeroBanners.map((banner) => {
+          const bannerRoute = banner.routeKey || banner.fallbackRouteKey;
+          return (
+            <Pressable
+              key={banner.id}
+              onPress={() => {
+                if (!bannerRoute) return;
+                trackEvent('home_cms_banner_click', { banner_key: banner.bannerKey, placement: banner.placementType });
+                pushRoute(bannerRoute.startsWith('/') ? bannerRoute : `/${bannerRoute}`);
+              }}
+              accessibilityRole={bannerRoute ? 'button' : 'none'}
+              style={({ pressed }) => [styles.cmsBannerCard, (bannerRoute && pressed) ? styles.pressed : undefined]}
+            >
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerTitle}>{banner.title}</Text>
+              {banner.subtitle ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerSubtitle}>{banner.subtitle}</Text> : null}
+              {banner.ctaLabel ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerCta}>{banner.ctaLabel}</Text> : null}
+            </Pressable>
+          );
+        })}
+
+        {cmsSections.map((section) => {
+          const sectionRoute = section.routeKey || section.fallbackRouteKey;
+          return (
+            <Pressable
+              key={section.id}
+              onPress={() => {
+                if (!sectionRoute) return;
+                trackEvent('home_cms_section_click', { section_key: section.sectionKey, type: section.type });
+                pushRoute(sectionRoute.startsWith('/') ? sectionRoute : `/${sectionRoute}`);
+              }}
+              accessibilityRole={sectionRoute ? 'button' : 'none'}
+              style={({ pressed }) => [styles.cmsSectionCard, (sectionRoute && pressed) ? styles.pressed : undefined]}
+            >
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsSectionTitle}>{section.title}</Text>
+              {section.subtitle ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsSectionSubtitle}>{section.subtitle}</Text> : null}
+            </Pressable>
+          );
+        })}
+
         {dashboard?.oracleStatus?.label ? (
           <OracleStatusChip
             label={dashboard.oracleStatus.label}
@@ -610,7 +809,7 @@ export default function HomeScreen() {
 
         {showRetry ? (
           <View style={styles.retryWrap}>
-            <Text style={styles.retryText}>Veriler hazırlanıyor</Text>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.retryText}>Veriler hazırlanıyor</Text>
             <Pressable
               onPress={() => {
                 void refetch();
@@ -620,7 +819,7 @@ export default function HomeScreen() {
               hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
               style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
             >
-              <Text style={styles.retryButtonText}>Yenile</Text>
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.retryButtonText}>Yenile</Text>
             </Pressable>
           </View>
         ) : null}
@@ -739,6 +938,71 @@ const styles = StyleSheet.create({
     marginTop: spacing.cardGap,
     gap: spacing.sm,
   },
+  numerologyWidget: {
+    marginTop: spacing.cardGap,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    ...shadowSubtle,
+  },
+  numerologyWidgetInner: {
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: 'rgba(240, 204, 85, 0.24)',
+    paddingHorizontal: spacing.cardPadding,
+    paddingVertical: spacing.lg,
+  },
+  numerologyWidgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  numerologyWidgetKicker: {
+    ...typography.Caption,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  numerologyYearPill: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    backgroundColor: 'rgba(248,230,175,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,230,175,0.28)',
+  },
+  numerologyYearPillText: {
+    ...typography.Caption,
+    color: '#F8E6AF',
+    fontWeight: '700',
+  },
+  numerologyWidgetTitle: {
+    ...typography.H2,
+    color: '#FFFFFF',
+    marginBottom: spacing.xs,
+  },
+  numerologyWidgetBody: {
+    ...typography.Body,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  numerologyWidgetFocus: {
+    ...typography.Caption,
+    marginTop: spacing.xs,
+    color: 'rgba(248,230,175,0.92)',
+    fontWeight: '700',
+  },
+  numerologyWidgetFooter: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  numerologyWidgetCta: {
+    ...typography.Button,
+    color: '#F8E6AF',
+  },
   loadingBlock: {
     borderRadius: radius.card,
     borderWidth: 1,
@@ -776,5 +1040,46 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+  cmsBannerCard: {
+    marginTop: spacing.cardGap,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.surfaceGlass,
+    paddingHorizontal: spacing.cardPadding,
+    paddingVertical: spacing.lg,
+  },
+  cmsBannerTitle: {
+    ...typography.H2,
+    color: colors.textPrimary,
+  },
+  cmsBannerSubtitle: {
+    ...typography.Body,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  cmsBannerCta: {
+    ...typography.Button,
+    color: colors.primary,
+    marginTop: spacing.sm,
+  },
+  cmsSectionCard: {
+    marginTop: spacing.cardGap,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.surfaceGlass,
+    paddingHorizontal: spacing.cardPadding,
+    paddingVertical: spacing.md,
+  },
+  cmsSectionTitle: {
+    ...typography.H2,
+    color: colors.textPrimary,
+  },
+  cmsSectionSubtitle: {
+    ...typography.Body,
+    color: colors.textSecondary,
+    marginTop: spacing.xxs,
   },
 });

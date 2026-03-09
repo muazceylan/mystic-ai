@@ -47,7 +47,12 @@ public class GatewayConfig {
                 .route("horoscope", r -> r
                         .path("/api/v1/horoscope/**")
                         .uri("lb://astrology-service"))
-                // Numerology Service (rewrite /api/numerology → /api/v1/numerology)
+                // Numerology Admin endpoints (rewrite /api/numerology/admin/** -> /admin/**)
+                .route("numerology-admin-service", r -> r
+                        .path("/api/numerology/admin/**")
+                        .filters(f -> f.rewritePath("/api/numerology/admin(?<segment>/?.*)", "/admin${segment}"))
+                        .uri("lb://numerology-service"))
+                // Numerology public endpoints (rewrite /api/numerology -> /api/v1/numerology)
                 .route("numerology-service", r -> r
                         .path("/api/numerology/**")
                         .filters(f -> f.rewritePath("/api/numerology(?<segment>/?.*)", "/api/v1/numerology${segment}"))

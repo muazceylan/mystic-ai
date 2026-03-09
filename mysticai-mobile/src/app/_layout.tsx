@@ -11,6 +11,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCompanionStore } from '../store/useCompanionStore';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useAppConfigStore } from '../store/useAppConfigStore';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { initI18n } from '../i18n';
 import { COLORS } from '../constants/colors';
@@ -97,6 +98,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
       <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
       <CompanionBootstrap />
       <NotificationBootstrap />
+      <AppConfigBootstrap />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -181,6 +183,32 @@ function NotificationBootstrap() {
       pushCleanup?.();
     };
   }, [isHydrated, isAuthenticated]);
+
+  return null;
+}
+
+/** Fetches app config (module visibility, tab config) on startup and after foreground resume. */
+function AppConfigBootstrap() {
+  const loadConfig = useAppConfigStore((s) => s.loadConfig);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+
+  useEffect(() => {
+    // Load config on startup (no auth required — public endpoint)
+    void loadConfig();
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    const appState = { current: AppState.currentState };
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      // Only refresh on background → active transition, not active → active
+      if (appState.current === 'background' && next === 'active') {
+        void loadConfig();
+      }
+      appState.current = next;
+    });
+    return () => sub.remove();
+  }, [isHydrated]);
 
   return null;
 }

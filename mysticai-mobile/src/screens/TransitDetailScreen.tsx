@@ -1,5 +1,5 @@
 /**
- * TransitDetailScreen — Günün transitleri detay sayfası
+ * TransitDetailScreen — Bugünün Gökyüzü Etkileridetay sayfası
  */
 import React, { useMemo } from 'react';
 import {

@@ -97,6 +97,7 @@ public class HoroscopeFusionService {
         }
 
         // 3. Translate to Turkish if needed
+        // todo gereksiz yere türkçeye çevirme
         String finalText = rawText;
         if ("tr".equalsIgnoreCase(lang)) {
             String translated = translateToTurkish(rawText);

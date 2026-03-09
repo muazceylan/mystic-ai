@@ -12,6 +12,7 @@ interface QuickActionCardProps {
 
 const ICON_SIZE = spacing.lg + spacing.xxs;
 const CHEVRON_SIZE = spacing.md + spacing.xs;
+const HOME_MAX_FONT_SCALE = 1.15;
 
 export function QuickActionCard({ action, width, onPress }: QuickActionCardProps) {
   const isDisabled = Boolean(action.disabled);
@@ -43,7 +44,7 @@ export function QuickActionCard({ action, width, onPress }: QuickActionCardProps
         <View style={styles.trailing}>
           {statusLabel ? (
             <View style={styles.statusPill}>
-              <Text style={styles.statusText}>{statusLabel}</Text>
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.statusText}>{statusLabel}</Text>
             </View>
           ) : null}
           <Ionicons name="chevron-forward" size={CHEVRON_SIZE} color={isDisabled ? colors.quickCardDisabledChevron : colors.primaryMuted} />
@@ -51,8 +52,8 @@ export function QuickActionCard({ action, width, onPress }: QuickActionCardProps
       </View>
 
       <View style={styles.content}>
-        <Text numberOfLines={2} style={styles.title}>{action.title}</Text>
-        <Text numberOfLines={1} style={styles.subtitle}>{action.subtitle}</Text>
+        <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={2} style={styles.title}>{action.title}</Text>
+        <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.subtitle}>{action.subtitle}</Text>
       </View>
     </Pressable>
   );

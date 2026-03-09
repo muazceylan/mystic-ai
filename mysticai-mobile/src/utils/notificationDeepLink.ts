@@ -8,6 +8,7 @@
 
 import { router } from 'expo-router';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useAppConfigStore } from '../store/useAppConfigStore';
 import {
   trackNotificationEvent,
   notifEventPayload,
@@ -64,9 +65,33 @@ export async function openNotification(
 
   trackNotificationEvent(NotificationEvent.ITEM_OPENED, payload);
 
-  // Navigate
+  // Navigate — with module visibility/maintenance guard
   const deeplink = notif.deeplink;
   if (deeplink && deeplink.trim().length > 0) {
+    // Extract moduleKey from deeplink path (e.g. "/(tabs)/dreams" → "dreams")
+    const moduleKey = extractModuleKey(deeplink);
+    if (moduleKey) {
+      const access = useAppConfigStore.getState().canOpenViaDeeplink(moduleKey);
+      if (!access.allowed) {
+        if (access.reason === 'maintenance') {
+          trackNotificationEvent(NotificationEvent.DEEPLINK_FALLBACK, {
+            ...payload, deeplink, reason: 'maintenance',
+          });
+          // Navigate to home with maintenance context — the home screen can check this
+          router.push(SAFE_FALLBACK);
+          return;
+        }
+        if (access.reason === 'inactive') {
+          trackNotificationEvent(NotificationEvent.DEEPLINK_FALLBACK, {
+            ...payload, deeplink, reason: 'module_inactive',
+          });
+          router.push(SAFE_FALLBACK);
+          return;
+        }
+        // not_found: proceed anyway (config may not have this module key)
+      }
+    }
+
     try {
       router.push(deeplink as any);
       trackNotificationEvent(NotificationEvent.DEEPLINK_OPENED, { ...payload, deeplink });
@@ -113,4 +138,35 @@ export async function handlePushNotificationOpen(
 
 function generateTempId(): string {
   return 'push-' + Date.now().toString(36);
+}
+
+/**
+ * Extract a module key from a deeplink path for config-gated access control.
+ * Maps known route segments to module keys.
+ *
+ * Examples:
+ *   "/(tabs)/dreams"        → "dream_analysis"
+ *   "/(tabs)/spiritual"     → "spiritual"
+ *   "/(tabs)/compatibility" → "compatibility"
+ *   "/some/unknown"         → null (no module gate applied)
+ */
+function extractModuleKey(deeplink: string): string | null {
+  const ROUTE_TO_MODULE: Record<string, string> = {
+    dreams: 'dream_analysis',
+    spiritual: 'spiritual',
+    compatibility: 'compatibility',
+    numerology: 'numerology',
+    meditation: 'meditation',
+    horoscope: 'weekly_horoscope',
+    transits: 'daily_transits',
+    planner: 'daily_transits',
+  };
+
+  // Extract last meaningful path segment
+  const segments = deeplink.replace(/[()]/g, '').split('/').filter(Boolean);
+  for (const seg of segments.reverse()) {
+    const moduleKey = ROUTE_TO_MODULE[seg];
+    if (moduleKey) return moduleKey;
+  }
+  return null;
 }

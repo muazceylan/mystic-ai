@@ -41,7 +41,7 @@ function arabicSnippet(arabic: string): string {
 }
 
 export default function SureListScreen() {
-  const { duaList } = useContentStore();
+  const { sureList } = useContentStore();
   const journal = useJournalStore();
   const { isDark } = useTheme();
 
@@ -49,8 +49,8 @@ export default function SureListScreen() {
   const [query, setQuery] = useState('');
   const { width } = useWindowDimensions();
 
-  // Sadece Sureler
-  const sureOnly = useMemo(() => duaList.filter((d) => d.category === 'SURE'), [duaList]);
+  // Sadece Sureler (contentType === 'SURE' ile seeded, store'da ayrı tutulur)
+  const sureOnly = sureList;
 
   // --- LIGHT-FORWARD PALETTE (teal/emerald — Quran themed) ---
   const ACCENT = isDark ? '#2DD4BF' : '#0D9488';
@@ -66,7 +66,7 @@ export default function SureListScreen() {
   // Filter
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return sureOnly.filter((d) => {
+    return sureOnly.filter((d: DuaItem) => {
       return (
         q === '' ||
         d.title.toLowerCase().includes(q) ||

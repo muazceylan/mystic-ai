@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { colors, radius, shadowHero, spacing, typography } from '../../theme';
 
 interface SkyHeroCardProps {
@@ -47,8 +47,7 @@ const MOON_SIZE = spacing.xxl * 4 - spacing.xxs;
 const MOON_RING_OUTER = spacing.xxl * 7 - spacing.sm;
 const MOON_RING_MID = spacing.xxl * 5 + spacing.xs;
 const MOON_RING_INNER = spacing.xxl * 4 + spacing.sm;
-const HERO_TITLE_FONT = Platform.select({ ios: 'AvenirNext-Bold', android: 'sans-serif-condensed', default: 'System' });
-const HERO_BODY_FONT = Platform.select({ ios: 'AvenirNext-Medium', android: 'sans-serif-medium', default: 'System' });
+const HOME_MAX_FONT_SCALE = 1.15;
 
 export function SkyHeroCard({
   subtitleText,
@@ -122,19 +121,21 @@ export function SkyHeroCard({
         </View>
 
         <View style={[styles.contentZone, { maxWidth: safeTextWidth }]}>
-          <Text style={styles.title}>Doğduğun Gece Gökyüzü</Text>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.title}>Doğduğun Gece Gökyüzü</Text>
           {isLoading ? (
-            <Text style={styles.subTitle}>Ay fazı verisi hazırlanıyor…</Text>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.subTitle}>Ay fazı verisi hazırlanıyor…</Text>
           ) : (
-            <Text numberOfLines={3} style={styles.subTitle}>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={3} style={styles.subTitle}>
               {subtitle || fallbackSubtitle}
             </Text>
           )}
-          <Text numberOfLines={4} style={styles.description}>{isLoading ? 'Yorum hazırlanıyor…' : insightText}</Text>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={4} style={styles.description}>
+            {isLoading ? 'Yorum hazırlanıyor…' : insightText}
+          </Text>
         </View>
 
         <View style={styles.cta}>
-          <Text numberOfLines={1} style={styles.ctaText}>{ctaLabel}</Text>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.ctaText}>{ctaLabel}</Text>
           <Ionicons name="chevron-forward" size={spacing.md} color={colors.white} />
         </View>
       </LinearGradient>
@@ -263,23 +264,23 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.H1,
-    fontFamily: HERO_TITLE_FONT,
+    fontWeight: '700',
     letterSpacing: 0.2,
     color: colors.heroTitle,
     marginBottom: spacing.sm,
   },
   subTitle: {
     ...typography.Body,
-    fontFamily: HERO_BODY_FONT,
-    fontSize: 16,
-    lineHeight: 22,
+    fontWeight: '600',
+    fontSize: 15,
+    lineHeight: 21,
     color: colors.heroBody,
   },
   description: {
     ...typography.Body,
-    fontFamily: HERO_BODY_FONT,
-    fontSize: 16,
-    lineHeight: 23,
+    fontWeight: '500',
+    fontSize: 15,
+    lineHeight: 22,
     marginTop: spacing.sm,
     color: colors.heroBody,
   },

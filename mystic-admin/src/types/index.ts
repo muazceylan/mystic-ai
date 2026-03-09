@@ -1,0 +1,591 @@
+export interface AdminUser {
+  id: number;
+  email: string;
+  role: 'SUPER_ADMIN' | 'PRODUCT_ADMIN' | 'NOTIFICATION_MANAGER';
+}
+
+export interface AppRoute {
+  id: number;
+  routeKey: string;
+  displayName: string;
+  path: string;
+  description?: string;
+  moduleKey?: string;
+  requiresAuth: boolean;
+  fallbackRouteKey?: string;
+  active: boolean;
+  deprecated: boolean;
+  supportedPlatforms: 'IOS' | 'ANDROID' | 'BOTH';
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: number;
+  updatedBy?: number;
+}
+
+export interface AdminNotification {
+  id: number;
+  title: string;
+  body: string;
+  category: string;
+  priority: string;
+  deliveryChannel: 'PUSH' | 'IN_APP' | 'BOTH';
+  targetAudience: 'ALL_USERS' | 'TEST_USERS' | 'PREMIUM_USERS';
+  routeKey?: string;
+  fallbackRouteKey?: string;
+  status: 'DRAFT' | 'SCHEDULED' | 'SENT' | 'CANCELLED' | 'FAILED';
+  scheduledAt?: string;
+  active: boolean;
+  notes?: string;
+  createdByAdminId?: number;
+  sentCount?: number;
+  failedCount?: number;
+  sentAt?: string;
+  failureReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuditLog {
+  id: number;
+  actorAdminId?: number;
+  actorEmail?: string;
+  actorRole?: string;
+  actionType: string;
+  entityType: string;
+  entityId?: string;
+  entityDisplay?: string;
+  oldValueJson?: string;
+  newValueJson?: string;
+  createdAt: string;
+}
+
+export interface AppModule {
+  id: number;
+  moduleKey: string;
+  displayName: string;
+  description?: string;
+  icon?: string;
+  isActive: boolean;
+  isPremium: boolean;
+  showOnHome: boolean;
+  showOnExplore: boolean;
+  showInTabBar: boolean;
+  sortOrder: number;
+  startDate?: string;
+  endDate?: string;
+  badgeLabel?: string;
+  maintenanceMode: boolean;
+  hiddenButDeepLinkable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NavigationItem {
+  id: number;
+  navKey: string;
+  label: string;
+  icon?: string;
+  routeKey: string;
+  isVisible: boolean;
+  sortOrder: number;
+  platform: 'IOS' | 'ANDROID' | 'BOTH';
+  minAppVersion?: string;
+  isPremium: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUserFull {
+  id: number;
+  email: string;
+  fullName?: string;
+  role: 'SUPER_ADMIN' | 'PRODUCT_ADMIN' | 'NOTIFICATION_MANAGER';
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RouteManifestEntry {
+  routeKey: string;
+  path: string;
+  displayName?: string;
+  moduleKey?: string;
+  requiresAuth: boolean;
+  platform: 'IOS' | 'ANDROID' | 'BOTH';
+  source: string;
+}
+
+export interface RouteSyncResult {
+  newRoutes: string[];
+  updatedRoutes: string[];
+  staleRoutes: string[];
+  conflicts: string[];
+  dryRun: boolean;
+}
+
+export type ZodiacSign =
+  | 'ARIES' | 'TAURUS' | 'GEMINI' | 'CANCER' | 'LEO' | 'VIRGO'
+  | 'LIBRA' | 'SCORPIO' | 'SAGITTARIUS' | 'CAPRICORN' | 'AQUARIUS' | 'PISCES';
+
+export type CmsStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type HoroscopeSourceType = 'EXTERNAL_API' | 'ADMIN_CREATED' | 'ADMIN_OVERRIDDEN';
+
+export interface WeeklyHoroscope {
+  id: number;
+  zodiacSign: ZodiacSign;
+  weekStartDate: string;
+  weekEndDate: string;
+  locale: string;
+  status: CmsStatus;
+  sourceType: HoroscopeSourceType;
+  title?: string;
+  shortSummary?: string;
+  fullContent?: string;
+  love?: string;
+  career?: string;
+  money?: string;
+  health?: string;
+  social?: string;
+  luckyDay?: string;
+  cautionDay?: string;
+  luckyColor?: string;
+  luckyNumber?: string;
+  isOverrideActive: boolean;
+  ingestedAt?: string;
+  ingestError?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyHoroscope {
+  id: number;
+  zodiacSign: ZodiacSign;
+  date: string;
+  locale: string;
+  status: CmsStatus;
+  sourceType: HoroscopeSourceType;
+  title?: string;
+  shortSummary?: string;
+  fullContent?: string;
+  love?: string;
+  career?: string;
+  money?: string;
+  health?: string;
+  luckyColor?: string;
+  luckyNumber?: string;
+  isOverrideActive: boolean;
+  ingestedAt?: string;
+  ingestError?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PrayerContentType = 'DUA' | 'ESMA' | 'SURE';
+
+export type PrayerCategory =
+  | 'MORNING' | 'EVENING' | 'GRATITUDE' | 'PROTECTION' | 'HEALING'
+  | 'FORGIVENESS' | 'GUIDANCE' | 'ABUNDANCE' | 'GENERAL';
+
+export interface PrayerContent {
+  id: number;
+  title: string;
+  arabicText?: string;
+  transliteration?: string;
+  meaning?: string;
+  contentType?: PrayerContentType;
+  category: PrayerCategory;
+  locale: string;
+  status: CmsStatus;
+  suggestedCount?: number;
+  tags?: string;
+  isFeatured: boolean;
+  isPremium: boolean;
+  isActive: boolean;
+  audioUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardSummary {
+  todayCreated: number;
+  scheduled: number;
+  sent: number;
+  failed: number;
+  activeRoutes: number;
+  deprecatedRoutes: number;
+  discoveredUnregisteredRoutes: number;
+  staleRoutes: number;
+  activeModules: number;
+  inactiveModules: number;
+  maintenanceModeModules: number;
+  visibleTabs: number;
+  totalAdminUsers: number;
+  publishedWeeklyHoroscopes: number;
+  missingWeeklyHoroscopesThisWeek: number;
+  publishedDailyHoroscopes: number;
+  publishedPrayers: number;
+  featuredPrayers: number;
+  activeTriggers: number;
+  disabledTriggers: number;
+  triggersRanLast24h: number;
+  failedTriggers: number;
+  // Content CMS
+  publishedHomeSections: number;
+  publishedExploreCategories: number;
+  publishedExploreCards: number;
+  activeBanners: number;
+  recentAuditLogs: AuditLog[];
+  recentNotifications: AdminNotification[];
+}
+
+// ── Content CMS — Home / Explore / Banners ────────────────
+
+export type CmsContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export type HomeSectionType =
+  | 'HERO_BANNER' | 'DAILY_HIGHLIGHT' | 'QUICK_ACTIONS' | 'FEATURED_CARD'
+  | 'MODULE_PROMO' | 'WEEKLY_SUMMARY' | 'PRAYER_HIGHLIGHT' | 'CUSTOM_CARD_GROUP';
+
+export interface HomeSection {
+  id: number;
+  sectionKey: string;
+  title: string;
+  subtitle?: string;
+  type: HomeSectionType;
+  status: CmsContentStatus;
+  isActive: boolean;
+  sortOrder: number;
+  routeKey?: string;
+  fallbackRouteKey?: string;
+  icon?: string;
+  imageUrl?: string;
+  ctaLabel?: string;
+  badgeLabel?: string;
+  startDate?: string;
+  endDate?: string;
+  payloadJson?: string;
+  locale: string;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExploreCategory {
+  id: number;
+  categoryKey: string;
+  title: string;
+  subtitle?: string;
+  icon?: string;
+  status: CmsContentStatus;
+  isActive: boolean;
+  sortOrder: number;
+  startDate?: string;
+  endDate?: string;
+  locale: string;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExploreCard {
+  id: number;
+  cardKey: string;
+  categoryKey: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  imageUrl?: string;
+  routeKey?: string;
+  fallbackRouteKey?: string;
+  ctaLabel?: string;
+  status: CmsContentStatus;
+  isActive: boolean;
+  isFeatured: boolean;
+  isPremium: boolean;
+  sortOrder: number;
+  startDate?: string;
+  endDate?: string;
+  locale: string;
+  payloadJson?: string;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BannerPlacementType = 'HOME_HERO' | 'HOME_INLINE' | 'EXPLORE_HERO' | 'EXPLORE_INLINE';
+
+export interface PlacementBanner {
+  id: number;
+  bannerKey: string;
+  placementType: BannerPlacementType;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  ctaLabel?: string;
+  routeKey?: string;
+  fallbackRouteKey?: string;
+  status: CmsContentStatus;
+  isActive: boolean;
+  priority: number;
+  startDate?: string;
+  endDate?: string;
+  locale: string;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Notification Catalog ──────────────────────────────────
+
+export type NotifChannelType = 'PUSH' | 'IN_APP' | 'BOTH';
+export type NotifCadenceType = 'HOURLY' | 'DAILY' | 'WEEKLY' | 'EVENT_DRIVEN' | 'MANUAL' | 'SCHEDULED';
+export type NotifSourceType = 'STATIC_BACKEND' | 'ADMIN_PANEL' | 'HYBRID';
+export type NotifTriggerType = 'CRON' | 'USER_ACTION' | 'SYSTEM_EVENT' | 'MANUAL';
+
+export interface NotificationDefinition {
+  id: number;
+  definitionKey: string;
+  displayName: string;
+  description?: string;
+  category?: string;
+  channelType: NotifChannelType;
+  cadenceType: NotifCadenceType;
+  sourceType: NotifSourceType;
+  triggerType: NotifTriggerType;
+  defaultRouteKey?: string;
+  defaultFallbackRouteKey?: string;
+  isActive: boolean;
+  isEditable: boolean;
+  isVisibleInAdmin: boolean;
+  isSystemCritical: boolean;
+  ownerModule?: string;
+  codeReference?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Notification Triggers ─────────────────────────────────
+
+export type TriggerSourceType = 'STATIC_BACKEND' | 'ADMIN_SCHEDULED';
+export type TriggerCadenceType = 'HOURLY' | 'DAILY' | 'WEEKLY' | 'EVENT_DRIVEN' | 'MANUAL';
+export type TriggerRunStatus = 'SUCCESS' | 'FAILED' | 'SKIPPED' | 'DISABLED';
+
+export interface NotificationTrigger {
+  id: number;
+  triggerKey: string;
+  definitionKey?: string;
+  displayName: string;
+  description?: string;
+  sourceType: TriggerSourceType;
+  cadenceType: TriggerCadenceType;
+  cronExpression?: string;
+  fixedDelayMs?: number;
+  timezone?: string;
+  isActive: boolean;
+  isPausable: boolean;
+  isSystemCritical: boolean;
+  lastRunAt?: string;
+  nextRunAt?: string;
+  lastRunStatus?: TriggerRunStatus;
+  lastRunMessage?: string;
+  lastProducedCount?: number;
+  ownerModule?: string;
+  codeReference?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NameSourceName = 'BEBEKISMI' | 'SFK_ISTANBUL_EDU' | 'ALFABETIK' | 'UFUK';
+export type NameReviewStatus = 'PENDING' | 'IN_REVIEW' | 'SKIPPED' | 'APPROVED' | 'REJECTED' | 'MERGED';
+export type NameMergeRecommendationStatus = 'AUTO_MERGE_ELIGIBLE' | 'MERGE_SUGGESTED' | 'MANUAL_REVIEW_REQUIRED';
+
+export interface NameReviewCandidate {
+  candidateId: number;
+  rawEntryId: number;
+  sourceName: NameSourceName;
+  sourceUrl: string;
+  displayName: string;
+  normalizedName: string;
+  gender: 'MALE' | 'FEMALE' | 'UNISEX' | 'UNKNOWN' | null;
+  meaningShort?: string | null;
+  meaningLong?: string | null;
+  origin?: string | null;
+  characterTraitsText?: string | null;
+  letterAnalysisText?: string | null;
+  quranFlag?: boolean | null;
+  sourceConfidence: number;
+  mismatchFlag: boolean;
+  duplicateContentFlag: boolean;
+  contentQuality: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
+export interface NameReviewConflictValue {
+  candidateId: number;
+  sourceName: NameSourceName;
+  displayName: string;
+  value: string;
+}
+
+export interface NameReviewConflictField {
+  field: string;
+  values: NameReviewConflictValue[];
+}
+
+export interface NameReviewGroup {
+  queueId: number;
+  canonicalName: string;
+  reviewStatus: NameReviewStatus;
+  chosenSource?: NameSourceName | null;
+  reviewNote?: string | null;
+  hasConflict: boolean;
+  conflictingFields: string[];
+  conflictDetails: NameReviewConflictField[];
+  candidates: NameReviewCandidate[];
+  mergeRecommendationStatus: NameMergeRecommendationStatus;
+  recommendedCanonicalNameId?: number | null;
+  recommendedCanonicalName?: string | null;
+  recommendedFieldSources?: Record<string, NameSourceName> | null;
+  autoMergeEligible: boolean;
+  autoMergeReasonSummary?: string | null;
+  mergeConfidence?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface NameReviewActionResponse {
+  queueId: number;
+  canonicalName: string;
+  reviewStatus: NameReviewStatus;
+  nameId?: number | null;
+  auditId: number;
+  selectedCandidateId?: number | null;
+  selectedSource?: NameSourceName | null;
+  selectedFieldSources?: Record<string, NameSourceName>;
+  reviewNote?: string | null;
+}
+
+export interface NameReviewBatchActionResult {
+  queueId: number;
+  success: boolean;
+  reviewStatus?: NameReviewStatus | null;
+  nameId?: number | null;
+  error?: string | null;
+}
+
+export interface NameReviewBatchActionResponse {
+  processed: number;
+  succeeded: number;
+  failed: number;
+  results: NameReviewBatchActionResult[];
+}
+
+export type NameStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'HIDDEN' | 'REJECTED';
+export type NameGender = 'MALE' | 'FEMALE' | 'UNISEX' | 'UNKNOWN';
+
+export interface AdminNameListItem {
+  id: number;
+  name: string;
+  normalizedName: string;
+  gender: NameGender | null;
+  origin?: string | null;
+  meaningShort?: string | null;
+  status: NameStatus;
+  quranFlag?: boolean | null;
+  dataQualityScore?: number | null;
+  tagSummary?: string[] | null;
+  hasAliases: boolean;
+  aliasCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminNameCanonicalInfo {
+  id: number;
+  name: string;
+  normalizedName: string;
+}
+
+export interface AdminNameTag {
+  id: number;
+  nameId: number;
+  tagGroup: 'STYLE' | 'VIBE' | 'THEME' | 'CULTURE' | 'RELIGION' | 'USAGE' | null;
+  tagValue: string;
+  normalizedTag: string;
+  source: 'MANUAL' | 'RULE' | 'AI' | 'AUTO';
+  confidence: number;
+  evidence?: string | null;
+  enrichmentVersion?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminNameAlias {
+  id: number;
+  canonicalNameId: number;
+  canonicalName: string;
+  canonicalNormalizedName: string;
+  aliasName: string;
+  normalizedAliasName: string;
+  aliasType: string;
+  confidence: number;
+  isManual: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NameTagTaxonomyGroup {
+  group: 'STYLE' | 'VIBE' | 'THEME' | 'CULTURE' | 'RELIGION' | 'USAGE';
+  values: string[];
+}
+
+export interface NameTagTaxonomy {
+  groups: NameTagTaxonomyGroup[];
+}
+
+export interface AdminNameDetail {
+  id: number;
+  name: string;
+  normalizedName: string;
+  gender: NameGender | null;
+  origin?: string | null;
+  meaningShort?: string | null;
+  meaningLong?: string | null;
+  characterTraitsText?: string | null;
+  letterAnalysisText?: string | null;
+  quranFlag?: boolean | null;
+  status: NameStatus;
+  dataQualityScore?: number | null;
+  tagSummary?: string[] | null;
+  canonicalInfo: AdminNameCanonicalInfo;
+  aliases: AdminNameAlias[];
+  tags: AdminNameTag[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface IngestStatus {
+  apiSource: string;
+  schedule: string;
+  nextScheduledAt: string;
+  lastIngestDate: string | null;
+  lastIngestAt: string | null;
+  successCount: number;
+  failureCount: number;
+}

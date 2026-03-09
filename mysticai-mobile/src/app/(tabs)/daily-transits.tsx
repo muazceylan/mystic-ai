@@ -739,7 +739,7 @@ export default function DailyTransitsScreen() {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{data?.title ?? 'Günün Transitleri'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{data?.title ?? 'Bugünün Gökyüzü Etkileri'}</Text>
           <Text style={[styles.headerDate, { color: colors.subtext }]}>{formatDateLabel(data?.date ?? date)}</Text>
         </View>
         <View style={styles.headerSpacer} />

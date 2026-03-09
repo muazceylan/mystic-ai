@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 export type AppEnv = 'dev' | 'stage' | 'prod';
+export type AnalyticsProvider = 'none' | 'amplitude';
 
 type EnvSource = string | undefined;
 
@@ -15,6 +16,12 @@ function normalizeEnv(value: EnvSource): AppEnv {
 
 function asBool(value: EnvSource): boolean {
   return (value ?? '').trim().toLowerCase() === 'true';
+}
+
+function normalizeAnalyticsProvider(value: EnvSource): AnalyticsProvider {
+  const token = (value ?? '').trim().toLowerCase();
+  if (token === 'amplitude') return 'amplitude';
+  return 'none';
 }
 
 function normalizeBaseUrl(value: EnvSource): string | null {
@@ -39,6 +46,18 @@ const resolvedBaseUrl =
 const mockRequested = asBool(process.env.EXPO_PUBLIC_USE_MOCK ?? process.env.USE_MOCK);
 const mockEnabled = __DEV__ && appEnv !== 'prod' && mockRequested;
 
+const analyticsApiKey = (process.env.EXPO_PUBLIC_ANALYTICS_API_KEY ?? '').trim();
+const analyticsProviderRaw = normalizeAnalyticsProvider(process.env.EXPO_PUBLIC_ANALYTICS_PROVIDER);
+const analyticsProvider = analyticsProviderRaw === 'none' && analyticsApiKey ? 'amplitude' : analyticsProviderRaw;
+const analyticsEndpoint = (process.env.EXPO_PUBLIC_ANALYTICS_ENDPOINT ?? 'https://api2.amplitude.com/2/httpapi')
+  .trim();
+const analyticsEnabled = analyticsProvider !== 'none' && Boolean(analyticsApiKey);
+const analyticsDebug = asBool(process.env.EXPO_PUBLIC_ANALYTICS_DEBUG) || __DEV__;
+
+const premiumFeaturesEnabled = asBool(process.env.EXPO_PUBLIC_PREMIUM_FEATURES_ENABLED);
+const numerologyForceUnlockAllSections = asBool(process.env.EXPO_PUBLIC_NUMEROLOGY_FORCE_UNLOCK_ALL)
+  || !premiumFeaturesEnabled;
+
 export const envConfig = {
   appEnv,
   apiBaseUrl: resolvedBaseUrl,
@@ -46,5 +65,15 @@ export const envConfig = {
   isApiConfigured: Boolean(resolvedBaseUrl),
   mockEnabled,
   requiredHeaders: ['X-User-Id'] as const,
+  analytics: {
+    provider: analyticsProvider,
+    apiKey: analyticsApiKey,
+    endpoint: analyticsEndpoint,
+    enabled: analyticsEnabled,
+    debug: analyticsDebug,
+  },
+  features: {
+    premiumFeaturesEnabled,
+    numerologyForceUnlockAllSections,
+  },
 } as const;
-

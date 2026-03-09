@@ -8,6 +8,7 @@ interface GreetingRowProps {
 }
 
 const ICON_SIZE = spacing.md + spacing.xs - spacing.xxs;
+const HOME_MAX_FONT_SCALE = 1.15;
 
 export function GreetingRow({ text }: GreetingRowProps) {
   return (
@@ -15,7 +16,7 @@ export function GreetingRow({ text }: GreetingRowProps) {
       <View style={styles.iconShell}>
         <Ionicons name="moon-outline" size={ICON_SIZE} color={colors.primary} />
       </View>
-      <Text numberOfLines={1} style={styles.text}>{text}</Text>
+      <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.text}>{text}</Text>
     </View>
   );
 }

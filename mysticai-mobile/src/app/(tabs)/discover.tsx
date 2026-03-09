@@ -26,6 +26,7 @@ import {
   type DiscoverModule,
   type DiscoverModuleKey,
 } from '../../features/discover/catalog';
+import { fetchExploreCategories, fetchExploreCards, type ExploreCategory, type ExploreCard } from '../../services/exploreContent.service';
 
 const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 };
 const VISIBLE_CATEGORY_LIMIT = 5;
@@ -173,7 +174,9 @@ export default function DiscoverScreen() {
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
   const [query, setQuery] = useState('');
-  const [expandedMap, setExpandedMap] = useState<Partial<Record<DiscoverCategoryKey, boolean>>>({});
+  const [expandedMap, setExpandedMap] = useState<Partial<Record<string, boolean>>>({});
+  const [cmsCategories, setCmsCategories] = useState<ExploreCategory[]>([]);
+  const [cmsCards, setCmsCards] = useState<ExploreCard[]>([]);
 
   const filteredModules = useMemo(
     () => DISCOVER_MODULES.filter((module) => matchModule(module, query)),
@@ -214,6 +217,18 @@ export default function DiscoverScreen() {
     trackEvent('discover_view');
   }, []);
 
+  useEffect(() => {
+    Promise.all([fetchExploreCategories(), fetchExploreCards()]).then(([cats, cards]) => {
+      setCmsCategories(cats);
+      // Featured cards first within each category, then by sortOrder
+      const sorted = [...cards].sort((a, b) => {
+        if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
+        return a.sortOrder - b.sortOrder;
+      });
+      setCmsCards(sorted);
+    });
+  }, []);
+
   const handleSearchChange = (text: string) => {
     setQuery(text);
     trackEvent('discover_search_change', { query_length: text.trim().length });
@@ -251,7 +266,7 @@ export default function DiscoverScreen() {
     openRoute(module.route);
   };
 
-  const toggleCategory = (categoryKey: DiscoverCategoryKey) => {
+  const toggleCategory = (categoryKey: string) => {
     setExpandedMap((prev) => {
       const nextValue = !prev[categoryKey];
       if (nextValue) {
@@ -328,55 +343,138 @@ export default function DiscoverScreen() {
                 </ScrollView>
               </View>
 
-              {categoriesWithModules.map((category) => {
-                if (category.modules.length === 0) {
-                  return null;
-                }
-
-                const isExpanded = hasSearch ? true : Boolean(expandedMap[category.key]);
-                const hasOverflow = category.modules.length >= CATEGORY_TOGGLE_THRESHOLD;
-                const visibleModules = isExpanded
-                  ? category.modules
-                  : category.modules.slice(0, VISIBLE_CATEGORY_LIMIT);
-
-                return (
-                  <View key={category.key} style={styles.sectionWrap}>
-                    <View style={styles.sectionHeadRow}>
-                      <View style={styles.sectionHeadTextWrap}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{category.title}</Text>
-                        <Text numberOfLines={1} style={[styles.sectionSubtitle, { color: colors.subtext }]}>
-                          {category.subtitle}
-                        </Text>
-                      </View>
-
-                      {hasOverflow && !hasSearch ? (
-                        <Pressable
-                          onPress={() => toggleCategory(category.key)}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${category.title} kategorisini ${isExpanded ? 'daralt' : 'genişlet'}`}
-                          hitSlop={HIT_SLOP}
-                        >
-                          <Text style={[styles.categoryToggleText, { color: colors.primary }]}> 
-                            {isExpanded ? 'Daralt' : 'Tümünü gör'}
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                    </View>
-
-                    <View style={styles.gridRow}>
-                      {visibleModules.map((module) => (
-                        <View key={module.key} style={styles.gridItemWrap}>
-                          <ModuleCard
-                            module={module}
-                            onPress={(item) => handleModuleClick(item, 'category_grid')}
-                            compact
-                          />
+              {/* Category grid: CMS-first when data exists, static catalog as fallback.
+                  When searching, always use static catalog (search filters static modules).
+                  This ensures admin panel changes (reorder, edit, archive) are reflected on mobile. */}
+              {!hasSearch && cmsCategories.length > 0
+                ? cmsCategories.map((cat) => {
+                    const catCards = cmsCards.filter((c) => c.categoryKey === cat.categoryKey);
+                    if (catCards.length === 0) return null;
+                    const isExpanded = Boolean(expandedMap[cat.categoryKey]);
+                    const hasOverflow = catCards.length >= CATEGORY_TOGGLE_THRESHOLD;
+                    const visibleCards = isExpanded ? catCards : catCards.slice(0, VISIBLE_CATEGORY_LIMIT);
+                    return (
+                      <View key={cat.categoryKey} style={styles.sectionWrap}>
+                        <View style={styles.sectionHeadRow}>
+                          <View style={styles.sectionHeadTextWrap}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{cat.title}</Text>
+                            {cat.subtitle ? (
+                              <Text numberOfLines={1} style={[styles.sectionSubtitle, { color: colors.subtext }]}>
+                                {cat.subtitle}
+                              </Text>
+                            ) : null}
+                          </View>
+                          {hasOverflow ? (
+                            <Pressable
+                              onPress={() => toggleCategory(cat.categoryKey)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${cat.title} kategorisini ${isExpanded ? 'daralt' : 'genişlet'}`}
+                              hitSlop={HIT_SLOP}
+                            >
+                              <Text style={[styles.categoryToggleText, { color: colors.primary }]}>
+                                {isExpanded ? 'Daralt' : 'Tümünü gör'}
+                              </Text>
+                            </Pressable>
+                          ) : null}
                         </View>
-                      ))}
-                    </View>
-                  </View>
-                );
-              })}
+                        <View style={styles.gridRow}>
+                          {visibleCards.map((card) => {
+                            const route = card.routeKey || card.fallbackRouteKey;
+                            return (
+                              <View key={card.cardKey} style={styles.gridItemWrap}>
+                                <Pressable
+                                  onPress={() => {
+                                    if (!route) return;
+                                    trackEvent('discover_cms_card_click', {
+                                      card_key: card.cardKey,
+                                      category_key: card.categoryKey,
+                                      is_featured: card.isFeatured,
+                                    });
+                                    openRoute(route.startsWith('/') ? route : `/${route}`);
+                                  }}
+                                  accessibilityRole="button"
+                                  style={({ pressed }) => [
+                                    styles.moduleCard,
+                                    {
+                                      backgroundColor: colors.surface,
+                                      borderColor: card.isFeatured ? colors.primary : colors.border,
+                                      opacity: route ? 1 : 0.6,
+                                    },
+                                    styles.moduleCardCompact,
+                                    pressed && route ? styles.pressed : undefined,
+                                  ]}
+                                >
+                                  <View style={[styles.moduleIconShell, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                                    <Ionicons
+                                      name={card.isFeatured ? 'star' : card.isPremium ? 'star-outline' : 'apps-outline'}
+                                      size={18}
+                                      color={card.isFeatured ? '#F6B800' : colors.primary}
+                                    />
+                                  </View>
+                                  <Text numberOfLines={2} style={[styles.moduleTitle, { color: colors.text }]}>
+                                    {card.title}
+                                  </Text>
+                                  {card.subtitle ? (
+                                    <Text numberOfLines={1} style={[styles.moduleSubtitle, { color: colors.subtext }]}>
+                                      {card.subtitle}
+                                    </Text>
+                                  ) : null}
+                                  {!route ? (
+                                    <View style={[styles.comingSoonBadge, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                                      <Text style={[styles.comingSoonText, { color: colors.primary }]}>Yakında</Text>
+                                    </View>
+                                  ) : null}
+                                </Pressable>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  })
+                : categoriesWithModules.map((category) => {
+                    if (category.modules.length === 0) return null;
+                    const isExpanded = hasSearch ? true : Boolean(expandedMap[category.key]);
+                    const hasOverflow = category.modules.length >= CATEGORY_TOGGLE_THRESHOLD;
+                    const visibleModules = isExpanded
+                      ? category.modules
+                      : category.modules.slice(0, VISIBLE_CATEGORY_LIMIT);
+                    return (
+                      <View key={category.key} style={styles.sectionWrap}>
+                        <View style={styles.sectionHeadRow}>
+                          <View style={styles.sectionHeadTextWrap}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{category.title}</Text>
+                            <Text numberOfLines={1} style={[styles.sectionSubtitle, { color: colors.subtext }]}>
+                              {category.subtitle}
+                            </Text>
+                          </View>
+                          {hasOverflow && !hasSearch ? (
+                            <Pressable
+                              onPress={() => toggleCategory(category.key)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${category.title} kategorisini ${isExpanded ? 'daralt' : 'genişlet'}`}
+                              hitSlop={HIT_SLOP}
+                            >
+                              <Text style={[styles.categoryToggleText, { color: colors.primary }]}>
+                                {isExpanded ? 'Daralt' : 'Tümünü gör'}
+                              </Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+                        <View style={styles.gridRow}>
+                          {visibleModules.map((module) => (
+                            <View key={module.key} style={styles.gridItemWrap}>
+                              <ModuleCard
+                                module={module}
+                                onPress={(item) => handleModuleClick(item, 'category_grid')}
+                                compact
+                              />
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    );
+                  })}
 
               {!hasSearch && recommendedModules.length > 0 ? (
                 <View style={styles.sectionWrap}>

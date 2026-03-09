@@ -1,6 +1,8 @@
 package com.mysticai.notification.scheduler;
 
+import com.mysticai.notification.admin.service.NotificationTriggerService;
 import com.mysticai.notification.entity.Notification.NotificationType;
+import com.mysticai.notification.entity.NotificationTrigger;
 import com.mysticai.notification.entity.PushToken;
 import com.mysticai.notification.repository.NotificationRepository;
 import com.mysticai.notification.repository.PushTokenRepository;
@@ -25,10 +27,26 @@ public class NotificationScheduler {
     private final UserEngagementScorerService engagementScorer;
     private final PushTokenRepository pushTokenRepository;
     private final NotificationRepository notificationRepository;
+    private final NotificationTriggerService triggerService;
+
+    /**
+     * Returns true and records SKIPPED if this trigger key is disabled in the registry.
+     * Callers: {@code if (skipIfDisabled(key)) return;}
+     */
+    boolean skipIfDisabled(String key) {
+        if (!triggerService.isActive(key)) {
+            log.info("[TriggerMonitor] {} is disabled — skipping.", key);
+            triggerService.recordRun(key, NotificationTrigger.RunStatus.SKIPPED, 0, "Disabled by admin");
+            return true;
+        }
+        return false;
+    }
 
     /** Morning daily notification - 08:30 every day */
     @Scheduled(cron = "0 30 8 * * *")
     public void generateDailyNotifications() {
+        final String key = "daily_notification_generation";
+        if (skipIfDisabled(key)) return;
         log.info("Running daily notification generation");
         List<Long> userIds = getDistinctActiveUserIds();
         int sent = 0;
@@ -41,53 +59,74 @@ public class NotificationScheduler {
             }
         }
         log.info("Daily notifications: {}/{} users", sent, userIds.size());
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, sent, sent + "/" + userIds.size() + " users");
     }
 
     /** Dream reminder - 08:00 every morning */
     @Scheduled(cron = "0 0 8 * * *")
     public void generateDreamReminders() {
+        final String key = "dream_reminder_job";
+        if (skipIfDisabled(key)) return;
         log.info("Running dream reminder generation");
-        generateForAll(NotificationType.DREAM_REMINDER);
+        int count = generateForAll(NotificationType.DREAM_REMINDER);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
     /** Prayer reminder - 06:00 every day */
     @Scheduled(cron = "0 0 6 * * *")
     public void generatePrayerReminders() {
+        final String key = "prayer_reminder_job";
+        if (skipIfDisabled(key)) return;
         log.info("Running prayer reminder generation");
-        generateForAll(NotificationType.PRAYER_REMINDER);
+        int count = generateForAll(NotificationType.PRAYER_REMINDER);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
     /** Planner reminder - 07:30 every day */
     @Scheduled(cron = "0 30 7 * * *")
     public void generatePlannerReminders() {
+        final String key = "planner_reminder_job";
+        if (skipIfDisabled(key)) return;
         log.info("Running planner reminder generation");
-        generateForAll(NotificationType.PLANNER_REMINDER);
+        int count = generateForAll(NotificationType.PLANNER_REMINDER);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
     /** Meditation reminder - 20:00 every day */
     @Scheduled(cron = "0 0 20 * * *")
     public void generateMeditationReminders() {
+        final String key = "meditation_reminder_job";
+        if (skipIfDisabled(key)) return;
         log.info("Running meditation reminder generation");
-        generateForAll(NotificationType.MEDITATION_REMINDER);
+        int count = generateForAll(NotificationType.MEDITATION_REMINDER);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
     /** Evening check-in - 21:00 every day */
     @Scheduled(cron = "0 0 21 * * *")
     public void generateEveningCheckins() {
+        final String key = "evening_checkin_job";
+        if (skipIfDisabled(key)) return;
         log.info("Running evening check-in generation");
-        generateForAll(NotificationType.EVENING_CHECKIN);
+        int count = generateForAll(NotificationType.EVENING_CHECKIN);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
     /** Weekly summary - Monday at 09:00 */
     @Scheduled(cron = "0 0 9 * * MON")
     public void generateWeeklySummary() {
+        final String key = "weekly_summary_job";
+        if (skipIfDisabled(key)) return;
         log.info("Running weekly summary generation");
-        generateForAll(NotificationType.WEEKLY_SUMMARY);
+        int count = generateForAll(NotificationType.WEEKLY_SUMMARY);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
     /** Re-engagement - Tuesday & Friday at 10:00 for passive users only */
     @Scheduled(cron = "0 0 10 * * TUE,FRI")
     public void generateReEngagement() {
+        final String key = "re_engagement_job";
+        if (skipIfDisabled(key)) return;
         log.info("Running re-engagement notification generation");
         List<Long> userIds = getDistinctActiveUserIds();
         int eligible = 0;
@@ -102,6 +141,7 @@ public class NotificationScheduler {
             }
         }
         log.info("Re-engagement: {}/{} users eligible", eligible, userIds.size());
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, eligible, eligible + " eligible of " + userIds.size());
     }
 
     /** Cleanup expired notifications - every day at 03:00 */
@@ -110,6 +150,7 @@ public class NotificationScheduler {
     public void cleanupExpiredNotifications() {
         log.info("Running expired notification cleanup");
         notificationRepository.deleteExpiredNotifications(LocalDateTime.now());
+        triggerService.recordRun("cleanup_expired_notifications", NotificationTrigger.RunStatus.SUCCESS, 0, null);
     }
 
     /** Cleanup inactive push tokens older than 30 days - Sunday at 04:00 */
@@ -118,17 +159,21 @@ public class NotificationScheduler {
     public void cleanupInactiveTokens() {
         log.info("Running inactive push token cleanup");
         pushTokenRepository.deleteInactiveOlderThan(LocalDateTime.now().minusDays(30));
+        triggerService.recordRun("cleanup_inactive_tokens", NotificationTrigger.RunStatus.SUCCESS, 0, null);
     }
 
-    private void generateForAll(NotificationType type) {
+    private int generateForAll(NotificationType type) {
         List<Long> userIds = getDistinctActiveUserIds();
+        int count = 0;
         for (Long userId : userIds) {
             try {
                 generationService.generateNotification(userId, type, null);
+                count++;
             } catch (Exception e) {
                 log.warn("Failed {} for user {}: {}", type, userId, e.getMessage());
             }
         }
+        return count;
     }
 
     private List<Long> getDistinctActiveUserIds() {

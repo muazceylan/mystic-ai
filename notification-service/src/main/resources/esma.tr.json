@@ -1,0 +1,600 @@
+[
+  {
+    "id": 1, "order": 1, "nameAr": "اَللَّهُ", "nameTr": "Allah", "transliteration": "Allah",
+    "meaningTr": "Yüce Allah'ın özel ismi; yaratıcı, Rab, ilah anlamlarını kapsar.",
+    "shortBenefit": "Her türlü istek ve duanın kabulü", "defaultTargetCount": 33,
+    "tags": ["tevhid", "ilah", "dua"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 2, "order": 2, "nameAr": "اَلرَّحْمٰنُ", "nameTr": "Er-Rahman", "transliteration": "Er-Rahmân",
+    "meaningTr": "Dünyada bütün yaratıklara sonsuz merhamet ve nimet veren.",
+    "shortBenefit": "Dünya ve Ahirette Allah'ın sevgisini kazanmak", "defaultTargetCount": 100,
+    "tags": ["rahmet", "sevgi", "nimet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 3, "order": 3, "nameAr": "اَلرَّحِيمُ", "nameTr": "Er-Rahim", "transliteration": "Er-Rahîm",
+    "meaningTr": "Ahirette sadece müminlere sonsuz rahmet ve mağfiret eden.",
+    "shortBenefit": "Maddi ve manevi rızıkların artması", "defaultTargetCount": 100,
+    "tags": ["rahmet", "magfiret", "nimet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 4, "order": 4, "nameAr": "اَلْمَلِكُ", "nameTr": "El-Melik", "transliteration": "El-Melik",
+    "meaningTr": "Mülkün gerçek sahibi, her şeyin hükümdarı.",
+    "shortBenefit": "Emir sahibi olmak, maddi ve manevi güçlü olmak", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "basari", "otorite"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 5, "order": 5, "nameAr": "اَلْقُدُّوسُ", "nameTr": "El-Kuddüs", "transliteration": "El-Kuddûs",
+    "meaningTr": "Her türlü eksiklik ve noksanlıktan münezzeh olan.",
+    "shortBenefit": "Günahlardan kurtulmak ve kalp temizliği", "defaultTargetCount": 100,
+    "tags": ["huzur", "kalp", "arınma"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 6, "order": 6, "nameAr": "اَلسَّلَامُ", "nameTr": "Es-Selam", "transliteration": "Es-Selâm",
+    "meaningTr": "Her türlü tehlikeden esenlik veren, kullarını selamete çıkaran.",
+    "shortBenefit": "Korkulardan ve tehlikelerden korunmak", "defaultTargetCount": 100,
+    "tags": ["korunma", "huzur", "guvenlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 7, "order": 7, "nameAr": "اَلْمُؤْمِنُ", "nameTr": "El-Mü'min", "transliteration": "El-Mü'min",
+    "meaningTr": "Güveni tam ve eksiksiz sağlayan, iman nuruyla kalpleri aydınlatan.",
+    "shortBenefit": "Kötü hastalıklardan ve belalardan korunmak", "defaultTargetCount": 100,
+    "tags": ["korunma", "iman", "guvenlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 8, "order": 8, "nameAr": "اَلْمُهَيْمِنُ", "nameTr": "El-Müheymin", "transliteration": "El-Müheymin",
+    "meaningTr": "Her şeyi gözeten, koruyan, kontrolü altında tutan.",
+    "shortBenefit": "İnsanların düşüncelerini anlayan ve koruyan", "defaultTargetCount": 100,
+    "tags": ["korunma", "guvence", "nezaret"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 9, "order": 9, "nameAr": "اَلْعَزِيزُ", "nameTr": "El-Aziz", "transliteration": "El-Azîz",
+    "meaningTr": "Mağlup edilmesi mümkün olmayan galip, her şeyden üstün olan.",
+    "shortBenefit": "Düşmanlara karşı galip gelmek, güç ve izzet", "defaultTargetCount": 94,
+    "tags": ["kuvvet", "basari", "cesaret", "otorite"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 10, "order": 10, "nameAr": "اَلْجَبَّارُ", "nameTr": "El-Cebbar", "transliteration": "El-Cebbâr",
+    "meaningTr": "İradesi her şeye geçen, dilediğini yaptırmaya muktedir olan.",
+    "shortBenefit": "İstek ve arzuların gerçekleşmesi", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "istek", "irade"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 11, "order": 11, "nameAr": "اَلْمُتَكَبِّرُ", "nameTr": "El-Mütekebbir", "transliteration": "El-Mütekebbir",
+    "meaningTr": "Her şeyden büyük ve yüce, kibriya sahibi.",
+    "shortBenefit": "İzzete ve refaha nail olmak", "defaultTargetCount": 100,
+    "tags": ["izzet", "yukseklik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 12, "order": 12, "nameAr": "اَلْخَالِقُ", "nameTr": "El-Halik", "transliteration": "El-Hâlik",
+    "meaningTr": "Her şeyi yoktan yaratan, varlık veren.",
+    "shortBenefit": "İşlerde başarılı ve şöhret sahibi olmak", "defaultTargetCount": 100,
+    "tags": ["yaraticilik", "basari"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 13, "order": 13, "nameAr": "اَلْبَارِئُ", "nameTr": "El-Bari'", "transliteration": "El-Bâri'",
+    "meaningTr": "Her şeyi birbirinden ayırt ederek kusursuz yaratan.",
+    "shortBenefit": "İşlerde başarılı olmak, şöhret bulmak", "defaultTargetCount": 100,
+    "tags": ["basari", "yaraticilik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 14, "order": 14, "nameAr": "اَلْمُصَوِّرُ", "nameTr": "El-Musavvir", "transliteration": "El-Musavvir",
+    "meaningTr": "Her şeye şekil ve suret veren, biçimlendiren.",
+    "shortBenefit": "Sanat ve yaratıcılıkta başarı", "defaultTargetCount": 100,
+    "tags": ["yaraticilik", "sanat"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 15, "order": 15, "nameAr": "اَلْغَفَّارُ", "nameTr": "El-Gaffar", "transliteration": "El-Gaffâr",
+    "meaningTr": "Günahları defalarca bağışlayan, affı bol olan.",
+    "shortBenefit": "Günahların bağışlanması ve tövbenin kabulü", "defaultTargetCount": 100,
+    "tags": ["magfiret", "tevbe", "arınma"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 16, "order": 16, "nameAr": "اَلْقَهَّارُ", "nameTr": "El-Kahhar", "transliteration": "El-Kahhâr",
+    "meaningTr": "Her şeyi ve herkesi boyunduruk altına alan, kahredici.",
+    "shortBenefit": "Nefsin kötü arzularını yenmek", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "irade", "disiplin"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 17, "order": 17, "nameAr": "اَلْوَهَّابُ", "nameTr": "El-Vehhab", "transliteration": "El-Vehhâb",
+    "meaningTr": "Karşılıksız ve sürekli bağış yapan, her türlü hayrı veren.",
+    "shortBenefit": "Bolluk, bereket ve hediye", "defaultTargetCount": 100,
+    "tags": ["nimet", "bereket", "ihsan"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 18, "order": 18, "nameAr": "اَلرَّزَّاقُ", "nameTr": "Er-Razzak", "transliteration": "Er-Razzâk",
+    "meaningTr": "Bütün varlıklara rızık veren, bolca ihsan eden.",
+    "shortBenefit": "Rızıkta bolluk ve bereketi artırmak", "defaultTargetCount": 100,
+    "tags": ["nimet", "rizik", "bereket"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 19, "order": 19, "nameAr": "اَلْفَتَّاحُ", "nameTr": "El-Fettah", "transliteration": "El-Fettâh",
+    "meaningTr": "Her türlü kapalı kapıyı açan, her zorluğu gideren.",
+    "shortBenefit": "Çözülmez sorunlarda kapı açılması", "defaultTargetCount": 71,
+    "tags": ["acilim", "basari", "cozum"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 20, "order": 20, "nameAr": "اَلْعَلِيمُ", "nameTr": "El-Alim", "transliteration": "El-Alîm",
+    "meaningTr": "Her şeyi en ince ayrıntısına kadar bilen.",
+    "shortBenefit": "İlim ve bilgede derinleşmek", "defaultTargetCount": 100,
+    "tags": ["ilim", "zihin", "odak"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 21, "order": 21, "nameAr": "اَلْقَابِضُ", "nameTr": "El-Kabid", "transliteration": "El-Kâbid",
+    "meaningTr": "Dilediği şeyleri daraltan, tutan, kısıtlayan.",
+    "shortBenefit": "Sabır ve tevekkül", "defaultTargetCount": 100,
+    "tags": ["sabir", "teslimiyet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 22, "order": 22, "nameAr": "اَلْبَاسِطُ", "nameTr": "El-Basit", "transliteration": "El-Bâsit",
+    "meaningTr": "Dilediği şeyleri genişleten, bolluk ve ferah veren.",
+    "shortBenefit": "Kalbin genişlemesi, rızık açılımı", "defaultTargetCount": 100,
+    "tags": ["nimet", "ferahlama", "kalp"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 23, "order": 23, "nameAr": "اَلْخَافِضُ", "nameTr": "El-Hafid", "transliteration": "El-Hâfid",
+    "meaningTr": "Zorbaları ve kötüleri alçaltan.",
+    "shortBenefit": "Zalimlerden korunmak", "defaultTargetCount": 100,
+    "tags": ["korunma", "adalet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 24, "order": 24, "nameAr": "اَلرَّافِعُ", "nameTr": "Er-Rafi", "transliteration": "Er-Râfi'",
+    "meaningTr": "Dereceleri yükseltip şeref ve itibar veren.",
+    "shortBenefit": "Mertebenin yükselmesi", "defaultTargetCount": 100,
+    "tags": ["izzet", "basari", "yukseklik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 25, "order": 25, "nameAr": "اَلْمُعِزُّ", "nameTr": "El-Muiz", "transliteration": "El-Muiz",
+    "meaningTr": "Dilediğine izzet ve şeref veren.",
+    "shortBenefit": "Saygınlık ve itibar kazanmak", "defaultTargetCount": 100,
+    "tags": ["izzet", "sayginlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 26, "order": 26, "nameAr": "اَلْمُذِلُّ", "nameTr": "El-Müzill", "transliteration": "El-Müzill",
+    "meaningTr": "Dilediğini zillete ve aşağılanmaya düşüren.",
+    "shortBenefit": "Düşmanların etkisizleşmesi", "defaultTargetCount": 100,
+    "tags": ["korunma", "adalet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 27, "order": 27, "nameAr": "اَلسَّمِيعُ", "nameTr": "Es-Semi", "transliteration": "Es-Semî'",
+    "meaningTr": "Her şeyi en ince sesiyle işiten.",
+    "shortBenefit": "Duaların işitilmesi ve kabul edilmesi", "defaultTargetCount": 100,
+    "tags": ["dua", "iletisim"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 28, "order": 28, "nameAr": "اَلْبَصِيرُ", "nameTr": "El-Basir", "transliteration": "El-Basîr",
+    "meaningTr": "Her şeyi en ince ayrıntısına kadar gören.",
+    "shortBenefit": "Güzel ahlak ve doğru yolda yürüme", "defaultTargetCount": 100,
+    "tags": ["ilim", "duyarlilik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 29, "order": 29, "nameAr": "اَلْحَكَمُ", "nameTr": "El-Hakem", "transliteration": "El-Hakem",
+    "meaningTr": "Hükmeden, hakkında hüküm verilen.", "shortBenefit": "Adaletli karar vermek", "defaultTargetCount": 68,
+    "tags": ["adalet", "hikmet", "ilim"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 30, "order": 30, "nameAr": "اَلْعَدْلُ", "nameTr": "El-Adl", "transliteration": "El-Adl",
+    "meaningTr": "Son derece adaletli olan, haksızlık etmeyen.",
+    "shortBenefit": "Adaletin tecellisi ve hakkın yerini bulması", "defaultTargetCount": 100,
+    "tags": ["adalet", "denge"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 31, "order": 31, "nameAr": "اَللَّطِيفُ", "nameTr": "El-Latif", "transliteration": "El-Latîf",
+    "meaningTr": "Kullarına karşı lütuf sahibi, her şeyin inceliğini bilen.",
+    "shortBenefit": "Geçime kolaylık ve ince anlayış", "defaultTargetCount": 133,
+    "tags": ["lutuf", "huzur", "rahmet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 32, "order": 32, "nameAr": "اَلْخَبِيرُ", "nameTr": "El-Habir", "transliteration": "El-Habîr",
+    "meaningTr": "Her şeyin iç yüzünden haberdar olan.",
+    "shortBenefit": "Gizli bilgilere ulaşmak, sırrı öğrenmek", "defaultTargetCount": 100,
+    "tags": ["ilim", "zihin"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 33, "order": 33, "nameAr": "اَلْحَلِيمُ", "nameTr": "El-Halim", "transliteration": "El-Halîm",
+    "meaningTr": "Cezayı hak edenlere rağmen acele etmeyen, çok sabırlı.",
+    "shortBenefit": "Sabır ve af dileği", "defaultTargetCount": 100,
+    "tags": ["sabir", "af", "teslimiyet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 34, "order": 34, "nameAr": "اَلْعَظِيمُ", "nameTr": "El-Azim", "transliteration": "El-Azîm",
+    "meaningTr": "Büyüklük, yücelik bakımından sonsuz olan.",
+    "shortBenefit": "Kalp ve imanın güçlenmesi", "defaultTargetCount": 100,
+    "tags": ["iman", "kuvvet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 35, "order": 35, "nameAr": "اَلْغَفُورُ", "nameTr": "El-Gafur", "transliteration": "El-Gafûr",
+    "meaningTr": "Günahları örtbas eden ve bağışlayan.",
+    "shortBenefit": "Günahların affedilmesi", "defaultTargetCount": 100,
+    "tags": ["magfiret", "tevbe"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 36, "order": 36, "nameAr": "اَلشَّكُورُ", "nameTr": "Eş-Şekur", "transliteration": "Eş-Şekûr",
+    "meaningTr": "Az ameli çok karşılıkla mükafatlandıran.",
+    "shortBenefit": "Şükür ve nimete şükretmek", "defaultTargetCount": 41,
+    "tags": ["sukur", "nimet", "ihsan"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 37, "order": 37, "nameAr": "اَلْعَلِيُّ", "nameTr": "El-Aliyy", "transliteration": "El-Aliyy",
+    "meaningTr": "Çok yüksek olan, her şeyden üstün bulunan.",
+    "shortBenefit": "Mertebe ve yücelik", "defaultTargetCount": 100,
+    "tags": ["izzet", "yukseklik", "basari"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 38, "order": 38, "nameAr": "اَلْكَبِيرُ", "nameTr": "El-Kebir", "transliteration": "El-Kebîr",
+    "meaningTr": "Her şeyden büyük olan.", "shortBenefit": "Büyük hedeflere ulaşmak", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "basari"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 39, "order": 39, "nameAr": "اَلْحَفِيظُ", "nameTr": "El-Hafiz", "transliteration": "El-Hafîz",
+    "meaningTr": "Her şeyi koruyan, muhafaza eden.",
+    "shortBenefit": "Her türlü beladan ve kazadan korunmak", "defaultTargetCount": 100,
+    "tags": ["korunma", "guvenlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 40, "order": 40, "nameAr": "اَلْمُقِيتُ", "nameTr": "El-Mukit", "transliteration": "El-Mukît",
+    "meaningTr": "Bütün varlıkların maddi ve manevi gıdasını veren.",
+    "shortBenefit": "Bedeni ve manevi beslenme", "defaultTargetCount": 100,
+    "tags": ["nimet", "saglik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 41, "order": 41, "nameAr": "اَلْحَسِيبُ", "nameTr": "El-Hasib", "transliteration": "El-Hasîb",
+    "meaningTr": "Her şeyin hesabını eksiksiz tutan.",
+    "shortBenefit": "Hesap sorgulamasından korunmak", "defaultTargetCount": 70,
+    "tags": ["adalet", "disiplin"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 42, "order": 42, "nameAr": "اَلْجَلِيلُ", "nameTr": "El-Celil", "transliteration": "El-Celîl",
+    "meaningTr": "Azamet ve büyüklük sahibi olan.",
+    "shortBenefit": "Kalbin yüceliği ve saygınlık", "defaultTargetCount": 100,
+    "tags": ["izzet", "sayginlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 43, "order": 43, "nameAr": "اَلْكَرِيمُ", "nameTr": "El-Kerim", "transliteration": "El-Kerîm",
+    "meaningTr": "İyilik ve cömertliği bol olan, sonsuz ikram eden.",
+    "shortBenefit": "Bolluk ve cömertliğin artması", "defaultTargetCount": 100,
+    "tags": ["nimet", "cömertlik", "ihsan"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 44, "order": 44, "nameAr": "اَلرَّقِيبُ", "nameTr": "Er-Rakib", "transliteration": "Er-Rakîb",
+    "meaningTr": "Her şeyi gözetleyip denetleyen.",
+    "shortBenefit": "İbadetlerde devamlılık ve öz denetim", "defaultTargetCount": 100,
+    "tags": ["disiplin", "irade"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 45, "order": 45, "nameAr": "اَلْمُجِيبُ", "nameTr": "El-Mucib", "transliteration": "El-Mücîb",
+    "meaningTr": "Duaları kabul eden, isteklere icabet eden.",
+    "shortBenefit": "Duaların kabulü ve dileklerin gerçekleşmesi", "defaultTargetCount": 55,
+    "tags": ["dua", "istek"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 46, "order": 46, "nameAr": "اَلْوَاسِعُ", "nameTr": "El-Vasi", "transliteration": "El-Vâsi'",
+    "meaningTr": "İlmi, rahmeti ve kudreti sonsuz geniş olan.",
+    "shortBenefit": "Rızkın genişlemesi ve bolluk", "defaultTargetCount": 100,
+    "tags": ["nimet", "bereket", "genislik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 47, "order": 47, "nameAr": "اَلْحَكِيمُ", "nameTr": "El-Hakim", "transliteration": "El-Hakîm",
+    "meaningTr": "Her işini yerli yerinde yapan, hikmet sahibi.",
+    "shortBenefit": "Doğru karar verme ve hikmet", "defaultTargetCount": 100,
+    "tags": ["hikmet", "ilim", "zihin"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 48, "order": 48, "nameAr": "اَلْوَدُودُ", "nameTr": "El-Vedud", "transliteration": "El-Vedûd",
+    "meaningTr": "Kullarını seven ve sevileni yaratan.",
+    "shortBenefit": "Sevgi, muhabbet ve ilişkilerde uyum", "defaultTargetCount": 33,
+    "tags": ["sevgi", "iliski", "muhabbet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 49, "order": 49, "nameAr": "اَلْمَجِيدُ", "nameTr": "El-Mecid", "transliteration": "El-Mecîd",
+    "meaningTr": "Şeref ve kerem bakımından en yüce olan.",
+    "shortBenefit": "Şeref ve itibarda yükselme", "defaultTargetCount": 100,
+    "tags": ["izzet", "sayginlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 50, "order": 50, "nameAr": "اَلْبَاعِثُ", "nameTr": "El-Bais", "transliteration": "El-Bâis",
+    "meaningTr": "Ölüleri dirilten, peygamber gönderen.",
+    "shortBenefit": "Motivasyonun canlanması ve yeniden başlamak", "defaultTargetCount": 100,
+    "tags": ["motivasyon", "cesaret", "yeniden_baslangic"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 51, "order": 51, "nameAr": "اَلشَّهِيدُ", "nameTr": "Eş-Şehid", "transliteration": "Eş-Şehîd",
+    "meaningTr": "Her şeye şahit olan, hiçbir şey gizli kalmayan.",
+    "shortBenefit": "Dürüstlük ve güvenilirlik", "defaultTargetCount": 100,
+    "tags": ["adalet", "dürüstluk"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 52, "order": 52, "nameAr": "اَلْحَقُّ", "nameTr": "El-Hakk", "transliteration": "El-Hakk",
+    "meaningTr": "Varlığı kesin ve gerçek olan, değişmeyen.",
+    "shortBenefit": "Hak ve doğruluk üzere kalmak", "defaultTargetCount": 100,
+    "tags": ["adalet", "dogruluk", "iman"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 53, "order": 53, "nameAr": "اَلْوَكِيلُ", "nameTr": "El-Vekil", "transliteration": "El-Vekîl",
+    "meaningTr": "Kendisine havale edilen işleri en iyi şekilde yöneten.",
+    "shortBenefit": "Tevekkül ve güven", "defaultTargetCount": 66,
+    "tags": ["tevekkul", "teslimiyet", "guven"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 54, "order": 54, "nameAr": "اَلْقَوِيُّ", "nameTr": "El-Kaviyy", "transliteration": "El-Kaviyy",
+    "meaningTr": "Gücü her şeye yeten, her türlü kuvvetin sahibi.",
+    "shortBenefit": "Güç ve dayanıklılık kazanmak", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "cesaret", "dayaniklilik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 55, "order": 55, "nameAr": "اَلْمَتِينُ", "nameTr": "El-Metin", "transliteration": "El-Metîn",
+    "meaningTr": "Kuvveti son derece sağlam ve sarsılmaz olan.",
+    "shortBenefit": "İrade ve azmin güçlenmesi", "defaultTargetCount": 100,
+    "tags": ["sabir", "disiplin", "azim"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 56, "order": 56, "nameAr": "اَلْوَلِيُّ", "nameTr": "El-Veliyy", "transliteration": "El-Veliyy",
+    "meaningTr": "İnananlara dost ve yardımcı olan.",
+    "shortBenefit": "Dostluk, yardım ve destek bulmak", "defaultTargetCount": 100,
+    "tags": ["sevgi", "yardim", "destek"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 57, "order": 57, "nameAr": "اَلْحَمِيدُ", "nameTr": "El-Hamid", "transliteration": "El-Hamîd",
+    "meaningTr": "Her türlü övgüye layık, hamd edilen.",
+    "shortBenefit": "Şükür ve minnettarlık", "defaultTargetCount": 33,
+    "tags": ["sukur", "tevhid"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 58, "order": 58, "nameAr": "اَلْمُحْصِي", "nameTr": "El-Muhsi", "transliteration": "El-Muhsî",
+    "meaningTr": "Her şeyi tek tek sayan, hiçbir şeyi sayısından çıkarmayan.",
+    "shortBenefit": "Hesap ve düzen", "defaultTargetCount": 100,
+    "tags": ["disiplin", "duzenilik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 59, "order": 59, "nameAr": "اَلْمُبْدِئُ", "nameTr": "El-Mübdi", "transliteration": "El-Mübdi'",
+    "meaningTr": "Her şeyi ilk defa yoktan yaratan.",
+    "shortBenefit": "Yeni başlangıçlarda kolaylık", "defaultTargetCount": 100,
+    "tags": ["yaraticilik", "yeniden_baslangic"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 60, "order": 60, "nameAr": "اَلْمُعِيدُ", "nameTr": "El-Muid", "transliteration": "El-Muîd",
+    "meaningTr": "Her şeyi yok ettikten sonra yeniden yaratan.",
+    "shortBenefit": "Yenilenme ve tövbe sonrası dönüş", "defaultTargetCount": 100,
+    "tags": ["tevbe", "yeniden_baslangic"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 61, "order": 61, "nameAr": "اَلْمُحْيِي", "nameTr": "El-Muhyi", "transliteration": "El-Muhyî",
+    "meaningTr": "Hayat veren, ölüye can üfleyen.",
+    "shortBenefit": "Şifa ve sağlık", "defaultTargetCount": 58,
+    "tags": ["saglik", "sifa"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 62, "order": 62, "nameAr": "اَلْمُمِيتُ", "nameTr": "El-Mümit", "transliteration": "El-Mümît",
+    "meaningTr": "Ölümü yaratan, canlılara ölümü tattıran.",
+    "shortBenefit": "Ölümü hatırlayarak dünyaya bağlılıktan kurtulmak", "defaultTargetCount": 100,
+    "tags": ["teslimiyet", "huzur"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 63, "order": 63, "nameAr": "اَلْحَيُّ", "nameTr": "El-Hayy", "transliteration": "El-Hayy",
+    "meaningTr": "Ezeli ve ebedi hayat sahibi olan.",
+    "shortBenefit": "Uzun ve bereketli ömür", "defaultTargetCount": 100,
+    "tags": ["saglik", "bereket"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 64, "order": 64, "nameAr": "اَلْقَيُّومُ", "nameTr": "El-Kayyum", "transliteration": "El-Kayyûm",
+    "meaningTr": "Kendi kendine var olan, her şeyi ayakta tutan.",
+    "shortBenefit": "Güç ve istikrar", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "istikrar", "tevekkul"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 65, "order": 65, "nameAr": "اَلْوَاجِدُ", "nameTr": "El-Vacid", "transliteration": "El-Vâcid",
+    "meaningTr": "Her şeyi bulan, hiçbir şey kendisinden gizli kalmayan.",
+    "shortBenefit": "Kayıpları bulmak ve kolaylık", "defaultTargetCount": 100,
+    "tags": ["cozum", "kolaylik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 66, "order": 66, "nameAr": "اَلْمَاجِدُ", "nameTr": "El-Macid", "transliteration": "El-Mâcid",
+    "meaningTr": "Şeref ve cömertlik bakımından çok yüce olan.",
+    "shortBenefit": "Şeref ve itibar", "defaultTargetCount": 100,
+    "tags": ["izzet", "sayginlik", "cömertlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 67, "order": 67, "nameAr": "اَلْوَاحِدُ", "nameTr": "El-Vahid", "transliteration": "El-Vâhid",
+    "meaningTr": "Zatında, sıfatlarında ve işlerinde tek olan.",
+    "shortBenefit": "Tevhid bilincinin güçlenmesi", "defaultTargetCount": 1000,
+    "tags": ["tevhid", "iman"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 68, "order": 68, "nameAr": "اَلْأَحَدُ", "nameTr": "El-Ahad", "transliteration": "El-Ahad",
+    "meaningTr": "Bir ve tek olan, ortağı ve benzeri bulunmayan.",
+    "shortBenefit": "Derin tevhid ve yalnızlıktan kurtulma", "defaultTargetCount": 1000,
+    "tags": ["tevhid", "iman", "huzur"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 69, "order": 69, "nameAr": "اَلصَّمَدُ", "nameTr": "Es-Samed", "transliteration": "Es-Samed",
+    "meaningTr": "Her şeyin kendisine muhtaç olduğu, her şeyden müstağni olan.",
+    "shortBenefit": "Allah'a tam bağlılık ve tevekkül", "defaultTargetCount": 100,
+    "tags": ["tevekkul", "teslimiyet", "iman"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 70, "order": 70, "nameAr": "اَلْقَادِرُ", "nameTr": "El-Kadir", "transliteration": "El-Kâdir",
+    "meaningTr": "Her şeye gücü yeten, dilediğini yapan.",
+    "shortBenefit": "Zorlukların üstesinden gelmek", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "cozum", "irade"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 71, "order": 71, "nameAr": "اَلْمُقْتَدِرُ", "nameTr": "El-Muktedir", "transliteration": "El-Muktedir",
+    "meaningTr": "Her türlü güce sahip olan, takdirini kesinlikle yürüten.",
+    "shortBenefit": "Hayatta üstünlük ve kudret", "defaultTargetCount": 100,
+    "tags": ["kuvvet", "basari"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 72, "order": 72, "nameAr": "اَلْمُقَدِّمُ", "nameTr": "El-Mukaddim", "transliteration": "El-Mukaddim",
+    "meaningTr": "Dilediğini öne geçiren, öne alan.",
+    "shortBenefit": "Öne çıkmak, fırsatları kaçırmamak", "defaultTargetCount": 100,
+    "tags": ["motivasyon", "cesaret", "basari"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 73, "order": 73, "nameAr": "اَلْمُؤَخِّرُ", "nameTr": "El-Muahhir", "transliteration": "El-Muahhir",
+    "meaningTr": "Dilediğini geri bırakan, geciktiren.",
+    "shortBenefit": "Sabır ve doğru zamanlamayı beklemek", "defaultTargetCount": 100,
+    "tags": ["sabir", "teslimiyet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 74, "order": 74, "nameAr": "اَلْأَوَّلُ", "nameTr": "El-Evvel", "transliteration": "El-Evvel",
+    "meaningTr": "Her şeyden önce var olan, başlangıcı olmayan.",
+    "shortBenefit": "Geçmişin yükleri ile yüzleşmek", "defaultTargetCount": 1000,
+    "tags": ["iman", "teslimiyet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 75, "order": 75, "nameAr": "اَلْآخِرُ", "nameTr": "El-Ahir", "transliteration": "El-Âhir",
+    "meaningTr": "Her şeyden sonra da var olacak olan, sonu olmayan.",
+    "shortBenefit": "Ahirete hazırlanmak", "defaultTargetCount": 1000,
+    "tags": ["iman", "teslimiyet", "ahiret"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 76, "order": 76, "nameAr": "اَلظَّاهِرُ", "nameTr": "Ez-Zahir", "transliteration": "Ez-Zâhir",
+    "meaningTr": "Her şeyin üstünde ve her şeyden açık olan.",
+    "shortBenefit": "Güçlük ve karanlıkta rehberlik", "defaultTargetCount": 100,
+    "tags": ["huzur", "rehberlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 77, "order": 77, "nameAr": "اَلْبَاطِنُ", "nameTr": "El-Batın", "transliteration": "El-Bâtın",
+    "meaningTr": "Her şeyin içine nüfuz eden, her şeyin özünde bulunan.",
+    "shortBenefit": "Sırların çözülmesi ve iç huzur", "defaultTargetCount": 100,
+    "tags": ["huzur", "kalp", "ic_dunya"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 78, "order": 78, "nameAr": "اَلْوَالِي", "nameTr": "El-Vali", "transliteration": "El-Vâlî",
+    "meaningTr": "Her şeyi idare eden, her şeyin mülkiyet ve idaresi kendisine ait olan.",
+    "shortBenefit": "Yönetim ve tedbir alma", "defaultTargetCount": 100,
+    "tags": ["otorite", "disiplin"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 79, "order": 79, "nameAr": "اَلْمُتَعَالِي", "nameTr": "El-Müteali", "transliteration": "El-Müteâlî",
+    "meaningTr": "Her şeyden ve her türlü eksiklikten münezzeh, çok yüce.",
+    "shortBenefit": "Kalbin yükselmesi ve yüceliğe ulaşma", "defaultTargetCount": 100,
+    "tags": ["izzet", "yukseklik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 80, "order": 80, "nameAr": "اَلْبَرُّ", "nameTr": "El-Berr", "transliteration": "El-Berr",
+    "meaningTr": "İyiliği bol, lütuf ve ihsanı çok olan.",
+    "shortBenefit": "Ana-babaya ve yakınlara iyilik", "defaultTargetCount": 100,
+    "tags": ["iyilik", "ihsan", "aile"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 81, "order": 81, "nameAr": "اَلتَّوَّابُ", "nameTr": "Et-Tevvab", "transliteration": "Et-Tevvâb",
+    "meaningTr": "Tövbeleri kabul eden, tövbeye yöneltip bağışlayan.",
+    "shortBenefit": "Tövbe ve pişmanlık sonrası af", "defaultTargetCount": 100,
+    "tags": ["tevbe", "magfiret", "arınma"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 82, "order": 82, "nameAr": "اَلْمُنْتَقِمُ", "nameTr": "El-Müntakim", "transliteration": "El-Müntakim",
+    "meaningTr": "Suçluları cezalandıran, adaleti hakkıyla yerine getiren.",
+    "shortBenefit": "Zulme uğrayanlar için adaletin tecellisi", "defaultTargetCount": 100,
+    "tags": ["adalet", "korunma"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 83, "order": 83, "nameAr": "اَلْعَفُوُّ", "nameTr": "El-Afuvv", "transliteration": "El-Afüvv",
+    "meaningTr": "Günahları çokça affeden, günahları tamamen silen.",
+    "shortBenefit": "Affetmek ve bağışlanmak", "defaultTargetCount": 100,
+    "tags": ["af", "magfiret", "arınma"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 84, "order": 84, "nameAr": "اَلرَّؤُوفُ", "nameTr": "Er-Rauf", "transliteration": "Er-Raûf",
+    "meaningTr": "Çok şefkatli ve merhametli olan.",
+    "shortBenefit": "Şefkat, merhamet ve yardım", "defaultTargetCount": 100,
+    "tags": ["rahmet", "sevgi", "sefkat"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 85, "order": 85, "nameAr": "مَالِكُ الْمُلْكِ", "nameTr": "Malikü'l Mülk", "transliteration": "Mâlikü'l Mülk",
+    "meaningTr": "Mülkün gerçek sahibi, istediğine istediği gibi tasarruf eden.",
+    "shortBenefit": "Mülk ve servetin korunması", "defaultTargetCount": 100,
+    "tags": ["nimet", "servet", "otorite"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 86, "order": 86, "nameAr": "ذُو الْجَلَالِ وَالإِكْرَامِ", "nameTr": "Zü'l Celal ve'l İkram", "transliteration": "Zü'l Celâl ve'l İkrâm",
+    "meaningTr": "Hem azamet hem de ikram ve kerem sahibi olan.",
+    "shortBenefit": "Büyüklük, azamet ve cömertlik", "defaultTargetCount": 100,
+    "tags": ["izzet", "ihsan", "cömertlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 87, "order": 87, "nameAr": "اَلْمُقْسِطُ", "nameTr": "El-Muksit", "transliteration": "El-Muksit",
+    "meaningTr": "Her konuda adaleti gözeten.",
+    "shortBenefit": "Adalet ve hakkaniyetin sağlanması", "defaultTargetCount": 100,
+    "tags": ["adalet", "denge"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 88, "order": 88, "nameAr": "اَلْجَامِعُ", "nameTr": "El-Cami", "transliteration": "El-Câmi'",
+    "meaningTr": "Her şeyi bir araya toplayan, bütün insanları kıyamette bir arada toplayan.",
+    "shortBenefit": "Dağılmış ilişkileri bir araya getirmek", "defaultTargetCount": 100,
+    "tags": ["iliski", "birlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 89, "order": 89, "nameAr": "اَلْغَنِيُّ", "nameTr": "El-Gani", "transliteration": "El-Ganiyy",
+    "meaningTr": "Her şeyden müstağni, hiçbir şeye muhtaç olmayan.",
+    "shortBenefit": "Gönül zenginliği ve kanaat", "defaultTargetCount": 100,
+    "tags": ["nimet", "kanaat", "tevekkul"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 90, "order": 90, "nameAr": "اَلْمُغْنِي", "nameTr": "El-Mugni", "transliteration": "El-Mugnî",
+    "meaningTr": "Dilediğini zengin eden, ihtiyacını gideren.",
+    "shortBenefit": "Maddi zenginlik ve geçim rahatlığı", "defaultTargetCount": 100,
+    "tags": ["nimet", "rizik", "bereket"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 91, "order": 91, "nameAr": "اَلْمَانِعُ", "nameTr": "El-Mani", "transliteration": "El-Mâni'",
+    "meaningTr": "Dilediğinden esirgeyen, engel olan.",
+    "shortBenefit": "Kötülüklerin engellenmesi", "defaultTargetCount": 100,
+    "tags": ["korunma", "guvenlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 92, "order": 92, "nameAr": "اَلضَّارُّ", "nameTr": "Ed-Darr", "transliteration": "Ed-Dârr",
+    "meaningTr": "Dilediğine zarar vermeye muktedir olan.",
+    "shortBenefit": "Zararlı şeylerden uzak durmak", "defaultTargetCount": 100,
+    "tags": ["korunma", "teslimiyet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 93, "order": 93, "nameAr": "اَلنَّافِعُ", "nameTr": "En-Nafi", "transliteration": "En-Nâfi'",
+    "meaningTr": "Fayda veren, yararlı kılan.",
+    "shortBenefit": "Faydalı ve verimli olma", "defaultTargetCount": 100,
+    "tags": ["nimet", "ihsan", "basari"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 94, "order": 94, "nameAr": "اَلنُّورُ", "nameTr": "En-Nur", "transliteration": "En-Nûr",
+    "meaningTr": "Gökleri ve yeri nurlandıran, kalplere iman nuru veren.",
+    "shortBenefit": "Kalp aydınlığı ve manevi nur", "defaultTargetCount": 100,
+    "tags": ["huzur", "kalp", "iman", "rehberlik"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 95, "order": 95, "nameAr": "اَلْهَادِي", "nameTr": "El-Hadi", "transliteration": "El-Hâdî",
+    "meaningTr": "Doğru yola yönelten, hidayet veren.",
+    "shortBenefit": "Doğru yolu bulmak ve hidayet", "defaultTargetCount": 100,
+    "tags": ["rehberlik", "huzur", "iman"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 96, "order": 96, "nameAr": "اَلْبَدِيعُ", "nameTr": "El-Bedi", "transliteration": "El-Bedî'",
+    "meaningTr": "Eşsiz, benzersiz şeyler yaratan, örneksiz icat eden.",
+    "shortBenefit": "Yaratıcılık ve özgün fikirler", "defaultTargetCount": 100,
+    "tags": ["yaraticilik", "sanat", "ilham"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 97, "order": 97, "nameAr": "اَلْبَاقِي", "nameTr": "El-Baki", "transliteration": "El-Bâkî",
+    "meaningTr": "Varlığının sonu olmayan, ebedi olan.",
+    "shortBenefit": "Kalıcı ve anlamlı işler yapmak", "defaultTargetCount": 100,
+    "tags": ["iman", "teslimiyet", "ahiret"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 98, "order": 98, "nameAr": "اَلْوَارِثُ", "nameTr": "El-Varis", "transliteration": "El-Vâris",
+    "meaningTr": "Her şeyin gerçek sahibi, her şeyi mirasçılık eden.",
+    "shortBenefit": "Mirası korumak ve geleceği güvence altına almak", "defaultTargetCount": 100,
+    "tags": ["teslimiyet", "iman"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 99, "order": 99, "nameAr": "اَلرَّشِيدُ", "nameTr": "Er-Reşid", "transliteration": "Er-Reşîd",
+    "meaningTr": "Her şeyi en doğru biçimde yönlendiren.",
+    "shortBenefit": "Rehberlik ve doğru yön bulma", "defaultTargetCount": 100,
+    "tags": ["rehberlik", "hikmet", "zihin"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  },
+  {
+    "id": 100, "order": 100, "nameAr": "اَلصَّبُورُ", "nameTr": "Es-Sabur", "transliteration": "Es-Sabûr",
+    "meaningTr": "Çok sabırlı olan, acele etmeyen.",
+    "shortBenefit": "Sabır ve tahammül gücünü artırmak", "defaultTargetCount": 100,
+    "tags": ["sabir", "disiplin", "teslimiyet"], "sources": [{"provider": "Diyanet", "ref": "Esmaül Hüsna", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+  }
+]

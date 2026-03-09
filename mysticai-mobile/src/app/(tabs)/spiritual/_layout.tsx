@@ -1,8 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { HeaderRightIcons } from '../../../components/ui';
+import { useContentStore } from '../../../spiritual/store/useContentStore';
+import { useTranslation } from 'react-i18next';
 
 export default function SpiritualLayout() {
+  const loadFromCms = useContentStore((s) => s.loadFromCms);
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    // Reload from CMS on every entry to the spiritual section
+    // so admin edits are immediately visible. Falls back to local JSON on error.
+    loadFromCms(i18n.language ?? 'tr');
+  }, []);
+
   return (
     <Stack
       screenOptions={{

@@ -112,7 +112,7 @@ export const DISCOVER_MODULES: DiscoverModule[] = [
     titleKey: 'discover.nameAnalysis',
     descriptionKey: 'discover.nameAnalysisDesc',
     icon: 'text',
-    route: '/name-analysis',
+    route: '/(tabs)/name-analysis',
     section: 'wisdom',
     keywords: ['isim', 'analiz', 'name', 'analysis', 'titreşim', 'vibration'],
     gradientDark: ['#2A2A3A', '#1A1A2A'],

@@ -27,4 +27,7 @@ public interface PushTokenRepository extends JpaRepository<PushToken, Long> {
     void deleteInactiveOlderThan(@Param("before") LocalDateTime before);
 
     List<PushToken> findAllByActiveTrue();
+
+    @Query("SELECT DISTINCT pt.userId FROM PushToken pt WHERE pt.active = true")
+    List<Long> findDistinctActiveUserIds();
 }

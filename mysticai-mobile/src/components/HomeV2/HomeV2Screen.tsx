@@ -466,7 +466,7 @@ function TransitInsightsCard({
     >
       <View style={S.cardTopHighlight} />
       <View style={S.sectionHeaderRow}>
-        <Text style={S.sectionTitle}>Günün Transitleri</Text>
+        <Text style={S.sectionTitle}>Bugünün Gökyüzü Etkileri</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <View style={S.transitHeaderBadge}>
             <Ionicons name="planet-outline" size={12} color={S.__palette.accent} />

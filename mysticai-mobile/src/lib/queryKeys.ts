@@ -28,7 +28,12 @@ export const queryKeys = {
     ['dreams', 'monthly-story', userId, year, month] as const,
   luckyDates: (userId: number, category: string) =>
     ['lucky-dates', userId, category] as const,
-  numerology: (name: string, birthDate: string) =>
-    ['numerology', name, birthDate] as const,
+  numerology: (
+    name: string,
+    birthDate: string,
+    effectiveDate?: string,
+    locale?: string,
+    guidancePeriod?: string,
+  ) => ['numerology', name, birthDate, effectiveDate ?? 'today', locale ?? 'tr', guidancePeriod ?? 'day'] as const,
   profileStats: (userId: number) => ['profile', 'stats', userId] as const,
 };

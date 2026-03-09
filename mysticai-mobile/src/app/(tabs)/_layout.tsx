@@ -381,6 +381,34 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="name-analysis"
+        options={{
+          title: 'İsim Analizi',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="name-search"
+        options={{
+          title: 'İsim Arama',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="name-favorites"
+        options={{
+          title: 'Favori İsimler',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="name-detail/[id]"
+        options={{
+          title: 'İsim Detayı',
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profil',

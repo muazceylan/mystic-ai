@@ -93,7 +93,7 @@ export function TodayDigestCard({
         <Pressable
           onPress={onPressTransits}
           accessibilityRole="button"
-          accessibilityLabel="Günün transitlerini aç"
+          accessibilityLabel="Bugünün Gökyüzü Etkileri sayfasını aç"
           hitSlop={HIT_SLOP}
           style={({ pressed }) => [styles.tagsPressable, pressed && styles.pressed]}
         >

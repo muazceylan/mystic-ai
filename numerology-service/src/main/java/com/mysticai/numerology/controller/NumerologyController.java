@@ -21,9 +21,12 @@ public class NumerologyController {
     @GetMapping("/calculate")
     public ResponseEntity<NumerologyResponse> calculate(
             @RequestParam String name,
-            @RequestParam String birthDate
+            @RequestParam String birthDate,
+            @RequestParam(required = false) String effectiveDate,
+            @RequestParam(required = false, defaultValue = "tr") String locale,
+            @RequestParam(required = false, defaultValue = "day") String guidancePeriod
     ) {
-        NumerologyResponse response = numerologyCalculator.calculate(name, birthDate);
+        NumerologyResponse response = numerologyCalculator.calculate(name, birthDate, effectiveDate, locale, guidancePeriod);
         return ResponseEntity.ok(response);
     }
 }

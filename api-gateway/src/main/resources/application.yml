@@ -21,6 +21,47 @@ spring:
               - OPTIONS
             allowedHeaders: "*"
             allowCredentials: true
+      routes:
+        # Admin panel API — routes to notification-service which owns all admin logic
+        - id: admin-api
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/admin/v1/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 30
+                redis-rate-limiter.burstCapacity: 60
+                redis-rate-limiter.requestedTokens: 1
+
+        # App Config — public endpoint on notification-service
+        - id: app-config
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/app-config
+
+        # CMS Content — public horoscope/prayer endpoints on notification-service
+        - id: cms-content
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/content/**
+
+        # Notification service — user-facing notification endpoints
+        - id: notifications
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        # Notification WebSocket
+        - id: notifications-ws
+          uri: lb:ws://notification-service
+          predicates:
+            - Path=/ws/**
+
+      # Remove duplicate CORS headers added by both gateway and backend services
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
       discovery:
         locator:
           enabled: true

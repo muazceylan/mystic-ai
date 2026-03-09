@@ -104,7 +104,7 @@ async function patchLocalActionState(date: string, actionId: string, isDone: boo
 function buildEmptyDailyTransits(date: string): DailyTransitsDTO {
   return {
     date,
-    title: 'Günün Transitleri',
+    title: 'Bugünün Gökyüzü Etkileri',
     hero: {
       headline: 'Bugün için veri hazırlanıyor',
       supporting: 'Veri gelir gelmez bu alan otomatik güncellenecek.',

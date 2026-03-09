@@ -74,7 +74,7 @@ export function ServiceSlider({ slides, onScrollToSwot }: ServiceSliderProps) {
     else if (itemId === 'dream') router.push('/(tabs)/dreams');
     else if (itemId === 'natal') router.push('/(tabs)/natal-chart');
     else if (itemId === 'numerology') router.push('/numerology');
-    else if (itemId === 'name') router.push('/name-analysis');
+    else if (itemId === 'name') router.push('/(tabs)/name-analysis');
     else if (itemId === 'compatibility') router.push('/(tabs)/compatibility');
     else if (itemId === 'weekly') onScrollToSwot();
   }, [router, onScrollToSwot, pauseAutoScroll, scheduleResume]);
