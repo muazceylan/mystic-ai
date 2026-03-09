@@ -1,306 +1,388 @@
-# Mystic AI
+# 🔮 Mystic AI
 
-Astroloji, numeroloji, ruya yorumu ve spirituel akislari AI ile birlestiren mikroservis tabanli platform.
-Backend Spring Boot + mobil React Native (Expo Router) olarak gelistirilmektedir.
+<div align="center">
 
-## Son Revizyon (Mart 2026)
+**AI-powered mystical platform** — Astrology · Numerology · Dream Interpretation · Spiritual Practices
 
-- Astrology servisinde yeni `daily transits` endpoint grubu eklendi.
-- `cosmic planner` akisi ay/gun/kategori seviyesinde genisletildi.
-- Hatirlatici yonetimi icin `planner reminders` API grubu eklendi.
-- Mobil uygulamada home dashboard, compare/match ve daily ekranlari revize edildi.
+*Yapay zeka destekli mistik platform* — Astroloji · Numeroloji · Rüya Yorumu · Spiritüel Pratikler
 
-## Mimari
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.x-green?logo=spring)](https://spring.io/projects/spring-boot)
+[![React Native](https://img.shields.io/badge/React%20Native-Expo%20SDK%2050-blue?logo=react)](https://expo.dev)
+[![Next.js](https://img.shields.io/badge/Next.js-14+-black?logo=next.js)](https://nextjs.org)
+[![License](https://img.shields.io/badge/license-Private-red)](LICENSE)
+
+</div>
+
+---
+
+> 🇹🇷 **Türkçe** döküman için [aşağı kaydırın](#-türkçe).
+> 🇬🇧 **English** documentation [below](#-english).
+
+---
+
+## 🇬🇧 English
+
+### Overview
+
+Mystic AI is a microservices-based platform that combines astrology, numerology, dream interpretation, and spiritual practices powered by AI. It consists of:
+
+- **Backend:** 10 Spring Boot microservices
+- **Mobile App:** React Native (Expo) for iOS and Android
+- **Admin Panel:** Next.js dashboard for content and notification management
+
+### Architecture
 
 ```
-Mobile App (Expo/React Native :8090)
-                |
-                v
-        API Gateway (:8080)
-                |
-   +------------+-------------+---------------------------+
-   |            |             |                           |
- Auth        Astrology      Dream                      Numerology
-(:8081)      (:8083)       (:8086)                    (:8085)
-   |            |
-   |            +--> Cosmic Planner / Daily Transits / Reminders / Match
-   |
-   +-----------------------------------+
-                                       |
-                                  AI Orchestrator (:8084)
-                                       |
-                                 RabbitMQ + Redis
+Mobile App (Expo/React Native)
+Admin Panel (Next.js)
+         │
+         ▼
+   API Gateway :8080
+   (JWT filter, routing, rate limiting)
+         │
+  ┌──────┴──────────────────────────────┐
+  │                                     │
+Auth :8081              Astrology :8083  │
+(register, login,       (natal chart,   │
+ profile, JWT)          synastry,       │
+                        horoscopes,     │
+                        dream journal,  │
+                        cosmic planner) │
+                                        │
+AI Orchestrator :8084 ◄─────────────────┘
+(LLM gateway · Groq)
+         │
+         │ RabbitMQ (per-service response queues)
+         ▼
+Notification :8088 · Numerology :8085 · Oracle :8087
+Vision :8089 · Spiritual :8091
 
-Oracle (:8087) | Notification (:8088) | Vision (:8089) | Spiritual (:8091)
-
-Service Discovery: Eureka Service Registry (:8761)
+Service Registry (Eureka) :8761
 ```
 
-## Servisler ve Portlar
+### Services
 
-| Servis | Port | Aciklama |
-|--------|------|----------|
-| API Gateway | 8080 | Tek giris noktasi, routing, security filtreleri |
-| Auth Service | 8081 | Kimlik dogrulama, kayit/giris, profil |
-| Astrology Service | 8083 | Natal chart, synastry, daily transits, cosmic planner |
-| AI Orchestrator | 8084 | LLM orkestrasyonu, prompt fallback ve model secimi |
-| Numerology Service | 8085 | Numeroloji analizleri |
-| Dream Service | 8086 | Ruya kaydi ve yorum |
-| Oracle Service | 8087 | Servisler arasi sentez (gunun yorumu vb.) |
-| Notification Service | 8088 | REST + WebSocket bildirim altyapisi |
-| Vision Service | 8089 | Gorsel analiz (kahve/eli vb.) |
-| Spiritual Service | 8091 | Spirituel icerik/akislari |
+| Service | Port | Description |
+|---------|------|-------------|
+| API Gateway | 8080 | Single entry point, JWT filtering, rate limiting |
+| Auth Service | 8081 | Registration, login, email verification, profile |
+| Astrology Service | 8083 | Natal chart, synastry, daily transits, cosmic planner, horoscopes, dream journal |
+| AI Orchestrator | 8084 | LLM gateway (Groq), prompt enrichment, model selection |
+| Numerology Service | 8085 | Pythagorean numerology analysis |
+| Oracle Service | 8087 | Cross-service daily synthesis aggregator |
+| Notification Service | 8088 | Push + in-app + WebSocket + **Admin API** + **CMS** |
+| Vision Service | 8089 | Multimodal image analysis (coffee/palm reading) |
+| Spiritual Service | 8091 | Prayer, Asma al-Husna, breath exercises, journal |
 | Service Registry | 8761 | Eureka service discovery |
 
-## Teknoloji Stack
+### Tech Stack
 
-### Backend
+**Backend:**
+- Java 21 · Spring Boot 3.4.x · Spring Cloud 2024.0.0
+- PostgreSQL (per-service DB) · Redis · RabbitMQ
+- JWT (JJWT) · Resilience4j · Micrometer · Zipkin
+- Groq API (Whisper ASR + LLM)
 
-- Java 21
-- Spring Boot 3.4.x, Spring Cloud 2024.0.0
-- Spring Cloud Gateway, Eureka
-- PostgreSQL, Redis, RabbitMQ
-- JWT (JJWT), Resilience4j, Micrometer, Zipkin
+**Mobile:**
+- React Native · Expo SDK 50+ · Expo Router (file-based)
+- TypeScript · Zustand · TanStack Query · NativeWind
 
-### Mobile
+**Admin Panel:**
+- Next.js 14+ · TypeScript · TanStack Query · Tailwind CSS
 
-- React Native + Expo SDK 50
-- Expo Router (file-based navigation)
-- TypeScript, Zustand, NativeWind
-- TanStack Query, Axios
+**Infrastructure:**
+- Docker / Docker Compose · Maven multi-module monorepo
 
-### Altyapi
+### Quick Start
 
-- Docker / Docker Compose
-- Maven multi-module monorepo
-
-## Hizli Baslangic
-
-### Gereksinimler
-
-- Java 21+
-- Maven 3.9+
-- Docker + Docker Compose
-- Node.js 18+ (onerilen 20 LTS)
-
-### 1) Ortam Dosyalarini Hazirla
+**Prerequisites:** Java 21, Maven 3.9+, Node.js 20+, Docker
 
 ```bash
+# 1. Copy environment files
 cp .env.example .env
 cp mysticai-mobile/.env.example mysticai-mobile/.env
-```
 
-### 2) Altyapiyi Baslat
-
-```bash
+# 2. Start infrastructure
 make infra
-# alternatif:
-# docker compose up -d postgres rabbitmq redis zipkin mailhog
-```
 
-### 3) Backend Servislerini Baslat
-
-Onerilen yol:
-
-```bash
+# 3. Build & start all backend services
 chmod +x start-services.sh
 ./start-services.sh
+
+# 4. Start admin panel (separate terminal)
+cd mystic-admin && pnpm install && pnpm dev
+# → http://localhost:3001
+
+# 5. Start mobile app (separate terminal)
+cd mysticai-mobile && npm install && npm run start
 ```
 
-Manuel yol (sirayla):
+### Key Features
+
+- 🌟 **Natal Chart** — Sun, Moon, Rising sign calculations with AI interpretation
+- 🌙 **Daily Transits** — Real-time planetary transit tracking
+- 📅 **Cosmic Planner** — Monthly/daily AI-powered planning
+- 💫 **Synastry** — Relationship compatibility analysis
+- 💭 **Dream Journal** — Voice recording (Groq Whisper) + AI interpretation
+- 🔢 **Numerology** — Name and birth date destiny number analysis
+- 🕌 **Spiritual Practices** — Prayer (Dua), Asma al-Husna counter, breath exercises
+- 👁️ **Vision** — Coffee cup and palm reading via image AI
+- 📢 **Smart Notifications** — Engagement-scored, preference-aware push + in-app
+- 🖥️ **CMS** — Admin-controlled home sections, explore cards, banners, horoscopes
+- 🛡️ **Admin Panel** — Full CMS, notification management, route registry, audit logs
+
+### Environment Variables
+
+**Backend `.env`**
+
+| Variable | Default |
+|----------|---------|
+| `DB_HOST` | `localhost` |
+| `DB_PORT` | `5432` |
+| `DB_USER` | `mystic` |
+| `DB_PASSWORD` | `mystic123` |
+| `RABBITMQ_HOST` | `localhost` |
+| `REDIS_HOST` | `localhost` |
+| `JWT_SECRET` | Base64 secret (min 32 chars) |
+| `GROQ_API_KEY` | Groq API key |
+| `ENV` | `local` |
+| `API_PUBLIC_URL` | `http://localhost:8080` |
+
+**Mobile `mysticai-mobile/.env`**
+
+| Variable | Description |
+|----------|-------------|
+| `EXPO_PUBLIC_APP_ENV` | `dev / stage / prod` |
+| `EXPO_PUBLIC_API_BASE_URL_DEV` | API URL for development |
+
+### Monitoring Tools
+
+| Tool | URL |
+|------|-----|
+| Eureka | http://localhost:8761 |
+| RabbitMQ UI | http://localhost:15672 |
+| Zipkin | http://localhost:9411 |
+| MailHog | http://localhost:8025 |
+| Swagger | http://localhost:8080/swagger-ui.html |
+| pgAdmin | http://localhost:5050 |
+| Grafana | http://localhost:3000 |
+
+### Project Structure
+
+```
+mystic-ai/
+├── api-gateway/            # Spring Cloud Gateway
+├── auth-service/           # Authentication & profile
+├── astrology-service/      # Astrology + dream + horoscopes
+├── ai-orchestrator/        # LLM gateway (Groq)
+├── numerology-service/     # Numerology analysis
+├── oracle-service/         # Daily synthesis aggregator
+├── notification-service/   # Push + CMS + Admin API
+├── vision-service/         # Image analysis
+├── spiritual-service/      # Spiritual practices
+├── mystic-common/          # Shared DTOs & utilities
+├── service-registry/       # Eureka
+├── mysticai-mobile/        # React Native Expo app
+├── mystic-admin/           # Next.js admin panel
+├── docs/                   # Documentation
+│   ├── project-blueprint.md
+│   └── USAGE_GUIDE.md
+├── docker/
+├── docker-compose.yml
+├── Makefile
+└── start-services.sh
+```
+
+### Documentation
+
+- [Project Blueprint](docs/project-blueprint.md) — Architecture reference
+- [Usage Guide](docs/USAGE_GUIDE.md) — Setup, troubleshooting, common errors
+
+---
+
+## 🇹🇷 Türkçe
+
+### Genel Bakış
+
+Mystic AI; astroloji, numeroloji, rüya yorumu ve spiritüel pratikleri yapay zeka ile birleştiren, mikroservis mimarisi üzerine kurulmuş bir platformdur. Üç temel bileşenden oluşur:
+
+- **Backend:** 10 Spring Boot mikroservisi
+- **Mobil Uygulama:** iOS ve Android için React Native (Expo)
+- **Admin Paneli:** İçerik ve bildirim yönetimi için Next.js dashboard
+
+### Mimari
+
+```
+Mobil Uygulama (Expo/React Native)
+Admin Paneli (Next.js)
+        │
+        ▼
+  API Gateway :8080
+  (JWT filtre, yönlendirme, rate limiting)
+        │
+  ┌─────┴──────────────────────────────────┐
+  │                                        │
+Auth :8081              Astrology :8083     │
+(kayıt, giriş,          (natal chart,      │
+ profil, JWT)           synastry,          │
+                        burç takvimi,      │
+                        rüya günlüğü,      │
+                        cosmic planner)    │
+                                           │
+AI Orchestrator :8084 ◄─────────────────── ┘
+(LLM ağ geçidi · Groq)
+        │
+        │ RabbitMQ (servis başına yanıt kuyruğu)
+        ▼
+Notification :8088 · Numeroloji :8085 · Oracle :8087
+Vision :8089 · Spiritual :8091
+
+Service Registry (Eureka) :8761
+```
+
+### Servisler
+
+| Servis | Port | Açıklama |
+|--------|------|----------|
+| API Gateway | 8080 | Tek giriş noktası, JWT filtreleme, rate limiting |
+| Auth Service | 8081 | Kayıt, giriş, e-posta doğrulama, profil |
+| Astrology Service | 8083 | Natal chart, synastry, günlük transit, cosmic planner, burç takvimi, rüya günlüğü |
+| AI Orchestrator | 8084 | LLM ağ geçidi (Groq), prompt zenginleştirme |
+| Numerology Service | 8085 | Pythagorean numeroloji analizleri |
+| Oracle Service | 8087 | Servisler arası günlük sentez agregator |
+| Notification Service | 8088 | Push + in-app + WebSocket + **Admin API** + **CMS** |
+| Vision Service | 8089 | Çok modlu görsel analiz (kahve/el falı) |
+| Spiritual Service | 8091 | Dua, Esmaül Hüsna sayacı, nefes egzersizleri, günlük |
+| Service Registry | 8761 | Eureka servis keşfi |
+
+### Teknoloji Yığını
+
+**Backend:**
+- Java 21 · Spring Boot 3.4.x · Spring Cloud 2024.0.0
+- PostgreSQL (servis başına ayrı DB) · Redis · RabbitMQ
+- JWT (JJWT) · Resilience4j · Micrometer · Zipkin
+- Groq API (Whisper sesli transkripsiyon + LLM)
+
+**Mobil:**
+- React Native · Expo SDK 50+ · Expo Router (dosya tabanlı)
+- TypeScript · Zustand · TanStack Query · NativeWind
+
+**Admin Paneli:**
+- Next.js 14+ · TypeScript · TanStack Query · Tailwind CSS
+
+**Altyapı:**
+- Docker / Docker Compose · Maven multi-module monorepo
+
+### Hızlı Başlangıç
+
+**Gereksinimler:** Java 21, Maven 3.9+, Node.js 20+, Docker
 
 ```bash
-cd service-registry && mvn spring-boot:run
-cd auth-service && mvn spring-boot:run
-cd ai-orchestrator && mvn spring-boot:run
-cd astrology-service && mvn spring-boot:run
-cd numerology-service && mvn spring-boot:run
-cd dream-service && mvn spring-boot:run
-cd oracle-service && mvn spring-boot:run
-cd notification-service && mvn spring-boot:run
-cd vision-service && mvn spring-boot:run
-cd spiritual-service && mvn spring-boot:run
-cd api-gateway && mvn spring-boot:run
+# 1. Ortam dosyalarını hazırla
+cp .env.example .env
+cp mysticai-mobile/.env.example mysticai-mobile/.env
+
+# 2. Altyapıyı başlat
+make infra
+
+# 3. Backend servislerini derle ve başlat
+chmod +x start-services.sh
+./start-services.sh
+
+# 4. Admin panelini başlat (ayrı terminal)
+cd mystic-admin && pnpm install && pnpm dev
+# → http://localhost:3001
+
+# 5. Mobil uygulamayı başlat (ayrı terminal)
+cd mysticai-mobile && npm install && npm run start
 ```
 
-### 4) Mobil Uygulamayi Baslat
+### Temel Özellikler
 
-```bash
-cd mysticai-mobile
-npm install
-npm run start
-```
+- 🌟 **Natal Chart** — Güneş, Ay, Yükselen konumu hesaplamaları ve AI yorumu
+- 🌙 **Günlük Transitler** — Anlık gezegen transit takibi
+- 📅 **Cosmic Planner** — Aylık/günlük AI destekli planlama
+- 💫 **Synastry** — İlişki uyumu analizi
+- 💭 **Rüya Günlüğü** — Sesli kayıt (Groq Whisper) + AI yorumu
+- 🔢 **Numeroloji** — İsim ve doğum tarihi kader sayısı analizi
+- 🕌 **Spiritüel Pratikler** — Dua, Esmaül Hüsna sayacı, nefes egzersizleri
+- 👁️ **Vision** — Kahve fincanı ve el falı görsel AI analizi
+- 📢 **Akıllı Bildirimler** — Etkileşim puanlı, tercih duyarlı push ve in-app bildirimler
+- 🖥️ **CMS** — Admin kontrollü ana ekran bölümleri, keşif kartları, banner'lar, burç içerikleri
+- 🛡️ **Admin Paneli** — Tam CMS, bildirim yönetimi, route kaydı, audit logları
 
-Notlar:
+### Ortam Değişkenleri
 
-- Expo development server varsayilan olarak `:8090` portunda calisir.
-- Android emulatorde API icin `http://10.0.2.2:8080` kullanin.
+**Backend `.env`**
 
-## Ortam Degiskenleri
-
-### Backend `.env`
-
-| Degisken | Varsayilan |
+| Değişken | Varsayılan |
 |----------|------------|
 | `DB_HOST` | `localhost` |
 | `DB_PORT` | `5432` |
 | `DB_USER` | `mystic` |
 | `DB_PASSWORD` | `mystic123` |
 | `RABBITMQ_HOST` | `localhost` |
-| `RABBITMQ_PORT` | `5672` |
-| `RABBITMQ_VHOST` | `mystic` |
 | `REDIS_HOST` | `localhost` |
-| `REDIS_PORT` | `6379` |
-| `JWT_SECRET` | Base64 secret |
-| `ENV` | `local` (`local / staging / prod`) |
+| `JWT_SECRET` | Base64 secret (min 32 karakter) |
+| `GROQ_API_KEY` | Groq API anahtarı |
+| `ENV` | `local` |
 | `API_PUBLIC_URL` | `http://localhost:8080` |
-| `APP_PUBLIC_URL` | bos (`https://app.<domain>` when domain is ready) |
-| `VERIFICATION_TOKEN_PEPPER` | secret pepper |
-| `VERIFICATION_TOKEN_TTL_HOURS` | `24` |
-| `VERIFICATION_RESEND_COOLDOWN_SECONDS` | `60` |
-| `VERIFICATION_RESEND_DAILY_LIMIT` | `5` |
-| `MAIL_HOST` | `localhost` (MailHog: `1025`) |
-| `MAIL_PORT` | `1025` |
-| `MAIL_FROM` | `no-reply@mysticai.local` |
-| `GROQ_API_KEY` | AI key |
 
-### Mobile `mysticai-mobile/.env`
+**Mobil `mysticai-mobile/.env`**
 
-| Degisken | Aciklama |
+| Değişken | Açıklama |
 |----------|----------|
 | `EXPO_PUBLIC_APP_ENV` | `dev / stage / prod` |
-| `EXPO_PUBLIC_API_BASE_URL_DEV` | Gelistirme API URL (`http://localhost:8080`) |
-| `EXPO_PUBLIC_API_BASE_URL_STAGE` | Stage API URL |
-| `EXPO_PUBLIC_API_BASE_URL_PROD` | Production API URL |
-| `EXPO_PUBLIC_USE_MOCK` | Mock data togglesi |
-| `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` | Places API anahtari |
-| `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | Maps API anahtari |
+| `EXPO_PUBLIC_API_BASE_URL_DEV` | Geliştirme ortamı API URL'i |
 
-## Email Verification (Domain yokken ve domain varken)
+### Monitoring Araçları
 
-Auth endpointleri:
-
-- `POST /api/v1/auth/register` -> `{ \"status\": \"PENDING_VERIFICATION\" }`
-- `POST /api/v1/auth/verification/resend` -> her zaman `{ \"ok\": true }`
-- `GET /api/v1/auth/verify-email?token=...`
-- `POST /api/v1/auth/login` -> verified degilse `401` + `EMAIL_NOT_VERIFIED`
-
-Mail linki her ortamda backend URL'sine gider:
-
-`{API_PUBLIC_URL}/api/v1/auth/verify-email?token=<rawToken>`
-
-Verify endpoint davranisi:
-
-- `ENV=local`: her zaman HTML sonucu doner (success/expired/invalid)
-- `ENV=staging`: `APP_PUBLIC_URL` varsa success durumda `302 -> {APP_PUBLIC_URL}/verify-email?result=success`, yoksa HTML fallback
-- `ENV=prod`: her zaman `302 -> {APP_PUBLIC_URL}/verify-email?result=success|expired|invalid`
-
-### Domain yokken telefon testi (ngrok/IP)
-
-1. Backend servislerini localde calistir.
-2. `ngrok http 8080` komutuyla public tunnel ac.
-3. `API_PUBLIC_URL` degerini ngrok URL yap (ornek: `https://xxxx.ngrok-free.app`).
-4. Register ol. Maildeki verify linki ngrok URL ile backend'e doner.
-5. Verify tamamlaninca:
-   - `ENV=staging` + `APP_PUBLIC_URL` yoksa HTML fallback gorunur.
-   - `APP_PUBLIC_URL` varsa success durumunda app/web verify sayfasina redirect olur.
-
-Not:
-
-- Domain olmadan universal/app links test etmek istersen, `APP_PUBLIC_URL` degerini ngrok ile yayinlanan bir verify web sayfasina verebilirsin.
-- Domain hazir oldugunda kod degisikligi gerekmiyor. Sadece env guncelle:
-  - `API_PUBLIC_URL=https://api.<domain>`
-  - `APP_PUBLIC_URL=https://app.<domain>`
-- Expo tarafinda custom scheme `mystic-ai://verify-email` tanimli. Uygulamada `/verify-email` ekrani `result` query parametresine gore durum gosterir.
-
-### RabbitMQ Retry/DLQ Isletim Notu
-
-- Worker hata aldiginda mesaj direkt requeue olmaz; `auth.email.verification.retry.queue` uzerinden gecikmeli retry alir.
-- Maks retry asildiginda mesaj `auth.email.verification.dlq` kuyruğuna tasinir.
-- Kuyruklari kontrol etmek icin RabbitMQ UI (`http://localhost:15672`) veya:
-  - `docker exec mystic-rabbitmq rabbitmqctl list_queues name messages`
-- DLQ replay ihtiyacinda mesajlari `auth.email.verification.send` routing key ile tekrar publish edin.
-
-## Yeni API Gruplari
-
-Gateway uzerinden cagrilir: `http://localhost:8080`
-
-### Daily Transits
-
-- `GET /api/v1/daily/transits`
-- `GET /api/v1/daily/transits/actions`
-- `POST /api/v1/daily/transits/actions/{actionId}/done`
-- `POST /api/v1/feedback`
-
-### Cosmic Planner
-
-- `GET /api/v1/cosmic-planner/month`
-- `GET /api/v1/cosmic-planner/day`
-- `GET /api/v1/cosmic-planner/day/categories`
-
-### Planner Reminders
-
-- `POST /api/v1/reminders`
-- `GET /api/v1/reminders`
-- `PATCH /api/v1/reminders/{id}`
-- `DELETE /api/v1/reminders/{id}`
-
-## Veritabanlari
-
-Varsayilan PostgreSQL veritabani adlari:
-
-- `mystic_auth`
-- `mystic_astrology`
-- `mystic_dream`
-- `mystic_numerology`
-- `mystic_oracle`
-- `mystic_notification`
-- `mystic_vision`
-- `mystic_spiritual`
-
-## Monitoring ve Araclar
-
-```bash
-# Monitoring
-docker compose --profile monitoring up -d
-
-# Tooling
-docker compose --profile tools up -d
-```
-
-| Arac | URL |
+| Araç | URL |
 |------|-----|
 | Eureka | http://localhost:8761 |
-| Swagger (Gateway) | http://localhost:8080/swagger-ui.html |
 | RabbitMQ UI | http://localhost:15672 |
-| MailHog UI | http://localhost:8025 |
 | Zipkin | http://localhost:9411 |
+| MailHog | http://localhost:8025 |
+| Swagger | http://localhost:8080/swagger-ui.html |
 | pgAdmin | http://localhost:5050 |
 | Grafana | http://localhost:3000 |
 
-## Proje Yapisi
+### Proje Yapısı
 
-```text
+```
 mystic-ai/
-├── service-registry/
-├── api-gateway/
-├── auth-service/
-├── astrology-service/
-├── ai-orchestrator/
-├── numerology-service/
-├── dream-service/
-├── oracle-service/
-├── notification-service/
-├── vision-service/
-├── spiritual-service/
-├── mystic-common/
-├── mysticai-mobile/
-├── docs/
-└── docker/
+├── api-gateway/            # Spring Cloud Gateway
+├── auth-service/           # Kimlik doğrulama ve profil
+├── astrology-service/      # Astroloji + rüya + burç
+├── ai-orchestrator/        # LLM ağ geçidi (Groq)
+├── numerology-service/     # Numeroloji analizi
+├── oracle-service/         # Günlük sentez agregator
+├── notification-service/   # Push + CMS + Admin API
+├── vision-service/         # Görsel analiz
+├── spiritual-service/      # Spiritüel pratikler
+├── mystic-common/          # Ortak DTO ve utility'ler
+├── service-registry/       # Eureka
+├── mysticai-mobile/        # React Native Expo uygulaması
+├── mystic-admin/           # Next.js admin paneli
+├── docs/                   # Dökümentasyon
+│   ├── project-blueprint.md
+│   └── USAGE_GUIDE.md
+├── docker/
+├── docker-compose.yml
+├── Makefile
+└── start-services.sh
 ```
 
-## Ek Dokumanlar
+### Dökümanlar
 
-- Genel kullanim rehberi: `docs/USAGE_GUIDE.md`
-- Mobil daily transits QA checklist: `mysticai-mobile/docs/DAILY_TRANSITS_RELEASE_QA_CHECKLIST.md`
-- Mobil production readiness: `mysticai-mobile/docs/PROD_READINESS.md`
+- [Proje Mimari Rehberi](docs/project-blueprint.md) — Mimari referans belgesi
+- [Kullanım Rehberi](docs/USAGE_GUIDE.md) — Kurulum, sorun giderme, yaygın hatalar
+
+---
+
+<div align="center">
+
+**Mystic AI Development Team** · Mart 2026
+
+</div>
