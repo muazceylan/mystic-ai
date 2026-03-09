@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,14 @@ import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
+import {
+  PROFILE_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 
 interface UserStats {
   plannedDays: number;
@@ -38,6 +46,7 @@ const SETTINGS_ITEMS = [
   { id: 'language',      titleKey: 'profile.menu.language',      icon: 'globe-outline',         route: '/language-settings' },
   { id: 'security',      titleKey: 'profile.menu.security',      icon: 'shield-checkmark-outline', route: '/security' },
   { id: 'privacy',       titleKey: 'profile.menu.privacy',       icon: 'lock-closed-outline',   route: '/privacy' },
+  { id: 'tutorial_center', titleKey: 'Rehber Merkezi', icon: 'albums-outline', route: '/tutorial-center' },
   { id: 'help',          titleKey: 'profile.menu.help',          icon: 'help-circle-outline',   route: '/help' },
 ] as const;
 
@@ -66,6 +75,9 @@ export default function ProfileScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.PROFILE);
+  const tutorialBootstrapRef = useRef<string | null>(null);
 
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -79,6 +91,16 @@ export default function ProfileScreen() {
   const zodiac = user?.zodiacSign || getZodiacFromBirthDate(user?.birthDate);
   const premium = isPremium(user?.roles);
   const avatarUri = user?.avatarUri || user?.avatarUrl || null;
+
+  useEffect(() => {
+    const scope = user?.id ? String(user.id) : 'guest';
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, user?.id]);
 
   const fetchStats = useCallback(async (isRefresh = false) => {
     if (!user?.id) { setLoadingStats(false); return; }
@@ -109,6 +131,10 @@ export default function ProfileScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route as any);
   };
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.PROFILE_FOUNDATION, 'profile');
+  }, [reopenTutorialById]);
 
   const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -171,7 +197,22 @@ export default function ProfileScreen() {
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={S.container}>
         <OnboardingBackground />
-        <TabHeader showAvatar={false} {...useTabHeaderActions()} />
+        <TabHeader
+          showAvatar={false}
+          rightActions={(
+            <SpotlightTarget targetKey={PROFILE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <TouchableOpacity
+                style={S.helpBtn}
+                onPress={handlePressTutorialHelp}
+                accessibilityRole="button"
+                accessibilityLabel="Profil rehberini tekrar aç"
+              >
+                <Ionicons name="help-circle-outline" size={18} color={colors.text} />
+              </TouchableOpacity>
+            </SpotlightTarget>
+          )}
+          {...useTabHeaderActions()}
+        />
         <ScrollView
         style={S.scroll}
         contentContainerStyle={[S.scrollContent, { paddingBottom: tabBarHeight + 28 }]}
@@ -186,7 +227,8 @@ export default function ProfileScreen() {
         }
       >
         {/* ── Profile Header ── */}
-        <View style={S.profileHeader}>
+        <SpotlightTarget targetKey={PROFILE_TUTORIAL_TARGET_KEYS.PERSONAL_INFO}>
+          <View style={S.profileHeader}>
           <TouchableOpacity
             style={S.avatarButton}
             onPress={handlePickAvatar}
@@ -245,7 +287,8 @@ export default function ProfileScreen() {
               <Text style={S.zodiacText}>{zodiac}</Text>
             </View>
           ) : null}
-        </View>
+          </View>
+        </SpotlightTarget>
 
         {/* ── Stats ── */}
         <View style={S.statsContainer}>
@@ -293,26 +336,37 @@ export default function ProfileScreen() {
 
         {/* ── Settings ── */}
         <Text style={S.sectionTitle}>{t('profile.settings')}</Text>
-        <View style={S.settingsCard}>
+        <SpotlightTarget targetKey={PROFILE_TUTORIAL_TARGET_KEYS.PREFERENCES}>
+          <View style={S.settingsCard}>
           {SETTINGS_ITEMS.map((item, index) => (
-            <TouchableOpacity
+            <SpotlightTarget
               key={item.id}
-              style={[S.settingsItem, index > 0 && S.settingsItemBorder]}
-              onPress={() => handleSettingPress(item.route)}
-              accessibilityLabel={t(item.titleKey)}
-              accessibilityRole="button"
-              activeOpacity={0.7}
+              targetKey={item.id === 'tutorial_center'
+                ? PROFILE_TUTORIAL_TARGET_KEYS.TUTORIAL_CENTER_ENTRY
+                : `${item.id}.noop`}
+              disabled={item.id !== 'tutorial_center'}
             >
-              <View style={S.settingsRow}>
-                <View style={S.iconContainer}>
-                  <Ionicons name={item.icon as any} size={18} color={colors.primary} />
+              <TouchableOpacity
+                style={[S.settingsItem, index > 0 && S.settingsItemBorder]}
+                onPress={() => handleSettingPress(item.route)}
+                accessibilityLabel={item.id === 'tutorial_center' ? 'Rehber Merkezi' : t(item.titleKey as any)}
+                accessibilityRole="button"
+                activeOpacity={0.7}
+              >
+                <View style={S.settingsRow}>
+                  <View style={S.iconContainer}>
+                    <Ionicons name={item.icon as any} size={18} color={colors.primary} />
+                  </View>
+                  <Text style={S.settingsTitle}>
+                    {item.id === 'tutorial_center' ? 'Rehber Merkezi' : t(item.titleKey as any)}
+                  </Text>
                 </View>
-                <Text style={S.settingsTitle}>{t(item.titleKey)}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
-            </TouchableOpacity>
+                <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
+              </TouchableOpacity>
+            </SpotlightTarget>
           ))}
-        </View>
+          </View>
+        </SpotlightTarget>
 
         {/* ── Logout ── */}
         <TouchableOpacity
@@ -435,6 +489,16 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     settingsItemBorder: { borderTopWidth: 1, borderTopColor: C.border },
     settingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    helpBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     iconContainer: {
       width: 34, height: 34, borderRadius: 17,
       backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center',

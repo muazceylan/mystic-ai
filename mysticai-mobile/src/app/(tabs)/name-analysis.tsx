@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -9,6 +9,15 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { useTheme } from '../../context/ThemeContext';
 import { NameTagChip } from '../../components/NameModule';
 import { trackEvent } from '../../services/analytics';
+import { useAuthStore } from '../../store/useAuthStore';
+import {
+  NAME_ANALYSIS_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 
 const POPULAR_TAGS = ['modern', 'classic', 'quranic', 'nature', 'strong', 'soft'];
 const QUICK_NAMES = ['Elif', 'Mira', 'Yusuf', 'Defne', 'Kerem', 'Alina'];
@@ -162,6 +171,10 @@ export default function NameLandingScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { t } = useTranslation();
   const tabBarHeight = useBottomTabBarHeight();
+  const userId = useAuthStore((state) => state.user?.id);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.NAME_ANALYSIS);
+  const tutorialBootstrapRef = useRef<string | null>(null);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -170,6 +183,20 @@ export default function NameLandingScreen() {
       screen: 'name_landing',
     });
   }, []);
+
+  useEffect(() => {
+    const scope = userId ? String(userId) : 'guest';
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, userId]);
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.NAME_ANALYSIS_FOUNDATION, 'name_analysis');
+  }, [reopenTutorialById]);
 
   const goToSearch = (preset?: string) => {
     const token = (preset ?? query).trim();
@@ -188,7 +215,16 @@ export default function NameLandingScreen() {
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </Pressable>
           <Text style={styles.headerTitle}>{t('home.nameAnalysis', { defaultValue: 'İsim Analizi' })}</Text>
-          <View style={{ width: 40 }} />
+          <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+            <Pressable
+              style={styles.backButton}
+              onPress={handlePressTutorialHelp}
+              accessibilityRole="button"
+              accessibilityLabel="İsim analizi rehberini tekrar aç"
+            >
+              <Ionicons name="help-circle-outline" size={20} color={colors.text} />
+            </Pressable>
+          </SpotlightTarget>
         </View>
 
         <ScrollView
@@ -202,41 +238,47 @@ export default function NameLandingScreen() {
               Tek bakışta isim özeti, detayda güvenilir açıklama ve benzer isim keşfi.
             </Text>
 
-            <View style={styles.searchRow}>
-              <Ionicons name="search" size={18} color={colors.subtext} />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder={t('nameModule.searchPlaceholder', { defaultValue: 'İsim ara (örn: Elif)' })}
-                placeholderTextColor={colors.subtext}
-                style={styles.searchInput}
-                returnKeyType="search"
-                onSubmitEditing={() => goToSearch()}
-              />
-            </View>
-
-            <View style={styles.ctaRow}>
-              <Pressable style={styles.primaryButton} onPress={() => goToSearch()}>
-                <Text style={styles.primaryButtonText}>İsim Ara</Text>
-              </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/name-favorites')}>
-                <Text style={styles.secondaryButtonText}>Favorilerim</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popüler Kategoriler</Text>
-            <View style={styles.tagsRow}>
-              {POPULAR_TAGS.map((tag) => (
-                <NameTagChip
-                  key={tag}
-                  label={tag}
-                  onPress={() => router.push({ pathname: '/(tabs)/name-search', params: { tag } })}
+            <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.NAME_INPUT}>
+              <View style={styles.searchRow}>
+                <Ionicons name="search" size={18} color={colors.subtext} />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={t('nameModule.searchPlaceholder', { defaultValue: 'İsim ara (örn: Elif)' })}
+                  placeholderTextColor={colors.subtext}
+                  style={styles.searchInput}
+                  returnKeyType="search"
+                  onSubmitEditing={() => goToSearch()}
                 />
-              ))}
-            </View>
+              </View>
+            </SpotlightTarget>
+
+            <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.SAVE_SHARE_ENTRY}>
+              <View style={styles.ctaRow}>
+                <Pressable style={styles.primaryButton} onPress={() => goToSearch()}>
+                  <Text style={styles.primaryButtonText}>İsim Ara</Text>
+                </Pressable>
+                <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/name-favorites')}>
+                  <Text style={styles.secondaryButtonText}>Favorilerim</Text>
+                </Pressable>
+              </View>
+            </SpotlightTarget>
           </View>
+
+          <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.MEANING_PANEL}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Popüler Kategoriler</Text>
+              <View style={styles.tagsRow}>
+                {POPULAR_TAGS.map((tag) => (
+                  <NameTagChip
+                    key={tag}
+                    label={tag}
+                    onPress={() => router.push({ pathname: '/(tabs)/name-search', params: { tag } })}
+                  />
+                ))}
+              </View>
+            </View>
+          </SpotlightTarget>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Hızlı Girişler</Text>

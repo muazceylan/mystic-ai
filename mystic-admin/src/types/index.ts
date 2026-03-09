@@ -344,6 +344,113 @@ export interface PlacementBanner {
   updatedAt: string;
 }
 
+// ── Tutorial Config CMS ──────────────────────────────────
+
+export type TutorialPlatform = 'MOBILE' | 'IOS' | 'ANDROID' | 'WEB' | 'ALL';
+export type TutorialConfigStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type TutorialPresentationType = 'SPOTLIGHT_CARD' | 'FULLSCREEN_CAROUSEL' | 'INLINE_HINT';
+
+export interface TutorialConfigStep {
+  id?: number;
+  stepId: string;
+  orderIndex: number;
+  title: string;
+  body: string;
+  targetKey: string;
+  iconKey?: string;
+  presentationType?: TutorialPresentationType;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TutorialConfigSummary {
+  id: number;
+  tutorialId: string;
+  name: string;
+  screenKey: string;
+  platform: TutorialPlatform;
+  version: number;
+  status: TutorialConfigStatus;
+  isActive: boolean;
+  priority: number;
+  updatedBy?: string;
+  updatedAt: string;
+}
+
+export interface TutorialConfig {
+  id: number;
+  tutorialId: string;
+  name: string;
+  screenKey: string;
+  platform: TutorialPlatform;
+  version: number;
+  status: TutorialConfigStatus;
+  isActive: boolean;
+  priority: number;
+  presentationType: TutorialPresentationType;
+  startAt?: string;
+  endAt?: string;
+  description?: string;
+  audienceRules?: string;
+  minAppVersion?: string;
+  maxAppVersion?: string;
+  locale?: string;
+  experimentKey?: string;
+  rolloutPercentage?: number;
+  createdBy?: string;
+  updatedBy?: string;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  steps: TutorialConfigStep[];
+}
+
+export interface TutorialConfigUpsertRequest {
+  tutorialId: string;
+  name: string;
+  screenKey: string;
+  platform: TutorialPlatform;
+  version: number;
+  isActive: boolean;
+  priority: number;
+  presentationType: TutorialPresentationType;
+  startAt?: string;
+  endAt?: string;
+  description?: string;
+  audienceRules?: string;
+  minAppVersion?: string;
+  maxAppVersion?: string;
+  locale?: string;
+  experimentKey?: string;
+  rolloutPercentage?: number;
+  status?: Exclude<TutorialConfigStatus, 'PUBLISHED'>;
+  steps: Array<{
+    stepId: string;
+    orderIndex: number;
+    title: string;
+    body: string;
+    targetKey: string;
+    iconKey?: string;
+    presentationType?: TutorialPresentationType;
+    isActive: boolean;
+  }>;
+}
+
+export interface TutorialContractOptions {
+  screenKeys: string[];
+  targetKeysByScreen: Record<string, string[]>;
+  platformOptions: TutorialPlatform[];
+  presentationTypeOptions: TutorialPresentationType[];
+  statusOptions: TutorialConfigStatus[];
+}
+
+export interface TutorialConfigBootstrapResponse {
+  createdCount: number;
+  skippedCount: number;
+  totalCount: number;
+}
+
 // ── Notification Catalog ──────────────────────────────────
 
 export type NotifChannelType = 'PUSH' | 'IN_APP' | 'BOTH';

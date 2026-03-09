@@ -70,6 +70,12 @@ import {
 } from '../../features/planner/plannerEngine';
 import { usePlannerPreferencesStore } from '../../store/usePlannerPreferencesStore';
 import { trackEvent } from '../../services/analytics';
+import {
+  COSMIC_PLANNER_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 
 const INITIAL_BACKEND_MONTHS_AHEAD = 2;
 const UI_FONT = Platform.OS === 'ios' ? 'Poppins' : 'Poppins';
@@ -543,6 +549,9 @@ export default function CalendarScreen() {
   const router = useRouter();
 
   const user = useAuthStore((s) => s.user);
+  const { trigger: triggerTutorial, triggerInitial: triggerInitialTutorials } = useTutorialTrigger(
+    TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER,
+  );
   const chart = useNatalChartStore((s) => s.chart);
   const natalChartLoading = useNatalChartStore((s) => s.isLoading);
 
@@ -595,6 +604,7 @@ export default function CalendarScreen() {
   const subAnalysisListOffsetYRef = useRef(0);
   const seenSubCategoryHapticKeysRef = useRef<Set<string>>(new Set());
   const lastSubCategoryHapticAtRef = useRef(0);
+  const tutorialBootstrapRef = useRef<string | null>(null);
 
   const months = useMemo(() => t('calendar.months').split(','), [t]);
   const shortDays = useMemo(() => t('calendar.shortDays').split(','), [t]);
@@ -642,6 +652,21 @@ export default function CalendarScreen() {
     }
   }, [activeFilter, visibleCategories, visibleDockCategories]);
 
+  useEffect(() => {
+    const scope = user?.id ? String(user.id) : null;
+    if (!scope) {
+      tutorialBootstrapRef.current = null;
+      return;
+    }
+
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, user?.id]);
+
   const closeDetailPanel = useCallback(() => {
     detailProgress.value = withTiming(0, {
       duration: 220,
@@ -674,6 +699,10 @@ export default function CalendarScreen() {
       easing: Easing.out(Easing.cubic),
     });
   }, [detailProgress]);
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void triggerTutorial('manual_reopen');
+  }, [triggerTutorial]);
 
   useEffect(() => () => {
     if (closeTimerRef.current) {
@@ -1658,6 +1687,16 @@ export default function CalendarScreen() {
             showDefaultRightIcons={false}
             rightActions={
               <View style={styles.headerActionsRow}>
+                <SpotlightTarget targetKey={COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+                  <TouchableOpacity
+                    style={styles.refreshButton}
+                    onPress={handlePressTutorialHelp}
+                    accessibilityRole="button"
+                    accessibilityLabel="Tutorial rehberini tekrar aç"
+                  >
+                    <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
+                  </TouchableOpacity>
+                </SpotlightTarget>
                 <TouchableOpacity
                   style={styles.refreshButton}
                   onPress={fetchPlannerData}
@@ -1705,37 +1744,39 @@ export default function CalendarScreen() {
               </View>
             )}
 
-            <View style={styles.navigatorRow}>
-              <TouchableOpacity
-                style={styles.navIconButton}
-                onPress={goPrevMonth}
-                accessibilityRole="button"
-                accessibilityLabel={t('calendar.previousMonth')}
-              >
-                <Ionicons name="chevron-back" size={18} color={colors.text} />
-              </TouchableOpacity>
+            <SpotlightTarget targetKey={COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.DATE_PICKER}>
+              <View style={styles.navigatorRow}>
+                <TouchableOpacity
+                  style={styles.navIconButton}
+                  onPress={goPrevMonth}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.previousMonth')}
+                >
+                  <Ionicons name="chevron-back" size={18} color={colors.text} />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.monthChip}
-                onPress={() => setMonthPickerVisible(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t('calendar.openMonthYearSelector')}
-              >
-                <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-                <Text style={styles.monthChipText}>
-                  {months[viewDate.getMonth()]} {viewDate.getFullYear()}
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.monthChip}
+                  onPress={() => setMonthPickerVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.openMonthYearSelector')}
+                >
+                  <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+                  <Text style={styles.monthChipText}>
+                    {months[viewDate.getMonth()]} {viewDate.getFullYear()}
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.navIconButton}
-                onPress={goNextMonth}
-                accessibilityRole="button"
-                accessibilityLabel={t('calendar.nextMonth')}
-              >
-                <Ionicons name="chevron-forward" size={18} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={styles.navIconButton}
+                  onPress={goNextMonth}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.nextMonth')}
+                >
+                  <Ionicons name="chevron-forward" size={18} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+            </SpotlightTarget>
 
             <View style={styles.weekRow}>
               {shortDays.map((day) => (
@@ -1887,69 +1928,77 @@ export default function CalendarScreen() {
               </View>
             )}
 
-            <View style={styles.dockHeader}>
-              <Text style={styles.dockTitle}>{t('calendar.categoryDock')}</Text>
-              <TouchableOpacity
-                style={styles.customizeButton}
-                onPress={() => setSettingsVisible(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t('calendar.customizeCategories')}
-              >
-                <Ionicons name="settings-outline" size={14} color={colors.primary} />
-                <Text style={styles.customizeButtonText}>{t('calendar.customize')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dockRow}>
-              {visibleDockCategories.map((category) => {
-                const isActive = activeFilter === category.id;
-                const dockLabel = t(COSMIC_DOCK_LABEL_OVERRIDE_KEYS[category.id] ?? category.labelKey);
-                return (
+            <SpotlightTarget targetKey={COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.CATEGORY_DOCK}>
+              <>
+                <View style={styles.dockHeader}>
+                  <Text style={styles.dockTitle}>{t('calendar.categoryDock')}</Text>
                   <TouchableOpacity
-                    key={category.id}
-                    style={[styles.categoryChip, isActive && styles.categoryChipActive]}
-                    onPress={() => onPressCategory(category.id)}
+                    style={styles.customizeButton}
+                    onPress={() => setSettingsVisible(true)}
                     accessibilityRole="button"
-                    accessibilityLabel={dockLabel}
+                    accessibilityLabel={t('calendar.customizeCategories')}
                   >
-                    <Ionicons name={category.icon as any} size={16} color={isActive ? colors.white : colors.subtext} />
-                    <Text style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]}>
-                      {dockLabel}
-                    </Text>
+                    <Ionicons name="settings-outline" size={14} color={colors.primary} />
+                    <Text style={styles.customizeButtonText}>{t('calendar.customize')}</Text>
                   </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                </View>
 
-            <View style={styles.alertCard}>
-              <View style={styles.alertHeader}>
-                <Ionicons name="notifications-outline" size={16} color={colors.primary} />
-                <Text style={styles.alertTitle}>{t('calendar.actionAlertTitle')}</Text>
-              </View>
-              {actionAlert ? (
-                <Text style={styles.alertText}>
-                  {t('calendar.actionAlertMessage', {
-                    date: formatDateLabel(actionAlert.date, months),
-                    category: t(actionAlert.category.labelKey),
-                    score: actionAlert.score,
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dockRow}>
+                  {visibleDockCategories.map((category) => {
+                    const isActive = activeFilter === category.id;
+                    const dockLabel = t(COSMIC_DOCK_LABEL_OVERRIDE_KEYS[category.id] ?? category.labelKey);
+                    return (
+                      <TouchableOpacity
+                        key={category.id}
+                        style={[styles.categoryChip, isActive && styles.categoryChipActive]}
+                        onPress={() => onPressCategory(category.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={dockLabel}
+                      >
+                        <Ionicons name={category.icon as any} size={16} color={isActive ? colors.white : colors.subtext} />
+                        <Text style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]}>
+                          {dockLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    );
                   })}
-                </Text>
-              ) : (
-                <Text style={styles.alertText}>{t('calendar.actionAlertEmpty')}</Text>
-              )}
-              <TouchableOpacity
-                style={styles.alertCtaButton}
-                onPress={() => openReminderComposer(
-                  actionAlert ? 'WINDOW_START' : 'DO',
-                  actionAlert?.date,
+                </ScrollView>
+              </>
+            </SpotlightTarget>
+
+            <SpotlightTarget targetKey={COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.DAILY_RECOMMENDATIONS}>
+              <View style={styles.alertCard}>
+                <View style={styles.alertHeader}>
+                  <Ionicons name="notifications-outline" size={16} color={colors.primary} />
+                  <Text style={styles.alertTitle}>{t('calendar.actionAlertTitle')}</Text>
+                </View>
+                {actionAlert ? (
+                  <Text style={styles.alertText}>
+                    {t('calendar.actionAlertMessage', {
+                      date: formatDateLabel(actionAlert.date, months),
+                      category: t(actionAlert.category.labelKey),
+                      score: actionAlert.score,
+                    })}
+                  </Text>
+                ) : (
+                  <Text style={styles.alertText}>{t('calendar.actionAlertEmpty')}</Text>
                 )}
-                accessibilityRole="button"
-                accessibilityLabel={t('calendar.setReminder')}
-              >
-                <Ionicons name="alarm-outline" size={14} color={colors.white} />
-                <Text style={styles.alertCtaText}>{t('calendar.setReminder')}</Text>
-              </TouchableOpacity>
-            </View>
+                <SpotlightTarget targetKey={COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.REMINDER_ACTION}>
+                  <TouchableOpacity
+                    style={styles.alertCtaButton}
+                    onPress={() => openReminderComposer(
+                      actionAlert ? 'WINDOW_START' : 'DO',
+                      actionAlert?.date,
+                    )}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('calendar.setReminder')}
+                  >
+                    <Ionicons name="alarm-outline" size={14} color={colors.white} />
+                    <Text style={styles.alertCtaText}>{t('calendar.setReminder')}</Text>
+                  </TouchableOpacity>
+                </SpotlightTarget>
+              </View>
+            </SpotlightTarget>
           </Animated.View>
         </ScrollView>
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -20,6 +20,14 @@ import { SafeScreen } from '../components/ui';
 import { useGenerateMatchImage } from '../hooks/useGenerateMatchImage';
 import { useNumerology } from '../hooks/useNumerology';
 import { trackEvent } from '../services/analytics';
+import {
+  NUMEROLOGY_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../features/tutorial';
 import {
   findCoreNumber,
   getLockedSections,
@@ -166,6 +174,8 @@ export default function NumerologyScreen() {
   const searchParams = useLocalSearchParams<{ entry_point?: string; entryPoint?: string }>();
   const { colors } = useTheme();
   const user = useAuthStore((s) => s.user);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.NUMEROLOGY);
   const styles = makeStyles(colors);
 
   const [guidancePeriod, setGuidancePeriod] = useState<'day' | 'week'>('day');
@@ -175,6 +185,7 @@ export default function NumerologyScreen() {
   const [snapshotExists, setSnapshotExists] = useState<boolean | null>(null);
 
   const startRef = useRef(Date.now());
+  const tutorialBootstrapRef = useRef<string | null>(null);
   const screenViewTrackedRef = useRef(false);
   const emptyTrackedRef = useRef(false);
   const loadedTrackedRef = useRef(false);
@@ -221,6 +232,16 @@ export default function NumerologyScreen() {
     () => getLockedSections(data?.sectionLockState, premium),
     [data?.sectionLockState, premium],
   );
+
+  useEffect(() => {
+    const scope = user?.id ? String(user.id) : 'guest';
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -478,6 +499,10 @@ export default function NumerologyScreen() {
     router.push('/(tabs)/name-analysis' as any);
   };
 
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.NUMEROLOGY_FOUNDATION, 'numerology');
+  }, [reopenTutorialById]);
+
   return (
     <SafeScreen>
       <View style={styles.container}>
@@ -496,30 +521,40 @@ export default function NumerologyScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('home.numerology')}</Text>
-          <View style={{ width: 40 }} />
+          <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+            <TouchableOpacity
+              onPress={handlePressTutorialHelp}
+              style={styles.backBtn}
+              accessibilityLabel="Numeroloji rehberini tekrar aç"
+              accessibilityRole="button"
+            >
+              <Ionicons name="help-circle-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
+          </SpotlightTarget>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {emptyConfig ? (
-            <NumerologyStateCard
-              icon="person-circle-outline"
-              title={emptyConfig.title}
-              description={emptyConfig.description}
-              ctaLabel={emptyConfig.ctaLabel}
-              onPress={handleEmptyCta}
-            />
-          ) : numerology.isLoading ? (
-            <NumerologyLoadingSkeleton />
-          ) : numerology.isError ? (
-            <NumerologyStateCard
-              icon="cloud-offline-outline"
-              title={t('numerology.networkErrorTitle')}
-              description={t('numerology.networkErrorDescription')}
-              ctaLabel={t('common.retry')}
-              onPress={handleRetry}
-            />
-          ) : data ? (
-            <>
+          <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.INPUT_AREA}>
+            {emptyConfig ? (
+              <NumerologyStateCard
+                icon="person-circle-outline"
+                title={emptyConfig.title}
+                description={emptyConfig.description}
+                ctaLabel={emptyConfig.ctaLabel}
+                onPress={handleEmptyCta}
+              />
+            ) : numerology.isLoading ? (
+              <NumerologyLoadingSkeleton />
+            ) : numerology.isError ? (
+              <NumerologyStateCard
+                icon="cloud-offline-outline"
+                title={t('numerology.networkErrorTitle')}
+                description={t('numerology.networkErrorDescription')}
+                ctaLabel={t('common.retry')}
+                onPress={handleRetry}
+              />
+            ) : data ? (
+              <>
               {numerology.hasStaleFallback ? (
                 <NumerologyStateCard
                   icon="time-outline"
@@ -532,22 +567,24 @@ export default function NumerologyScreen() {
                 />
               ) : null}
 
-              <NumerologyHeroCard
-                name={data.name}
-                headline={data.headline}
-                mainNumber={dominantNumber}
-                mainTitle={mainNumber?.title ?? t('numerology.lifePath')}
-                mainArchetype={mainNumber?.archetype}
-                personalYear={data.timing?.personalYear ?? null}
-                shortTheme={data.timing?.shortTheme}
-                cacheStatus={numerology.cacheStatus}
-                generatedAt={data.generatedAt}
-                onShare={handleShare}
-                onSaveSnapshot={handleSaveSnapshot}
-                onOpenTrust={handleOpenTrust}
-                shareLoading={shareLoading}
-                savingSnapshot={savingSnapshot}
-              />
+              <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.RESULT_CARD}>
+                <NumerologyHeroCard
+                  name={data.name}
+                  headline={data.headline}
+                  mainNumber={dominantNumber}
+                  mainTitle={mainNumber?.title ?? t('numerology.lifePath')}
+                  mainArchetype={mainNumber?.archetype}
+                  personalYear={data.timing?.personalYear ?? null}
+                  shortTheme={data.timing?.shortTheme}
+                  cacheStatus={numerology.cacheStatus}
+                  generatedAt={data.generatedAt}
+                  onShare={handleShare}
+                  onSaveSnapshot={handleSaveSnapshot}
+                  onOpenTrust={handleOpenTrust}
+                  shareLoading={shareLoading}
+                  savingSnapshot={savingSnapshot}
+                />
+              </SpotlightTarget>
 
               {data.timing ? (
                 <NumerologyTimingCard
@@ -581,20 +618,22 @@ export default function NumerologyScreen() {
                 />
               )}
 
-              <View style={styles.sectionGroup}>
-                <Text style={styles.sectionTitle}>{t('numerology.coreNumbersTitle')}</Text>
-                {data.coreNumbers.map((number) => {
-                  const sectionId = `coreNumbers.${number.id}`;
-                  return (
-                    <NumberInsightCard
-                      key={sectionId}
-                      number={number}
-                      expanded={Boolean(expandedSections[`core-${number.id}`])}
-                      onToggle={handleToggleSection}
-                    />
-                  );
-                })}
-              </View>
+              <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.DETAIL_SECTION}>
+                <View style={styles.sectionGroup}>
+                  <Text style={styles.sectionTitle}>{t('numerology.coreNumbersTitle')}</Text>
+                  {data.coreNumbers.map((number) => {
+                    const sectionId = `coreNumbers.${number.id}`;
+                    return (
+                      <NumberInsightCard
+                        key={sectionId}
+                        number={number}
+                        expanded={Boolean(expandedSections[`core-${number.id}`])}
+                        onToggle={handleToggleSection}
+                      />
+                    );
+                  })}
+                </View>
+              </SpotlightTarget>
 
               <View style={styles.sectionGroup}>
                 <Text style={styles.sectionTitle}>{t('numerology.profileSectionTitle')}</Text>
@@ -647,8 +686,9 @@ export default function NumerologyScreen() {
                   </View>
                 </View>
               ) : null}
-            </>
-          ) : null}
+              </>
+            ) : null}
+          </SpotlightTarget>
         </ScrollView>
 
         <TrustInfoSheet

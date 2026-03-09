@@ -62,10 +62,15 @@ public class AdminSecurityConfig {
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
                         .requestMatchers("/api/admin/v1/prayers/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
+                        // Tutorial config management: SUPER_ADMIN + PRODUCT_ADMIN
+                        .requestMatchers("/api/admin/v1/tutorial-configs/**")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
                         // Public CMS content endpoints — no auth required
                         .requestMatchers("/api/v1/content/**").permitAll()
                         // Public app config — no auth required
                         .requestMatchers("/api/v1/app-config").permitAll()
+                        // Public tutorial config endpoint — no auth required
+                        .requestMatchers("/api/v1/tutorial-configs").permitAll()
                         // All other existing notification endpoints (non-admin)
                         .anyRequest().permitAll()
                 )

@@ -25,6 +25,14 @@ import i18n from '../../i18n';
 import { ErrorStateCard, SafeScreen, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import type { RelationshipType as CompareRelationshipType } from '../../types/compare';
+import {
+  COMPATIBILITY_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 
 interface RelationshipTypeOption {
   key: RelationshipType;
@@ -94,6 +102,16 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     sectionTitle: { fontSize: 16, fontWeight: '700', color: C.text },
     addButton: { padding: 4 },
+    headerHelpButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
     emptyPeopleCard: {
       alignItems: 'center',
       padding: 32,
@@ -251,6 +269,9 @@ export default function CompatibilityScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const RELATIONSHIP_TYPES = getRelationshipTypes(colors);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.COMPATIBILITY);
+  const tutorialBootstrapRef = useRef<string | null>(null);
 
   const { user } = useAuthStore();
   const natalChart = useNatalChartStore((state) => state.chart);
@@ -289,6 +310,21 @@ export default function CompatibilityScreen() {
       loadSavedPeople(userId);
     }
   }, [userId, loadSavedPeople]);
+
+  useEffect(() => {
+    const scope = userId ? String(userId) : null;
+    if (!scope) {
+      tutorialBootstrapRef.current = null;
+      return;
+    }
+
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, userId]);
 
   useEffect(() => {
     if (!relationshipTypeParam) return;
@@ -389,6 +425,10 @@ export default function CompatibilityScreen() {
     }
     await handleAnalyze();
   };
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.COMPATIBILITY_FOUNDATION, 'compatibility');
+  }, [reopenTutorialById]);
 
   const isLoading = isAnalyzing || isPolling;
   const showResults = currentSynastry?.status === 'COMPLETED';
@@ -506,15 +546,30 @@ export default function CompatibilityScreen() {
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
-      <TabHeader
-        title={t('compatibility.title')}
-        subtitle={t('compatibility.subtitle')}
-        {...tabHeaderActions}
-      />
+      <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.SUMMARY_HEADER}>
+        <TabHeader
+          title={t('compatibility.title')}
+          subtitle={t('compatibility.subtitle')}
+          rightActions={(
+            <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <TouchableOpacity
+                style={styles.headerHelpButton}
+                onPress={handlePressTutorialHelp}
+                accessibilityRole="button"
+                accessibilityLabel="Tutorial rehberini tekrar aç"
+              >
+                <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            </SpotlightTarget>
+          )}
+          {...tabHeaderActions}
+        />
+      </SpotlightTarget>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <>
-            <View style={styles.section}>
+            <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.SECTION_TABS}>
+              <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('compatibility.importantPeople')}</Text>
                 <TouchableOpacity
@@ -617,57 +672,62 @@ export default function CompatibilityScreen() {
                 </ScrollView>
               )}
             </View>
+            </SpotlightTarget>
 
             {selectedPerson && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>İlişki Türü</Text>
-                <View style={styles.typeGrid}>
-                  {RELATIONSHIP_TYPES.map((item) => {
-                    const isSelected = selectedType === item.key;
-                    return (
-                      <TouchableOpacity
-                        key={item.key}
-                        style={[
-                          styles.typeCard,
-                          isSelected && { borderColor: item.color, backgroundColor: item.bgColor },
-                        ]}
-                        onPress={() => {
-                          setSelectedType(item.key);
-                          clearSynastry();
-                        }}
-                        accessibilityLabel={locale === 'en' ? item.labelEN : item.labelTR}
-                        accessibilityRole="button"
-                      >
-                        <Text style={styles.typeEmoji}>{item.emoji}</Text>
-                        <Text style={[styles.typeLabel, isSelected && { color: item.color }]}>
-                          {locale === 'en' ? item.labelEN : item.labelTR}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+              <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.SCORE_AREA}>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>İlişki Türü</Text>
+                  <View style={styles.typeGrid}>
+                    {RELATIONSHIP_TYPES.map((item) => {
+                      const isSelected = selectedType === item.key;
+                      return (
+                        <TouchableOpacity
+                          key={item.key}
+                          style={[
+                            styles.typeCard,
+                            isSelected && { borderColor: item.color, backgroundColor: item.bgColor },
+                          ]}
+                          onPress={() => {
+                            setSelectedType(item.key);
+                            clearSynastry();
+                          }}
+                          accessibilityLabel={locale === 'en' ? item.labelEN : item.labelTR}
+                          accessibilityRole="button"
+                        >
+                          <Text style={styles.typeEmoji}>{item.emoji}</Text>
+                          <Text style={[styles.typeLabel, isSelected && { color: item.color }]}>
+                            {locale === 'en' ? item.labelEN : item.labelTR}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
+              </SpotlightTarget>
             )}
 
             {selectedPerson && selectedType && (
-              <View style={styles.analyzeSection}>
-                <TouchableOpacity
-                  style={[styles.analyzeButton, isLoading && styles.analyzeButtonDisabled]}
-                  onPress={handleAnalyze}
-                  disabled={isLoading}
-                  accessibilityLabel={`${selectedPerson.name} ile karşılaştır`}
-                  accessibilityRole="button"
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color={colors.white} size="small" />
-                  ) : (
-                    <Ionicons name="sparkles" size={20} color={colors.white} />
-                  )}
-                  <Text style={styles.analyzeButtonText}>
-                    {isLoading ? 'Analiz ediliyor...' : 'AI Karşılaştır'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.SAVE_SHARE_ENTRY}>
+                <View style={styles.analyzeSection}>
+                  <TouchableOpacity
+                    style={[styles.analyzeButton, isLoading && styles.analyzeButtonDisabled]}
+                    onPress={handleAnalyze}
+                    disabled={isLoading}
+                    accessibilityLabel={`${selectedPerson.name} ile karşılaştır`}
+                    accessibilityRole="button"
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color={colors.white} size="small" />
+                    ) : (
+                      <Ionicons name="sparkles" size={20} color={colors.white} />
+                    )}
+                    <Text style={styles.analyzeButtonText}>
+                      {isLoading ? 'Analiz ediliyor...' : 'AI Karşılaştır'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </SpotlightTarget>
             )}
         </>
 

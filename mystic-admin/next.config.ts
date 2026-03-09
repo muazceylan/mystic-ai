@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
         source: '/api/v1/app-config',
         destination: `${BACKEND_URL}/api/v1/app-config`,
       },
+      // Tutorial config → notification-service
+      {
+        source: '/api/v1/tutorial-configs',
+        destination: `${BACKEND_URL}/api/v1/tutorial-configs`,
+      },
       // Auth service admin user search
       {
         source: '/api/auth/admin/:path*',

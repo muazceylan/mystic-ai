@@ -90,6 +90,14 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { AccordionSection, SafeScreen, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
+import {
+  BIRTH_CHART_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 import MatchResultScreen from '../../screens/match/MatchResultScreen';
 import SynastryProPanel from '../../components/Astrology/SynastryProPanel';
 
@@ -439,6 +447,9 @@ export default function NatalChartTab() {
     NorthNode: t('natalChart.northNode'),
   }), [t]);
   const user = useAuthStore((s) => s.user);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.BIRTH_CHART);
+  const tutorialBootstrapRef = useRef<string | null>(null);
   const setNightSkyPosterDraft = useNightSkyPosterStore((s) => s.setDraft);
   const setNatalVisualsDraft = useNatalVisualsStore((s) => s.setDraft);
   const {
@@ -618,6 +629,21 @@ export default function NatalChartTab() {
       // ignore storage write failures
     });
   }, [sectionOrder]);
+
+  useEffect(() => {
+    const scope = user?.id ? String(user.id) : null;
+    if (!scope) {
+      tutorialBootstrapRef.current = null;
+      return;
+    }
+
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, user?.id]);
 
   // ─── Skeleton Pulse ────────────────────────────────────────────────
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
@@ -1732,6 +1758,10 @@ export default function NatalChartTab() {
     router.push('/natal-visuals-preview' as any);
   };
 
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.BIRTH_CHART_INTRO, TUTORIAL_SCREEN_KEYS.BIRTH_CHART);
+  }, [reopenTutorialById]);
+
   const renderSectionDragHandle = (
     drag: () => void,
     isActive: boolean,
@@ -1915,16 +1945,18 @@ export default function NatalChartTab() {
               panels={['wheel']}
             />
             <View style={styles.posterModuleActions}>
-              <Pressable
-                style={styles.posterBtn}
-                onPress={openNatalVisualsPreview}
-                accessibilityLabel="Doğum haritasını tam ekran aç ve indir"
-                accessibilityRole="button"
-              >
-                <Ionicons name="scan-outline" size={16} color={colors.goldDark} />
-                <Text style={styles.posterBtnText}>Tam Ekran Gör • İndir</Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
-              </Pressable>
+              <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.DETAIL_ACTION}>
+                <Pressable
+                  style={styles.posterBtn}
+                  onPress={openNatalVisualsPreview}
+                  accessibilityLabel="Doğum haritasını tam ekran aç ve indir"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="scan-outline" size={16} color={colors.goldDark} />
+                  <Text style={styles.posterBtnText}>Tam Ekran Gör • İndir</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
+                </Pressable>
+              </SpotlightTarget>
             </View>
           </AccordionSection>
         );
@@ -2023,53 +2055,55 @@ export default function NatalChartTab() {
       case 'planet_positions':
         if (!chart?.planets?.length) return null;
         return (
-          <AccordionSection
-            id="planet_positions"
-            title={t('natalChart.planetaryPositions')}
-            subtitle="Her satıra dokunarak karakter + etki + dikkat alanlarını aç"
-            icon="sparkles-outline"
-            expanded={openAccordionKey === 'planet_positions'}
-            onToggle={toggleAccordion}
-            onLayout={registerAccordionLayout}
-            headerRight={headerRight}
-          >
-            <View style={styles.section}>
-              {chart.planets.map((planet, i) => {
-                const trName = planetNames[planet.planet] ?? planet.planet;
-                const signInfo = getZodiacInfo(planet.sign);
-                const sym = PLANET_SYMBOLS[planet.planet] ?? '⭐';
-                return (
-                  <Pressable
-                    key={`${planet.planet}-${i}`}
-                    style={styles.planetRow}
-                    onPress={() => openPlanetSheet(planet)}
-                    accessibilityLabel={t('natalChart.openPlanetDetails', { name: trName })}
-                    accessibilityRole="button"
-                  >
-                    <View style={styles.planetIconWrap}>
-                      <Text style={styles.planetIcon}>{sym}</Text>
-                    </View>
-                    <View style={styles.planetInfo}>
-                      <Text style={styles.planetName}>{trName}</Text>
-                      <Text style={styles.planetSign}>
-                        {signInfo.symbol} {signInfo.name} {Math.floor(planet.degree)}°{planet.minutes}'
-                      </Text>
-                    </View>
-                    <View style={styles.planetMeta}>
-                      <View style={styles.houseBadge}>
-                        <Text style={styles.houseBadgeText}>{planet.house}</Text>
+          <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.PLANET_POSITIONS}>
+            <AccordionSection
+              id="planet_positions"
+              title={t('natalChart.planetaryPositions')}
+              subtitle="Her satıra dokunarak karakter + etki + dikkat alanlarını aç"
+              icon="sparkles-outline"
+              expanded={openAccordionKey === 'planet_positions'}
+              onToggle={toggleAccordion}
+              onLayout={registerAccordionLayout}
+              headerRight={headerRight}
+            >
+              <View style={styles.section}>
+                {chart.planets.map((planet, i) => {
+                  const trName = planetNames[planet.planet] ?? planet.planet;
+                  const signInfo = getZodiacInfo(planet.sign);
+                  const sym = PLANET_SYMBOLS[planet.planet] ?? '⭐';
+                  return (
+                    <Pressable
+                      key={`${planet.planet}-${i}`}
+                      style={styles.planetRow}
+                      onPress={() => openPlanetSheet(planet)}
+                      accessibilityLabel={t('natalChart.openPlanetDetails', { name: trName })}
+                      accessibilityRole="button"
+                    >
+                      <View style={styles.planetIconWrap}>
+                        <Text style={styles.planetIcon}>{sym}</Text>
                       </View>
-                      {planet.retrograde ? (
-                        <View style={styles.retroBadge}>
-                          <Text style={styles.retroText}>Rx</Text>
+                      <View style={styles.planetInfo}>
+                        <Text style={styles.planetName}>{trName}</Text>
+                        <Text style={styles.planetSign}>
+                          {signInfo.symbol} {signInfo.name} {Math.floor(planet.degree)}°{planet.minutes}'
+                        </Text>
+                      </View>
+                      <View style={styles.planetMeta}>
+                        <View style={styles.houseBadge}>
+                          <Text style={styles.houseBadgeText}>{planet.house}</Text>
                         </View>
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </AccordionSection>
+                        {planet.retrograde ? (
+                          <View style={styles.retroBadge}>
+                            <Text style={styles.retroText}>Rx</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </AccordionSection>
+          </SpotlightTarget>
         );
 
       case 'aspect_list':
@@ -2118,108 +2152,112 @@ export default function NatalChartTab() {
       case 'house_positions':
         if (!chart?.houses?.length) return null;
         return (
-          <AccordionSection
-            id="house_positions"
-            title={t('natalChart.housePositions')}
-            subtitle="Evlere dokunarak basit açıklama + derin yorum kartını aç"
-            icon="home-outline"
-            expanded={openAccordionKey === 'house_positions'}
-            onToggle={toggleAccordion}
-            onLayout={registerAccordionLayout}
-            headerRight={headerRight}
-          >
-            <View style={styles.section}>
-              <View style={styles.houseGrid}>
-                {chart.houses.map((h) => {
-                  const info = getZodiacInfo(h.sign);
-                  const houseGloss = HOUSE_GLOSSARY[h.houseNumber];
-                  return (
-                    <Pressable
-                      key={h.houseNumber}
-                      style={({ pressed }) => [styles.houseCell, pressed && styles.houseCellPressed]}
-                      onPress={() => openHouseSheet(h)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${h.houseNumber}. ev detayını aç`}
-                    >
-                      <View style={styles.houseNumCircle}>
-                        <Text style={styles.houseNumText}>{h.houseNumber}</Text>
-                      </View>
-                      <Text style={styles.houseSign}>
-                        {info.symbol} {info.name}
-                      </Text>
-                      <Text style={styles.houseDeg}>{Math.floor(h.degree)}°</Text>
-                      <Text style={styles.houseShortDesc} numberOfLines={2}>
-                        {houseGloss?.shortDesc ?? 'Ev teması detayını aç'}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+          <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.TECHNICAL_DETAILS}>
+            <AccordionSection
+              id="house_positions"
+              title={t('natalChart.housePositions')}
+              subtitle="Evlere dokunarak basit açıklama + derin yorum kartını aç"
+              icon="home-outline"
+              expanded={openAccordionKey === 'house_positions'}
+              onToggle={toggleAccordion}
+              onLayout={registerAccordionLayout}
+              headerRight={headerRight}
+            >
+              <View style={styles.section}>
+                <View style={styles.houseGrid}>
+                  {chart.houses.map((h) => {
+                    const info = getZodiacInfo(h.sign);
+                    const houseGloss = HOUSE_GLOSSARY[h.houseNumber];
+                    return (
+                      <Pressable
+                        key={h.houseNumber}
+                        style={({ pressed }) => [styles.houseCell, pressed && styles.houseCellPressed]}
+                        onPress={() => openHouseSheet(h)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${h.houseNumber}. ev detayını aç`}
+                      >
+                        <View style={styles.houseNumCircle}>
+                          <Text style={styles.houseNumText}>{h.houseNumber}</Text>
+                        </View>
+                        <Text style={styles.houseSign}>
+                          {info.symbol} {info.name}
+                        </Text>
+                        <Text style={styles.houseDeg}>{Math.floor(h.degree)}°</Text>
+                        <Text style={styles.houseShortDesc} numberOfLines={2}>
+                          {houseGloss?.shortDesc ?? 'Ev teması detayını aç'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-          </AccordionSection>
+            </AccordionSection>
+          </SpotlightTarget>
         );
 
       case 'ai_interpretation':
         if (activeProfileIsSaved || !chart) return null;
         return (
-          <AccordionSection
-            id="ai_interpretation"
-            title="AI Analizi"
-            subtitle="Kozmik yorum • Türkçe başlıklı alt akordiyonlar ile hiyerarşik okuma"
-            icon="sparkles-outline"
-            expanded={openAccordionKey === 'ai_interpretation'}
-            onToggle={toggleAccordion}
-            onLayout={registerAccordionLayout}
-            lazy
-            deferBodyMount
-            headerRight={headerRight}
-          >
-            <View style={styles.aiAccordionContent}>
-              {chart.interpretationStatus === 'COMPLETED' && chart.aiInterpretation ? (
-                <StructuredNatalAiInterpretation
-                  key={chart.aiInterpretation}
-                  text={chart.aiInterpretation}
-                  fallbackTextStyle={styles.aiText}
-                />
-              ) : chart.interpretationStatus === 'FAILED' ? (
-                <View style={styles.aiStatus}>
-                  <Ionicons name="alert-circle" size={22} color={colors.redBright} />
-                  <Text style={styles.aiStatusText}>Yorum olusturulamadi.</Text>
-                  <Pressable
-                    style={styles.retrySmall}
-                    onPress={onRefresh}
-                    accessibilityLabel={t('natalChart.retry')}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="refresh" size={13} color={colors.violet} />
-                    <Text style={styles.retrySmallText}>{t('natalChart.retry')}</Text>
-                  </Pressable>
-                </View>
-              ) : pollExhausted ? (
-                <View style={styles.aiStatus}>
-                  <Ionicons name="time-outline" size={22} color={colors.muted} />
-                  <Text style={styles.aiStatusText}>Yorum henuz hazir degil.</Text>
-                  <Pressable
-                    style={styles.retrySmall}
-                    onPress={() => { setPollExhausted(false); startPolling(); }}
-                    accessibilityLabel={t('natalChart.checkAgain')}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="refresh" size={13} color={colors.violet} />
-                    <Text style={styles.retrySmallText}>{t('natalChart.checkAgain')}</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <View style={styles.aiStatus}>
-                  <ActivityIndicator size="small" color={colors.violet} />
-                  <Animated.View style={[styles.skelLine, { width: '100%', opacity: pulseAnim }]} />
-                  <Animated.View style={[styles.skelLine, { width: '90%', opacity: pulseAnim }]} />
-                  <Animated.View style={[styles.skelLine, { width: '70%', opacity: pulseAnim }]} />
-                  <Text style={styles.aiStatusText}>Yapay zeka yorumunuz hazirlaniyor...</Text>
-                </View>
-              )}
-            </View>
-          </AccordionSection>
+          <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.INSIGHT_PANEL}>
+            <AccordionSection
+              id="ai_interpretation"
+              title="AI Analizi"
+              subtitle="Kozmik yorum • Türkçe başlıklı alt akordiyonlar ile hiyerarşik okuma"
+              icon="sparkles-outline"
+              expanded={openAccordionKey === 'ai_interpretation'}
+              onToggle={toggleAccordion}
+              onLayout={registerAccordionLayout}
+              lazy
+              deferBodyMount
+              headerRight={headerRight}
+            >
+              <View style={styles.aiAccordionContent}>
+                {chart.interpretationStatus === 'COMPLETED' && chart.aiInterpretation ? (
+                  <StructuredNatalAiInterpretation
+                    key={chart.aiInterpretation}
+                    text={chart.aiInterpretation}
+                    fallbackTextStyle={styles.aiText}
+                  />
+                ) : chart.interpretationStatus === 'FAILED' ? (
+                  <View style={styles.aiStatus}>
+                    <Ionicons name="alert-circle" size={22} color={colors.redBright} />
+                    <Text style={styles.aiStatusText}>Yorum olusturulamadi.</Text>
+                    <Pressable
+                      style={styles.retrySmall}
+                      onPress={onRefresh}
+                      accessibilityLabel={t('natalChart.retry')}
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="refresh" size={13} color={colors.violet} />
+                      <Text style={styles.retrySmallText}>{t('natalChart.retry')}</Text>
+                    </Pressable>
+                  </View>
+                ) : pollExhausted ? (
+                  <View style={styles.aiStatus}>
+                    <Ionicons name="time-outline" size={22} color={colors.muted} />
+                    <Text style={styles.aiStatusText}>Yorum henuz hazir degil.</Text>
+                    <Pressable
+                      style={styles.retrySmall}
+                      onPress={() => { setPollExhausted(false); startPolling(); }}
+                      accessibilityLabel={t('natalChart.checkAgain')}
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="refresh" size={13} color={colors.violet} />
+                      <Text style={styles.retrySmallText}>{t('natalChart.checkAgain')}</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View style={styles.aiStatus}>
+                    <ActivityIndicator size="small" color={colors.violet} />
+                    <Animated.View style={[styles.skelLine, { width: '100%', opacity: pulseAnim }]} />
+                    <Animated.View style={[styles.skelLine, { width: '90%', opacity: pulseAnim }]} />
+                    <Animated.View style={[styles.skelLine, { width: '70%', opacity: pulseAnim }]} />
+                    <Text style={styles.aiStatusText}>Yapay zeka yorumunuz hazirlaniyor...</Text>
+                  </View>
+                )}
+              </View>
+            </AccordionSection>
+          </SpotlightTarget>
         );
     }
   };
@@ -2418,7 +2456,22 @@ export default function NatalChartTab() {
             />
           }
         >
-        <TabHeader transparent {...tabHeaderActions} />
+        <TabHeader
+          transparent
+          rightActions={(
+            <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <Pressable
+                style={styles.headerHelpButton}
+                onPress={handlePressTutorialHelp}
+                accessibilityRole="button"
+                accessibilityLabel="Harita rehberini tekrar aç"
+              >
+                <Ionicons name="help-circle-outline" size={18} color={colors.violet} />
+              </Pressable>
+            </SpotlightTarget>
+          )}
+          {...tabHeaderActions}
+        />
 
         <Reanimated.View
           style={[styles.fixedTopStack, !profileSwitcherVisible && styles.fixedTopStackHidden]}
@@ -2428,31 +2481,33 @@ export default function NatalChartTab() {
         </Reanimated.View>
 
         {!!chart && (
-          <View
-            style={styles.stickyHeroHeaderShell}
-            onLayout={(event) => setStickyHeroHeight(event.nativeEvent.layout.height)}
-          >
-            <View style={styles.fixedHeroContainer}>
-              <NatalChartHeroCard
-                name={activeProfileName || chart.name}
-                birthDate={String(chart.birthDate)}
-                birthTime={chart.birthTime}
-                birthLocation={chart.birthLocation}
-                sunSign={chart.sunSign}
-                moonSign={chart.moonSign}
-                risingSign={chart.risingSign}
-                planets={chart.planets ?? []}
-                houses={chart.houses ?? []}
-                aspects={chart.aspects ?? []}
-                planetNames={planetNames}
-                showWheelPreview={false}
-                expanded={heroInfoExpanded}
-                onToggleExpanded={() => setHeroInfoExpanded((prev) => !prev)}
-                onBigThreePress={handleHeroBigThreePress}
-                onMetricPress={handleHeroMetricPress}
-              />
+          <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.HERO_SUMMARY}>
+            <View
+              style={styles.stickyHeroHeaderShell}
+              onLayout={(event) => setStickyHeroHeight(event.nativeEvent.layout.height)}
+            >
+              <View style={styles.fixedHeroContainer}>
+                <NatalChartHeroCard
+                  name={activeProfileName || chart.name}
+                  birthDate={String(chart.birthDate)}
+                  birthTime={chart.birthTime}
+                  birthLocation={chart.birthLocation}
+                  sunSign={chart.sunSign}
+                  moonSign={chart.moonSign}
+                  risingSign={chart.risingSign}
+                  planets={chart.planets ?? []}
+                  houses={chart.houses ?? []}
+                  aspects={chart.aspects ?? []}
+                  planetNames={planetNames}
+                  showWheelPreview={false}
+                  expanded={heroInfoExpanded}
+                  onToggleExpanded={() => setHeroInfoExpanded((prev) => !prev)}
+                  onBigThreePress={handleHeroBigThreePress}
+                  onMetricPress={handleHeroMetricPress}
+                />
+              </View>
             </View>
-          </View>
+          </SpotlightTarget>
         )}
 
         {profileMode === 'compare' && (
@@ -3130,6 +3185,16 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   fixedHeroContainer: {
     backgroundColor: C.bg,
     gap: 8,
+  },
+  headerHelpButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   heroToggleCard: {
     borderRadius: 18,

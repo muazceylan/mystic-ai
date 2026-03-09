@@ -158,7 +158,7 @@ export default function DailySummaryScreen() {
                     </>
                   )}
                 </View>
-                <Pressable onPress={() => router.push('/decision-compass')} style={({ pressed }) => [S.heroChevronBtn, pressed && S.pressed]}>
+                <Pressable onPress={() => router.push('/(tabs)/decision-compass-tab')} style={({ pressed }) => [S.heroChevronBtn, pressed && S.pressed]}>
                   <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
                 </Pressable>
               </View>
@@ -211,7 +211,7 @@ export default function DailySummaryScreen() {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(60).duration(420)} style={S.actionRow}>
-            <Pressable onPress={() => router.push('/decision-compass')} style={({ pressed }) => [S.actionBtn, pressed && S.pressed]}>
+            <Pressable onPress={() => router.push('/(tabs)/decision-compass-tab')} style={({ pressed }) => [S.actionBtn, pressed && S.pressed]}>
               <Ionicons name="compass-outline" size={16} color={colors.primary} />
               <Text style={S.actionBtnText}>Karar Pusulası</Text>
             </Pressable>

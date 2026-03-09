@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -11,9 +11,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeScreen } from '../components/ui';
 import OnboardingBackground from '../components/OnboardingBackground';
 import { useTheme } from '../context/ThemeContext';
@@ -21,6 +23,12 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useCosmicSummary } from '../hooks/useHomeQueries';
 import type { DailyLifeGuideActivity } from '../services/astrology.service';
 import { useDecisionCompassStore } from '../store/useDecisionCompassStore';
+import {
+  DECISION_COMPASS_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorialTrigger,
+} from '../features/tutorial';
 
 interface CompassCategoryRow {
   categoryKey: string;
@@ -106,7 +114,14 @@ export default function DecisionCompassScreen() {
   const { colors, isDark } = useTheme();
   const { i18n } = useTranslation();
   const { width } = useWindowDimensions();
+  const segments = useSegments();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = React.useContext(BottomTabBarHeightContext);
   const user = useAuthStore((s) => s.user);
+  const { trigger: triggerTutorial, triggerInitial: triggerInitialTutorials } = useTutorialTrigger(
+    TUTORIAL_SCREEN_KEYS.DECISION_COMPASS,
+  );
+  const tutorialBootstrapRef = useRef<string | null>(null);
 
   const query = useCosmicSummary(
     user?.id
@@ -142,6 +157,23 @@ export default function DecisionCompassScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const S = makeStyles(colors, isDark);
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(820, width - 24) : undefined;
+  const isInTabFlow = segments[0] === '(tabs)';
+  const effectiveTabBarHeight = tabBarHeight ?? (Platform.OS === 'ios' ? 88 : 72);
+  const contentBottomPadding = Platform.OS === 'ios'
+    ? effectiveTabBarHeight + Math.max(20, insets.bottom > 0 ? 12 : 20)
+    : Platform.OS === 'web'
+      ? 40
+      : 96;
+
+  React.useEffect(() => {
+    if (!isInTabFlow) {
+      router.replace('/(tabs)/decision-compass-tab');
+    }
+  }, [isInTabFlow]);
+
+  if (!isInTabFlow) {
+    return null;
+  }
 
   React.useEffect(() => {
     if (expandedCategoryKey && !visibleCards.some((card) => card.categoryKey === expandedCategoryKey)) {
@@ -149,8 +181,27 @@ export default function DecisionCompassScreen() {
     }
   }, [expandedCategoryKey, visibleCards]);
 
+  React.useEffect(() => {
+    const scope = user?.id ? String(user.id) : null;
+    if (!scope) {
+      tutorialBootstrapRef.current = null;
+      return;
+    }
+
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, user?.id]);
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void triggerTutorial('manual_reopen');
+  }, [triggerTutorial]);
+
   return (
-    <SafeScreen>
+    <SafeScreen edges={['top', 'left', 'right']}>
       <View style={S.container}>
         <OnboardingBackground />
 
@@ -162,28 +213,48 @@ export default function DecisionCompassScreen() {
             <Text style={S.headerTitle}>Karar Pusulası</Text>
             <Text style={S.headerSub}>Günün öncelik alanları ve skorlar</Text>
           </View>
-          <Pressable onPress={() => router.push('/(tabs)/calendar')} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
-            <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          </Pressable>
+          <View style={S.headerRightRow}>
+            <Pressable onPress={() => router.push('/(tabs)/calendar')} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
+              <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+            </Pressable>
+            <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <Pressable
+                onPress={handlePressTutorialHelp}
+                style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Tutorial rehberini tekrar aç"
+              >
+                <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
+              </Pressable>
+            </SpotlightTarget>
+          </View>
         </View>
 
-        <View style={S.toolbar}>
-          <View style={S.toolbarPill}>
-            <Ionicons name="calendar-outline" size={14} color={colors.subtext} />
-            <Text style={S.toolbarText}>{formatDateShortTr(query.data?.date)}</Text>
+        <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.INPUT_AREA}>
+          <View style={S.toolbar}>
+            <View style={S.toolbarPill}>
+              <Ionicons name="calendar-outline" size={14} color={colors.subtext} />
+              <Text style={S.toolbarText}>{formatDateShortTr(query.data?.date)}</Text>
+            </View>
+            <View style={[S.toolbarPill, S.toolbarPillAction]}>
+              <Text style={S.toolbarActionText}>{visibleCards.length} kategori</Text>
+            </View>
+            <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.REEVALUATE_ENTRY}>
+              <Pressable onPress={() => setSettingsOpen(true)} style={({ pressed }) => [S.toolbarPill, S.toolbarSettingsPill, pressed && S.pressed]}>
+                <Ionicons name="options-outline" size={14} color={colors.primary} />
+                <Text style={S.toolbarActionText}>Kategoriler</Text>
+              </Pressable>
+            </SpotlightTarget>
           </View>
-          <View style={[S.toolbarPill, S.toolbarPillAction]}>
-            <Text style={S.toolbarActionText}>{visibleCards.length} kategori</Text>
-          </View>
-          <Pressable onPress={() => setSettingsOpen(true)} style={({ pressed }) => [S.toolbarPill, S.toolbarSettingsPill, pressed && S.pressed]}>
-            <Ionicons name="options-outline" size={14} color={colors.primary} />
-            <Text style={S.toolbarActionText}>Kategoriler</Text>
-          </Pressable>
-        </View>
+        </SpotlightTarget>
 
         <ScrollView
           style={S.scroll}
-          contentContainerStyle={[S.scrollContent, contentMaxWidth ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' } : null]}
+          contentContainerStyle={[
+            S.scrollContent,
+            { paddingBottom: contentBottomPadding },
+            contentMaxWidth ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' } : null,
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={query.isRefetching}
@@ -227,108 +298,125 @@ export default function DecisionCompassScreen() {
               ) : null}
             </View>
           ) : (
-            <View style={S.listWrap}>
-              {visibleCards.map((card, index) => {
-                const tint = tintForScore(card.score, isDark);
-                const expanded = expandedCategoryKey === card.categoryKey;
-                return (
-                  <Pressable
-                    key={`${card.categoryKey}-${index}`}
-                    onPress={() =>
-                      setExpandedCategoryKey((prev) => (prev === card.categoryKey ? null : card.categoryKey))
-                    }
-                    style={({ pressed }) => [S.itemCard, expanded && S.itemCardExpanded, pressed && S.pressed]}
-                  >
-                    <View style={S.itemTopGlow} />
-                    <View style={S.itemRowTop}>
-                      <View style={S.itemIconBubble}>
-                        <Ionicons name={iconForCategory(card)} size={16} color={colors.primary} />
-                      </View>
-                      <View style={S.itemTitleWrap}>
-                        <Text style={S.itemTitle} numberOfLines={1}>{card.categoryLabel || card.activityLabel}</Text>
-                        <Text style={S.itemSubtitle} numberOfLines={1}>
-                          {card.activityLabel}{typeof card.itemCount === 'number' ? ` • ${card.itemCount} alt alan` : ''}
-                        </Text>
-                      </View>
-                      <View style={[S.scoreChip, { backgroundColor: tint.bg }]}>
-                        <Text style={[S.scoreChipText, { color: tint.text }]}>{Math.round(card.score)}%</Text>
-                      </View>
-                      <Ionicons
-                        name={expanded ? 'chevron-up' : 'chevron-down'}
-                        size={15}
-                        color={colors.subtext}
-                      />
-                    </View>
+            <>
+              <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HEADER_SUMMARY}>
+                <View style={S.insightCard}>
+                  <View style={S.insightHeadRow}>
+                    <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
+                    <Text style={S.insightTitle}>Günün İçgörüsü</Text>
+                  </View>
+                  <Text style={S.insightBody} numberOfLines={2}>
+                    {visibleCards[0]?.shortAdvice?.trim()
+                      || 'Yorumlar, seçeneklerin güçlü ve zayıf taraflarını daha net görmene yardım eder.'}
+                  </Text>
+                </View>
+              </SpotlightTarget>
 
-                    <Text style={S.itemAdvice} numberOfLines={expanded ? 3 : 1}>
-                      {card.shortAdvice?.trim() || 'Bugün bu alanda daha bilinçli ve dengeli adımlar at.'}
-                    </Text>
-
-                    <View style={S.itemFooter}>
-                      <View style={S.typePill}>
-                        <Text style={S.typePillText}>{card.type === 'WARNING' ? 'Uyarı' : 'Fırsat'}</Text>
+              <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.RESULT_AREA}>
+                <View style={S.listWrap}>
+                  {visibleCards.map((card, index) => {
+                    const tint = tintForScore(card.score, isDark);
+                    const expanded = expandedCategoryKey === card.categoryKey;
+                    return (
+                      <Pressable
+                        key={`${card.categoryKey}-${index}`}
+                        onPress={() =>
+                          setExpandedCategoryKey((prev) => (prev === card.categoryKey ? null : card.categoryKey))
+                        }
+                        style={({ pressed }) => [S.itemCard, expanded && S.itemCardExpanded, pressed && S.pressed]}
+                      >
+                      <View style={S.itemTopGlow} />
+                      <View style={S.itemRowTop}>
+                        <View style={S.itemIconBubble}>
+                          <Ionicons name={iconForCategory(card)} size={16} color={colors.primary} />
+                        </View>
+                        <View style={S.itemTitleWrap}>
+                          <Text style={S.itemTitle} numberOfLines={1}>{card.categoryLabel || card.activityLabel}</Text>
+                          <Text style={S.itemSubtitle} numberOfLines={1}>
+                            {card.activityLabel}{typeof card.itemCount === 'number' ? ` • ${card.itemCount} alt alan` : ''}
+                          </Text>
+                        </View>
+                        <View style={[S.scoreChip, { backgroundColor: tint.bg }]}>
+                          <Text style={[S.scoreChipText, { color: tint.text }]}>{Math.round(card.score)}%</Text>
+                        </View>
+                        <Ionicons
+                          name={expanded ? 'chevron-up' : 'chevron-down'}
+                          size={15}
+                          color={colors.subtext}
+                        />
                       </View>
-                      <View style={S.itemFooterActions}>
-                        <Pressable
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            router.push('/(tabs)/calendar');
-                          }}
-                          style={({ pressed }) => [S.itemActionBtn, pressed && S.pressed]}
-                        >
-                          <Text style={S.itemActionText}>Takvim</Text>
-                          <Ionicons name="calendar-outline" size={13} color={colors.subtext} />
-                        </Pressable>
-                        <Pressable
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            router.push({
-                              pathname: '/decision-compass-detail',
-                              params: {
-                                categoryKey: card.categoryKey,
-                                label: card.categoryLabel || card.activityLabel,
-                                activityLabel: card.activityLabel,
-                                score: String(Math.round(card.score)),
-                                date: query.data?.date ?? '',
-                              },
-                            });
-                          }}
-                          style={({ pressed }) => [S.itemDetailBtn, pressed && S.pressed]}
-                        >
-                          <Text style={S.itemDetailBtnText}>Detay</Text>
-                          <Ionicons name="chevron-forward" size={13} color={colors.primary} />
-                        </Pressable>
-                      </View>
-                    </View>
 
-                    {expanded ? (
-                      <View style={S.itemExpandedPanel}>
-                        <View style={S.itemExpandedDivider} />
-                        <Text style={S.itemExpandedTitle}>Kategori Açıklaması</Text>
-                        <Text style={S.itemExpandedBody}>
-                          {card.shortAdvice || 'Bu kategori bugün odak gerektiriyor. Tepki yerine stratejiyle ilerlemek faydalı olur.'}
-                        </Text>
+                      <Text style={S.itemAdvice} numberOfLines={expanded ? 3 : 1}>
+                        {card.shortAdvice?.trim() || 'Bugün bu alanda daha bilinçli ve dengeli adımlar at.'}
+                      </Text>
 
-                        <View style={S.subActivitiesWrap}>
-                          {card.items.slice(0, 4).map((sub, subIndex) => {
-                            const subTint = tintForScore(sub.score, isDark);
-                            return (
-                              <View key={`${card.categoryKey}-${sub.activityKey}-${subIndex}`} style={S.subActivityRow}>
-                                <View style={[S.subActivityDot, { backgroundColor: subTint.text }]} />
-                                <Text style={S.subActivityLabel} numberOfLines={1}>{sub.activityLabel}</Text>
-                                <View style={[S.subActivityScorePill, { backgroundColor: subTint.bg }]}>
-                                  <Text style={[S.subActivityScoreText, { color: subTint.text }]}>{Math.round(sub.score)}%</Text>
-                                </View>
-                              </View>
-                            );
-                          })}
+                      <View style={S.itemFooter}>
+                        <View style={S.typePill}>
+                          <Text style={S.typePillText}>{card.type === 'WARNING' ? 'Uyarı' : 'Fırsat'}</Text>
+                        </View>
+                        <View style={S.itemFooterActions}>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              router.push('/(tabs)/calendar');
+                            }}
+                            style={({ pressed }) => [S.itemActionBtn, pressed && S.pressed]}
+                          >
+                            <Text style={S.itemActionText}>Takvim</Text>
+                            <Ionicons name="calendar-outline" size={13} color={colors.subtext} />
+                          </Pressable>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              router.push({
+                                pathname: '/decision-compass-detail',
+                                params: {
+                                  categoryKey: card.categoryKey,
+                                  label: card.categoryLabel || card.activityLabel,
+                                  activityLabel: card.activityLabel,
+                                  score: String(Math.round(card.score)),
+                                  date: query.data?.date ?? '',
+                                },
+                              });
+                            }}
+                            style={({ pressed }) => [S.itemDetailBtn, pressed && S.pressed]}
+                          >
+                            <Text style={S.itemDetailBtnText}>Detay</Text>
+                            <Ionicons name="chevron-forward" size={13} color={colors.primary} />
+                          </Pressable>
                         </View>
                       </View>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
+
+                      {expanded ? (
+                        <View style={S.itemExpandedPanel}>
+                          <View style={S.itemExpandedDivider} />
+                          <Text style={S.itemExpandedTitle}>Kategori Açıklaması</Text>
+                          <Text style={S.itemExpandedBody}>
+                            {card.shortAdvice || 'Bu kategori bugün odak gerektiriyor. Tepki yerine stratejiyle ilerlemek faydalı olur.'}
+                          </Text>
+
+                          <View style={S.subActivitiesWrap}>
+                            {card.items.slice(0, 4).map((sub, subIndex) => {
+                              const subTint = tintForScore(sub.score, isDark);
+                              return (
+                                <View key={`${card.categoryKey}-${sub.activityKey}-${subIndex}`} style={S.subActivityRow}>
+                                  <View style={[S.subActivityDot, { backgroundColor: subTint.text }]} />
+                                  <Text style={S.subActivityLabel} numberOfLines={1}>{sub.activityLabel}</Text>
+                                  <View style={[S.subActivityScorePill, { backgroundColor: subTint.bg }]}>
+                                    <Text style={[S.subActivityScoreText, { color: subTint.text }]}>{Math.round(sub.score)}%</Text>
+                                  </View>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </SpotlightTarget>
+            </>
           )}
         </ScrollView>
 
@@ -415,6 +503,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
     headerTitleWrap: {
       flex: 1,
     },
+    headerRightRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
     headerTitle: {
       color: C.text,
       fontSize: 17,
@@ -466,8 +559,36 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
     },
     scrollContent: {
       paddingHorizontal: 16,
-      paddingBottom: Platform.OS === 'ios' ? 140 : Platform.OS === 'web' ? 40 : 96,
+      paddingBottom: Platform.OS === 'web' ? 40 : 96,
       paddingTop: 4,
+    },
+    insightCard: {
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.08)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(180,148,255,0.28)' : 'rgba(122,91,234,0.22)',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 6,
+      marginBottom: 10,
+    },
+    insightHeadRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    insightTitle: {
+      color: C.primary,
+      fontSize: 11.5,
+      fontWeight: '800',
+      letterSpacing: 0.2,
+      textTransform: 'uppercase',
+    },
+    insightBody: {
+      color: C.text,
+      fontSize: 12.5,
+      lineHeight: 18,
+      fontWeight: '600',
     },
     emptyCard: {
       borderRadius: 18,

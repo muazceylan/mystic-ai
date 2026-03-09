@@ -164,7 +164,7 @@ export const DISCOVER_MODULES: DiscoverModule[] = [
     title: 'Karar Pusulası',
     subtitle: 'Anlık karar rehberi',
     icon: 'navigate-outline',
-    route: '/decision-compass',
+    route: '/(tabs)/decision-compass-tab',
     keywords: ['karar', 'pusula', 'decision', 'compass'],
     recommended: true,
   },

@@ -1,5 +1,14 @@
 import axios from 'axios';
-import type { IngestStatus } from '@/types';
+import type {
+  IngestStatus,
+  TutorialConfig,
+  TutorialContractOptions,
+  TutorialConfigSummary,
+  TutorialConfigBootstrapResponse,
+  TutorialConfigUpsertRequest,
+  TutorialConfigStatus,
+  TutorialPlatform,
+} from '@/types';
 
 // Requests go to Next.js rewrites (same origin) → proxied server-side → no CORS issues
 const API_BASE = '';
@@ -252,6 +261,27 @@ export const bannersApi = {
   activate: (id: number) => api.post(`/api/admin/v1/banners/${id}/activate`),
   deactivate: (id: number) => api.post(`/api/admin/v1/banners/${id}/deactivate`),
   reorder: (priorityMap: Record<number, number>) => api.post('/api/admin/v1/banners/reorder', priorityMap),
+};
+
+// ── Tutorial Configs ─────────────────────────────────────
+export const tutorialConfigsApi = {
+  list: (params?: {
+    screenKey?: string;
+    status?: TutorialConfigStatus;
+    isActive?: boolean;
+    platform?: TutorialPlatform;
+    page?: number;
+    size?: number;
+  }) => api.get<{ content: TutorialConfigSummary[]; totalElements: number }>('/api/admin/v1/tutorial-configs', { params }),
+  get: (id: number) => api.get<TutorialConfig>(`/api/admin/v1/tutorial-configs/${id}`),
+  create: (data: TutorialConfigUpsertRequest) => api.post<TutorialConfig>('/api/admin/v1/tutorial-configs', data),
+  update: (id: number, data: TutorialConfigUpsertRequest) => api.put<TutorialConfig>(`/api/admin/v1/tutorial-configs/${id}`, data),
+  publish: (id: number) => api.post<TutorialConfig>(`/api/admin/v1/tutorial-configs/${id}/publish`),
+  archive: (id: number) => api.post<TutorialConfig>(`/api/admin/v1/tutorial-configs/${id}/archive`),
+  activate: (id: number) => api.post<TutorialConfig>(`/api/admin/v1/tutorial-configs/${id}/activate`),
+  deactivate: (id: number) => api.post<TutorialConfig>(`/api/admin/v1/tutorial-configs/${id}/deactivate`),
+  contract: () => api.get<TutorialContractOptions>('/api/admin/v1/tutorial-configs/contract'),
+  bootstrapDefaults: () => api.post<TutorialConfigBootstrapResponse>('/api/admin/v1/tutorial-configs/bootstrap-defaults'),
 };
 
 // ── Route Sync ────────────────────────────────────────────

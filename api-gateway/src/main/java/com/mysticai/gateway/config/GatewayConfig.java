@@ -77,6 +77,10 @@ public class GatewayConfig {
                 .route("notification-service", r -> r
                         .path("/api/v1/notifications/**")
                         .uri("lb://notification-service"))
+                // Tutorial Config - public endpoint (notification-service)
+                .route("notification-tutorial-config", r -> r
+                        .path("/api/v1/tutorial-configs", "/api/v1/tutorial-configs/**")
+                        .uri("lb://notification-service"))
                 // Vision Service
                 .route("vision-service", r -> r
                         .path("/api/vision/**")

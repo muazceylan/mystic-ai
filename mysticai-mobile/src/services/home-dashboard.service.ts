@@ -86,7 +86,7 @@ const STATIC_QUICK_ACTIONS: HomeDashboardQuickAction[] = [
     key: 'decisionCompass',
     title: 'Karar Pusulası',
     subtitle: 'Günlük Rehber',
-    route: '/decision-compass',
+    route: '/(tabs)/decision-compass-tab',
     available: true,
   },
   {

@@ -13,6 +13,7 @@ import { useCompanionStore } from '../store/useCompanionStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useAppConfigStore } from '../store/useAppConfigStore';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { TutorialProvider, TUTORIAL_SCREEN_KEYS, useTutorialTrigger } from '../features/tutorial';
 import { initI18n } from '../i18n';
 import { COLORS } from '../constants/colors';
 import { queryClient } from '../lib/queryClient';
@@ -99,6 +100,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
       <CompanionBootstrap />
       <NotificationBootstrap />
       <AppConfigBootstrap />
+      <TutorialBootstrap />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -213,6 +215,37 @@ function AppConfigBootstrap() {
   return null;
 }
 
+function TutorialBootstrap() {
+  const pathname = usePathname();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const userId = useAuthStore((s) => s.user?.id);
+  const { trigger } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.GLOBAL_ONBOARDING);
+  const bootstrapRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated || !userId) {
+      bootstrapRef.current = null;
+      return;
+    }
+
+    if (!pathname.startsWith('/(tabs)')) {
+      return;
+    }
+
+    const scope = String(userId);
+    if (bootstrapRef.current === scope) {
+      return;
+    }
+
+    bootstrapRef.current = scope;
+    void trigger('first_app_open');
+    void trigger('version_changed');
+  }, [isAuthenticated, isHydrated, pathname, trigger, userId]);
+
+  return null;
+}
+
 export default function Layout() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const [i18nReady, setI18nReady] = useState(false);
@@ -229,13 +262,15 @@ export default function Layout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            {i18nReady ? (
-              <AppNavigator i18nReady={i18nReady} />
-            ) : (
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-              </View>
-            )}
+            <TutorialProvider>
+              {i18nReady ? (
+                <AppNavigator i18nReady={i18nReady} />
+              ) : (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+                  <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+              )}
+            </TutorialProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

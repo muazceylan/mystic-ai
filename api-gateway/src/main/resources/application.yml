@@ -40,6 +40,12 @@ spring:
           predicates:
             - Path=/api/v1/app-config
 
+        # Tutorial Config — public endpoint on notification-service
+        - id: tutorial-configs
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/tutorial-configs,/api/v1/tutorial-configs/**
+
         # CMS Content — public horoscope/prayer endpoints on notification-service
         - id: cms-content
           uri: lb://notification-service

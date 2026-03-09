@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,15 @@ import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW, ACCESSIBILITY } from '../../constants/tokens';
+import { useAuthStore } from '../../store/useAuthStore';
+import {
+  SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 
 /* ─── Navigation items ─── */
 const MAIN_FEATURES: ReadonlyArray<{
@@ -102,6 +111,10 @@ const QUICK_ACTIONS: ReadonlyArray<{
 export default function SpiritualHomeScreen() {
   const { colors, isDark } = useTheme();
   const s = createStyles(colors, isDark);
+  const userId = useAuthStore((state) => state.user?.id);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.SPIRITUAL_PRACTICE);
+  const tutorialBootstrapRef = useRef<string | null>(null);
 
   const activeRoutineSetId = useCustomSetStore((s) => s.activeRoutineSetId);
   const sets = useCustomSetStore((s) => s.sets);
@@ -110,89 +123,122 @@ export default function SpiritualHomeScreen() {
     [activeRoutineSetId, sets],
   );
 
+  useEffect(() => {
+    const scope = userId ? String(userId) : 'guest';
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, userId]);
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.SPIRITUAL_PRACTICE_FOUNDATION, 'spiritual_home');
+  }, [reopenTutorialById]);
+
   return (
     <SafeScreen scroll>
-      <TabHeader title="Ruhsal Pratikler" {...useTabHeaderActions()} />
+      <TabHeader
+        title="Ruhsal Pratikler"
+        rightActions={(
+          <SpotlightTarget targetKey={SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+            <Pressable
+              onPress={handlePressTutorialHelp}
+              style={({ pressed }) => [s.helpBtn, pressed && { opacity: 0.72 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Ruhsal pratikler rehberini tekrar aç"
+            >
+              <Ionicons name="help-circle-outline" size={18} color={colors.text} />
+            </Pressable>
+          </SpotlightTarget>
+        )}
+        {...useTabHeaderActions()}
+      />
 
       {/* ─── Hızlı Erişim ─── */}
-      <View style={s.quickGrid}>
-        {QUICK_ACTIONS.map((q) => (
-          <Pressable
-            key={q.key}
-            style={({ pressed }) => [
-              s.quickCard,
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() => router.push(q.route as any)}
-            accessibilityLabel={q.label}
-          >
-            <View style={[s.quickIcon, { backgroundColor: q.accent + '18' }]}>
-              <Ionicons name={q.icon} size={18} color={q.accent} />
-            </View>
-            <Text
-              style={s.quickLabel}
-              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+      <SpotlightTarget targetKey={SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.PRACTICE_COUNTER}>
+        <View style={s.quickGrid}>
+          {QUICK_ACTIONS.map((q) => (
+            <Pressable
+              key={q.key}
+              style={({ pressed }) => [
+                s.quickCard,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => router.push(q.route as any)}
+              accessibilityLabel={q.label}
             >
-              {q.label}
-            </Text>
-            <Text
-              style={s.quickSub}
-              numberOfLines={1}
-              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-            >
-              {q.sub}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+              <View style={[s.quickIcon, { backgroundColor: q.accent + '18' }]}>
+                <Ionicons name={q.icon} size={18} color={q.accent} />
+              </View>
+              <Text
+                style={s.quickLabel}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {q.label}
+              </Text>
+              <Text
+                style={s.quickSub}
+                numberOfLines={1}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {q.sub}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </SpotlightTarget>
 
       {/* ─── Rutini Başlat ─── */}
-      <Pressable
-        style={({ pressed }) => [
-          s.routineBtn,
-          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-        ]}
-        onPress={() => {
-          if (activeSet) {
-            router.push(`/spiritual/custom-sets/${activeSet.id}` as any);
-          } else {
-            router.push('/spiritual/prayers/flow');
-          }
-        }}
-        accessibilityLabel="Dua rutinini başlat"
-      >
-        <LinearGradient
-          colors={isDark
-            ? ['#4F46E5', '#7C3AED']
-            : ['#6366F1', '#8B5CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={s.routineGradient}
+      <SpotlightTarget targetKey={SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.DAILY_RECOMMENDATION}>
+        <Pressable
+          style={({ pressed }) => [
+            s.routineBtn,
+            pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+          ]}
+          onPress={() => {
+            if (activeSet) {
+              router.push(`/spiritual/custom-sets/${activeSet.id}` as any);
+            } else {
+              router.push('/spiritual/prayers/flow');
+            }
+          }}
+          accessibilityLabel="Dua rutinini başlat"
         >
-          <View style={s.routineInner}>
-            <View style={s.routineIconWrap}>
-              <Ionicons name="play" size={18} color="#FFF" />
+          <LinearGradient
+            colors={isDark
+              ? ['#4F46E5', '#7C3AED']
+              : ['#6366F1', '#8B5CF6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.routineGradient}
+          >
+            <View style={s.routineInner}>
+              <View style={s.routineIconWrap}>
+                <Ionicons name="play" size={18} color="#FFF" />
+              </View>
+              <View style={s.routineTextWrap}>
+                <Text
+                  style={s.routineTitle}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  Rutini Başlat
+                </Text>
+                <Text
+                  style={s.routineSub}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  {activeSet
+                    ? `📿 ${activeSet.name} • ${activeSet.items.length} öğe`
+                    : 'Günlük dua akışına geç'}
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.7)" />
             </View>
-            <View style={s.routineTextWrap}>
-              <Text
-                style={s.routineTitle}
-                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-              >
-                Rutini Başlat
-              </Text>
-              <Text
-                style={s.routineSub}
-                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-              >
-                {activeSet
-                  ? `📿 ${activeSet.name} • ${activeSet.items.length} öğe`
-                  : 'Günlük dua akışına geç'}
-              </Text>
-            </View>
-            <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.7)" />
-          </View>
-        </LinearGradient>
-      </Pressable>
+          </LinearGradient>
+        </Pressable>
+      </SpotlightTarget>
 
       {/* ─── Keşfet ─── */}
       <View style={s.sectionHeader}>
@@ -207,49 +253,51 @@ export default function SpiritualHomeScreen() {
         </View>
       </View>
 
-      <View style={s.featureGrid}>
-        {MAIN_FEATURES.map((f) => {
-          const accent = colors[f.accentKey];
-          const bg = colors[f.bgKey];
-          return (
-            <Pressable
-              key={f.key}
-              style={({ pressed }) => [
-                s.featureCard,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
-              ]}
-              onPress={() => router.push(f.route as any)}
-              accessibilityLabel={f.label}
-            >
-              <LinearGradient
-                pointerEvents="none"
-                colors={[accent + (isDark ? '14' : '0A'), 'transparent']}
-                style={s.featureGlow}
-              />
-              <View style={[s.featureIcon, { backgroundColor: bg + (isDark ? '' : '30') }]}>
-                <Ionicons name={f.icon} size={20} color={accent} />
-              </View>
-              <View style={s.featureBody}>
-                <Text
-                  style={s.featureLabel}
-                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-                >
-                  {f.label}
-                </Text>
-                <Text
-                  style={s.featureSub}
-                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-                >
-                  {f.sub}
-                </Text>
-              </View>
-              <View style={[s.featureArrow, { backgroundColor: accent + '14' }]}>
-                <Ionicons name="chevron-forward" size={16} color={accent} />
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SpotlightTarget targetKey={SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.JOURNAL_ENTRY}>
+        <View style={s.featureGrid}>
+          {MAIN_FEATURES.map((f) => {
+            const accent = colors[f.accentKey];
+            const bg = colors[f.bgKey];
+            return (
+              <Pressable
+                key={f.key}
+                style={({ pressed }) => [
+                  s.featureCard,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                ]}
+                onPress={() => router.push(f.route as any)}
+                accessibilityLabel={f.label}
+              >
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[accent + (isDark ? '14' : '0A'), 'transparent']}
+                  style={s.featureGlow}
+                />
+                <View style={[s.featureIcon, { backgroundColor: bg + (isDark ? '' : '30') }]}>
+                  <Ionicons name={f.icon} size={20} color={accent} />
+                </View>
+                <View style={s.featureBody}>
+                  <Text
+                    style={s.featureLabel}
+                    maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                  >
+                    {f.label}
+                  </Text>
+                  <Text
+                    style={s.featureSub}
+                    maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                  >
+                    {f.sub}
+                  </Text>
+                </View>
+                <View style={[s.featureArrow, { backgroundColor: accent + '14' }]}>
+                  <Ionicons name="chevron-forward" size={16} color={accent} />
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </SpotlightTarget>
 
       {/* bottom spacer */}
       <View style={{ height: SPACING.xl }} />
@@ -402,6 +450,16 @@ function createStyles(C: ThemeColors, isDark: boolean) {
       ...TYPOGRAPHY.CaptionXS,
       color: C.subtext,
       textAlign: 'center',
+    },
+    helpBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.09)' : C.border,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : C.surface,
     },
   });
 }

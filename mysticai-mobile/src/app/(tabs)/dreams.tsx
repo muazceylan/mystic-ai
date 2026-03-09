@@ -26,6 +26,14 @@ import DreamDictionary from '../../components/DreamDictionary';
 import type { DreamEntryResponse } from '../../services/dream.service';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../constants/colors';
+import {
+  DREAMS_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 
 
 type Tab      = 'journal' | 'compose' | 'dictionary' | 'book';
@@ -114,10 +122,23 @@ export default function DreamsScreen() {
   const micGlow  = useSharedValue(0);
 
   const userId = user?.id ?? 0;
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.DREAMS);
+  const tutorialBootstrapRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (userId) { fetchDreams(userId); fetchSymbols(userId); }
   }, [userId]);
+
+  useEffect(() => {
+    const scope = userId ? String(userId) : 'guest';
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, userId]);
 
   // Register push notifications on mount
   useEffect(() => {
@@ -246,6 +267,10 @@ export default function DreamsScreen() {
       },
     ]);
   };
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.DREAMS_FOUNDATION, 'dreams');
+  }, [reopenTutorialById]);
 
   // ─── TTS ─────────────────────────────────────────────────────────
   const handleSpeak = (dream: DreamEntryResponse) => {
@@ -779,52 +804,68 @@ export default function DreamsScreen() {
         title={t('tabs.dream')}
         subtitle={t('dreams.subtitle')}
         rightActions={
-          <TouchableOpacity
-            style={[styles.addBtn, tab === 'compose' && styles.addBtnClose]}
-            onPress={() => {
-              if (tab === 'compose') { resetCompose(); setTab('journal'); }
-              else setTab('compose');
-            }}
-            accessibilityLabel={tab === 'compose' ? t('dreams.closeCompose') : t('dreams.addNewDream')}
-            accessibilityRole="button"
-          >
-            <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={colors.white} />
-          </TouchableOpacity>
+          <View style={styles.headerActionRow}>
+            <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <TouchableOpacity
+                style={styles.helpBtn}
+                onPress={handlePressTutorialHelp}
+                accessibilityLabel="Rüya rehberini tekrar aç"
+                accessibilityRole="button"
+              >
+                <Ionicons name="help-circle-outline" size={19} color={colors.text} />
+              </TouchableOpacity>
+            </SpotlightTarget>
+            <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.COMPOSE_ENTRY}>
+              <TouchableOpacity
+                style={[styles.addBtn, tab === 'compose' && styles.addBtnClose]}
+                onPress={() => {
+                  if (tab === 'compose') { resetCompose(); setTab('journal'); }
+                  else setTab('compose');
+                }}
+                accessibilityLabel={tab === 'compose' ? t('dreams.closeCompose') : t('dreams.addNewDream')}
+                accessibilityRole="button"
+              >
+                <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={colors.white} />
+              </TouchableOpacity>
+            </SpotlightTarget>
+          </View>
         }
         {...useTabHeaderActions()}
       />
 
       {/* Tab switcher */}
       {tab !== 'compose' && (
-        <View style={styles.tabRow}>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === 'journal' && styles.tabBtnActive]}
-            onPress={() => setTab('journal')}
-            accessibilityLabel={t('dreams.journal')}
-            accessibilityRole="tab"
-          >
-            <Ionicons name="book-outline" size={14} color={tab === 'journal' ? colors.primary : colors.subtext} />
-            <Text style={[styles.tabBtnText, tab === 'journal' && styles.tabBtnTextActive]}>{t('dreams.journal')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === 'dictionary' && styles.tabBtnActive]}
-            onPress={() => setTab('dictionary')}
-            accessibilityLabel={t('dreams.dictionary')}
-            accessibilityRole="tab"
-          >
-            <Ionicons name="library-outline" size={14} color={tab === 'dictionary' ? colors.primary : colors.subtext} />
-            <Text style={[styles.tabBtnText, tab === 'dictionary' && styles.tabBtnTextActive]}>{t('dreams.dictionary')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === 'book' && styles.tabBtnActive]}
-            onPress={() => setTab('book')}
-            accessibilityLabel={t('dreams.book')}
-            accessibilityRole="tab"
-          >
-            <Ionicons name="journal-outline" size={14} color={tab === 'book' ? colors.primary : colors.subtext} />
-            <Text style={[styles.tabBtnText, tab === 'book' && styles.tabBtnTextActive]}>{t('dreams.book')}</Text>
-          </TouchableOpacity>
-        </View>
+        <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.HISTORY_ENTRY}>
+          <View style={styles.tabRow}>
+            <TouchableOpacity
+              style={[styles.tabBtn, tab === 'journal' && styles.tabBtnActive]}
+              onPress={() => setTab('journal')}
+              accessibilityLabel={t('dreams.journal')}
+              accessibilityRole="tab"
+            >
+              <Ionicons name="book-outline" size={14} color={tab === 'journal' ? colors.primary : colors.subtext} />
+              <Text style={[styles.tabBtnText, tab === 'journal' && styles.tabBtnTextActive]}>{t('dreams.journal')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabBtn, tab === 'dictionary' && styles.tabBtnActive]}
+              onPress={() => setTab('dictionary')}
+              accessibilityLabel={t('dreams.dictionary')}
+              accessibilityRole="tab"
+            >
+              <Ionicons name="library-outline" size={14} color={tab === 'dictionary' ? colors.primary : colors.subtext} />
+              <Text style={[styles.tabBtnText, tab === 'dictionary' && styles.tabBtnTextActive]}>{t('dreams.dictionary')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabBtn, tab === 'book' && styles.tabBtnActive]}
+              onPress={() => setTab('book')}
+              accessibilityLabel={t('dreams.book')}
+              accessibilityRole="tab"
+            >
+              <Ionicons name="journal-outline" size={14} color={tab === 'book' ? colors.primary : colors.subtext} />
+              <Text style={[styles.tabBtnText, tab === 'book' && styles.tabBtnTextActive]}>{t('dreams.book')}</Text>
+            </TouchableOpacity>
+          </View>
+        </SpotlightTarget>
       )}
 
       {/* Recurring symbols strip (journal only) */}
@@ -859,47 +900,49 @@ export default function DreamsScreen() {
 
       {/* ── JOURNAL TAB ── */}
       {tab === 'journal' && (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.journalContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-        >
-          {loading && (
-            <View style={styles.centerBox}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.centerText}>{t('dreams.loading')}</Text>
-            </View>
-          )}
-          {!loading && error && (
-            <View style={styles.centerBox}>
-              <ErrorStateCard
-                message={error}
-                onRetry={() => fetchDreams(userId)}
-                accessibilityLabel={t('dreams.reloadDreams')}
-              />
-            </View>
-          )}
-          {!loading && !error && dreams.length === 0 && (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>🌙</Text>
-              <Text style={styles.emptyTitle}>Henüz rüya kaydın yok</Text>
-              <Text style={styles.emptySub}>İlk rüyanı kaydetmek için + butonuna dokun</Text>
-              <TouchableOpacity
-                style={styles.emptyBtn}
-                onPress={() => setTab('compose')}
-                accessibilityLabel={t('dreams.addFirstDream')}
-                accessibilityRole="button"
-              >
-                <Text style={styles.emptyBtnText}>{t('dreams.addDream')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {!loading && !error && dreams.map(d => renderCard(d))}
-          <View style={{ height: 40 }} />
-        </ScrollView>
+        <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.INTERPRETATION_RESULT}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.journalContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            }
+          >
+            {loading && (
+              <View style={styles.centerBox}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.centerText}>{t('dreams.loading')}</Text>
+              </View>
+            )}
+            {!loading && error && (
+              <View style={styles.centerBox}>
+                <ErrorStateCard
+                  message={error}
+                  onRetry={() => fetchDreams(userId)}
+                  accessibilityLabel={t('dreams.reloadDreams')}
+                />
+              </View>
+            )}
+            {!loading && !error && dreams.length === 0 && (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyEmoji}>🌙</Text>
+                <Text style={styles.emptyTitle}>Henüz rüya kaydın yok</Text>
+                <Text style={styles.emptySub}>İlk rüyanı kaydetmek için + butonuna dokun</Text>
+                <TouchableOpacity
+                  style={styles.emptyBtn}
+                  onPress={() => setTab('compose')}
+                  accessibilityLabel={t('dreams.addFirstDream')}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.emptyBtnText}>{t('dreams.addDream')}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {!loading && !error && dreams.map(d => renderCard(d))}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SpotlightTarget>
       )}
     </LinearGradient>
     </SafeScreen>
@@ -912,6 +955,17 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   container: { flex: 1 },
 
   // Header (addBtn kept for rightActions slot)
+  headerActionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  helpBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   addBtn:      { width:38, height:38, borderRadius:19, backgroundColor:C.primary,
                  alignItems:'center', justifyContent:'center' },
   addBtnClose: { backgroundColor: C.overlayDark },

@@ -55,7 +55,7 @@ export const DISCOVER_MODULES: DiscoverModule[] = [
     titleKey: 'discover.decisionCompass',
     descriptionKey: 'discover.decisionCompassDesc',
     icon: 'compass',
-    route: '/decision-compass',
+    route: '/(tabs)/decision-compass-tab',
     section: 'tools',
     keywords: ['karar', 'pusula', 'decision', 'compass', 'rehber', 'guide'],
     gradientDark: ['#4A2A0A', '#2A1A0A'],

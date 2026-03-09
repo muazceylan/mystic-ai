@@ -14,6 +14,7 @@ const navItems = [
   { href: '/notification-triggers', label: 'Trigger Monitor', icon: Zap, check: canManageNotifications },
   { href: '/notification-history', label: 'Delivery History', icon: History, check: canManageNotifications },
   { href: '/home-sections', label: 'Home Sections', icon: Home, check: canManageRoutes },
+  { href: '/tutorial-configs', label: 'Tutorial Configs', icon: Compass, check: canManageRoutes },
   { href: '/explore-categories', label: 'Explore Categories', icon: Compass, check: canManageRoutes },
   { href: '/explore-cards', label: 'Explore Cards', icon: CreditCard, check: canManageRoutes },
   { href: '/banners', label: 'Banners', icon: Image, check: canManageRoutes },

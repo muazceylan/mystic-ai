@@ -21,6 +21,14 @@ import { trackEvent } from '../../services/analytics';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { getZodiacInfo } from '../../constants/zodiac';
+import {
+  DAILY_TRANSITS_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../../features/tutorial';
 
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
@@ -555,11 +563,14 @@ export default function DailyTransitsScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS);
   const chart = useNatalChartStore((state) => state.chart);
   const date = useMemo(() => getTodayIsoDate(), []);
   const viewedEventSentRef = useRef<string | null>(null);
   const errorEventSentRef = useRef<string | null>(null);
   const loadEventSentRef = useRef<string | null>(null);
+  const tutorialBootstrapRef = useRef<string | null>(null);
   const [expandedThemes, setExpandedThemes] = useState<Record<string, boolean>>({});
 
   const dailyTransitsQuery = useQuery({
@@ -642,6 +653,21 @@ export default function DailyTransitsScreen() {
     });
   }, [dailyTransitsQuery.isError, date]);
 
+  useEffect(() => {
+    const scope = user?.id ? String(user.id) : null;
+    if (!scope) {
+      tutorialBootstrapRef.current = null;
+      return;
+    }
+
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+  }, [triggerInitialTutorials, user?.id]);
+
   const handleFeedback = async (payload: DailyFeedbackPayload) => {
     try {
       await sendFeedback(payload);
@@ -676,6 +702,10 @@ export default function DailyTransitsScreen() {
     });
     void dailyTransitsQuery.refetch();
   };
+
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.DAILY_TRANSITS_FOUNDATION, 'daily_transits');
+  }, [reopenTutorialById]);
 
   const data = dailyTransitsQuery.data;
   const isEmpty = !!data && data.transits.length === 0;
@@ -742,7 +772,17 @@ export default function DailyTransitsScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>{data?.title ?? 'Bugünün Gökyüzü Etkileri'}</Text>
           <Text style={[styles.headerDate, { color: colors.subtext }]}>{formatDateLabel(data?.date ?? date)}</Text>
         </View>
-        <View style={styles.headerSpacer} />
+        <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+          <Pressable
+            onPress={handlePressTutorialHelp}
+            hitSlop={10}
+            style={[styles.navBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#F2EBFF' }]}
+            accessibilityRole="button"
+            accessibilityLabel="Tutorial rehberini tekrar aç"
+          >
+            <Ionicons name="help-circle-outline" size={20} color={colors.text} />
+          </Pressable>
+        </SpotlightTarget>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -772,7 +812,9 @@ export default function DailyTransitsScreen() {
 
         {data && !isEmpty && hasTransitCards ? (
           <>
-            <HeroCard hero={heroForRender ?? data.hero} />
+            <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HERO_SUMMARY}>
+              <HeroCard hero={heroForRender ?? data.hero} />
+            </SpotlightTarget>
 
             <View style={styles.quickRow}>
               {data.quickFacts.map((fact) => (
@@ -802,86 +844,90 @@ export default function DailyTransitsScreen() {
               </Pressable>
             </SectionCard>
 
-            <SectionCard title="Dikkat Noktaları" icon="flash">
-              {processedContent.focusItems.length > 0 ? (
-                <View style={styles.focusList}>
-                  {processedContent.focusItems.map((point, index) => (
-                    <View key={`${point}-${index}`} style={styles.focusRow}>
-                      <View style={[styles.focusDot, { backgroundColor: colors.primary }]} />
-                      <Text style={[styles.focusText, { color: colors.subtext }]}>{point}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text style={[styles.sectionBody, { color: colors.subtext }]}>Bugün için ek öneri hazırlanıyor.</Text>
-              )}
-            </SectionCard>
+            <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.IMPACT_ZONES}>
+              <SectionCard title="Dikkat Noktaları" icon="flash">
+                {processedContent.focusItems.length > 0 ? (
+                  <View style={styles.focusList}>
+                    {processedContent.focusItems.map((point, index) => (
+                      <View key={`${point}-${index}`} style={styles.focusRow}>
+                        <View style={[styles.focusDot, { backgroundColor: colors.primary }]} />
+                        <Text style={[styles.focusText, { color: colors.subtext }]}>{point}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={[styles.sectionBody, { color: colors.subtext }]}>Bugün için ek öneri hazırlanıyor.</Text>
+                )}
+              </SectionCard>
+            </SpotlightTarget>
 
             <SectionCard title="Retro" icon="repeat">
               <RetroList items={data.retrogrades} />
             </SectionCard>
 
-            <SectionCard title="Transit Kartları" icon="planet">
-              <View style={styles.transitGroupsWrap}>
-                {processedContent.groupedTransits.map((group) => {
-                  const themeKey = normalizeSentence(group.theme);
-                  const expanded = Boolean(expandedThemes[themeKey]);
-                  const canExpand = group.items.length > MAX_TRANSITS_PER_THEME;
-                  const visibleItems =
-                    canExpand && !expanded ? group.items.slice(0, MAX_TRANSITS_PER_THEME) : group.items;
+            <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.TRANSIT_CARDS}>
+              <SectionCard title="Transit Kartları" icon="planet">
+                <View style={styles.transitGroupsWrap}>
+                  {processedContent.groupedTransits.map((group) => {
+                    const themeKey = normalizeSentence(group.theme);
+                    const expanded = Boolean(expandedThemes[themeKey]);
+                    const canExpand = group.items.length > MAX_TRANSITS_PER_THEME;
+                    const visibleItems =
+                      canExpand && !expanded ? group.items.slice(0, MAX_TRANSITS_PER_THEME) : group.items;
 
-                  return (
-                    <View key={group.theme} style={styles.themeGroup}>
-                      <View style={styles.themeHeaderRow}>
-                        <Text style={[styles.themeHeaderText, { color: colors.text }]}>{group.theme}</Text>
-                        {canExpand ? (
-                          <Pressable
-                            onPress={() => toggleThemeExpanded(themeKey)}
-                            hitSlop={8}
-                            style={styles.themeToggleBtn}
-                            accessibilityRole="button"
-                            accessibilityLabel={
-                              expanded ? `${group.theme} bölümünü daralt` : `${group.theme} bölümünü genişlet`
-                            }
-                          >
-                            <Text style={[styles.themeToggleText, { color: colors.primary }]}>
-                              {expanded ? 'Daha Az Göster' : 'Tümünü Gör'}
-                            </Text>
-                            <Ionicons
-                              name={expanded ? 'chevron-up' : 'chevron-down'}
-                              size={14}
-                              color={colors.primary}
+                    return (
+                      <View key={group.theme} style={styles.themeGroup}>
+                        <View style={styles.themeHeaderRow}>
+                          <Text style={[styles.themeHeaderText, { color: colors.text }]}>{group.theme}</Text>
+                          {canExpand ? (
+                            <Pressable
+                              onPress={() => toggleThemeExpanded(themeKey)}
+                              hitSlop={8}
+                              style={styles.themeToggleBtn}
+                              accessibilityRole="button"
+                              accessibilityLabel={
+                                expanded ? `${group.theme} bölümünü daralt` : `${group.theme} bölümünü genişlet`
+                              }
+                            >
+                              <Text style={[styles.themeToggleText, { color: colors.primary }]}>
+                                {expanded ? 'Daha Az Göster' : 'Tümünü Gör'}
+                              </Text>
+                              <Ionicons
+                                name={expanded ? 'chevron-up' : 'chevron-down'}
+                                size={14}
+                                color={colors.primary}
+                              />
+                            </Pressable>
+                          ) : null}
+                        </View>
+
+                        <View style={styles.transitList}>
+                          {visibleItems.map((item) => (
+                            <TransitItemCard
+                              key={item.id}
+                              transit={item}
+                              date={data.date}
+                              onDetailOpened={(transitId) =>
+                                trackEvent('transit_detail_opened', {
+                                  date: data.date,
+                                  transit_id: transitId,
+                                  surface: 'daily_transits',
+                                  destination: 'daily_transits_detail',
+                                })}
+                              onFeedback={handleFeedback}
                             />
-                          </Pressable>
-                        ) : null}
+                          ))}
+                        </View>
                       </View>
+                    );
+                  })}
 
-                      <View style={styles.transitList}>
-                        {visibleItems.map((item) => (
-                          <TransitItemCard
-                            key={item.id}
-                            transit={item}
-                            date={data.date}
-                            onDetailOpened={(transitId) =>
-                              trackEvent('transit_detail_opened', {
-                                date: data.date,
-                                transit_id: transitId,
-                                surface: 'daily_transits',
-                                destination: 'daily_transits_detail',
-                              })}
-                            onFeedback={handleFeedback}
-                          />
-                        ))}
-                      </View>
-                    </View>
-                  );
-                })}
-
-                {processedContent.groupedTransits.length === 0 ? (
-                  <Text style={[styles.sectionBody, { color: colors.subtext }]}>Bugün için ek öneri hazırlanıyor.</Text>
-                ) : null}
-              </View>
-            </SectionCard>
+                  {processedContent.groupedTransits.length === 0 ? (
+                    <Text style={[styles.sectionBody, { color: colors.subtext }]}>Bugün için ek öneri hazırlanıyor.</Text>
+                  ) : null}
+                </View>
+              </SectionCard>
+            </SpotlightTarget>
           </>
         ) : null}
       </ScrollView>

@@ -19,6 +19,14 @@ import { trackEvent } from '../services/analytics';
 import { fetchHomeContentBundle, type HomeSection, type CmsBanner } from '../services/homeContent.service';
 import { getLockedSections, isPremiumUser } from '../services/numerology.service';
 import { useAuthStore } from '../store/useAuthStore';
+import {
+  HOME_TUTORIAL_TARGET_KEYS,
+  SpotlightTarget,
+  TUTORIAL_IDS,
+  TUTORIAL_SCREEN_KEYS,
+  useTutorial,
+  useTutorialTrigger,
+} from '../features/tutorial';
 import { colors, radius, shadowSubtle, spacing, typography } from '../theme';
 
 const HOME_VARIANT = 'premium_v3';
@@ -241,9 +249,16 @@ export default function HomeScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
+  const { reopenTutorialById } = useTutorial();
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.HOME);
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
   const [cmsHeroBanners, setCmsHeroBanners] = useState<CmsBanner[]>([]);
   const [cmsSections, setCmsSections] = useState<HomeSection[]>([]);
+  const viewTrackedRef = useRef(false);
+  const contentLoadedTrackedRef = useRef(false);
+  const emptyHeroRefetchTriedRef = useRef(false);
+  const numerologyWidgetTrackedRef = useRef(false);
+  const tutorialBootstrapRef = useRef<string | null>(null);
   const homeNumerology = useNumerology({
     user,
     locale: user?.preferredLanguage ?? 'tr',
@@ -274,10 +289,27 @@ export default function HomeScreen() {
     });
   }, [user?.preferredLanguage]);
 
-  const viewTrackedRef = useRef(false);
-  const contentLoadedTrackedRef = useRef(false);
-  const emptyHeroRefetchTriedRef = useRef(false);
-  const numerologyWidgetTrackedRef = useRef(false);
+  useEffect(() => {
+    const scope = user?.id ? String(user.id) : null;
+    if (!scope) {
+      tutorialBootstrapRef.current = null;
+      return;
+    }
+
+    if (tutorialBootstrapRef.current === scope) {
+      return;
+    }
+
+    tutorialBootstrapRef.current = scope;
+    void triggerInitialTutorials();
+    const retryTimer = setTimeout(() => {
+      void triggerInitialTutorials();
+    }, 2200);
+
+    return () => {
+      clearTimeout(retryTimer);
+    };
+  }, [triggerInitialTutorials, user?.id]);
 
   const displayName = useMemo(() => {
     const backendName = dashboard?.user?.name?.trim();
@@ -486,6 +518,10 @@ export default function HomeScreen() {
     pushRoute(SETTINGS_ROUTE);
   }, [pushRoute]);
 
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.HOME_FOUNDATION, 'home');
+  }, [reopenTutorialById]);
+
   const handlePressSkyCard = useCallback(() => {
     trackEvent('home_skymap_click', {
       surface: 'hero',
@@ -647,6 +683,18 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.headerActions}>
+              <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+                <Pressable
+                  onPress={handlePressTutorialHelp}
+                  accessibilityRole="button"
+                  accessibilityLabel="Rehberi tekrar aç"
+                  hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
+                  style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
+                >
+                  <Ionicons name="help-circle-outline" size={spacing.lg} color={colors.textPrimary} />
+                </Pressable>
+              </SpotlightTarget>
+
               <Pressable
                 onPress={handlePressNotifications}
                 accessibilityRole="button"
@@ -677,74 +725,98 @@ export default function HomeScreen() {
 
         <GreetingRow text={greetingText} />
 
-        <SkyHeroCard
-          subtitleText={heroSubtitle}
-          phase={heroPhase}
-          illumination={heroIllumination}
-          insight={heroInsight}
-          ctaLabel={heroCtaText}
-          isLoading={initialLoading}
-          onPress={handlePressSkyCard}
-        />
+        <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HERO_ENERGY}>
+          <SkyHeroCard
+            subtitleText={heroSubtitle}
+            phase={heroPhase}
+            illumination={heroIllumination}
+            insight={heroInsight}
+            ctaLabel={heroCtaText}
+            isLoading={initialLoading}
+            onPress={handlePressSkyCard}
+          />
+        </SpotlightTarget>
 
         {quickActions.length > 0 ? (
-          <QuickActionGrid actions={quickActions} onPressAction={handlePressQuickAction} />
+          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.QUICK_ACTIONS}>
+            <QuickActionGrid actions={quickActions} onPressAction={handlePressQuickAction} />
+          </SpotlightTarget>
         ) : initialLoading ? (
-          <View style={styles.quickSkeletonGrid}>
-            <LoadingBlock height={spacing.xxl * 4 + spacing.md} />
-            <LoadingBlock height={spacing.xxl * 4 + spacing.md} />
-          </View>
+          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.QUICK_ACTIONS}>
+            <View style={styles.quickSkeletonGrid}>
+              <LoadingBlock height={spacing.xxl * 4 + spacing.md} />
+              <LoadingBlock height={spacing.xxl * 4 + spacing.md} />
+            </View>
+          </SpotlightTarget>
         ) : null}
 
         {numerologyWidget ? (
-          <Pressable
-            onPress={handlePressNumerologyWidget}
-            accessibilityRole="button"
-            accessibilityLabel="Numeroloji kartını aç"
-            style={({ pressed }) => [styles.numerologyWidget, pressed && styles.pressed]}
-          >
-            <LinearGradient
-              colors={['#0F1A36', '#1C1B4C', '#352658']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.numerologyWidgetInner}
+          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
+            <Pressable
+              onPress={handlePressNumerologyWidget}
+              accessibilityRole="button"
+              accessibilityLabel="Numeroloji kartını aç"
+              style={({ pressed }) => [styles.numerologyWidget, pressed && styles.pressed]}
             >
-              <View style={styles.numerologyWidgetHeader}>
-                <Text style={styles.numerologyWidgetKicker}>Numeroloji Rehberi</Text>
-                {homeNumerology.data?.timing?.personalYear ? (
-                  <View style={styles.numerologyYearPill}>
-                    <Text style={styles.numerologyYearPillText}>
-                      Yıl {homeNumerology.data.timing.personalYear}
-                    </Text>
-                  </View>
+              <LinearGradient
+                colors={['#0F1A36', '#1C1B4C', '#352658']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.numerologyWidgetInner}
+              >
+                <View style={styles.numerologyWidgetHeader}>
+                  <Text style={styles.numerologyWidgetKicker}>Numeroloji Rehberi</Text>
+                  {homeNumerology.data?.timing?.personalYear ? (
+                    <View style={styles.numerologyYearPill}>
+                      <Text style={styles.numerologyYearPillText}>
+                        Yıl {homeNumerology.data.timing.personalYear}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.numerologyWidgetTitle}>{numerologyWidget.title}</Text>
+                <Text style={styles.numerologyWidgetBody}>{numerologyWidget.body}</Text>
+                {numerologyWidget.state === 'ready' && numerologyWidget.focus ? (
+                  <Text style={styles.numerologyWidgetFocus} numberOfLines={2}>
+                    Odak: {numerologyWidget.focus}
+                  </Text>
                 ) : null}
-              </View>
-              <Text style={styles.numerologyWidgetTitle}>{numerologyWidget.title}</Text>
-              <Text style={styles.numerologyWidgetBody}>{numerologyWidget.body}</Text>
-              {numerologyWidget.state === 'ready' && numerologyWidget.focus ? (
-                <Text style={styles.numerologyWidgetFocus} numberOfLines={2}>
-                  Odak: {numerologyWidget.focus}
-                </Text>
-              ) : null}
-              <View style={styles.numerologyWidgetFooter}>
-                <Text style={styles.numerologyWidgetCta}>{numerologyWidget.cta}</Text>
-                <Ionicons name="arrow-forward" size={18} color="#F8E6AF" />
-              </View>
-            </LinearGradient>
-          </Pressable>
+                <View style={styles.numerologyWidgetFooter}>
+                  <Text style={styles.numerologyWidgetCta}>{numerologyWidget.cta}</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#F8E6AF" />
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </SpotlightTarget>
         ) : homeNumerology.isLoading ? (
-          <LoadingBlock height={138} />
+          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
+            <LoadingBlock height={138} />
+          </SpotlightTarget>
         ) : null}
 
-        <HoroscopeSummaryCard
-          sign={signName}
-          theme={todayTheme}
-          advice={todayAdvice}
-          isLoading={initialLoading && !hasToday}
-          onPressToday={handlePressTodayTab}
-          onPressWeek={handlePressWeekTab}
-          onPressDetails={handlePressHoroscopeDetails}
-        />
+        {!numerologyWidget && !homeNumerology.isLoading ? (
+          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
+            <HoroscopeSummaryCard
+              sign={signName}
+              theme={todayTheme}
+              advice={todayAdvice}
+              isLoading={initialLoading && !hasToday}
+              onPressToday={handlePressTodayTab}
+              onPressWeek={handlePressWeekTab}
+              onPressDetails={handlePressHoroscopeDetails}
+            />
+          </SpotlightTarget>
+        ) : (
+          <HoroscopeSummaryCard
+            sign={signName}
+            theme={todayTheme}
+            advice={todayAdvice}
+            isLoading={initialLoading && !hasToday}
+            onPressToday={handlePressTodayTab}
+            onPressWeek={handlePressWeekTab}
+            onPressDetails={handlePressHoroscopeDetails}
+          />
+        )}
 
         <DailyTransitsCard
           phase={transitMoonPhase}
