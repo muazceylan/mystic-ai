@@ -5,6 +5,6 @@ export function useTabHeaderActions() {
   return {
     onOpenProfile: () => router.push('/(tabs)/profile'),
     onOpenSettings: () => router.push('/theme-settings'),
-    onOpenNotifications: () => router.push('/notifications-settings'),
+    onOpenNotifications: () => router.push('/notifications'),
   };
 }

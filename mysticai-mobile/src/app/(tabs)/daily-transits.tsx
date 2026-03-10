@@ -29,6 +29,7 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
+import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
@@ -562,6 +563,7 @@ function LoadingState() {
 export default function DailyTransitsScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const user = useAuthStore((state) => state.user);
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS);
@@ -762,7 +764,7 @@ export default function DailyTransitsScreen() {
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/home' as never))}
+          onPress={goBack}
           hitSlop={10}
           style={[styles.navBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#F2EBFF' }]}
         >

@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -11,17 +10,18 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { router, useSegments } from 'expo-router';
+import { router, useLocalSearchParams, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeScreen } from '../components/ui';
+import { BottomSheet } from '../components/ui/BottomSheet';
 import OnboardingBackground from '../components/OnboardingBackground';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCosmicSummary } from '../hooks/useHomeQueries';
-import type { DailyLifeGuideActivity } from '../services/astrology.service';
 import { useDecisionCompassStore } from '../store/useDecisionCompassStore';
 import {
   DECISION_COMPASS_TUTORIAL_TARGET_KEYS,
@@ -29,44 +29,22 @@ import {
   TUTORIAL_SCREEN_KEYS,
   useTutorialTrigger,
 } from '../features/tutorial';
-
-interface CompassCategoryRow {
-  categoryKey: string;
-  categoryLabel: string;
-  activityLabel: string;
-  score: number;
-  type: 'OPPORTUNITY' | 'WARNING';
-  shortAdvice: string;
-  itemCount: number;
-  items: DailyLifeGuideActivity[];
-}
-
-function iconForCategory(card: Pick<CompassCategoryRow, 'categoryKey' | 'categoryLabel' | 'activityLabel'>): keyof typeof Ionicons.glyphMap {
-  const haystack = `${card.categoryKey} ${card.categoryLabel} ${card.activityLabel}`.toLowerCase();
-  if (haystack.includes('kariyer') || haystack.includes('iş') || haystack.includes('career') || haystack.includes('work')) return 'briefcase-outline';
-  if (haystack.includes('güzellik') || haystack.includes('bakım') || haystack.includes('beauty')) return 'color-palette-outline';
-  if (haystack.includes('finans') || haystack.includes('para') || haystack.includes('money') || haystack.includes('finance')) return 'wallet-outline';
-  if (haystack.includes('aşk') || haystack.includes('ilişki') || haystack.includes('love') || haystack.includes('partner')) return 'heart-outline';
-  if (haystack.includes('sağlık') || haystack.includes('health')) return 'fitness-outline';
-  if (haystack.includes('sosyal') || haystack.includes('social')) return 'people-outline';
-  return 'sparkles-outline';
-}
-
-function tintForScore(score: number, isDark: boolean) {
-  if (score >= 70) {
-    return isDark
-      ? { bg: 'rgba(140,116,246,0.18)', text: '#D8CBFF' }
-      : { bg: 'rgba(122,91,234,0.16)', text: '#5D49B4' };
-  }
-  if (score >= 50) {
-    return isDark
-      ? { bg: 'rgba(140,116,246,0.10)', text: '#C8C1DE' }
-      : { bg: 'rgba(122,91,234,0.08)', text: '#6F6791' };
-  }
-  return isDark
-    ? { bg: 'rgba(255,255,255,0.04)', text: '#A8A3B7' }
-    : { bg: 'rgba(103,103,122,0.08)', text: '#7B7888' };
-}
+import { useInnerHeaderSpacing } from '../hooks/useInnerHeaderSpacing';
+import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
+import { DecisionCompassHeader } from '../components/decision-compass/DecisionCompassHeader';
+import { DecisionCompassFilters } from '../components/decision-compass/DecisionCompassFilters';
+import { DecisionInsightHero } from '../components/decision-compass/DecisionInsightHero';
+import { FeaturedCategoryRow } from '../components/decision-compass/FeaturedCategoryRow';
+import { CategoryMiniGrid } from '../components/decision-compass/CategoryMiniGrid';
+import { CategoryDetailBottomSheet } from '../components/decision-compass/CategoryDetailBottomSheet';
+import {
+  buildCategoryModels,
+  buildHeroModel,
+  type CompassFilter,
+  type DecisionCategoryModel,
+} from '../components/decision-compass/model';
+import { statusColors } from '../components/decision-compass/palette';
+import { getCompassTokens } from '../components/decision-compass/tokens';
 
 function formatDateShortTr(input?: string | null) {
   if (!input) return 'Bugün';
@@ -75,53 +53,44 @@ function formatDateShortTr(input?: string | null) {
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
 }
 
-function buildCategoryRows(activities: DailyLifeGuideActivity[] | null | undefined): CompassCategoryRow[] {
-  if (!activities?.length) return [];
-  const map = new Map<string, { label: string; items: DailyLifeGuideActivity[] }>();
-  for (const activity of activities) {
-    const existing = map.get(activity.groupKey);
-    if (existing) {
-      existing.items.push(activity);
-      continue;
-    }
-    map.set(activity.groupKey, {
-      label: activity.groupLabel || activity.activityLabel || 'Kategori',
-      items: [activity],
-    });
+function matchesFilter(category: DecisionCategoryModel, filter: CompassFilter): boolean {
+  if (filter === 'ALL') return true;
+  if (filter === 'CAUTION') {
+    return category.status === 'CAUTION' || category.status === 'HOLD';
   }
-
-  return Array.from(map.entries())
-    .map(([categoryKey, group]) => {
-      const items = [...group.items].sort((a, b) => b.score - a.score);
-      const score = Math.round(items.reduce((sum, item) => sum + item.score, 0) / Math.max(items.length, 1));
-      const top = items[0];
-      const type: CompassCategoryRow['type'] = score <= 40 ? 'WARNING' : 'OPPORTUNITY';
-      return {
-        categoryKey,
-        categoryLabel: group.label,
-        activityLabel: top?.activityLabel || group.label,
-        score,
-        type,
-        shortAdvice: top?.shortAdvice?.trim() || 'Bugün bu alanda dengeli ve bilinçli ilerle.',
-        itemCount: items.length,
-        items,
-      };
-    })
-    .sort((a, b) => b.score - a.score || a.categoryLabel.localeCompare(b.categoryLabel, 'tr'));
+  return category.status === 'STRONG' || category.status === 'SUPPORTIVE' || category.status === 'BALANCED';
 }
 
 export default function DecisionCompassScreen() {
   const { colors, isDark } = useTheme();
+  const T = getCompassTokens(colors, isDark);
   const { i18n } = useTranslation();
   const { width } = useWindowDimensions();
   const segments = useSegments();
+  const params = useLocalSearchParams<{ from?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const tabBarHeight = React.useContext(BottomTabBarHeightContext);
   const user = useAuthStore((s) => s.user);
+  const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
+  const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
+  const resetHiddenCategories = useDecisionCompassStore((s) => s.resetHiddenCategories);
+  const initFromFocusPoints = useDecisionCompassStore((s) => s.initFromFocusPoints);
+
+  const goBack = useSmartBackNavigation({
+    fallbackRoute: '/(tabs)/home',
+    preferLastTabPath: true,
+  });
+  const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const { trigger: triggerTutorial, triggerInitial: triggerInitialTutorials } = useTutorialTrigger(
     TUTORIAL_SCREEN_KEYS.DECISION_COMPASS,
   );
   const tutorialBootstrapRef = useRef<string | null>(null);
+
+  const [selectedFilter, setSelectedFilter] = useState<CompassFilter>('BEST');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<DecisionCategoryModel | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  const [settingsSheetOpen, setSettingsSheetOpen] = useState(false);
 
   const query = useCosmicSummary(
     user?.id
@@ -134,52 +103,76 @@ export default function DecisionCompassScreen() {
       : null,
   );
 
-  const cards = useMemo(
-    () => buildCategoryRows(query.data?.dailyGuide?.activities),
+  React.useEffect(() => {
+    if (query.data?.date) {
+      setSelectedDate((prev) => prev ?? query.data.date);
+    }
+  }, [query.data?.date]);
+
+  const categories = useMemo(
+    () => buildCategoryModels(query.data?.dailyGuide?.activities),
     [query.data?.dailyGuide?.activities],
   );
-  const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
-  const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
-  const resetHiddenCategories = useDecisionCompassStore((s) => s.resetHiddenCategories);
-  const initFromFocusPoints = useDecisionCompassStore((s) => s.initFromFocusPoints);
 
-  // Auto-filter by user's focus points on first load
   React.useEffect(() => {
-    if (cards.length > 0 && user?.focusPoint) {
-      initFromFocusPoints(user.focusPoint, cards.map((c) => c.categoryKey));
+    if (categories.length > 0 && user?.focusPoint) {
+      initFromFocusPoints(user.focusPoint, categories.map((item) => item.id));
     }
-  }, [cards.length, user?.focusPoint]);
-  const visibleCards = useMemo(
-    () => cards.filter((card) => !hiddenCategoryKeys.includes(card.categoryKey)),
-    [cards, hiddenCategoryKeys],
+  }, [categories, initFromFocusPoints, user?.focusPoint]);
+
+  const visibleCategories = useMemo(
+    () => categories.filter((item) => !hiddenCategoryKeys.includes(item.id)),
+    [categories, hiddenCategoryKeys],
   );
-  const [expandedCategoryKey, setExpandedCategoryKey] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const S = makeStyles(colors, isDark);
-  const contentMaxWidth = Platform.OS === 'web' ? Math.min(820, width - 24) : undefined;
+
+  const filteredCategories = useMemo(() => {
+    const matched = visibleCategories.filter((item) => matchesFilter(item, selectedFilter));
+    if (matched.length > 0 || selectedFilter === 'ALL') {
+      return matched;
+    }
+    return visibleCategories;
+  }, [selectedFilter, visibleCategories]);
+
+  const featuredCategories = useMemo(
+    () => filteredCategories.slice(0, Math.min(3, filteredCategories.length)),
+    [filteredCategories],
+  );
+
+  const remainingCategories = useMemo(
+    () => filteredCategories.filter((item) => !featuredCategories.some((featured) => featured.id === item.id)),
+    [featuredCategories, filteredCategories],
+  );
+
+  const heroModel = useMemo(() => buildHeroModel(visibleCategories), [visibleCategories]);
+
+  const dateLabel = formatDateShortTr(selectedDate ?? query.data?.date);
   const isInTabFlow = segments[0] === '(tabs)';
+
   const effectiveTabBarHeight = tabBarHeight ?? (Platform.OS === 'ios' ? 88 : 72);
   const contentBottomPadding = Platform.OS === 'ios'
-    ? effectiveTabBarHeight + Math.max(20, insets.bottom > 0 ? 12 : 20)
+    ? effectiveTabBarHeight + Math.max(18, insets.bottom > 0 ? 12 : 18)
     : Platform.OS === 'web'
       ? 40
-      : 96;
+      : 92;
+
+  const contentMaxWidth = Platform.OS === 'web' ? Math.min(900, width - 24) : undefined;
 
   React.useEffect(() => {
     if (!isInTabFlow) {
-      router.replace('/(tabs)/decision-compass-tab');
+      const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
+      router.replace({
+        pathname: '/(tabs)/decision-compass-tab',
+        params: typeof fromParam === 'string' && fromParam.startsWith('/') ? { from: fromParam } : undefined,
+      } as never);
     }
-  }, [isInTabFlow]);
-
-  if (!isInTabFlow) {
-    return null;
-  }
+  }, [isInTabFlow, params.from]);
 
   React.useEffect(() => {
-    if (expandedCategoryKey && !visibleCards.some((card) => card.categoryKey === expandedCategoryKey)) {
-      setExpandedCategoryKey(null);
+    if (selectedCategory && !visibleCategories.some((item) => item.id === selectedCategory.id)) {
+      setSelectedCategory(null);
+      setDetailSheetOpen(false);
     }
-  }, [expandedCategoryKey, visibleCards]);
+  }, [selectedCategory, visibleCategories]);
 
   React.useEffect(() => {
     const scope = user?.id ? String(user.id) : null;
@@ -196,54 +189,80 @@ export default function DecisionCompassScreen() {
     void triggerInitialTutorials();
   }, [triggerInitialTutorials, user?.id]);
 
+  const openCategoryDetail = useCallback((category: DecisionCategoryModel) => {
+    setSettingsSheetOpen(false);
+    setSelectedCategory(category);
+    setDetailSheetOpen(true);
+  }, []);
+
+  const openDetailScreen = useCallback((category: DecisionCategoryModel) => {
+    setDetailSheetOpen(false);
+    router.push({
+      pathname: '/decision-compass-detail',
+      params: {
+        categoryKey: category.id,
+        label: category.title,
+        activityLabel: category.activityLabel,
+        score: String(Math.round(category.score)),
+        date: selectedDate ?? query.data?.date ?? '',
+      },
+    });
+  }, [query.data?.date, selectedDate]);
+
   const handlePressTutorialHelp = useCallback(() => {
     void triggerTutorial('manual_reopen');
   }, [triggerTutorial]);
 
+  const S = makeStyles(colors, isDark, T);
+
+  if (!isInTabFlow) {
+    return (
+      <SafeScreen edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1 }} />
+      </SafeScreen>
+    );
+  }
+
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={S.container}>
+        <LinearGradient colors={T.page.backgroundGradient as [string, string, string]} style={StyleSheet.absoluteFillObject} />
+        <LinearGradient pointerEvents="none" colors={T.gradients.pageHaze as [string, string]} style={S.ambientTop} />
+        <LinearGradient pointerEvents="none" colors={T.gradients.pagePinkHaze as [string, string]} style={S.ambientHeroMist} />
+        <LinearGradient pointerEvents="none" colors={T.gradients.pageBlueHaze as [string, string]} style={S.ambientFeatured} />
+        <View pointerEvents="none" style={S.ambientCenter} />
+        <View pointerEvents="none" style={S.ambientBottom} />
+        <View pointerEvents="none" style={S.ambientSoftBottom} />
         <OnboardingBackground />
 
-        <View style={S.header}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
-            <Ionicons name="chevron-back" size={20} color={colors.text} />
-          </Pressable>
-          <View style={S.headerTitleWrap}>
-            <Text style={S.headerTitle}>Karar Pusulası</Text>
-            <Text style={S.headerSub}>Günün öncelik alanları ve skorlar</Text>
+        <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+          <View>
+            <DecisionCompassHeader
+              onBack={goBack}
+              onOpenCalendar={() => router.push('/(tabs)/calendar')}
+              onOpenNotifications={() => router.push('/notifications')}
+              onOpenHelp={handlePressTutorialHelp}
+              topPadding={headerPaddingTop}
+              bottomPadding={headerPaddingBottom}
+              horizontalPadding={headerHorizontalPadding}
+            />
           </View>
-          <View style={S.headerRightRow}>
-            <Pressable onPress={() => router.push('/(tabs)/calendar')} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
-              <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-            </Pressable>
-            <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <Pressable
-                onPress={handlePressTutorialHelp}
-                style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}
-                accessibilityRole="button"
-                accessibilityLabel="Tutorial rehberini tekrar aç"
-              >
-                <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
-              </Pressable>
-            </SpotlightTarget>
-          </View>
-        </View>
+        </SpotlightTarget>
 
         <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.INPUT_AREA}>
-          <View style={S.toolbar}>
-            <View style={S.toolbarPill}>
-              <Ionicons name="calendar-outline" size={14} color={colors.subtext} />
-              <Text style={S.toolbarText}>{formatDateShortTr(query.data?.date)}</Text>
-            </View>
-            <View style={[S.toolbarPill, S.toolbarPillAction]}>
-              <Text style={S.toolbarActionText}>{visibleCards.length} kategori</Text>
-            </View>
+          <View>
             <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.REEVALUATE_ENTRY}>
-              <Pressable onPress={() => setSettingsOpen(true)} style={({ pressed }) => [S.toolbarPill, S.toolbarSettingsPill, pressed && S.pressed]}>
-                <Ionicons name="options-outline" size={14} color={colors.primary} />
-                <Text style={S.toolbarActionText}>Kategoriler</Text>
-              </Pressable>
+              <View>
+                <DecisionCompassFilters
+                  dateLabel={dateLabel}
+                  selectedFilter={selectedFilter}
+                  onSelectFilter={setSelectedFilter}
+                  onOpenCategories={() => {
+                    setDetailSheetOpen(false);
+                    setSettingsSheetOpen(true);
+                  }}
+                />
+              </View>
             </SpotlightTarget>
           </View>
         </SpotlightTarget>
@@ -258,7 +277,9 @@ export default function DecisionCompassScreen() {
           refreshControl={
             <RefreshControl
               refreshing={query.isRefetching}
-              onRefresh={() => { void query.refetch(); }}
+              onRefresh={() => {
+                void query.refetch();
+              }}
               tintColor={colors.primary}
               colors={[colors.primary]}
             />
@@ -283,15 +304,15 @@ export default function DecisionCompassScreen() {
                 <Text style={S.retryBtnText}>Tekrar Dene</Text>
               </Pressable>
             </View>
-          ) : visibleCards.length === 0 ? (
+          ) : visibleCategories.length === 0 ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>{cards.length ? 'Tüm kategoriler gizli' : 'Gösterilecek alan yok'}</Text>
+              <Text style={S.emptyTitle}>{categories.length ? 'Tüm kategoriler gizli' : 'Gösterilecek alan yok'}</Text>
               <Text style={S.emptyText}>
-                {cards.length
+                {categories.length
                   ? 'Kategori ayarlarından görünmesini istediğiniz alanları açabilirsiniz.'
                   : 'Karar Pusulası verisi şu an için boş döndü.'}
               </Text>
-              {cards.length ? (
+              {categories.length ? (
                 <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}>
                   <Text style={S.retryBtnText}>Tümünü Göster</Text>
                 </Pressable>
@@ -300,303 +321,179 @@ export default function DecisionCompassScreen() {
           ) : (
             <>
               <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HEADER_SUMMARY}>
-                <View style={S.insightCard}>
-                  <View style={S.insightHeadRow}>
-                    <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
-                    <Text style={S.insightTitle}>Günün İçgörüsü</Text>
-                  </View>
-                  <Text style={S.insightBody} numberOfLines={2}>
-                    {visibleCards[0]?.shortAdvice?.trim()
-                      || 'Yorumlar, seçeneklerin güçlü ve zayıf taraflarını daha net görmene yardım eder.'}
-                  </Text>
+                <View>
+                  <DecisionInsightHero
+                    hero={heroModel}
+                    onPressDetail={() => {
+                      if (featuredCategories[0]) {
+                        openCategoryDetail(featuredCategories[0]);
+                      }
+                    }}
+                  />
                 </View>
               </SpotlightTarget>
 
               <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.RESULT_AREA}>
-                <View style={S.listWrap}>
-                  {visibleCards.map((card, index) => {
-                    const tint = tintForScore(card.score, isDark);
-                    const expanded = expandedCategoryKey === card.categoryKey;
-                    return (
-                      <Pressable
-                        key={`${card.categoryKey}-${index}`}
-                        onPress={() =>
-                          setExpandedCategoryKey((prev) => (prev === card.categoryKey ? null : card.categoryKey))
-                        }
-                        style={({ pressed }) => [S.itemCard, expanded && S.itemCardExpanded, pressed && S.pressed]}
-                      >
-                      <View style={S.itemTopGlow} />
-                      <View style={S.itemRowTop}>
-                        <View style={S.itemIconBubble}>
-                          <Ionicons name={iconForCategory(card)} size={16} color={colors.primary} />
-                        </View>
-                        <View style={S.itemTitleWrap}>
-                          <Text style={S.itemTitle} numberOfLines={1}>{card.categoryLabel || card.activityLabel}</Text>
-                          <Text style={S.itemSubtitle} numberOfLines={1}>
-                            {card.activityLabel}{typeof card.itemCount === 'number' ? ` • ${card.itemCount} alt alan` : ''}
-                          </Text>
-                        </View>
-                        <View style={[S.scoreChip, { backgroundColor: tint.bg }]}>
-                          <Text style={[S.scoreChipText, { color: tint.text }]}>{Math.round(card.score)}%</Text>
-                        </View>
-                        <Ionicons
-                          name={expanded ? 'chevron-up' : 'chevron-down'}
-                          size={15}
-                          color={colors.subtext}
-                        />
-                      </View>
+                <View>
+                  {featuredCategories.length ? (
+                    <FeaturedCategoryRow
+                      categories={featuredCategories}
+                      onPressCategory={openCategoryDetail}
+                    />
+                  ) : null}
 
-                      <Text style={S.itemAdvice} numberOfLines={expanded ? 3 : 1}>
-                        {card.shortAdvice?.trim() || 'Bugün bu alanda daha bilinçli ve dengeli adımlar at.'}
-                      </Text>
-
-                      <View style={S.itemFooter}>
-                        <View style={S.typePill}>
-                          <Text style={S.typePillText}>{card.type === 'WARNING' ? 'Uyarı' : 'Fırsat'}</Text>
-                        </View>
-                        <View style={S.itemFooterActions}>
-                          <Pressable
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              router.push('/(tabs)/calendar');
-                            }}
-                            style={({ pressed }) => [S.itemActionBtn, pressed && S.pressed]}
-                          >
-                            <Text style={S.itemActionText}>Takvim</Text>
-                            <Ionicons name="calendar-outline" size={13} color={colors.subtext} />
-                          </Pressable>
-                          <Pressable
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              router.push({
-                                pathname: '/decision-compass-detail',
-                                params: {
-                                  categoryKey: card.categoryKey,
-                                  label: card.categoryLabel || card.activityLabel,
-                                  activityLabel: card.activityLabel,
-                                  score: String(Math.round(card.score)),
-                                  date: query.data?.date ?? '',
-                                },
-                              });
-                            }}
-                            style={({ pressed }) => [S.itemDetailBtn, pressed && S.pressed]}
-                          >
-                            <Text style={S.itemDetailBtnText}>Detay</Text>
-                            <Ionicons name="chevron-forward" size={13} color={colors.primary} />
-                          </Pressable>
-                        </View>
-                      </View>
-
-                      {expanded ? (
-                        <View style={S.itemExpandedPanel}>
-                          <View style={S.itemExpandedDivider} />
-                          <Text style={S.itemExpandedTitle}>Kategori Açıklaması</Text>
-                          <Text style={S.itemExpandedBody}>
-                            {card.shortAdvice || 'Bu kategori bugün odak gerektiriyor. Tepki yerine stratejiyle ilerlemek faydalı olur.'}
-                          </Text>
-
-                          <View style={S.subActivitiesWrap}>
-                            {card.items.slice(0, 4).map((sub, subIndex) => {
-                              const subTint = tintForScore(sub.score, isDark);
-                              return (
-                                <View key={`${card.categoryKey}-${sub.activityKey}-${subIndex}`} style={S.subActivityRow}>
-                                  <View style={[S.subActivityDot, { backgroundColor: subTint.text }]} />
-                                  <Text style={S.subActivityLabel} numberOfLines={1}>{sub.activityLabel}</Text>
-                                  <View style={[S.subActivityScorePill, { backgroundColor: subTint.bg }]}>
-                                    <Text style={[S.subActivityScoreText, { color: subTint.text }]}>{Math.round(sub.score)}%</Text>
-                                  </View>
-                                </View>
-                              );
-                            })}
-                          </View>
-                        </View>
-                      ) : null}
-                      </Pressable>
-                    );
-                  })}
+                  {remainingCategories.length ? (
+                    <CategoryMiniGrid
+                      categories={remainingCategories}
+                      onPressCategory={openCategoryDetail}
+                      onPressShowAll={() => setSelectedFilter('ALL')}
+                    />
+                  ) : (
+                    <View style={S.filterEmptyCard}>
+                      <Ionicons name="funnel-outline" size={16} color={colors.subtext} />
+                      <Text style={S.filterEmptyText}>Bu filtrede ek kategori görünmüyor. "Tümü" filtresiyle genişletebilirsin.</Text>
+                    </View>
+                  )}
                 </View>
               </SpotlightTarget>
             </>
           )}
         </ScrollView>
 
-        <Modal visible={settingsOpen} transparent animationType="fade" onRequestClose={() => setSettingsOpen(false)}>
-          <View style={S.settingsBackdropRoot}>
-            <Pressable style={S.settingsBackdrop} onPress={() => setSettingsOpen(false)} />
-            <View style={S.settingsSheet}>
-              <View style={S.settingsHeader}>
-                <View style={S.settingsHeaderTextWrap}>
-                  <Text style={S.settingsKicker}>KATEGORİ GÖRÜNÜRLÜĞÜ</Text>
-                  <Text style={S.settingsTitle}>Karar Pusulası Ayarları</Text>
-                  <Text style={S.settingsSubtitle}>Bu seçimler ana sayfa, karar pusulası ve kategori detay ekranlarında ortak kullanılır.</Text>
+        <CategoryDetailBottomSheet
+          visible={detailSheetOpen && !!selectedCategory}
+          onClose={() => setDetailSheetOpen(false)}
+          category={selectedCategory}
+          dateLabel={dateLabel}
+          onOpenCalendar={() => {
+            setDetailSheetOpen(false);
+            router.push('/(tabs)/calendar');
+          }}
+          onOpenFullDetail={openDetailScreen}
+        />
+
+        <BottomSheet
+          visible={settingsSheetOpen}
+          onClose={() => setSettingsSheetOpen(false)}
+          title="Kategori Görünürlüğü"
+        >
+          <ScrollView style={S.settingsScroll} contentContainerStyle={S.settingsScrollContent} showsVerticalScrollIndicator={false}>
+            <Text style={S.settingsSubtitle}>Bu seçimler Karar Pusulası ve ilgili kartlarda ortak kullanılır.</Text>
+
+            {categories.map((category) => {
+              const visible = !hiddenCategoryKeys.includes(category.id);
+              const tint = statusColors(category.status, isDark);
+              return (
+                <View key={category.id} style={S.settingsRow}>
+                  <View style={[S.settingsIconBubble, { backgroundColor: tint.bg }]}> 
+                    <Ionicons name={category.icon} size={15} color={colors.primary} />
+                  </View>
+                  <View style={S.settingsRowTextWrap}>
+                    <Text style={S.settingsRowTitle} numberOfLines={1}>{category.title}</Text>
+                    <Text style={S.settingsRowMeta} numberOfLines={1}>{Math.round(category.score)}% • {category.subLabel}</Text>
+                  </View>
+                  <Switch
+                    value={visible}
+                    onValueChange={(next) => setCategoryVisibility(category.id, next)}
+                    thumbColor={Platform.OS === 'android' ? (visible ? '#FFFFFF' : '#F4F4F8') : undefined}
+                    trackColor={{
+                      false: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(122,91,234,0.18)',
+                      true: isDark ? 'rgba(180,148,255,0.40)' : 'rgba(122,91,234,0.36)',
+                    }}
+                    ios_backgroundColor={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(122,91,234,0.18)'}
+                  />
                 </View>
-                <Pressable onPress={() => setSettingsOpen(false)} style={({ pressed }) => [S.settingsCloseBtn, pressed && S.pressed]}>
-                  <Ionicons name="close" size={16} color={colors.text} />
-                </Pressable>
-              </View>
+              );
+            })}
 
-              <ScrollView style={S.settingsScroll} contentContainerStyle={S.settingsScrollContent} showsVerticalScrollIndicator={false}>
-                {cards.map((card) => {
-                  const visible = !hiddenCategoryKeys.includes(card.categoryKey);
-                  const tint = tintForScore(card.score, isDark);
-                  return (
-                    <View key={card.categoryKey} style={S.settingsRow}>
-                      <View style={[S.settingsIconBubble, { backgroundColor: tint.bg }]}>
-                        <Ionicons name={iconForCategory(card)} size={15} color={colors.primary} />
-                      </View>
-                      <View style={S.settingsRowTextWrap}>
-                        <Text style={S.settingsRowTitle} numberOfLines={1}>{card.categoryLabel || card.activityLabel}</Text>
-                        <Text style={S.settingsRowMeta}>{Math.round(card.score)}%</Text>
-                      </View>
-                      <Switch
-                        value={visible}
-                        onValueChange={(next) => setCategoryVisibility(card.categoryKey, next)}
-                        thumbColor={Platform.OS === 'android' ? (visible ? '#FFFFFF' : '#F4F4F8') : undefined}
-                        trackColor={{
-                          false: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(122,91,234,0.18)',
-                          true: isDark ? 'rgba(180,148,255,0.40)' : 'rgba(122,91,234,0.36)',
-                        }}
-                        ios_backgroundColor={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(122,91,234,0.18)'}
-                      />
-                    </View>
-                  );
-                })}
-              </ScrollView>
-
-              <View style={S.settingsFooter}>
-                <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.settingsResetBtn, pressed && S.pressed]}>
-                  <Text style={S.settingsResetBtnText}>Tümünü Göster</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
+            <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.settingsResetBtn, pressed && S.pressed]}>
+              <Text style={S.settingsResetBtnText}>Tümünü Göster</Text>
+            </Pressable>
+          </ScrollView>
+        </BottomSheet>
       </View>
     </SafeScreen>
   );
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
+function makeStyles(
+  C: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+  T: ReturnType<typeof getCompassTokens>,
+) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: C.background,
+      backgroundColor: 'transparent',
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      paddingHorizontal: 16,
-      paddingTop: Platform.OS === 'web' ? 20 : 52,
-      paddingBottom: 10,
+    ambientTop: {
+      position: 'absolute',
+      top: -148,
+      left: -128,
+      width: 368,
+      height: 338,
+      borderRadius: 188,
     },
-    headerBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: C.surfaceGlass,
-      borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+    ambientHeroMist: {
+      position: 'absolute',
+      top: 118,
+      right: -96,
+      width: 308,
+      height: 226,
+      borderRadius: 154,
     },
-    headerTitleWrap: {
-      flex: 1,
+    ambientFeatured: {
+      position: 'absolute',
+      top: 418,
+      left: -58,
+      width: 272,
+      height: 188,
+      borderRadius: 140,
     },
-    headerRightRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
+    ambientBottom: {
+      position: 'absolute',
+      right: -84,
+      bottom: -78,
+      width: 290,
+      height: 224,
+      borderRadius: 142,
+      backgroundColor: T.page.blobB,
     },
-    headerTitle: {
-      color: C.text,
-      fontSize: 17,
-      fontWeight: '800',
-      letterSpacing: -0.3,
+    ambientCenter: {
+      position: 'absolute',
+      top: 248,
+      right: -42,
+      width: 236,
+      height: 172,
+      borderRadius: 110,
+      backgroundColor: T.page.blobC,
     },
-    headerSub: {
-      color: C.subtext,
-      fontSize: 11.5,
-      fontWeight: '600',
-      marginTop: 1,
-    },
-    toolbar: {
-      paddingHorizontal: 16,
-      paddingBottom: 8,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    toolbarPill: {
-      minHeight: 32,
-      borderRadius: 16,
-      paddingHorizontal: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      backgroundColor: C.surfaceGlass,
-      borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-    },
-    toolbarPillAction: {
-      backgroundColor: isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.08)',
-    },
-    toolbarSettingsPill: {
-      backgroundColor: isDark ? 'rgba(180,148,255,0.08)' : 'rgba(122,91,234,0.06)',
-    },
-    toolbarText: {
-      color: C.subtext,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    toolbarActionText: {
-      color: C.primary,
-      fontSize: 12,
-      fontWeight: '700',
+    ambientSoftBottom: {
+      position: 'absolute',
+      left: -62,
+      bottom: 132,
+      width: 248,
+      height: 164,
+      borderRadius: 124,
+      backgroundColor: T.page.blobD,
     },
     scroll: {
       flex: 1,
     },
     scrollContent: {
       paddingHorizontal: 16,
-      paddingBottom: Platform.OS === 'web' ? 40 : 96,
-      paddingTop: 4,
-    },
-    insightCard: {
-      borderRadius: 16,
-      backgroundColor: isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.08)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(180,148,255,0.28)' : 'rgba(122,91,234,0.22)',
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      gap: 6,
-      marginBottom: 10,
-    },
-    insightHeadRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    insightTitle: {
-      color: C.primary,
-      fontSize: 11.5,
-      fontWeight: '800',
-      letterSpacing: 0.2,
-      textTransform: 'uppercase',
-    },
-    insightBody: {
-      color: C.text,
-      fontSize: 12.5,
-      lineHeight: 18,
-      fontWeight: '600',
+      paddingTop: 8,
+      paddingBottom: Platform.OS === 'web' ? 40 : 92,
     },
     emptyCard: {
-      borderRadius: 18,
-      backgroundColor: C.surfaceGlass,
+      borderRadius: 22,
+      backgroundColor: T.surface.glass,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      padding: 16,
-      gap: 6,
+      borderColor: T.border.soft,
+      padding: 18,
+      gap: 7,
+      marginTop: 8,
+      ...T.shadows.soft,
     },
     emptyTitle: {
       color: C.text,
@@ -612,265 +509,59 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
     retryBtn: {
       alignSelf: 'flex-start',
       marginTop: 6,
-      borderRadius: 12,
-      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(180,148,255,0.20)' : 'rgba(229,212,255,0.88)',
+      borderWidth: 1,
+      borderColor: T.border.soft,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
     },
     retryBtnText: {
       color: C.primary,
       fontSize: 12,
       fontWeight: '700',
     },
-    listWrap: {
-      gap: 10,
-    },
-    itemCard: {
+    filterEmptyCard: {
+      marginBottom: 10,
       borderRadius: 18,
-      backgroundColor: C.surfaceGlass,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      padding: 12,
-      gap: 10,
-      overflow: 'hidden',
-    },
-    itemCardExpanded: {
-      paddingBottom: 10,
-    },
-    itemTopGlow: {
-      position: 'absolute',
-      top: 0,
-      left: 12,
-      right: 12,
-      height: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-    },
-    itemRowTop: {
+      borderColor: T.border.soft,
+      backgroundColor: T.surface.glass,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
+      ...T.shadows.soft,
     },
-    itemIconBubble: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      backgroundColor: isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.08)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    itemTitleWrap: {
+    filterEmptyText: {
       flex: 1,
-      gap: 1,
-    },
-    itemTitle: {
-      color: C.text,
-      fontSize: 13.5,
-      fontWeight: '800',
-      letterSpacing: -0.15,
-    },
-    itemSubtitle: {
       color: C.subtext,
-      fontSize: 11,
-      fontWeight: '600',
-    },
-    scoreChip: {
-      minWidth: 48,
-      height: 24,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 10,
-    },
-    scoreChipText: {
-      fontSize: 12,
-      fontWeight: '800',
-    },
-    itemAdvice: {
-      color: C.text,
-      opacity: isDark ? 0.92 : 0.86,
       fontSize: 12,
       lineHeight: 17,
-      fontWeight: '500',
-    },
-    itemFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-    },
-    itemFooterActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    typePill: {
-      height: 22,
-      borderRadius: 11,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-      paddingHorizontal: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    typePillText: {
-      color: C.subtext,
-      fontSize: 10.5,
-      fontWeight: '700',
-    },
-    itemActionBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      minHeight: 24,
-    },
-    itemActionText: {
-      color: C.subtext,
-      fontSize: 11,
-      fontWeight: '700',
-    },
-    itemDetailBtn: {
-      minHeight: 26,
-      borderRadius: 13,
-      paddingHorizontal: 10,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)',
-    },
-    itemDetailBtnText: {
-      color: C.primary,
-      fontSize: 11,
-      fontWeight: '700',
-    },
-    itemExpandedPanel: {
-      gap: 8,
-      marginTop: -2,
-    },
-    itemExpandedDivider: {
-      height: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)',
-    },
-    itemExpandedTitle: {
-      color: C.text,
-      fontSize: 11.5,
-      fontWeight: '800',
-      letterSpacing: -0.1,
-    },
-    itemExpandedBody: {
-      color: C.subtext,
-      fontSize: 11.5,
-      lineHeight: 16,
       fontWeight: '600',
-    },
-    subActivitiesWrap: {
-      gap: 6,
-      borderRadius: 12,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.55)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.05)',
-      padding: 8,
-    },
-    subActivityRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    subActivityDot: {
-      width: 5,
-      height: 5,
-      borderRadius: 2.5,
-    },
-    subActivityLabel: {
-      flex: 1,
-      color: C.text,
-      fontSize: 11,
-      fontWeight: '600',
-    },
-    subActivityScorePill: {
-      minWidth: 44,
-      height: 20,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 8,
-    },
-    subActivityScoreText: {
-      fontSize: 10,
-      fontWeight: '800',
-    },
-    settingsBackdropRoot: {
-      flex: 1,
-      justifyContent: 'flex-end',
-    },
-    settingsBackdrop: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(5,7,12,0.34)',
-    },
-    settingsSheet: {
-      borderTopLeftRadius: 22,
-      borderTopRightRadius: 22,
-      backgroundColor: isDark ? 'rgba(14,18,28,0.98)' : 'rgba(252,251,255,0.98)',
-      borderTopWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      paddingHorizontal: 14,
-      paddingTop: 12,
-      paddingBottom: Platform.OS === 'ios' ? 26 : 16,
-      maxHeight: '72%',
-      gap: 10,
-    },
-    settingsHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 10,
-    },
-    settingsHeaderTextWrap: {
-      flex: 1,
-      gap: 2,
-    },
-    settingsKicker: {
-      color: C.subtext,
-      fontSize: 10,
-      fontWeight: '800',
-      letterSpacing: 1.1,
-    },
-    settingsTitle: {
-      color: C.text,
-      fontSize: 15,
-      fontWeight: '800',
-      letterSpacing: -0.2,
-    },
-    settingsSubtitle: {
-      color: C.subtext,
-      fontSize: 11.5,
-      lineHeight: 16,
-      fontWeight: '600',
-    },
-    settingsCloseBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: C.surfaceGlass,
-      borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
     },
     settingsScroll: {
-      marginHorizontal: -2,
+      maxHeight: 500,
     },
     settingsScrollContent: {
-      paddingHorizontal: 2,
-      paddingBottom: 2,
       gap: 8,
+      paddingBottom: 4,
+    },
+    settingsSubtitle: {
+      color: T.text.subtitle,
+      fontSize: 12,
+      lineHeight: 17,
+      fontWeight: '600',
+      marginBottom: 4,
     },
     settingsRow: {
-      borderRadius: 14,
-      backgroundColor: C.surfaceGlass,
+      borderRadius: 16,
+      backgroundColor: T.surface.glass,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: T.border.soft,
       paddingHorizontal: 10,
-      paddingVertical: 9,
+      paddingVertical: 10,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
@@ -898,24 +589,21 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
       fontSize: 10.5,
       fontWeight: '700',
     },
-    settingsFooter: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      paddingTop: 2,
-    },
     settingsResetBtn: {
-      minHeight: 28,
-      borderRadius: 14,
-      paddingHorizontal: 12,
+      marginTop: 2,
+      minHeight: 38,
+      borderRadius: 999,
+      paddingHorizontal: 14,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      backgroundColor: isDark ? 'rgba(180,148,255,0.18)' : 'rgba(228,212,255,0.92)',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)',
+      borderColor: T.border.soft,
+      alignSelf: 'flex-end',
     },
     settingsResetBtnText: {
       color: C.primary,
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
     },
     pressed: {

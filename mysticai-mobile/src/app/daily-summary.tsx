@@ -20,6 +20,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useCosmicSummary, useHomeBrief, useSkyPulse } from '../hooks/useHomeQueries';
+import { useInnerHeaderSpacing } from '../hooks/useInnerHeaderSpacing';
+import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 
 function formatShortDateTr(input?: string | null) {
   const d = input ? new Date(input) : new Date();
@@ -47,6 +49,8 @@ export default function DailySummaryScreen() {
   const { colors, isDark } = useTheme();
   const { i18n } = useTranslation();
   const { width } = useWindowDimensions();
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
+  const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
   const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
@@ -87,7 +91,11 @@ export default function DailySummaryScreen() {
   const emotionLabel = shortEmotionLabel(homeBrief?.transitSummary || skyPulse?.dailyVibe);
   const impactScore = homeBrief?.meta?.impactScore ?? null;
 
-  const S = makeStyles(colors, isDark);
+  const S = makeStyles(colors, isDark, {
+    headerPaddingTop,
+    headerPaddingBottom,
+    headerHorizontalPadding,
+  });
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(900, width - 24) : undefined;
 
   const isRefreshing = cosmicSummaryQuery.isRefetching || homeBriefQuery.isRefetching || skyPulseQuery.isRefetching;
@@ -100,7 +108,7 @@ export default function DailySummaryScreen() {
         <OnboardingBackground />
 
         <View style={S.header}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
+          <Pressable onPress={goBack} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
             <Ionicons name="chevron-back" size={20} color={colors.text} />
           </Pressable>
           <View style={S.headerTitleWrap}>
@@ -158,7 +166,10 @@ export default function DailySummaryScreen() {
                     </>
                   )}
                 </View>
-                <Pressable onPress={() => router.push('/(tabs)/decision-compass-tab')} style={({ pressed }) => [S.heroChevronBtn, pressed && S.pressed]}>
+                <Pressable
+                  onPress={() => router.push({ pathname: '/(tabs)/decision-compass-tab', params: { from: '/daily-summary' } } as never)}
+                  style={({ pressed }) => [S.heroChevronBtn, pressed && S.pressed]}
+                >
                   <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
                 </Pressable>
               </View>
@@ -211,7 +222,10 @@ export default function DailySummaryScreen() {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(60).duration(420)} style={S.actionRow}>
-            <Pressable onPress={() => router.push('/(tabs)/decision-compass-tab')} style={({ pressed }) => [S.actionBtn, pressed && S.pressed]}>
+            <Pressable
+              onPress={() => router.push({ pathname: '/(tabs)/decision-compass-tab', params: { from: '/daily-summary' } } as never)}
+              style={({ pressed }) => [S.actionBtn, pressed && S.pressed]}
+            >
               <Ionicons name="compass-outline" size={16} color={colors.primary} />
               <Text style={S.actionBtnText}>Karar Pusulası</Text>
             </Pressable>
@@ -314,12 +328,22 @@ export default function DailySummaryScreen() {
   );
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
+function makeStyles(
+  C: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+  headerLayout: {
+    headerPaddingTop: number;
+    headerPaddingBottom: number;
+    headerHorizontalPadding: number;
+  },
+) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
-      paddingHorizontal: 16, paddingTop: Platform.OS === 'web' ? 20 : 52, paddingBottom: 10,
+      paddingHorizontal: headerLayout.headerHorizontalPadding,
+      paddingTop: headerLayout.headerPaddingTop,
+      paddingBottom: headerLayout.headerPaddingBottom,
     },
     headerBtn: {
       width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',

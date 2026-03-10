@@ -22,6 +22,7 @@ import ThemeSectionHeader from '../../../components/ThemeSectionHeader';
 import PersonAvatar from '../../../components/match/PersonAvatar';
 import MatchCircularScore from '../../../components/match/MatchCircularScore';
 import ComparisonCard from '../../../components/ComparisonCard';
+import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -1165,9 +1166,7 @@ export default function CompareOverviewScreen() {
     });
   }, [data, matchId]);
 
-  const goBackSafely = () => {
-    router.replace('/(tabs)/compatibility' as never);
-  };
+  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
 
   const onSwitchType = (nextType: RelationshipType) => {
     trackEvent('compare_tab_switch', {

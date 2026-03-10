@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useCompanionStore } from '../store/useCompanionStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useAppConfigStore } from '../store/useAppConfigStore';
+import { useNavigationHistoryStore } from '../store/useNavigationHistoryStore';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { TutorialProvider, TUTORIAL_SCREEN_KEYS, useTutorialTrigger } from '../features/tutorial';
 import { initI18n } from '../i18n';
@@ -90,9 +91,14 @@ function useProtectedRoute(i18nReady: boolean) {
 
 function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
   const { colors, activeTheme } = useTheme();
+  const pathname = usePathname();
 
   // Run the route guard inside AppNavigator so the Stack is already mounted
   useProtectedRoute(i18nReady);
+
+  useEffect(() => {
+    useNavigationHistoryStore.getState().updatePath(pathname);
+  }, [pathname]);
 
   return (
     <>

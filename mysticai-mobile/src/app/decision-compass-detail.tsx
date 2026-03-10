@@ -20,6 +20,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { fetchCosmicCategoryDetails } from '../services/cosmic.service';
 import { useDecisionCompassStore } from '../store/useDecisionCompassStore';
+import { useInnerHeaderSpacing } from '../hooks/useInnerHeaderSpacing';
+import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 
 function todayIsoDate() {
   const d = new Date();
@@ -85,6 +87,8 @@ export default function DecisionCompassDetailScreen() {
   const { colors, isDark } = useTheme();
   const { i18n } = useTranslation();
   const { width } = useWindowDimensions();
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/decision-compass-tab' });
+  const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const user = useAuthStore((s) => s.user);
   const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
   const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
@@ -118,7 +122,11 @@ export default function DecisionCompassDetailScreen() {
   });
 
   const detail = query.data?.category;
-  const S = makeStyles(colors, isDark);
+  const S = makeStyles(colors, isDark, {
+    headerPaddingTop,
+    headerPaddingBottom,
+    headerHorizontalPadding,
+  });
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(860, width - 24) : undefined;
 
   const highlights = useMemo(() => {
@@ -151,7 +159,7 @@ export default function DecisionCompassDetailScreen() {
         <OnboardingBackground />
 
         <View style={S.header}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
+          <Pressable onPress={goBack} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
             <Ionicons name="chevron-back" size={20} color={colors.text} />
           </Pressable>
           <View style={S.headerTitleWrap}>
@@ -360,14 +368,22 @@ export default function DecisionCompassDetailScreen() {
   );
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
+function makeStyles(
+  C: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+  headerLayout: {
+    headerPaddingTop: number;
+    headerPaddingBottom: number;
+    headerHorizontalPadding: number;
+  },
+) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
-      paddingHorizontal: 16,
-      paddingTop: Platform.OS === 'web' ? 20 : 52,
-      paddingBottom: 10,
+      paddingHorizontal: headerLayout.headerHorizontalPadding,
+      paddingTop: headerLayout.headerPaddingTop,
+      paddingBottom: headerLayout.headerPaddingBottom,
     },
     headerBtn: {
       width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',

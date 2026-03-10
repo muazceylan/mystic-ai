@@ -153,20 +153,20 @@ export default function TabsLayout() {
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
           position: Platform.OS === 'ios' ? 'absolute' : 'relative',
-          left: Platform.OS === 'ios' ? 10 : 0,
-          right: Platform.OS === 'ios' ? 10 : 0,
+          left: Platform.OS === 'ios' ? 12 : 0,
+          right: Platform.OS === 'ios' ? 12 : 0,
           bottom: Platform.OS === 'ios' ? 10 : 0,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           height: Platform.OS === 'ios' ? 88 : 72,
           paddingBottom: Platform.OS === 'ios' ? 20 : 8,
           paddingTop: Platform.OS === 'ios' ? 7 : 8,
-          borderRadius: Platform.OS === 'ios' ? 24 : 0,
+          borderRadius: Platform.OS === 'ios' ? 26 : 0,
           overflow: Platform.OS === 'ios' ? 'hidden' : 'visible',
           shadowColor: '#000',
-          shadowOpacity: Platform.OS === 'ios' ? (isDark ? 0.42 : 0.16) : 0.1,
-          shadowRadius: Platform.OS === 'ios' ? 22 : 8,
-          shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 12 : 3 },
+          shadowOpacity: Platform.OS === 'ios' ? (isDark ? 0.28 : 0.09) : 0.08,
+          shadowRadius: Platform.OS === 'ios' ? 28 : 8,
+          shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 14 : 3 },
           elevation: Platform.OS === 'ios' ? 0 : 4,
         },
         tabBarItemStyle: Platform.OS === 'ios'
@@ -180,7 +180,7 @@ export default function TabsLayout() {
             pointerEvents="none"
             style={{
               flex: 1,
-              borderRadius: Platform.OS === 'ios' ? 24 : 0,
+              borderRadius: Platform.OS === 'ios' ? 26 : 0,
               overflow: 'hidden',
               borderTopWidth: Platform.OS === 'ios' ? 0 : 1,
               borderColor: colors.tabBarBorder,
@@ -189,7 +189,7 @@ export default function TabsLayout() {
           >
             {Platform.OS !== 'web' ? (
               <BlurView
-                intensity={Platform.OS === 'ios' ? (isDark ? 52 : 78) : 34}
+                intensity={Platform.OS === 'ios' ? (isDark ? 78 : 110) : 38}
                 tint={isDark ? 'dark' : 'light'}
                 experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
                 style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
@@ -199,24 +199,24 @@ export default function TabsLayout() {
               <LinearGradient
                 colors={
                   isDark
-                    ? ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.00)']
-                    : ['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.38)', 'rgba(255,255,255,0.00)']
+                    ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.03)', 'rgba(255,255,255,0.00)']
+                    : ['rgba(255,255,255,0.96)', 'rgba(255,255,255,0.54)', 'rgba(255,255,255,0.00)']
                 }
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 24 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 28 }}
               />
             ) : null}
             <LinearGradient
               colors={
                 isDark
                   ? [
-                      Platform.OS === 'web' ? 'rgba(17,22,33,0.88)' : 'rgba(17,22,33,0.34)',
-                      Platform.OS === 'web' ? 'rgba(17,22,33,0.72)' : 'rgba(17,22,33,0.22)',
+                      Platform.OS === 'web' ? 'rgba(17,22,33,0.88)' : 'rgba(20,18,40,0.36)',
+                      Platform.OS === 'web' ? 'rgba(17,22,33,0.72)' : 'rgba(20,18,40,0.14)',
                     ]
                   : [
-                      Platform.OS === 'web' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.44)',
-                      Platform.OS === 'web' ? 'rgba(249,247,255,0.82)' : 'rgba(249,247,255,0.28)',
+                      Platform.OS === 'web' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.72)',
+                      Platform.OS === 'web' ? 'rgba(249,247,255,0.82)' : 'rgba(248,244,255,0.38)',
                     ]
               }
               style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
@@ -229,10 +229,23 @@ export default function TabsLayout() {
                 bottom: 0,
                 left: 0,
                 backgroundColor: isDark
-                  ? (Platform.OS === 'ios' ? 'rgba(117,98,199,0.035)' : 'rgba(117,98,199,0.05)')
-                  : (Platform.OS === 'ios' ? 'rgba(122,91,234,0.018)' : 'rgba(122,91,234,0.025)'),
+                  ? (Platform.OS === 'ios' ? 'rgba(138,118,220,0.062)' : 'rgba(117,98,199,0.05)')
+                  : (Platform.OS === 'ios' ? 'rgba(172,148,252,0.072)' : 'rgba(145,108,234,0.040)'),
               }}
             />
+            {Platform.OS === 'ios' ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -10,
+                  left: 24,
+                  width: 150,
+                  height: 48,
+                  borderRadius: 28,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.34)',
+                }}
+              />
+            ) : null}
             <View
               style={{
                 position: 'absolute',
@@ -240,7 +253,7 @@ export default function TabsLayout() {
                 left: 14,
                 right: 14,
                 height: 1,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.82)',
               }}
             />
             {Platform.OS === 'ios' ? (
@@ -252,7 +265,7 @@ export default function TabsLayout() {
                   top: 6,
                   height: 12,
                   borderRadius: 10,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.52)',
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.44)',
                 }}
               />
             ) : null}
@@ -276,10 +289,10 @@ export default function TabsLayout() {
                 right: 0,
                 bottom: 0,
                 left: 0,
-                borderRadius: Platform.OS === 'ios' ? 24 : 0,
+                borderRadius: Platform.OS === 'ios' ? 26 : 0,
                 borderWidth: 1,
                 borderColor: Platform.OS === 'ios'
-                  ? (isDark ? 'rgba(255,255,255,0.11)' : 'rgba(236,233,246,0.95)')
+                  ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(226,214,250,0.68)')
                   : colors.tabBarBorder,
               }}
             />

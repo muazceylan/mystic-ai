@@ -41,7 +41,7 @@ interface UserStats {
 const SETTINGS_ITEMS = [
   { id: 'name_info',     titleKey: 'profile.menu.nameInfo',     icon: 'person-outline',        route: '/edit-profile-name' },
   { id: 'birth_info',    titleKey: 'profile.menu.birthInfo',    icon: 'calendar-outline',      route: '/edit-birth-info' },
-  { id: 'notifications', titleKey: 'profile.menu.notifications', icon: 'notifications-outline', route: '/notifications-settings' },
+  { id: 'notifications', titleKey: 'profile.menu.notifications', icon: 'notifications-outline', route: '/notifications' },
   { id: 'theme',         titleKey: 'profile.menu.theme',         icon: 'moon-outline',          route: '/theme-settings' },
   { id: 'language',      titleKey: 'profile.menu.language',      icon: 'globe-outline',         route: '/language-settings' },
   { id: 'security',      titleKey: 'profile.menu.security',      icon: 'shield-checkmark-outline', route: '/security' },

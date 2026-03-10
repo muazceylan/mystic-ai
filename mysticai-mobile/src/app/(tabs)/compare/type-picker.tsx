@@ -8,6 +8,7 @@ import { RELATIONSHIP_TYPE_LABELS } from '../../../types/compare';
 import { getRelationshipPalette } from '../../../constants/compareDesignTokens';
 import { ACCESSIBILITY } from '../../../constants/tokens';
 import CompareHeader from '../../../components/compare/CompareHeader';
+import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -42,10 +43,7 @@ export default function RelationshipTypePickerScreen() {
   const rightAvatarUri = firstParam(params.rightAvatarUri);
   const leftSignLabel = firstParam(params.leftSignLabel);
   const rightSignLabel = firstParam(params.rightSignLabel);
-
-  const goBackSafely = () => {
-    router.replace('/(tabs)/compatibility' as never);
-  };
+  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
 
   const goCompare = (type: RelationshipType) => {
     router.push({

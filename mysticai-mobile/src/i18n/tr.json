@@ -823,7 +823,7 @@
     "actionAlertTitle": "Aksiyon odaklı bildirim",
     "actionAlertMessage": "{{date}} tarihinde {{category}} için %{{score}} uyum görünüyor. Bu günü kaçırma.",
     "actionAlertEmpty": "Önümüzdeki günlerde %90+ eşik görünmüyor. Takipte kal.",
-    "setReminder": "Hatırlat kur",
+    "setReminder": "Hatırlatıcı kur",
     "dailyRecommendationsTitle": "Günlük Öneriler",
     "timingTitle": "Zamanlama",
     "timingStrong": "Güçlü",

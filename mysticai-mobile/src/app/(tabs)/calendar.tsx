@@ -1715,12 +1715,9 @@ export default function CalendarScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.refreshButton}
-                  onPress={() => openReminderComposer(
-                    actionAlert ? 'WINDOW_START' : 'DO',
-                    actionAlert?.date,
-                  )}
+                  onPress={() => router.push('/notifications' as never)}
                   accessibilityRole="button"
-                  accessibilityLabel={t('calendar.setReminder')}
+                  accessibilityLabel="Bildirimleri aç"
                 >
                   <Ionicons name="notifications-outline" size={18} color={colors.primary} />
                 </TouchableOpacity>

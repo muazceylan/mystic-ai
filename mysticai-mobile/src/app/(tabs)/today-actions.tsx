@@ -11,6 +11,7 @@ import { queryKeys } from '../../lib/queryKeys';
 import { getDailyActions, getTodayIsoDate, markActionDone, sendFeedback } from '../../services/daily.service';
 import type { DailyActionsDTO, DailyFeedbackPayload } from '../../types/daily.types';
 import { trackEvent } from '../../services/analytics';
+import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
@@ -38,6 +39,7 @@ function LoadingState() {
 export default function TodayActionsScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/daily-transits' });
   const queryClient = useQueryClient();
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const date = useMemo(() => getTodayIsoDate(), []);
@@ -198,7 +200,7 @@ export default function TodayActionsScreen() {
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/daily-transits' as never))}
+          onPress={goBack}
           style={[styles.navBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#F2EBFF' }]}
         >
           <Ionicons name="arrow-back" size={20} color={colors.text} />

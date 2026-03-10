@@ -27,7 +27,7 @@ export function HeaderRightIcons({ tintColor }: { tintColor?: string }) {
         <Ionicons name="options-outline" size={18} color={color} />
       </Pressable>
       <Pressable
-        onPress={() => router.push('/notifications-settings')}
+        onPress={() => router.push('/notifications')}
         style={({ pressed }) => [S.iconBtn, pressed && S.pressed]}
         accessibilityRole="button"
         accessibilityLabel="Notifications"
@@ -91,7 +91,11 @@ export function TabHeader({
   showDefaultRightIcons = true,
 }: TabHeaderProps) {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
   const S = makeStyles(colors, isDark, transparent);
+  const handleOpenProfile = onOpenProfile ?? (() => router.push('/(tabs)/profile'));
+  const handleOpenSettings = onOpenSettings ?? (() => router.push('/theme-settings'));
+  const handleOpenNotifications = onOpenNotifications ?? (() => router.push('/notifications'));
 
   return (
     <View style={S.wrap}>
@@ -100,7 +104,7 @@ export function TabHeader({
         <View style={S.left}>
           {showAvatar && (
             <Pressable
-              onPress={onOpenProfile}
+              onPress={handleOpenProfile}
               style={({ pressed }) => [S.avatarBtn, pressed && S.pressed]}
               accessibilityRole="button"
               accessibilityLabel="Profile"
@@ -123,7 +127,7 @@ export function TabHeader({
           {showDefaultRightIcons ? (
             <>
               <Pressable
-                onPress={onOpenSettings}
+                onPress={handleOpenSettings}
                 style={({ pressed }) => [S.iconBtn, pressed && S.pressed]}
                 accessibilityRole="button"
                 accessibilityLabel="Settings"
@@ -131,7 +135,7 @@ export function TabHeader({
                 <Ionicons name="options-outline" size={18} color={colors.text} />
               </Pressable>
               <Pressable
-                onPress={onOpenNotifications}
+                onPress={handleOpenNotifications}
                 style={({ pressed }) => [S.iconBtn, pressed && S.pressed]}
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"

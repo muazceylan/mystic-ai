@@ -33,6 +33,7 @@ const VISIBLE_CATEGORY_LIMIT = 5;
 const CATEGORY_TOGGLE_THRESHOLD = 6;
 const SEARCH_SUGGESTIONS = ['Burç', 'Transit', 'Rüya', 'Uyumluluk'];
 type DiscoverSurface = 'today_quick_access' | 'category_grid' | 'recommended';
+const DECISION_COMPASS_TAB_ROUTE = '/(tabs)/decision-compass-tab';
 
 function normalizeText(value: string): string {
   const lowered = value.toLocaleLowerCase('tr-TR');
@@ -235,7 +236,15 @@ export default function DiscoverScreen() {
   };
 
   const openRoute = (route: string) => {
-    router.push(route as never);
+    const normalizedRoute = route === '/decision-compass' ? DECISION_COMPASS_TAB_ROUTE : route;
+    if (normalizedRoute === DECISION_COMPASS_TAB_ROUTE) {
+      router.push({
+        pathname: DECISION_COMPASS_TAB_ROUTE as never,
+        params: { from: '/(tabs)/discover' },
+      } as never);
+      return;
+    }
+    router.push(normalizedRoute as never);
   };
 
   const handleModuleClick = (module: DiscoverModule, surface: DiscoverSurface) => {

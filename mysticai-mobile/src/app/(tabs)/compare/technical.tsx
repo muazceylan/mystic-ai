@@ -25,6 +25,7 @@ import useComparison from '../../../hooks/useComparison';
 import RelationshipTypeChips from '../../../components/RelationshipTypeChips';
 import CompareHeader from '../../../components/compare/CompareHeader';
 import { trackEvent } from '../../../services/analytics';
+import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -141,9 +142,7 @@ export default function TechnicalAnalysisScreen() {
     } as never);
   };
 
-  const goBackSafely = () => {
-    router.replace('/(tabs)/compatibility' as never);
-  };
+  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F7F5FB' }}>
