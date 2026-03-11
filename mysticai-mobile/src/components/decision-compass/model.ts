@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { DailyLifeGuideActivity } from '../../services/astrology.service';
+import type { CosmicCategoryDetail, CosmicDetailSubcategory } from '../../services/cosmic.service';
 
 export type CompassStatus = 'STRONG' | 'SUPPORTIVE' | 'BALANCED' | 'CAUTION' | 'HOLD';
 export type CompassFilter = 'BEST' | 'CAUTION' | 'ALL';
 
 export interface DecisionCategoryModel {
   id: string;
+  cosmicCategoryKey: string | null;
   title: string;
   activityLabel: string;
   subLabel: string;
@@ -25,7 +27,33 @@ export interface DecisionHeroModel {
   strongCategories: string[];
 }
 
+const SCORE_HINT_FALLBACK = 48;
+
+function normalizeToken(value: string): string {
+  return value
+    .toLocaleLowerCase('tr-TR')
+    .replace(/[İIı]/g, 'i')
+    .replace(/[Ğğ]/g, 'g')
+    .replace(/[Üü]/g, 'u')
+    .replace(/[Şş]/g, 's')
+    .replace(/[Öö]/g, 'o')
+    .replace(/[Çç]/g, 'c')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function isMoonText(haystack: string): boolean {
+  const normalized = haystack.toLocaleLowerCase('tr-TR');
+  return normalized.includes(' moon') || normalized.includes('ay ') || normalized.includes(' ay') || normalized.includes('lunar');
+}
+
+function isTransitText(haystack: string): boolean {
+  const normalized = haystack.toLocaleLowerCase('tr-TR');
+  return normalized.includes('transit') || normalized.includes('retrog') || normalized.includes('göky') || normalized.includes('goky');
+}
+
 function deriveIcon(haystack: string): keyof typeof Ionicons.glyphMap {
+  if (haystack.includes('ay') || haystack.includes('moon')) return 'moon-outline';
+  if (haystack.includes('transit') || haystack.includes('gecis')) return 'planet-outline';
   if (haystack.includes('kariyer') || haystack.includes('iş') || haystack.includes('career') || haystack.includes('work')) return 'briefcase-outline';
   if (haystack.includes('güzellik') || haystack.includes('bakım') || haystack.includes('beauty')) return 'color-palette-outline';
   if (haystack.includes('finans') || haystack.includes('para') || haystack.includes('money') || haystack.includes('finance')) return 'wallet-outline';
@@ -36,6 +64,163 @@ function deriveIcon(haystack: string): keyof typeof Ionicons.glyphMap {
   if (haystack.includes('ev') || haystack.includes('düzen') || haystack.includes('home')) return 'home-outline';
   if (haystack.includes('resmi') || haystack.includes('official')) return 'document-text-outline';
   return 'sparkles-outline';
+}
+
+function subLabelFromCosmic(detail: CosmicCategoryDetail | undefined): string | null {
+  if (!detail?.subcategories?.length) return null;
+  const labels = detail.subcategories
+    .map((item) => item.label?.trim())
+    .filter(Boolean) as string[];
+  if (!labels.length) return null;
+  return labels.slice(0, 3).join(' • ');
+}
+
+function resolveMoonCosmicKey(availableKeys: string[]): string | null {
+  return availableKeys.find((item) => {
+    const key = normalizeToken(item);
+    return key === 'moon' || key.includes('moon') || key === 'ay';
+  }) ?? null;
+}
+
+function resolveTransitCosmicKey(availableKeys: string[]): string | null {
+  return availableKeys.find((item) => normalizeToken(item).includes('transit')) ?? null;
+}
+
+function resolveCosmicCategoryKey(
+  id: string,
+  title: string,
+  activityLabel: string,
+  availableKeys: string[],
+): string | null {
+  if (!availableKeys.length) return null;
+
+  const idToken = normalizeToken(id);
+  const direct = availableKeys.find((item) => normalizeToken(item) === idToken);
+  if (direct) return direct;
+
+  const haystack = `${id} ${title} ${activityLabel}`.toLocaleLowerCase('tr-TR');
+  if (isMoonText(haystack)) {
+    return resolveMoonCosmicKey(availableKeys);
+  }
+  if (isTransitText(haystack)) {
+    return resolveTransitCosmicKey(availableKeys);
+  }
+
+  return null;
+}
+
+function scoreToTone(score: number): DailyLifeGuideActivity['tone'] {
+  if (score >= 55) return 'positive';
+  if (score >= 40) return 'neutral';
+  return 'negative';
+}
+
+function buildActivityFromCosmicSubcategory(
+  subcategory: CosmicDetailSubcategory,
+  groupKey: string,
+  groupLabel: string,
+  fallbackScore: number,
+): DailyLifeGuideActivity {
+  const score = Number.isFinite(subcategory.score) ? Math.round(subcategory.score) : fallbackScore;
+  return {
+    groupKey,
+    groupLabel,
+    activityKey: subcategory.subCategoryKey || `${groupKey}-subcategory`,
+    activityLabel: subcategory.label || 'Alt alan',
+    icon: '',
+    score,
+    tone: scoreToTone(score),
+    statusLabel: statusLabel(scoreToStatus(score)),
+    shortAdvice: subcategory.shortAdvice || '',
+    technicalExplanation: subcategory.technicalExplanation || '',
+    insight: subcategory.insight || '',
+    triggerNotes: subcategory.triggerNotes ?? [],
+  };
+}
+
+function buildItemsFromCosmicCategory(
+  detail: CosmicCategoryDetail | undefined,
+  groupKey: string,
+  groupLabel: string,
+  fallbackItems: DailyLifeGuideActivity[],
+  fallbackScore: number,
+): DailyLifeGuideActivity[] {
+  if (!detail?.subcategories?.length) {
+    return fallbackItems;
+  }
+
+  return detail.subcategories.map((item) =>
+    buildActivityFromCosmicSubcategory(item, groupKey, groupLabel, fallbackScore),
+  );
+}
+
+function normalizeCategoryLabels(
+  id: string,
+  title: string,
+  activityLabel: string,
+  itemCount: number,
+  dynamicSubLabel?: string | null,
+) {
+  const haystack = `${id} ${title} ${activityLabel}`.toLocaleLowerCase('tr-TR');
+  const defaultSubLabel = dynamicSubLabel || (activityLabel !== title ? activityLabel : `${itemCount} alt alan`);
+
+  if (isMoonText(haystack)) {
+    return {
+      title: 'Ay',
+      activityLabel: 'Ay',
+      subLabel: defaultSubLabel,
+    };
+  }
+
+  if (isTransitText(haystack)) {
+    return {
+      title: 'Transit',
+      activityLabel: activityLabel && activityLabel !== title ? activityLabel : 'Transit',
+      subLabel: defaultSubLabel,
+    };
+  }
+
+  return {
+    title,
+    activityLabel,
+    subLabel: defaultSubLabel,
+  };
+}
+
+function mapCosmicOnlyCategories(
+  cosmicCategories: Record<string, CosmicCategoryDetail> | undefined,
+  usedCosmicKeys: Set<string>,
+): DecisionCategoryModel[] {
+  if (!cosmicCategories) return [];
+
+  const result: DecisionCategoryModel[] = [];
+  for (const [cosmicKey, detail] of Object.entries(cosmicCategories)) {
+    if (usedCosmicKeys.has(cosmicKey)) continue;
+
+    const score = Number.isFinite(detail.score) ? Math.round(detail.score) : SCORE_HINT_FALLBACK;
+    const dynamicSubLabel = subLabelFromCosmic(detail);
+    const rawTitle = detail.categoryLabel?.trim() || cosmicKey;
+    const normalized = normalizeCategoryLabels(cosmicKey, rawTitle, rawTitle, detail.subcategories?.length ?? 0, dynamicSubLabel);
+    const items = buildItemsFromCosmicCategory(detail, cosmicKey, normalized.title, [], score);
+    const summary = detail.reasoning?.trim() || detail.subcategories?.[0]?.shortAdvice?.trim() || 'Bugün bu alanda sade ve net ilerlemek daha verimli.';
+    const icon = deriveIcon(`${cosmicKey} ${normalized.title} ${normalized.subLabel}`.toLocaleLowerCase('tr-TR'));
+
+    result.push({
+      id: cosmicKey,
+      cosmicCategoryKey: cosmicKey,
+      title: normalized.title,
+      activityLabel: normalized.activityLabel,
+      subLabel: normalized.subLabel,
+      score,
+      status: scoreToStatus(score),
+      shortSummary: summary,
+      icon,
+      itemCount: items.length,
+      items,
+    });
+  }
+
+  return result;
 }
 
 export function scoreToStatus(score: number): CompassStatus {
@@ -63,11 +248,12 @@ export function statusLabel(status: CompassStatus): string {
   }
 }
 
-export function buildCategoryModels(activities: DailyLifeGuideActivity[] | null | undefined): DecisionCategoryModel[] {
-  if (!activities?.length) return [];
-
+export function buildCategoryModels(
+  activities: DailyLifeGuideActivity[] | null | undefined,
+  cosmicCategories?: Record<string, CosmicCategoryDetail> | null,
+): DecisionCategoryModel[] {
   const grouped = new Map<string, DailyLifeGuideActivity[]>();
-  for (const item of activities) {
+  for (const item of activities ?? []) {
     const existing = grouped.get(item.groupKey);
     if (existing) {
       existing.push(item);
@@ -76,39 +262,88 @@ export function buildCategoryModels(activities: DailyLifeGuideActivity[] | null 
     grouped.set(item.groupKey, [item]);
   }
 
-  return Array.from(grouped.entries())
+  const cosmicMap = cosmicCategories ?? undefined;
+  const availableCosmicKeys = Object.keys(cosmicMap ?? {});
+  const usedCosmicKeys = new Set<string>();
+
+  const baseCategories = Array.from(grouped.entries())
     .map(([id, entries]) => {
       const sorted = [...entries].sort((a, b) => b.score - a.score);
       const top = sorted[0];
-      const score = Math.round(sorted.reduce((acc, item) => acc + item.score, 0) / Math.max(sorted.length, 1));
-      const status = scoreToStatus(score);
-      const title = top?.groupLabel || top?.activityLabel || 'Kategori';
-      const activityLabel = top?.activityLabel || title;
-      const subLabel = activityLabel !== title ? activityLabel : `${sorted.length} alt alan`;
-      const summary = top?.shortAdvice?.trim() || 'Bugün bu alanda tek hedefe odaklanmak daha verimli olur.';
-      const icon = deriveIcon(`${id} ${title} ${activityLabel}`.toLocaleLowerCase('tr-TR'));
+      const rawScore = sorted.reduce((acc, item) => acc + item.score, 0) / Math.max(sorted.length, 1);
+      const rawTitle = top?.groupLabel || top?.activityLabel || 'Kategori';
+      const rawActivityLabel = top?.activityLabel || rawTitle;
+      const matchedCosmicKey = resolveCosmicCategoryKey(id, rawTitle, rawActivityLabel, availableCosmicKeys);
+      const cosmicDetail = matchedCosmicKey ? cosmicMap?.[matchedCosmicKey] : undefined;
+
+      if (matchedCosmicKey) {
+        usedCosmicKeys.add(matchedCosmicKey);
+      }
+
+      const score = Number.isFinite(cosmicDetail?.score) ? Math.round(cosmicDetail!.score) : Math.round(rawScore);
+      const dynamicSubLabel = subLabelFromCosmic(cosmicDetail);
+      const normalized = normalizeCategoryLabels(
+        matchedCosmicKey ?? id,
+        cosmicDetail?.categoryLabel?.trim() || rawTitle,
+        rawActivityLabel,
+        cosmicDetail?.subcategories?.length ?? sorted.length,
+        dynamicSubLabel,
+      );
+      const items = buildItemsFromCosmicCategory(cosmicDetail, id, normalized.title, sorted, score);
+      const summary = cosmicDetail?.reasoning?.trim()
+        || top?.shortAdvice?.trim()
+        || cosmicDetail?.subcategories?.[0]?.shortAdvice?.trim()
+        || 'Bugün bu alanda tek hedefe odaklanmak daha verimli olur.';
+      const icon = deriveIcon(
+        `${id} ${matchedCosmicKey ?? ''} ${normalized.title} ${normalized.activityLabel}`.toLocaleLowerCase('tr-TR'),
+      );
 
       return {
         id,
-        title,
-        activityLabel,
-        subLabel,
+        cosmicCategoryKey: matchedCosmicKey ?? null,
+        title: normalized.title,
+        activityLabel: normalized.activityLabel,
+        subLabel: normalized.subLabel,
         score,
-        status,
+        status: scoreToStatus(score),
         shortSummary: summary,
         icon,
-        itemCount: sorted.length,
-        items: sorted,
+        itemCount: items.length,
+        items,
       };
-    })
-    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, 'tr'));
+    });
+
+  const categories = [...baseCategories, ...mapCosmicOnlyCategories(cosmicMap, usedCosmicKeys)];
+
+  const uniqueById = new Map<string, DecisionCategoryModel>();
+  for (const item of categories) {
+    const key = item.id.toLocaleLowerCase('tr-TR');
+    const existing = uniqueById.get(key);
+    if (!existing || item.score > existing.score) {
+      uniqueById.set(key, item);
+    }
+  }
+
+  return Array.from(uniqueById.values()).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, 'tr'));
 }
 
-function trimSentence(input: string, maxLen = 58): string {
-  const text = input.trim();
+function firstClause(input: string | undefined): string {
+  const text = (input ?? '').trim();
   if (!text) return '';
-  if (text.length <= maxLen) return text;
-  return `${text.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+  const clause = text.split(/[,.!;:]/)[0]?.trim() ?? '';
+  return clause || text;
+}
+
+function compactDoCopy(category: DecisionCategoryModel): string {
+  const title = category.title.trim();
+  const fromAdvice = firstClause(category.shortSummary);
+  if (fromAdvice && fromAdvice.length <= 54) return fromAdvice;
+  return `${title} için ana adımı netleştir`;
+}
+
+function compactAvoidCopy(category: DecisionCategoryModel): string {
+  const title = category.title.trim();
+  return `${title} alanında aşırı yüklenme`;
 }
 
 export function buildHeroModel(categories: DecisionCategoryModel[]): DecisionHeroModel {
@@ -117,7 +352,7 @@ export function buildHeroModel(categories: DecisionCategoryModel[]): DecisionHer
       headline: 'Bugün güçlü pencere: tek bir hedefe odaklan.',
       explanation: 'Kategori skorları güncellendiğinde bu alan otomatik olarak kişiselleşir.',
       doItems: ['Öncelikli tek işi tamamla', 'Kararını yazılı netleştir', 'Dikkati tek alanda tut'],
-      avoidItems: ['Aynı anda çok başlık açma'],
+      avoidItems: ['Aynı anda çok konu açma'],
       strongCategories: [],
     };
   }
@@ -127,13 +362,14 @@ export function buildHeroModel(categories: DecisionCategoryModel[]): DecisionHer
   const weak = categories.filter((c) => c.status === 'CAUTION' || c.status === 'HOLD').slice(0, 2);
 
   const doItems = [
-    ...strong.map((c) => trimSentence(c.shortSummary, 52)),
+    compactDoCopy(top),
+    ...strong.filter((c) => c.id !== top.id).map((c) => compactDoCopy(c)),
     'Tek ana hedefe odaklan',
   ].filter(Boolean).slice(0, 3);
 
   const avoidItems = weak.length
-    ? weak.map((c) => `Aşırı yükleme: ${c.title}`)
-    : ['Aynı anda çok konu açma'];
+    ? weak.map((c) => compactAvoidCopy(c))
+    : ['Aynı anda çok konu açma', 'Kararları gereksiz dağıtma'];
 
   return {
     headline: `Bugün güçlü pencere: ${top.title} tarafında önemli adımı öne al.`,
@@ -142,6 +378,6 @@ export function buildHeroModel(categories: DecisionCategoryModel[]): DecisionHer
       : `${top.title} alanında destek yüksek, kararları sade tutmak avantaj sağlar.`,
     doItems,
     avoidItems: avoidItems.slice(0, 3),
-    strongCategories: strong.map((c) => c.title),
+    strongCategories: [top.title],
   };
 }

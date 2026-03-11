@@ -12,17 +12,17 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
 import { SafeScreen } from '../../components/ui/SafeScreen';
 import { TabHeader } from '../../components/ui/TabHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import { trackEvent } from '../../services/analytics';
 import {
-  DISCOVER_CATEGORIES,
-  DISCOVER_MODULES,
+  buildDiscoverCategories,
+  buildDiscoverModules,
   RECOMMENDED_MODULE_KEYS,
   TODAY_MODULE_KEYS,
-  type DiscoverCategoryKey,
   type DiscoverModule,
   type DiscoverModuleKey,
 } from '../../features/discover/catalog';
@@ -31,12 +31,11 @@ import { fetchExploreCategories, fetchExploreCards, type ExploreCategory, type E
 const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 };
 const VISIBLE_CATEGORY_LIMIT = 5;
 const CATEGORY_TOGGLE_THRESHOLD = 6;
-const SEARCH_SUGGESTIONS = ['Burç', 'Transit', 'Rüya', 'Uyumluluk'];
 type DiscoverSurface = 'today_quick_access' | 'category_grid' | 'recommended';
 const DECISION_COMPASS_TAB_ROUTE = '/(tabs)/decision-compass-tab';
 
 function normalizeText(value: string): string {
-  const lowered = value.toLocaleLowerCase('tr-TR');
+  const lowered = value.toLocaleLowerCase();
   const map: Record<string, string> = {
     ç: 'c',
     ğ: 'g',
@@ -72,6 +71,7 @@ function ModuleCard({
   onPress: (module: DiscoverModule) => void;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const isComingSoon = !module.route;
 
@@ -80,7 +80,9 @@ function ModuleCard({
       onPress={() => onPress(module)}
       accessibilityRole="button"
       accessibilityLabel={
-        isComingSoon ? `${module.title}, yakında geliyor` : `${module.title} modülünü aç`
+        isComingSoon
+          ? t('discover.cardComingSoonAccessibility', { module: module.title })
+          : t('discover.openModuleAccessibility', { module: module.title })
       }
       hitSlop={HIT_SLOP}
       style={({ pressed }) => [
@@ -115,12 +117,12 @@ function ModuleCard({
         {module.title}
       </Text>
       <Text numberOfLines={1} style={[styles.moduleSubtitle, { color: colors.subtext }]}>
-        {isComingSoon ? 'Yakında geliyor' : module.subtitle}
+        {isComingSoon ? t('discover.comingSoonBadge') : module.subtitle}
       </Text>
 
       {isComingSoon ? (
         <View style={[styles.comingSoonBadge, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}> 
-          <Text style={[styles.comingSoonText, { color: colors.primary }]}>Yakında</Text>
+          <Text style={[styles.comingSoonText, { color: colors.primary }]}>{t('discover.comingSoonBadge')}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -134,13 +136,14 @@ function TodayQuickCard({
   module: DiscoverModule;
   onPress: (module: DiscoverModule) => void;
 }) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
 
   return (
     <Pressable
       onPress={() => onPress(module)}
       accessibilityRole="button"
-      accessibilityLabel={`${module.title} hızlı erişimini aç`}
+      accessibilityLabel={t('discover.openQuickAccessAccessibility', { module: module.title })}
       hitSlop={HIT_SLOP}
       style={({ pressed }) => [
         styles.todayCard,
@@ -171,6 +174,7 @@ function TodayQuickCard({
 }
 
 export default function DiscoverScreen() {
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
@@ -178,10 +182,25 @@ export default function DiscoverScreen() {
   const [expandedMap, setExpandedMap] = useState<Partial<Record<string, boolean>>>({});
   const [cmsCategories, setCmsCategories] = useState<ExploreCategory[]>([]);
   const [cmsCards, setCmsCards] = useState<ExploreCard[]>([]);
+  const appLocale = useMemo(
+    () => ((i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
+    [i18n.language, i18n.resolvedLanguage],
+  );
+  const discoverCategories = useMemo(() => buildDiscoverCategories(t), [t, appLocale]);
+  const discoverModules = useMemo(() => buildDiscoverModules(t), [t, appLocale]);
+  const searchSuggestions = useMemo(
+    () => [
+      t('discover.searchSuggestions.horoscope'),
+      t('discover.searchSuggestions.transits'),
+      t('discover.searchSuggestions.dream'),
+      t('discover.searchSuggestions.compatibility'),
+    ],
+    [t, appLocale],
+  );
 
   const filteredModules = useMemo(
-    () => DISCOVER_MODULES.filter((module) => matchModule(module, query)),
-    [query],
+    () => discoverModules.filter((module) => matchModule(module, query)),
+    [discoverModules, query],
   );
 
   const filteredMap = useMemo(() => {
@@ -198,11 +217,11 @@ export default function DiscoverScreen() {
   );
 
   const categoriesWithModules = useMemo(
-    () => DISCOVER_CATEGORIES.map((category) => ({
+    () => discoverCategories.map((category) => ({
       ...category,
       modules: filteredModules.filter((module) => module.categoryKey === category.key),
     })),
-    [filteredModules],
+    [discoverCategories, filteredModules],
   );
 
   const recommendedModules = useMemo(
@@ -219,16 +238,28 @@ export default function DiscoverScreen() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchExploreCategories(), fetchExploreCards()]).then(([cats, cards]) => {
-      setCmsCategories(cats);
-      // Featured cards first within each category, then by sortOrder
-      const sorted = [...cards].sort((a, b) => {
+    let active = true;
+
+    Promise.all([fetchExploreCategories(appLocale), fetchExploreCards(appLocale)]).then(([cats, cards]) => {
+      if (!active) return;
+
+      const localizedCategories = cats.filter((category) => (category.locale ?? '').toLowerCase().startsWith(appLocale));
+      const localizedCards = cards.filter((card) => (card.locale ?? '').toLowerCase().startsWith(appLocale));
+
+      setCmsCategories(localizedCategories);
+
+      // Featured cards first within each category, then by sortOrder.
+      const sorted = [...localizedCards].sort((a, b) => {
         if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
         return a.sortOrder - b.sortOrder;
       });
       setCmsCards(sorted);
     });
-  }, []);
+
+    return () => {
+      active = false;
+    };
+  }, [appLocale]);
 
   const handleSearchChange = (text: string) => {
     setQuery(text);
@@ -237,9 +268,9 @@ export default function DiscoverScreen() {
 
   const openRoute = (route: string) => {
     const normalizedRoute = route === '/decision-compass' ? DECISION_COMPASS_TAB_ROUTE : route;
-    if (normalizedRoute === DECISION_COMPASS_TAB_ROUTE) {
+    if (normalizedRoute.startsWith('/') && !normalizedRoute.includes('?') && !normalizedRoute.includes('#')) {
       router.push({
-        pathname: DECISION_COMPASS_TAB_ROUTE as never,
+        pathname: normalizedRoute as never,
         params: { from: '/(tabs)/discover' },
       } as never);
       return;
@@ -259,7 +290,7 @@ export default function DiscoverScreen() {
         ...eventParams,
         available: false,
       });
-      Alert.alert('Yakında geliyor');
+      Alert.alert(t('discover.comingSoonTitle'));
       return;
     }
 
@@ -302,7 +333,7 @@ export default function DiscoverScreen() {
           style={StyleSheet.absoluteFillObject}
         />
 
-        <TabHeader title="Keşfet" />
+        <TabHeader title={t('tabs.discover')} />
 
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 28 }]}
@@ -314,7 +345,7 @@ export default function DiscoverScreen() {
             <TextInput
               value={query}
               onChangeText={handleSearchChange}
-              placeholder="Modül ara (burç, transit, rüya…)"
+              placeholder={t('discover.searchPlaceholder')}
               placeholderTextColor={colors.subtext}
               style={[styles.searchInput, { color: colors.text }]}
               returnKeyType="search"
@@ -325,7 +356,7 @@ export default function DiscoverScreen() {
               <Pressable
                 onPress={() => handleSearchChange('')}
                 accessibilityRole="button"
-                accessibilityLabel="Aramayı temizle"
+                accessibilityLabel={t('discover.clearSearchAccessibility')}
                 hitSlop={HIT_SLOP}
               >
                 <Ionicons name="close-circle" size={18} color={colors.subtext} />
@@ -336,7 +367,7 @@ export default function DiscoverScreen() {
           {!hasNoResults ? (
             <>
               <View style={styles.sectionWrap}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Bugün</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('discover.today')}</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -377,11 +408,14 @@ export default function DiscoverScreen() {
                             <Pressable
                               onPress={() => toggleCategory(cat.categoryKey)}
                               accessibilityRole="button"
-                              accessibilityLabel={`${cat.title} kategorisini ${isExpanded ? 'daralt' : 'genişlet'}`}
+                              accessibilityLabel={t('discover.toggleCategoryAccessibility', {
+                                category: cat.title,
+                                action: isExpanded ? t('discover.collapse') : t('discover.viewAll'),
+                              })}
                               hitSlop={HIT_SLOP}
                             >
                               <Text style={[styles.categoryToggleText, { color: colors.primary }]}>
-                                {isExpanded ? 'Daralt' : 'Tümünü gör'}
+                                {isExpanded ? t('discover.collapse') : t('discover.viewAll')}
                               </Text>
                             </Pressable>
                           ) : null}
@@ -430,7 +464,7 @@ export default function DiscoverScreen() {
                                   ) : null}
                                   {!route ? (
                                     <View style={[styles.comingSoonBadge, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-                                      <Text style={[styles.comingSoonText, { color: colors.primary }]}>Yakında</Text>
+                                      <Text style={[styles.comingSoonText, { color: colors.primary }]}>{t('discover.comingSoonBadge')}</Text>
                                     </View>
                                   ) : null}
                                 </Pressable>
@@ -461,11 +495,14 @@ export default function DiscoverScreen() {
                             <Pressable
                               onPress={() => toggleCategory(category.key)}
                               accessibilityRole="button"
-                              accessibilityLabel={`${category.title} kategorisini ${isExpanded ? 'daralt' : 'genişlet'}`}
+                              accessibilityLabel={t('discover.toggleCategoryAccessibility', {
+                                category: category.title,
+                                action: isExpanded ? t('discover.collapse') : t('discover.viewAll'),
+                              })}
                               hitSlop={HIT_SLOP}
                             >
                               <Text style={[styles.categoryToggleText, { color: colors.primary }]}>
-                                {isExpanded ? 'Daralt' : 'Tümünü gör'}
+                                {isExpanded ? t('discover.collapse') : t('discover.viewAll')}
                               </Text>
                             </Pressable>
                           ) : null}
@@ -487,7 +524,7 @@ export default function DiscoverScreen() {
 
               {!hasSearch && recommendedModules.length > 0 ? (
                 <View style={styles.sectionWrap}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Senin için önerilenler</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('discover.recommended')}</Text>
                   <View style={styles.recommendedRow}>
                     {recommendedModules.map((module) => (
                       <View key={module.key} style={styles.recommendedItemWrap}>
@@ -503,22 +540,22 @@ export default function DiscoverScreen() {
 
               <View style={styles.statusRow}>
                 <View style={styles.statusDot} />
-                <Text style={[styles.statusText, { color: colors.subtext }]}>Oracle aktif</Text>
+                <Text style={[styles.statusText, { color: colors.subtext }]}>{t('discover.oracleStatus')}</Text>
               </View>
             </>
           ) : (
             <View style={[styles.zeroWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
               <Ionicons name="search-outline" size={22} color={colors.subtext} />
-              <Text style={[styles.zeroTitle, { color: colors.text }]}>Sonuç bulunamadı</Text>
-              <Text style={[styles.zeroSubtitle, { color: colors.subtext }]}>Şu aramaları deneyebilirsin:</Text>
+              <Text style={[styles.zeroTitle, { color: colors.text }]}>{t('discover.noResultsTitle')}</Text>
+              <Text style={[styles.zeroSubtitle, { color: colors.subtext }]}>{t('discover.noResultsSubtitle')}</Text>
               <View style={styles.suggestionRow}>
-                {SEARCH_SUGGESTIONS.map((suggestion) => (
+                {searchSuggestions.map((suggestion) => (
                   <Pressable
                     key={suggestion}
                     onPress={() => handleSearchChange(suggestion)}
                     style={[styles.suggestionChip, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
                     accessibilityRole="button"
-                    accessibilityLabel={`${suggestion} için ara`}
+                    accessibilityLabel={t('discover.searchSuggestionAccessibility', { suggestion })}
                     hitSlop={HIT_SLOP}
                   >
                     <Text style={[styles.suggestionText, { color: colors.text }]}>{suggestion}</Text>

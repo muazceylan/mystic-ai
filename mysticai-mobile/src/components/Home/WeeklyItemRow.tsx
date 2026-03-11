@@ -1,6 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, radius, spacing, typography } from '../../theme';
 import type { WeeklyItem } from './types';
 
@@ -11,14 +12,14 @@ interface WeeklyItemRowProps {
 }
 
 function badgeStyle(level: WeeklyItem['level']) {
-  if (level === 'Yüksek') {
+  if (level === 'high') {
     return {
       container: { backgroundColor: colors.highBg },
       text: { color: colors.highText },
     };
   }
 
-  if (level === 'Orta') {
+  if (level === 'medium') {
     return {
       container: { backgroundColor: colors.warningBg },
       text: { color: colors.warningText },
@@ -32,6 +33,7 @@ function badgeStyle(level: WeeklyItem['level']) {
 }
 
 export function WeeklyItemRow({ item, isLast = false, onPress }: WeeklyItemRowProps) {
+  const { t } = useTranslation();
   const badge = badgeStyle(item.level);
 
   return (
@@ -50,7 +52,7 @@ export function WeeklyItemRow({ item, isLast = false, onPress }: WeeklyItemRowPr
 
       <View style={styles.rightWrap}>
         <View style={[styles.badge, badge.container]}>
-          <Text style={[styles.badgeText, badge.text]}>{item.level}</Text>
+          <Text style={[styles.badgeText, badge.text]}>{t(`homeSurface.weekly.level.${item.level}`)}</Text>
         </View>
         <Ionicons name="chevron-forward" size={17} color={colors.primaryMuted} />
       </View>

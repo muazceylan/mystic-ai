@@ -142,7 +142,7 @@ export default function TechnicalAnalysisScreen() {
     } as never);
   };
 
-  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
+  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F7F5FB' }}>

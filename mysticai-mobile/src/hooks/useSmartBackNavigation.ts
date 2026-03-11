@@ -9,12 +9,7 @@ type SmartBackOptions = {
 };
 
 function defaultFallback(pathname: string): string {
-  if (pathname.startsWith('/(tabs)/compare')) {
-    return '/(tabs)/compatibility';
-  }
-  if (pathname.startsWith('/(tabs)/today-actions')) {
-    return '/(tabs)/daily-transits';
-  }
+  void pathname;
   return '/(tabs)/home';
 }
 
@@ -70,11 +65,6 @@ export function useSmartBackNavigation(options?: SmartBackOptions) {
       return;
     }
 
-    if (options?.preferLastTabPath && normalizedLastTab && normalizedLastTab !== normalizedPathname && lastTabPath) {
-      router.replace(lastTabPath as never);
-      return;
-    }
-
     if (
       normalizedPrevious
       && normalizedPrevious !== normalizedPathname
@@ -82,6 +72,11 @@ export function useSmartBackNavigation(options?: SmartBackOptions) {
       && !normalizedPrevious.startsWith('/(auth)')
     ) {
       router.replace(previousPath as never);
+      return;
+    }
+
+    if (options?.preferLastTabPath && normalizedLastTab && normalizedLastTab !== normalizedPathname && lastTabPath) {
+      router.replace(lastTabPath as never);
       return;
     }
 

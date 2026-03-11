@@ -14,8 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen } from '../../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import {
   EmptyState,
   NameCard,
@@ -33,9 +34,19 @@ type SearchFilters = {
   tag: string;
 };
 
+function formatGenderLabel(
+  value: NameGender | '',
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (value === 'MALE') return t('nameAnalysis.genderOptions.male');
+  if (value === 'FEMALE') return t('nameAnalysis.genderOptions.female');
+  if (value === 'UNISEX') return t('nameAnalysis.genderOptions.unisex');
+  return t('nameAnalysis.genderOptions.all');
+}
+
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.bg },
+    container: { flex: 1, backgroundColor: 'transparent' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -200,6 +211,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
 const TAG_OPTIONS = ['modern', 'classic', 'timeless', 'minimalist', 'quranic', 'nature', 'light', 'wisdom'];
 
 export default function NameSearchScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const tabBarHeight = useBottomTabBarHeight();
@@ -281,15 +293,16 @@ export default function NameSearchScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </Pressable>
-          <Text style={styles.title}>İsim Arama</Text>
-          <Pressable style={styles.backButton} onPress={() => router.push('/(tabs)/name-favorites')}>
-            <Ionicons name="heart-outline" size={20} color={colors.text} />
-          </Pressable>
-        </View>
+        <TabHeader
+          title={t('surfaceTitles.nameSearch')}
+          rightActions={(
+            <SurfaceHeaderIconButton
+              iconName="heart-outline"
+              onPress={() => router.push('/(tabs)/name-favorites')}
+              accessibilityLabel={t('nameAnalysis.search.favoritesAccessibility')}
+            />
+          )}
+        />
 
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color={colors.subtext} />
@@ -300,7 +313,7 @@ export default function NameSearchScreen() {
               setQuery(queryInput.trim());
               setPage(0);
             }}
-            placeholder="İsim ara"
+            placeholder={t('nameAnalysis.search.inputPlaceholder')}
             placeholderTextColor={colors.subtext}
             style={styles.searchInput}
           />
@@ -317,10 +330,12 @@ export default function NameSearchScreen() {
         <View style={styles.filtersRow}>
           <Pressable style={styles.filterButton} onPress={() => setShowFilters(true)}>
             <Ionicons name="options-outline" size={16} color={colors.textSoft} />
-            <Text style={styles.filterButtonText}>Filtreler</Text>
+            <Text style={styles.filterButtonText}>{t('nameAnalysis.search.filtersButton')}</Text>
           </Pressable>
           {activeFilterLabels.map((label) => <NameTagChip key={label} label={label} />)}
-          <Text style={styles.countText}>{searchQuery.data?.totalElements ?? 0} sonuç</Text>
+          <Text style={styles.countText}>
+            {t('nameAnalysis.search.resultsCount', { count: searchQuery.data?.totalElements ?? 0 })}
+          </Text>
         </View>
 
         <View style={styles.listWrap}>
@@ -331,18 +346,18 @@ export default function NameSearchScreen() {
           ) : searchQuery.isError ? (
             <View style={styles.stateWrap}>
               <EmptyState
-                title="Veri alınamadı"
-                description="Bağlantıyı kontrol edip tekrar deneyin."
-                actionLabel="Tekrar Dene"
+                title={t('nameAnalysis.search.errorTitle')}
+                description={t('nameAnalysis.search.errorDescription')}
+                actionLabel={t('common.retry')}
                 onAction={() => void searchQuery.refetch()}
               />
             </View>
           ) : content.length === 0 ? (
             <View style={styles.stateWrap}>
               <EmptyState
-                title="Sonuç bulunamadı"
-                description="Aramayı değiştirin veya filtreleri sıfırlayın."
-                actionLabel="Filtreleri Temizle"
+                title={t('discover.noResultsTitle')}
+                description={t('nameAnalysis.search.emptyDescription')}
+                actionLabel={t('nameAnalysis.search.clearFilters')}
                 onAction={resetFilters}
               />
             </View>
@@ -375,20 +390,23 @@ export default function NameSearchScreen() {
                 <View style={styles.pager}>
                   <Pressable
                     style={styles.pagerButton}
-                    disabled={page === 0}
-                    onPress={() => setPage((prev) => Math.max(0, prev - 1))}
-                  >
-                    <Text style={styles.pagerButtonText}>Önceki</Text>
+                  disabled={page === 0}
+                  onPress={() => setPage((prev) => Math.max(0, prev - 1))}
+                >
+                    <Text style={styles.pagerButtonText}>{t('nameAnalysis.search.previousPage')}</Text>
                   </Pressable>
                   <Text style={styles.countText}>
-                    Sayfa {page + 1}/{Math.max(1, searchQuery.data.totalPages)}
+                    {t('nameAnalysis.search.pageLabel', {
+                      current: page + 1,
+                      total: Math.max(1, searchQuery.data.totalPages),
+                    })}
                   </Text>
                   <Pressable
                     style={styles.pagerButton}
                     disabled={page >= searchQuery.data.totalPages - 1}
                     onPress={() => setPage((prev) => prev + 1)}
                   >
-                    <Text style={styles.pagerButtonText}>Sonraki</Text>
+                    <Text style={styles.pagerButtonText}>{t('nameAnalysis.search.nextPage')}</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -399,41 +417,41 @@ export default function NameSearchScreen() {
         <Modal visible={showFilters} transparent animationType="slide" onRequestClose={() => setShowFilters(false)}>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Filtreler</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('nameAnalysis.search.filtersTitle')}</Text>
 
-              <Text style={[styles.groupTitle, { color: colors.subtext }]}>Cinsiyet</Text>
+              <Text style={[styles.groupTitle, { color: colors.subtext }]}>{t('nameAnalysis.search.gender')}</Text>
               <View style={styles.chipsWrap}>
                 {(['', 'MALE', 'FEMALE', 'UNISEX'] as const).map((gender) => (
                   <NameTagChip
                     key={gender || 'all'}
-                    label={gender || 'Tümü'}
+                    label={formatGenderLabel(gender, t)}
                     selected={filters.gender === gender}
                     onPress={() => setFilters((prev) => ({ ...prev, gender }))}
                   />
                 ))}
               </View>
 
-              <Text style={[styles.groupTitle, { color: colors.subtext }]}>Köken</Text>
+              <Text style={[styles.groupTitle, { color: colors.subtext }]}>{t('nameAnalysis.detail.originLabel')}</Text>
               <TextInput
                 value={filters.origin}
                 onChangeText={(origin) => setFilters((prev) => ({ ...prev, origin }))}
-                placeholder="örn: Arapça"
+                placeholder={t('nameAnalysis.search.originPlaceholder')}
                 placeholderTextColor={colors.subtext}
                 style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}
               />
 
-              <Text style={[styles.groupTitle, { color: colors.subtext }]}>Harfle Başlama</Text>
+              <Text style={[styles.groupTitle, { color: colors.subtext }]}>{t('nameAnalysis.search.startsWith')}</Text>
               <TextInput
                 value={filters.startsWith}
                 onChangeText={(startsWith) => setFilters((prev) => ({ ...prev, startsWith }))}
-                placeholder="örn: E"
+                placeholder={t('nameAnalysis.search.startsWithPlaceholder')}
                 placeholderTextColor={colors.subtext}
                 autoCapitalize="characters"
                 maxLength={1}
                 style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}
               />
 
-              <Text style={[styles.groupTitle, { color: colors.subtext }]}>Tag</Text>
+              <Text style={[styles.groupTitle, { color: colors.subtext }]}>{t('nameAnalysis.search.tag')}</Text>
               <View style={styles.chipsWrap}>
                 {TAG_OPTIONS.map((tag) => (
                   <NameTagChip
@@ -446,7 +464,7 @@ export default function NameSearchScreen() {
               </View>
 
               <View style={styles.switchRow}>
-                <Text style={{ color: colors.textSoft, fontSize: 14, fontWeight: '600' }}>Kur&apos;an&apos;da geçiyor</Text>
+                <Text style={{ color: colors.textSoft, fontSize: 14, fontWeight: '600' }}>{t('nameAnalysis.search.quranFlag')}</Text>
                 <Switch
                   value={filters.quranFlag === true}
                   onValueChange={(enabled) => setFilters((prev) => ({ ...prev, quranFlag: enabled ? true : undefined }))}
@@ -461,7 +479,7 @@ export default function NameSearchScreen() {
                     setShowFilters(false);
                   }}
                 >
-                  <Text style={[styles.modalActionText, { color: colors.text }]}>Sıfırla</Text>
+                  <Text style={[styles.modalActionText, { color: colors.text }]}>{t('nameAnalysis.search.reset')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.modalActionButton, { backgroundColor: colors.primary }]}
@@ -476,7 +494,7 @@ export default function NameSearchScreen() {
                     });
                   }}
                 >
-                  <Text style={[styles.modalActionText, { color: colors.white }]}>Uygula</Text>
+                  <Text style={[styles.modalActionText, { color: colors.white }]}>{t('nameAnalysis.search.apply')}</Text>
                 </Pressable>
               </View>
             </View>

@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { DailyTransitsCard } from '../components/Home/DailyTransitsCard';
 import { GreetingRow } from '../components/Home/GreetingRow';
 import { HoroscopeSummaryCard } from '../components/Home/HoroscopeSummaryCard';
@@ -19,6 +19,7 @@ import { trackEvent } from '../services/analytics';
 import { fetchHomeContentBundle, type HomeSection, type CmsBanner } from '../services/homeContent.service';
 import { getLockedSections, isPremiumUser } from '../services/numerology.service';
 import { useAuthStore } from '../store/useAuthStore';
+import { useNotificationStore } from '../store/useNotificationStore';
 import {
   HOME_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
@@ -27,6 +28,11 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../features/tutorial';
+import {
+  AppSurfaceBackground,
+  AppSurfaceHeader,
+  SurfaceHeaderIconButton,
+} from '../components/ui';
 import { colors, radius, shadowSubtle, spacing, typography } from '../theme';
 
 const HOME_VARIANT = 'premium_v3';
@@ -166,18 +172,34 @@ function resolveWeeklyIcon(key: string | undefined, title: string | undefined, l
     return mappedEntry[1];
   }
 
-  if (level === 'Yüksek') {
+  if (level === 'high') {
     return 'flash-outline';
   }
 
-  if (level === 'Orta') {
+  if (level === 'medium') {
     return 'sunny-outline';
   }
 
   return 'alert-circle-outline';
 }
 
-function greetingPrefixByHour(hour: number): string {
+function greetingPrefixByHour(hour: number, locale: 'tr' | 'en'): string {
+  if (locale === 'en') {
+    if (hour >= 5 && hour <= 11) {
+      return 'Good morning';
+    }
+
+    if (hour >= 12 && hour <= 17) {
+      return 'Good afternoon';
+    }
+
+    if (hour >= 18 && hour <= 21) {
+      return 'Good evening';
+    }
+
+    return 'Good night';
+  }
+
   if (hour >= 5 && hour <= 11) {
     return 'Günaydın';
   }
@@ -193,12 +215,16 @@ function greetingPrefixByHour(hour: number): string {
   return 'İyi geceler';
 }
 
-function buildGreeting(name: string, hour: number): string {
-  if (!name || name.trim().toLowerCase() === 'merhaba') {
-    return 'Merhaba';
+function buildGreeting(name: string, hour: number, locale: 'tr' | 'en', genericName: string): string {
+  const trimmedName = name.trim();
+  const normalizedName = trimmedName.toLowerCase();
+  const genericNameNormalized = genericName.trim().toLowerCase();
+
+  if (!trimmedName || normalizedName === 'merhaba' || normalizedName === 'hello' || normalizedName === genericNameNormalized) {
+    return locale === 'en' ? 'Hello' : 'Merhaba';
   }
 
-  return `${greetingPrefixByHour(hour)}, ${name}`;
+  return `${greetingPrefixByHour(hour, locale)}, ${trimmedName}`;
 }
 
 function extractHeroPhase(subtitle: string | undefined, fallbackPhase: string | undefined): string {
@@ -208,7 +234,7 @@ function extractHeroPhase(subtitle: string | undefined, fallbackPhase: string | 
   }
 
   const stripped = value
-    .replace(/ay\s*faz[ıi]\s*:/i, '')
+    .replace(/(?:ay\s*faz[ıi]|moon\s*phase)\s*:/i, '')
     .replace(/▸.*$/g, '')
     .replace(/•.*$/g, '')
     .trim();
@@ -245,9 +271,9 @@ function resolveNumerologyWidgetRoute(emptyVariant: 'none' | 'name_missing' | 'b
 }
 
 export default function HomeScreen() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
-  const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.HOME);
@@ -259,9 +285,13 @@ export default function HomeScreen() {
   const emptyHeroRefetchTriedRef = useRef(false);
   const numerologyWidgetTrackedRef = useRef(false);
   const tutorialBootstrapRef = useRef<string | null>(null);
+  const resolvedLocale = useMemo<'tr' | 'en'>(
+    () => ((i18n.resolvedLanguage ?? i18n.language ?? user?.preferredLanguage ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
+    [i18n.language, i18n.resolvedLanguage, user?.preferredLanguage],
+  );
   const homeNumerology = useNumerology({
     user,
-    locale: user?.preferredLanguage ?? 'tr',
+    locale: resolvedLocale,
     guidancePeriod: 'day',
   });
 
@@ -271,7 +301,7 @@ export default function HomeScreen() {
     isFetching,
     isError,
     refetch,
-  } = useHomeDashboard({ user });
+  } = useHomeDashboard({ user, locale: resolvedLocale });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -283,11 +313,11 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    fetchHomeContentBundle(user?.preferredLanguage ?? 'tr').then((bundle) => {
+    fetchHomeContentBundle(resolvedLocale).then((bundle) => {
       setCmsHeroBanners(bundle.heroBanners);
       setCmsSections(bundle.sections);
     });
-  }, [user?.preferredLanguage]);
+  }, [resolvedLocale]);
 
   useEffect(() => {
     const scope = user?.id ? String(user.id) : null;
@@ -314,16 +344,16 @@ export default function HomeScreen() {
   const displayName = useMemo(() => {
     const backendName = dashboard?.user?.name?.trim();
     const authName = user?.firstName?.trim() || user?.name?.trim() || user?.username?.trim();
-    return backendName || authName || 'Merhaba';
-  }, [dashboard?.user?.name, user?.firstName, user?.name, user?.username]);
+    return backendName || authName || t('common.guest');
+  }, [dashboard?.user?.name, t, user?.firstName, user?.name, user?.username]);
 
   const greetingText = useMemo(
-    () => buildGreeting(displayName, currentHour),
-    [currentHour, displayName],
+    () => buildGreeting(displayName, currentHour, resolvedLocale, t('common.guest')),
+    [currentHour, displayName, resolvedLocale, t],
   );
 
   const avatarUrl = dashboard?.user?.avatarUrl ?? user?.avatarUrl ?? user?.avatarUri ?? null;
-  const notificationCount = Math.max(0, dashboard?.user?.notifications ?? 0);
+  const notificationCount = useNotificationStore((state) => state.unreadCount);
 
   const signName = useMemo(() => {
     const fromToday = dashboard?.horoscopeSummary?.today?.signName?.trim();
@@ -350,15 +380,15 @@ export default function HomeScreen() {
 
       return {
         id: action.key?.trim() || `quick-${index + 1}`,
-        title: action.title?.trim() || 'Modül',
-        subtitle: action.subtitle?.trim() || 'Hazırlanıyor',
+        title: action.title?.trim() || t('homeSurface.quickActions.fallbackTitle'),
+        subtitle: action.subtitle?.trim() || t('homeSurface.quickActions.fallbackSubtitle'),
         route: route ?? undefined,
         disabled: !available,
-        statusLabel: !available ? 'Yakında' : undefined,
+        statusLabel: !available ? t('homeSurface.quickActions.soonBadge') : undefined,
         ...visual,
       };
     });
-  }, [dashboard]);
+  }, [dashboard, t]);
 
   const weeklyItems = useMemo<WeeklyItem[]>(() => {
     if (!dashboard?.weeklyHighlights?.items?.length) {
@@ -366,12 +396,12 @@ export default function HomeScreen() {
     }
 
     return dashboard.weeklyHighlights.items.map((item) => ({
-      title: item.title?.trim() || 'Haftalık başlık',
+      title: item.title?.trim() || t('homeSurface.weekly.fallbackTitle'),
       level: item.level,
-      desc: item.desc?.trim() || 'Detaylar hazırlanıyor.',
+      desc: item.desc?.trim() || t('homeSurface.weekly.fallbackDescription'),
       iconName: resolveWeeklyIcon(item.key, item.title, item.level),
     }));
-  }, [dashboard]);
+  }, [dashboard, t]);
 
   const hasToday = Boolean(
     dashboard?.horoscopeSummary?.today?.themeText?.trim() || dashboard?.horoscopeSummary?.today?.adviceText?.trim(),
@@ -381,7 +411,7 @@ export default function HomeScreen() {
   const heroSubtitle = dashboard?.hero?.subtitle?.trim() || '';
   const heroInsight = dashboard?.hero?.insightText?.trim() || '';
   const hasHeroInsight = Boolean(heroInsight);
-  const heroCtaText = dashboard?.hero?.ctaText?.trim() || 'Gökyüzünü gör';
+  const heroCtaText = dashboard?.hero?.ctaText?.trim() || t('homeSurface.skyHero.cta');
   const heroPhase = extractHeroPhase(heroSubtitle, dashboard?.transitsToday?.moonPhase);
   const heroIllumination = extractHeroIllumination(heroSubtitle);
 
@@ -395,41 +425,41 @@ export default function HomeScreen() {
     if (homeNumerology.emptyVariant === 'name_missing') {
       return {
         state: 'name_missing',
-        title: 'Numeroloji profilin eksik',
-        body: 'İsmini eklediğinde kader ve ruh güdüsü alanları görünür.',
+        title: t('numerology.empty.nameMissingTitle'),
+        body: t('numerology.empty.nameMissingDescription'),
         focus: null,
-        cta: 'İsmini tamamla',
+        cta: t('numerology.empty.nameMissingCta'),
       };
     }
     if (homeNumerology.emptyVariant === 'birth_date_missing') {
       return {
         state: 'birth_date_missing',
-        title: 'Kişisel sayını açmak için doğum tarihi gerekli',
-        body: 'Yaşam yolu ve kişisel yıl katmanı doğum tarihine göre oluşur.',
+        title: t('numerology.empty.birthDateMissingTitle'),
+        body: t('numerology.empty.birthDateMissingDescription'),
         focus: null,
-        cta: 'Doğum bilgini ekle',
+        cta: t('numerology.empty.birthDateMissingCta'),
       };
     }
     if (homeNumerology.emptyVariant === 'both_missing') {
       return {
         state: 'both_missing',
-        title: 'Numeroloji profilini başlat',
-        body: 'İsim ve doğum tarihi eklendiğinde sayı profilin ve günlük rehber açılır.',
+        title: t('numerology.empty.bothMissingTitle'),
+        body: t('numerology.empty.bothMissingDescription'),
         focus: null,
-        cta: 'Profili tamamla',
+        cta: t('numerology.empty.bothMissingCta'),
       };
     }
     if (homeNumerology.data?.timing) {
       return {
         state: 'ready',
-        title: `Bu yıl kişisel sayın: ${homeNumerology.data.timing.personalYear}`,
+        title: t('homeSurface.numerology.readyTitle', { year: homeNumerology.data.timing.personalYear }),
         body: homeNumerology.data.timing.shortTheme,
         focus: homeNumerology.data.miniGuidance?.dailyFocus ?? null,
-        cta: 'Numeroloji detayına git',
+        cta: t('homeSurface.numerology.readyCta'),
       };
     }
     return null;
-  }, [homeNumerology.data, homeNumerology.emptyVariant]);
+  }, [homeNumerology.data, homeNumerology.emptyVariant, t]);
 
   const initialLoading = !dashboard && (isLoading || isFetching);
   const showRetry = isError && !dashboard;
@@ -497,11 +527,11 @@ export default function HomeScreen() {
       response_version: homeNumerology.data?.contentVersion ?? homeNumerology.data?.version ?? null,
       guidance_period: 'day',
       cache_status: homeNumerology.cacheStatus,
-      locale: homeNumerology.data?.locale ?? user?.preferredLanguage ?? 'tr',
+      locale: homeNumerology.data?.locale ?? resolvedLocale,
       snapshot_exists: null,
       widget_state: numerologyWidget.state,
     });
-  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.missingFields, numerologyWidget, user?.roles]);
+  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.missingFields, numerologyWidget, resolvedLocale, user?.roles]);
 
   const pushRoute = useCallback(
     (route: string) => {
@@ -541,13 +571,13 @@ export default function HomeScreen() {
       });
 
       if (!available || !action.route) {
-        Alert.alert('Yakında geliyor');
+        Alert.alert(t('homeSurface.quickActions.comingSoonTitle'));
         return;
       }
 
       pushRoute(action.route);
     },
-    [pushRoute],
+    [pushRoute, t],
   );
 
   const handlePressTodayTab = useCallback(() => {
@@ -624,104 +654,61 @@ export default function HomeScreen() {
       response_version: homeNumerology.data?.contentVersion ?? homeNumerology.data?.version ?? null,
       guidance_period: 'day',
       cache_status: homeNumerology.cacheStatus,
-      locale: homeNumerology.data?.locale ?? user?.preferredLanguage ?? 'tr',
+      locale: homeNumerology.data?.locale ?? resolvedLocale,
       snapshot_exists: null,
       widget_state: numerologyWidget.state,
     });
     pushRoute(route);
-  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.emptyVariant, homeNumerology.missingFields, numerologyWidget, pushRoute, user?.roles]);
+  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.emptyVariant, homeNumerology.missingFields, numerologyWidget, pushRoute, resolvedLocale, user?.roles]);
 
   const notificationBadgeText = notificationCount > 9 ? '9+' : String(notificationCount);
   const notificationA11y =
     notificationCount > 0
-      ? `Bildirimler. ${notificationCount > 9 ? '9+' : notificationCount} yeni bildirim`
-      : 'Bildirimler';
-  const topSafePadding = insets.top + spacing.xxs;
+      ? t('homeSurface.header.notificationsUnread', { count: notificationCount })
+      : t('profile.menu.notifications');
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={[colors.bgSoft, colors.bg]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-      />
-      <View pointerEvents="none" style={styles.blobTopRight} />
-      <View pointerEvents="none" style={styles.blobBottomLeft} />
+      <AppSurfaceBackground />
 
       <ScrollView
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: topSafePadding,
+            paddingTop: spacing.xxs,
             paddingBottom: tabBarHeight + spacing.xl,
           },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <LinearGradient
-          colors={[colors.headerGradA, colors.headerGradB]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerShell}
-        >
-          <View style={styles.headerRow}>
-            <View style={styles.userRow}>
-              {avatarUrl ? (
-                <Image
-                  source={{ uri: avatarUrl }}
-                  style={styles.avatar}
-                  accessibilityIgnoresInvertColors
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={spacing.lg + spacing.xs} color={colors.primary} />
-                </View>
-              )}
-
-              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.userName}>{displayName}</Text>
-            </View>
-
-            <View style={styles.headerActions}>
+        <AppSurfaceHeader
+          title={displayName}
+          variant="home"
+          avatarUri={avatarUrl}
+          includeTopInset
+          rightActions={(
+            <>
               <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-                <Pressable
+                <SurfaceHeaderIconButton
+                  iconName="help-circle-outline"
                   onPress={handlePressTutorialHelp}
-                  accessibilityRole="button"
-                  accessibilityLabel="Rehberi tekrar aç"
-                  hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
-                  style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
-                >
-                  <Ionicons name="help-circle-outline" size={spacing.lg} color={colors.textPrimary} />
-                </Pressable>
+                  accessibilityLabel={t('homeSurface.header.helpAccessibility')}
+                />
               </SpotlightTarget>
-
-              <Pressable
+              <SurfaceHeaderIconButton
+                iconName="notifications-outline"
                 onPress={handlePressNotifications}
-                accessibilityRole="button"
                 accessibilityLabel={notificationA11y}
-                hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
-                style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
-              >
-                <Ionicons name="notifications-outline" size={spacing.lg} color={colors.textPrimary} />
-                {notificationCount > 0 ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{notificationBadgeText}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-
-              <Pressable
+                badgeText={notificationCount > 0 ? notificationBadgeText : null}
+              />
+              <SurfaceHeaderIconButton
+                iconName="sunny-outline"
                 onPress={handlePressSettings}
-                accessibilityRole="button"
-                accessibilityLabel="Tema ve ayarlar"
-                hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
-                style={({ pressed }) => [styles.headerIconBtn, pressed && styles.pressed]}
-              >
-                <Ionicons name="sunny-outline" size={spacing.lg} color={colors.textPrimary} />
-              </Pressable>
-            </View>
-          </View>
-        </LinearGradient>
+                accessibilityLabel={t('homeSurface.header.settingsAccessibility')}
+              />
+            </>
+          )}
+        />
 
         <GreetingRow text={greetingText} />
 
@@ -755,7 +742,7 @@ export default function HomeScreen() {
             <Pressable
               onPress={handlePressNumerologyWidget}
               accessibilityRole="button"
-              accessibilityLabel="Numeroloji kartını aç"
+              accessibilityLabel={t('homeSurface.numerology.openAccessibility')}
               style={({ pressed }) => [styles.numerologyWidget, pressed && styles.pressed]}
             >
               <LinearGradient
@@ -765,11 +752,11 @@ export default function HomeScreen() {
                 style={styles.numerologyWidgetInner}
               >
                 <View style={styles.numerologyWidgetHeader}>
-                  <Text style={styles.numerologyWidgetKicker}>Numeroloji Rehberi</Text>
+                  <Text style={styles.numerologyWidgetKicker}>{t('homeSurface.numerology.kicker')}</Text>
                   {homeNumerology.data?.timing?.personalYear ? (
                     <View style={styles.numerologyYearPill}>
                       <Text style={styles.numerologyYearPillText}>
-                        Yıl {homeNumerology.data.timing.personalYear}
+                        {t('homeSurface.numerology.yearPill', { year: homeNumerology.data.timing.personalYear })}
                       </Text>
                     </View>
                   ) : null}
@@ -778,7 +765,7 @@ export default function HomeScreen() {
                 <Text style={styles.numerologyWidgetBody}>{numerologyWidget.body}</Text>
                 {numerologyWidget.state === 'ready' && numerologyWidget.focus ? (
                   <Text style={styles.numerologyWidgetFocus} numberOfLines={2}>
-                    Odak: {numerologyWidget.focus}
+                    {t('homeSurface.numerology.focusLabel', { focus: numerologyWidget.focus })}
                   </Text>
                 ) : null}
                 <View style={styles.numerologyWidgetFooter}>
@@ -881,17 +868,17 @@ export default function HomeScreen() {
 
         {showRetry ? (
           <View style={styles.retryWrap}>
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.retryText}>Veriler hazırlanıyor</Text>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.retryText}>{t('homeSurface.retry.title')}</Text>
             <Pressable
               onPress={() => {
                 void refetch();
               }}
               accessibilityRole="button"
-              accessibilityLabel="Ana sayfa verilerini yenile"
+              accessibilityLabel={t('homeSurface.retry.accessibility')}
               hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
               style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
             >
-              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.retryButtonText}>Yenile</Text>
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.retryButtonText}>{t('common.retry')}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -903,108 +890,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.bg,
   },
   content: {
     paddingHorizontal: spacing.screenPadding,
-  },
-  blobTopRight: {
-    position: 'absolute',
-    top: -80,
-    right: -42,
-    width: 230,
-    height: 230,
-    borderRadius: radius.pill,
-    backgroundColor: colors.blobA,
-  },
-  blobBottomLeft: {
-    position: 'absolute',
-    left: -92,
-    bottom: 140,
-    width: 260,
-    height: 260,
-    borderRadius: radius.pill,
-    backgroundColor: colors.blobB,
-  },
-  headerShell: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingHorizontal: spacing.cardPadding,
-    paddingVertical: spacing.md,
-    ...shadowSubtle,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  avatar: {
-    width: spacing.xxl * 2,
-    height: spacing.xxl * 2,
-    borderRadius: radius.pill,
-    marginRight: spacing.sm,
-    backgroundColor: colors.primarySoft,
-  },
-  avatarPlaceholder: {
-    width: spacing.xxl * 2,
-    height: spacing.xxl * 2,
-    borderRadius: radius.pill,
-    marginRight: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-  },
-  userName: {
-    ...typography.H1,
-    fontSize: 20,
-    lineHeight: 26,
-    flexShrink: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  headerIconBtn: {
-    width: spacing.chevronHitArea,
-    height: spacing.chevronHitArea,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.headerActionBorder,
-    backgroundColor: colors.headerActionBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadowSubtle,
-  },
-  badge: {
-    position: 'absolute',
-    top: -5,
-    right: -4,
-    minWidth: spacing.md + spacing.xxs,
-    height: spacing.md + spacing.xxs,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.xxs,
-    backgroundColor: colors.badgeBg,
-    borderWidth: 1,
-    borderColor: colors.surfaceCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    ...typography.Caption,
-    color: colors.badgeText,
-    fontWeight: '700',
-    lineHeight: 14,
-    fontSize: 11,
   },
   quickSkeletonGrid: {
     marginTop: spacing.cardGap,

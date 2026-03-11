@@ -13,7 +13,7 @@ Required variables:
 
 ```bash
 EXPO_PUBLIC_APP_ENV=dev|stage|prod
-EXPO_PUBLIC_API_BASE_URL_DEV=https://dev-api.example.com
+EXPO_PUBLIC_API_BASE_URL_DEV_OVERRIDE=https://dev-api.example.com
 EXPO_PUBLIC_API_BASE_URL_STAGE=https://stage-api.example.com
 EXPO_PUBLIC_API_BASE_URL_PROD=https://api.example.com
 ```

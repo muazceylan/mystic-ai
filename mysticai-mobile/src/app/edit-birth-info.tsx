@@ -17,14 +17,13 @@ import * as Haptics from '../utils/haptics';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNatalChartStore } from '../store/useNatalChartStore';
 import { useLuckyDatesStore } from '../store/useLuckyDatesStore';
-import OnboardingBackground from '../components/OnboardingBackground';
 import CalendarPicker from '../components/CalendarPicker';
 import { updateProfile } from '../services/auth';
 import { calculateNatalChart } from '../services/astrology.service';
 import { getZodiacSign } from '../constants/index';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, TabHeader } from '../components/ui';
 
 function formatDateDisplay(date: Date, months: string[]): string {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
@@ -32,30 +31,7 @@ function formatDateDisplay(date: Date, months: string[]): string {
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingTop: 56,
-      paddingBottom: 12,
-    },
-    backBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: C.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: C.border,
-    },
-    headerTitle: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: C.text,
-    },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
     hint: {
@@ -262,26 +238,12 @@ export default function EditBirthInfoScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
-        <OnboardingBackground />
+        <TabHeader title={t('birthInfo.title')} />
 
-        {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityLabel={t('editBirthInfo.accessibilityBack')}
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('birthInfo.title')}</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.hint}>
-          {t('birthInfo.hint')}
-        </Text>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.hint}>
+            {t('birthInfo.hint')}
+          </Text>
 
         {/* Birth Date */}
         <Text style={styles.label}>{t('birthInfo.birthDate')}</Text>

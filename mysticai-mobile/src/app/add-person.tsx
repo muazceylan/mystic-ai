@@ -15,14 +15,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import OnboardingBackground from '../components/OnboardingBackground';
 import CalendarPicker from '../components/CalendarPicker';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSynastryStore } from '../store/useSynastryStore';
 import { COUNTRIES, CITIES, DISTRICTS } from '../constants/index';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
-import { SafeScreen } from '../components/ui';
+import { AppHeader, SafeScreen } from '../components/ui';
 
 function formatDateDisplay(date: Date, months: string[]): string {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
@@ -185,30 +184,14 @@ export default function AddPersonScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <OnboardingBackground />
+        <AppHeader title={t('addPerson.title')} subtitle={t('addPerson.subtitle')} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          accessibilityLabel={t('addPerson.accessibilityBack')}
-          accessibilityRole="button"
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.primary} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{t('addPerson.title')}</Text>
-          <Text style={styles.headerSub}>{t('addPerson.subtitle')}</Text>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
 
         {/* ── İsim ─────────────────────────────────────────────── */}
         <Text style={styles.label}>{t('addPerson.nameLabel')}</Text>
@@ -351,10 +334,10 @@ export default function AddPersonScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
 
       {/* ── DATE MODAL ──────────────────────────────────────────── */}
-      <Modal visible={showDateModal} transparent animationType="fade">
+        <Modal visible={showDateModal} transparent animationType="fade">
         <View style={modalS.overlay}>
           <View style={modalS.card}>
             <View style={modalS.header}>
@@ -396,10 +379,10 @@ export default function AddPersonScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+        </Modal>
 
       {/* ── TIME MODAL ──────────────────────────────────────────── */}
-      <Modal visible={showTimeModal} transparent animationType="fade">
+        <Modal visible={showTimeModal} transparent animationType="fade">
         <View style={modalS.overlay}>
           <View style={modalS.card}>
             <View style={modalS.header}>
@@ -468,10 +451,10 @@ export default function AddPersonScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+        </Modal>
 
       {/* ── COUNTRY MODAL ───────────────────────────────────────── */}
-      <Modal visible={showCountryModal} transparent animationType="slide">
+        <Modal visible={showCountryModal} transparent animationType="slide">
         <View style={pickerS.container}>
           <View style={pickerS.header}>
             <Text style={pickerS.headerTitle}>{t('addPerson.selectCountry')}</Text>

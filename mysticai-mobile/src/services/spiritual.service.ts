@@ -1,14 +1,27 @@
 import axios from 'axios/dist/browser/axios.cjs';
-import { Platform } from 'react-native';
+import { envConfig, resolveDevBaseUrl } from '../config/env';
 import type { EsmaItem, DuaItem, BreathingTechnique } from '../spiritual/types';
 
 // Spiritual service runs on port 8091 directly (not through gateway)
+const SPIRITUAL_SERVICE_PORT = 8091;
+
+function normalizeConfiguredUrl(value: string | undefined): string | null {
+  const raw = (value ?? '').trim();
+  if (!raw) return null;
+  return raw.replace(/\/+$/, '');
+}
+
+const spiritualOverride = normalizeConfiguredUrl(
+  process.env.EXPO_PUBLIC_SPIRITUAL_API_URL_OVERRIDE ?? process.env.EXPO_PUBLIC_SPIRITUAL_API_URL
+);
+
 const SPIRITUAL_BASE_URL =
-  process.env.EXPO_PUBLIC_SPIRITUAL_API_URL ??
-  (Platform.OS === 'android' ? 'http://10.0.2.2:8091' : 'http://localhost:8091');
+  envConfig.appEnv === 'dev'
+    ? resolveDevBaseUrl(SPIRITUAL_SERVICE_PORT, spiritualOverride)
+    : spiritualOverride;
 
 const spiritualApi = axios.create({
-  baseURL: SPIRITUAL_BASE_URL,
+  baseURL: SPIRITUAL_BASE_URL ?? undefined,
   timeout: 10000,
 });
 

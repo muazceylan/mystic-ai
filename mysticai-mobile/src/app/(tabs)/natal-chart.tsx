@@ -1579,6 +1579,9 @@ export default function NatalChartTab() {
     const hidden = DEFAULT_NATAL_SECTION_ORDER.filter((key) => !visibleSet.has(key));
     setSectionOrder(normalizeDraggableSectionOrder([...visibleOrderedKeys, ...hidden]));
   }, []);
+  const handlePressTutorialHelp = useCallback(() => {
+    void reopenTutorialById(TUTORIAL_IDS.BIRTH_CHART_INTRO, TUTORIAL_SCREEN_KEYS.BIRTH_CHART);
+  }, [reopenTutorialById]);
   const bigThreeSignByRole = useMemo<Record<BigThreeRole, string | null>>(
     () => ({
       sun: chart?.sunSign ?? null,
@@ -1757,10 +1760,6 @@ export default function NatalChartTab() {
     });
     router.push('/natal-visuals-preview' as any);
   };
-
-  const handlePressTutorialHelp = useCallback(() => {
-    void reopenTutorialById(TUTORIAL_IDS.BIRTH_CHART_INTRO, TUTORIAL_SCREEN_KEYS.BIRTH_CHART);
-  }, [reopenTutorialById]);
 
   const renderSectionDragHandle = (
     drag: () => void,
@@ -2457,6 +2456,7 @@ export default function NatalChartTab() {
           }
         >
         <TabHeader
+          title={t('tabs.natalChart')}
           transparent
           rightActions={(
             <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>

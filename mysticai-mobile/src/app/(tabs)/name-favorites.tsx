@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { SafeScreen } from '../../components/ui';
+import { useTranslation } from 'react-i18next';
+import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { EmptyState, NameCard } from '../../components/NameModule';
 import { useNameFavorites } from '../../hooks/useNameFavorites';
@@ -11,7 +11,7 @@ import { trackEvent } from '../../services/analytics';
 
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.bg },
+    container: { flex: 1, backgroundColor: 'transparent' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -56,6 +56,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
 }
 
 export default function NameFavoritesScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const tabBarHeight = useBottomTabBarHeight();
@@ -71,13 +72,10 @@ export default function NameFavoritesScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </Pressable>
-          <Text style={styles.title}>Favorilerim</Text>
-          <Text style={styles.count}>{favorites.favorites.length}</Text>
-        </View>
+        <TabHeader
+          title={t('surfaceTitles.nameFavorites')}
+          rightActions={<Text style={styles.count}>{favorites.favorites.length}</Text>}
+        />
 
         <View style={styles.content}>
           {favorites.isLoading ? (
@@ -87,9 +85,9 @@ export default function NameFavoritesScreen() {
           ) : favorites.favorites.length === 0 ? (
             <View style={styles.stateWrap}>
               <EmptyState
-                title="Henüz favori yok"
-                description="Beğendiğin isimleri kaydedip burada hızlıca tekrar açabilirsin."
-                actionLabel="İsim Ara"
+                title={t('nameAnalysis.favorites.emptyTitle')}
+                description={t('nameAnalysis.favorites.emptyDescription')}
+                actionLabel={t('surfaceTitles.nameSearch')}
                 onAction={() => router.push('/(tabs)/name-search')}
               />
             </View>

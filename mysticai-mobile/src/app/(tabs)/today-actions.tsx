@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { SafeScreen, Skeleton } from '../../components/ui';
+import { AppHeader, SafeScreen, Skeleton } from '../../components/ui';
 import { ActionCard, MiniPlanCard, SectionCard } from '../../components/daily';
 import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
@@ -39,7 +39,7 @@ function LoadingState() {
 export default function TodayActionsScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/daily-transits' });
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const queryClient = useQueryClient();
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const date = useMemo(() => getTodayIsoDate(), []);
@@ -198,19 +198,11 @@ export default function TodayActionsScreen() {
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={goBack}
-          style={[styles.navBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#F2EBFF' }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{data?.header.title ?? 'Bugün Ne Yapabilirsin?'}</Text>
-          <Text style={[styles.headerDate, { color: colors.subtext }]}>{formatDateLabel(data?.date ?? date)}</Text>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
+      <AppHeader
+        title={data?.header.title ?? 'Bugün Ne Yapabilirsin?'}
+        subtitle={formatDateLabel(data?.date ?? date)}
+        onBack={goBack}
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {dailyActionsQuery.isLoading ? <LoadingState /> : null}

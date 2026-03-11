@@ -160,10 +160,12 @@ function extractModuleKey(deeplink: string): string | null {
     horoscope: 'weekly_horoscope',
     transits: 'daily_transits',
     planner: 'daily_transits',
+    calendar: 'daily_transits',
   };
 
   // Extract last meaningful path segment
-  const segments = deeplink.replace(/[()]/g, '').split('/').filter(Boolean);
+  const cleanPath = deeplink.split('?')[0]?.split('#')[0] ?? deeplink;
+  const segments = cleanPath.replace(/[()]/g, '').split('/').filter(Boolean);
   for (const seg of segments.reverse()) {
     const moduleKey = ROUTE_TO_MODULE[seg];
     if (moduleKey) return moduleKey;

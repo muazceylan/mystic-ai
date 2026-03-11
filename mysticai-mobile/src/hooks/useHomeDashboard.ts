@@ -7,9 +7,10 @@ const ONE_MINUTE = 60 * 1000;
 export function useHomeDashboard(params: FetchHomeDashboardParams) {
   const userId = params.user?.id ?? 'guest';
   const sign = params.user?.zodiacSign ?? '';
+  const locale = params.locale ?? 'tr';
 
   return useQuery({
-    queryKey: queryKeys.homeDashboard(userId, sign),
+    queryKey: queryKeys.homeDashboard(userId, sign, locale),
     queryFn: () => fetchHomeDashboard(params),
     staleTime: ONE_MINUTE,
     refetchOnMount: true,

@@ -4,18 +4,16 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AlertTriangle,
-  ChevronLeft,
   ChevronRight,
   CheckCircle2,
   Flame,
   Heart,
   MessageCircle,
-  MoreHorizontal,
   Shield,
   Sparkles,
 } from 'lucide-react-native';
 
-import { AccessibleText, SafeScreen } from '../../components/ui';
+import { AccessibleText, AppHeader, SafeScreen } from '../../components/ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import PersonAvatar from '../../components/match/PersonAvatar';
 import { useMatchTraits } from '../../hooks/useMatchTraits';
@@ -223,17 +221,7 @@ export default function InteractionDetailScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F7F5FB' }}>
       <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={() => router.back()} style={styles.iconBtn}>
-            <ChevronLeft size={19} color="#241F35" />
-          </Pressable>
-          <AccessibleText style={styles.headerTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Etkileşim Detayları
-          </AccessibleText>
-          <Pressable style={styles.iconBtn}>
-            <MoreHorizontal size={17} color="#706A86" />
-          </Pressable>
-        </View>
+        <AppHeader title="Etkileşim Detayları" subtitle="İki kişi arasındaki astrolojik etkileşimler" />
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {matchLoading ? (

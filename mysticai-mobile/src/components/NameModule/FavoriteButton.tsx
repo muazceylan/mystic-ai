@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 
 type FavoriteButtonProps = {
@@ -10,6 +11,7 @@ type FavoriteButtonProps = {
 };
 
 export function FavoriteButton({ isFavorite, loading, onPress }: FavoriteButtonProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   return (
     <Pressable
@@ -24,7 +26,9 @@ export function FavoriteButton({ isFavorite, loading, onPress }: FavoriteButtonP
         },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={isFavorite ? 'Favoriden çıkar' : 'Favorilere ekle'}
+      accessibilityLabel={
+        isFavorite ? t('nameAnalysis.favorite.removeAccessibility') : t('nameAnalysis.favorite.addAccessibility')
+      }
     >
       {loading ? (
         <ActivityIndicator size="small" color={colors.primary} />

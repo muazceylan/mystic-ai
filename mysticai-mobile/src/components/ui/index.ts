@@ -16,3 +16,5 @@ export { BottomSheet } from './BottomSheet';
 export { ProgressPill } from './ProgressPill';
 export { Chip } from './Chip';
 export { TabHeader, HeaderRightIcons } from './TabHeader';
+export { AppSurfaceBackground } from './AppSurfaceBackground';
+export { AppSurfaceHeader, SurfaceHeaderIconButton } from './AppSurfaceHeader';

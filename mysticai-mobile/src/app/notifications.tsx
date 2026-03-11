@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
+  ScrollView,
   SectionList,
   Pressable,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { SafeScreen, Chip, Skeleton } from '../components/ui';
+import { SafeScreen, Skeleton, SurfaceHeaderIconButton, TabHeader } from '../components/ui';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { NotificationItem } from '../services/notification.service';
@@ -230,6 +231,44 @@ function ErrorState({
   );
 }
 
+function NotificationFilterChip({
+  label,
+  selected,
+  colors,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  colors: ThemeColors;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [
+        styles.filterChip,
+        {
+          backgroundColor: selected ? colors.primary : colors.surface,
+          borderColor: selected ? colors.primary : colors.border,
+          opacity: pressed ? 0.82 : 1,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.filterChipText,
+          { color: selected ? colors.white : colors.primary },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function NotificationsScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -319,46 +358,40 @@ export default function NotificationsScreen() {
 
   return (
     <SafeScreen>
-      <View style={[styles.root, { backgroundColor: colors.bg }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={[styles.backBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.back')}
-          >
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </Pressable>
-          <Text style={[styles.title, { color: colors.text }]}>
-            {t('notifCenter.title')}
-          </Text>
-          {unreadCount > 0 ? (
-            <Pressable
-              onPress={handleMarkAllRead}
-              style={styles.markAllBtn}
-              accessibilityRole="button"
-              accessibilityLabel={t('notifCenter.markAllRead')}
-            >
-              <Ionicons name="checkmark-done-outline" size={20} color={colors.primary} />
-            </Pressable>
-          ) : (
-            <View style={styles.headerSpacer} />
-          )}
-        </View>
+      <View style={[styles.root, { backgroundColor: 'transparent' }]}>
+        <TabHeader
+          title={t('notifCenter.title')}
+          rightActions={
+            unreadCount > 0 ? (
+              <SurfaceHeaderIconButton
+                iconName="checkmark-done-outline"
+                onPress={handleMarkAllRead}
+                accessibilityLabel={t('notifCenter.markAllRead')}
+                color={colors.primary}
+              />
+            ) : undefined
+          }
+        />
 
         {/* Category Filters */}
-        <View style={styles.filtersRow}>
-          {CATEGORY_FILTERS.map((f) => (
-            <Chip
-              key={f.key ?? 'all'}
-              label={t(f.labelKey)}
-              selected={activeCategory === f.key}
-              variant="primary"
-              size="sm"
-              onPress={() => handleFilterChange(f.key)}
-            />
-          ))}
+        <View style={styles.filtersRail}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtersScroll}
+            contentContainerStyle={styles.filtersRow}
+            contentInsetAdjustmentBehavior="never"
+          >
+            {CATEGORY_FILTERS.map((f) => (
+              <NotificationFilterChip
+                key={f.key ?? 'all'}
+                label={t(f.labelKey)}
+                selected={activeCategory === f.key}
+                colors={colors}
+                onPress={() => handleFilterChange(f.key)}
+              />
+            ))}
+          </ScrollView>
         </View>
 
         {/* Content */}
@@ -430,11 +463,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerSpacer: { width: 40 },
+  filtersRail: {
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  filtersScroll: {
+    flexGrow: 0,
+    height: 40,
+  },
   filtersRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    alignItems: 'center',
     gap: 8,
+  },
+  filterChip: {
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  filterChipText: {
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
   },
   listContent: { paddingBottom: 100 },
   sectionHeaderWrap: {

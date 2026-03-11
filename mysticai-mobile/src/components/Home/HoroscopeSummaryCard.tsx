@@ -1,6 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, radius, shadowSubtle, spacing, typography } from '../../theme';
 
 interface HoroscopeSummaryCardProps {
@@ -17,10 +18,10 @@ const SHORTCUT_ICON_SIZE = spacing.sm + spacing.xs + spacing.xxs;
 const SHORTCUT_ICON_WRAP = spacing.iconWrap - spacing.sm;
 const SHORTCUT_HEIGHT = spacing.chevronHitArea + spacing.xxl;
 
-function cleanSignName(value: string | undefined): string {
+function cleanSignName(value: string | undefined, fallback: string): string {
   const raw = (value ?? '').trim();
   if (!raw) {
-    return 'Balık';
+    return fallback;
   }
 
   const withoutGlyph = raw
@@ -29,12 +30,12 @@ function cleanSignName(value: string | undefined): string {
     .trim();
 
   if (!withoutGlyph) {
-    return 'Balık';
+    return fallback;
   }
 
   const parts = withoutGlyph.split(' ');
   const lastPart = parts[parts.length - 1]?.trim();
-  return lastPart || withoutGlyph;
+  return lastPart || withoutGlyph || fallback;
 }
 
 function zodiacGlyph(signName: string): string {
@@ -92,13 +93,14 @@ function TopShortcutCard({
   iconName: React.ComponentProps<typeof Ionicons>['name'];
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const fullTitle = `${titlePrefix} ${sign}`;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${fullTitle} detaylarını aç`}
+      accessibilityLabel={t('homeSurface.horoscopeSummary.cardAccessibility', { title: fullTitle })}
       hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
       style={({ pressed }) => [styles.shortcut, pressed && styles.pressed]}
     >
@@ -127,7 +129,8 @@ export function HoroscopeSummaryCard({
   onPressWeek,
   onPressDetails,
 }: HoroscopeSummaryCardProps) {
-  const signText = cleanSignName(sign);
+  const { t } = useTranslation();
+  const signText = cleanSignName(sign, t('zodiac.pisces'));
   const signIcon = zodiacGlyph(signText);
   const themeText = theme?.trim() || '';
   const adviceText = advice?.trim() || '';
@@ -135,23 +138,23 @@ export function HoroscopeSummaryCard({
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Bugün Seni Neler Bekliyor?</Text>
+      <Text style={styles.title}>{t('homeSurface.horoscopeSummary.title')}</Text>
 
       <View style={styles.card}>
         <View style={styles.shortcutRow}>
           <TopShortcutCard
-            titlePrefix="Bugün ·"
+            titlePrefix={t('homeSurface.horoscopeSummary.todayPrefix')}
             sign={signText}
             signIcon={signIcon}
-            subtitle="Günlük yorum"
+            subtitle={t('homeSurface.horoscopeSummary.todaySubtitle')}
             iconName="sparkles"
             onPress={onPressToday}
           />
           <TopShortcutCard
-            titlePrefix="Bu Hafta ·"
+            titlePrefix={t('homeSurface.horoscopeSummary.weekPrefix')}
             sign={signText}
             signIcon={signIcon}
-            subtitle="Haftalık yorum"
+            subtitle={t('homeSurface.horoscopeSummary.weekSubtitle')}
             iconName="calendar"
             onPress={onPressWeek}
           />
@@ -159,28 +162,28 @@ export function HoroscopeSummaryCard({
 
         <View style={styles.summaryArea}>
           {isLoading || !hasContent ? (
-            <Text style={styles.loadingText}>Yorumlar hazırlanıyor…</Text>
+            <Text style={styles.loadingText}>{t('homeSurface.horoscopeSummary.loading')}</Text>
           ) : (
             <>
               {themeText ? (
                 <Text numberOfLines={2} style={styles.line}>
-                  <Text style={styles.lineLabel}>Tema:</Text> {themeText}
+                  <Text style={styles.lineLabel}>{t('homeSurface.horoscopeSummary.themeLabel')}</Text> {themeText}
                 </Text>
               ) : null}
               {adviceText ? (
                 <Text numberOfLines={2} style={styles.line}>
-                  <Text style={styles.lineLabel}>Öneri:</Text> {adviceText}
+                  <Text style={styles.lineLabel}>{t('homeSurface.horoscopeSummary.adviceLabel')}</Text> {adviceText}
                 </Text>
               ) : null}
               <View style={styles.detailRow}>
                 <Pressable
                   onPress={onPressDetails}
                   accessibilityRole="button"
-                  accessibilityLabel="Günlük burç detaylarını aç"
+                  accessibilityLabel={t('homeSurface.horoscopeSummary.detailsAccessibility')}
                   hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
                   style={({ pressed }) => [styles.detailBtn, pressed && styles.pressed]}
                 >
-                  <Text style={styles.detailText}>Detaylar</Text>
+                  <Text style={styles.detailText}>{t('homeSurface.horoscopeSummary.detailsCta')}</Text>
                   <Ionicons name="chevron-forward" size={spacing.sm + spacing.xs} color={colors.primary} />
                 </Pressable>
               </View>

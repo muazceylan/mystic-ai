@@ -69,6 +69,15 @@ export function getCompassTokens(colors: ThemeColors, isDark: boolean) {
     featuredBlue: isDark
       ? ['rgba(54, 62, 94, 0.84)', 'rgba(38, 46, 80, 0.78)'] as [string, string]
       : ['#EEF4FF', '#E7EEFF'] as [string, string],
+    featuredGold: isDark
+      ? ['rgba(102, 78, 64, 0.84)', 'rgba(92, 56, 100, 0.74)'] as [string, string]
+      : ['#FFE8C8', '#F3D9FF'] as [string, string],
+    featuredCosmic: isDark
+      ? ['rgba(76, 68, 132, 0.84)', 'rgba(108, 72, 160, 0.76)'] as [string, string]
+      : ['#DCCBFF', '#F5D8FF'] as [string, string],
+    featuredMoon: isDark
+      ? ['rgba(82, 86, 132, 0.84)', 'rgba(108, 90, 154, 0.76)'] as [string, string]
+      : ['#E7E2FF', '#F7ECFF'] as [string, string],
     featuredLilac: isDark
       ? ['rgba(74, 60, 110, 0.84)', 'rgba(55, 42, 92, 0.78)'] as [string, string]
       : ['#FAF0FF', '#F0E5FF'] as [string, string],
@@ -96,6 +105,9 @@ export function getCompassTokens(colors: ThemeColors, isDark: boolean) {
     chipAction: isDark
       ? ['rgba(182, 154, 255, 0.16)', 'rgba(158, 130, 240, 0.12)'] as [string, string]
       : ['rgba(239, 230, 255, 0.96)', 'rgba(232, 222, 255, 0.92)'] as [string, string],
+    miniCard: isDark
+      ? ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.04)'] as [string, string]
+      : ['#FFF9FF', '#F8F0FF'] as [string, string],
     section: isDark
       ? ['rgba(36, 30, 61, 0.84)', 'rgba(28, 23, 52, 0.76)'] as [string, string]
       : ['rgba(252, 246, 255, 0.94)', 'rgba(245, 237, 255, 0.88)'] as [string, string],

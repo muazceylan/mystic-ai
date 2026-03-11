@@ -1,8 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { ChevronLeft, Info } from 'lucide-react-native';
-import { SafeScreen, AccessibleText } from '../../components/ui';
+import { useLocalSearchParams } from 'expo-router';
+import { Info } from 'lucide-react-native';
+import { AppHeader, SafeScreen, AccessibleText } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import { useMatchTraits } from '../../hooks/useMatchTraits';
@@ -40,22 +40,7 @@ export default function ShareCardPreviewScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Pressable
-            onPress={() => router.back()}
-            style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <ChevronLeft size={20} color={colors.text} />
-          </Pressable>
-          <View style={styles.headerTextWrap}>
-            <AccessibleText style={[styles.title, { color: colors.text }]} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Paylaşılabilir Kartlar
-            </AccessibleText>
-            <AccessibleText style={[styles.sub, { color: colors.subtext }]} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Sosyalde paylaşmak için kartlarını hazırla
-            </AccessibleText>
-          </View>
-        </View>
+        <AppHeader title="Paylaşılabilir Kartlar" subtitle="Sosyalde paylaşmak için kartlarını hazırla" />
 
         {isMock || error ? (
           <View style={[styles.banner, { backgroundColor: colors.violetBg, borderColor: colors.violetLight }]}> 

@@ -1166,7 +1166,7 @@ export default function CompareOverviewScreen() {
     });
   }, [data, matchId]);
 
-  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
+  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
 
   const onSwitchType = (nextType: RelationshipType) => {
     trackEvent('compare_tab_switch', {

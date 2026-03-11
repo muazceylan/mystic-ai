@@ -1,6 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, radius, shadowSubtle, spacing, typography } from '../../theme';
 
 interface DailyTransitsCardProps {
@@ -20,16 +21,17 @@ export function DailyTransitsCard({
   isLoading = false,
   onPress,
 }: DailyTransitsCardProps) {
+  const { t } = useTranslation();
   const phaseText = phase?.trim() || '—';
   const moonSignText = moonSign?.trim() || '—';
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Bugünün Gökyüzü Etkileri</Text>
+      <Text style={styles.title}>{t('homeSurface.dailyTransits.title')}</Text>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel="Bugünün Gökyüzü Etkileri ekranını aç"
+        accessibilityLabel={t('homeSurface.dailyTransits.openAccessibility')}
         hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
@@ -39,16 +41,18 @@ export function DailyTransitsCard({
           </View>
           <View style={styles.textBlock}>
             <Text numberOfLines={1} style={styles.mainLine}>
-              {isLoading ? 'Transit özeti hazırlanıyor…' : `Ay Fazı: ${phaseText}`}
+              {isLoading ? t('homeSurface.dailyTransits.loading') : t('homeSurface.dailyTransits.phaseValue', { value: phaseText })}
             </Text>
             {!isLoading ? (
-              <Text numberOfLines={1} style={styles.subLine}>{`Ay Burcu: ${moonSignText}`}</Text>
+              <Text numberOfLines={1} style={styles.subLine}>
+                {t('homeSurface.dailyTransits.signValue', { value: moonSignText })}
+              </Text>
             ) : null}
           </View>
         </View>
 
         <View style={styles.retroPill}>
-          <Text style={styles.retroText}>{`Retro: ${retroCount}`}</Text>
+          <Text style={styles.retroText}>{t('homeSurface.dailyTransits.retroValue', { count: retroCount })}</Text>
         </View>
       </Pressable>
     </View>

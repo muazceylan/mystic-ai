@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, radius, softShadow, spacing, typography } from '../../theme';
 import type { WeeklyItem } from './types';
 import { WeeklyItemRow } from './WeeklyItemRow';
@@ -11,10 +12,12 @@ interface WeeklyHighlightsCardProps {
 }
 
 export function WeeklyHighlightsCard({ weekRange, items, onPressItem }: WeeklyHighlightsCardProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Bu Hafta</Text>
+        <Text style={styles.title}>{t('homeSurface.weekly.title')}</Text>
         <Text style={styles.date}>{weekRange}</Text>
       </View>
 

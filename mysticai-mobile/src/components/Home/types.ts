@@ -15,7 +15,7 @@ export type QuickAction = {
   statusLabel?: string;
 };
 
-export type WeeklyLevel = 'Yüksek' | 'Orta' | 'Risk';
+export type WeeklyLevel = 'high' | 'medium' | 'risk';
 
 export type WeeklyItem = {
   title: string;

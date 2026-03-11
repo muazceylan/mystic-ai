@@ -10,11 +10,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { AppHeader, SafeScreen } from '../../components/ui';
 import * as Haptics from '../../utils/haptics';
 import ViewShot from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeScreen } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import MatchCard from '../../components/match/MatchCard';
 import { useMatchCardStore } from '../../store/useMatchCardStore';
@@ -25,6 +24,7 @@ import {
   saveToGallery,
   shareImage,
 } from '../../services/share.service';
+import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 
 type ShareAction = 'share' | 'instagram' | 'save' | null;
 
@@ -33,9 +33,9 @@ const META_INSTAGRAM_STORY_APP_ID =
   process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || process.env.EXPO_PUBLIC_META_APP_ID || undefined;
 
 export default function MatchCardPreviewScreen() {
-  const router = useRouter();
   const { colors } = useTheme();
   const draft = useMatchCardStore((s) => s.draft);
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
 
   const viewShotRef = useRef<ViewShot | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
@@ -164,7 +164,7 @@ export default function MatchCardPreviewScreen() {
           <Text style={[styles.emptySub, { color: colors.subtext }]}>
             Önce uyum sonucu ekranından "Yıldız Kartı" butonuna dokunun.
           </Text>
-          <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={() => router.back()}>
+          <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={goBack}>
             <Text style={styles.primaryBtnText}>Geri Dön</Text>
           </Pressable>
         </View>
@@ -205,20 +205,11 @@ export default function MatchCardPreviewScreen() {
         </ViewShot>
       </View>
 
-      <View style={styles.header}>
-        <Pressable
-          style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={18} color={colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Yıldız Kartı Önizleme</Text>
-          <Text style={[styles.headerSub, { color: colors.subtext }]}>
-            Kart otomatik oluşturulur, sonra paylaşım seçenekleri açılır.
-          </Text>
-        </View>
-      </View>
+      <AppHeader
+        title="Yıldız Kartı Önizleme"
+        subtitle="Kart otomatik oluşturulur, sonra paylaşım seçenekleri açılır."
+        onBack={goBack}
+      />
 
       {successText ? (
         <View style={[styles.successBanner, { backgroundColor: colors.successBg, borderColor: colors.successLight }]}>

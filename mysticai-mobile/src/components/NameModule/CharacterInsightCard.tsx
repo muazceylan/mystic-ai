@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 
 type CharacterInsightCardProps = {
@@ -8,6 +9,7 @@ type CharacterInsightCardProps = {
 };
 
 export function CharacterInsightCard({ characterTraitsText, letterAnalysisText }: CharacterInsightCardProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   if (!characterTraitsText && !letterAnalysisText) return null;
 
@@ -15,13 +17,13 @@ export function CharacterInsightCard({ characterTraitsText, letterAnalysisText }
     <View style={[styles.card, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
       {characterTraitsText ? (
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.subtext }]}>Karakter Analizi</Text>
+          <Text style={[styles.label, { color: colors.subtext }]}>{t('nameAnalysis.detail.characterTraitsLabel')}</Text>
           <Text style={[styles.value, { color: colors.text }]}>{characterTraitsText}</Text>
         </View>
       ) : null}
       {letterAnalysisText ? (
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.subtext }]}>Harf Analizi</Text>
+          <Text style={[styles.label, { color: colors.subtext }]}>{t('nameAnalysis.detail.letterAnalysisLabel')}</Text>
           <Text style={[styles.value, { color: colors.text }]}>{letterAnalysisText}</Text>
         </View>
       ) : null}

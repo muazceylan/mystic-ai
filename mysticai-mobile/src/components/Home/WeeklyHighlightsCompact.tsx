@@ -1,6 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, radius, shadowSubtle, spacing, typography } from '../../theme';
 import type { WeeklyItem } from './types';
 
@@ -15,14 +16,14 @@ const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 const LINK_HIT_SLOP = { top: 12, bottom: 12, left: 16, right: 16 };
 
 function getBadge(level: WeeklyItem['level']) {
-  if (level === 'Yüksek') {
+  if (level === 'high') {
     return {
       bg: colors.highBg,
       text: colors.highText,
     };
   }
 
-  if (level === 'Orta') {
+  if (level === 'medium') {
     return {
       bg: colors.warningBg,
       text: colors.warningText,
@@ -36,6 +37,8 @@ function getBadge(level: WeeklyItem['level']) {
 }
 
 export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPressAll }: WeeklyHighlightsCompactProps) {
+  const { t } = useTranslation();
+
   if (!items?.length) {
     return null;
   }
@@ -43,15 +46,17 @@ export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPress
   return (
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{`Bu Hafta${weekRange ? ` (${weekRange})` : ''}`}</Text>
+        <Text style={styles.title}>
+          {`${t('homeSurface.weekly.title')}${weekRange ? ` (${weekRange})` : ''}`}
+        </Text>
         <Pressable
           onPress={onPressAll}
           accessibilityRole="button"
-          accessibilityLabel="Haftalık görünümü aç"
+          accessibilityLabel={t('homeSurface.weekly.openAccessibility')}
           hitSlop={LINK_HIT_SLOP}
           style={({ pressed }) => [styles.linkWrap, pressed && styles.pressed]}
         >
-          <Text style={styles.linkText}>Haftayı aç</Text>
+          <Text style={styles.linkText}>{t('homeSurface.weekly.openCta')}</Text>
         </Pressable>
       </View>
 
@@ -63,7 +68,7 @@ export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPress
               key={`${item.title}-${index}`}
               onPress={() => onPressItem(item)}
               accessibilityRole="button"
-              accessibilityLabel={`${item.title} haftalık detayını aç`}
+              accessibilityLabel={t('homeSurface.weekly.itemAccessibility', { title: item.title })}
               hitSlop={HIT_SLOP}
               style={({ pressed }) => [styles.itemRow, index === 2 && styles.lastRow, pressed && styles.pressed]}
             >
@@ -76,7 +81,9 @@ export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPress
               </View>
 
               <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                <Text style={[styles.badgeText, { color: badge.text }]}>{item.level}</Text>
+                <Text style={[styles.badgeText, { color: badge.text }]}>
+                  {t(`homeSurface.weekly.level.${item.level}`)}
+                </Text>
               </View>
             </Pressable>
           );

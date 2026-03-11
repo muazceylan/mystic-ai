@@ -279,11 +279,13 @@ export const fetchLatestNatalChart = (userId: number) =>
 export const fetchNatalChartById = (chartId: number) =>
   api.get<NatalChartResponse>(`${ASTROLOGY_BASE}/natal-chart/${chartId}`);
 
-export const fetchSkyPulse = () =>
-  api.get<SkyPulseResponse>(`${ASTROLOGY_BASE}/sky-pulse`);
+export const fetchSkyPulse = (locale?: string) =>
+  api.get<SkyPulseResponse>(`${ASTROLOGY_BASE}/sky-pulse`, { params: locale ? { locale } : undefined });
 
-export const fetchWeeklySwot = (userId: number) =>
-  api.get<WeeklySwotResponse>(`${ASTROLOGY_BASE}/weekly-swot`, { params: { userId } });
+export const fetchWeeklySwot = (userId: number, locale?: string) =>
+  api.get<WeeklySwotResponse>(`${ASTROLOGY_BASE}/weekly-swot`, {
+    params: locale ? { userId, locale } : { userId },
+  });
 
 export const fetchDailyLifeGuide = (request: DailyLifeGuideRequest) =>
   api.post<DailyLifeGuideResponse>(`${ASTROLOGY_BASE}/life-guide/daily`, request);

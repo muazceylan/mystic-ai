@@ -18,7 +18,6 @@ import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/useAuthStore';
-import OnboardingBackground from '../../components/OnboardingBackground';
 import { getZodiacSign } from '../../constants/index';
 import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
@@ -196,8 +195,8 @@ export default function ProfileScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={S.container}>
-        <OnboardingBackground />
         <TabHeader
+          title={t('profile.title')}
           showAvatar={false}
           rightActions={(
             <SpotlightTarget targetKey={PROFILE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>

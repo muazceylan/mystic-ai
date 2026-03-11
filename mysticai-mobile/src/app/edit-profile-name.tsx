@@ -13,10 +13,9 @@ import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
-import OnboardingBackground from '../components/OnboardingBackground';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, TabHeader } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
 import { updateProfile } from '../services/auth';
 
@@ -34,30 +33,7 @@ function splitStoredName(name?: string | null) {
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingTop: Platform.OS === 'ios' ? 56 : 20,
-      paddingBottom: 12,
-    },
-    backBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: C.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: C.border,
-    },
-    headerTitle: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: C.text,
-    },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
     hint: {
@@ -158,20 +134,7 @@ export default function EditProfileNameScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
-        <OnboardingBackground />
-
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            accessibilityLabel={t('common.back')}
-            accessibilityRole="button"
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('profileName.title')}</Text>
-          <View style={{ width: 40 }} />
-        </View>
+        <TabHeader title={t('profileName.title')} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.hint}>{t('profileName.hint')}</Text>

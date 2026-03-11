@@ -14,8 +14,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from '../utils/haptics';
-import OnboardingBackground from '../components/OnboardingBackground';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, TabHeader } from '../components/ui';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -130,7 +129,7 @@ const TIME_SLOT_OPTIONS = [
 
 function makeStyles(C: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
+    container: { flex: 1, backgroundColor: 'transparent' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -367,14 +366,7 @@ export default function NotificationsSettingsScreen() {
     return (
       <SafeScreen>
         <View style={styles.container}>
-          <OnboardingBackground />
-          <View style={styles.header}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
-            </Pressable>
-            <Text style={styles.headerTitle}>{t('notifSettings.title')}</Text>
-            <View style={{ width: 40 }} />
-          </View>
+          <TabHeader title={t('notifSettings.title')} />
           <View style={styles.loader}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
@@ -386,19 +378,7 @@ export default function NotificationsSettingsScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
-        <OnboardingBackground />
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            accessibilityLabel={t('common.back')}
-            accessibilityRole="button"
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </Pressable>
-          <Text style={styles.headerTitle}>{t('notifSettings.title')}</Text>
-          <View style={{ width: 40 }} />
-        </View>
+        <TabHeader title={t('notifSettings.title')} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <Text style={styles.hint}>{t('notifSettings.hint')}</Text>

@@ -11,12 +11,11 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, TabHeader } from '../components/ui';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
@@ -106,17 +105,7 @@ export default function TransitDetailScreen() {
 
   return (
     <SafeScreen>
-      {/* Header */}
-      <View style={S.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={S.backBtn}>
-          <Ionicons name="chevron-back" size={22} color={colors.text} />
-        </Pressable>
-        <View style={S.headerCenter}>
-          <Text style={S.headerTitle}>{t('home.transitTitle')}</Text>
-          <Text style={S.headerSub}>{formatTodayTr()}</Text>
-        </View>
-        <View style={{ width: 36 }} />
-      </View>
+      <TabHeader title={t('home.transitTitle')} subtitle={formatTodayTr()} />
 
       <ScrollView
         contentContainerStyle={S.scrollContent}

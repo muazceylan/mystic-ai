@@ -4,9 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import OnboardingBackground from '../components/OnboardingBackground';
 import { useTheme } from '../context/ThemeContext';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, TabHeader } from '../components/ui';
 
 const FEATURE_KEYS = ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6', 'feature7'] as const;
 
@@ -17,26 +16,7 @@ const PLANS = [
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingTop: 56,
-      paddingBottom: 12,
-    },
-    backBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: C.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: C.border,
-    },
-    headerTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+    container: { flex: 1, backgroundColor: 'transparent' },
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
     hero: {
@@ -144,34 +124,19 @@ export default function PremiumScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
-        <OnboardingBackground />
+        <TabHeader title={t('premium.title')} />
 
-        {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityLabel={t('premium.accessibilityBack')}
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('premium.title')}</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* Hero */}
-        <LinearGradient
-          colors={[colors.primary700, colors.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <Ionicons name="sparkles" size={36} color={colors.gold} />
-          <Text style={styles.heroTitle}>{t('premium.heroTitle')}</Text>
-          <Text style={styles.heroSub}>{t('premium.heroSub')}</Text>
-        </LinearGradient>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <LinearGradient
+            colors={[colors.primary700, colors.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <Ionicons name="sparkles" size={36} color={colors.gold} />
+            <Text style={styles.heroTitle}>{t('premium.heroTitle')}</Text>
+            <Text style={styles.heroSub}>{t('premium.heroSub')}</Text>
+          </LinearGradient>
 
         {/* Features */}
         <Text style={styles.sectionTitle}>{t('premium.featuresTitle')}</Text>
@@ -238,4 +203,3 @@ export default function PremiumScreen() {
     </SafeScreen>
   );
 }
-

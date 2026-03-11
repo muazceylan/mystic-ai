@@ -14,6 +14,14 @@ interface FeaturedCategoryRowProps {
   onPressCategory: (category: DecisionCategoryModel) => void;
 }
 
+function scoreRingTone(score: number, isDark: boolean): [string, string] {
+  if (score >= 70) return isDark ? ['#DAD7FF', '#A9A0FF'] : ['#D8D3FF', '#A59CFF'];
+  if (score >= 55) return isDark ? ['#D7E4FF', '#9AB4FF'] : ['#D9E8FF', '#9CB5FF'];
+  if (score >= 40) return isDark ? ['#F1D8FF', '#D8ABFF'] : ['#F3DAFF', '#D6A6FF'];
+  if (score >= 25) return isDark ? ['#FFDCEB', '#F5A9CC'] : ['#FFE0ED', '#F5AACB'];
+  return isDark ? ['#FFE8EE', '#F5B5C9'] : ['#FFEAF0', '#F3B5CB'];
+}
+
 export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCategoryRowProps) {
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
@@ -26,31 +34,16 @@ export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCat
       <Text style={S.title}>Bugün Öne Çıkanlar</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.row}>
-        {categories.map((category, index) => {
+        {categories.slice(0, 3).map((category, index) => {
           const tint = statusColors(category.status, isDark);
           const cardGrad = T.featuredCardGradients[index % T.featuredCardGradients.length] as [string, string];
-          const artGrad  = T.featuredArtGradients[index % T.featuredArtGradients.length] as [string, string];
-
-          // Per-index ambient color
+          const artGrad = T.featuredArtGradients[index % T.featuredArtGradients.length] as [string, string];
+          const ringTone = scoreRingTone(category.score, isDark);
           const glowColor = index === 1
             ? (isDark ? 'rgba(180,200,255,0.14)' : 'rgba(215,228,255,0.88)')
             : index === 2
               ? (isDark ? 'rgba(255,192,216,0.14)' : 'rgba(255,226,238,0.86)')
               : (isDark ? 'rgba(214,196,255,0.14)' : 'rgba(240,228,255,0.88)');
-
-          const orbColor = index === 1
-            ? (isDark ? 'rgba(200,218,255,0.14)' : 'rgba(255,255,255,0.60)')
-            : index === 2
-              ? (isDark ? 'rgba(255,228,242,0.12)' : 'rgba(255,255,255,0.66)')
-              : (isDark ? 'rgba(228,216,255,0.14)' : 'rgba(255,255,255,0.64)');
-
-          const shimmerColor = index === 1
-            ? 'rgba(196,216,255,0.34)'
-            : index === 2
-              ? 'rgba(255,204,228,0.34)'
-              : 'rgba(216,196,255,0.34)';
-
-          const ringCenter = isDark ? 'rgba(22,16,42,0.74)' : 'rgba(255,255,255,0.84)';
 
           return (
             <Pressable
@@ -59,73 +52,36 @@ export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCat
               style={({ pressed }) => [S.cardShell, pressed && S.pressed]}
             >
               <LinearGradient colors={cardGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.card}>
-                {/* Card ambient */}
                 <View pointerEvents="none" style={[S.cardGlow, { backgroundColor: glowColor }]} />
 
-                {/* ── Art band (top) ── */}
                 <LinearGradient colors={artGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.artBand}>
                   <View pointerEvents="none" style={S.artCurveLarge} />
-                  <View pointerEvents="none" style={[S.artShimmer, { backgroundColor: shimmerColor }]} />
-                  <View pointerEvents="none" style={[S.artCurveSmall, { backgroundColor: orbColor }]} />
-                  <View pointerEvents="none" style={[S.artOrb, { backgroundColor: orbColor }]} />
+                  <View pointerEvents="none" style={S.artCurveSmall} />
+                  <View pointerEvents="none" style={S.artBubble} />
+                  <View pointerEvents="none" style={S.artShimmer} />
 
-                  {/* Icon bubble */}
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.90)', 'rgba(255,255,255,0.66)']}
-                    start={{ x: 0.2, y: 0 }}
-                    end={{ x: 0.8, y: 1 }}
-                    style={S.iconWrap}
-                  >
+                  <View style={S.iconWrap}>
                     <Ionicons name={category.icon} size={16} color={colors.primary} />
-                  </LinearGradient>
+                  </View>
 
-                  {/* Score ring */}
                   <ScoreRing
                     score={category.score}
-                    ringColors={tint.ring}
+                    ringColors={ringTone}
                     textColor={tint.text}
-                    centerFill={ringCenter}
-                    size={54}
+                    centerFill={isDark ? 'rgba(22,16,42,0.78)' : 'rgba(255,255,255,0.90)'}
+                    size={56}
                   />
                 </LinearGradient>
 
-                {/* ── Content ── */}
                 <View style={S.content}>
                   <Text style={S.cardTitle} numberOfLines={1}>{category.title}</Text>
                   <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} />
                   <Text style={S.summary} numberOfLines={2}>{category.shortSummary}</Text>
 
-                  {/* ── Two "Detay" buttons ── */}
-                  <View style={S.bottomCtaRow}>
-                    <Pressable
-                      onPress={() => onPressCategory(category)}
-                      style={({ pressed }) => [S.detayPillLeft, pressed && S.pressed]}
-                    >
-                      <LinearGradient
-                        colors={['rgba(255,255,255,0.86)', 'rgba(255,255,255,0.62)']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={S.detayPillInner}
-                      >
-                        <Text style={S.detayPillText}>Detay</Text>
-                      </LinearGradient>
-                    </Pressable>
-
-                    <Pressable
-                      onPress={() => onPressCategory(category)}
-                      style={({ pressed }) => [S.detayPillRight, pressed && S.pressed]}
-                    >
-                      <LinearGradient
-                        colors={T.gradients.pillPrimary as [string, string]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={S.detayPillInner}
-                      >
-                        <Text style={[S.detayPillText, { color: colors.primary }]}>Detay</Text>
-                        <Ionicons name="chevron-forward" size={12} color={colors.primary} />
-                      </LinearGradient>
-                    </Pressable>
-                  </View>
+                  <Pressable onPress={() => onPressCategory(category)} style={({ pressed }) => [S.detailBtn, pressed && S.pressed]}>
+                    <Text style={S.detailText}>Detay</Text>
+                    <Ionicons name="chevron-forward" size={12} color={colors.primary} />
+                  </Pressable>
                 </View>
               </LinearGradient>
             </Pressable>
@@ -153,10 +109,8 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       gap: 10,
       paddingRight: 10,
     },
-
-    // Card shell — narrower so 3 are visible (2 full + partial 3rd)
     cardShell: {
-      width: 152,
+      width: 160,
       borderRadius: T.radii.card,
       overflow: 'hidden',
       borderWidth: 1,
@@ -164,25 +118,23 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       ...T.shadows.ambient,
     },
     card: {
-      minHeight: 220,
+      minHeight: 208,
       padding: 10,
-      gap: 9,
+      gap: 8,
       backgroundColor: T.colors.surface.featured,
       position: 'relative',
     },
     cardGlow: {
       position: 'absolute',
-      top: -28,
+      top: -26,
       left: -10,
-      width: 130,
-      height: 106,
+      width: 132,
+      height: 104,
       borderRadius: 64,
-      opacity: 0.92,
+      opacity: 0.90,
     },
-
-    // Art band
     artBand: {
-      minHeight: 96,
+      minHeight: 88,
       borderRadius: 18,
       paddingHorizontal: 10,
       paddingVertical: 10,
@@ -190,43 +142,46 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.74)',
+      borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.76)',
       overflow: 'hidden',
       position: 'relative',
     },
     artCurveLarge: {
       position: 'absolute',
-      left: -26,
-      top: -18,
-      width: 118,
-      height: 80,
-      borderRadius: 46,
-      backgroundColor: 'rgba(255,255,255,0.40)',
-    },
-    artShimmer: {
-      position: 'absolute',
       left: -24,
-      top: 52,
-      width: 170,
-      height: 32,
-      borderRadius: 20,
-      transform: [{ rotate: '-16deg' }],
+      top: -16,
+      width: 110,
+      height: 72,
+      borderRadius: 40,
+      backgroundColor: 'rgba(255,255,255,0.34)',
     },
     artCurveSmall: {
       position: 'absolute',
-      right: -16,
+      right: -18,
       bottom: -12,
-      width: 80,
-      height: 50,
-      borderRadius: 28,
+      width: 78,
+      height: 44,
+      borderRadius: 24,
+      backgroundColor: 'rgba(255,255,255,0.24)',
     },
-    artOrb: {
+    artBubble: {
       position: 'absolute',
-      right: 16,
+      right: 14,
       top: 14,
-      width: 46,
-      height: 46,
-      borderRadius: 23,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: 'rgba(255,255,255,0.24)',
+    },
+    artShimmer: {
+      position: 'absolute',
+      left: -12,
+      top: 44,
+      width: 120,
+      height: 24,
+      borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      transform: [{ rotate: '-16deg' }],
     },
     iconWrap: {
       width: 36,
@@ -236,59 +191,41 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.80)',
+      backgroundColor: 'rgba(255,255,255,0.66)',
     },
-
-    // Content
     content: {
       flex: 1,
       gap: 7,
-      paddingHorizontal: 2,
+      paddingHorizontal: 1,
     },
     cardTitle: {
       color: T.text.title,
-      fontSize: 16,
+      fontSize: 15.5,
       fontWeight: '900',
-      letterSpacing: -0.35,
+      letterSpacing: -0.28,
     },
     summary: {
       color: T.text.subtitle,
       fontSize: 12,
-      lineHeight: 17,
+      lineHeight: 16.5,
       fontWeight: '600',
-      minHeight: 34,
+      minHeight: 32,
     },
-
-    // Two detay buttons
-    bottomCtaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 7,
+    detailBtn: {
       marginTop: 'auto',
-    },
-    detayPillLeft: {
-      flex: 1,
+      alignSelf: 'flex-start',
+      minHeight: 30,
       borderRadius: 999,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(212,196,248,0.70)',
-    },
-    detayPillRight: {
-      flex: 1,
-      borderRadius: 999,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(200,176,255,0.36)' : 'rgba(196,164,252,0.78)',
-    },
-    detayPillInner: {
-      minHeight: 34,
+      paddingHorizontal: 10,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
       gap: 3,
-      paddingHorizontal: 8,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(200,176,255,0.34)' : 'rgba(194,166,248,0.72)',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(248,241,255,0.82)',
     },
-    detayPillText: {
-      color: T.text.body,
+    detailText: {
+      color: C.primary,
       fontSize: 13,
       fontWeight: '800',
       letterSpacing: -0.1,

@@ -48,210 +48,249 @@ export interface DiscoverCategory {
   subtitle: string;
 }
 
-export const DISCOVER_CATEGORIES: DiscoverCategory[] = [
+type Translate = (key: string) => string;
+
+type DiscoverCategoryDefinition = {
+  key: DiscoverCategoryKey;
+  titleKey: string;
+  subtitleKey: string;
+};
+
+type DiscoverModuleDefinition = {
+  key: DiscoverModuleKey;
+  categoryKey: DiscoverCategoryKey;
+  titleKey: string;
+  subtitleKey: string;
+  icon: DiscoverIconName;
+  route?: string;
+  keywords: string[];
+  todayPriority?: boolean;
+  recommended?: boolean;
+};
+
+const DISCOVER_CATEGORY_DEFINITIONS: DiscoverCategoryDefinition[] = [
   {
     key: 'cosmic_flow',
-    title: 'Kozmik Akış',
-    subtitle: 'Bugün ve hafta ritmini buradan takip et.',
+    titleKey: 'discover.categories.cosmicFlow.title',
+    subtitleKey: 'discover.categories.cosmicFlow.subtitle',
   },
   {
     key: 'self_discovery',
-    title: 'Kendini Keşfet',
-    subtitle: 'Haritan ve kişisel içgörüler tek yerde.',
+    titleKey: 'discover.categories.selfDiscovery.title',
+    subtitleKey: 'discover.categories.selfDiscovery.subtitle',
   },
   {
     key: 'spiritual',
-    title: 'Ruhsal Pratikler',
-    subtitle: 'Dua, esma, nefes ve meditasyon akışları.',
+    titleKey: 'discover.categories.spiritual.title',
+    subtitleKey: 'discover.categories.spiritual.subtitle',
   },
   {
     key: 'social_compat',
-    title: 'Sosyal & Uyum',
-    subtitle: 'İlişki uyumu ve paylaşım deneyimleri.',
+    titleKey: 'discover.categories.socialCompat.title',
+    subtitleKey: 'discover.categories.socialCompat.subtitle',
   },
 ];
 
-export const DISCOVER_MODULES: DiscoverModule[] = [
+const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   {
     key: 'horoscope_daily',
     categoryKey: 'cosmic_flow',
-    title: 'Günlük Burç',
-    subtitle: 'Bugünün yorumu',
+    titleKey: 'discover.modules.horoscopeDaily.title',
+    subtitleKey: 'discover.modules.horoscopeDaily.subtitle',
     icon: 'sunny-outline',
     route: '/(tabs)/horoscope',
-    keywords: ['burç', 'horoscope', 'günlük', 'yorum', 'zodyak'],
+    keywords: ['burc', 'burç', 'horoscope', 'daily', 'günlük', 'yorum', 'zodyak', 'zodiac'],
     todayPriority: true,
   },
   {
     key: 'transits_today',
     categoryKey: 'cosmic_flow',
-    title: 'Bugünün Gökyüzü Etkileri',
-    subtitle: 'Anlık gökyüzü etkisi',
+    titleKey: 'discover.modules.transitsToday.title',
+    subtitleKey: 'discover.modules.transitsToday.subtitle',
     icon: 'planet-outline',
     route: '/transits-today',
-    keywords: ['transit', 'gezegen', 'gün', 'etki', 'ay'],
+    keywords: ['transit', 'gezegen', 'planet', 'gün', 'today', 'etki', 'effect', 'ay', 'moon'],
     todayPriority: true,
   },
   {
     key: 'weekly',
     categoryKey: 'cosmic_flow',
-    title: 'Haftalık Analiz',
-    subtitle: 'Bu hafta odakları',
+    titleKey: 'discover.modules.weekly.title',
+    subtitleKey: 'discover.modules.weekly.subtitle',
     icon: 'analytics-outline',
     route: '/(tabs)/weekly-analysis',
-    keywords: ['haftalık', 'analiz', 'swot', 'hafta'],
+    keywords: ['haftalık', 'weekly', 'analiz', 'analysis', 'swot', 'hafta', 'week'],
     recommended: true,
   },
   {
     key: 'calendar',
     categoryKey: 'cosmic_flow',
-    title: 'Kozmik Takvim',
-    subtitle: 'Uygun günleri planla',
+    titleKey: 'discover.modules.calendar.title',
+    subtitleKey: 'discover.modules.calendar.subtitle',
     icon: 'calendar-outline',
     route: '/(tabs)/calendar',
-    keywords: ['takvim', 'planlayıcı', 'calendar', 'planner'],
+    keywords: ['takvim', 'calendar', 'planlayıcı', 'planner', 'plan'],
   },
   {
     key: 'lucky_hours',
     categoryKey: 'cosmic_flow',
-    title: 'Şanslı Saatler',
-    subtitle: 'Yakında geliyor',
+    titleKey: 'discover.modules.luckyHours.title',
+    subtitleKey: 'discover.modules.luckyHours.subtitle',
     icon: 'time-outline',
-    keywords: ['şans', 'uğurlu', 'saat', 'lucky'],
+    keywords: ['şans', 'sans', 'lucky', 'uğurlu', 'ugurlu', 'saat', 'hour'],
   },
-
   {
     key: 'natal_chart',
     categoryKey: 'self_discovery',
-    title: 'Doğum Haritası',
-    subtitle: 'Natal detayların',
+    titleKey: 'discover.modules.natalChart.title',
+    subtitleKey: 'discover.modules.natalChart.subtitle',
     icon: 'aperture-outline',
     route: '/(tabs)/natal-chart',
-    keywords: ['natal', 'harita', 'doğum', 'chart'],
+    keywords: ['natal', 'harita', 'chart', 'doğum', 'dogum', 'birth'],
   },
   {
     key: 'night_sky',
     categoryKey: 'self_discovery',
-    title: 'Doğduğun Gece Gökyüzü',
-    subtitle: 'Kişisel gece haritan',
+    titleKey: 'discover.modules.nightSky.title',
+    subtitleKey: 'discover.modules.nightSky.subtitle',
     icon: 'moon-outline',
     route: '/night-sky',
-    keywords: ['gece', 'gökyüzü', 'night', 'sky', 'ay'],
+    keywords: ['gece', 'night', 'gökyüzü', 'gokyuzu', 'sky', 'ay', 'moon'],
     todayPriority: true,
   },
   {
     key: 'name_analysis',
     categoryKey: 'self_discovery',
-    title: 'İsim Analizi',
-    subtitle: 'İsminin enerji izi',
+    titleKey: 'discover.modules.nameAnalysis.title',
+    subtitleKey: 'discover.modules.nameAnalysis.subtitle',
     icon: 'person-outline',
     route: '/(tabs)/name-analysis',
-    keywords: ['isim', 'analiz', 'name', 'numeroloji'],
+    keywords: ['isim', 'name', 'analiz', 'analysis', 'numeroloji', 'numerology'],
   },
   {
     key: 'numerology',
     categoryKey: 'self_discovery',
-    title: 'Numeroloji',
-    subtitle: 'Sayıların kişisel anlamı',
+    titleKey: 'discover.modules.numerology.title',
+    subtitleKey: 'discover.modules.numerology.subtitle',
     icon: 'keypad-outline',
     route: '/numerology',
-    keywords: ['numeroloji', 'numerology', 'sayı', 'yaşam yolu', 'life path'],
+    keywords: ['numeroloji', 'numerology', 'sayı', 'sayi', 'number', 'yaşam yolu', 'yasam yolu', 'life path'],
     recommended: true,
   },
   {
     key: 'decision_compass',
     categoryKey: 'self_discovery',
-    title: 'Karar Pusulası',
-    subtitle: 'Anlık karar rehberi',
+    titleKey: 'discover.modules.decisionCompass.title',
+    subtitleKey: 'discover.modules.decisionCompass.subtitle',
     icon: 'navigate-outline',
     route: '/(tabs)/decision-compass-tab',
-    keywords: ['karar', 'pusula', 'decision', 'compass'],
+    keywords: ['karar', 'decision', 'pusula', 'compass', 'guide', 'rehber'],
     recommended: true,
   },
-
   {
     key: 'spiritual_prayers',
     categoryKey: 'spiritual',
-    title: 'Dua Akışı',
-    subtitle: 'Günlük dua listeleri',
+    titleKey: 'discover.modules.spiritualPrayers.title',
+    subtitleKey: 'discover.modules.spiritualPrayers.subtitle',
     icon: 'book-outline',
     route: '/(tabs)/spiritual/prayers',
-    keywords: ['dua', 'prayer', 'ibadet'],
+    keywords: ['dua', 'prayer', 'ibadet', 'worship'],
   },
   {
     key: 'spiritual_esma',
     categoryKey: 'spiritual',
-    title: 'Esma Zikir',
-    subtitle: 'Esma ve tekrar',
+    titleKey: 'discover.modules.spiritualEsma.title',
+    subtitleKey: 'discover.modules.spiritualEsma.subtitle',
     icon: 'sparkles-outline',
     route: '/(tabs)/spiritual/esma',
-    keywords: ['esma', 'zikir'],
+    keywords: ['esma', 'asma', 'zikir', 'dhikr'],
   },
   {
     key: 'spiritual_meditation',
     categoryKey: 'spiritual',
-    title: 'Meditasyon',
-    subtitle: 'Sessiz odak seansları',
+    titleKey: 'discover.modules.spiritualMeditation.title',
+    subtitleKey: 'discover.modules.spiritualMeditation.subtitle',
     icon: 'leaf-outline',
     route: '/(tabs)/spiritual/meditation',
-    keywords: ['meditasyon', 'meditation', 'odak'],
+    keywords: ['meditasyon', 'meditation', 'odak', 'focus'],
   },
   {
     key: 'spiritual_breathing',
     categoryKey: 'spiritual',
-    title: 'Nefes',
-    subtitle: 'Nefes egzersizleri',
+    titleKey: 'discover.modules.spiritualBreathing.title',
+    subtitleKey: 'discover.modules.spiritualBreathing.subtitle',
     icon: 'water-outline',
     route: '/(tabs)/spiritual/breathing',
-    keywords: ['nefes', 'breathing', 'rahatlama'],
+    keywords: ['nefes', 'breathing', 'rahatlama', 'relaxation'],
   },
   {
     key: 'spiritual_recommendations',
     categoryKey: 'spiritual',
-    title: 'Ruhsal Öneri',
-    subtitle: 'Güne uygun pratik',
+    titleKey: 'discover.modules.spiritualRecommendations.title',
+    subtitleKey: 'discover.modules.spiritualRecommendations.subtitle',
     icon: 'heart-outline',
     route: '/(tabs)/spiritual/recommendations',
-    keywords: ['öneri', 'ruhsal', 'spiritual'],
+    keywords: ['öneri', 'oneri', 'recommendation', 'ruhsal', 'spiritual'],
   },
-
   {
     key: 'compatibility',
     categoryKey: 'social_compat',
-    title: 'Uyumluluk',
-    subtitle: 'İlişki uyum analizi',
+    titleKey: 'discover.modules.compatibility.title',
+    subtitleKey: 'discover.modules.compatibility.subtitle',
     icon: 'heart-half-outline',
     route: '/(tabs)/compatibility',
-    keywords: ['uyum', 'compatibility', 'ilişki'],
+    keywords: ['uyum', 'compatibility', 'ilişki', 'iliski', 'relationship'],
     recommended: true,
   },
   {
     key: 'star_mate',
     categoryKey: 'social_compat',
-    title: 'Ruh Eşi',
-    subtitle: 'Eşleşme içgörüleri',
+    titleKey: 'discover.modules.starMate.title',
+    subtitleKey: 'discover.modules.starMate.subtitle',
     icon: 'people-outline',
     route: '/(tabs)/star-mate',
-    keywords: ['ruh eşi', 'eşleşme', 'star mate'],
+    keywords: ['ruh eşi', 'ruh esi', 'soul mate', 'eşleşme', 'eslesme', 'match', 'star mate'],
   },
   {
     key: 'share_cards',
     categoryKey: 'social_compat',
-    title: 'Paylaşılabilir Kartlar',
-    subtitle: 'Sosyalde paylaşmaya hazır',
+    titleKey: 'discover.modules.shareCards.title',
+    subtitleKey: 'discover.modules.shareCards.subtitle',
     icon: 'images-outline',
     route: '/share-cards',
-    keywords: ['paylaş', 'kart', 'share'],
+    keywords: ['paylaş', 'paylas', 'share', 'kart', 'card'],
   },
   {
     key: 'relation_matrix',
     categoryKey: 'social_compat',
-    title: 'İlişki Matris',
-    subtitle: 'Yakında geliyor',
+    titleKey: 'discover.modules.relationMatrix.title',
+    subtitleKey: 'discover.modules.relationMatrix.subtitle',
     icon: 'grid-outline',
-    keywords: ['matris', 'karşılaştırma', 'matrix'],
+    keywords: ['matris', 'matrix', 'karşılaştırma', 'karsilastirma', 'compare'],
   },
 ];
+
+export function buildDiscoverCategories(t: Translate): DiscoverCategory[] {
+  return DISCOVER_CATEGORY_DEFINITIONS.map((category) => ({
+    key: category.key,
+    title: t(category.titleKey),
+    subtitle: t(category.subtitleKey),
+  }));
+}
+
+export function buildDiscoverModules(t: Translate): DiscoverModule[] {
+  return DISCOVER_MODULE_DEFINITIONS.map((module) => ({
+    key: module.key,
+    categoryKey: module.categoryKey,
+    title: t(module.titleKey),
+    subtitle: t(module.subtitleKey),
+    icon: module.icon,
+    route: module.route,
+    keywords: module.keywords,
+    todayPriority: module.todayPriority,
+    recommended: module.recommended,
+  }));
+}
 
 export const TODAY_MODULE_KEYS: DiscoverModuleKey[] = [
   'horoscope_daily',

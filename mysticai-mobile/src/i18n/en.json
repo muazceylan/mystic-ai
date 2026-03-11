@@ -18,6 +18,7 @@
     "or": "or",
     "yes": "Yes",
     "no": "No",
+    "settings": "Settings",
     "guest": "Guest",
     "expand": "Expand",
     "collapse": "Collapse"
@@ -149,9 +150,119 @@
     "english": "English",
     "englishDesc": "All content in English",
     "aiNote": "Language change affects dream interpretations, natal chart readings, and all AI content.",
+    "selectAccessibility": "Select {{language}}",
     "saving": "Saving...",
     "saved": "Language preference saved",
     "error": "Could not save language. Please try again."
+  },
+  "surfaceTitles": {
+    "home": "Home",
+    "discover": "Discover",
+    "calendar": "Planner",
+    "compatibility": "Compatibility",
+    "dailyTransits": "Daily Transits",
+    "dreams": "Dreams",
+    "nameAnalysis": "Name Analysis",
+    "nameFavorites": "Favorite Names",
+    "nameDetail": "Name Detail",
+    "nameSearch": "Search Names",
+    "natalChart": "Birth Chart",
+    "profile": "Profile",
+    "spiritual": "Spiritual",
+    "starMate": "Star Mate",
+    "todayActions": "Today's Actions",
+    "weeklyAnalysis": "Weekly Analysis",
+    "compare": "Compare",
+    "addPerson": "Add Person",
+    "dailySummary": "Daily Summary",
+    "decisionCompass": "Decision Compass",
+    "decisionCompassAllCategories": "All Categories",
+    "decisionCompassDetail": "Category Detail",
+    "editBirthInfo": "Birth Information",
+    "editProfileName": "Edit Name",
+    "help": "Help",
+    "interactionDetail": "Interaction Detail",
+    "languageSettings": "Language Settings",
+    "notifications": "Notifications",
+    "notificationsSettings": "Notification Settings",
+    "numerology": "Numerology",
+    "premium": "Premium",
+    "privacy": "Privacy",
+    "security": "Security",
+    "themeSettings": "Theme Settings",
+    "tutorialCenter": "Guide Center"
+  },
+  "zodiac": {
+    "pisces": "Pisces"
+  },
+  "homeSurface": {
+    "header": {
+      "helpAccessibility": "Open the guide again",
+      "notificationsUnread": "Notifications. {{count}} unread",
+      "settingsAccessibility": "Theme and settings"
+    },
+    "quickActions": {
+      "fallbackTitle": "Module",
+      "fallbackSubtitle": "Preparing",
+      "soonBadge": "Soon",
+      "comingSoonTitle": "Coming soon"
+    },
+    "skyHero": {
+      "title": "Your Birth Night Sky",
+      "cta": "See the sky",
+      "fallbackSubtitle": "Moon phase data is unavailable right now.",
+      "fallbackInsight": "Sky guidance will refresh shortly.",
+      "phaseSubtitle": "Moon Phase: {{phase}} ▸ {{illumination}}% illuminated",
+      "openAccessibility": "Open the details of your birth night sky poster",
+      "loadingSubtitle": "Moon phase data is loading…",
+      "loadingInsight": "Interpretation is loading…"
+    },
+    "horoscopeSummary": {
+      "title": "What Awaits You Today?",
+      "todayPrefix": "Today ·",
+      "todaySubtitle": "Daily reading",
+      "weekPrefix": "This Week ·",
+      "weekSubtitle": "Weekly reading",
+      "loading": "Readings are being prepared…",
+      "themeLabel": "Theme:",
+      "adviceLabel": "Advice:",
+      "detailsAccessibility": "Open daily horoscope details",
+      "detailsCta": "Details",
+      "cardAccessibility": "Open details for {{title}}"
+    },
+    "dailyTransits": {
+      "title": "Today's Sky Effects",
+      "openAccessibility": "Open today's sky effects screen",
+      "loading": "Transit summary is loading…",
+      "phaseValue": "Moon Phase: {{value}}",
+      "signValue": "Moon Sign: {{value}}",
+      "retroValue": "Retro: {{count}}"
+    },
+    "weekly": {
+      "title": "This Week",
+      "openAccessibility": "Open weekly overview",
+      "openCta": "Open week",
+      "itemAccessibility": "Open weekly details for {{title}}",
+      "fallbackTitle": "Weekly highlight",
+      "fallbackDescription": "Details are being prepared.",
+      "level": {
+        "high": "High",
+        "medium": "Medium",
+        "risk": "Risk"
+      }
+    },
+    "numerology": {
+      "readyTitle": "Your personal year this year: {{year}}",
+      "readyCta": "Go to numerology details",
+      "openAccessibility": "Open the numerology card",
+      "kicker": "Numerology Guide",
+      "yearPill": "Year {{year}}",
+      "focusLabel": "Focus: {{focus}}"
+    },
+    "retry": {
+      "title": "Data is being prepared",
+      "accessibility": "Refresh home data"
+    }
   },
   "home": {
     "title": "Mystic Compass",
@@ -468,6 +579,73 @@
     "bridgeBackTitle": "See the main profile from your birth date",
     "bridgeBackDescription": "Return to the full numerology profile to read your name vibration together with the main profile.",
     "bridgeBackCta": "Back to main profile",
+    "quranBadge": "Quran",
+    "favorite": {
+      "addAccessibility": "Add to favorites",
+      "removeAccessibility": "Remove from favorites"
+    },
+    "meaning": {
+      "showMore": "Show more",
+      "showLess": "Show less"
+    },
+    "genderOptions": {
+      "all": "All",
+      "male": "Male",
+      "female": "Female",
+      "unisex": "Unisex"
+    },
+    "landing": {
+      "helpAccessibility": "Open the name analysis guide again",
+      "heroKicker": "Name Module",
+      "heroTitle": "Meaning, origin, and character clues",
+      "heroDescription": "Quick name summary, reliable detail, and similar-name discovery in one flow.",
+      "searchPlaceholder": "Search a name (e.g. Elif)",
+      "searchButton": "Search Name",
+      "favoritesButton": "My Favorites",
+      "popularCategories": "Popular Categories",
+      "quickAccess": "Quick Access"
+    },
+    "favorites": {
+      "emptyTitle": "No favorites yet",
+      "emptyDescription": "Save the names you like and reopen them here quickly."
+    },
+    "search": {
+      "favoritesAccessibility": "Favorite names",
+      "inputPlaceholder": "Search name",
+      "filtersButton": "Filters",
+      "resultsCount": "{{count}} results",
+      "errorTitle": "Could not load data",
+      "errorDescription": "Check your connection and try again.",
+      "emptyDescription": "Change the search or reset the filters.",
+      "clearFilters": "Clear Filters",
+      "previousPage": "Previous",
+      "nextPage": "Next",
+      "pageLabel": "Page {{current}}/{{total}}",
+      "filtersTitle": "Filters",
+      "gender": "Gender",
+      "originPlaceholder": "e.g. Arabic",
+      "startsWith": "Starts With",
+      "startsWithPlaceholder": "e.g. E",
+      "tag": "Tag",
+      "quranFlag": "Mentioned in the Quran",
+      "reset": "Reset",
+      "apply": "Apply"
+    },
+    "detail": {
+      "invalidRecordTitle": "Invalid record",
+      "invalidRecordDescription": "The name detail could not be opened.",
+      "errorTitle": "Could not load details",
+      "errorDescription": "The name information could not be fetched because of a connection or service error.",
+      "originLabel": "Origin",
+      "genderLabel": "Gender",
+      "tagsTitle": "Tags",
+      "meaningTitle": "Meaning & Explanation",
+      "characterTitle": "Character Analysis",
+      "characterTraitsLabel": "Character Analysis",
+      "letterAnalysisLabel": "Letter Analysis",
+      "similarTitle": "Similar Names",
+      "suggestionsTitle": "Suggestions"
+    },
     "empty": {
       "nameMissingDescription": "We need the vibration of your name for name analysis. Add your name to unlock Destiny and Soul Urge.",
       "birthDateMissingDescription": "Birth date is also required to connect name analysis with your main profile.",
@@ -562,6 +740,123 @@
   "discover": {
     "title": "Discover",
     "searchPlaceholder": "Search modules, features, or keywords...",
+    "today": "Today",
+    "recommended": "Recommended for you",
+    "viewAll": "View all",
+    "collapse": "Collapse",
+    "comingSoonTitle": "Coming soon",
+    "comingSoonBadge": "Soon",
+    "oracleStatus": "Oracle active",
+    "clearSearchAccessibility": "Clear search",
+    "openModuleAccessibility": "Open {{module}} module",
+    "cardComingSoonAccessibility": "{{module}}, coming soon",
+    "openQuickAccessAccessibility": "Open quick access for {{module}}",
+    "toggleCategoryAccessibility": "{{category}} category, {{action}}",
+    "noResultsTitle": "No results found",
+    "noResultsSubtitle": "Try one of these searches:",
+    "searchSuggestionAccessibility": "Search for {{suggestion}}",
+    "searchSuggestions": {
+      "horoscope": "Horoscope",
+      "transits": "Transit",
+      "dream": "Dream",
+      "compatibility": "Compatibility"
+    },
+    "categories": {
+      "cosmicFlow": {
+        "title": "Cosmic Flow",
+        "subtitle": "Track today's and this week's rhythm here."
+      },
+      "selfDiscovery": {
+        "title": "Self Discovery",
+        "subtitle": "Your chart and personal insights in one place."
+      },
+      "spiritual": {
+        "title": "Spiritual Practices",
+        "subtitle": "Prayer, esma, breathing, and meditation flows."
+      },
+      "socialCompat": {
+        "title": "Social & Compatibility",
+        "subtitle": "Relationship harmony and shareable experiences."
+      }
+    },
+    "modules": {
+      "horoscopeDaily": {
+        "title": "Daily Horoscope",
+        "subtitle": "Today's reading"
+      },
+      "transitsToday": {
+        "title": "Today's Transits",
+        "subtitle": "Live sky influence"
+      },
+      "weekly": {
+        "title": "Weekly Analysis",
+        "subtitle": "This week's focus"
+      },
+      "calendar": {
+        "title": "Cosmic Planner",
+        "subtitle": "Plan your best days"
+      },
+      "luckyHours": {
+        "title": "Lucky Hours",
+        "subtitle": "Coming soon"
+      },
+      "natalChart": {
+        "title": "Birth Chart",
+        "subtitle": "Your natal details"
+      },
+      "nightSky": {
+        "title": "Your Birth Night Sky",
+        "subtitle": "Your personal night map"
+      },
+      "nameAnalysis": {
+        "title": "Name Analysis",
+        "subtitle": "The energy trace of your name"
+      },
+      "numerology": {
+        "title": "Numerology",
+        "subtitle": "The personal meaning of numbers"
+      },
+      "decisionCompass": {
+        "title": "Decision Compass",
+        "subtitle": "Instant decision guide"
+      },
+      "spiritualPrayers": {
+        "title": "Prayer Flow",
+        "subtitle": "Daily prayer lists"
+      },
+      "spiritualEsma": {
+        "title": "Esma Dhikr",
+        "subtitle": "Esma and repetition"
+      },
+      "spiritualMeditation": {
+        "title": "Meditation",
+        "subtitle": "Quiet focus sessions"
+      },
+      "spiritualBreathing": {
+        "title": "Breathing",
+        "subtitle": "Breathing exercises"
+      },
+      "spiritualRecommendations": {
+        "title": "Spiritual Advice",
+        "subtitle": "A practice suited to your day"
+      },
+      "compatibility": {
+        "title": "Compatibility",
+        "subtitle": "Relationship harmony analysis"
+      },
+      "starMate": {
+        "title": "Star Mate",
+        "subtitle": "Matching insights"
+      },
+      "shareCards": {
+        "title": "Shareable Cards",
+        "subtitle": "Ready for social sharing"
+      },
+      "relationMatrix": {
+        "title": "Relationship Matrix",
+        "subtitle": "Coming soon"
+      }
+    },
     "cosmicFlow": "Cosmic Flow",
     "tools": "Guiding Tools",
     "wisdom": "Personal Wisdom",
@@ -804,10 +1099,11 @@
       "low": "5-49 critical"
     },
     "subcategoryLegendTitle": "{{category}} sub-categories",
-    "categoryDock": "Category Dock",
+    "categoryDock": "Categories",
     "customizeCategories": "Customize categories",
     "customize": "Settings",
     "customizeHint": "Hide areas you do not care about and enable them anytime.",
+    "categoryProfileLocked": "This category is currently inactive for your profile state.",
     "minimumCategoryHint": "At least one category must stay enabled.",
     "filters": {
       "all": "All"
@@ -830,6 +1126,12 @@
     "timingFallback": "No hour-level timing available today. Plan flexibly across morning/noon/evening.",
     "reminderSetupTitle": "Set Reminder",
     "reminderSetupHint": "Pick a time and reminder type so you don't miss the cosmic window.",
+    "reminderModeLead": "Pick a time and reminder type so you don't miss the cosmic window.",
+    "reminderModeDateLabel": "Target day",
+    "reminderModeCategoryLabel": "Category",
+    "reminderModeTypeLabel": "Reminder type",
+    "reminderModeTimeLabel": "Time",
+    "refreshShort": "Refresh",
     "reminderTypeDo": "Remind Do",
     "reminderTypeAvoid": "Avoid Alert",
     "reminderTypeWindow": "Window Start",
@@ -839,6 +1141,18 @@
     "reminderSavedBody": "Reminder created for {{date}} at {{time}}.",
     "reminderSaveErrorTitle": "Could not save reminder",
     "reminderSaveErrorBody": "Please try again.",
+    "reminderPermissionTitle": "Notification permission required",
+    "reminderPermissionBody": "Enable device notifications to schedule planner reminders.",
+    "reminderUnsupportedTitle": "Not supported on this device",
+    "reminderUnsupportedBody": "Local reminders are only supported on mobile devices.",
+    "reminderPastTimeTitle": "Invalid reminder time",
+    "reminderPastTimeBody": "Choose a future date and time for this reminder.",
+    "reminderNotificationTitleDo": "Cosmic Planner • {{category}}",
+    "reminderNotificationTitleAvoid": "Cosmic Planner • Caution",
+    "reminderNotificationTitleWindow": "Cosmic Planner • Strong Window",
+    "reminderNotificationBodyDo": "Your {{category}} window starts at {{time}}. Open daily recommendations now.",
+    "reminderNotificationBodyAvoid": "Move carefully in {{category}} from {{time}} onward. Review your avoid list.",
+    "reminderNotificationBodyWindow": "A strong {{category}} window opens at {{time}}. Return to the planner for details.",
     "cosmicPotential": "Cosmic Potential",
     "dosTitle": "Do Today",
     "dontsTitle": "Avoid Today",
@@ -846,6 +1160,7 @@
     "whyTemplate": "{{reason}}",
     "whyFallback": "Transit and natal signals open a cautious but productive lane today.",
     "openDeepDive": "Cosmic Blueprint",
+    "backToRecommendations": "Back to recommendations",
     "deepDiveTitle": "Daily Cosmic Blueprint",
     "technicalBreakdown": "Star Categories",
     "starCategories": "Star Categories",
@@ -1069,7 +1384,28 @@
     "addPerson": "Add person",
     "addPersonHint": "Add your loved ones to run compatibility analysis",
     "add": "Add",
-    "deletePersonConfirm": "Do you want to delete this person?"
+    "deletePersonConfirm": "Do you want to delete this person?",
+    "loadingRedirect": "Opening the comparison screen...",
+    "helpAccessibility": "Open the guide again",
+    "addPersonAccessibility": "Add person",
+    "reloadPeopleAccessibility": "Reload people",
+    "selectPersonAccessibility": "Select {{name}}",
+    "relationshipType": "Relationship Type",
+    "relationshipOptions": {
+      "love": "Love",
+      "business": "Business",
+      "friendship": "Friend",
+      "family": "Family",
+      "rival": "Rival"
+    },
+    "compareWithAccessibility": "Compare with {{name}}",
+    "analyzing": "Analyzing...",
+    "aiCompare": "AI Compare",
+    "analysisPreparing": "Preparing the comparison. The harmony screen will open in a few seconds.",
+    "analysisFailed": "The compatibility analysis could not be completed. The server did not respond or the operation timed out.",
+    "retryAnalysisAccessibility": "Retry analysis",
+    "analysisStartErrorTitle": "Analysis Error",
+    "analysisStartErrorMessage": "The synastry analysis could not be started."
   },
   "editBirthInfo": {
     "title": "Birth Information",

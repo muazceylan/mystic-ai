@@ -14,8 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { SafeScreen } from '../components/ui';
-import OnboardingBackground from '../components/OnboardingBackground';
+import { AppHeader, SafeScreen, SurfaceHeaderIconButton } from '../components/ui';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { fetchCosmicCategoryDetails } from '../services/cosmic.service';
@@ -68,6 +67,53 @@ function sameIsoDate(a: string, b: string) {
   return a === b;
 }
 
+function clampPercent(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function withHexAlpha(color: string | undefined, alphaHex: string, fallback: string): string {
+  const raw = (color ?? '').trim();
+  if (!raw) return fallback;
+
+  const shortHex = raw.match(/^#([0-9a-fA-F]{3})$/);
+  if (shortHex) {
+    const [r, g, b] = shortHex[1].split('');
+    return `#${r}${r}${g}${g}${b}${b}${alphaHex}`;
+  }
+
+  if (/^#([0-9a-fA-F]{6})$/.test(raw)) {
+    return `${raw}${alphaHex}`;
+  }
+
+  return fallback;
+}
+
+function iconForCosmicSubcategory(categoryKey: string | undefined, subCategoryKey: string): keyof typeof Ionicons.glyphMap {
+  const sub = (subCategoryKey ?? '').toLowerCase();
+  const cat = (categoryKey ?? '').toLowerCase();
+
+  if (sub.includes('retro')) return 'play-back-outline';
+  if (sub.includes('aspect') || sub.includes('aci')) return 'git-network-outline';
+  if (sub.includes('cycle') || sub.includes('dongu')) return 'sync-outline';
+  if (sub.includes('moon') || sub.includes('ay')) return 'moon-outline';
+  if (sub.includes('finance') || sub.includes('debt')) return 'wallet-outline';
+  if (sub.includes('official') || sub.includes('law')) return 'document-text-outline';
+  if (sub.includes('career') || sub.includes('job') || sub.includes('entrepreneurship')) return 'briefcase-outline';
+  if (sub.includes('beauty') || sub.includes('skin') || sub.includes('nail')) return 'sparkles-outline';
+  if (sub.includes('health') || sub.includes('treatment') || sub.includes('checkup')) return 'medkit-outline';
+  if (sub.includes('sport') || sub.includes('activity')) return 'fitness-outline';
+  if (sub.includes('social') || sub.includes('party')) return 'people-outline';
+  if (sub.includes('home') || sub.includes('repair') || sub.includes('housework')) return 'home-outline';
+  if (sub.includes('spiritual') || sub.includes('ritual') || sub.includes('meditation')) return 'leaf-outline';
+
+  return cat.includes('transit')
+    ? 'planet-outline'
+    : cat.includes('moon')
+      ? 'moon-outline'
+      : 'ellipse-outline';
+}
+
 function relativeDateLabelTr(input: string): string {
   const today = todayIsoDate();
   if (sameIsoDate(input, today)) return 'Bugün';
@@ -87,7 +133,7 @@ export default function DecisionCompassDetailScreen() {
   const { colors, isDark } = useTheme();
   const { i18n } = useTranslation();
   const { width } = useWindowDimensions();
-  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/decision-compass-tab' });
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const user = useAuthStore((s) => s.user);
   const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
@@ -156,20 +202,18 @@ export default function DecisionCompassDetailScreen() {
   return (
     <SafeScreen>
       <View style={S.container}>
-        <OnboardingBackground />
-
-        <View style={S.header}>
-          <Pressable onPress={goBack} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
-            <Ionicons name="chevron-back" size={20} color={colors.text} />
-          </Pressable>
-          <View style={S.headerTitleWrap}>
-            <Text style={S.headerTitle} numberOfLines={1}>{label}</Text>
-            <Text style={S.headerSub} numberOfLines={1}>{activityLabel || 'Gün bazlı cosmic detail'}</Text>
-          </View>
-          <Pressable onPress={() => router.push('/(tabs)/calendar')} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
-            <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          </Pressable>
-        </View>
+        <AppHeader
+          title={label}
+          subtitle={activityLabel || 'Gün bazlı cosmic detail'}
+          onBack={goBack}
+          rightActions={(
+            <SurfaceHeaderIconButton
+              iconName="calendar-outline"
+              onPress={() => router.push('/(tabs)/calendar')}
+              accessibilityLabel="Takvim"
+            />
+          )}
+        />
 
         <ScrollView
           style={S.scroll}
@@ -342,23 +386,64 @@ export default function DecisionCompassDetailScreen() {
 
               <View style={S.panel}>
                 <View style={S.panelHeaderRow}>
-                  <Text style={S.panelTitle}>Alt Başlıklar</Text>
+                  <Text style={S.panelTitle}>Yıldız Kategorileri</Text>
                   <Text style={S.panelMeta}>{detail.subcategories?.length ?? 0} kayıt</Text>
                 </View>
-                {(detail.subcategories ?? []).slice(0, 8).map((sub, idx) => (
-                  <View key={`${sub.subCategoryKey}-${idx}`} style={S.subRow}>
-                    <View style={S.subRowLeft}>
-                      <View style={[S.subDot, { backgroundColor: sub.colorHex || colors.primary }]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={S.subTitle}>{sub.label}</Text>
-                        <Text style={S.subAdvice} numberOfLines={2}>{sub.shortAdvice || sub.insight || 'Bugün bu alt başlık aktif.'}</Text>
+                <View style={S.subAnalysisList}>
+                  {(detail.subcategories ?? []).slice(0, 8).map((sub, idx) => {
+                    const subColor = sub.colorHex || colors.primary;
+                    const score = clampPercent(sub.score);
+                    const insightText = sub.insight || sub.shortAdvice || 'Bugün bu alt başlık aktif.';
+                    const technicalText = sub.technicalExplanation?.trim() || '';
+
+                    return (
+                      <View key={`${sub.subCategoryKey}-${idx}`} style={S.subAnalysisCard}>
+                        <View style={S.subAnalysisGlowWrap}>
+                          <View style={[S.subAnalysisGlow, { backgroundColor: subColor, shadowColor: subColor }]} />
+                        </View>
+
+                        <View style={S.subAnalysisContent}>
+                          <View style={S.subAnalysisTopRow}>
+                            <View style={S.subAnalysisLeft}>
+                              <View
+                                style={[
+                                  S.subAnalysisIconWrap,
+                                  {
+                                    backgroundColor: withHexAlpha(subColor, '18', isDark ? 'rgba(255,255,255,0.06)' : 'rgba(122,91,234,0.08)'),
+                                    borderColor: withHexAlpha(subColor, '33', isDark ? 'rgba(255,255,255,0.08)' : 'rgba(122,91,234,0.12)'),
+                                  },
+                                ]}
+                              >
+                                <Ionicons
+                                  name={iconForCosmicSubcategory(categoryKey, sub.subCategoryKey)}
+                                  size={14}
+                                  color={subColor}
+                                />
+                              </View>
+                              <View style={S.subAnalysisTextWrap}>
+                                <Text style={S.subAnalysisName} numberOfLines={1}>{sub.label}</Text>
+                                <Text style={S.subAnalysisInsight} numberOfLines={3}>
+                                  {insightText}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={S.subAnalysisScore}>%{score}</Text>
+                          </View>
+
+                          {!!technicalText && (
+                            <Text style={S.subAnalysisTechnical} numberOfLines={3}>
+                              {technicalText}
+                            </Text>
+                          )}
+
+                          <View style={S.subAnalysisBarTrack}>
+                            <View style={[S.subAnalysisBarFill, { width: `${score}%`, backgroundColor: subColor }]} />
+                          </View>
+                        </View>
                       </View>
-                    </View>
-                    <View style={S.subScorePill}>
-                      <Text style={S.subScoreText}>{Math.round(sub.score)}</Text>
-                    </View>
-                  </View>
-                ))}
+                    );
+                  })}
+                </View>
               </View>
             </>
           ) : null}
@@ -534,29 +619,93 @@ function makeStyles(
       borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)',
     },
     tagText: { color: C.subtext, fontSize: 11, fontWeight: '700' },
-    subRow: {
+    subAnalysisList: {
+      gap: 10,
+    },
+    subAnalysisCard: {
       borderRadius: 14,
       backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.65)',
       borderWidth: 1,
       borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.04)',
-      paddingHorizontal: 10,
-      paddingVertical: 9,
+      overflow: 'hidden',
+      padding: 10,
+      gap: 9,
+    },
+    subAnalysisGlowWrap: {
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    subAnalysisGlow: {
+      height: 2,
+      opacity: isDark ? 0.42 : 0.55,
+      shadowOpacity: isDark ? 0.28 : 0.2,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: 0,
+    },
+    subAnalysisContent: {
+      gap: 8,
+    },
+    subAnalysisTopRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: 10,
     },
-    subRowLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 },
-    subDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
-    subTitle: { color: C.text, fontSize: 12.5, fontWeight: '700' },
-    subAdvice: { color: C.subtext, fontSize: 11, lineHeight: 16, fontWeight: '500', marginTop: 2 },
-    subScorePill: {
-      minWidth: 34, height: 22, borderRadius: 11,
-      alignItems: 'center', justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.07)',
-      paddingHorizontal: 8,
+    subAnalysisLeft: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      flex: 1,
+      minWidth: 0,
     },
-    subScoreText: { color: C.primary, fontSize: 11, fontWeight: '800' },
+    subAnalysisIconWrap: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+    },
+    subAnalysisTextWrap: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    subAnalysisName: {
+      color: C.text,
+      fontSize: 12.5,
+      fontWeight: '700',
+    },
+    subAnalysisInsight: {
+      color: C.subtext,
+      fontSize: 11,
+      lineHeight: 16,
+      fontWeight: '500',
+    },
+    subAnalysisScore: {
+      color: C.primary,
+      fontSize: 12.5,
+      fontWeight: '800',
+      minWidth: 42,
+      textAlign: 'right',
+    },
+    subAnalysisTechnical: {
+      color: C.subtext,
+      fontSize: 10.5,
+      lineHeight: 15,
+      fontWeight: '500',
+    },
+    subAnalysisBarTrack: {
+      height: 6,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(122,91,234,0.08)',
+      overflow: 'hidden',
+    },
+    subAnalysisBarFill: {
+      height: '100%',
+      borderRadius: 999,
+    },
     hiddenActionsRow: {
       flexDirection: 'row',
       alignItems: 'center',

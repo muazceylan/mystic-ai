@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 
 type MeaningBlockProps = {
@@ -71,6 +72,7 @@ function resolveMeaningPair(
 }
 
 export function MeaningBlock({ meaningShort, meaningLong, maxLines = 5 }: MeaningBlockProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const resolved = resolveMeaningPair(meaningShort, meaningLong);
@@ -88,7 +90,7 @@ export function MeaningBlock({ meaningShort, meaningLong, maxLines = 5 }: Meanin
           {resolved.longText.length > 220 ? (
             <Pressable onPress={() => setExpanded((prev) => !prev)}>
               <Text style={[styles.toggle, { color: colors.primary }]}>
-                {expanded ? 'Daha az göster' : 'Devamını gör'}
+                {expanded ? t('nameAnalysis.meaning.showLess') : t('nameAnalysis.meaning.showMore')}
               </Text>
             </Pressable>
           ) : null}

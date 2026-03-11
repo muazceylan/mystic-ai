@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { SafeScreen } from '../../components/ui';
-import OnboardingBackground from '../../components/OnboardingBackground';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { NameTagChip } from '../../components/NameModule';
 import { trackEvent } from '../../services/analytics';
@@ -24,7 +23,7 @@ const QUICK_NAMES = ['Elif', 'Mira', 'Yusuf', 'Defne', 'Kerem', 'Alina'];
 
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.bg },
+    container: { flex: 1, backgroundColor: 'transparent' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -209,33 +208,28 @@ export default function NameLandingScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <OnboardingBackground />
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </Pressable>
-          <Text style={styles.headerTitle}>{t('home.nameAnalysis', { defaultValue: 'İsim Analizi' })}</Text>
-          <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <Pressable
-              style={styles.backButton}
-              onPress={handlePressTutorialHelp}
-              accessibilityRole="button"
-              accessibilityLabel="İsim analizi rehberini tekrar aç"
-            >
-              <Ionicons name="help-circle-outline" size={20} color={colors.text} />
-            </Pressable>
-          </SpotlightTarget>
-        </View>
+        <TabHeader
+          title={t('nameAnalysis.title')}
+          rightActions={(
+            <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <SurfaceHeaderIconButton
+                iconName="help-circle-outline"
+                onPress={handlePressTutorialHelp}
+                accessibilityLabel={t('nameAnalysis.landing.helpAccessibility')}
+              />
+            </SpotlightTarget>
+          )}
+        />
 
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 18 }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>
-            <Text style={styles.heroKicker}>Name Module</Text>
-            <Text style={styles.heroTitle}>Anlam, köken ve karakter ipuçları</Text>
+            <Text style={styles.heroKicker}>{t('nameAnalysis.landing.heroKicker')}</Text>
+            <Text style={styles.heroTitle}>{t('nameAnalysis.landing.heroTitle')}</Text>
             <Text style={styles.heroDescription}>
-              Tek bakışta isim özeti, detayda güvenilir açıklama ve benzer isim keşfi.
+              {t('nameAnalysis.landing.heroDescription')}
             </Text>
 
             <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.NAME_INPUT}>
@@ -244,7 +238,7 @@ export default function NameLandingScreen() {
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
-                  placeholder={t('nameModule.searchPlaceholder', { defaultValue: 'İsim ara (örn: Elif)' })}
+                  placeholder={t('nameAnalysis.landing.searchPlaceholder')}
                   placeholderTextColor={colors.subtext}
                   style={styles.searchInput}
                   returnKeyType="search"
@@ -256,10 +250,10 @@ export default function NameLandingScreen() {
             <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.SAVE_SHARE_ENTRY}>
               <View style={styles.ctaRow}>
                 <Pressable style={styles.primaryButton} onPress={() => goToSearch()}>
-                  <Text style={styles.primaryButtonText}>İsim Ara</Text>
+                  <Text style={styles.primaryButtonText}>{t('nameAnalysis.landing.searchButton')}</Text>
                 </Pressable>
                 <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/name-favorites')}>
-                  <Text style={styles.secondaryButtonText}>Favorilerim</Text>
+                  <Text style={styles.secondaryButtonText}>{t('nameAnalysis.landing.favoritesButton')}</Text>
                 </Pressable>
               </View>
             </SpotlightTarget>
@@ -267,7 +261,7 @@ export default function NameLandingScreen() {
 
           <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.MEANING_PANEL}>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Popüler Kategoriler</Text>
+              <Text style={styles.sectionTitle}>{t('nameAnalysis.landing.popularCategories')}</Text>
               <View style={styles.tagsRow}>
                 {POPULAR_TAGS.map((tag) => (
                   <NameTagChip
@@ -281,7 +275,7 @@ export default function NameLandingScreen() {
           </SpotlightTarget>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hızlı Girişler</Text>
+            <Text style={styles.sectionTitle}>{t('nameAnalysis.landing.quickAccess')}</Text>
             <View style={styles.quickGrid}>
               {QUICK_NAMES.map((name) => (
                 <Pressable key={name} style={styles.quickButton} onPress={() => goToSearch(name)}>

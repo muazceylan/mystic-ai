@@ -5,6 +5,7 @@
  * Categories are sorted by sortOrder, cards by sortOrder within their category.
  */
 
+import { i18n } from '../i18n';
 import api from './api';
 
 export interface ExploreCategory {
@@ -39,9 +40,18 @@ export interface ExploreCard {
 /**
  * Fetch all published explore categories for the given locale.
  */
-export async function fetchExploreCategories(locale = 'tr'): Promise<ExploreCategory[]> {
+function resolveLocale(locale?: string): 'en' | 'tr' {
+  const candidate = locale ?? i18n.resolvedLanguage ?? i18n.language ?? 'tr';
+  return candidate.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
+/**
+ * Fetch all published explore categories for the given locale.
+ */
+export async function fetchExploreCategories(locale?: string): Promise<ExploreCategory[]> {
+  const normalizedLocale = resolveLocale(locale);
   try {
-    const response = await api.get('/api/v1/content/explore-categories', { params: { locale } });
+    const response = await api.get('/api/v1/content/explore-categories', { params: { locale: normalizedLocale } });
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.warn('[exploreContent] fetchExploreCategories failed:', error);
@@ -52,10 +62,11 @@ export async function fetchExploreCategories(locale = 'tr'): Promise<ExploreCate
 /**
  * Fetch published explore cards, optionally filtered by categoryKey.
  */
-export async function fetchExploreCards(locale = 'tr', categoryKey?: string): Promise<ExploreCard[]> {
+export async function fetchExploreCards(locale?: string, categoryKey?: string): Promise<ExploreCard[]> {
+  const normalizedLocale = resolveLocale(locale);
   try {
     const response = await api.get('/api/v1/content/explore-cards', {
-      params: { locale, ...(categoryKey ? { categoryKey } : {}) },
+      params: { locale: normalizedLocale, ...(categoryKey ? { categoryKey } : {}) },
     });
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
@@ -67,12 +78,13 @@ export async function fetchExploreCards(locale = 'tr', categoryKey?: string): Pr
 /**
  * Convenience: fetch full explore bundle — categories, all cards, and hero/inline banners.
  */
-export async function fetchExploreContentBundle(locale = 'tr') {
+export async function fetchExploreContentBundle(locale?: string) {
+  const normalizedLocale = resolveLocale(locale);
   const [categories, cards, heroBanners, inlineBanners] = await Promise.allSettled([
-    fetchExploreCategories(locale),
-    fetchExploreCards(locale),
-    api.get<unknown[]>('/api/v1/content/banners', { params: { placementType: 'EXPLORE_HERO', locale } }).then((r) => Array.isArray(r.data) ? r.data : []).catch(() => []),
-    api.get<unknown[]>('/api/v1/content/banners', { params: { placementType: 'EXPLORE_INLINE', locale } }).then((r) => Array.isArray(r.data) ? r.data : []).catch(() => []),
+    fetchExploreCategories(normalizedLocale),
+    fetchExploreCards(normalizedLocale),
+    api.get<unknown[]>('/api/v1/content/banners', { params: { placementType: 'EXPLORE_HERO', locale: normalizedLocale } }).then((r) => Array.isArray(r.data) ? r.data : []).catch(() => []),
+    api.get<unknown[]>('/api/v1/content/banners', { params: { placementType: 'EXPLORE_INLINE', locale: normalizedLocale } }).then((r) => Array.isArray(r.data) ? r.data : []).catch(() => []),
   ]);
 
   return {

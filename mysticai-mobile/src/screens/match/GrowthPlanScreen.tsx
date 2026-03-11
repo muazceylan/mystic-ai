@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { ChevronLeft, Heart } from 'lucide-react-native';
-import { SafeScreen, AccessibleText } from '../../components/ui';
+import { useLocalSearchParams } from 'expo-router';
+import { Heart } from 'lucide-react-native';
+import { AppHeader, SafeScreen, AccessibleText } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import { useMatchTraits } from '../../hooks/useMatchTraits';
@@ -48,17 +48,7 @@ export default function GrowthPlanScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Pressable
-            onPress={() => router.back()}
-            style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <ChevronLeft size={20} color={colors.text} />
-          </Pressable>
-          <AccessibleText style={[styles.title, { color: colors.text }]} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Gelişim Planı
-          </AccessibleText>
-        </View>
+        <AppHeader title="Gelişim Planı" subtitle="Uyumu güçlendiren günlük öneriler" />
 
         <View style={styles.introRow}>
           <View style={[styles.introIconBubble, { backgroundColor: colors.violetBg }]}> 

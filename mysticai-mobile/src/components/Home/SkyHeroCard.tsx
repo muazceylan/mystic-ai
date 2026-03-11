@@ -2,6 +2,7 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, radius, shadowHero, spacing, typography } from '../../theme';
 
 interface SkyHeroCardProps {
@@ -55,25 +56,29 @@ export function SkyHeroCard({
   illumination,
   insight,
   isLoading = false,
-  ctaLabel = 'Detaylar',
+  ctaLabel,
   onPress,
 }: SkyHeroCardProps) {
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const fallbackSubtitleText = 'Ay fazı bilgisi şu an alınamadı.';
-  const fallbackInsightText = 'Gökyüzü yorumu kısa süre içinde yenilenecek.';
+  const fallbackSubtitleText = t('homeSurface.skyHero.fallbackSubtitle');
+  const fallbackInsightText = t('homeSurface.skyHero.fallbackInsight');
   const phaseText = phase?.trim() || '—';
   const illuminationValue = typeof illumination === 'number' ? illumination : 0;
   const subtitle = subtitleText?.trim();
   const insightText = insight?.trim() || fallbackInsightText;
+  const resolvedCtaLabel = ctaLabel?.trim() || t('homeSurface.skyHero.cta');
   const fallbackSubtitle =
-    phaseText === '—' ? fallbackSubtitleText : `Ay Fazı: ${phaseText} ▸ %${illuminationValue} Aydınlık`;
+    phaseText === '—'
+      ? fallbackSubtitleText
+      : t('homeSurface.skyHero.phaseSubtitle', { phase: phaseText, illumination: illuminationValue });
   const safeTextWidth = Math.max(200, Math.min(312, Math.floor(width * 0.68)));
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Doğduğun Gece Gökyüzü Posterinin detaylarını aç"
+      accessibilityLabel={t('homeSurface.skyHero.openAccessibility')}
       hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -121,21 +126,21 @@ export function SkyHeroCard({
         </View>
 
         <View style={[styles.contentZone, { maxWidth: safeTextWidth }]}>
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.title}>Doğduğun Gece Gökyüzü</Text>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.title}>{t('homeSurface.skyHero.title')}</Text>
           {isLoading ? (
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.subTitle}>Ay fazı verisi hazırlanıyor…</Text>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.subTitle}>{t('homeSurface.skyHero.loadingSubtitle')}</Text>
           ) : (
             <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={3} style={styles.subTitle}>
               {subtitle || fallbackSubtitle}
             </Text>
           )}
           <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={4} style={styles.description}>
-            {isLoading ? 'Yorum hazırlanıyor…' : insightText}
+            {isLoading ? t('homeSurface.skyHero.loadingInsight') : insightText}
           </Text>
         </View>
 
         <View style={styles.cta}>
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.ctaText}>{ctaLabel}</Text>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.ctaText}>{resolvedCtaLabel}</Text>
           <Ionicons name="chevron-forward" size={spacing.md} color={colors.white} />
         </View>
       </LinearGradient>

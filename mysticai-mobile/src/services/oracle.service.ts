@@ -36,22 +36,33 @@ export interface HomeBrief {
 }
 
 const ORACLE_BASE = '/api/v1/oracle';
+const ORACLE_SYNTHESIS_TIMEOUT_MS = 35000;
 
 export const fetchDailySecret = (params?: {
   name?: string;
   birthDate?: string;
   maritalStatus?: string;
   focusPoint?: string;
+  locale?: string;
 }) =>
-  api.get<DailySecret>(`${ORACLE_BASE}/daily-secret`, { params });
+  // Oracle synthesis can hit AI orchestration on cache misses, so it needs a longer timeout
+  // than the default shared API client.
+  api.get<DailySecret>(`${ORACLE_BASE}/daily-secret`, {
+    params,
+    timeout: ORACLE_SYNTHESIS_TIMEOUT_MS,
+  });
 
 export const fetchHomeBrief = (params?: {
   name?: string;
   birthDate?: string;
   maritalStatus?: string;
   focusPoint?: string;
+  locale?: string;
 }) =>
-  api.get<HomeBrief>(`${ORACLE_BASE}/home-brief`, { params });
+  api.get<HomeBrief>(`${ORACLE_BASE}/home-brief`, {
+    params,
+    timeout: ORACLE_SYNTHESIS_TIMEOUT_MS,
+  });
 
 export const checkOracleHealth = async (): Promise<boolean> => {
   try {

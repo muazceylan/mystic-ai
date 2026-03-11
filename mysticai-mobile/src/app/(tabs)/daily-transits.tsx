@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeScreen, Skeleton } from '../../components/ui';
+import { SafeScreen, Skeleton, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import {
   HeroCard,
   QuickFactChip,
@@ -762,30 +762,20 @@ export default function DailyTransitsScreen() {
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={goBack}
-          hitSlop={10}
-          style={[styles.navBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#F2EBFF' }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{data?.title ?? 'Bugünün Gökyüzü Etkileri'}</Text>
-          <Text style={[styles.headerDate, { color: colors.subtext }]}>{formatDateLabel(data?.date ?? date)}</Text>
-        </View>
-        <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-          <Pressable
-            onPress={handlePressTutorialHelp}
-            hitSlop={10}
-            style={[styles.navBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#F2EBFF' }]}
-            accessibilityRole="button"
-            accessibilityLabel="Tutorial rehberini tekrar aç"
-          >
-            <Ionicons name="help-circle-outline" size={20} color={colors.text} />
-          </Pressable>
-        </SpotlightTarget>
-      </View>
+      <TabHeader
+        title={data?.title ?? 'Bugünün Gökyüzü Etkileri'}
+        subtitle={formatDateLabel(data?.date ?? date)}
+        onBack={goBack}
+        rightActions={(
+          <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+            <SurfaceHeaderIconButton
+              iconName="help-circle-outline"
+              onPress={handlePressTutorialHelp}
+              accessibilityLabel="Tutorial rehberini tekrar aç"
+            />
+          </SpotlightTarget>
+        )}
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {dailyTransitsQuery.isLoading ? <LoadingState /> : null}

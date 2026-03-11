@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
@@ -31,12 +31,9 @@ export function CategoryMiniGrid({
       end={{ x: 1, y: 1 }}
       style={S.section}
     >
-      {/* Section atmosphere */}
-      <View pointerEvents="none" style={S.sectionGlowTop} />
-      <View pointerEvents="none" style={S.sectionGlowRight} />
-      <View pointerEvents="none" style={S.sectionEdgeShine} />
+      <View pointerEvents="none" style={S.sectionGlow} />
+      <View pointerEvents="none" style={S.sectionEdge} />
 
-      {/* Header */}
       <View style={S.headerRow}>
         <Text style={S.title}>Diğer Kategoriler</Text>
         {onPressShowAll ? (
@@ -46,8 +43,7 @@ export function CategoryMiniGrid({
         ) : null}
       </View>
 
-      {/* Grid */}
-      <View style={S.grid}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.sliderRow}>
         {categories.map((category) => {
           const tint = statusColors(category.status, isDark);
           return (
@@ -63,35 +59,22 @@ export function CategoryMiniGrid({
                 style={S.card}
               >
                 <View pointerEvents="none" style={S.cardHighlight} />
-                <View pointerEvents="none" style={S.cardGlow} />
 
-                {/* Top row: icon + title + score */}
                 <View style={S.topRow}>
-                  <View style={S.iconGroup}>
-                    <LinearGradient
-                      colors={isDark
-                        ? ['rgba(196,168,255,0.26)', 'rgba(166,136,244,0.16)']
-                        : ['rgba(242,234,255,0.99)', 'rgba(230,218,255,0.92)']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={S.iconBubble}
-                    >
-                      <Ionicons name={category.icon} size={15} color={colors.primary} />
-                    </LinearGradient>
-
-                    <View style={S.labelWrap}>
-                      <Text style={S.cardTitle} numberOfLines={1}>{category.title}</Text>
-                      <Text style={S.subLabel} numberOfLines={1}>{category.subLabel}</Text>
-                    </View>
+                  <View style={S.iconBubble}>
+                    <Ionicons name={category.icon} size={15} color={colors.primary} />
                   </View>
 
-                  {/* Score chip */}
+                  <View style={S.labelWrap}>
+                    <Text style={S.cardTitle} numberOfLines={2}>{category.title}</Text>
+                    <Text style={S.subLabel} numberOfLines={2}>{category.subLabel}</Text>
+                  </View>
+
                   <LinearGradient colors={tint.pill} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={S.scoreChip}>
                     <Text style={[S.scoreText, { color: tint.text }]}>{Math.round(category.score)}%</Text>
                   </LinearGradient>
                 </View>
 
-                {/* Footer: status pill only (clean, like reference) */}
                 <View style={S.footerRow}>
                   <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} compact />
                   <View style={S.detailHint}>
@@ -103,9 +86,8 @@ export function CategoryMiniGrid({
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
-      {/* Show all button */}
       {onPressShowAll ? (
         <SoftActionButton
           label="Tüm kategorileri gör"
@@ -126,45 +108,32 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
   return StyleSheet.create({
     section: {
       borderRadius: T.radii.card,
-      padding: 16,
+      padding: 14,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(216,194,255,0.22)' : 'rgba(200,176,248,0.60)',
       marginBottom: 12,
-      gap: 13,
+      gap: 12,
       overflow: 'hidden',
       position: 'relative',
-      shadowColor: isDark ? '#000000' : '#C2A8EE',
-      shadowOpacity: isDark ? 0.28 : 0.16,
-      shadowRadius: isDark ? 24 : 20,
-      shadowOffset: { width: 0, height: isDark ? 14 : 12 },
-      elevation: isDark ? 7 : 5,
+      ...T.shadows.soft,
     },
-    sectionGlowTop: {
+    sectionGlow: {
       position: 'absolute',
-      top: -68,
-      right: -32,
-      width: 208,
-      height: 138,
-      borderRadius: 86,
-      backgroundColor: isDark ? 'rgba(210,186,255,0.14)' : 'rgba(255,255,255,0.76)',
+      top: -42,
+      right: -24,
+      width: 180,
+      height: 96,
+      borderRadius: 70,
+      backgroundColor: isDark ? 'rgba(210,186,255,0.12)' : 'rgba(255,255,255,0.66)',
     },
-    sectionGlowRight: {
-      position: 'absolute',
-      right: -20,
-      top: 34,
-      width: 150,
-      height: 110,
-      borderRadius: 68,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(252,248,255,0.60)',
-    },
-    sectionEdgeShine: {
+    sectionEdge: {
       position: 'absolute',
       top: 8,
-      left: 16,
-      right: 16,
-      height: 18,
+      left: 14,
+      right: 14,
+      height: 16,
       borderRadius: 999,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.52)',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.48)',
     },
     headerRow: {
       flexDirection: 'row',
@@ -188,29 +157,23 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       backgroundColor: T.surface.soft,
       ...T.shadows.soft,
     },
-    grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      rowGap: 10,
+    sliderRow: {
+      gap: 10,
+      paddingRight: 8,
+      paddingBottom: 4,
     },
     cardShell: {
-      width: '48.4%',
-      borderRadius: 20,
+      width: 210,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(218,196,255,0.18)' : 'rgba(204,184,248,0.58)',
       overflow: 'hidden',
-      shadowColor: isDark ? '#000000' : '#BAA0EE',
-      shadowOpacity: isDark ? 0.20 : 0.12,
-      shadowRadius: isDark ? 14 : 12,
-      shadowOffset: { width: 0, height: isDark ? 8 : 6 },
-      elevation: isDark ? 4 : 3,
     },
     card: {
       minHeight: 134,
-      padding: 12,
+      padding: 13,
       justifyContent: 'space-between',
-      gap: 9,
+      gap: 12,
       backgroundColor: T.surface.mini,
       position: 'relative',
     },
@@ -219,26 +182,14 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       top: 2,
       left: 10,
       right: 10,
-      height: 13,
+      height: 12,
       borderRadius: 999,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.52)',
-    },
-    cardGlow: {
-      position: 'absolute',
-      top: -18,
-      right: -14,
-      width: 76,
-      height: 56,
-      borderRadius: 38,
-      backgroundColor: isDark ? 'rgba(208,186,255,0.10)' : 'rgba(242,234,255,0.72)',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.50)',
     },
     topRow: {
-      gap: 8,
-    },
-    iconGroup: {
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
+      alignItems: 'flex-start',
+      gap: 10,
     },
     iconBubble: {
       width: 34,
@@ -248,36 +199,42 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: isDark ? 'rgba(196,168,255,0.28)' : 'rgba(216,200,255,0.66)',
+      backgroundColor: isDark ? 'rgba(196,168,255,0.14)' : 'rgba(242,234,255,0.94)',
     },
     labelWrap: {
       flex: 1,
       minWidth: 0,
-      gap: 1,
+      gap: 2,
+      paddingTop: 1,
     },
     cardTitle: {
       color: T.text.title,
-      fontSize: 15.5,
+      fontSize: 14.4,
       fontWeight: '900',
-      letterSpacing: -0.25,
+      letterSpacing: -0.22,
+      lineHeight: 18.6,
     },
     subLabel: {
       color: T.text.subtitle,
-      fontSize: 12,
+      fontSize: 11.4,
+      lineHeight: 14.8,
       fontWeight: '600',
     },
     scoreChip: {
-      alignSelf: 'flex-start',
-      minHeight: 26,
+      minWidth: 58,
+      minHeight: 28,
       borderRadius: 13,
-      paddingHorizontal: 10,
+      paddingHorizontal: 11,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.64)',
       overflow: 'hidden',
+      flexShrink: 0,
+      marginTop: 1,
     },
     scoreText: {
-      fontSize: 12.5,
+      fontSize: 12.8,
       fontWeight: '900',
       letterSpacing: -0.2,
     },
@@ -286,24 +243,28 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 8,
+      marginTop: 'auto',
+      minHeight: 28,
     },
     detailHint: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 1,
+      gap: 2,
+      flexShrink: 0,
     },
     detailHintText: {
       color: C.primary,
-      fontSize: 14,
+      fontSize: 12.3,
       fontWeight: '900',
       letterSpacing: -0.1,
+    },
+    pressed: {
+      opacity: 0.86,
     },
     showAllBtn: {
       alignSelf: 'stretch',
       justifyContent: 'center',
-    },
-    pressed: {
-      opacity: 0.86,
+      marginTop: 2,
     },
   });
 }

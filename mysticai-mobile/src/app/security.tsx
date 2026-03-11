@@ -9,8 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
 import { setPassword, changePassword, updateProfile } from '../services/auth';
-import OnboardingBackground from '../components/OnboardingBackground';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, TabHeader } from '../components/ui';
 import { TextField, PrimaryButton, StatusBanner } from '../components/auth';
 import { AxiosError } from 'axios';
 import { isStrongPassword } from '../utils/passwordPolicy';
@@ -107,7 +106,6 @@ export default function SecurityScreen() {
     return (
       <SafeScreen>
         <View style={[S.container, { alignItems: 'center', justifyContent: 'center' }]}>
-          <OnboardingBackground />
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeScreen>
@@ -117,19 +115,7 @@ export default function SecurityScreen() {
   return (
     <SafeScreen>
       <View style={S.container}>
-        <OnboardingBackground />
-        <View style={S.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={S.backBtn}
-            accessibilityLabel={t('common.back')}
-            accessibilityRole="button"
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={S.headerTitle}>{t('security.title')}</Text>
-          <View style={{ width: 40 }} />
-        </View>
+        <TabHeader title={t('security.title')} />
 
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} keyboardShouldPersistTaps="handled">
           <Text style={S.hint}>{`${description}\n${passwordPolicyText}`}</Text>

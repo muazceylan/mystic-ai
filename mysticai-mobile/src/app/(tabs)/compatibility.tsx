@@ -37,19 +37,18 @@ import {
 interface RelationshipTypeOption {
   key: RelationshipType;
   emoji: string;
-  labelTR: string;
-  labelEN: string;
+  labelKey: string;
   color: string;
   bgColor: string;
 }
 
 function getRelationshipTypes(C: ReturnType<typeof useTheme>['colors']): RelationshipTypeOption[] {
   return [
-    { key: 'LOVE', emoji: '💍', labelTR: 'Aşk', labelEN: 'Love', color: C.pink, bgColor: C.pinkBg },
-    { key: 'BUSINESS', emoji: '🤝', labelTR: 'İş', labelEN: 'Business', color: C.blue, bgColor: C.blueBg },
-    { key: 'FRIENDSHIP', emoji: '🌟', labelTR: 'Arkadaş', labelEN: 'Friend', color: C.orange, bgColor: C.neutralBg },
-    { key: 'FAMILY', emoji: '🏠', labelTR: 'Aile', labelEN: 'Family', color: C.violet, bgColor: C.violetBg },
-    { key: 'RIVAL', emoji: '🥊', labelTR: 'Rakip', labelEN: 'Rival', color: C.redDark, bgColor: C.redBg },
+    { key: 'LOVE', emoji: '💍', labelKey: 'compatibility.relationshipOptions.love', color: C.pink, bgColor: C.pinkBg },
+    { key: 'BUSINESS', emoji: '🤝', labelKey: 'compatibility.relationshipOptions.business', color: C.blue, bgColor: C.blueBg },
+    { key: 'FRIENDSHIP', emoji: '🌟', labelKey: 'compatibility.relationshipOptions.friendship', color: C.orange, bgColor: C.neutralBg },
+    { key: 'FAMILY', emoji: '🏠', labelKey: 'compatibility.relationshipOptions.family', color: C.violet, bgColor: C.violetBg },
+    { key: 'RIVAL', emoji: '🥊', labelKey: 'compatibility.relationshipOptions.rival', color: C.redDark, bgColor: C.redBg },
   ];
 }
 
@@ -375,7 +374,10 @@ export default function CompatibilityScreen() {
           locale: i18n.language,
         });
       } catch (e: any) {
-        Alert.alert('Analiz Hatası', e?.response?.data?.message ?? 'Sinastri analizi başlatılamadı.');
+        Alert.alert(
+          t('compatibility.analysisStartErrorTitle'),
+          e?.response?.data?.message ?? t('compatibility.analysisStartErrorMessage'),
+        );
       }
     })();
   }, [
@@ -537,7 +539,7 @@ export default function CompatibilityScreen() {
         >
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.analysisLoadingText}>
-            Karşılaştırma ekranı açılıyor...
+            {t('compatibility.loadingRedirect')}
           </Text>
         </View>
       </SafeScreen>
@@ -556,7 +558,7 @@ export default function CompatibilityScreen() {
                 style={styles.headerHelpButton}
                 onPress={handlePressTutorialHelp}
                 accessibilityRole="button"
-                accessibilityLabel="Tutorial rehberini tekrar aç"
+                accessibilityLabel={t('compatibility.helpAccessibility')}
               >
                 <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
               </TouchableOpacity>
@@ -575,7 +577,7 @@ export default function CompatibilityScreen() {
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={() => router.push('/add-person')}
-                  accessibilityLabel="Kişi ekle"
+                  accessibilityLabel={t('compatibility.addPersonAccessibility')}
                   accessibilityRole="button"
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
@@ -590,13 +592,13 @@ export default function CompatibilityScreen() {
                   message={error}
                   onRetry={() => userId && loadSavedPeople(userId)}
                   style={{ marginTop: 16 }}
-                  accessibilityLabel="Kişileri tekrar yükle"
+                  accessibilityLabel={t('compatibility.reloadPeopleAccessibility')}
                 />
               ) : savedPeople.length === 0 ? (
                 <TouchableOpacity
                   style={styles.emptyPeopleCard}
                   onPress={() => router.push('/add-person')}
-                  accessibilityLabel="Kişi ekle"
+                  accessibilityLabel={t('compatibility.addPersonAccessibility')}
                   accessibilityRole="button"
                 >
                   <Ionicons name="person-add-outline" size={32} color={colors.subtext} />
@@ -608,7 +610,7 @@ export default function CompatibilityScreen() {
                   <TouchableOpacity
                     style={styles.addPersonCard}
                     onPress={() => router.push('/add-person')}
-                    accessibilityLabel="Kişi ekle"
+                    accessibilityLabel={t('compatibility.addPersonAccessibility')}
                     accessibilityRole="button"
                   >
                     <View style={styles.addPersonIcon}>
@@ -628,7 +630,7 @@ export default function CompatibilityScreen() {
                         setSelectedPerson(person);
                         clearSynastry();
                       }}
-                      accessibilityLabel={`${person.name} seç`}
+                      accessibilityLabel={t('compatibility.selectPersonAccessibility', { name: person.name })}
                       accessibilityRole="button"
                       onLongPress={() => {
                         Alert.alert(person.name, t('compatibility.deletePersonConfirm'), [
@@ -677,7 +679,7 @@ export default function CompatibilityScreen() {
             {selectedPerson && (
               <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.SCORE_AREA}>
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>İlişki Türü</Text>
+                  <Text style={styles.sectionTitle}>{t('compatibility.relationshipType')}</Text>
                   <View style={styles.typeGrid}>
                     {RELATIONSHIP_TYPES.map((item) => {
                       const isSelected = selectedType === item.key;
@@ -692,12 +694,12 @@ export default function CompatibilityScreen() {
                             setSelectedType(item.key);
                             clearSynastry();
                           }}
-                          accessibilityLabel={locale === 'en' ? item.labelEN : item.labelTR}
+                          accessibilityLabel={t(item.labelKey)}
                           accessibilityRole="button"
                         >
                           <Text style={styles.typeEmoji}>{item.emoji}</Text>
                           <Text style={[styles.typeLabel, isSelected && { color: item.color }]}>
-                            {locale === 'en' ? item.labelEN : item.labelTR}
+                            {t(item.labelKey)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -714,7 +716,7 @@ export default function CompatibilityScreen() {
                     style={[styles.analyzeButton, isLoading && styles.analyzeButtonDisabled]}
                     onPress={handleAnalyze}
                     disabled={isLoading}
-                    accessibilityLabel={`${selectedPerson.name} ile karşılaştır`}
+                    accessibilityLabel={t('compatibility.compareWithAccessibility', { name: selectedPerson.name })}
                     accessibilityRole="button"
                   >
                     {isLoading ? (
@@ -723,7 +725,7 @@ export default function CompatibilityScreen() {
                       <Ionicons name="sparkles" size={20} color={colors.white} />
                     )}
                     <Text style={styles.analyzeButtonText}>
-                      {isLoading ? 'Analiz ediliyor...' : 'AI Karşılaştır'}
+                      {isLoading ? t('compatibility.analyzing') : t('compatibility.aiCompare')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -740,7 +742,7 @@ export default function CompatibilityScreen() {
           >
             <ActivityIndicator color={colors.primary} />
             <Text style={styles.analysisLoadingText}>
-              Karşılaştırma hazırlanıyor, birkaç saniye içinde uyum ekranı açılacak.
+              {t('compatibility.analysisPreparing')}
             </Text>
           </View>
         ) : null}
@@ -748,9 +750,9 @@ export default function CompatibilityScreen() {
         {currentSynastry?.status === 'FAILED' && (
           <View style={styles.errorCard}>
             <ErrorStateCard
-              message="Uyum analizi tamamlanamadı. Sunucu yanıt vermedi veya işlem zaman aşımına uğradı."
+              message={t('compatibility.analysisFailed')}
               onRetry={handleRetry}
-              accessibilityLabel="Analizi tekrar dene"
+              accessibilityLabel={t('compatibility.retryAnalysisAccessibility')}
             />
           </View>
         )}

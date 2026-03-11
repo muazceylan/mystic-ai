@@ -10,13 +10,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { AppHeader, SafeScreen } from '../../components/ui';
 import * as Haptics from '../../utils/haptics';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import ViewShot from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeScreen } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
 import { useNightSkyPosterStore } from '../../store/useNightSkyPosterStore';
@@ -33,6 +32,7 @@ import {
   saveToGallery,
   shareImage,
 } from '../../services/share.service';
+import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { fetchLatestNatalChart } from '../../services/astrology.service';
@@ -75,11 +75,11 @@ function buildPosterPdfHtml(imageUri: string, name: string) {
 }
 
 export default function NightSkyPosterPreviewScreen() {
-  const router = useRouter();
   const { colors } = useTheme();
   const draft = useNightSkyPosterStore((s) => s.draft);
   const setDraft = useNightSkyPosterStore((s) => s.setDraft);
   const clearDraft = useNightSkyPosterStore((s) => s.clearDraft);
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const cachedChart = useNatalChartStore((s) => s.chart);
   const user = useAuthStore((s) => s.user);
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
@@ -399,7 +399,7 @@ export default function NightSkyPosterPreviewScreen() {
               <Text style={[styles.emptySub, { color: colors.subtext }]}>
                 Önce Haritam ekranından doğum haritanızı oluşturun.
               </Text>
-              <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={() => router.back()}>
+              <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={goBack}>
                 <Text style={styles.primaryBtnText}>Geri Dön</Text>
               </Pressable>
             </>
@@ -440,20 +440,11 @@ export default function NightSkyPosterPreviewScreen() {
         </ViewShot>
       </View>
 
-      <View style={styles.header}>
-        <Pressable
-          style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={18} color={colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Doğduğun Gece Gökyüzü</Text>
-          <Text style={[styles.headerSub, { color: colors.subtext }]}>
-            Kişisel gökyüzünü aç, paylaşılabilir kartını oluştur.
-          </Text>
-        </View>
-      </View>
+      <AppHeader
+        title="Doğduğun Gece Gökyüzü"
+        subtitle="Kişisel gökyüzünü aç, paylaşılabilir kartını oluştur."
+        onBack={goBack}
+      />
 
       {successText ? (
         <View style={[styles.successBanner, { backgroundColor: colors.successBg, borderColor: colors.successLight }]}>

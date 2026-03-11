@@ -1,11 +1,16 @@
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { NativeModules, Platform } from 'react-native';
 
 export type AppEnv = 'dev' | 'stage' | 'prod';
 export type AnalyticsProvider = 'none' | 'amplitude';
 
 type EnvSource = string | undefined;
 
-const DEFAULT_DEV_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080';
+const API_GATEWAY_PORT = 8080;
+const WEB_FALLBACK_HOST = 'localhost';
+const IOS_FALLBACK_HOST = 'localhost';
+const ANDROID_EMULATOR_HOST = '10.0.2.2';
+const INVALID_DEV_HOSTS = new Set(['', '0.0.0.0', '::', '[::]']);
 
 function normalizeEnv(value: EnvSource): AppEnv {
   const token = (value ?? '').trim().toLowerCase();
@@ -24,24 +29,127 @@ function normalizeAnalyticsProvider(value: EnvSource): AnalyticsProvider {
   return 'none';
 }
 
-function normalizeBaseUrl(value: EnvSource): string | null {
+function normalizeBaseUrl(value: EnvSource | null): string | null {
   const raw = (value ?? '').trim();
   if (!raw) return null;
   return raw.replace(/\/+$/, '');
 }
 
+function buildHttpUrl(host: string, port: number): string {
+  return `http://${host}:${port}`;
+}
+
+function getDefaultDevHost(): string {
+  return Platform.OS === 'android' ? ANDROID_EMULATOR_HOST : IOS_FALLBACK_HOST;
+}
+
+function normalizeHostCandidate(value: string | null | undefined): string | null {
+  const raw = (value ?? '').trim();
+  if (!raw) return null;
+
+  const normalized = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(raw) ? raw : `http://${raw}`;
+
+  try {
+    const candidate = new URL(normalized).hostname.trim();
+    if (candidate && !INVALID_DEV_HOSTS.has(candidate)) {
+      return candidate;
+    }
+  } catch {
+    // Fall through to manual parsing below.
+  }
+
+  const stripped = raw
+    .replace(/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//, '')
+    .replace(/^\/+/, '')
+    .split(/[/?#]/, 1)[0]
+    ?.split(':', 1)[0]
+    ?.trim();
+
+  if (!stripped || INVALID_DEV_HOSTS.has(stripped)) {
+    return null;
+  }
+
+  return stripped;
+}
+
+function resolveWebHost(): string {
+  if (typeof window === 'undefined') {
+    return WEB_FALLBACK_HOST;
+  }
+
+  return normalizeHostCandidate(window.location.hostname) ?? WEB_FALLBACK_HOST;
+}
+
+function resolveExpoMetroHost(): string | null {
+  const hostCandidates: Array<string | null | undefined> = [
+    Constants.expoConfig?.hostUri,
+    (Constants.manifest2 as { extra?: { expoClient?: { hostUri?: string } } } | null)?.extra?.expoClient?.hostUri,
+    (Constants.expoGoConfig as { debuggerHost?: string } | null)?.debuggerHost,
+    (NativeModules as { SourceCode?: { scriptURL?: string } }).SourceCode?.scriptURL,
+  ];
+
+  for (const candidate of hostCandidates) {
+    const host = normalizeHostCandidate(candidate);
+    if (host) {
+      return host;
+    }
+  }
+
+  return null;
+}
+
+export function resolveDevBaseUrl(port: number, explicitOverride?: string | null): string {
+  const override = normalizeBaseUrl(explicitOverride);
+  if (override) {
+    return override;
+  }
+
+  if (Platform.OS === 'web') {
+    return buildHttpUrl(resolveWebHost(), port);
+  }
+
+  if (!Constants.isDevice) {
+    return buildHttpUrl(getDefaultDevHost(), port);
+  }
+
+  const metroHost = resolveExpoMetroHost();
+  if (metroHost) {
+    return buildHttpUrl(metroHost, port);
+  }
+
+  const fallbackUrl = buildHttpUrl(getDefaultDevHost(), port);
+
+  if (__DEV__) {
+    console.warn(
+      `[env] Expo dev host could not be resolved on device. Falling back to ${fallbackUrl}. ` +
+        'Set EXPO_PUBLIC_API_BASE_URL_DEV_OVERRIDE if you need a manual override.'
+    );
+  }
+
+  return fallbackUrl;
+}
+
 const requestedEnv = normalizeEnv(process.env.EXPO_PUBLIC_APP_ENV ?? process.env.APP_ENV);
 const appEnv: AppEnv = __DEV__ ? requestedEnv : requestedEnv === 'dev' ? 'prod' : requestedEnv;
-
-const baseUrlByEnv: Record<AppEnv, string | null> = {
-  dev: normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_DEV),
-  stage: normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_STAGE),
-  prod: normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_PROD),
-};
-
+const devBaseUrlOverride = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_DEV_OVERRIDE);
+const legacyDevBaseUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_DEV);
+const stageBaseUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_STAGE);
+const prodBaseUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_PROD);
 const legacyBaseUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
-const resolvedBaseUrl =
-  baseUrlByEnv[appEnv] ?? legacyBaseUrl ?? (appEnv === 'dev' ? DEFAULT_DEV_BASE_URL : null);
+
+function resolveConfiguredBaseUrl(): string | null {
+  if (appEnv === 'stage') {
+    return stageBaseUrl ?? legacyBaseUrl;
+  }
+
+  if (appEnv === 'prod') {
+    return prodBaseUrl ?? legacyBaseUrl;
+  }
+
+  return resolveDevBaseUrl(API_GATEWAY_PORT, devBaseUrlOverride ?? legacyDevBaseUrl ?? legacyBaseUrl);
+}
+
+const resolvedBaseUrl = resolveConfiguredBaseUrl();
 
 const mockRequested = asBool(process.env.EXPO_PUBLIC_USE_MOCK ?? process.env.USE_MOCK);
 const mockEnabled = __DEV__ && appEnv !== 'prod' && mockRequested;

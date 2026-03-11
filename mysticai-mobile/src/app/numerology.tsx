@@ -13,11 +13,11 @@ import { Ionicons } from '@expo/vector-icons';
 import ViewShot from 'react-native-view-shot';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from '../utils/haptics';
-import OnboardingBackground from '../components/OnboardingBackground';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../components/ui';
 import { useGenerateMatchImage } from '../hooks/useGenerateMatchImage';
+import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 import { useNumerology } from '../hooks/useNumerology';
 import { trackEvent } from '../services/analytics';
 import {
@@ -111,7 +111,7 @@ function getEmptyStateConfig(variant: 'none' | 'name_missing' | 'birth_date_miss
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
+    container: { flex: 1, backgroundColor: 'transparent' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -228,6 +228,7 @@ export default function NumerologyScreen() {
     filePrefix: 'numerology-standard-card',
   });
   const shareLoading = storyShareLoading || squareShareLoading;
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const lockedSections = useMemo(
     () => getLockedSections(data?.sectionLockState, premium),
     [data?.sectionLockState, premium],
@@ -506,32 +507,22 @@ export default function NumerologyScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
-        <OnboardingBackground />
-
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.back();
-            }}
-            style={styles.backBtn}
-            accessibilityLabel={t('common.back')}
-            accessibilityRole="button"
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('home.numerology')}</Text>
-          <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <TouchableOpacity
-              onPress={handlePressTutorialHelp}
-              style={styles.backBtn}
-              accessibilityLabel="Numeroloji rehberini tekrar aç"
-              accessibilityRole="button"
-            >
-              <Ionicons name="help-circle-outline" size={22} color={colors.text} />
-            </TouchableOpacity>
-          </SpotlightTarget>
-        </View>
+        <TabHeader
+          title={t('home.numerology')}
+          onBack={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            goBack();
+          }}
+          rightActions={(
+            <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <SurfaceHeaderIconButton
+                iconName="help-circle-outline"
+                onPress={handlePressTutorialHelp}
+                accessibilityLabel="Numeroloji rehberini tekrar aç"
+              />
+            </SpotlightTarget>
+          )}
+        />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.INPUT_AREA}>

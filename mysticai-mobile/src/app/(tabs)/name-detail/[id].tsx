@@ -4,8 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { SafeScreen } from '../../../components/ui';
+import { useTranslation } from 'react-i18next';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../../components/ui';
 import { useTheme } from '../../../context/ThemeContext';
+import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
 import {
   CharacterInsightCard,
   EmptyState,
@@ -79,7 +81,7 @@ function isDuplicateText(first?: string | null, second?: string | null): boolean
 
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.bg },
+    container: { flex: 1, backgroundColor: 'transparent' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -173,9 +175,11 @@ function detailToListItem(detail: Awaited<ReturnType<typeof getNameDetail>>): Na
 }
 
 export default function NameDetailScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const tabBarHeight = useBottomTabBarHeight();
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const params = useLocalSearchParams<{ id?: string; source?: string; position?: string }>();
   const nameId = Number(params.id);
   const sourceScreen = typeof params.source === 'string' ? params.source : 'search';
@@ -247,7 +251,12 @@ export default function NameDetailScreen() {
       <SafeScreen edges={['top', 'left', 'right']}>
         <View style={styles.container}>
           <View style={styles.stateWrap}>
-            <EmptyState title="Geçersiz kayıt" description="İsim detayı açılamadı." actionLabel="Geri Dön" onAction={() => router.back()} />
+            <EmptyState
+              title={t('nameAnalysis.detail.invalidRecordTitle')}
+              description={t('nameAnalysis.detail.invalidRecordDescription')}
+              actionLabel={t('common.back')}
+              onAction={goBack}
+            />
           </View>
         </View>
       </SafeScreen>
@@ -257,15 +266,16 @@ export default function NameDetailScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </Pressable>
-          <Text style={styles.title}>İsim Detayı</Text>
-          <Pressable style={styles.backButton} onPress={() => router.push('/(tabs)/name-favorites')}>
-            <Ionicons name="bookmark-outline" size={20} color={colors.text} />
-          </Pressable>
-        </View>
+        <TabHeader
+          title={t('surfaceTitles.nameDetail')}
+          rightActions={(
+            <SurfaceHeaderIconButton
+              iconName="bookmark-outline"
+              onPress={() => router.push('/(tabs)/name-favorites')}
+              accessibilityLabel={t('nameAnalysis.search.favoritesAccessibility')}
+            />
+          )}
+        />
 
         {detailQuery.isLoading ? (
           <View style={styles.stateWrap}>
@@ -274,9 +284,9 @@ export default function NameDetailScreen() {
         ) : detailQuery.isError || !detailQuery.data ? (
           <View style={styles.stateWrap}>
             <EmptyState
-              title="Detay yüklenemedi"
-              description="Bağlantı veya servis hatası nedeniyle isim bilgisi alınamadı."
-              actionLabel="Tekrar Dene"
+              title={t('nameAnalysis.detail.errorTitle')}
+              description={t('nameAnalysis.detail.errorDescription')}
+              actionLabel={t('common.retry')}
               onAction={() => void detailQuery.refetch()}
             />
           </View>
@@ -310,14 +320,14 @@ export default function NameDetailScreen() {
               <MeaningBlock meaningShort={heroMeaning} />
 
               <View style={styles.metadata}>
-                <MetadataRow label="Köken" value={detailQuery.data.origin} />
-                <MetadataRow label="Cinsiyet" value={detailQuery.data.gender ?? null} />
+                <MetadataRow label={t('nameAnalysis.detail.originLabel')} value={detailQuery.data.origin} />
+                <MetadataRow label={t('nameAnalysis.detail.genderLabel')} value={detailQuery.data.gender ?? null} />
                 <QuranBadge isQuranic={detailQuery.data.quranFlag} />
               </View>
             </View>
 
             {detailQuery.data.tags.length > 0 ? (
-              <SectionCard title="Etiketler">
+              <SectionCard title={t('nameAnalysis.detail.tagsTitle')}>
                 <View style={styles.tagsWrap}>
                   {detailQuery.data.tags.map((tag) => (
                     <NameTagChip key={`${tag.id}-${tag.tagValue}`} label={tag.tagValue} />
@@ -327,12 +337,12 @@ export default function NameDetailScreen() {
             ) : null}
 
             {detailedMeaning ? (
-              <SectionCard title="Anlam & Açıklama" collapsible defaultExpanded>
+              <SectionCard title={t('nameAnalysis.detail.meaningTitle')} collapsible defaultExpanded>
                 <MeaningBlock meaningLong={detailedMeaning} />
               </SectionCard>
             ) : null}
 
-            <SectionCard title="Karakter Analizi" collapsible defaultExpanded>
+            <SectionCard title={t('nameAnalysis.detail.characterTitle')} collapsible defaultExpanded>
               <CharacterInsightCard
                 characterTraitsText={characterTraitsText}
                 letterAnalysisText={letterAnalysisText}
@@ -340,8 +350,8 @@ export default function NameDetailScreen() {
             </SectionCard>
 
             {similarQuery.data && similarQuery.data.length > 0 ? (
-              <SectionCard title="Benzer İsimler">
-                <Text style={styles.similarTitle}>Öneriler</Text>
+              <SectionCard title={t('nameAnalysis.detail.similarTitle')}>
+                <Text style={styles.similarTitle}>{t('nameAnalysis.detail.suggestionsTitle')}</Text>
                 <SimilarNamesRow
                   items={similarQuery.data}
                   onItemPress={(item, index) => {

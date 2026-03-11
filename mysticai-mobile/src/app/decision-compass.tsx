@@ -12,16 +12,18 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeScreen } from '../components/ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
-import OnboardingBackground from '../components/OnboardingBackground';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCosmicSummary } from '../hooks/useHomeQueries';
+import { fetchCosmicDayDetail } from '../services/cosmic.service';
 import { useDecisionCompassStore } from '../store/useDecisionCompassStore';
 import {
   DECISION_COMPASS_TUTORIAL_TARGET_KEYS,
@@ -67,6 +69,7 @@ export default function DecisionCompassScreen() {
   const { i18n } = useTranslation();
   const { width } = useWindowDimensions();
   const segments = useSegments();
+  const isFocused = useIsFocused();
   const params = useLocalSearchParams<{ from?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const tabBarHeight = React.useContext(BottomTabBarHeightContext);
@@ -86,7 +89,7 @@ export default function DecisionCompassScreen() {
   );
   const tutorialBootstrapRef = useRef<string | null>(null);
 
-  const [selectedFilter, setSelectedFilter] = useState<CompassFilter>('BEST');
+  const [selectedFilter, setSelectedFilter] = useState<CompassFilter>('ALL');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<DecisionCategoryModel | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -109,9 +112,35 @@ export default function DecisionCompassScreen() {
     }
   }, [query.data?.date]);
 
+  const detailDate = selectedDate ?? query.data?.date;
+  const dayDetailQuery = useQuery({
+    queryKey: [
+      'cosmic',
+      'day-detail',
+      user?.id ?? 0,
+      detailDate ?? '',
+      user?.preferredLanguage ?? i18n.language,
+      user?.gender ?? '',
+      user?.maritalStatus ?? '',
+    ],
+    queryFn: async () => {
+      if (!user?.id || !detailDate) throw new Error('missing params');
+      const res = await fetchCosmicDayDetail({
+        userId: user.id,
+        date: detailDate,
+        locale: user.preferredLanguage ?? i18n.language,
+        gender: user.gender,
+        maritalStatus: user.maritalStatus,
+      });
+      return res.data;
+    },
+    enabled: !!user?.id && !!detailDate,
+    staleTime: 1000 * 60 * 30,
+  });
+
   const categories = useMemo(
-    () => buildCategoryModels(query.data?.dailyGuide?.activities),
-    [query.data?.dailyGuide?.activities],
+    () => buildCategoryModels(query.data?.dailyGuide?.activities, dayDetailQuery.data?.categories),
+    [dayDetailQuery.data?.categories, query.data?.dailyGuide?.activities],
   );
 
   React.useEffect(() => {
@@ -144,6 +173,7 @@ export default function DecisionCompassScreen() {
   );
 
   const heroModel = useMemo(() => buildHeroModel(visibleCategories), [visibleCategories]);
+  const strongestCategory = visibleCategories[0] ?? null;
 
   const dateLabel = formatDateShortTr(selectedDate ?? query.data?.date);
   const isInTabFlow = segments[0] === '(tabs)';
@@ -158,6 +188,8 @@ export default function DecisionCompassScreen() {
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(900, width - 24) : undefined;
 
   React.useEffect(() => {
+    if (!isFocused) return;
+
     if (!isInTabFlow) {
       const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
       router.replace({
@@ -165,7 +197,7 @@ export default function DecisionCompassScreen() {
         params: typeof fromParam === 'string' && fromParam.startsWith('/') ? { from: fromParam } : undefined,
       } as never);
     }
-  }, [isInTabFlow, params.from]);
+  }, [isFocused, isInTabFlow, params.from]);
 
   React.useEffect(() => {
     if (selectedCategory && !visibleCategories.some((item) => item.id === selectedCategory.id)) {
@@ -200,7 +232,7 @@ export default function DecisionCompassScreen() {
     router.push({
       pathname: '/decision-compass-detail',
       params: {
-        categoryKey: category.id,
+        categoryKey: category.cosmicCategoryKey ?? category.id,
         label: category.title,
         activityLabel: category.activityLabel,
         score: String(Math.round(category.score)),
@@ -233,7 +265,6 @@ export default function DecisionCompassScreen() {
         <View pointerEvents="none" style={S.ambientCenter} />
         <View pointerEvents="none" style={S.ambientBottom} />
         <View pointerEvents="none" style={S.ambientSoftBottom} />
-        <OnboardingBackground />
 
         <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
           <View>
@@ -276,9 +307,10 @@ export default function DecisionCompassScreen() {
           ]}
           refreshControl={
             <RefreshControl
-              refreshing={query.isRefetching}
+              refreshing={query.isRefetching || dayDetailQuery.isRefetching}
               onRefresh={() => {
                 void query.refetch();
+                void dayDetailQuery.refetch();
               }}
               tintColor={colors.primary}
               colors={[colors.primary]}
@@ -325,8 +357,8 @@ export default function DecisionCompassScreen() {
                   <DecisionInsightHero
                     hero={heroModel}
                     onPressDetail={() => {
-                      if (featuredCategories[0]) {
-                        openCategoryDetail(featuredCategories[0]);
+                      if (strongestCategory) {
+                        openCategoryDetail(strongestCategory);
                       }
                     }}
                   />
@@ -346,7 +378,10 @@ export default function DecisionCompassScreen() {
                     <CategoryMiniGrid
                       categories={remainingCategories}
                       onPressCategory={openCategoryDetail}
-                      onPressShowAll={() => setSelectedFilter('ALL')}
+                      onPressShowAll={() => router.push({
+                        pathname: '/(tabs)/decision-compass-all-categories',
+                        params: { from: '/(tabs)/decision-compass-tab' },
+                      })}
                     />
                   ) : (
                     <View style={S.filterEmptyCard}>

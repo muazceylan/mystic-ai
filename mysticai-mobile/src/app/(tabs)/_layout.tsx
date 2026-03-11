@@ -309,7 +309,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Ana Sayfa',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'home' : 'home-outline'}
@@ -322,7 +322,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: 'Keşfet',
+          title: t('tabs.discover'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'compass' : 'compass-outline'}
@@ -335,7 +335,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Planlayıcı',
+          title: t('tabs.calendar'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'calendar' : 'calendar-outline'}
@@ -348,7 +348,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="natal-chart"
         options={{
-          title: 'Haritam',
+          title: t('tabs.natalChart'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'planet' : 'planet-outline'}
@@ -361,7 +361,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="compatibility"
         options={{
-          title: 'Uyum',
+          title: t('tabs.compatibility'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'heart' : 'heart-outline'}
@@ -375,7 +375,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="decision-compass-tab"
         options={{
-          title: 'Karar Pusulası',
+          title: t('surfaceTitles.decisionCompass'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'compass' : 'compass-outline'}
@@ -387,44 +387,51 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="decision-compass-all-categories"
+        options={{
+          title: t('surfaceTitles.decisionCompassAllCategories'),
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
         name="compare"
         options={{
-          title: 'Uyum Analizi',
+          title: t('surfaceTitles.compare'),
           tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
         name="name-analysis"
         options={{
-          title: 'İsim Analizi',
+          title: t('surfaceTitles.nameAnalysis'),
           tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
         name="name-search"
         options={{
-          title: 'İsim Arama',
+          title: t('surfaceTitles.nameSearch'),
           tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
         name="name-favorites"
         options={{
-          title: 'Favori İsimler',
+          title: t('surfaceTitles.nameFavorites'),
           tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
         name="name-detail/[id]"
         options={{
-          title: 'İsim Detayı',
+          title: t('surfaceTitles.nameDetail'),
           tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'person' : 'person-outline'}
@@ -451,9 +458,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="star-mate"
         options={{
-          title: (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en')
-            ? 'Star Mate'
-            : 'Yıldız Eşi',
+          title: t('surfaceTitles.starMate'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'sparkles' : 'sparkles-outline'}
@@ -481,7 +486,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="spiritual"
         options={{
-          title: 'Ruhsal',
+          title: t('surfaceTitles.spiritual'),
           tabBarButton: () => null,
         }}
       />

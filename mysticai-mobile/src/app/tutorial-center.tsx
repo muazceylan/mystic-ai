@@ -11,8 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import OnboardingBackground from '../components/OnboardingBackground';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../components/ui';
 import { useTheme } from '../context/ThemeContext';
 import {
   TUTORIAL_IDS,
@@ -440,16 +439,16 @@ export default function TutorialCenterScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
-        <OnboardingBackground />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Rehber Merkezi</Text>
-          <TouchableOpacity style={styles.iconButton} onPress={handleRefresh}>
-            <Ionicons name="refresh-outline" size={20} color={colors.text} />
-          </TouchableOpacity>
-        </View>
+        <TabHeader
+          title="Rehber Merkezi"
+          rightActions={(
+            <SurfaceHeaderIconButton
+              iconName="refresh-outline"
+              onPress={handleRefresh}
+              accessibilityLabel="Rehberi yenile"
+            />
+          )}
+        />
 
         <ScrollView
           style={styles.scroll}

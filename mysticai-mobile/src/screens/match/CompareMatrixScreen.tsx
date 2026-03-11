@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { AlertTriangle, CheckCheck, ChevronLeft, Sparkles, Share2 } from 'lucide-react-native';
-import { SafeScreen, AccessibleText } from '../../components/ui';
+import { AlertTriangle, CheckCheck, Sparkles, Share2 } from 'lucide-react-native';
+import { AppHeader, SafeScreen, AccessibleText } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import {
@@ -98,17 +98,7 @@ export default function CompareMatrixScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F7F5FB' }}>
       <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Pressable
-            onPress={() => router.back()}
-            style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: '#E6E0EF' }]}
-          >
-            <ChevronLeft size={20} color={colors.text} />
-          </Pressable>
-          <AccessibleText style={[styles.title, { color: colors.text }]} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Uyum Haritası
-          </AccessibleText>
-        </View>
+        <AppHeader title="Uyum Haritası" subtitle="Uyum, gelişim ve dikkat alanları" />
 
         <View style={styles.filterRow}>
           {FILTERS.map((item) => {

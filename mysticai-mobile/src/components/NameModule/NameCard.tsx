@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import type { NameListItem } from '../../services/name.service';
 import { FavoriteButton } from './FavoriteButton';
@@ -13,14 +14,18 @@ type NameCardProps = {
   onToggleFavorite: () => void;
 };
 
-function genderLabel(gender: NameListItem['gender']) {
-  if (gender === 'MALE') return 'Erkek';
-  if (gender === 'FEMALE') return 'Kadın';
-  if (gender === 'UNISEX') return 'Unisex';
+function genderLabel(
+  gender: NameListItem['gender'],
+  t: (key: string) => string,
+) {
+  if (gender === 'MALE') return t('nameAnalysis.genderOptions.male');
+  if (gender === 'FEMALE') return t('nameAnalysis.genderOptions.female');
+  if (gender === 'UNISEX') return t('nameAnalysis.genderOptions.unisex');
   return null;
 }
 
 export function NameCard({ item, isFavorite, onPress, onToggleFavorite }: NameCardProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const firstTags = (item.tags ?? []).slice(0, 3);
 
@@ -41,7 +46,9 @@ export function NameCard({ item, isFavorite, onPress, onToggleFavorite }: NameCa
           <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
           <View style={styles.metaRow}>
             {item.origin ? <Text style={[styles.metaText, { color: colors.subtext }]}>{item.origin}</Text> : null}
-            {genderLabel(item.gender) ? <Text style={[styles.metaText, { color: colors.subtext }]}>{genderLabel(item.gender)}</Text> : null}
+            {genderLabel(item.gender, t) ? (
+              <Text style={[styles.metaText, { color: colors.subtext }]}>{genderLabel(item.gender, t)}</Text>
+            ) : null}
             <QuranBadge isQuranic={item.quranFlag} />
           </View>
         </View>

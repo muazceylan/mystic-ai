@@ -18,6 +18,7 @@
     "or": "veya",
     "yes": "Evet",
     "no": "Hayır",
+    "settings": "Ayarlar",
     "guest": "Misafir",
     "expand": "Genişlet",
     "collapse": "Kapat"
@@ -149,9 +150,119 @@
     "english": "English",
     "englishDesc": "All content in English",
     "aiNote": "Dil değişikliği; rüya yorumları, natal harita ve tüm AI içeriklerini etkiler.",
+    "selectAccessibility": "{{language}} dilini seç",
     "saving": "Kaydediliyor...",
     "saved": "Dil tercihi kaydedildi",
     "error": "Dil kaydedilemedi, tekrar dene."
+  },
+  "surfaceTitles": {
+    "home": "Anasayfa",
+    "discover": "Keşfet",
+    "calendar": "Planlayıcı",
+    "compatibility": "Uyum Analizi",
+    "dailyTransits": "Günlük Transitler",
+    "dreams": "Rüyalar",
+    "nameAnalysis": "İsim Analizi",
+    "nameFavorites": "Favori İsimler",
+    "nameDetail": "İsim Detayı",
+    "nameSearch": "İsim Ara",
+    "natalChart": "Doğum Haritası",
+    "profile": "Profil",
+    "spiritual": "Ruhsal",
+    "starMate": "Yıldız Eşi",
+    "todayActions": "Bugünün Aksiyonları",
+    "weeklyAnalysis": "Haftalık Analiz",
+    "compare": "Karşılaştırma",
+    "addPerson": "Kişi Ekle",
+    "dailySummary": "Günlük Özet",
+    "decisionCompass": "Karar Pusulası",
+    "decisionCompassAllCategories": "Tüm Kategoriler",
+    "decisionCompassDetail": "Kategori Detayı",
+    "editBirthInfo": "Doğum Bilgileri",
+    "editProfileName": "İsim Düzenle",
+    "help": "Yardım",
+    "interactionDetail": "Etkileşim Detayı",
+    "languageSettings": "Dil Ayarı",
+    "notifications": "Bildirimler",
+    "notificationsSettings": "Bildirim Ayarları",
+    "numerology": "Numeroloji",
+    "premium": "Premium",
+    "privacy": "Gizlilik",
+    "security": "Güvenlik",
+    "themeSettings": "Tema Ayarı",
+    "tutorialCenter": "Rehber Merkezi"
+  },
+  "zodiac": {
+    "pisces": "Balık"
+  },
+  "homeSurface": {
+    "header": {
+      "helpAccessibility": "Rehberi tekrar aç",
+      "notificationsUnread": "Bildirimler. {{count}} okunmamış",
+      "settingsAccessibility": "Tema ve ayarlar"
+    },
+    "quickActions": {
+      "fallbackTitle": "Modül",
+      "fallbackSubtitle": "Hazırlanıyor",
+      "soonBadge": "Yakında",
+      "comingSoonTitle": "Yakında geliyor"
+    },
+    "skyHero": {
+      "title": "Doğduğun Gece Gökyüzü",
+      "cta": "Gökyüzünü gör",
+      "fallbackSubtitle": "Ay fazı bilgisi şu an alınamadı.",
+      "fallbackInsight": "Gökyüzü yorumu kısa süre içinde yenilenecek.",
+      "phaseSubtitle": "Ay Fazı: {{phase}} ▸ %{{illumination}} aydınlık",
+      "openAccessibility": "Doğduğun gece gökyüzü posterinin detaylarını aç",
+      "loadingSubtitle": "Ay fazı verisi hazırlanıyor…",
+      "loadingInsight": "Yorum hazırlanıyor…"
+    },
+    "horoscopeSummary": {
+      "title": "Bugün Seni Neler Bekliyor?",
+      "todayPrefix": "Bugün ·",
+      "todaySubtitle": "Günlük yorum",
+      "weekPrefix": "Bu Hafta ·",
+      "weekSubtitle": "Haftalık yorum",
+      "loading": "Yorumlar hazırlanıyor…",
+      "themeLabel": "Tema:",
+      "adviceLabel": "Öneri:",
+      "detailsAccessibility": "Günlük burç detaylarını aç",
+      "detailsCta": "Detaylar",
+      "cardAccessibility": "{{title}} detaylarını aç"
+    },
+    "dailyTransits": {
+      "title": "Bugünün Gökyüzü Etkileri",
+      "openAccessibility": "Bugünün Gökyüzü Etkileri ekranını aç",
+      "loading": "Transit özeti hazırlanıyor…",
+      "phaseValue": "Ay Fazı: {{value}}",
+      "signValue": "Ay Burcu: {{value}}",
+      "retroValue": "Retro: {{count}}"
+    },
+    "weekly": {
+      "title": "Bu Hafta",
+      "openAccessibility": "Haftalık görünümü aç",
+      "openCta": "Haftayı aç",
+      "itemAccessibility": "{{title}} haftalık detayını aç",
+      "fallbackTitle": "Haftalık başlık",
+      "fallbackDescription": "Detaylar hazırlanıyor.",
+      "level": {
+        "high": "Yüksek",
+        "medium": "Orta",
+        "risk": "Risk"
+      }
+    },
+    "numerology": {
+      "readyTitle": "Bu yıl kişisel sayın: {{year}}",
+      "readyCta": "Numeroloji detayına git",
+      "openAccessibility": "Numeroloji kartını aç",
+      "kicker": "Numeroloji Rehberi",
+      "yearPill": "Yıl {{year}}",
+      "focusLabel": "Odak: {{focus}}"
+    },
+    "retry": {
+      "title": "Veriler hazırlanıyor",
+      "accessibility": "Ana sayfa verilerini yenile"
+    }
   },
   "home": {
     "title": "Mistik Pusula",
@@ -469,6 +580,73 @@
     "bridgeBackTitle": "Doğum tarihinden gelen ana profilini gör",
     "bridgeBackDescription": "İsimden gelen titreşimi ana numeroloji profiliyle birlikte okumak için tam profile dön.",
     "bridgeBackCta": "Ana profile dön",
+    "quranBadge": "Kur'an",
+    "favorite": {
+      "addAccessibility": "Favorilere ekle",
+      "removeAccessibility": "Favorilerden çıkar"
+    },
+    "meaning": {
+      "showMore": "Devamını gör",
+      "showLess": "Daha az göster"
+    },
+    "genderOptions": {
+      "all": "Tümü",
+      "male": "Erkek",
+      "female": "Kadın",
+      "unisex": "Unisex"
+    },
+    "landing": {
+      "helpAccessibility": "İsim analizi rehberini tekrar aç",
+      "heroKicker": "İsim Modülü",
+      "heroTitle": "Anlam, köken ve karakter ipuçları",
+      "heroDescription": "Tek bakışta isim özeti, detayda güvenilir açıklama ve benzer isim keşfi.",
+      "searchPlaceholder": "İsim ara (örn: Elif)",
+      "searchButton": "İsim Ara",
+      "favoritesButton": "Favorilerim",
+      "popularCategories": "Popüler Kategoriler",
+      "quickAccess": "Hızlı Girişler"
+    },
+    "favorites": {
+      "emptyTitle": "Henüz favori yok",
+      "emptyDescription": "Beğendiğin isimleri kaydedip burada hızlıca tekrar açabilirsin."
+    },
+    "search": {
+      "favoritesAccessibility": "Favori isimler",
+      "inputPlaceholder": "İsim ara",
+      "filtersButton": "Filtreler",
+      "resultsCount": "{{count}} sonuç",
+      "errorTitle": "Veri alınamadı",
+      "errorDescription": "Bağlantıyı kontrol edip tekrar deneyin.",
+      "emptyDescription": "Aramayı değiştirin veya filtreleri sıfırlayın.",
+      "clearFilters": "Filtreleri Temizle",
+      "previousPage": "Önceki",
+      "nextPage": "Sonraki",
+      "pageLabel": "Sayfa {{current}}/{{total}}",
+      "filtersTitle": "Filtreler",
+      "gender": "Cinsiyet",
+      "originPlaceholder": "örn: Arapça",
+      "startsWith": "Harfle Başlama",
+      "startsWithPlaceholder": "örn: E",
+      "tag": "Tag",
+      "quranFlag": "Kur'an'da geçiyor",
+      "reset": "Sıfırla",
+      "apply": "Uygula"
+    },
+    "detail": {
+      "invalidRecordTitle": "Geçersiz kayıt",
+      "invalidRecordDescription": "İsim detayı açılamadı.",
+      "errorTitle": "Detay yüklenemedi",
+      "errorDescription": "Bağlantı veya servis hatası nedeniyle isim bilgisi alınamadı.",
+      "originLabel": "Köken",
+      "genderLabel": "Cinsiyet",
+      "tagsTitle": "Etiketler",
+      "meaningTitle": "Anlam & Açıklama",
+      "characterTitle": "Karakter Analizi",
+      "characterTraitsLabel": "Karakter Analizi",
+      "letterAnalysisLabel": "Harf Analizi",
+      "similarTitle": "Benzer İsimler",
+      "suggestionsTitle": "Öneriler"
+    },
     "empty": {
       "nameMissingDescription": "İsim analizi için isim titreşimine ihtiyacımız var. İsmini eklediğinde kader ve ruh güdüsü alanları açılır.",
       "birthDateMissingDescription": "İsim analizini ana profilinle bağlamak için doğum tarihi de gerekiyor.",
@@ -563,6 +741,123 @@
   "discover": {
     "title": "Keşfet",
     "searchPlaceholder": "Modül, özellik veya anahtar kelime ara...",
+    "today": "Bugün",
+    "recommended": "Senin için önerilenler",
+    "viewAll": "Tümünü gör",
+    "collapse": "Daralt",
+    "comingSoonTitle": "Yakında geliyor",
+    "comingSoonBadge": "Yakında",
+    "oracleStatus": "Oracle aktif",
+    "clearSearchAccessibility": "Aramayı temizle",
+    "openModuleAccessibility": "{{module}} modülünü aç",
+    "cardComingSoonAccessibility": "{{module}}, yakında geliyor",
+    "openQuickAccessAccessibility": "{{module}} hızlı erişimini aç",
+    "toggleCategoryAccessibility": "{{category}} kategorisi, {{action}}",
+    "noResultsTitle": "Sonuç bulunamadı",
+    "noResultsSubtitle": "Şu aramaları deneyebilirsin:",
+    "searchSuggestionAccessibility": "{{suggestion}} için ara",
+    "searchSuggestions": {
+      "horoscope": "Burç",
+      "transits": "Transit",
+      "dream": "Rüya",
+      "compatibility": "Uyumluluk"
+    },
+    "categories": {
+      "cosmicFlow": {
+        "title": "Kozmik Akış",
+        "subtitle": "Bugün ve hafta ritmini buradan takip et."
+      },
+      "selfDiscovery": {
+        "title": "Kendini Keşfet",
+        "subtitle": "Haritan ve kişisel içgörüler tek yerde."
+      },
+      "spiritual": {
+        "title": "Ruhsal Pratikler",
+        "subtitle": "Dua, esma, nefes ve meditasyon akışları."
+      },
+      "socialCompat": {
+        "title": "Sosyal & Uyum",
+        "subtitle": "İlişki uyumu ve paylaşım deneyimleri."
+      }
+    },
+    "modules": {
+      "horoscopeDaily": {
+        "title": "Günlük Burç",
+        "subtitle": "Bugünün yorumu"
+      },
+      "transitsToday": {
+        "title": "Bugünün Gökyüzü Etkileri",
+        "subtitle": "Anlık gökyüzü etkisi"
+      },
+      "weekly": {
+        "title": "Haftalık Analiz",
+        "subtitle": "Bu hafta odakları"
+      },
+      "calendar": {
+        "title": "Kozmik Takvim",
+        "subtitle": "Uygun günleri planla"
+      },
+      "luckyHours": {
+        "title": "Şanslı Saatler",
+        "subtitle": "Yakında geliyor"
+      },
+      "natalChart": {
+        "title": "Doğum Haritası",
+        "subtitle": "Natal detayların"
+      },
+      "nightSky": {
+        "title": "Doğduğun Gece Gökyüzü",
+        "subtitle": "Kişisel gece haritan"
+      },
+      "nameAnalysis": {
+        "title": "İsim Analizi",
+        "subtitle": "İsminin enerji izi"
+      },
+      "numerology": {
+        "title": "Numeroloji",
+        "subtitle": "Sayıların kişisel anlamı"
+      },
+      "decisionCompass": {
+        "title": "Karar Pusulası",
+        "subtitle": "Anlık karar rehberi"
+      },
+      "spiritualPrayers": {
+        "title": "Dua Akışı",
+        "subtitle": "Günlük dua listeleri"
+      },
+      "spiritualEsma": {
+        "title": "Esma Zikir",
+        "subtitle": "Esma ve tekrar"
+      },
+      "spiritualMeditation": {
+        "title": "Meditasyon",
+        "subtitle": "Sessiz odak seansları"
+      },
+      "spiritualBreathing": {
+        "title": "Nefes",
+        "subtitle": "Nefes egzersizleri"
+      },
+      "spiritualRecommendations": {
+        "title": "Ruhsal Öneri",
+        "subtitle": "Güne uygun pratik"
+      },
+      "compatibility": {
+        "title": "Uyumluluk",
+        "subtitle": "İlişki uyum analizi"
+      },
+      "starMate": {
+        "title": "Ruh Eşi",
+        "subtitle": "Eşleşme içgörüleri"
+      },
+      "shareCards": {
+        "title": "Paylaşılabilir Kartlar",
+        "subtitle": "Sosyalde paylaşmaya hazır"
+      },
+      "relationMatrix": {
+        "title": "İlişki Matris",
+        "subtitle": "Yakında geliyor"
+      }
+    },
     "cosmicFlow": "Kozmik Akış",
     "tools": "Yol Gösterici Araçlar",
     "wisdom": "Kişisel Bilgelik",
@@ -766,7 +1061,7 @@
   },
   "calendar": {
     "title": "Kozmik Planlayıcı",
-    "editorialSubtitle": "Kişisel kategori dock'u, 0-100 Kozmik Skor ve ısı haritası.",
+    "editorialSubtitle": "Senin için en uygun zamanları öğrenmek için seçtiğin güne tıkla",
     "loading": "Kozmik pencereler hesaplanıyor...",
     "refreshPlanner": "Planlayıcıyı yenile",
     "estimateNotice": "6 ay dışındaki tarihler model tahmini skor ile gösterilir.",
@@ -805,10 +1100,11 @@
       "low": "5-49 kritik"
     },
     "subcategoryLegendTitle": "{{category}} alt kategorileri",
-    "categoryDock": "Kategori Dock",
+    "categoryDock": "Kategoriler",
     "customizeCategories": "Kategorileri özelleştir",
     "customize": "Ayarlar",
     "customizeHint": "İlgilenmediğin alanları kapatabilir, istediğinde tekrar açabilirsin.",
+    "categoryProfileLocked": "Bu kategori profil durumuna göre şu an pasif.",
     "minimumCategoryHint": "En az bir kategori açık kalmalı.",
     "filters": {
       "all": "Tümü"
@@ -831,6 +1127,12 @@
     "timingFallback": "Bugün saat bazlı veri yok. Sabah/öğle/akşam bandında esnek planla ilerle.",
     "reminderSetupTitle": "Hatırlatıcı Kur",
     "reminderSetupHint": "Saat seç, hatırlatma tipini belirle ve kozmik pencereyi kaçırma.",
+    "reminderModeLead": "Saat seç, hatırlatma tipini belirle ve kozmik pencereyi kaçırma.",
+    "reminderModeDateLabel": "Hedef gün",
+    "reminderModeCategoryLabel": "Kategori",
+    "reminderModeTypeLabel": "Hatırlatma tipi",
+    "reminderModeTimeLabel": "Saat",
+    "refreshShort": "Yenile",
     "reminderTypeDo": "Bugün Yap",
     "reminderTypeAvoid": "Bugün Kaçın",
     "reminderTypeWindow": "Güçlü Pencere",
@@ -840,6 +1142,18 @@
     "reminderSavedBody": "{{date}} {{time}} için hatırlatıcı oluşturuldu.",
     "reminderSaveErrorTitle": "Hatırlatıcı kaydedilemedi",
     "reminderSaveErrorBody": "Lütfen tekrar deneyin.",
+    "reminderPermissionTitle": "Bildirim izni gerekli",
+    "reminderPermissionBody": "Hatırlatıcı kurmak için cihaz bildirim iznini açman gerekiyor.",
+    "reminderUnsupportedTitle": "Bu cihazda desteklenmiyor",
+    "reminderUnsupportedBody": "Yerel hatırlatıcı yalnızca mobil cihazlarda desteklenir.",
+    "reminderPastTimeTitle": "Geçersiz hatırlatma saati",
+    "reminderPastTimeBody": "Hatırlatıcı için gelecekte bir tarih ve saat seç.",
+    "reminderNotificationTitleDo": "Kozmik Planlayıcı • {{category}}",
+    "reminderNotificationTitleAvoid": "Kozmik Planlayıcı • Dikkat",
+    "reminderNotificationTitleWindow": "Kozmik Planlayıcı • Güçlü Pencere",
+    "reminderNotificationBodyDo": "{{time}} itibarıyla {{category}} için önerilen pencere başladı. Günlük önerileri aç.",
+    "reminderNotificationBodyAvoid": "{{time}} itibarıyla {{category}} alanında temkinli ilerle. Bugün kaçın listesini kontrol et.",
+    "reminderNotificationBodyWindow": "{{time}} itibarıyla {{category}} için güçlü pencere açılıyor. Detayları görmek için planlayıcıya dön.",
     "cosmicPotential": "Kozmik Potansiyel",
     "dosTitle": "Bugün Yap",
     "dontsTitle": "Bugün Kaçın",
@@ -847,6 +1161,7 @@
     "whyTemplate": "{{reason}}",
     "whyFallback": "Transit ve natal sinyaller bugün temkinli ama üretken bir alan açıyor.",
     "openDeepDive": "Cosmic Blueprint",
+    "backToRecommendations": "Önerilere dön",
     "deepDiveTitle": "Günün Kozmik Blueprint'i",
     "technicalBreakdown": "Yıldız Kategorileri",
     "starCategories": "Yıldız Kategorileri",
@@ -1070,7 +1385,28 @@
     "addPerson": "Kişi ekle",
     "addPersonHint": "Sevdiklerinizi ekleyerek uyum analizi yapın",
     "add": "Ekle",
-    "deletePersonConfirm": "Bu kişiyi silmek istiyor musunuz?"
+    "deletePersonConfirm": "Bu kişiyi silmek istiyor musunuz?",
+    "loadingRedirect": "Karşılaştırma ekranı açılıyor...",
+    "helpAccessibility": "Rehberi tekrar aç",
+    "addPersonAccessibility": "Kişi ekle",
+    "reloadPeopleAccessibility": "Kişileri tekrar yükle",
+    "selectPersonAccessibility": "{{name}} seç",
+    "relationshipType": "İlişki Türü",
+    "relationshipOptions": {
+      "love": "Aşk",
+      "business": "İş",
+      "friendship": "Arkadaş",
+      "family": "Aile",
+      "rival": "Rakip"
+    },
+    "compareWithAccessibility": "{{name}} ile karşılaştır",
+    "analyzing": "Analiz ediliyor...",
+    "aiCompare": "AI Karşılaştır",
+    "analysisPreparing": "Karşılaştırma hazırlanıyor, birkaç saniye içinde uyum ekranı açılacak.",
+    "analysisFailed": "Uyum analizi tamamlanamadı. Sunucu yanıt vermedi veya işlem zaman aşımına uğradı.",
+    "retryAnalysisAccessibility": "Analizi tekrar dene",
+    "analysisStartErrorTitle": "Analiz Hatası",
+    "analysisStartErrorMessage": "Sinastri analizi başlatılamadı."
   },
   "editBirthInfo": {
     "title": "Doğum Bilgileri",

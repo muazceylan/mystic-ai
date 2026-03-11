@@ -10,13 +10,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { AppHeader, SafeScreen } from '../../components/ui';
 import * as Haptics from '../../utils/haptics';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import ViewShot from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeScreen } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import NatalChartProPanels from '../../components/Astrology/NatalChartProPanels';
 import { useNatalVisualsStore } from '../../store/useNatalVisualsStore';
@@ -26,6 +25,7 @@ import {
   saveToGallery,
   shareImage,
 } from '../../services/share.service';
+import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 
 type CaptureAction = 'share' | 'save' | 'pdf' | null;
 type VisualPresetKey = 'all' | 'wheel' | 'matrix' | 'balance';
@@ -102,10 +102,10 @@ function buildVisualsPdfHtml(imageUri: string, title: string) {
 }
 
 export default function NatalVisualsPreviewScreen() {
-  const router = useRouter();
   const { colors } = useTheme();
   const draft = useNatalVisualsStore((s) => s.draft);
   const clearDraft = useNatalVisualsStore((s) => s.clearDraft);
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
 
   const viewShotRef = useRef<ViewShot | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
@@ -261,7 +261,7 @@ export default function NatalVisualsPreviewScreen() {
           <Text style={[styles.emptySub, { color: colors.subtext }]}>
             Önce Haritam ekranındaki "Tam Ekran Gör • İndir" butonunu kullan.
           </Text>
-          <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={() => router.back()}>
+          <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={goBack}>
             <Text style={styles.primaryBtnText}>Geri Dön</Text>
           </Pressable>
         </View>
@@ -304,20 +304,11 @@ export default function NatalVisualsPreviewScreen() {
         </ViewShot>
       </View>
 
-      <View style={styles.header}>
-        <Pressable
-          style={[styles.iconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={18} color={colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Profesyonel Natal Görseller</Text>
-          <Text style={[styles.headerSub, { color: colors.subtext }]}>
-            Tam ekran önizle, PNG/PDF olarak indir veya paylaş.
-          </Text>
-        </View>
-      </View>
+      <AppHeader
+        title="Profesyonel Natal Görseller"
+        subtitle="Tam ekran önizle, PNG/PDF olarak indir veya paylaş."
+        onBack={goBack}
+      />
 
       {successText ? (
         <View style={[styles.successBanner, { backgroundColor: colors.successBg, borderColor: colors.successLight }]}>

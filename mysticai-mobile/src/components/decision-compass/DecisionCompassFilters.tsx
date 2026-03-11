@@ -14,9 +14,9 @@ interface DecisionCompassFiltersProps {
 }
 
 const FILTER_OPTIONS: Array<{ key: CompassFilter; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { key: 'ALL', label: 'Tümü', icon: 'apps-outline' },
   { key: 'BEST', label: 'En uygunlar', icon: 'checkmark-outline' },
   { key: 'CAUTION', label: 'Dikkat gerekenler', icon: 'alert-circle-outline' },
-  { key: 'ALL', label: 'Tümü', icon: 'apps-outline' },
 ];
 
 export function DecisionCompassFilters({

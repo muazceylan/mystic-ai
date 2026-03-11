@@ -6,8 +6,8 @@ export const queryKeys = {
     ['oracle', 'daily-secret', params ?? {}] as const,
   homeBrief: (params?: Record<string, string | undefined>) =>
     ['oracle', 'home-brief', params ?? {}] as const,
-  homeDashboard: (userId: number | string, sign?: string) =>
-    ['oracle', 'home-dashboard', userId, sign ?? ''] as const,
+  homeDashboard: (userId: number | string, sign?: string, locale?: string) =>
+    ['oracle', 'home-dashboard', userId, sign ?? '', locale ?? 'tr'] as const,
   skyPulse: () => ['astrology', 'sky-pulse'] as const,
   weeklySwot: (userId: number) => ['astrology', 'weekly-swot', userId] as const,
   dailyLifeGuide: (userId: number, locale?: string, date?: string) =>

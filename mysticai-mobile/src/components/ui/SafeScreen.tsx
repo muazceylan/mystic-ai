@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, ViewStyle, Platform, useWindowDimensions } from 'react-native';
+import { usePathname } from 'expo-router';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { AppSurfaceBackground } from './AppSurfaceBackground';
+import { isStandardSurfaceRoute } from './surfaceUtils';
 
 const WEB_MAX_WIDTH = 920;
 const WEB_SIDE_PAD = 24;
@@ -21,6 +24,8 @@ type SafeScreenProps = {
   style?: ViewStyle;
   /** Wrap children in a managed ScrollView. */
   scroll?: boolean;
+  /** Force or disable the standard app background. Defaults to auto by route. */
+  showStandardBackground?: boolean;
 };
 
 /**
@@ -44,9 +49,15 @@ export function SafeScreen({
   edges = ['top', 'left', 'right', 'bottom'],
   style,
   scroll = false,
+  showStandardBackground,
 }: SafeScreenProps) {
   const { colors } = useTheme();
+  const pathname = usePathname();
   const { width: windowWidth } = useWindowDimensions();
+  const standardBackgroundEnabled = showStandardBackground ?? isStandardSurfaceRoute(pathname);
+  const flattenedStyle = StyleSheet.flatten(style) ?? {};
+  const { backgroundColor, ...containerStyle } = flattenedStyle;
+  const resolvedBackgroundColor = standardBackgroundEnabled ? 'transparent' : backgroundColor ?? colors.bg;
 
   const webContentStyle: ViewStyle | undefined = useMemo(() => {
     if (Platform.OS !== 'web') return undefined;
@@ -67,8 +78,9 @@ export function SafeScreen({
     return (
       <SafeAreaView
         edges={edges}
-        style={[styles.container, { backgroundColor: colors.bg }, style]}
+        style={[styles.container, { backgroundColor: resolvedBackgroundColor }, containerStyle]}
       >
+        {standardBackgroundEnabled ? <AppSurfaceBackground /> : null}
         <ScrollView
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
@@ -86,8 +98,9 @@ export function SafeScreen({
   return (
     <SafeAreaView
       edges={edges}
-      style={[styles.container, { backgroundColor: colors.bg }, style]}
+      style={[styles.container, { backgroundColor: resolvedBackgroundColor }, containerStyle]}
     >
+      {standardBackgroundEnabled ? <AppSurfaceBackground /> : null}
       {inner}
     </SafeAreaView>
   );

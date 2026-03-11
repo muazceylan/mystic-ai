@@ -14,8 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeScreen, Skeleton } from '../components/ui';
-import OnboardingBackground from '../components/OnboardingBackground';
+import { AppHeader, SafeScreen, Skeleton, SurfaceHeaderIconButton } from '../components/ui';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
@@ -105,20 +104,18 @@ export default function DailySummaryScreen() {
   return (
     <SafeScreen>
       <View style={S.container}>
-        <OnboardingBackground />
-
-        <View style={S.header}>
-          <Pressable onPress={goBack} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
-            <Ionicons name="chevron-back" size={20} color={colors.text} />
-          </Pressable>
-          <View style={S.headerTitleWrap}>
-            <Text style={S.headerTitle}>Günlük Özet</Text>
-            <Text style={S.headerSub}>{formatShortDateTr(skyPulse?.date)} • {skyPulse?.moonSignTurkish ? `☾ ${skyPulse.moonSignTurkish}` : 'Gökyüzü akışı'}</Text>
-          </View>
-          <Pressable onPress={() => router.push('/(tabs)/calendar')} style={({ pressed }) => [S.headerBtn, pressed && S.pressed]}>
-            <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          </Pressable>
-        </View>
+        <AppHeader
+          title="Günlük Özet"
+          subtitle={`${formatShortDateTr(skyPulse?.date)} • ${skyPulse?.moonSignTurkish ? `☾ ${skyPulse.moonSignTurkish}` : 'Gökyüzü akışı'}`}
+          onBack={goBack}
+          rightActions={(
+            <SurfaceHeaderIconButton
+              iconName="calendar-outline"
+              onPress={() => router.push('/(tabs)/calendar')}
+              accessibilityLabel="Takvim"
+            />
+          )}
+        />
 
         <ScrollView
           style={S.scroll}
