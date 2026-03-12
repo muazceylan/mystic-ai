@@ -2,7 +2,8 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors, radius, shadowSubtle, spacing, typography } from '../../theme';
+import { radius, shadowSubtle, spacing, typography } from '../../theme';
+import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 
 interface DailyTransitsCardProps {
   phase?: string;
@@ -22,6 +23,8 @@ export function DailyTransitsCard({
   onPress,
 }: DailyTransitsCardProps) {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const phaseText = phase?.trim() || '—';
   const moonSignText = moonSign?.trim() || '—';
 
@@ -59,71 +62,74 @@ export function DailyTransitsCard({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    marginTop: spacing.sectionGap,
-  },
-  title: {
-    ...typography.H2,
-    marginBottom: spacing.cardGap,
-  },
-  card: {
-    minHeight: spacing.iconWrap + spacing.xl,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.surfaceGlass,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    ...shadowSubtle,
-  },
-  leftSide: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  iconShell: {
-    width: spacing.iconWrap,
-    height: spacing.iconWrap,
-    borderRadius: radius.icon,
-    backgroundColor: colors.transitIconBg,
-    borderWidth: 1,
-    borderColor: colors.transitIconBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  textBlock: {
-    flex: 1,
-    marginLeft: spacing.sm,
-  },
-  mainLine: {
-    ...typography.Body,
-    fontWeight: '700',
-    color: colors.transitTextPrimary,
-  },
-  subLine: {
-    ...typography.Body,
-    color: colors.transitTextSecondary,
-    marginTop: spacing.xxs,
-  },
-  retroPill: {
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.transitPillBorder,
-    backgroundColor: colors.transitPillBg,
-    paddingHorizontal: spacing.pillPaddingX - spacing.xs,
-    paddingVertical: spacing.pillPaddingY - spacing.xxs - 1,
-  },
-  retroText: {
-    ...typography.Caption,
-    fontWeight: '700',
-    color: colors.transitPillText,
-  },
-  pressed: {
-    opacity: 0.86,
-  },
-});
+function makeStyles(C: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    wrap: {
+      marginTop: spacing.sectionGap,
+    },
+    title: {
+      ...typography.H2,
+      marginBottom: spacing.cardGap,
+      color: C.text,
+    },
+    card: {
+      minHeight: spacing.iconWrap + spacing.xl,
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      ...shadowSubtle,
+    },
+    leftSide: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    iconShell: {
+      width: spacing.iconWrap,
+      height: spacing.iconWrap,
+      borderRadius: radius.icon,
+      backgroundColor: isDark ? 'rgba(142,116,248,0.34)' : '#9F7DFF',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(205,188,255,0.42)' : '#CBB8FF',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    textBlock: {
+      flex: 1,
+      marginLeft: spacing.sm,
+    },
+    mainLine: {
+      ...typography.Body,
+      fontWeight: '700',
+      color: C.text,
+    },
+    subLine: {
+      ...typography.Body,
+      color: C.subtext,
+      marginTop: spacing.xxs,
+    },
+    retroPill: {
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : 'rgba(216,204,255,0.92)',
+      backgroundColor: isDark ? 'rgba(53,48,78,0.86)' : '#F5F0FF',
+      paddingHorizontal: spacing.pillPaddingX - spacing.xs,
+      paddingVertical: spacing.pillPaddingY - spacing.xxs - 1,
+    },
+    retroText: {
+      ...typography.Caption,
+      fontWeight: '700',
+      color: isDark ? C.textSoft : '#4E357E',
+    },
+    pressed: {
+      opacity: 0.86,
+    },
+  });
+}

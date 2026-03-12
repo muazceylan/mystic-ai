@@ -2,7 +2,8 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors, radius, shadowSubtle, spacing, typography } from '../../theme';
+import { radius, shadowSubtle, spacing, typography } from '../../theme';
+import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 
 interface HoroscopeSummaryCardProps {
   sign?: string;
@@ -85,6 +86,9 @@ function TopShortcutCard({
   subtitle,
   iconName,
   onPress,
+  styles,
+  iconColor,
+  chevronColor,
 }: {
   titlePrefix: string;
   sign: string;
@@ -92,6 +96,9 @@ function TopShortcutCard({
   subtitle: string;
   iconName: React.ComponentProps<typeof Ionicons>['name'];
   onPress: () => void;
+  styles: HoroscopeSummaryStyles;
+  iconColor: string;
+  chevronColor: string;
 }) {
   const { t } = useTranslation();
   const fullTitle = `${titlePrefix} ${sign}`;
@@ -105,7 +112,7 @@ function TopShortcutCard({
       style={({ pressed }) => [styles.shortcut, pressed && styles.pressed]}
     >
       <View style={styles.shortcutIconShell}>
-        <Ionicons name={iconName} size={SHORTCUT_ICON_SIZE} color={colors.white} />
+        <Ionicons name={iconName} size={SHORTCUT_ICON_SIZE} color={iconColor} />
       </View>
       <View style={styles.shortcutContent}>
         <Text numberOfLines={1} style={styles.shortcutTitlePrefix}>{titlePrefix}</Text>
@@ -115,7 +122,7 @@ function TopShortcutCard({
         </View>
         <Text numberOfLines={1} style={styles.shortcutSubtitle}>{subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={spacing.md + spacing.xs} color={colors.primaryMuted} />
+      <Ionicons name="chevron-forward" size={spacing.md + spacing.xs} color={chevronColor} />
     </Pressable>
   );
 }
@@ -130,6 +137,8 @@ export function HoroscopeSummaryCard({
   onPressDetails,
 }: HoroscopeSummaryCardProps) {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const signText = cleanSignName(sign, t('zodiac.pisces'));
   const signIcon = zodiacGlyph(signText);
   const themeText = theme?.trim() || '';
@@ -149,6 +158,9 @@ export function HoroscopeSummaryCard({
             subtitle={t('homeSurface.horoscopeSummary.todaySubtitle')}
             iconName="sparkles"
             onPress={onPressToday}
+            styles={styles}
+            iconColor={colors.white}
+            chevronColor={isDark ? colors.primaryLight : colors.primary700}
           />
           <TopShortcutCard
             titlePrefix={t('homeSurface.horoscopeSummary.weekPrefix')}
@@ -157,6 +169,9 @@ export function HoroscopeSummaryCard({
             subtitle={t('homeSurface.horoscopeSummary.weekSubtitle')}
             iconName="calendar"
             onPress={onPressWeek}
+            styles={styles}
+            iconColor={colors.white}
+            chevronColor={isDark ? colors.primaryLight : colors.primary700}
           />
         </View>
 
@@ -195,132 +210,137 @@ export function HoroscopeSummaryCard({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    marginTop: spacing.sectionGap,
-  },
-  title: {
-    ...typography.H2,
-    marginBottom: spacing.cardGap,
-  },
-  card: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.surfaceGlass,
-    overflow: 'hidden',
-    ...shadowSubtle,
-  },
-  shortcutRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.sm,
-    gap: spacing.cardGap,
-  },
-  shortcut: {
-    flex: 1,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.horoscopeShortcutBorder,
-    backgroundColor: colors.horoscopeShortcutBg,
-    minHeight: SHORTCUT_HEIGHT,
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.xs,
-  },
-  shortcutIconShell: {
-    width: SHORTCUT_ICON_WRAP,
-    height: SHORTCUT_ICON_WRAP,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.horoscopeShortcutIconBg,
-    marginTop: 2,
-  },
-  shortcutContent: {
-    flex: 1,
-    marginRight: spacing.xxs,
-  },
-  shortcutTitlePrefix: {
-    ...typography.Caption,
-    fontSize: 12,
-    lineHeight: 15,
-    fontWeight: '700',
-    color: colors.horoscopeTitle,
-  },
-  signRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xxs,
-    marginTop: 1,
-  },
-  signIcon: {
-    fontSize: 14,
-    lineHeight: 16,
-    color: colors.primaryDark,
-  },
-  shortcutSignText: {
-    ...typography.Body,
-    fontSize: 15,
-    lineHeight: 18,
-    fontWeight: '700',
-    color: colors.horoscopeTitle,
-    flexShrink: 1,
-  },
-  shortcutSubtitle: {
-    ...typography.Caption,
-    marginTop: 2,
-    fontSize: 11,
-    lineHeight: 14,
-    color: colors.horoscopeTextSubtle,
-  },
-  summaryArea: {
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSoft,
-    paddingHorizontal: spacing.cardPadding,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-  },
-  line: {
-    ...typography.Body,
-    color: colors.horoscopeTextBody,
-    paddingRight: spacing.xs,
-  },
-  lineLabel: {
-    fontWeight: '700',
-    color: colors.horoscopeTextStrong,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: spacing.xxs,
-  },
-  detailBtn: {
-    minWidth: spacing.chevronHitArea + spacing.md,
-    minHeight: spacing.chevronHitArea,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xxs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.primarySoft,
-  },
-  detailText: {
-    ...typography.Caption,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  loadingText: {
-    ...typography.Body,
-    color: colors.textSecondary,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-});
+type HoroscopeSummaryStyles = ReturnType<typeof makeStyles>;
+
+function makeStyles(C: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    wrap: {
+      marginTop: spacing.sectionGap,
+    },
+    title: {
+      ...typography.H2,
+      marginBottom: spacing.cardGap,
+      color: C.text,
+    },
+    card: {
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+      overflow: 'hidden',
+      ...shadowSubtle,
+    },
+    shortcutRow: {
+      flexDirection: 'row',
+      paddingHorizontal: spacing.sm,
+      paddingTop: spacing.sm,
+      gap: spacing.cardGap,
+    },
+    shortcut: {
+      flex: 1,
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(143,116,242,0.30)' : '#DDD2FF',
+      backgroundColor: isDark ? 'rgba(46,40,74,0.84)' : '#F8F4FF',
+      minHeight: SHORTCUT_HEIGHT,
+      paddingVertical: spacing.xs + 2,
+      paddingHorizontal: spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.xs,
+    },
+    shortcutIconShell: {
+      width: SHORTCUT_ICON_WRAP,
+      height: SHORTCUT_ICON_WRAP,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(138,89,244,0.72)' : '#8A59F4',
+      marginTop: 2,
+    },
+    shortcutContent: {
+      flex: 1,
+      marginRight: spacing.xxs,
+    },
+    shortcutTitlePrefix: {
+      ...typography.Caption,
+      fontSize: 12,
+      lineHeight: 15,
+      fontWeight: '700',
+      color: C.subtext,
+    },
+    signRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+      marginTop: 1,
+    },
+    signIcon: {
+      fontSize: 14,
+      lineHeight: 16,
+      color: C.primary,
+    },
+    shortcutSignText: {
+      ...typography.Body,
+      fontSize: 15,
+      lineHeight: 18,
+      fontWeight: '700',
+      color: C.text,
+      flexShrink: 1,
+    },
+    shortcutSubtitle: {
+      ...typography.Caption,
+      marginTop: 2,
+      fontSize: 11,
+      lineHeight: 14,
+      color: C.subtext,
+    },
+    summaryArea: {
+      borderTopWidth: 1,
+      borderTopColor: C.border,
+      paddingHorizontal: spacing.cardPadding,
+      paddingVertical: spacing.sm,
+      gap: spacing.xs,
+    },
+    line: {
+      ...typography.Body,
+      color: C.body,
+      paddingRight: spacing.xs,
+    },
+    lineLabel: {
+      fontWeight: '700',
+      color: C.text,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      marginTop: spacing.xxs,
+    },
+    detailBtn: {
+      minWidth: spacing.chevronHitArea + spacing.md,
+      minHeight: spacing.chevronHitArea,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: isDark ? 'rgba(123,95,230,0.22)' : C.primarySoft,
+    },
+    detailText: {
+      ...typography.Caption,
+      color: C.primary,
+      fontWeight: '700',
+    },
+    loadingText: {
+      ...typography.Body,
+      color: C.subtext,
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+  });
+}

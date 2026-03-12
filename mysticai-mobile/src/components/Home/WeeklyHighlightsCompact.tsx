@@ -2,7 +2,8 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors, radius, shadowSubtle, spacing, typography } from '../../theme';
+import { radius, shadowSubtle, spacing, typography } from '../../theme';
+import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 import type { WeeklyItem } from './types';
 
 interface WeeklyHighlightsCompactProps {
@@ -15,29 +16,31 @@ interface WeeklyHighlightsCompactProps {
 const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 const LINK_HIT_SLOP = { top: 12, bottom: 12, left: 16, right: 16 };
 
-function getBadge(level: WeeklyItem['level']) {
+function getBadge(level: WeeklyItem['level'], C: ThemeColors) {
   if (level === 'high') {
     return {
-      bg: colors.highBg,
-      text: colors.highText,
+      bg: C.successBg,
+      text: C.success,
     };
   }
 
   if (level === 'medium') {
     return {
-      bg: colors.warningBg,
-      text: colors.warningText,
+      bg: C.warningBg,
+      text: C.warning,
     };
   }
 
   return {
-    bg: colors.riskBg,
-    text: colors.riskText,
+    bg: C.redBg,
+    text: C.red,
   };
 }
 
 export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPressAll }: WeeklyHighlightsCompactProps) {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
 
   if (!items?.length) {
     return null;
@@ -62,7 +65,7 @@ export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPress
 
       <View style={styles.card}>
         {items.slice(0, 3).map((item, index) => {
-          const badge = getBadge(item.level);
+          const badge = getBadge(item.level, colors);
           return (
             <Pressable
               key={`${item.title}-${index}`}
@@ -94,80 +97,84 @@ export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPress
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    marginTop: spacing.sectionGap,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  title: {
-    ...typography.H2,
-  },
-  card: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.surfaceGlass,
-    paddingHorizontal: spacing.cardPadding,
-    ...shadowSubtle,
-  },
-  itemRow: {
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  lastRow: {
-    borderBottomWidth: 0,
-  },
-  itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: spacing.xs,
-  },
-  itemTextWrap: {
-    flex: 1,
-  },
-  itemTitle: {
-    ...typography.Body,
-    fontWeight: '700',
-  },
-  itemDesc: {
-    ...typography.Caption,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
-  badge: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    ...typography.Caption,
-    fontWeight: '700',
-  },
-  linkWrap: {
-    alignSelf: 'flex-start',
-    minHeight: spacing.chevronHitArea,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    marginRight: -spacing.sm,
-    justifyContent: 'center',
-  },
-  linkText: {
-    ...typography.Caption,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.84,
-  },
-});
+function makeStyles(C: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    wrap: {
+      marginTop: spacing.sectionGap,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    title: {
+      ...typography.H2,
+      color: C.text,
+    },
+    card: {
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+      paddingHorizontal: spacing.cardPadding,
+      ...shadowSubtle,
+    },
+    itemRow: {
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: C.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    lastRow: {
+      borderBottomWidth: 0,
+    },
+    itemLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      gap: spacing.xs,
+    },
+    itemTextWrap: {
+      flex: 1,
+    },
+    itemTitle: {
+      ...typography.Body,
+      color: C.text,
+      fontWeight: '700',
+    },
+    itemDesc: {
+      ...typography.Caption,
+      color: C.subtext,
+      marginTop: 1,
+    },
+    badge: {
+      borderRadius: radius.pill,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: 4,
+    },
+    badgeText: {
+      ...typography.Caption,
+      fontWeight: '700',
+    },
+    linkWrap: {
+      alignSelf: 'flex-start',
+      minHeight: spacing.chevronHitArea,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      marginRight: -spacing.sm,
+      justifyContent: 'center',
+    },
+    linkText: {
+      ...typography.Caption,
+      color: C.primary,
+      fontWeight: '700',
+    },
+    pressed: {
+      opacity: 0.84,
+    },
+  });
+}

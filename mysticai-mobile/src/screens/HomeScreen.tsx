@@ -33,7 +33,8 @@ import {
   SafeScreen,
   SurfaceHeaderIconButton,
 } from '../components/ui';
-import { colors, radius, shadowSubtle, spacing, typography } from '../theme';
+import { radius, shadowSubtle, spacing, typography } from '../theme';
+import { useTheme, type ThemeColors } from '../context/ThemeContext';
 
 const HOME_VARIANT = 'premium_v3';
 const NIGHT_SKY_ROUTE = '/night-sky';
@@ -145,7 +146,11 @@ function resolveWeeklyHoroscopeRoute(signName: string | undefined): string {
   return `/(tabs)/horoscope/${resolveSignSlug(signName)}?period=weekly`;
 }
 
-function resolveQuickActionVisual(key: string | undefined, title: string | undefined) {
+function resolveQuickActionVisual(
+  key: string | undefined,
+  title: string | undefined,
+  fallbackColors: { iconColor: string; iconBg: string },
+) {
   const normalizedKey = normalizeToken(key);
   const normalizedTitle = normalizeToken(title);
 
@@ -155,8 +160,8 @@ function resolveQuickActionVisual(key: string | undefined, title: string | undef
 
   return entry?.[1] ?? {
     iconName: 'apps-outline',
-    iconColor: colors.primary,
-    iconBg: colors.primarySoft,
+    iconColor: fallbackColors.iconColor,
+    iconBg: fallbackColors.iconBg,
   };
 }
 
@@ -253,8 +258,8 @@ function extractHeroIllumination(subtitle: string | undefined): number {
   return 0;
 }
 
-function LoadingBlock({ height }: { height: number }) {
-  return <View style={[styles.loadingBlock, { height }]} />;
+function LoadingBlock({ height, style }: { height: number; style: object }) {
+  return <View style={[style, { height }]} />;
 }
 
 function resolveNumerologyWidgetRoute(emptyVariant: 'none' | 'name_missing' | 'birth_date_missing' | 'both_missing') {
@@ -272,6 +277,8 @@ function resolveNumerologyWidgetRoute(emptyVariant: 'none' | 'name_missing' | 'b
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
   const user = useAuthStore((state) => state.user);
@@ -374,7 +381,10 @@ export default function HomeScreen() {
     }
 
     return dashboard.quickActions.slice(0, 4).map((action, index) => {
-      const visual = resolveQuickActionVisual(action.key, action.title);
+      const visual = resolveQuickActionVisual(action.key, action.title, {
+        iconColor: colors.primary,
+        iconBg: colors.primarySoft,
+      });
       const route = toRoute(action.route);
       const available = Boolean(action.available && route);
 
@@ -388,7 +398,7 @@ export default function HomeScreen() {
         ...visual,
       };
     });
-  }, [dashboard, t]);
+  }, [colors.primary, colors.primarySoft, dashboard, t]);
 
   const weeklyItems = useMemo<WeeklyItem[]>(() => {
     if (!dashboard?.weeklyHighlights?.items?.length) {
@@ -731,8 +741,8 @@ export default function HomeScreen() {
         ) : initialLoading ? (
           <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.QUICK_ACTIONS}>
             <View style={styles.quickSkeletonGrid}>
-              <LoadingBlock height={spacing.xxl * 4 + spacing.md} />
-              <LoadingBlock height={spacing.xxl * 4 + spacing.md} />
+              <LoadingBlock style={styles.loadingBlock} height={spacing.xxl * 4 + spacing.md} />
+              <LoadingBlock style={styles.loadingBlock} height={spacing.xxl * 4 + spacing.md} />
             </View>
           </SpotlightTarget>
         ) : null}
@@ -777,7 +787,7 @@ export default function HomeScreen() {
           </SpotlightTarget>
         ) : homeNumerology.isLoading ? (
           <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
-            <LoadingBlock height={138} />
+            <LoadingBlock style={styles.loadingBlock} height={138} />
           </SpotlightTarget>
         ) : null}
 
@@ -887,156 +897,158 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: spacing.screenPadding,
-  },
-  quickSkeletonGrid: {
-    marginTop: spacing.cardGap,
-    gap: spacing.sm,
-  },
-  numerologyWidget: {
-    marginTop: spacing.cardGap,
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    ...shadowSubtle,
-  },
-  numerologyWidgetInner: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: 'rgba(240, 204, 85, 0.24)',
-    paddingHorizontal: spacing.cardPadding,
-    paddingVertical: spacing.lg,
-  },
-  numerologyWidgetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  numerologyWidgetKicker: {
-    ...typography.Caption,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  numerologyYearPill: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-    backgroundColor: 'rgba(248,230,175,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,230,175,0.28)',
-  },
-  numerologyYearPillText: {
-    ...typography.Caption,
-    color: '#F8E6AF',
-    fontWeight: '700',
-  },
-  numerologyWidgetTitle: {
-    ...typography.H2,
-    color: '#FFFFFF',
-    marginBottom: spacing.xs,
-  },
-  numerologyWidgetBody: {
-    ...typography.Body,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  numerologyWidgetFocus: {
-    ...typography.Caption,
-    marginTop: spacing.xs,
-    color: 'rgba(248,230,175,0.92)',
-    fontWeight: '700',
-  },
-  numerologyWidgetFooter: {
-    marginTop: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  numerologyWidgetCta: {
-    ...typography.Button,
-    color: '#F8E6AF',
-  },
-  loadingBlock: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.surfaceGlass,
-  },
-  retryWrap: {
-    marginTop: spacing.sectionGap,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.surfaceGlass,
-    paddingHorizontal: spacing.cardPadding,
-    paddingVertical: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  retryText: {
-    ...typography.Caption,
-    color: colors.textSecondary,
-  },
-  retryButton: {
-    paddingVertical: spacing.xxs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.primarySoft,
-  },
-  retryButtonText: {
-    ...typography.Caption,
-    color: colors.primaryDark,
-    fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  cmsBannerCard: {
-    marginTop: spacing.cardGap,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.surfaceGlass,
-    paddingHorizontal: spacing.cardPadding,
-    paddingVertical: spacing.lg,
-  },
-  cmsBannerTitle: {
-    ...typography.H2,
-    color: colors.textPrimary,
-  },
-  cmsBannerSubtitle: {
-    ...typography.Body,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  cmsBannerCta: {
-    ...typography.Button,
-    color: colors.primary,
-    marginTop: spacing.sm,
-  },
-  cmsSectionCard: {
-    marginTop: spacing.cardGap,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.surfaceGlass,
-    paddingHorizontal: spacing.cardPadding,
-    paddingVertical: spacing.md,
-  },
-  cmsSectionTitle: {
-    ...typography.H2,
-    color: colors.textPrimary,
-  },
-  cmsSectionSubtitle: {
-    ...typography.Body,
-    color: colors.textSecondary,
-    marginTop: spacing.xxs,
-  },
-});
+function makeStyles(C: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    content: {
+      paddingHorizontal: spacing.screenPadding,
+    },
+    quickSkeletonGrid: {
+      marginTop: spacing.cardGap,
+      gap: spacing.sm,
+    },
+    numerologyWidget: {
+      marginTop: spacing.cardGap,
+      borderRadius: radius.card,
+      overflow: 'hidden',
+      ...shadowSubtle,
+    },
+    numerologyWidgetInner: {
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: 'rgba(240, 204, 85, 0.24)',
+      paddingHorizontal: spacing.cardPadding,
+      paddingVertical: spacing.lg,
+    },
+    numerologyWidgetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    numerologyWidgetKicker: {
+      ...typography.Caption,
+      color: 'rgba(255,255,255,0.7)',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    numerologyYearPill: {
+      borderRadius: radius.pill,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xxs,
+      backgroundColor: 'rgba(248,230,175,0.18)',
+      borderWidth: 1,
+      borderColor: 'rgba(248,230,175,0.28)',
+    },
+    numerologyYearPillText: {
+      ...typography.Caption,
+      color: '#F8E6AF',
+      fontWeight: '700',
+    },
+    numerologyWidgetTitle: {
+      ...typography.H2,
+      color: '#FFFFFF',
+      marginBottom: spacing.xs,
+    },
+    numerologyWidgetBody: {
+      ...typography.Body,
+      color: 'rgba(255,255,255,0.8)',
+    },
+    numerologyWidgetFocus: {
+      ...typography.Caption,
+      marginTop: spacing.xs,
+      color: 'rgba(248,230,175,0.92)',
+      fontWeight: '700',
+    },
+    numerologyWidgetFooter: {
+      marginTop: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    numerologyWidgetCta: {
+      ...typography.Button,
+      color: '#F8E6AF',
+    },
+    loadingBlock: {
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+    },
+    retryWrap: {
+      marginTop: spacing.sectionGap,
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+      paddingHorizontal: spacing.cardPadding,
+      paddingVertical: spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    retryText: {
+      ...typography.Caption,
+      color: C.subtext,
+    },
+    retryButton: {
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: isDark ? 'rgba(123,95,230,0.22)' : C.primarySoft,
+    },
+    retryButtonText: {
+      ...typography.Caption,
+      color: C.primary,
+      fontWeight: '700',
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+    cmsBannerCard: {
+      marginTop: spacing.cardGap,
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+      paddingHorizontal: spacing.cardPadding,
+      paddingVertical: spacing.lg,
+    },
+    cmsBannerTitle: {
+      ...typography.H2,
+      color: C.text,
+    },
+    cmsBannerSubtitle: {
+      ...typography.Body,
+      color: C.subtext,
+      marginTop: spacing.xs,
+    },
+    cmsBannerCta: {
+      ...typography.Button,
+      color: C.primary,
+      marginTop: spacing.sm,
+    },
+    cmsSectionCard: {
+      marginTop: spacing.cardGap,
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+      paddingHorizontal: spacing.cardPadding,
+      paddingVertical: spacing.md,
+    },
+    cmsSectionTitle: {
+      ...typography.H2,
+      color: C.text,
+    },
+    cmsSectionSubtitle: {
+      ...typography.Body,
+      color: C.subtext,
+      marginTop: spacing.xxs,
+    },
+  });
+}
