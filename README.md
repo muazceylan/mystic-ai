@@ -31,6 +31,11 @@ Mystic AI is a microservices-based platform that combines astrology, numerology,
 - **Mobile App:** React Native (Expo) for iOS and Android
 - **Admin Panel:** Next.js dashboard for content and notification management
 
+### AI Assistant Workflow
+
+AI assistants should read [`CLAUDE.md`](CLAUDE.md) before analysis or code changes.
+`CLAUDE.md` is the project-specific source of truth; after reading it, inspect only the relevant bounded context.
+
 ### Architecture
 
 ```
@@ -154,7 +159,7 @@ cd mysticai-mobile && npm install && npm run start
 | Variable | Description |
 |----------|-------------|
 | `EXPO_PUBLIC_APP_ENV` | `dev / stage / prod` |
-| `EXPO_PUBLIC_API_BASE_URL_DEV` | API URL for development |
+| `EXPO_PUBLIC_API_BASE_URL_DEV_OVERRIDE` | Optional manual dev API override (`http://<host>:8080`) |
 
 ### Monitoring Tools
 
@@ -210,6 +215,11 @@ Mystic AI; astroloji, numeroloji, rüya yorumu ve spiritüel pratikleri yapay ze
 - **Backend:** 10 Spring Boot mikroservisi
 - **Mobil Uygulama:** iOS ve Android için React Native (Expo)
 - **Admin Paneli:** İçerik ve bildirim yönetimi için Next.js dashboard
+
+### AI Asistani Is Akisi
+
+AI asistanlari analiz veya kod degisikliginden once [`CLAUDE.md`](CLAUDE.md) dosyasini okumalıdır.
+`CLAUDE.md` proje icin ana referanstir; bu dosya okunduktan sonra yalnizca ilgili bounded context incelenmelidir.
 
 ### Mimari
 
@@ -334,7 +344,7 @@ cd mysticai-mobile && npm install && npm run start
 | Değişken | Açıklama |
 |----------|----------|
 | `EXPO_PUBLIC_APP_ENV` | `dev / stage / prod` |
-| `EXPO_PUBLIC_API_BASE_URL_DEV` | Geliştirme ortamı API URL'i |
+| `EXPO_PUBLIC_API_BASE_URL_DEV_OVERRIDE` | Opsiyonel manuel dev API override (`http://<host>:8080`) |
 
 ### Monitoring Araçları
 

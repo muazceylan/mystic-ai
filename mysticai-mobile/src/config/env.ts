@@ -85,6 +85,8 @@ function resolveExpoMetroHost(): string | null {
     Constants.expoConfig?.hostUri,
     (Constants.manifest2 as { extra?: { expoClient?: { hostUri?: string } } } | null)?.extra?.expoClient?.hostUri,
     (Constants.expoGoConfig as { debuggerHost?: string } | null)?.debuggerHost,
+    Constants.linkingUri,
+    Constants.experienceUrl,
     (NativeModules as { SourceCode?: { scriptURL?: string } }).SourceCode?.scriptURL,
   ];
 
@@ -98,6 +100,14 @@ function resolveExpoMetroHost(): string | null {
   return null;
 }
 
+function getIsPhysicalDevice(): boolean | null {
+  const maybeIsDevice = (Constants as { isDevice?: boolean }).isDevice;
+  if (typeof maybeIsDevice === 'boolean') {
+    return maybeIsDevice;
+  }
+  return null;
+}
+
 export function resolveDevBaseUrl(port: number, explicitOverride?: string | null): string {
   const override = normalizeBaseUrl(explicitOverride);
   if (override) {
@@ -108,13 +118,14 @@ export function resolveDevBaseUrl(port: number, explicitOverride?: string | null
     return buildHttpUrl(resolveWebHost(), port);
   }
 
-  if (!Constants.isDevice) {
-    return buildHttpUrl(getDefaultDevHost(), port);
-  }
-
   const metroHost = resolveExpoMetroHost();
   if (metroHost) {
     return buildHttpUrl(metroHost, port);
+  }
+
+  const isPhysicalDevice = getIsPhysicalDevice();
+  if (isPhysicalDevice === false) {
+    return buildHttpUrl(getDefaultDevHost(), port);
   }
 
   const fallbackUrl = buildHttpUrl(getDefaultDevHost(), port);

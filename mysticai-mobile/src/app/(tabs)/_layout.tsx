@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY } from '../../constants/tokens';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   clearPlannerFullDistributionCache,
   prefetchPlannerFullDistribution,
@@ -36,6 +37,7 @@ function getMonthRange(date: Date) {
 export default function TabsLayout() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
   const isNatalChartStale = useNatalChartStore((s) => s.isStale);
@@ -62,6 +64,9 @@ export default function TabsLayout() {
     () => ((i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     [i18n.language, i18n.resolvedLanguage],
   );
+  const iosBottomInset = Math.max(insets.bottom, 0);
+  const iosTabBarHeight = 62 + iosBottomInset;
+  const iosTabBarPaddingBottom = Math.max(10, iosBottomInset);
 
   useEffect(() => {
     let active = true;
@@ -158,8 +163,8 @@ export default function TabsLayout() {
           bottom: Platform.OS === 'ios' ? 10 : 0,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 88 : 72,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+          height: Platform.OS === 'ios' ? iosTabBarHeight : 72,
+          paddingBottom: Platform.OS === 'ios' ? iosTabBarPaddingBottom : 8,
           paddingTop: Platform.OS === 'ios' ? 7 : 8,
           borderRadius: Platform.OS === 'ios' ? 26 : 0,
           overflow: Platform.OS === 'ios' ? 'hidden' : 'visible',
@@ -170,8 +175,8 @@ export default function TabsLayout() {
           elevation: Platform.OS === 'ios' ? 0 : 4,
         },
         tabBarItemStyle: Platform.OS === 'ios'
-          ? { borderRadius: 16, marginHorizontal: 2, marginVertical: 2 }
-          : undefined,
+          ? { flex: 1, minWidth: 0, borderRadius: 16, marginHorizontal: 2, marginVertical: 2 }
+          : { flex: 1, minWidth: 0 },
         tabBarActiveBackgroundColor: Platform.OS === 'ios'
           ? (isDark ? 'rgba(180,148,255,0.16)' : 'rgba(122,91,234,0.10)')
           : undefined,
@@ -369,7 +374,7 @@ export default function TabsLayout() {
               color={color}
             />
           ),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -383,49 +388,49 @@ export default function TabsLayout() {
               color={color}
             />
           ),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="decision-compass-all-categories"
         options={{
           title: t('surfaceTitles.decisionCompassAllCategories'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="compare"
         options={{
           title: t('surfaceTitles.compare'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="name-analysis"
         options={{
           title: t('surfaceTitles.nameAnalysis'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="name-search"
         options={{
           title: t('surfaceTitles.nameSearch'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="name-favorites"
         options={{
           title: t('surfaceTitles.nameFavorites'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="name-detail/[id]"
         options={{
           title: t('surfaceTitles.nameDetail'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -452,7 +457,7 @@ export default function TabsLayout() {
               color={color}
             />
           ),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -466,7 +471,7 @@ export default function TabsLayout() {
               color={color}
             />
           ),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -480,42 +485,42 @@ export default function TabsLayout() {
               color={color}
             />
           ),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="spiritual"
         options={{
           title: t('surfaceTitles.spiritual'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="weekly-analysis"
         options={{
           title: t('home.weeklyAnalysis'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="transit-detail"
         options={{
           title: t('home.transitTitle'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="daily-transits"
         options={{
           title: t('home.transitTitle'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="today-actions"
         options={{
           title: t('home.transitActionItems'),
-          tabBarButton: () => null,
+          href: null,
         }}
       />
     </Tabs>

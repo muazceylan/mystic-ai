@@ -367,7 +367,7 @@ public class AstrologyResponseListener {
 
     private List<String> buildFallbackChallenges(Synastry synastry) {
         return List.of(
-                "Duygusal tempo farkı zaman zaman sürtünme yaratabilir; konuşma için doğru anı seçmek rahatlatır.",
+                "Duygusal tempo farkı zaman zaman problem yaratabilir; konuşma için doğru anı seçmek rahatlatır.",
                 "Karar ritmi farklıysa biri hızlanırken diğeri geri çekilebilir; kısa bir duraklama denge sağlar."
         );
     }

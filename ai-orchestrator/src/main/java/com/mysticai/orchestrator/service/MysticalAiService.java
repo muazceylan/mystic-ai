@@ -219,6 +219,21 @@ public class MysticalAiService {
         }
     }
 
+    /**
+     * Runs a plain-text prompt through the simple fallback chain.
+     * Used for lightweight tasks such as translation where premium fusion quality is unnecessary.
+     */
+    public String generateSimpleText(String systemPrompt, String userPrompt) {
+        String combined = systemPrompt + "\n\n" + userPrompt;
+        logger.info("Generating simple text, prompt length: {}", combined.length());
+        try {
+            return callAiModel(combined, false).trim();
+        } catch (Exception e) {
+            logger.error("Simple text generation failed: {}", e.getMessage());
+            throw new RuntimeException("Simple AI generation failed: " + e.getMessage(), e);
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // Internal prompt builder
     // ─────────────────────────────────────────────────────────────────────
@@ -545,8 +560,8 @@ public class MysticalAiService {
                     "Ortak hedeflerin küçük adımlara bölünmesi ilişki ritmini güçlendirebilir."
             )));
             out.set("challenges", normalizeRelationshipArray(objectMapper.createArrayNode(), 2, List.of(
-                    "Duygusal tempo farkı gündelik iletişimde sürtünme yaratabilir.",
-                    "Karar ritmi eşleşmediğinde biri hızlanırken diğeri geri çekilebilir."
+                    "Duygusal tempo farkı gündelik iletişimde problem yaratabilir.",
+                    "Kararsızlık kalınırsa problemler  yaşanabilir."
             )));
             out.put("keyWarning", "Varsayım üzerinden konuşmak yerine niyeti netleştirmeden karar vermemek kritik olur.");
             out.put("cosmicAdvice", buildRelationshipAdviceFallback(userName, partnerName, relationshipType));

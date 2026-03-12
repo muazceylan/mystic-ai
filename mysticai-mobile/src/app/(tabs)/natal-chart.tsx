@@ -88,7 +88,7 @@ import NatalChartHeroCard, {
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { AccordionSection, SafeScreen, TabHeader } from '../../components/ui';
+import { AccordionSection, SafeScreen, TabHeader, TabSwipeGesture } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import {
   BIRTH_CHART_TUTORIAL_TARGET_KEYS,
@@ -1596,14 +1596,16 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'loading') {
     return (
-      <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.violet} />
-          <Animated.View style={[styles.skelLine, { width: 180, opacity: pulseAnim }]} />
-          <Animated.View style={[styles.skelLine, { width: 120, opacity: pulseAnim }]} />
-          <Text style={styles.loadingText}>Haritaniz yukleniyor...</Text>
-        </View>
-      </SafeScreen>
+      <TabSwipeGesture tab="natal-chart">
+        <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.violet} />
+            <Animated.View style={[styles.skelLine, { width: 180, opacity: pulseAnim }]} />
+            <Animated.View style={[styles.skelLine, { width: 120, opacity: pulseAnim }]} />
+            <Text style={styles.loadingText}>Haritaniz yukleniyor...</Text>
+          </View>
+        </SafeScreen>
+      </TabSwipeGesture>
     );
   }
 
@@ -1612,9 +1614,10 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'calculating') {
     return (
-      <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
-        <View style={styles.center}>
-          <Animated.Text
+      <TabSwipeGesture tab="natal-chart">
+        <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
+          <View style={styles.center}>
+            <Animated.Text
             style={[
               styles.calcSymbol,
               {
@@ -1632,13 +1635,14 @@ export default function NatalChartTab() {
                 ],
               },
             ]}
-          >
-            {ZODIAC_SYMBOLS[Math.floor(Date.now() / 500) % 12]}
-          </Animated.Text>
-          <Text style={styles.calcTitle}>Yildizlar Hesaplaniyor...</Text>
-          <Text style={styles.calcSub}>Bu islem birkac saniye surebilir</Text>
-        </View>
-      </SafeScreen>
+            >
+              {ZODIAC_SYMBOLS[Math.floor(Date.now() / 500) % 12]}
+            </Animated.Text>
+            <Text style={styles.calcTitle}>Yildizlar Hesaplaniyor...</Text>
+            <Text style={styles.calcSub}>Bu islem birkac saniye surebilir</Text>
+          </View>
+        </SafeScreen>
+      </TabSwipeGesture>
     );
   }
 
@@ -1647,23 +1651,25 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'error') {
     return (
-      <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
-        <View style={styles.center}>
-          <View style={styles.errorIcon}>
-            <Ionicons name="alert-circle-outline" size={32} color={colors.redBright} />
+      <TabSwipeGesture tab="natal-chart">
+        <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
+          <View style={styles.center}>
+            <View style={styles.errorIcon}>
+              <Ionicons name="alert-circle-outline" size={32} color={colors.redBright} />
+            </View>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+            <Pressable
+              style={styles.retryBtn}
+              onPress={() => loadChart(true)}
+              accessibilityLabel={t('natalChart.retry')}
+              accessibilityRole="button"
+            >
+              <Ionicons name="refresh" size={16} color={colors.white} />
+              <Text style={styles.retryBtnText}>Tekrar Dene</Text>
+            </Pressable>
           </View>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-          <Pressable
-            style={styles.retryBtn}
-            onPress={() => loadChart(true)}
-            accessibilityLabel={t('natalChart.retry')}
-            accessibilityRole="button"
-          >
-            <Ionicons name="refresh" size={16} color={colors.white} />
-            <Text style={styles.retryBtnText}>Tekrar Dene</Text>
-          </Pressable>
-        </View>
-      </SafeScreen>
+        </SafeScreen>
+      </TabSwipeGesture>
     );
   }
 
@@ -2427,8 +2433,9 @@ export default function NatalChartTab() {
   const stickyHeaderIndices = chart ? [2] : [];
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
-      <View style={styles.readyLayout}>
+    <TabSwipeGesture tab="natal-chart">
+      <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
+        <View style={styles.readyLayout}>
         <MainVerticalScroll
           ref={mainScrollRef}
           style={styles.scroll}
@@ -3147,7 +3154,8 @@ export default function NatalChartTab() {
         sign={selectedBigThreeRole ? bigThreeSignByRole[selectedBigThreeRole] : null}
         onClose={closeBigThreeSheet}
       />
-    </SafeScreen>
+      </SafeScreen>
+    </TabSwipeGesture>
   );
 }
 

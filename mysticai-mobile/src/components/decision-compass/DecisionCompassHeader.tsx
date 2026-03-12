@@ -7,9 +7,6 @@ interface DecisionCompassHeaderProps {
   onOpenCalendar: () => void;
   onOpenNotifications: () => void;
   onOpenHelp: () => void;
-  topPadding: number;
-  horizontalPadding: number;
-  bottomPadding: number;
 }
 
 export function DecisionCompassHeader({
@@ -17,13 +14,7 @@ export function DecisionCompassHeader({
   onOpenCalendar,
   onOpenNotifications,
   onOpenHelp,
-  topPadding,
-  horizontalPadding,
-  bottomPadding,
 }: DecisionCompassHeaderProps) {
-  void topPadding;
-  void horizontalPadding;
-  void bottomPadding;
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const badgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
 

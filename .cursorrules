@@ -1,0 +1,5 @@
+Before analysis, planning, or code changes, read `CLAUDE.md` at the repository root and follow it as the project source of truth.
+
+After reading `CLAUDE.md`, inspect only the relevant bounded context unless the task is clearly cross-cutting.
+
+Extend existing foundations instead of creating parallel systems. Keep detailed project rules in `CLAUDE.md`, not here.

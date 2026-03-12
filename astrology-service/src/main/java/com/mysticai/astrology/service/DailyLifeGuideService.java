@@ -445,7 +445,7 @@ public class DailyLifeGuideService {
     private String buildShortAdvice(ActivityRule rule, int score, boolean english) {
         if (score >= 85) {
             return t(english,
-                    "Bugün güçlü pencere: önemli adımı öne al.",
+                    "Bugün senin için güçlü bir gün: öncelikli işlerini tamamla.",
                     "Strong window today: prioritize the important step.");
         }
         if (score >= 75) {
@@ -455,7 +455,7 @@ public class DailyLifeGuideService {
         }
         if (score <= 25) {
             return t(english,
-                    "Erteleme daha güvenli; sadece zorunlu mini adım.",
+                    "Erteleme daha güvenli; sadece zorunlu  adımlar at.",
                     "Postponing is safer; take only essential micro-steps.");
         }
         if (score <= 40) {
@@ -464,7 +464,7 @@ public class DailyLifeGuideService {
                     "Be careful: use second checks and a low-risk approach.");
         }
         return t(english,
-                "Orta akış: hazırlık + kalite kontrol ile ilerle.",
+                "Dikkatli ol: hazırlık + kalite kontrol ile ilerle.",
                 "Moderate flow: proceed with prep and quality checks.");
     }
 

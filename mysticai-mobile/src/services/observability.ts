@@ -46,12 +46,16 @@ export function logWarnOnce(scope: string, key: string, message: string, context
 export function logApiError(scope: string, error: unknown, context?: LogContext): void {
   const safeBase = compactContext(context) ?? {};
   if (axios.isAxiosError(error)) {
+    const baseUrl = error.config?.baseURL;
+    const path = error.config?.url;
     console.error(`[obs][${scope}] api_error`, {
       ...safeBase,
       code: error.code,
       status: error.response?.status,
       method: error.config?.method,
-      path: error.config?.url,
+      path,
+      baseUrl,
+      requestUrl: baseUrl && path ? `${baseUrl}${path}` : undefined,
       timeout: error.code === 'ECONNABORTED',
       network: !error.response,
     });
@@ -93,4 +97,3 @@ export function isServiceNotConfiguredError(error: unknown): error is ServiceNot
       (error as any).code === SERVICE_NOT_CONFIGURED,
   );
 }
-

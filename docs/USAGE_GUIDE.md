@@ -260,12 +260,19 @@ mvn dependency:tree
 `mysticai-mobile/.env`:
 ```env
 EXPO_PUBLIC_APP_ENV=dev
-EXPO_PUBLIC_API_BASE_URL_DEV=http://localhost:8080
+EXPO_PUBLIC_API_BASE_URL_DEV_OVERRIDE=
 ```
 
 Notlar:
-- Android emülatör: `http://10.0.2.2:8080`
-- Fiziksel cihaz / ngrok testi için yerel IP veya ngrok URL kullan
+- Dev URL otomatik çözülür:
+- Web: `window.location.hostname` + `8080`
+- iOS simulator: `localhost:8080`
+- Android emulator: `10.0.2.2:8080`
+- Fiziksel cihaz (Expo Go / dev client): Metro host IP + `8080`
+- Gerekirse manuel override için `EXPO_PUBLIC_API_BASE_URL_DEV_OVERRIDE=http://<host>:8080` kullan
+- Spiritual service dev çözümü de aynıdır (port `8091`); gerekirse `EXPO_PUBLIC_SPIRITUAL_API_URL_OVERRIDE` verilebilir
+- Fiziksel cihaz testinde telefon ve bilgisayar aynı Wi-Fi ağında olmalı
+- Backend fiziksel cihazdan erişilecekse `0.0.0.0` bind veya LAN erişimi açık olmalı
 - Push notification testi için fiziksel cihaz gerekir (Expo Go simulator'da push çalışmaz)
 
 ### Ekran Geliştirme Kuralları

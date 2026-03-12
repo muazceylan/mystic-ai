@@ -1,8 +1,7 @@
 import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import OnboardingProgressBar from '../../components/OnboardingProgressBar';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -22,7 +21,6 @@ const ONBOARDING_STEPS = [
 export default function AuthLayout() {
   const { colors, activeTheme } = useTheme();
   const pathname = usePathname();
-  const insets = useSafeAreaInsets();
 
   const stepInfo = useMemo(() => {
     const screenName = pathname.split('/').pop() || '';
@@ -35,12 +33,12 @@ export default function AuthLayout() {
     <>
       <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
       {stepInfo && (
-        <View style={{ paddingTop: insets.top, backgroundColor: colors.bg }}>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: colors.bg }}>
           <OnboardingProgressBar
             currentStep={stepInfo.current}
             totalSteps={stepInfo.total}
           />
-        </View>
+        </SafeAreaView>
       )}
       <Stack
         screenOptions={{

@@ -1,11 +1,29 @@
 import 'react-native-gesture-handler';
 import '../polyfills/textEncoding';
-import { useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus, View, ActivityIndicator } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  AppState,
+  AppStateStatus,
+  View,
+  ActivityIndicator,
+  Dimensions,
+  Platform,
+  StatusBar as NativeStatusBar,
+  ScrollView,
+  FlatList,
+  SectionList,
+} from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+  useSafeAreaInsets,
+  type Metrics,
+} from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
@@ -23,6 +41,25 @@ import {
   setupNotificationResponseHandler,
   setupNotificationChannel,
 } from '../utils/pushNotifications';
+
+// Expo Go + expo-router native sitemap bug guard:
+// Some generated routes read window.location.origin on native where location can be undefined.
+if (Platform.OS !== 'web') {
+  const nativeWindow = (globalThis as any).window as
+    | { location?: { origin?: string; [key: string]: unknown } }
+    | undefined;
+
+  if (nativeWindow && typeof nativeWindow.location?.origin !== 'string') {
+    try {
+      nativeWindow.location = {
+        ...(nativeWindow.location ?? {}),
+        origin: '',
+      };
+    } catch {
+      // Ignore if runtime prevents overriding window.location.
+    }
+  }
+}
 
 if (typeof window !== 'undefined') {
   WebBrowser.maybeCompleteAuthSession();
@@ -50,6 +87,72 @@ const AUTH_ROUTES = new Set([
   'oauth2',
   ...ONBOARDING_AUTH_ROUTES,
 ]);
+
+/**
+ * App-level default:
+ * We manage top spacing via SafeAreaProvider + SafeScreen, so iOS auto inset
+ * on scrollables must stay disabled to avoid first-frame header jumps.
+ */
+if (Platform.OS === 'ios') {
+  const applyScrollableInsetDefaults = (Component: any) => {
+    const defaults = Component.defaultProps ?? {};
+    Component.defaultProps = {
+      ...defaults,
+      contentInsetAdjustmentBehavior: 'never',
+      automaticallyAdjustContentInsets: false,
+    };
+  };
+
+  applyScrollableInsetDefaults(ScrollView);
+  applyScrollableInsetDefaults(FlatList);
+  applyScrollableInsetDefaults(SectionList);
+}
+
+/**
+ * Stabilize safe-area metrics for first frame.
+ * On some cold starts, initialWindowMetrics can transiently report top inset as 0,
+ * which causes headers to render under status bar and then "jump" down on re-measure.
+ */
+const SAFE_AREA_INITIAL_METRICS: Metrics | null = (() => {
+  const nativeStatusBarTop = NativeStatusBar.currentHeight ?? 0;
+  const expoStatusBarTop = Math.round(Constants.statusBarHeight ?? 0);
+  const fallbackTopInset = Platform.OS === 'android'
+    ? Math.max(nativeStatusBarTop, expoStatusBarTop)
+    : expoStatusBarTop;
+
+  if (initialWindowMetrics) {
+    if (fallbackTopInset <= 0) return initialWindowMetrics;
+    const correctedTopInset = Math.max(initialWindowMetrics.insets.top, fallbackTopInset);
+    if (correctedTopInset === initialWindowMetrics.insets.top) return initialWindowMetrics;
+    return {
+      ...initialWindowMetrics,
+      insets: {
+        ...initialWindowMetrics.insets,
+        top: correctedTopInset,
+      },
+    };
+  }
+
+  if (fallbackTopInset <= 0) {
+    return null;
+  }
+
+  const window = Dimensions.get('window');
+  return {
+    frame: {
+      x: 0,
+      y: 0,
+      width: window.width,
+      height: window.height,
+    },
+    insets: {
+      top: fallbackTopInset,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
+  };
+})();
 
 function topLevelRoute(pathname: string): string {
   const normalized = pathname.replace(/^\/+|\/+$/g, '');
@@ -252,33 +355,95 @@ function TutorialBootstrap() {
   return null;
 }
 
+function SafeAreaBootstrapGate({ children }: { children: ReactNode }) {
+  const insets = useSafeAreaInsets();
+  const [ready, setReady] = useState(Platform.OS !== 'ios');
+  const latestTopRef = useRef(insets.top);
+  const bootstrappedRef = useRef(Platform.OS !== 'ios');
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  latestTopRef.current = insets.top;
+
+  useEffect(() => {
+    if (bootstrappedRef.current) return;
+
+    if (Platform.OS !== 'ios') {
+      bootstrappedRef.current = true;
+      setReady(true);
+      return;
+    }
+
+    const minExpectedTopInset = Math.max(1, Math.round(Constants.statusBarHeight ?? 0));
+    if (insets.top < minExpectedTopInset) {
+      return;
+    }
+
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+
+    const expectedTop = insets.top;
+    settleTimerRef.current = setTimeout(() => {
+      if (bootstrappedRef.current) return;
+      if (latestTopRef.current !== expectedTop) return;
+      bootstrappedRef.current = true;
+      setReady(true);
+    }, 420);
+
+    return () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
+      }
+    };
+  }, [insets.top]);
+
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 export default function Layout() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const [i18nReady, setI18nReady] = useState(false);
+  const [fontsLoaded, fontLoadError] = useFonts({
+    'MysticInter-Regular': require('../../assets/fonts/MysticInter-Regular.otf'),
+    'MysticInter-SemiBold': require('../../assets/fonts/MysticInter-SemiBold.otf'),
+  });
 
   useEffect(() => {
     hydrate();
     initI18n().then(() => setI18nReady(true));
   }, []);
 
+  const startupReady = i18nReady && (fontsLoaded || Boolean(fontLoadError));
+
   // Block rendering navigator until i18n is ready — prevents "NO_I18NEXT_INSTANCE" when
   // useTranslation runs in TabsLayout/other screens before init completes.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <TutorialProvider>
-              {i18nReady ? (
-                <AppNavigator i18nReady={i18nReady} />
-              ) : (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-                  <ActivityIndicator size="large" color={COLORS.primary} />
-                </View>
-              )}
-            </TutorialProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
+      <SafeAreaProvider initialMetrics={SAFE_AREA_INITIAL_METRICS}>
+        <SafeAreaBootstrapGate>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <TutorialProvider>
+                {startupReady ? (
+                  <AppNavigator i18nReady={i18nReady} />
+                ) : (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                  </View>
+                )}
+              </TutorialProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaBootstrapGate>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

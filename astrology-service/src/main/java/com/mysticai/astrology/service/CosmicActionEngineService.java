@@ -172,7 +172,7 @@ public class CosmicActionEngineService {
                             "When natal triggers are active, avoid taking risks on too many fronts at once."));
                     scoreAdjustment -= 7;
                     reasons.add(t(english,
-                            "Sert açı yoğunluğu kısa vadeli sürtünme ve dağılma riski yaratıyor.",
+                            "Sert açı yoğunluğu kısa vadeli problem ve dağılma riski yaratıyor.",
                             "Hard aspect density raises short-term friction and scattering risk."));
                 }
 

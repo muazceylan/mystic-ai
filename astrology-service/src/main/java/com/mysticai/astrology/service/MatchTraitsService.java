@@ -883,7 +883,7 @@ public class MatchTraitsService {
                         : "Plan ve uygulama birbirini taşıyabiliyor; biriniz çerçeveyi kurarken diğeriniz işi akıtıyor. Bu sayede verim sadece hızdan değil, düzen duygusundan da besleniyor. Ara kontrol noktaları bu gücü korur.";
                 case "İletişim ve Karar" -> tension
                         ? "Biri karar cümlesini erken duymak isterken, diğeri seçenekleri biraz daha dolaşmayı seçebilir. Aynı konuşma birine net, diğerine erken kapanmış gelebilir. Kararı iki aşamada almak bu farkı yumuşatır."
-                        : "Konuşma ve karar verme ritmi birbirini çok yormuyor. Bu da küçük sürtünmeler çıksa bile aynı hedefte kalmayı kolaylaştırıyor. Kısa yazılı özetler bu avantajı daha görünür hale getirir.";
+                        : "Konuşma ve karar verme ritmi birbirini çok yormuyor. Bu da küçük problemler çıksa bile aynı hedefte kalmayı kolaylaştırıyor. Kısa yazılı özetler bu avantajı daha görünür hale getirir.";
                 default -> tension
                         ? "Gerilim yükseldiğinde biriniz çözümü hemen masaya koymak, diğeriniz önce tonu sakinleştirmek isteyebilir. Zamanlama ayrışınca mesele olduğundan büyük görünür. Konuyu tek başlıkta tutmak daha iyi çalışır."
                         : "Sorun çıktığında tamamen dağılmadan çözüm tarafına dönülebiliyor. Bu, ekip hissini koruyan güçlü bir işaret. Tepki yerine süreç konuşulduğunda ilişki daha verimli kalır.";
@@ -1480,7 +1480,7 @@ public class MatchTraitsService {
     }
 
     private String mapLevelLabel(int score) {
-        if (score <= 39) return "Yüksek Sürtünme";
+        if (score <= 39) return "Yüksek Problem";
         if (score <= 54) return "Zorlayıcı Denge";
         if (score <= 69) return "Dengeli Uyum";
         if (score <= 84) return "Güçlü Eşleşme";
@@ -2239,7 +2239,7 @@ public class MatchTraitsService {
                             metric("work.decisionSpeed", "Karar Hızı Uyumu", kp("mercury", "mars", "saturn"), sp("sun", "jupiter"), hs(3, 6, 10), -1,
                                     "Karar alma temposu birbirini tamamlıyor.",
                                     "Karar hızı genel olarak yakın seyrediyor.",
-                                    "Karar hızındaki fark bazı başlıklarda sürtünme yaratabilir.",
+                                    "Karar hızındaki fark bazı başlıklarda problem yaratabilir.",
                                     "Kararları iki aşamaya bölmek hız farkını dengeler.",
                                     "Karar hızı yüksek; ani kararlar sonrası revizyon ihtiyacı artabilir.")
                     ),
@@ -2306,7 +2306,7 @@ public class MatchTraitsService {
                             metric("friend.boundaryRespect", "Sınır Saygısı", kp("saturn", "uranus", "mercury"), sp("moon", "sun"), hs(1, 11, 3), -2,
                                     "Sınırlar karşılıklı saygıyla korunuyor.",
                                     "Sınır dengesi genel olarak sağlıklı.",
-                                    "Yanıt hızı ve alan ihtiyacı konusunda sürtünme oluşabilir.",
+                                    "Yanıt hızı ve alan ihtiyacı konusunda problem oluşabilir.",
                                     "Sınır konuşmalarını varsayım yerine net ifadeyle yapın.",
                                     "Sınır başlığında güçlü tepki döngüleri tetiklenebilir.")
                     ),

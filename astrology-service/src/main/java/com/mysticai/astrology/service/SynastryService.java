@@ -666,7 +666,7 @@ public class SynastryService {
 
         String dynamicLine = switch (tone) {
             case "DESTEKLEYICI" -> "Bu alanda akış doğal; ilişkiyi besleyen davranışları bilinçli tekrar etmek büyük fark yaratır.";
-            case "ZORLAYICI" -> "Bu alanda sürtünme gelişim fırsatı taşır; tempo ve sınırlar konuşuldukça denge artar.";
+            case "ZORLAYICI" -> "Bu alandandaki tartışmalar gelişim fırsatı taşır; tempo ve sınırlar konuşuldukça denge artar.";
             default -> "Bu alanda hem uyum hem gerilim birlikte çalışıyor; doğru zamanda doğru yaklaşım sonucu belirler.";
         };
 

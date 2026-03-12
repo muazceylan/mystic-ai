@@ -2,7 +2,6 @@ import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, shadowSubtle, spacing, typography } from '../../theme';
 
@@ -16,7 +15,6 @@ interface AppSurfaceHeaderProps {
   showBackButton?: boolean;
   onBack?: () => void;
   rightActions?: React.ReactNode;
-  includeTopInset?: boolean;
   tintColor?: string;
 }
 
@@ -63,73 +61,69 @@ export function AppSurfaceHeader({
   showBackButton = false,
   onBack,
   rightActions,
-  includeTopInset = false,
   tintColor,
 }: AppSurfaceHeaderProps) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const textColor = tintColor ?? colors.textPrimary;
   const subtextColor = tintColor ? `${tintColor}B3` : colors.textSecondary;
 
   return (
-    <View style={includeTopInset ? { paddingTop: insets.top + spacing.xxs } : undefined}>
-      <LinearGradient
-        colors={[colors.headerGradA, colors.headerGradB]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerShell}
-      >
-        <View style={styles.headerRow}>
-          <View style={styles.leftCluster}>
-            {variant === 'home' ? (
-              avatarUri ? (
-                <Image
-                  source={{ uri: avatarUri }}
-                  style={styles.avatar}
-                  accessibilityIgnoresInvertColors
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={spacing.lg + spacing.xs} color={colors.primary} />
-                </View>
-              )
-            ) : showBackButton && onBack ? (
-              <SurfaceHeaderIconButton
-                iconName="chevron-back"
-                onPress={onBack}
-                accessibilityLabel={t('common.back')}
-                color={textColor}
+    <LinearGradient
+      colors={[colors.headerGradA, colors.headerGradB]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.headerShell}
+    >
+      <View style={styles.headerRow}>
+        <View style={styles.leftCluster}>
+          {variant === 'home' ? (
+            avatarUri ? (
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.avatar}
+                accessibilityIgnoresInvertColors
               />
-            ) : null}
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={spacing.lg + spacing.xs} color={colors.primary} />
+              </View>
+            )
+          ) : showBackButton && onBack ? (
+            <SurfaceHeaderIconButton
+              iconName="chevron-back"
+              onPress={onBack}
+              accessibilityLabel={t('common.back')}
+              color={textColor}
+            />
+          ) : null}
 
-            <View style={styles.titleWrap}>
+          <View style={styles.titleWrap}>
+            <Text
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              numberOfLines={1}
+              style={[
+                styles.title,
+                variant === 'home' ? styles.homeTitle : styles.pageTitle,
+                { color: textColor },
+              ]}
+            >
+              {title}
+            </Text>
+            {subtitle ? (
               <Text
                 maxFontSizeMultiplier={MAX_FONT_SCALE}
                 numberOfLines={1}
-                style={[
-                  styles.title,
-                  variant === 'home' ? styles.homeTitle : styles.pageTitle,
-                  { color: textColor },
-                ]}
+                style={[styles.subtitle, { color: subtextColor }]}
               >
-                {title}
+                {subtitle}
               </Text>
-              {subtitle ? (
-                <Text
-                  maxFontSizeMultiplier={MAX_FONT_SCALE}
-                  numberOfLines={1}
-                  style={[styles.subtitle, { color: subtextColor }]}
-                >
-                  {subtitle}
-                </Text>
-              ) : null}
-            </View>
+            ) : null}
           </View>
-
-          {rightActions ? <View style={styles.headerActions}>{rightActions}</View> : null}
         </View>
-      </LinearGradient>
-    </View>
+
+        {rightActions ? <View style={styles.headerActions}>{rightActions}</View> : null}
+      </View>
+    </LinearGradient>
   );
 }
 

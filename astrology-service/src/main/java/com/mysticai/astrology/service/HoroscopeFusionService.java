@@ -143,6 +143,7 @@ public class HoroscopeFusionService {
                     "Just translate the text as-is. Return only the translated text, nothing else.");
             payload.put("userPrompt", englishText);
             payload.put("expectJsonResponse", false);
+            payload.put("simple", true);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

@@ -98,23 +98,42 @@ public class InterpretationController {
     /**
      * POST /api/ai/horoscope/fuse
      *
-     * Synchronous horoscope fusion endpoint called by astrology-service.
-     * Accepts systemPrompt + userPrompt, returns fused horoscope JSON.
+     * Synchronous horoscope endpoint called by astrology-service.
+     * Defaults to premium JSON fusion, but can also serve plain-text simple tasks
+     * such as translation when expectJsonResponse=false or simple=true is sent.
      */
     @PostMapping(value = "/horoscope/fuse", consumes = MediaType.APPLICATION_JSON_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> fuseHoroscope(@RequestBody java.util.Map<String, String> body) {
-        String systemPrompt = body.getOrDefault("systemPrompt", "");
-        String userPrompt = body.getOrDefault("userPrompt", "");
+    public ResponseEntity<String> fuseHoroscope(@RequestBody java.util.Map<String, Object> body) {
+        String systemPrompt = readString(body.get("systemPrompt"));
+        String userPrompt = readString(body.get("userPrompt"));
         if (userPrompt.isBlank()) {
             return ResponseEntity.badRequest().body("{\"error\":\"userPrompt is required\"}");
         }
+        boolean expectJsonResponse = readBoolean(body.get("expectJsonResponse"), true);
+        boolean simple = readBoolean(body.get("simple"), !expectJsonResponse);
         try {
-            String result = mysticalAiService.fuseHoroscope(systemPrompt, userPrompt);
+            String result = simple
+                    ? mysticalAiService.generateSimpleText(systemPrompt, userPrompt)
+                    : mysticalAiService.fuseHoroscope(systemPrompt, userPrompt);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(503).body(null);
         }
+    }
+
+    private String readString(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private boolean readBoolean(Object value, boolean defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Boolean boolValue) {
+            return boolValue;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
     }
 
     /**

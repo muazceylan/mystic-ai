@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen } from '../../components/ui/SafeScreen';
+import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
 import { TabHeader } from '../../components/ui/TabHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
@@ -320,8 +321,9 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']}>
-      <View style={[styles.root, { backgroundColor: colors.bg }]}> 
+    <TabSwipeGesture tab="discover">
+      <SafeScreen edges={['top', 'left', 'right']}>
+        <View style={[styles.root, { backgroundColor: colors.bg }]}> 
         <LinearGradient
           colors={
             isDark
@@ -565,8 +567,9 @@ export default function DiscoverScreen() {
             </View>
           )}
         </ScrollView>
-      </View>
-    </SafeScreen>
+        </View>
+      </SafeScreen>
+    </TabSwipeGesture>
   );
 }
 

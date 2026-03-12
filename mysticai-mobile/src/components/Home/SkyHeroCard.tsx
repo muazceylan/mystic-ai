@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, shadowHero, spacing, typography } from '../../theme';
 
@@ -49,6 +49,16 @@ const MOON_RING_OUTER = spacing.xxl * 7 - spacing.sm;
 const MOON_RING_MID = spacing.xxl * 5 + spacing.xs;
 const MOON_RING_INNER = spacing.xxl * 4 + spacing.sm;
 const HOME_MAX_FONT_SCALE = 1.15;
+const HERO_FONT_REGULAR = Platform.select({
+  ios: 'MysticInter-Regular',
+  android: 'MysticInter-Regular',
+  default: undefined,
+});
+const HERO_FONT_SEMIBOLD = Platform.select({
+  ios: 'MysticInter-SemiBold',
+  android: 'MysticInter-SemiBold',
+  default: undefined,
+});
 
 export function SkyHeroCard({
   subtitleText,
@@ -269,21 +279,21 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.H1,
-    fontWeight: '700',
+    ...(HERO_FONT_SEMIBOLD ? { fontFamily: HERO_FONT_SEMIBOLD } : {}),
     letterSpacing: 0.2,
     color: colors.heroTitle,
     marginBottom: spacing.sm,
   },
   subTitle: {
     ...typography.Body,
-    fontWeight: '600',
+    ...(HERO_FONT_SEMIBOLD ? { fontFamily: HERO_FONT_SEMIBOLD } : {}),
     fontSize: 15,
     lineHeight: 21,
     color: colors.heroBody,
   },
   description: {
     ...typography.Body,
-    fontWeight: '500',
+    ...(HERO_FONT_REGULAR ? { fontFamily: HERO_FONT_REGULAR } : {}),
     fontSize: 15,
     lineHeight: 22,
     marginTop: spacing.sm,
@@ -310,6 +320,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     ...typography.Button,
+    ...(HERO_FONT_SEMIBOLD ? { fontFamily: HERO_FONT_SEMIBOLD } : {}),
     color: colors.white,
   },
 });

@@ -31,7 +31,6 @@ import {
   TUTORIAL_SCREEN_KEYS,
   useTutorialTrigger,
 } from '../features/tutorial';
-import { useInnerHeaderSpacing } from '../hooks/useInnerHeaderSpacing';
 import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 import { DecisionCompassHeader } from '../components/decision-compass/DecisionCompassHeader';
 import { DecisionCompassFilters } from '../components/decision-compass/DecisionCompassFilters';
@@ -83,7 +82,6 @@ export default function DecisionCompassScreen() {
     fallbackRoute: '/(tabs)/home',
     preferLastTabPath: true,
   });
-  const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const { trigger: triggerTutorial, triggerInitial: triggerInitialTutorials } = useTutorialTrigger(
     TUTORIAL_SCREEN_KEYS.DECISION_COMPASS,
   );
@@ -273,9 +271,6 @@ export default function DecisionCompassScreen() {
               onOpenCalendar={() => router.push('/(tabs)/calendar')}
               onOpenNotifications={() => router.push('/notifications')}
               onOpenHelp={handlePressTutorialHelp}
-              topPadding={headerPaddingTop}
-              bottomPadding={headerPaddingBottom}
-              horizontalPadding={headerHorizontalPadding}
             />
           </View>
         </SpotlightTarget>

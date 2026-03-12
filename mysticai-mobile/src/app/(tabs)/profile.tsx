@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
 import { SafeScreen, TabHeader } from '../../components/ui';
+import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
@@ -193,8 +194,9 @@ export default function ProfileScreen() {
   const S = makeStyles(colors);
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']}>
-      <View style={S.container}>
+    <TabSwipeGesture tab="profile">
+      <SafeScreen edges={['top', 'left', 'right']}>
+        <View style={S.container}>
         <TabHeader
           title={t('profile.title')}
           showAvatar={false}
@@ -380,9 +382,10 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         <Text style={S.versionText}>{t('profile.version')}</Text>
-      </ScrollView>
-    </View>
-    </SafeScreen>
+        </ScrollView>
+      </View>
+      </SafeScreen>
+    </TabSwipeGesture>
   );
 }
 

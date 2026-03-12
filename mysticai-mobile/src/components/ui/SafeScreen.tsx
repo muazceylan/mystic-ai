@@ -1,7 +1,16 @@
 import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet, ViewStyle, Platform, useWindowDimensions } from 'react-native';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  ViewStyle,
+  Platform,
+  useWindowDimensions,
+  StatusBar as NativeStatusBar,
+} from 'react-native';
+import Constants from 'expo-constants';
 import { usePathname } from 'expo-router';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { AppSurfaceBackground } from './AppSurfaceBackground';
 import { isStandardSurfaceRoute } from './surfaceUtils';
@@ -53,11 +62,23 @@ export function SafeScreen({
 }: SafeScreenProps) {
   const { colors } = useTheme();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const standardBackgroundEnabled = showStandardBackground ?? isStandardSurfaceRoute(pathname);
   const flattenedStyle = StyleSheet.flatten(style) ?? {};
-  const { backgroundColor, ...containerStyle } = flattenedStyle;
+  const { backgroundColor, ...rawContainerStyle } = flattenedStyle;
+  const containerStyle = rawContainerStyle as ViewStyle;
   const resolvedBackgroundColor = standardBackgroundEnabled ? 'transparent' : backgroundColor ?? colors.bg;
+  const hasTopEdge = edges.includes('top');
+  const safeAreaEdges = hasTopEdge ? edges.filter((edge) => edge !== 'top') : edges;
+  const topInsetFallback = Platform.OS === 'ios'
+    ? Math.round(Constants.statusBarHeight ?? 0)
+    : (NativeStatusBar.currentHeight ?? 0);
+  const resolvedTopInset = hasTopEdge ? Math.max(insets.top, topInsetFallback) : 0;
+  const basePaddingTop = typeof containerStyle.paddingTop === 'number' ? containerStyle.paddingTop : 0;
+  const adjustedContainerStyle: ViewStyle = hasTopEdge
+    ? { ...containerStyle, paddingTop: basePaddingTop + resolvedTopInset }
+    : containerStyle;
 
   const webContentStyle: ViewStyle | undefined = useMemo(() => {
     if (Platform.OS !== 'web') return undefined;
@@ -77,8 +98,8 @@ export function SafeScreen({
   if (scroll) {
     return (
       <SafeAreaView
-        edges={edges}
-        style={[styles.container, { backgroundColor: resolvedBackgroundColor }, containerStyle]}
+        edges={safeAreaEdges}
+        style={[styles.container, { backgroundColor: resolvedBackgroundColor }, adjustedContainerStyle]}
       >
         {standardBackgroundEnabled ? <AppSurfaceBackground /> : null}
         <ScrollView
@@ -97,8 +118,8 @@ export function SafeScreen({
 
   return (
     <SafeAreaView
-      edges={edges}
-      style={[styles.container, { backgroundColor: resolvedBackgroundColor }, containerStyle]}
+      edges={safeAreaEdges}
+      style={[styles.container, { backgroundColor: resolvedBackgroundColor }, adjustedContainerStyle]}
     >
       {standardBackgroundEnabled ? <AppSurfaceBackground /> : null}
       {inner}

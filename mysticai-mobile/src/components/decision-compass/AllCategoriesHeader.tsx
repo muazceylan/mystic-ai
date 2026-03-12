@@ -5,23 +5,13 @@ interface AllCategoriesHeaderProps {
   onBack: () => void;
   onOpenCalendar: () => void;
   onToggleLegend: () => void;
-  topPadding: number;
-  horizontalPadding: number;
-  bottomPadding: number;
 }
 
 export function AllCategoriesHeader({
   onBack,
   onOpenCalendar,
   onToggleLegend,
-  topPadding,
-  horizontalPadding,
-  bottomPadding,
 }: AllCategoriesHeaderProps) {
-  void topPadding;
-  void horizontalPadding;
-  void bottomPadding;
-
   return (
     <AppSurfaceHeader
       title="Tüm Kategoriler"

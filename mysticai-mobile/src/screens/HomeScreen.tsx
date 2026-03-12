@@ -29,8 +29,8 @@ import {
   useTutorialTrigger,
 } from '../features/tutorial';
 import {
-  AppSurfaceBackground,
   AppSurfaceHeader,
+  SafeScreen,
   SurfaceHeaderIconButton,
 } from '../components/ui';
 import { colors, radius, shadowSubtle, spacing, typography } from '../theme';
@@ -668,10 +668,11 @@ export default function HomeScreen() {
       : t('profile.menu.notifications');
 
   return (
-    <View style={styles.root}>
-      <AppSurfaceBackground />
-
+    <SafeScreen edges={['top', 'left', 'right']}>
       <ScrollView
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        automaticallyAdjustKeyboardInsets={false}
         contentContainerStyle={[
           styles.content,
           {
@@ -685,7 +686,6 @@ export default function HomeScreen() {
           title={displayName}
           variant="home"
           avatarUri={avatarUrl}
-          includeTopInset
           rightActions={(
             <>
               <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
@@ -883,14 +883,11 @@ export default function HomeScreen() {
           </View>
         ) : null}
       </ScrollView>
-    </View>
+    </SafeScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
   content: {
     paddingHorizontal: spacing.screenPadding,
   },

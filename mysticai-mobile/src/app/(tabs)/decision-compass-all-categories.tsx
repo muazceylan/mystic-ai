@@ -19,7 +19,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCosmicSummary } from '../../hooks/useHomeQueries';
 import { fetchCosmicDayDetail } from '../../services/cosmic.service';
-import { useInnerHeaderSpacing } from '../../hooks/useInnerHeaderSpacing';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { AllCategoriesHeader } from '../../components/decision-compass/AllCategoriesHeader';
 import {
@@ -100,7 +99,6 @@ export default function DecisionCompassAllCategoriesScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const tabBarHeight = React.useContext(BottomTabBarHeightContext);
-  const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const goBack = useSmartBackNavigation({
     fallbackRoute: '/(tabs)/home',
     preferLastTabPath: true,
@@ -211,9 +209,6 @@ export default function DecisionCompassAllCategoriesScreen() {
           onBack={goBack}
           onOpenCalendar={() => router.push('/(tabs)/calendar')}
           onToggleLegend={() => setShowLegend((prev) => !prev)}
-          topPadding={headerPaddingTop}
-          bottomPadding={headerPaddingBottom}
-          horizontalPadding={headerHorizontalPadding}
         />
 
         <AllCategoriesFilters

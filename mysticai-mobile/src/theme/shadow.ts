@@ -27,7 +27,7 @@ export const shadowSubtle: ViewStyle = Platform.select<ViewStyle>({
     shadowRadius: 10,
   },
   android: {
-    elevation: 2,
+    elevation: 0,
   },
   web: {
     shadowColor: colors.shadow,

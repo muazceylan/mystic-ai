@@ -34,7 +34,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture } from '../../components/ui';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
 import { COSMIC_DOCK_LABEL_OVERRIDE_KEYS, PLANNER_LOCAL_TO_COSMIC_CATEGORY } from '../../constants/CosmicConstants';
 import {
@@ -1882,8 +1882,9 @@ export default function CalendarScreen() {
 
   if (!chart && natalChartLoading) {
     return (
-      <SafeScreen edges={['top', 'left', 'right']}>
-        <View style={styles.container}>
+      <TabSwipeGesture tab="calendar">
+        <SafeScreen edges={['top', 'left', 'right']}>
+          <View style={styles.container}>
           <LinearGradient
             colors={isDark ? ['rgba(10,15,32,0.7)', 'rgba(2,6,23,0.98)'] : ['rgba(226,232,240,0.4)', 'rgba(248,250,252,0.96)']}
             style={StyleSheet.absoluteFill}
@@ -1893,15 +1894,17 @@ export default function CalendarScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.emptyText}>{t('calendar.loading')}</Text>
           </View>
-        </View>
-      </SafeScreen>
+          </View>
+        </SafeScreen>
+      </TabSwipeGesture>
     );
   }
 
   if (!chart) {
     return (
-      <SafeScreen edges={['top', 'left', 'right']}>
-        <View style={styles.container}>
+      <TabSwipeGesture tab="calendar">
+        <SafeScreen edges={['top', 'left', 'right']}>
+          <View style={styles.container}>
           <LinearGradient
             colors={isDark ? ['rgba(10,15,32,0.7)', 'rgba(2,6,23,0.98)'] : ['rgba(226,232,240,0.4)', 'rgba(248,250,252,0.96)']}
             style={StyleSheet.absoluteFill}
@@ -1922,14 +1925,16 @@ export default function CalendarScreen() {
               <Text style={styles.emptyButtonText}>{t('calendar.errors.createNatalChart')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </SafeScreen>
+          </View>
+        </SafeScreen>
+      </TabSwipeGesture>
     );
   }
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']}>
-      <View style={styles.container}>
+    <TabSwipeGesture tab="calendar">
+      <SafeScreen edges={['top', 'left', 'right']}>
+        <View style={styles.container}>
         <LinearGradient
           colors={isDark ? ['rgba(8,12,24,0.82)', 'rgba(20,16,30,0.97)'] : ['rgba(255,255,255,0.72)', 'rgba(246,243,255,0.94)', 'rgba(242,238,255,0.98)']}
           style={StyleSheet.absoluteFill}
@@ -2844,8 +2849,9 @@ export default function CalendarScreen() {
             </Animated.View>
           </View>
         </Modal>
-      </View>
-    </SafeScreen>
+        </View>
+      </SafeScreen>
+    </TabSwipeGesture>
   );
 }
 
