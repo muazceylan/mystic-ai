@@ -3,6 +3,7 @@ package com.mysticai.vision.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -75,6 +76,26 @@ public class GlobalExceptionHandler {
         );
         
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestHeaderException(MissingRequestHeaderException ex) {
+        HttpStatus status = "X-User-Id".equalsIgnoreCase(ex.getHeaderName())
+                ? HttpStatus.UNAUTHORIZED
+                : HttpStatus.BAD_REQUEST;
+        String message = "X-User-Id".equalsIgnoreCase(ex.getHeaderName())
+                ? "Authentication context is missing"
+                : "Missing required header: " + ex.getHeaderName();
+
+        ErrorResponse error = new ErrorResponse(
+                UUID.randomUUID().toString(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(status).body(error);
     }
 
     /**

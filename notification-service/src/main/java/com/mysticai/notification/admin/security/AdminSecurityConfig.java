@@ -70,9 +70,10 @@ public class AdminSecurityConfig {
                         // Public app config — no auth required
                         .requestMatchers("/api/v1/app-config").permitAll()
                         // Public tutorial config endpoint — no auth required
-                        .requestMatchers("/api/v1/tutorial-configs").permitAll()
-                        // All other existing notification endpoints (non-admin)
-                        .anyRequest().permitAll()
+                        .requestMatchers("/api/v1/tutorial-configs", "/api/v1/tutorial-configs/**").permitAll()
+                        // User-facing notification endpoints are protected by gateway trust filter
+                        .requestMatchers("/api/v1/notifications/**").permitAll()
+                        .anyRequest().denyAll()
                 )
                 .addFilterBefore(adminJwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

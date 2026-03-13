@@ -5,6 +5,7 @@ import com.mysticai.notification.entity.AppRouteRegistry;
 import com.mysticai.notification.entity.AuditLog;
 import com.mysticai.notification.repository.AppRouteRegistryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RouteRegistryService implements ApplicationRunner {
 
     private final AppRouteRegistryRepository routeRepository;
@@ -124,34 +126,44 @@ public class RouteRegistryService implements ApplicationRunner {
      */
     @Override
     public void run(ApplicationArguments args) {
-        if (routeRepository.count() == 0) {
-            // ── Core Tabs ─────────────────────────────────────────────────────
-            seedRoute("home",            "Ana Sayfa",          "/(tabs)/home",              "core",      false, "core",      AppRouteRegistry.Platform.BOTH);
-            seedRoute("dreams",          "Rüya Günlüğü",       "/(tabs)/dreams",            "dream",     true,  "dream",     AppRouteRegistry.Platform.BOTH);
-            seedRoute("spiritual",       "Manevi Alan",        "/(tabs)/spiritual",         "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
-            seedRoute("calendar",        "Kozmik Takvim",      "/(tabs)/calendar",          "astrology", true,  "astrology", AppRouteRegistry.Platform.BOTH);
-            seedRoute("compatibility",   "Uyumluluk",          "/(tabs)/compatibility",     "synastry",  true,  "synastry",  AppRouteRegistry.Platform.BOTH);
-            seedRoute("weekly-analysis", "Haftalık Analiz",    "/(tabs)/weekly-analysis",   "astrology", true,  "astrology", AppRouteRegistry.Platform.BOTH);
-            seedRoute("notifications",   "Bildirim Merkezi",   "/(tabs)/notifications",     "system",    true,  "system",    AppRouteRegistry.Platform.BOTH);
-            seedRoute("profile",         "Profil",             "/(tabs)/profile",           "account",   true,  "account",   AppRouteRegistry.Platform.BOTH);
+        int created = 0;
 
-            // ── Dream Sub-Screens ─────────────────────────────────────────────
-            seedRoute("dream-compose",   "Rüya Yaz",           "/(tabs)/dreams?tab=compose", "dream",    true,  "dream",     AppRouteRegistry.Platform.BOTH);
-            seedRoute("dream-journal",   "Rüya Defteri",       "/(tabs)/dream-book",        "dream",     true,  "dream",     AppRouteRegistry.Platform.BOTH);
+        // ── Core Tabs ─────────────────────────────────────────────────────
+        created += upsertSeedRoute("home",            "Ana Sayfa",          "/(tabs)/home",              "core",      false, "core",      AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("dreams",          "Rüya Günlüğü",       "/(tabs)/dreams",            "dream",     true,  "dream",     AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("spiritual",       "Manevi Alan",        "/(tabs)/spiritual",         "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("calendar",        "Kozmik Takvim",      "/(tabs)/calendar",          "astrology", true,  "astrology", AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("compatibility",   "Uyumluluk",          "/(tabs)/compatibility",     "synastry",  true,  "synastry",  AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("weekly-analysis", "Haftalık Analiz",    "/(tabs)/weekly-analysis",   "astrology", true,  "astrology", AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("notifications",   "Bildirim Merkezi",   "/(tabs)/notifications",     "system",    true,  "system",    AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("profile",         "Profil",             "/(tabs)/profile",           "account",   true,  "account",   AppRouteRegistry.Platform.BOTH);
 
-            // ── Spiritual Sub-Screens ─────────────────────────────────────────
-            seedRoute("esma-list",       "Esma Listesi",       "/spiritual/asma",           "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
-            seedRoute("counter",         "Zikir Sayacı",       "/spiritual/counter",        "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
-            seedRoute("journal",         "Günlük",             "/spiritual/journal",        "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
+        // ── Dream Sub-Screens ─────────────────────────────────────────────
+        created += upsertSeedRoute("dream-compose",   "Rüya Yaz",           "/(tabs)/dreams?tab=compose", "dream",    true,  "dream",     AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("dream-journal",   "Rüya Defteri",       "/(tabs)/dream-book",        "dream",     true,  "dream",     AppRouteRegistry.Platform.BOTH);
 
-            // ── Settings ─────────────────────────────────────────────────────
-            seedRoute("notifications-settings", "Bildirim Ayarları", "/notifications-settings", "system", true, "system",   AppRouteRegistry.Platform.BOTH);
-            seedRoute("edit-profile",    "Profil Düzenle",     "/edit-profile",             "account",   true,  "account",   AppRouteRegistry.Platform.BOTH);
+        // ── Spiritual Sub-Screens ─────────────────────────────────────────
+        created += upsertSeedRoute("esma-list",       "Esma Listesi",       "/spiritual/asma",           "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("counter",         "Zikir Sayacı",       "/spiritual/counter",        "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("journal",         "Günlük",             "/spiritual/journal",        "spiritual", true,  "spiritual", AppRouteRegistry.Platform.BOTH);
+
+        // ── Settings ─────────────────────────────────────────────────────
+        created += upsertSeedRoute("notifications-settings", "Bildirim Ayarları", "/notifications-settings", "system", true, "system",   AppRouteRegistry.Platform.BOTH);
+        created += upsertSeedRoute("edit-profile",    "Profil Düzenle",     "/edit-profile",             "account",   true,  "account",   AppRouteRegistry.Platform.BOTH);
+
+        if (created > 0) {
+            log.info("[ROUTE_REGISTRY] Added {} missing default route(s).", created);
+        } else {
+            log.info("[ROUTE_REGISTRY] Default route set already present; no missing route added.");
         }
     }
 
-    private void seedRoute(String key, String name, String path, String description,
-                           boolean requiresAuth, String moduleKey, AppRouteRegistry.Platform platform) {
+    private int upsertSeedRoute(String key, String name, String path, String description,
+                                boolean requiresAuth, String moduleKey, AppRouteRegistry.Platform platform) {
+        if (routeRepository.existsByRouteKey(key)) {
+            return 0;
+        }
+
         AppRouteRegistry route = AppRouteRegistry.builder()
                 .routeKey(key).displayName(name).path(path)
                 .description(description).moduleKey(moduleKey).requiresAuth(requiresAuth)
@@ -159,5 +171,6 @@ public class RouteRegistryService implements ApplicationRunner {
                 .supportedPlatforms(platform)
                 .build();
         routeRepository.save(route);
+        return 1;
     }
 }

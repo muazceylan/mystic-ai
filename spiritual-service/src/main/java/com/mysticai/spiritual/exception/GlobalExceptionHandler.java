@@ -7,8 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.stream.Collectors;
 
@@ -60,6 +62,35 @@ public class GlobalExceptionHandler {
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
                 "You do not have permission to access this resource",
+                request.getRequestURI()
+        ));
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestHeader(MissingRequestHeaderException ex,
+                                                                    HttpServletRequest request) {
+        HttpStatus status = "X-User-Id".equalsIgnoreCase(ex.getHeaderName())
+                ? HttpStatus.UNAUTHORIZED
+                : HttpStatus.BAD_REQUEST;
+        String message = "X-User-Id".equalsIgnoreCase(ex.getHeaderName())
+                ? "Authentication context is missing"
+                : "Missing required header: " + ex.getHeaderName();
+        return ResponseEntity.status(status).body(new ErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                request.getRequestURI()
+        ));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        HttpStatus resolved = status != null ? status : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(resolved).body(new ErrorResponse(
+                resolved.value(),
+                resolved.getReasonPhrase(),
+                ex.getReason() != null ? ex.getReason() : resolved.getReasonPhrase(),
                 request.getRequestURI()
         ));
     }

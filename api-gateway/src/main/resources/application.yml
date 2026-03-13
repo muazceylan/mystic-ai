@@ -7,20 +7,6 @@ spring:
 
   cloud:
     gateway:
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        corsConfigurations:
-          '[/**]':
-            allowedOriginPatterns: "*"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - PATCH
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
       routes:
         # Admin panel API — routes to notification-service which owns all admin logic
         - id: admin-api
@@ -105,12 +91,17 @@ jwt:
 gateway:
   auth:
     permit-all: false
+  internal:
+    key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:8090,http://localhost:8500,http://localhost:19000,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:8090,http://127.0.0.1:8500,http://127.0.0.1:19000}
+    allow-credentials: true
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,metrics
+        include: health,info
   endpoint:
     gateway:
       enabled: true

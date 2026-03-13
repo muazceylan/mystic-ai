@@ -19,7 +19,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: false
     properties:
       hibernate:
@@ -109,3 +109,7 @@ resilience4j:
         baseConfig: default
       dream-service:
         baseConfig: default
+
+internal:
+  gateway:
+    key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}

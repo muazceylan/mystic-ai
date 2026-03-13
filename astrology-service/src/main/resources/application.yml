@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: false
     properties:
       hibernate:
@@ -82,3 +82,7 @@ api-ninjas:
 logging:
   level:
     com.mysticai.astrology: DEBUG
+
+internal:
+  gateway:
+    key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}

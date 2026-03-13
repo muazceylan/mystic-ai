@@ -25,7 +25,7 @@ spring:
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: false
     properties:
       hibernate:
@@ -107,3 +107,7 @@ logging:
     org.springframework.amqp: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{traceId:-},%X{spanId:-}] %-5level %logger{36} - %msg%n"
+
+internal:
+  gateway:
+    key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}

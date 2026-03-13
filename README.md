@@ -8,7 +8,7 @@
 
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.x-green?logo=spring)](https://spring.io/projects/spring-boot)
-[![React Native](https://img.shields.io/badge/React%20Native-Expo%20SDK%2050-blue?logo=react)](https://expo.dev)
+[![React Native](https://img.shields.io/badge/React%20Native-Expo%20SDK%2054-blue?logo=react)](https://expo.dev)
 [![Next.js](https://img.shields.io/badge/Next.js-14+-black?logo=next.js)](https://nextjs.org)
 [![License](https://img.shields.io/badge/license-Private-red)](LICENSE)
 
@@ -90,7 +90,7 @@ Service Registry (Eureka) :8761
 - Groq API (Whisper ASR + LLM)
 
 **Mobile:**
-- React Native · Expo SDK 50+ · Expo Router (file-based)
+- React Native · Expo SDK 54 · Expo Router (file-based)
 - TypeScript · Zustand · TanStack Query · NativeWind
 
 **Admin Panel:**
@@ -203,6 +203,8 @@ mystic-ai/
 
 - [Project Blueprint](docs/project-blueprint.md) — Architecture reference
 - [Usage Guide](docs/USAGE_GUIDE.md) — Setup, troubleshooting, common errors
+- [Local K8s Access Runbook](docs/LOCAL_K8S_ACCESS_RUNBOOK.md) — Same-origin local Kubernetes rollout (phase-1)
+- [Stage K8s Access Runbook](docs/STAGE_K8S_ACCESS_RUNBOOK.md) — Domain/TLS/secrets adaptation guide (phase-2 prep)
 
 ---
 
@@ -275,7 +277,7 @@ Service Registry (Eureka) :8761
 - Groq API (Whisper sesli transkripsiyon + LLM)
 
 **Mobil:**
-- React Native · Expo SDK 50+ · Expo Router (dosya tabanlı)
+- React Native · Expo SDK 54 · Expo Router (dosya tabanlı)
 - TypeScript · Zustand · TanStack Query · NativeWind
 
 **Admin Paneli:**
@@ -388,6 +390,8 @@ mystic-ai/
 
 - [Proje Mimari Rehberi](docs/project-blueprint.md) — Mimari referans belgesi
 - [Kullanım Rehberi](docs/USAGE_GUIDE.md) — Kurulum, sorun giderme, yaygın hatalar
+- [Local K8s Erişim Runbook](docs/LOCAL_K8S_ACCESS_RUNBOOK.md) — Same-origin local Kubernetes rollout (faz-1)
+- [Stage K8s Erişim Runbook](docs/STAGE_K8S_ACCESS_RUNBOOK.md) — Domain/TLS/secrets uyarlama rehberi (faz-2 hazırlık)
 
 ---
 

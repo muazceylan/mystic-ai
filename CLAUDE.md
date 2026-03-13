@@ -533,8 +533,8 @@ Kural:
 
 ### 5.2 Mobile
 
-- React Native 0.73
-- Expo SDK 50
+- React Native 0.81
+- Expo SDK 54
 - Expo Router
 - TypeScript
 - TanStack Query

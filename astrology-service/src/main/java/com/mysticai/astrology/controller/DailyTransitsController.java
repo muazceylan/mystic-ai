@@ -24,34 +24,28 @@ public class DailyTransitsController {
 
     @GetMapping("/daily/transits")
     public ResponseEntity<DailyTransitsDTO> getDailyTransits(
-            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId,
-            @RequestParam(value = "userId", required = false) Long queryUserId,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) String timezone
     ) {
-        Long userId = resolveUserId(headerUserId, queryUserId);
         return ResponseEntity.ok(dailyTransitsService.getDailyTransits(userId, date, timezone));
     }
 
     @GetMapping("/daily/transits/actions")
     public ResponseEntity<DailyActionsDTO> getDailyActions(
-            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId,
-            @RequestParam(value = "userId", required = false) Long queryUserId,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) String timezone
     ) {
-        Long userId = resolveUserId(headerUserId, queryUserId);
         return ResponseEntity.ok(dailyTransitsService.getDailyActions(userId, date, timezone));
     }
 
     @PostMapping("/daily/transits/actions/{actionId}/done")
     public ResponseEntity<DailyActionToggleResponse> markActionDone(
-            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId,
-            @RequestParam(value = "userId", required = false) Long queryUserId,
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable String actionId,
             @Valid @RequestBody DailyActionToggleRequest request
     ) {
-        Long userId = resolveUserId(headerUserId, queryUserId);
         return ResponseEntity.ok(
                 dailyTransitsService.toggleAction(userId, actionId, request.date(), Boolean.TRUE.equals(request.isDone()))
         );
@@ -59,22 +53,10 @@ public class DailyTransitsController {
 
     @PostMapping("/feedback")
     public ResponseEntity<Void> saveFeedback(
-            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId,
-            @RequestParam(value = "userId", required = false) Long queryUserId,
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody DailyFeedbackRequest request
     ) {
-        Long userId = resolveUserId(headerUserId, queryUserId);
         dailyTransitsService.saveFeedback(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
-    private Long resolveUserId(Long headerUserId, Long queryUserId) {
-        if (headerUserId != null && headerUserId > 0) {
-            return headerUserId;
-        }
-        if (queryUserId != null && queryUserId > 0) {
-            return queryUserId;
-        }
-        throw new IllegalArgumentException("Kullanıcı doğrulaması bulunamadı.");
     }
 }

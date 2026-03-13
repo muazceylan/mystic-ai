@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -33,6 +34,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
@@ -216,16 +218,25 @@ public class SpiritualController {
     }
 
     private Long resolveUserId(Jwt jwt) {
-        Long headerUserId = resolveUserIdFromHeader();
-        if (headerUserId != null) {
-            return headerUserId;
+        Long jwtUserId = resolveUserIdFromJwt(jwt);
+        if (jwtUserId != null) {
+            return jwtUserId;
         }
 
-        if (jwt == null) {
-            if (permitAll) {
-                return 1L;
+        if (permitAll) {
+            Long headerUserId = resolveUserIdFromHeader();
+            if (headerUserId != null) {
+                return headerUserId;
             }
-            throw new IllegalArgumentException("Authentication is required");
+            return 1L;
+        }
+
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required");
+    }
+
+    private Long resolveUserIdFromJwt(Jwt jwt) {
+        if (jwt == null) {
+            return null;
         }
         Object claimUserId = jwt.getClaim("userId");
         if (claimUserId instanceof Number n) {

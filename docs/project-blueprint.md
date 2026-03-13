@@ -26,7 +26,7 @@
 
 ### Frontend (Mobile — React Native)
 
-- **Framework:** React Native (Expo SDK 50+)
+- **Framework:** React Native (Expo SDK 54)
 - **Routing:** Expo Router (Dosya tabanlı navigasyon)
 - **State Management:** Zustand
 - **Styling:** NativeWind (Tailwind CSS)

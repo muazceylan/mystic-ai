@@ -20,7 +20,7 @@ spring:
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: false
     properties:
       hibernate:
@@ -100,12 +100,18 @@ logging:
 
 # Custom Properties
 notification:
+  testing:
+    endpoints-enabled: ${NOTIFICATION_TEST_ENDPOINTS_ENABLED:false}
   websocket:
     endpoint: /ws
     allowed-origins: "*"
     user-destination-prefix: /user
     application-destination-prefix: /app
     topic-prefix: /topic
+
+internal:
+  gateway:
+    key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}
 
 # Expo Push Notifications
 expo:

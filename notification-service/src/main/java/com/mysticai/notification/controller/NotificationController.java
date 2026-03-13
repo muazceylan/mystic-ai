@@ -7,12 +7,17 @@ import com.mysticai.notification.service.NotificationGenerationService;
 import com.mysticai.notification.service.NotificationPreferenceService;
 import com.mysticai.notification.service.PushService;
 import com.mysticai.notification.service.WebSocketNotificationService;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,6 +32,13 @@ public class NotificationController {
     private final NotificationPreferenceService preferenceService;
     private final PushService pushService;
     private final NotificationGenerationService generationService;
+    private final Environment environment;
+
+    @Value("${notification.testing.endpoints-enabled:false}")
+    private boolean testingEndpointsEnabled;
+
+    @Value("${ENV:prod}")
+    private String deploymentEnv;
 
     // ─── Notification List ───
 
@@ -189,6 +201,7 @@ public class NotificationController {
     public ResponseEntity<Map<String, Object>> testPush(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody(required = false) Map<String, String> body) {
+        ensureTestingEndpointsEnabled();
         String title = body != null ? body.getOrDefault("title", "Test Bildirimi") : "Test Bildirimi";
         String msg = body != null ? body.getOrDefault("body", "Bu bir test bildirimidir.") : "Bu bir test bildirimidir.";
         String deeplink = body != null ? body.get("deeplink") : null;
@@ -213,6 +226,7 @@ public class NotificationController {
     public ResponseEntity<Map<String, Object>> testByType(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable String type) {
+        ensureTestingEndpointsEnabled();
         try {
             Notification.NotificationType notifType = Notification.NotificationType.valueOf(type.toUpperCase());
             var result = generationService.generateNotificationForTest(userId, notifType);
@@ -232,5 +246,27 @@ public class NotificationController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Notification Service is running");
+    }
+
+    private void ensureTestingEndpointsEnabled() {
+        if (!isLocalEnvironment()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Notification testing endpoints are available only in local environment"
+            );
+        }
+
+        if (!testingEndpointsEnabled) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Notification testing endpoints are disabled"
+            );
+        }
+    }
+
+    private boolean isLocalEnvironment() {
+        boolean localProfileActive = Arrays.stream(environment.getActiveProfiles())
+                .anyMatch("local"::equalsIgnoreCase);
+        return localProfileActive || "local".equalsIgnoreCase(deploymentEnv);
     }
 }

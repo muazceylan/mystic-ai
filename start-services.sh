@@ -167,6 +167,16 @@ load_env() {
   else
     warn ".env not found; defaults from service configs will be used."
   fi
+
+  if [[ "${ENV:-local}" == "local" && -z "${JPA_DDL_AUTO:-}" ]]; then
+    export JPA_DDL_AUTO=update
+    log "JPA_DDL_AUTO not set; defaulting to update for local environment."
+  fi
+
+  if [[ -z "${CORS_ALLOWED_ORIGINS:-}" ]]; then
+    export CORS_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:3001,http://localhost:8090,http://localhost:8500,http://localhost:19000,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:8090,http://127.0.0.1:8500,http://127.0.0.1:19000,http://app.localhost,http://admin.localhost"
+    log "CORS_ALLOWED_ORIGINS not set; applied local default origins (includes web dev ports and localhost host-based domains)."
+  fi
 }
 
 stop_existing_processes() {

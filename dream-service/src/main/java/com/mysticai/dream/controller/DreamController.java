@@ -23,7 +23,7 @@ public class DreamController {
     @PostMapping
     public ResponseEntity<DreamResponse> createDream(
             @Valid @RequestBody DreamRequest request,
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId
+            @RequestHeader("X-User-Id") Long userId
     ) {
         DreamResponse response = dreamService.saveDream(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -31,7 +31,7 @@ public class DreamController {
 
     @GetMapping
     public ResponseEntity<List<DreamResponse>> getUserDreams(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId
+            @RequestHeader("X-User-Id") Long userId
     ) {
         List<DreamResponse> dreams = dreamService.getUserDreams(userId);
         return ResponseEntity.ok(dreams);

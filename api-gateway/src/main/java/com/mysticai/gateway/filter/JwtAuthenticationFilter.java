@@ -1,9 +1,12 @@
 package com.mysticai.gateway.filter;
 
+import com.mysticai.gateway.security.GatewaySecurityMetrics;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -26,12 +29,15 @@ import java.util.List;
 @Component
 @Order(1)
 public class JwtAuthenticationFilter implements GlobalFilter {
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Value("${gateway.auth.permit-all:false}")
     private boolean permitAll;
+
+    private final GatewaySecurityMetrics securityMetrics;
 
     // Paths that don't require authentication
     private static final List<String> PUBLIC_PATHS = List.of(
@@ -49,11 +55,13 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/v1/auth/social-login",
             "/api/v1/auth/verification/resend",
             "/api/v1/auth/verify-email",
-            "/actuator",
-            "/v3/api-docs",
-            "/swagger-ui",
-            "/swagger-ui.html"
+            "/actuator/health",
+            "/actuator/info"
     );
+
+    public JwtAuthenticationFilter(GatewaySecurityMetrics securityMetrics) {
+        this.securityMetrics = securityMetrics;
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
@@ -78,8 +86,12 @@ public class JwtAuthenticationFilter implements GlobalFilter {
                     : "local-dev";
 
             ServerHttpRequest mutatedRequest = request.mutate()
-                    .header("X-User-Id", safeUserId)
-                    .header("X-Username", safeUsername)
+                    .headers(headers -> {
+                        headers.remove("X-User-Id");
+                        headers.remove("X-Username");
+                        headers.set("X-User-Id", safeUserId);
+                        headers.set("X-Username", safeUsername);
+                    })
                     .build();
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         }
@@ -89,28 +101,49 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             return chain.filter(exchange);
         }
 
+        if (hasUserContextHeaders(request)) {
+            log.warn("Potential spoofed user context headers detected and ignored at gateway: method={} path={}",
+                    request.getMethod(), path);
+            securityMetrics.incrementHeaderSpoofAttempts();
+        }
+
         // Extract Authorization header
         String authHeader = request.getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return unauthorizedResponse(exchange, "Missing or invalid Authorization header");
+            return unauthorizedResponse(
+                    exchange,
+                    "Missing or invalid Authorization header",
+                    AuthFailureReason.MISSING_AUTH
+            );
         }
 
         String token = authHeader.substring(7);
 
         // Validate token
         if (!validateToken(token)) {
-            return unauthorizedResponse(exchange, "Invalid or expired token");
+            return unauthorizedResponse(exchange, "Invalid or expired token", AuthFailureReason.INVALID_TOKEN);
         }
 
         // Extract claims and add user context headers
         Claims claims = extractClaims(token);
         String username = claims.getSubject();
         Long userId = claims.get("userId", Long.class);
+        if (userId == null) {
+            return unauthorizedResponse(
+                    exchange,
+                    "Token does not contain userId claim",
+                    AuthFailureReason.INVALID_TOKEN
+            );
+        }
 
         // Add user context headers
         ServerHttpRequest mutatedRequest = request.mutate()
-                .header("X-User-Id", userId != null ? userId.toString() : "")
-                .header("X-Username", username)
+                .headers(headers -> {
+                    headers.remove("X-User-Id");
+                    headers.remove("X-Username");
+                    headers.set("X-User-Id", userId.toString());
+                    headers.set("X-Username", username);
+                })
                 .build();
 
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
@@ -144,10 +177,29 @@ public class JwtAuthenticationFilter implements GlobalFilter {
                 .getPayload();
     }
 
-    private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String message) {
+    private boolean hasUserContextHeaders(ServerHttpRequest request) {
+        return request.getHeaders().containsKey("X-User-Id") || request.getHeaders().containsKey("X-Username");
+    }
+
+    private Mono<Void> unauthorizedResponse(
+            ServerWebExchange exchange,
+            String message,
+            AuthFailureReason reason
+    ) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().add("Content-Type", "application/json");
+        if (reason == AuthFailureReason.MISSING_AUTH) {
+            securityMetrics.incrementMissingAuthAttempts();
+        } else if (reason == AuthFailureReason.INVALID_TOKEN) {
+            securityMetrics.incrementInvalidAuthAttempts();
+        }
+        log.warn("Gateway auth rejected request: path={} reason={}", exchange.getRequest().getPath(), message);
         return response.setComplete();
+    }
+
+    private enum AuthFailureReason {
+        MISSING_AUTH,
+        INVALID_TOKEN
     }
 }

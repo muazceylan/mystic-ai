@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.oracle.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -33,6 +34,9 @@ public class OracleService {
     private final ObjectMapper objectMapper;
     private final ReactiveCircuitBreakerFactory circuitBreakerFactory;
     private final StringRedisTemplate redisTemplate;
+
+    @Value("${internal.gateway.key}")
+    private String internalGatewayKey;
 
     private static final String ORACLE_CACHE_PREFIX = "oracle:daily:";
     private static final String ORACLE_PROMPT_VERSION = "oracle-home-v2";
@@ -577,6 +581,7 @@ public class OracleService {
                         .queryParam("name", name)
                         .queryParam("birthDate", birthDate)
                         .build())
+                .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .map(this::parseNumerologyResponse);
@@ -606,6 +611,7 @@ public class OracleService {
                         .host("astrology-service")
                         .path("/api/v1/astrology/natal-charts/user/{userId}/latest")
                         .build(userId))
+                .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .map(this::parseNatalChartResponse);
@@ -635,6 +641,7 @@ public class OracleService {
                         .host("dream-service")
                         .path("/api/v1/dreams/recent")
                         .build())
+                .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .header("X-User-Id", userId.toString())
                 .retrieve()
                 .bodyToMono(JsonNode.class)
@@ -665,6 +672,7 @@ public class OracleService {
                         .host("astrology-service")
                         .path("/api/v1/astrology/sky-pulse")
                         .build())
+                .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .map(this::parseSkyPulseResponse);
@@ -697,6 +705,7 @@ public class OracleService {
                         .path("/api/v1/astrology/weekly-swot")
                         .queryParam("userId", userId)
                         .build())
+                .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .map(this::parseWeeklyCards);
