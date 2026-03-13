@@ -64,8 +64,9 @@ export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPress
       </View>
 
       <View style={styles.card}>
-        {items.slice(0, 3).map((item, index) => {
+        {items.map((item, index) => {
           const badge = getBadge(item.level, colors);
+          const isLast = index === items.length - 1;
           return (
             <Pressable
               key={`${item.title}-${index}`}
@@ -73,7 +74,7 @@ export function WeeklyHighlightsCompact({ weekRange, items, onPressItem, onPress
               accessibilityRole="button"
               accessibilityLabel={t('homeSurface.weekly.itemAccessibility', { title: item.title })}
               hitSlop={HIT_SLOP}
-              style={({ pressed }) => [styles.itemRow, index === 2 && styles.lastRow, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.itemRow, isLast && styles.lastRow, pressed && styles.pressed]}
             >
               <View style={styles.itemLeft}>
                 <Ionicons name={item.iconName} size={14} color={colors.primary} />

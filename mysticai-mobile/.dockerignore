@@ -1,0 +1,9 @@
+.git
+node_modules
+android
+android_backup
+ios
+ios_backup
+.expo
+dist
+npm-debug.log*

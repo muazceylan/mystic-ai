@@ -18,6 +18,7 @@ import { useNumerology } from '../hooks/useNumerology';
 import { trackEvent } from '../services/analytics';
 import { fetchHomeContentBundle, type HomeSection, type CmsBanner } from '../services/homeContent.service';
 import { getLockedSections, isPremiumUser } from '../services/numerology.service';
+import { envConfig } from '../config/env';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import {
@@ -43,6 +44,12 @@ const SETTINGS_ROUTE = '/theme-settings';
 const TRANSITS_ROUTE_FALLBACK = '/transits-today';
 const WEEKLY_ANALYSIS_ROUTE_FALLBACK = '/(tabs)/weekly-analysis';
 const HOME_MAX_FONT_SCALE = 1.15;
+const HIDDEN_HOME_SECTION_KEYS = new Set([
+  'home_numerology_promo',
+  'home_compatibility_promo',
+  'home_dream_promo',
+  'home_spiritual_promo',
+]);
 
 const QUICK_ACTION_VISUALS: Record<string, { iconName: IconName; iconColor: string; iconBg: string }> = {
   decisioncompass: {
@@ -676,6 +683,11 @@ export default function HomeScreen() {
     notificationCount > 0
       ? t('homeSurface.header.notificationsUnread', { count: notificationCount })
       : t('profile.menu.notifications');
+  const showOracleStatusChip = envConfig.appEnv === 'dev';
+  const visibleCmsSections = useMemo(
+    () => cmsSections.filter((section) => !HIDDEN_HOME_SECTION_KEYS.has(section.sectionKey)),
+    [cmsSections],
+  );
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
@@ -850,7 +862,7 @@ export default function HomeScreen() {
           );
         })}
 
-        {cmsSections.map((section) => {
+        {visibleCmsSections.map((section) => {
           const sectionRoute = section.routeKey || section.fallbackRouteKey;
           return (
             <Pressable
@@ -869,7 +881,7 @@ export default function HomeScreen() {
           );
         })}
 
-        {dashboard?.oracleStatus?.label ? (
+        {showOracleStatusChip && dashboard?.oracleStatus?.label ? (
           <OracleStatusChip
             label={dashboard.oracleStatus.label}
             enabled={dashboard.oracleStatus.enabled}

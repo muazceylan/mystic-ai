@@ -87,6 +87,30 @@ export interface FetchHomeDashboardParams {
 const TR_MONTHS_SHORT = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'] as const;
 const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 const TURKISH_TEXT_PATTERN = /[çğıöşüÇĞİÖŞÜ]|\b(bugün|günün|hafta|için|ve|ile|sen|seni|gökyüzü|yorum|fırsat|enerji|detay|ay|retrosu|haritan)\b/i;
+const RETRO_HERO_TEMPLATES_TR_SINGLE = [
+  '{{planet}} retroda; bugün en güçlü hamlen hızlanmak değil, planını bir tur daha netleştirmek.',
+  '{{planet}} retroda; kritik adım atmadan önce detayları ikinci kez kontrol etmek sana avantaj sağlar.',
+  '{{planet}} retroda; kısa bir geri adım bugün gereksiz bir yanlışı baştan kapatır.',
+  '{{planet}} retroda; iletişimde netlik ve sakin tempo bugün oyunun kurallarını değiştirir.',
+] as const;
+const RETRO_HERO_TEMPLATES_TR_MULTI = [
+  '{{planets}} retroda; bugün hız yerine strateji seçen kazanır.',
+  '{{planets}} retroda; büyük kararları ağırdan alıp iki kontrol yapmak günü kurtarır.',
+  '{{planets}} retroda; temponu sadeleştirip önceliğini daraltman en güvenli rota olur.',
+  '{{planets}} retroda; net plan ve sakin iletişim bugün seni hatadan uzak tutar.',
+] as const;
+const RETRO_HERO_TEMPLATES_EN_SINGLE = [
+  '{{planet}} is retrograde; your best move today is to slow down and tighten the plan.',
+  '{{planet}} is retrograde; double-checking details before the next step gives you the edge.',
+  '{{planet}} is retrograde; one deliberate pause can prevent an avoidable mistake today.',
+  '{{planet}} is retrograde; clear communication and calm pacing will carry you further.',
+] as const;
+const RETRO_HERO_TEMPLATES_EN_MULTI = [
+  '{{planets}} are retrograde; strategy beats speed today.',
+  '{{planets}} are retrograde; take major decisions slower and verify key details twice.',
+  '{{planets}} are retrograde; simplify your pace and narrow focus before making a move.',
+  '{{planets}} are retrograde; a clear plan and calm communication keep you ahead.',
+] as const;
 
 function normalizeLocale(locale?: string | null): DashboardLocale {
   return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
@@ -269,6 +293,130 @@ function firstStrongText(locale: DashboardLocale, max: number, ...values: Array<
   return normalizeDashboardText(values[0], max);
 }
 
+function normalizePlanetToken(value: string | null | undefined): string {
+  return slugify(compactWhitespace(value)).replace(/-/g, '');
+}
+
+function matchPlanetToken(token: string, aliases: readonly string[]): boolean {
+  return aliases.some((alias) => token === alias || token.startsWith(alias));
+}
+
+function localizeRetroPlanetName(value: string | null | undefined, locale: DashboardLocale): string {
+  const token = normalizePlanetToken(value);
+  const aliases: Array<{ keys: readonly string[]; tr: string; en: string }> = [
+    { keys: ['mercury', 'merkur'], tr: 'Merkür', en: 'Mercury' },
+    { keys: ['venus', 'venusu', 'venuz'], tr: 'Venüs', en: 'Venus' },
+    { keys: ['mars'], tr: 'Mars', en: 'Mars' },
+    { keys: ['jupiter'], tr: 'Jüpiter', en: 'Jupiter' },
+    { keys: ['saturn', 'saturnu', 'saturnus'], tr: 'Satürn', en: 'Saturn' },
+    { keys: ['uranus', 'uranusu'], tr: 'Uranüs', en: 'Uranus' },
+    { keys: ['neptune', 'neptun'], tr: 'Neptün', en: 'Neptune' },
+    { keys: ['pluto', 'pluton'], tr: 'Plüton', en: 'Pluto' },
+  ];
+  const matched = aliases.find((entry) => matchPlanetToken(token, entry.keys));
+  if (matched) {
+    return isEnglish(locale) ? matched.en : matched.tr;
+  }
+
+  const fallback = compactWhitespace(value);
+  if (!fallback) {
+    return isEnglish(locale) ? 'a retrograde planet' : 'bir retro gezegen';
+  }
+
+  return fallback;
+}
+
+function dedupeRetroPlanets(planets: string[] | null | undefined, locale: DashboardLocale): string[] {
+  if (!Array.isArray(planets)) {
+    return [];
+  }
+
+  const unique = new Set<string>();
+  const result: string[] = [];
+  for (const rawPlanet of planets) {
+    const localized = localizeRetroPlanetName(rawPlanet, locale);
+    const key = normalizePlanetToken(localized) || localized.toLowerCase();
+    if (!key || unique.has(key)) {
+      continue;
+    }
+    unique.add(key);
+    result.push(localized);
+  }
+
+  return result;
+}
+
+function formatRetroPlanetLabel(planets: string[], locale: DashboardLocale): string {
+  if (!planets.length) {
+    return isEnglish(locale) ? 'retrograde motion' : 'retro hareketi';
+  }
+
+  if (planets.length === 1) {
+    return planets[0];
+  }
+
+  if (planets.length === 2) {
+    return isEnglish(locale) ? `${planets[0]} and ${planets[1]}` : `${planets[0]} ve ${planets[1]}`;
+  }
+
+  return isEnglish(locale)
+    ? `${planets[0]}, ${planets[1]}, and others`
+    : `${planets[0]}, ${planets[1]} ve diğerleri`;
+}
+
+function hashSeed(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function pickTemplate<T extends readonly string[]>(templates: T, seed: string): string {
+  if (!templates.length) {
+    return '';
+  }
+
+  return templates[hashSeed(seed) % templates.length];
+}
+
+function ensureSingleSentence(value: string, max = 108): string {
+  const trimmed = compactWhitespace(value);
+  if (!trimmed) {
+    return '';
+  }
+
+  const sentenceMatch = trimmed.match(/^(.+?[.!?])(?:\s|$)/);
+  const firstSentence = compactWhitespace(sentenceMatch?.[1] ?? trimmed);
+  const withPunctuation = /[.!?]$/.test(firstSentence) ? firstSentence : `${firstSentence}.`;
+  return clampText(withPunctuation, max);
+}
+
+function buildRetroHeroInsight(retrogradePlanets: string[] | null | undefined, locale: DashboardLocale): string {
+  const localizedPlanets = dedupeRetroPlanets(retrogradePlanets, locale);
+  const retroCount = Array.isArray(retrogradePlanets) && retrogradePlanets.length > 0
+    ? retrogradePlanets.length
+    : localizedPlanets.length;
+  const primaryPlanet = localizedPlanets[0] ?? (isEnglish(locale) ? 'A retrograde planet' : 'Bir retro gezegen');
+  const planetLabel = localizedPlanets.length > 0
+    ? formatRetroPlanetLabel(localizedPlanets, locale)
+    : (isEnglish(locale) ? 'Multiple planets' : 'Birden fazla gezegen');
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const seed = `${todayKey}|${locale}|${localizedPlanets.join('|')}|${retroCount}`;
+
+  const templates = isEnglish(locale)
+    ? (retroCount >= 2 ? RETRO_HERO_TEMPLATES_EN_MULTI : RETRO_HERO_TEMPLATES_EN_SINGLE)
+    : (retroCount >= 2 ? RETRO_HERO_TEMPLATES_TR_MULTI : RETRO_HERO_TEMPLATES_TR_SINGLE);
+  const selected = pickTemplate(templates, seed);
+
+  return ensureSingleSentence(
+    selected
+      .replace('{{planet}}', primaryPlanet)
+      .replace('{{planets}}', planetLabel),
+    108,
+  );
+}
+
 function localizeMoonPhase(value: string | null | undefined, locale: DashboardLocale): string {
   const phase = compactWhitespace(value);
   if (!phase) {
@@ -420,15 +568,17 @@ function mapSwotToWeekly(swot: WeeklySwotResponse | null | undefined, locale: Da
     return [];
   }
 
-  const fallbackDesc = (key: 'strength' | 'opportunity' | 'threat', intensity: number) => {
+  const fallbackDesc = (key: 'strength' | 'opportunity' | 'threat' | 'weakness', intensity: number) => {
     if (isEnglish(locale)) {
       if (key === 'strength') return intensity >= 60 ? 'Momentum is strong in this area this week.' : 'A stable source of support stays active this week.';
       if (key === 'opportunity') return intensity >= 60 ? 'A clear opening is worth acting on this week.' : 'Watch for smaller openings building in the background.';
+      if (key === 'weakness') return intensity >= 60 ? 'Protect your energy in draining moments this week.' : 'Notice where your energy drops and keep your pace balanced.';
       return intensity >= 60 ? 'Move carefully around pressure points this week.' : 'Keep plans flexible and avoid forcing outcomes.';
     }
 
     if (key === 'strength') return intensity >= 60 ? 'Bu alan bu hafta güçlü destek alıyor.' : 'Bu alanda dengeli bir destek devam ediyor.';
     if (key === 'opportunity') return intensity >= 60 ? 'Bu hafta değerlendirmeye açık net bir fırsat var.' : 'Daha küçük ama anlamlı açılımlar birikiyor.';
+    if (key === 'weakness') return intensity >= 60 ? 'Bu hafta enerji düşüren alanlarda ritmini koru.' : 'Enerji düşüşlerini fark edip temponu dengede tut.';
     return intensity >= 60 ? 'Bu hafta baskı yaratan alanlarda temkinli ilerle.' : 'Planlarını esnek tutup zorlamadan ilerle.';
   };
 
@@ -462,6 +612,17 @@ function mapSwotToWeekly(swot: WeeklySwotResponse | null | undefined, locale: Da
         isEnglish(locale)
           ? fallbackDesc('threat', swot.threat.intensity)
           : swot.threat.quickTip || swot.threat.subtext || fallbackDesc('threat', swot.threat.intensity),
+        64,
+      ),
+      level: 'risk',
+    },
+    {
+      key: 'weakness',
+      title: isEnglish(locale) ? 'Energy Drain' : 'Enerji Kaybı',
+      desc: clampText(
+        isEnglish(locale)
+          ? fallbackDesc('weakness', swot.weakness.intensity)
+          : swot.weakness.quickTip || swot.weakness.subtext || fallbackDesc('weakness', swot.weakness.intensity),
         64,
       ),
       level: 'risk',
@@ -510,6 +671,10 @@ function buildDashboardFromSources(
     homeBrief?.dailyEnergy,
     fallbackInsight,
   );
+  const retroHeroInsight = retroCount > 0 ? buildRetroHeroInsight(skyPulse?.retrogradePlanets, locale) : '';
+  const heroInsight = retroCount > 0
+    ? (retroHeroInsight || fallbackInsight)
+    : (transitSummary || fallbackInsight);
 
   return {
     user: {
@@ -521,7 +686,7 @@ function buildDashboardFromSources(
     hero: {
       title: isEnglish(locale) ? 'Your Birth Night Sky' : 'Doğduğun Gece Gökyüzü',
       subtitle: moonPhase ? (isEnglish(locale) ? `Moon Phase: ${moonPhase}` : `Ay Fazı: ${moonPhase}`) : '',
-      insightText: transitSummary || fallbackInsight,
+      insightText: heroInsight,
       ctaText: isEnglish(locale) ? 'See the sky' : 'Gökyüzünü gör',
     },
     quickActions: getStaticQuickActions(locale),
