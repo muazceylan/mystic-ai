@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mystic-stage-config
+  namespace: mystic-stage
+data:
+  ENV: "stage"
+  EUREKA_URL: "http://service-registry:8761/eureka/"
+  DB_HOST: "__REPLACE_DB_HOST__"
+  DB_PORT: "5432"
+  DB_USER: "__REPLACE_DB_USER__"
+  RABBITMQ_HOST: "__REPLACE_RABBITMQ_HOST__"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "__REPLACE_RABBITMQ_USER__"
+  RABBITMQ_VHOST: "__REPLACE_RABBITMQ_VHOST__"
+  REDIS_HOST: "__REPLACE_REDIS_HOST__"
+  REDIS_PORT: "6379"
+  MAIL_HOST: "__REPLACE_MAIL_HOST__"
+  MAIL_PORT: "__REPLACE_MAIL_PORT__"
+  MAIL_SMTP_AUTH: "__REPLACE_MAIL_SMTP_AUTH__"
+  MAIL_SMTP_STARTTLS: "__REPLACE_MAIL_SMTP_STARTTLS__"
+  MAIL_FROM: "__REPLACE_MAIL_FROM__"
+  API_PUBLIC_URL: "https://__REPLACE_APP_HOST__"
+  APP_PUBLIC_URL: "https://__REPLACE_APP_HOST__"
+  CORS_ALLOWED_ORIGINS: "https://__REPLACE_APP_HOST__,https://__REPLACE_ADMIN_HOST__"
+  BACKEND_URL: "http://api-gateway:8080"
+  AUTH_SERVICE_URL: "http://api-gateway:8080"
+  NUMEROLOGY_SERVICE_URL: "http://api-gateway:8080/api/numerology"
+  EXPO_PUBLIC_APP_ENV: "stage"
+  EXPO_PUBLIC_API_BASE_URL_STAGE: "https://__REPLACE_APP_HOST__"
