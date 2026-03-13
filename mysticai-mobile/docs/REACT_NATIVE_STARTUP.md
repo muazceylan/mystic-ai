@@ -4,7 +4,7 @@ Mevcut Flutter projesini iptal edip, yerine **React Native (Expo)** kullanarak y
 
 ## 1. Teknoloji Yığını (Tech Stack)
 En güncel ve hatasız kurulum için şu yığını kullanacağız:
-- **Framework:** React Native (Expo SDK 50+)
+- **Framework:** React Native (Expo SDK 54)
 - **Dil:** TypeScript
 - **Navigasyon:** Expo Router (Dosya tabanlı routing)
 - **Styling:** NativeWind (Tailwind CSS for React Native)

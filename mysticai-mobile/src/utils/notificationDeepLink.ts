@@ -32,6 +32,14 @@ const NOTIF_CENTER = '/(tabs)/notifications' as const;
 // Track recently opened notification IDs to prevent duplicate processing
 const recentlyOpened = new Set<string>();
 
+function normalizeId(value: unknown): string {
+  return String(value ?? '').trim();
+}
+
+function isUnreadStatus(status?: string): boolean {
+  return String(status ?? '').trim().toUpperCase() === 'UNREAD';
+}
+
 /**
  * Open a notification: marks as read, tracks analytics, navigates.
  * Safe to call multiple times for the same notification — deduplicates.
@@ -43,11 +51,14 @@ export async function openNotification(
   notif: NotificationRef,
   isAuthenticated: boolean
 ): Promise<void> {
+  const normalizedId = normalizeId(notif.id);
+  const dedupeKey = normalizedId || `anon:${notif.deeplink ?? 'empty'}`;
+
   // Prevent double-processing the same notification
-  if (recentlyOpened.has(notif.id)) return;
-  recentlyOpened.add(notif.id);
+  if (recentlyOpened.has(dedupeKey)) return;
+  recentlyOpened.add(dedupeKey);
   // Clear after 5s so edge cases (re-open after navigate back) still work
-  setTimeout(() => recentlyOpened.delete(notif.id), 5000);
+  setTimeout(() => recentlyOpened.delete(dedupeKey), 5000);
 
   // Auth guard: redirect to login if not authenticated
   if (!isAuthenticated) {
@@ -55,11 +66,15 @@ export async function openNotification(
     return;
   }
 
-  const payload = notifEventPayload(notif);
+  const payload = notifEventPayload({
+    ...notif,
+    id: normalizedId || notif.id,
+    deeplink: notif.deeplink ?? undefined,
+  });
 
   // Mark as read (fire-and-forget, don't block navigation)
-  if (notif.status === 'UNREAD') {
-    useNotificationStore.getState().markAsRead(notif.id).catch(() => {});
+  if (normalizedId && !normalizedId.startsWith('push-') && isUnreadStatus(notif.status)) {
+    useNotificationStore.getState().markAsRead(normalizedId).catch(() => {});
     trackNotificationEvent(NotificationEvent.MARKED_READ, payload);
   }
 
@@ -123,7 +138,8 @@ export async function handlePushNotificationOpen(
 ): Promise<void> {
   const data = response.notification.request.content.data;
   const deeplink = (data?.deeplink as string | undefined) ?? undefined;
-  const notifId = (data?.notificationId as string | undefined) ?? generateTempId();
+  const incomingId = normalizeId(data?.notificationId);
+  const notifId = incomingId || generateTempId();
 
   trackNotificationEvent(NotificationEvent.PUSH_OPENED, { notificationId: notifId, deeplink });
 
@@ -131,7 +147,7 @@ export async function handlePushNotificationOpen(
   useNotificationStore.getState().fetchUnreadCount().catch(() => {});
 
   await openNotification(
-    { id: notifId, deeplink, status: 'UNREAD' },
+    { id: notifId, deeplink, status: incomingId ? 'UNREAD' : undefined },
     isAuthenticated
   );
 }

@@ -91,40 +91,72 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   markAsRead: async (id: string) => {
+    const normalizedId = String(id ?? '').trim();
+    if (!normalizedId) return;
+
+    const now = new Date().toISOString();
+    const target = get().notifications.find((n) => String(n.id) === normalizedId);
+    const shouldDecrement = target?.status === 'UNREAD';
+
+    // Optimistic local update so unread badge changes immediately.
+    set((s) => ({
+      notifications: s.notifications.map((n) =>
+        String(n.id) === normalizedId
+          ? {
+              ...n,
+              status: 'READ' as const,
+              readAt: n.readAt ?? now,
+              seenAt: n.seenAt ?? now,
+            }
+          : n
+      ),
+      unreadCount: shouldDecrement ? Math.max(0, s.unreadCount - 1) : s.unreadCount,
+    }));
+
     try {
-      await notificationService.markAsRead(id);
-      set((s) => ({
-        notifications: s.notifications.map((n) =>
-          n.id === id ? { ...n, status: 'READ' as const, readAt: new Date().toISOString() } : n
-        ),
-        unreadCount: Math.max(0, s.unreadCount - 1),
-      }));
-    } catch {}
+      await notificationService.markAsRead(normalizedId);
+    } catch {
+      // Keep optimistic state; authoritative counter is reconciled below.
+    } finally {
+      setTimeout(() => {
+        get().fetchUnreadCount().catch(() => {});
+      }, 250);
+    }
   },
 
   markAllAsRead: async () => {
+    const now = new Date().toISOString();
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({
+        ...n,
+        status: 'READ' as const,
+        readAt: n.readAt ?? now,
+        seenAt: n.seenAt ?? now,
+      })),
+      unreadCount: 0,
+    }));
+
     try {
       await notificationService.markAllAsRead();
-      const now = new Date().toISOString();
-      set((s) => ({
-        notifications: s.notifications.map((n) => ({
-          ...n,
-          status: 'READ' as const,
-          readAt: n.readAt ?? now,
-          seenAt: n.seenAt ?? now,
-        })),
-        unreadCount: 0,
-      }));
-    } catch {}
+    } catch {
+      // Keep optimistic state; authoritative counter is reconciled below.
+    } finally {
+      setTimeout(() => {
+        get().fetchUnreadCount().catch(() => {});
+      }, 250);
+    }
   },
 
   markAsSeen: async (id: string) => {
+    const normalizedId = String(id ?? '').trim();
+    if (!normalizedId) return;
+
     try {
-      await notificationService.markAsSeen(id);
+      await notificationService.markAsSeen(normalizedId);
       const now = new Date().toISOString();
       set((s) => ({
         notifications: s.notifications.map((n) =>
-          n.id === id && !n.seenAt ? { ...n, seenAt: now } : n
+          String(n.id) === normalizedId && !n.seenAt ? { ...n, seenAt: now } : n
         ),
       }));
     } catch {}
@@ -144,11 +176,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   deleteNotification: async (id: string) => {
+    const normalizedId = String(id ?? '').trim();
+    if (!normalizedId) return;
+
     try {
-      await notificationService.deleteNotification(id);
+      await notificationService.deleteNotification(normalizedId);
       set((s) => ({
-        notifications: s.notifications.filter((n) => n.id !== id),
-        unreadCount: s.notifications.find((n) => n.id === id)?.status === 'UNREAD'
+        notifications: s.notifications.filter((n) => String(n.id) !== normalizedId),
+        unreadCount: s.notifications.find((n) => String(n.id) === normalizedId)?.status === 'UNREAD'
           ? Math.max(0, s.unreadCount - 1)
           : s.unreadCount,
       }));
