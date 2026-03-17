@@ -125,30 +125,36 @@ export default function TabsLayout() {
     prefetchKeyRef.current = prefetchKey;
     clearPlannerFullDistributionCache();
 
-    const currentMonth = new Date();
-    const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-    const currentRange = getMonthRange(currentMonth);
-    const nextRange = getMonthRange(nextMonth);
+    // Planner prefetch'i home dashboard ile aynı anda yapma;
+    // 2 saniye bekleyerek home'un önce yüklenmesine izin ver.
+    const timer = setTimeout(() => {
+      const currentMonth = new Date();
+      const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+      const currentRange = getMonthRange(currentMonth);
+      const nextRange = getMonthRange(nextMonth);
 
-    void prefetchPlannerFullDistribution({
-      userId: user.id,
-      userGender: user.gender,
-      maritalStatus: user.maritalStatus,
-      locale: plannerLocale,
-      responseMode: 'GRID_ONLY',
-      startDate: currentRange.startDate,
-      endDate: currentRange.endDate,
-    });
+      void prefetchPlannerFullDistribution({
+        userId: user.id,
+        userGender: user.gender,
+        maritalStatus: user.maritalStatus,
+        locale: plannerLocale,
+        responseMode: 'GRID_ONLY',
+        startDate: currentRange.startDate,
+        endDate: currentRange.endDate,
+      });
 
-    void prefetchPlannerFullDistribution({
-      userId: user.id,
-      userGender: user.gender,
-      maritalStatus: user.maritalStatus,
-      locale: plannerLocale,
-      responseMode: 'GRID_ONLY',
-      startDate: nextRange.startDate,
-      endDate: nextRange.endDate,
-    });
+      void prefetchPlannerFullDistribution({
+        userId: user.id,
+        userGender: user.gender,
+        maritalStatus: user.maritalStatus,
+        locale: plannerLocale,
+        responseMode: 'GRID_ONLY',
+        startDate: nextRange.startDate,
+        endDate: nextRange.endDate,
+      });
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, [user?.id, user?.gender, user?.maritalStatus, chart, plannerLocale]);
 
   return (

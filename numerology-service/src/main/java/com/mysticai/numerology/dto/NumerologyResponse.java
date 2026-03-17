@@ -8,6 +8,9 @@ public record NumerologyResponse(
         String headline,
         List<CoreNumber> coreNumbers,
         Timing timing,
+        ClassicCycle classicCycle,
+        KarmicDebt karmicDebt,
+        AngelSignal angelSignal,
         Profile profile,
         CombinedProfile combinedProfile,
         MiniGuidance miniGuidance,
@@ -39,10 +42,66 @@ public record NumerologyResponse(
     public record Timing(
             int personalYear,
             int universalYear,
+            int personalMonth,
+            int personalDay,
             int cycleProgress,
             String yearPhase,
             String currentPeriodFocus,
-            String shortTheme
+            String shortTheme,
+            String nextRefreshAt
+    ) {
+    }
+
+    public record ClassicCycle(
+            List<PinnaclePhase> pinnacles,
+            List<ChallengePhase> challenges,
+            List<LifeCyclePhase> lifeCycles,
+            int activePinnacleIndex,
+            int activeChallengeIndex,
+            int activeLifeCycleIndex
+    ) {
+    }
+
+    public record PinnaclePhase(
+            int order,
+            int number,
+            int startAge,
+            int endAge,
+            String theme
+    ) {
+    }
+
+    public record ChallengePhase(
+            int order,
+            int number,
+            int startAge,
+            int endAge,
+            String focus
+    ) {
+    }
+
+    public record LifeCyclePhase(
+            String id,
+            int number,
+            int startAge,
+            int endAge,
+            String label,
+            String theme
+    ) {
+    }
+
+    public record KarmicDebt(
+            List<Integer> debts,
+            List<String> sources,
+            String summary
+    ) {
+    }
+
+    public record AngelSignal(
+            int angelNumber,
+            String meaning,
+            String action,
+            String signalFor
     ) {
     }
 

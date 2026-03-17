@@ -234,6 +234,95 @@ public class MysticalAiService {
         }
     }
 
+    /**
+     * Produces an editorial Turkish localization for horoscope general text.
+     * Uses the complex chain for higher writing quality and consistency.
+     */
+    public String generateEditorialHoroscopeTranslation(String sourceText, String sign, String period, String locale) {
+        long startedAtNanos = System.nanoTime();
+        String mode = "editorial_tr";
+        String chain = "complex";
+        String fallbackReason = "none";
+        boolean success = false;
+
+        try {
+            if (!nonBlank(sourceText)) {
+                fallbackReason = "empty_source";
+                throw new IllegalArgumentException("sourceText is required");
+            }
+
+            String resolvedLocale = nonBlank(locale) ? locale.trim().toLowerCase(Locale.ROOT) : "tr";
+            if (!resolvedLocale.startsWith("tr")) {
+                fallbackReason = "locale_not_tr";
+                success = true;
+                return sourceText.trim();
+            }
+
+            String prompt = buildEditorialTranslationPrompt(sourceText, sign, period);
+            String rawResponse = callAiModel(prompt, true);
+            String normalized = normalizeEditorialTranslation(rawResponse);
+            if (!nonBlank(normalized)) {
+                fallbackReason = "empty_model_output";
+                throw new IllegalStateException("Editorial translation returned empty output");
+            }
+
+            success = true;
+            return normalized;
+        } catch (Exception e) {
+            if ("none".equals(fallbackReason)) {
+                fallbackReason = "model_error";
+            }
+            logger.error("Editorial horoscope translation failed mode={} chain={} fallback_reason={} latency_ms={}",
+                    mode, chain, fallbackReason, elapsedMs(startedAtNanos), e);
+            throw new RuntimeException("Editorial horoscope translation failed: " + e.getMessage(), e);
+        } finally {
+            logger.info("Editorial horoscope translation completed mode={} chain={} fallback_reason={} latency_ms={} success={}",
+                    mode, chain, fallbackReason, elapsedMs(startedAtNanos), success);
+        }
+    }
+
+    private String buildEditorialTranslationPrompt(String sourceText, String sign, String period) {
+        String resolvedSign = nonBlank(sign) ? sign.trim() : "unknown";
+        String resolvedPeriod = nonBlank(period) ? period.trim() : "daily";
+
+        return """
+                Sen kıdemli bir astroloji editörü ve Türkçe yerelleştirme uzmanısın.
+                Sana verilen burç metnini (İngilizce, Türkçe veya karışık olabilir) güçlü ve doğal Türkçe'ye editoryal kaliteyle uyarlayacaksın.
+
+                ZORUNLU KURALLAR:
+                - Anlamı koru; birebir kelime çevirisi yapmak zorunda değilsin.
+                - Kaynakta olmayan yeni iddia, tarih, olay veya teknik astroloji detayı ekleme.
+                - Ton uzman, sıcak, dengeli ve psikoloji-first olsun.
+                - Deterministik kader dili kullanma; "olabilir", "destekleyebilir", "işaret edebilir" gibi olasılık dili kullan.
+                - Burç ve astroloji terimlerini Türkçe ve tutarlı kullan.
+                - Karma dil, bozuk çeviri ve yabancı kelime kalıntılarını temizle (örn: Luna, Kheiron, unique gibi ifadeleri doğal Türkçe karşılıklarıyla düzelt).
+                - "Libra'lı", "Akrep Ayı", "Moon square Uranus" gibi melez/ham ifadeleri doğal Türkçe astroloji diline çevir.
+                - Çıktı tek paragraf düz metin olsun. Başlık, liste, emoji, markdown, kod bloğu veya açıklama notu ekleme.
+                - Sadece nihai Türkçe metni döndür.
+
+                Bağlam:
+                - Burç: %s
+                - Periyot: %s
+
+                Kaynak metin:
+                %s
+                """.formatted(resolvedSign, resolvedPeriod, sourceText);
+    }
+
+    private String normalizeEditorialTranslation(String rawResponse) {
+        String normalized = normalizeParagraph(stripMarkdown(rawResponse), "");
+        normalized = normalized.replaceAll("(?iu)^(çeviri|translation)\\s*[:\\-]\\s*", "");
+        if ((normalized.startsWith("\"") && normalized.endsWith("\""))
+                || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+            normalized = normalized.substring(1, normalized.length() - 1).trim();
+        }
+        return normalized;
+    }
+
+    private long elapsedMs(long startedAtNanos) {
+        return (System.nanoTime() - startedAtNanos) / 1_000_000;
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // Internal prompt builder
     // ─────────────────────────────────────────────────────────────────────
@@ -1208,10 +1297,33 @@ public class MysticalAiService {
         s = s.replaceAll("(?iu)\\bngu[oồốổỗộơờớởỡợuưồn]*[^\\s,.!?;:]*ını\\b", "kaynağını");
         s = s.replaceAll("(?iu)\\bpoççğimiz\\b", "yaklaşımımızla");
 
+        // Zodiac signs and astro terms that may survive in mixed-language output
+        s = s.replaceAll("(?iu)\\baries\\b", "Koç");
+        s = s.replaceAll("(?iu)\\btaurus\\b", "Boğa");
+        s = s.replaceAll("(?iu)\\bgemini\\b", "İkizler");
+        s = s.replaceAll("(?iu)\\bcancer\\b", "Yengeç");
+        s = s.replaceAll("(?iu)\\bleo\\b", "Aslan");
+        s = s.replaceAll("(?iu)\\bvirgo\\b", "Başak");
+        s = s.replaceAll("(?iu)\\blibra\\b", "Terazi");
+        s = s.replaceAll("(?iu)\\bscorpio\\b", "Akrep");
+        s = s.replaceAll("(?iu)\\bsagittarius\\b", "Yay");
+        s = s.replaceAll("(?iu)\\bcapricorn\\b", "Oğlak");
+        s = s.replaceAll("(?iu)\\baquarius\\b", "Kova");
+        s = s.replaceAll("(?iu)\\bpisces\\b", "Balık");
+        s = s.replaceAll("(?iu)\\bconjunction\\b", "kavuşum");
+        s = s.replaceAll("(?iu)\\bsextile\\b", "altmışlık");
+        s = s.replaceAll("(?iu)\\bsquare\\b", "kare");
+        s = s.replaceAll("(?iu)\\btrine\\b", "üçgen");
+        s = s.replaceAll("(?iu)\\bopposition\\b", "karşıt");
+
         // Common English narrative remnants
         s = s.replaceAll("(?iu)\\bhimself\\b", "kendini");
         s = s.replaceAll("(?iu)\\bherself\\b", "kendini");
         s = s.replaceAll("(?iu)\\bthemselves\\b", "kendilerini");
+        s = s.replaceAll("(?iu)\\bluna\\b", "Ay");
+        s = s.replaceAll("(?iu)\\bkheiron\\b", "Kiron");
+        s = s.replaceAll("(?iu)\\bchiron\\b", "Kiron");
+        s = s.replaceAll("(?iu)\\bunique\\b", "özgün");
         s = s.replaceAll("(?iu)\\bsometimes\\b", "bazen");
         s = s.replaceAll("(?iu)\\boften\\b", "sık sık");
         s = s.replaceAll("(?iu)\\brarely\\b", "nadiren");
@@ -1220,6 +1332,14 @@ public class MysticalAiService {
         s = s.replaceAll("(?iu)\\balso\\b", "ayrıca");
         s = s.replaceAll("(?iu)\\bsocially\\b", "sosyal olarak");
         s = s.replaceAll("(?iu)\\bemotionally\\b", "duygusal olarak");
+
+        // Normalize mixed Turkish suffix artifacts produced by literal translations
+        s = s.replaceAll("(?iu)\\b(koç|boğa|ikizler|yengeç|aslan|başak|terazi|akrep|yay|oğlak|kova|balık)['’]l[ıiuü]\\b", "$1 burcu");
+        s = s.replaceAll("(?iu)\\b(koç|boğa|ikizler|yengeç|aslan|başak|terazi|akrep|yay|oğlak|kova|balık)\\s+ayı\\b", "$1 burcundaki Ay");
+        s = s.replaceAll("(?iu)\\bsenin\\s+şakalara\\b", "şakalarına");
+        s = s.replaceAll("(?iu)\\btuhaf\\b", "özgün");
+        s = s.replaceAll("(?iu)\\bgarip\\b", "alışılmadık");
+        s = s.replaceAll("(?iu)\\bözgün\\s+ve\\s+özgün\\b", "en özgün");
 
         // Clean punctuation artifacts after token repairs
         s = s.replaceAll("\\s+,", ",")
@@ -1294,11 +1414,15 @@ public class MysticalAiService {
                 .replace("Mercury",     "Merkür")
                 .replace("Venus",       "Venüs")
                 .replace("Mars",        "Mars")
+                .replace("Sun",         "Güneş")
+                .replace("Moon",        "Ay")
                 .replace("Jupiter",     "Jüpiter")
                 .replace("Saturn",      "Satürn")
                 .replace("Uranus",      "Uranüs")
                 .replace("Neptune",     "Neptün")
                 .replace("Pluto",       "Plüton")
+                .replace("Chiron",      "Kiron")
+                .replace("Kheiron",     "Kiron")
                 // Aspects
                 .replace("Conjunction", "Kavuşum")
                 .replace("Sextile",     "Altmışlık")

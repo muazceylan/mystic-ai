@@ -787,7 +787,7 @@ public class SynastryService {
         NatalChart userChart = natalChartRepository
                 .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "No natal chart found for userId=" + userId + ". Calculate your chart first."));
+                        "Natal chart not found for userId=" + userId + ". Calculate your chart first."));
 
         List<PlanetPosition> planets = parsePlanets(userChart.getPlanetPositionsJson());
         return new PartyContext(
@@ -806,7 +806,7 @@ public class SynastryService {
         NatalChart chart = natalChartRepository
                 .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "No natal chart found for userId=" + userId + ". Calculate chart first."));
+                        "Natal chart not found for userId=" + userId + ". Calculate chart first."));
 
         String resolvedName = (chart.getName() != null && !chart.getName().isBlank())
                 ? chart.getName()

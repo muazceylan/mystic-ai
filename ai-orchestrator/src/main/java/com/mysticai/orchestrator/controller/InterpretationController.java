@@ -122,6 +122,38 @@ public class InterpretationController {
         }
     }
 
+    /**
+     * POST /api/ai/horoscope/translate-editorial
+     *
+     * Internal endpoint for high-quality Turkish editorial localization of horoscope general text.
+     * Body: {sourceText, sign, period, locale}
+     */
+    @PostMapping(value = "/horoscope/translate-editorial", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = "text/plain;charset=UTF-8")
+    public ResponseEntity<String> translateEditorialHoroscope(@RequestBody java.util.Map<String, Object> body) {
+        String sourceText = readString(body.get("sourceText"));
+        if (sourceText.isBlank()) {
+            return ResponseEntity.badRequest().body("sourceText is required");
+        }
+
+        String sign = readString(body.get("sign"));
+        String period = readString(body.get("period"));
+        String locale = readString(body.get("locale"));
+        if (locale.isBlank()) {
+            locale = "tr";
+        }
+        if (period.isBlank()) {
+            period = "daily";
+        }
+
+        try {
+            String result = mysticalAiService.generateEditorialHoroscopeTranslation(sourceText, sign, period, locale);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body(null);
+        }
+    }
+
     private String readString(Object value) {
         return value == null ? "" : String.valueOf(value);
     }

@@ -14,7 +14,7 @@ class NumerologyCalculatorTest {
     private final NumerologyCalculator calculator = new NumerologyCalculator();
 
     @Test
-    void calculate_returnsStructuredResponseV2() {
+    void calculate_returnsStructuredResponseV3() {
         NumerologyResponse response = calculator.calculate(
                 "Alice Johnson",
                 "1990-05-15",
@@ -23,10 +23,13 @@ class NumerologyCalculatorTest {
                 "day"
         );
 
-        assertEquals("numerology_v2", response.version());
+        assertEquals("numerology_v3", response.version());
         assertNotNull(response.headline());
         assertEquals(4, response.coreNumbers().size());
         assertNotNull(response.timing());
+        assertNotNull(response.classicCycle());
+        assertNotNull(response.karmicDebt());
+        assertNotNull(response.angelSignal());
         assertNotNull(response.profile());
         assertNotNull(response.combinedProfile());
         assertNotNull(response.miniGuidance());
@@ -41,6 +44,13 @@ class NumerologyCalculatorTest {
         assertTrue(response.sectionLockState().premiumSections().isEmpty());
         assertTrue(response.sectionLockState().previewSections().isEmpty());
         assertEquals(response.generatedAt(), response.shareCardPayload().generatedAt());
+        assertTrue(response.timing().personalMonth() > 0);
+        assertTrue(response.timing().personalDay() > 0);
+        assertNotNull(response.timing().nextRefreshAt());
+        assertEquals(4, response.classicCycle().pinnacles().size());
+        assertEquals(4, response.classicCycle().challenges().size());
+        assertEquals(3, response.classicCycle().lifeCycles().size());
+        assertTrue(response.angelSignal().angelNumber() >= 111);
     }
 
     @Test
@@ -96,5 +106,48 @@ class NumerologyCalculatorTest {
 
         assertNotEquals(response2026.timing().personalYear(), response2027.timing().personalYear());
         assertTrue(response2027.miniGuidance().validFor().contains("haft"));
+    }
+
+    @Test
+    void calculate_derivesPersonalMonthAndDayFromPersonalYearAndEffectiveDate() {
+        NumerologyResponse response = calculator.calculate(
+                "Alice Johnson",
+                "1990-05-15",
+                "2026-03-08",
+                "en",
+                "day"
+        );
+
+        assertEquals(3, response.timing().personalYear());
+        assertEquals(6, response.timing().personalMonth());
+        assertEquals(5, response.timing().personalDay());
+    }
+
+    @Test
+    void calculate_setsWeeklyRefreshDateToSevenDaysLater() {
+        NumerologyResponse response = calculator.calculate(
+                "Alice Johnson",
+                "1990-05-15",
+                "2026-03-08",
+                "en",
+                "week"
+        );
+
+        assertEquals("2026-03-15", response.timing().nextRefreshAt());
+        assertTrue(response.summary().contains("Angel signal"));
+    }
+
+    @Test
+    void calculate_detectsKarmicDebtWhenBirthdayMatchesDebtNumber() {
+        NumerologyResponse response = calculator.calculate(
+                "Dora Elif",
+                "1991-07-13",
+                "2026-03-08",
+                "tr",
+                "day"
+        );
+
+        assertTrue(response.karmicDebt().debts().contains(13));
+        assertFalse(response.karmicDebt().sources().isEmpty());
     }
 }

@@ -11,6 +11,8 @@ import {
 import { clearHoroscopeCache } from '../features/horoscope/services/horoscope.service';
 import { clearPlannerFullDistributionCache } from '../services/lucky-dates.service';
 
+export type UserType = 'GUEST' | 'REGISTERED';
+
 export interface UserProfile {
   id?: number;
   username?: string;
@@ -46,6 +48,15 @@ export interface UserProfile {
   updatedAt?: string;
   hasPassword?: boolean;
   provider?: string | null;
+  /** GUEST = anonymous quick-start session; REGISTERED = full account */
+  userType?: UserType;
+  isAnonymous?: boolean;
+  isAccountLinked?: boolean;
+}
+
+/** Returns true if the user is an anonymous guest session. */
+export function isGuestUser(user: UserProfile | null | undefined): boolean {
+  return user?.userType === 'GUEST' || user?.isAnonymous === true;
 }
 
 interface AuthState {
@@ -125,6 +136,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { useNotificationStore } = require('./useNotificationStore');
           useNotificationStore.getState().reset();
+        } catch {}
+        try {
+          const { useGuestPromptStore } = require('./useGuestPromptStore');
+          useGuestPromptStore.getState().reset();
         } catch {}
 
         set({

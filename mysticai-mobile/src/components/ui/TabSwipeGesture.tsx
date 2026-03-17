@@ -11,6 +11,7 @@ import {
   type PanResponderGestureState,
 } from 'react-native';
 import { router } from 'expo-router';
+import { TabActions, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +20,6 @@ import { useTheme } from '../../context/ThemeContext';
 const MAIN_TAB_ORDER = ['home', 'discover', 'calendar', 'natal-chart', 'profile'] as const;
 
 export type MainTabRoute = (typeof MAIN_TAB_ORDER)[number];
-type MainTabPath = `/(tabs)/${MainTabRoute}`;
 
 type TabSwipeGestureProps = {
   tab: MainTabRoute;
@@ -45,14 +45,16 @@ const CAPTURE_OPTIONS = {
   result: 'tmpfile',
 } as const;
 
-const previewCache = new Map<MainTabRoute, string>();
+const previewCache = new Map<MainTabRoute, { uri: string; capturedAt: number }>();
+const PREVIEW_STALE_MS = 10_000; // Previews older than 10s are considered stale
 
 const ACTIVATE_HORIZONTAL_DELTA = 18;
-const MIN_SWIPE_DISTANCE = 60;
-const MIN_SWIPE_VELOCITY = 0.32;
-const MAX_VERTICAL_DRIFT = 68;
-const HORIZONTAL_DOMINANCE_RATIO = 1.12;
+const MIN_SWIPE_DISTANCE = 50;
+const MIN_SWIPE_VELOCITY = 0.3;
+const MAX_VERTICAL_DRIFT = 80;
+const HORIZONTAL_DOMINANCE_RATIO = 1.1;
 const NAVIGATION_LOCK_MS = 380;
+let globalLastNavigationAt = 0;
 
 function getAdjacentTab(tab: MainTabRoute, direction: -1 | 1): MainTabRoute | null {
   const currentIndex = MAIN_TAB_ORDER.indexOf(tab);
@@ -61,7 +63,7 @@ function getAdjacentTab(tab: MainTabRoute, direction: -1 | 1): MainTabRoute | nu
   return MAIN_TAB_ORDER[targetIndex];
 }
 
-function resolveTargetRoute(tab: MainTabRoute, gestureState: PanResponderGestureState): MainTabPath | null {
+function resolveTargetTab(tab: MainTabRoute, gestureState: PanResponderGestureState): MainTabRoute | null {
   const absDx = Math.abs(gestureState.dx);
   const absDy = Math.abs(gestureState.dy);
   const absVx = Math.abs(gestureState.vx);
@@ -75,25 +77,32 @@ function resolveTargetRoute(tab: MainTabRoute, gestureState: PanResponderGesture
   const adjacentTab = getAdjacentTab(tab, direction);
   if (!adjacentTab) return null;
 
-  return `/(tabs)/${adjacentTab}`;
+  return adjacentTab;
 }
 
 function setCachedPreview(tab: MainTabRoute, uri: string) {
   const previous = previewCache.get(tab);
-  if (previous && previous !== uri) {
+  if (previous && previous.uri !== uri) {
     try {
-      releaseCapture(previous);
+      releaseCapture(previous.uri);
     } catch {
       // Ignore release failures; stale tmp files are tolerable in development.
     }
   }
-  previewCache.set(tab, uri);
+  previewCache.set(tab, { uri, capturedAt: Date.now() });
+}
+
+function getFreshPreview(tab: MainTabRoute): string | null {
+  const entry = previewCache.get(tab);
+  if (!entry) return null;
+  if (Date.now() - entry.capturedAt > PREVIEW_STALE_MS) return null;
+  return entry.uri;
 }
 
 export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
-  const lastNavigationRef = useRef(0);
+  const navigation = useNavigation<any>();
   const isNavigatingRef = useRef(false);
   const viewShotRef = useRef<ViewShot | null>(null);
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -147,10 +156,27 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
   const currentIndex = MAIN_TAB_ORDER.indexOf(tab);
   const hasLeftTab = currentIndex > 0;
   const hasRightTab = currentIndex < MAIN_TAB_ORDER.length - 1;
+  const navigateToTab = useCallback((targetTab: MainTabRoute) => {
+    const parent = navigation.getParent?.();
+    const candidates = [navigation, parent].filter(Boolean) as any[];
+
+    for (const nav of candidates) {
+      const routeNames: unknown = nav?.getState?.()?.routeNames;
+      if (Array.isArray(routeNames) && routeNames.includes(targetTab)) {
+        nav.dispatch(TabActions.jumpTo(targetTab));
+        return;
+      }
+    }
+
+    router.replace(`/(tabs)/${targetTab}`);
+  }, [navigation]);
 
   const panResponder = useMemo(
     () => PanResponder.create({
       onStartShouldSetPanResponder: () => false,
+      // No edge detection. React Native's ScrollView.onResponderTerminationRequest
+      // already handles conflicts: it rejects transfer when actively scrolling and
+      // allows transfer when at a scroll boundary (can't scroll further).
       onMoveShouldSetPanResponder: (_, gestureState) => {
         const absDx = Math.abs(gestureState.dx);
         const absDy = Math.abs(gestureState.dy);
@@ -175,36 +201,42 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
         setPreviewTab(getAdjacentTab(tab, direction));
       },
       onPanResponderRelease: (_, gestureState) => {
-        const target = resolveTargetRoute(tab, gestureState);
-        if (!target) {
+        const targetTab = resolveTargetTab(tab, gestureState);
+        if (!targetTab) {
           animateBackToCenter();
           return;
         }
 
         const now = Date.now();
-        if (now - lastNavigationRef.current < NAVIGATION_LOCK_MS) {
+        if (now - globalLastNavigationAt < NAVIGATION_LOCK_MS) {
           animateBackToCenter();
           return;
         }
-        lastNavigationRef.current = now;
+        globalLastNavigationAt = now;
         isNavigatingRef.current = true;
 
         const exitTo = gestureState.dx < 0 ? -containerWidth : containerWidth;
+        // Clear stale preview for target tab so it gets recaptured on arrival.
+        previewCache.delete(targetTab);
+
         Animated.timing(translateX, {
           toValue: exitTo,
           duration: 180,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }).start(() => {
-          router.replace(target);
+          navigateToTab(targetTab);
+          isNavigatingRef.current = false;
+          translateX.setValue(0);
+          setPreviewTab(null);
         });
       },
       onPanResponderTerminate: animateBackToCenter,
     }),
-    [animateBackToCenter, containerWidth, hasLeftTab, hasRightTab, tab, translateX],
+    [animateBackToCenter, containerWidth, hasLeftTab, hasRightTab, navigateToTab, tab, translateX],
   );
 
-  const previewUri = previewTab ? previewCache.get(previewTab) ?? null : null;
+  const previewUri = previewTab ? getFreshPreview(previewTab) : null;
   const previewMeta = previewTab ? TAB_META[previewTab] : null;
 
   const handleLayout = useCallback((event: any) => {

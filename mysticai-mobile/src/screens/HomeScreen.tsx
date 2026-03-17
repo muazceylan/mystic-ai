@@ -294,6 +294,9 @@ export default function HomeScreen() {
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
   const [cmsHeroBanners, setCmsHeroBanners] = useState<CmsBanner[]>([]);
   const [cmsSections, setCmsSections] = useState<HomeSection[]>([]);
+  // CMS içeriği dashboard verisiyle aynı anda paralel yüklenir.
+  // true → skeleton göster, false → gerçek içerik veya boş (veri yoksa hiçbir şey render edilmez).
+  const [isCmsLoading, setIsCmsLoading] = useState(true);
   const viewTrackedRef = useRef(false);
   const contentLoadedTrackedRef = useRef(false);
   const emptyHeroRefetchTriedRef = useRef(false);
@@ -327,10 +330,16 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    fetchHomeContentBundle(resolvedLocale).then((bundle) => {
-      setCmsHeroBanners(bundle.heroBanners);
-      setCmsSections(bundle.sections);
-    });
+    // Locale değiştiğinde skeleton'ı tekrar göster.
+    setIsCmsLoading(true);
+    fetchHomeContentBundle(resolvedLocale)
+      .then((bundle) => {
+        setCmsHeroBanners(bundle.heroBanners);
+        setCmsSections(bundle.sections);
+      })
+      .finally(() => {
+        setIsCmsLoading(false);
+      });
   }, [resolvedLocale]);
 
   useEffect(() => {
@@ -356,9 +365,12 @@ export default function HomeScreen() {
   }, [triggerInitialTutorials, user?.id]);
 
   const displayName = useMemo(() => {
+    // Auth store is authoritative (updated immediately on login/link).
+    // Oracle backend name is a fallback for when the store has no real name.
+    const authName = user?.firstName?.trim() || user?.name?.trim();
     const backendName = dashboard?.user?.name?.trim();
-    const authName = user?.firstName?.trim() || user?.name?.trim() || user?.username?.trim();
-    return backendName || authName || t('common.guest');
+    const usernameFallback = user?.username?.trim();
+    return authName || backendName || usernameFallback || t('common.guest');
   }, [dashboard?.user?.name, t, user?.firstName, user?.name, user?.username]);
 
   const greetingText = useMemo(
@@ -842,44 +854,55 @@ export default function HomeScreen() {
           onPressAll={handlePressWeeklyAll}
         />
 
-        {cmsHeroBanners.map((banner) => {
-          const bannerRoute = banner.routeKey || banner.fallbackRouteKey;
-          return (
-            <Pressable
-              key={banner.id}
-              onPress={() => {
-                if (!bannerRoute) return;
-                trackEvent('home_cms_banner_click', { banner_key: banner.bannerKey, placement: banner.placementType });
-                pushRoute(bannerRoute.startsWith('/') ? bannerRoute : `/${bannerRoute}`);
-              }}
-              accessibilityRole={bannerRoute ? 'button' : 'none'}
-              style={({ pressed }) => [styles.cmsBannerCard, (bannerRoute && pressed) ? styles.pressed : undefined]}
-            >
-              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerTitle}>{banner.title}</Text>
-              {banner.subtitle ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerSubtitle}>{banner.subtitle}</Text> : null}
-              {banner.ctaLabel ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerCta}>{banner.ctaLabel}</Text> : null}
-            </Pressable>
-          );
-        })}
+        {isCmsLoading ? (
+          // CMS verileri yüklenirken alan boyutunda skeleton göster;
+          // layout shift yaşanmaz, içerik gelince yerli yerine oturur.
+          <>
+            <View style={[styles.loadingBlock, styles.cmsSkeletonBanner]} />
+            <View style={[styles.loadingBlock, styles.cmsSkeletonSection]} />
+          </>
+        ) : (
+          <>
+            {cmsHeroBanners.map((banner) => {
+              const bannerRoute = banner.routeKey || banner.fallbackRouteKey;
+              return (
+                <Pressable
+                  key={banner.id}
+                  onPress={() => {
+                    if (!bannerRoute) return;
+                    trackEvent('home_cms_banner_click', { banner_key: banner.bannerKey, placement: banner.placementType });
+                    pushRoute(bannerRoute.startsWith('/') ? bannerRoute : `/${bannerRoute}`);
+                  }}
+                  accessibilityRole={bannerRoute ? 'button' : 'none'}
+                  style={({ pressed }) => [styles.cmsBannerCard, (bannerRoute && pressed) ? styles.pressed : undefined]}
+                >
+                  <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerTitle}>{banner.title}</Text>
+                  {banner.subtitle ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerSubtitle}>{banner.subtitle}</Text> : null}
+                  {banner.ctaLabel ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsBannerCta}>{banner.ctaLabel}</Text> : null}
+                </Pressable>
+              );
+            })}
 
-        {visibleCmsSections.map((section) => {
-          const sectionRoute = section.routeKey || section.fallbackRouteKey;
-          return (
-            <Pressable
-              key={section.id}
-              onPress={() => {
-                if (!sectionRoute) return;
-                trackEvent('home_cms_section_click', { section_key: section.sectionKey, type: section.type });
-                pushRoute(sectionRoute.startsWith('/') ? sectionRoute : `/${sectionRoute}`);
-              }}
-              accessibilityRole={sectionRoute ? 'button' : 'none'}
-              style={({ pressed }) => [styles.cmsSectionCard, (sectionRoute && pressed) ? styles.pressed : undefined]}
-            >
-              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsSectionTitle}>{section.title}</Text>
-              {section.subtitle ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsSectionSubtitle}>{section.subtitle}</Text> : null}
-            </Pressable>
-          );
-        })}
+            {visibleCmsSections.map((section) => {
+              const sectionRoute = section.routeKey || section.fallbackRouteKey;
+              return (
+                <Pressable
+                  key={section.id}
+                  onPress={() => {
+                    if (!sectionRoute) return;
+                    trackEvent('home_cms_section_click', { section_key: section.sectionKey, type: section.type });
+                    pushRoute(sectionRoute.startsWith('/') ? sectionRoute : `/${sectionRoute}`);
+                  }}
+                  accessibilityRole={sectionRoute ? 'button' : 'none'}
+                  style={({ pressed }) => [styles.cmsSectionCard, (sectionRoute && pressed) ? styles.pressed : undefined]}
+                >
+                  <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsSectionTitle}>{section.title}</Text>
+                  {section.subtitle ? <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.cmsSectionSubtitle}>{section.subtitle}</Text> : null}
+                </Pressable>
+              );
+            })}
+          </>
+        )}
 
         {showOracleStatusChip && dashboard?.oracleStatus?.label ? (
           <OracleStatusChip
@@ -1052,6 +1075,14 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       backgroundColor: C.surfaceGlass,
       paddingHorizontal: spacing.cardPadding,
       paddingVertical: spacing.md,
+    },
+    cmsSkeletonBanner: {
+      marginTop: spacing.cardGap,
+      height: 80,
+    },
+    cmsSkeletonSection: {
+      marginTop: spacing.cardGap,
+      height: 72,
     },
     cmsSectionTitle: {
       ...typography.H2,

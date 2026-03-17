@@ -40,6 +40,21 @@ function isUnreadStatus(status?: string): boolean {
   return String(status ?? '').trim().toUpperCase() === 'UNREAD';
 }
 
+function withNumerologyEntryPoint(deeplink?: string): string | undefined {
+  if (!deeplink) {
+    return deeplink;
+  }
+  if (!deeplink.startsWith('/numerology')) {
+    return deeplink;
+  }
+  if (/([?&])entry_point=/.test(deeplink)) {
+    return deeplink;
+  }
+  return deeplink.includes('?')
+    ? `${deeplink}&entry_point=push_numerology_checkin`
+    : `${deeplink}?entry_point=push_numerology_checkin`;
+}
+
 /**
  * Open a notification: marks as read, tracks analytics, navigates.
  * Safe to call multiple times for the same notification — deduplicates.
@@ -137,7 +152,7 @@ export async function handlePushNotificationOpen(
   isAuthenticated: boolean
 ): Promise<void> {
   const data = response.notification.request.content.data;
-  const deeplink = (data?.deeplink as string | undefined) ?? undefined;
+  const deeplink = withNumerologyEntryPoint((data?.deeplink as string | undefined) ?? undefined);
   const incomingId = normalizeId(data?.notificationId);
   const notifId = incomingId || generateTempId();
 

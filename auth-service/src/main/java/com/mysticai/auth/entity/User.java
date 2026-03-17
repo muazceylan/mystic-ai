@@ -1,6 +1,7 @@
 package com.mysticai.auth.entity;
 
 import com.mysticai.auth.entity.enums.AccountStatus;
+import com.mysticai.auth.entity.enums.UserType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -85,6 +86,9 @@ public class User {
     @Column(name = "zodiac_sign", length = 50)
     private String zodiacSign;
 
+    @Column(name = "avatar_path", length = 512)
+    private String avatarPath;
+
     @Column(name = "preferred_language", length = 5)
     @Builder.Default
     private String preferredLanguage = "tr";
@@ -110,6 +114,19 @@ public class User {
 
     @Column(name = "email_verified_at")
     private LocalDateTime emailVerifiedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_type", nullable = false, length = 20)
+    @Builder.Default
+    private UserType userType = UserType.REGISTERED;
+
+    @Column(name = "is_anonymous")
+    @Builder.Default
+    private Boolean isAnonymous = false;
+
+    @Column(name = "is_account_linked")
+    @Builder.Default
+    private Boolean isAccountLinked = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

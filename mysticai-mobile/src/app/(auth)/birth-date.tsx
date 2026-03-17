@@ -10,6 +10,7 @@ import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { getZodiacSign } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 
 const MONTHS_TR = [
   'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -130,6 +131,8 @@ export default function BirthDateScreen() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const store = useOnboardingStore();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const s = makeStyles(colors);
 
   const now = new Date();
@@ -219,7 +222,16 @@ export default function BirthDateScreen() {
         <View style={s.footer}>
           <TouchableOpacity
             style={s.outlineButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                // Guest user arrived here via router.replace — log out so the
+                // route guard doesn't redirect back to birth-date.
+                if (isGuestUser(user)) logout();
+                router.replace('/(auth)/welcome');
+              }
+            }}
             accessibilityLabel={t('editBirthInfo.accessibilityBack')}
             accessibilityRole="button"
           >

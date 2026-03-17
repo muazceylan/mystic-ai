@@ -220,7 +220,8 @@ public class NotificationController {
      * Usage: POST /api/v1/notifications/test-type/{type}
      * Types: DAILY_SUMMARY, DREAM_REMINDER, PRAYER_REMINDER, PLANNER_REMINDER,
      *        MEDITATION_REMINDER, EVENING_CHECKIN, WEEKLY_SUMMARY, RE_ENGAGEMENT,
-     *        AI_ANALYSIS_COMPLETE, COMPATIBILITY_UPDATE, MINI_INSIGHT, ENERGY_UPDATE
+     *        AI_ANALYSIS_COMPLETE, COMPATIBILITY_UPDATE, MINI_INSIGHT, ENERGY_UPDATE,
+     *        NUMEROLOGY_CHECKIN
      */
     @PostMapping("/test-type/{type}")
     public ResponseEntity<Map<String, Object>> testByType(

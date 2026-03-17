@@ -132,7 +132,8 @@ public class Notification {
         COMPATIBILITY_UPDATE,
         AI_ANALYSIS_COMPLETE,
         PRODUCT_UPDATE,
-        MINI_INSIGHT
+        MINI_INSIGHT,
+        NUMEROLOGY_CHECKIN
     }
 
     public enum NotificationCategory {

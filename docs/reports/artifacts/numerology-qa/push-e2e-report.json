@@ -1,0 +1,33 @@
+{
+  "startedAt": "2026-03-14T03:14:51.300Z",
+  "finishedAt": "2026-03-14T03:15:04.457Z",
+  "apiBase": "http://localhost:8088",
+  "webBase": "http://localhost:8090",
+  "userId": "63",
+  "triggerResult": {
+    "status": 200,
+    "ok": true,
+    "body": {
+      "id": "e526cf15-2023-437d-b90c-53a78189809a",
+      "type": "NUMEROLOGY_CHECKIN",
+      "deeplink": "/numerology?entry_point=push_numerology_checkin",
+      "pushSent": true,
+      "title": "Numeroloji yoklama zamani",
+      "body": "Bugunun sayi sinyaline bakip kisa yoklama yap."
+    }
+  },
+  "targetUrl": "http://localhost:8090/numerology?entry_point=push_numerology_checkin",
+  "screenshot": {
+    "path": "/Users/solvia/Documents/mystcai/mystic-ai/docs/reports/artifacts/numerology-qa/numerology-push-live-430x932.png",
+    "ok": true,
+    "error": null,
+    "stdout": "",
+    "stderr": "[30408:22731594:0314/061458.889162:ERROR:google_apis/gcm/engine/registration_request.cc:290] Registration response error message: DEPRECATED_ENDPOINT\n[30408:22731594:0314/061458.917958:ERROR:google_apis/gcm/engine/registration_request.cc:290] Registration response error message: PHONE_REGISTRATION_ERROR\nTrying to load the allocator multiple times. This is *not* supported.\n78795 bytes written to file /Users/solvia/Documents/mystcai/mystic-ai/docs/reports/artifacts/numerology-qa/numerology-push-live-430x932.png\n"
+  },
+  "assertions": {
+    "triggerStatus200": true,
+    "pushSentTrue": true,
+    "deeplinkHasEntryPoint": true,
+    "screenshotCaptured": true
+  }
+}

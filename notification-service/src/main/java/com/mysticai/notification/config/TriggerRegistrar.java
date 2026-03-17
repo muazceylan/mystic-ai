@@ -56,6 +56,21 @@ public class TriggerRegistrar {
                 .build(),
 
             NotificationDefinition.builder()
+                .definitionKey("numerology_checkin")
+                .displayName("Numeroloji Check-in")
+                .description("Her gün 12:15'te numeroloji ekranına kısa geri dönüş çağrısı yapan bildirim.")
+                .category("DAILY")
+                .channelType(NotificationDefinition.ChannelType.BOTH)
+                .cadenceType(NotificationDefinition.CadenceType.DAILY)
+                .sourceType(NotificationDefinition.SourceType.STATIC_BACKEND)
+                .triggerType(NotificationDefinition.TriggerType.CRON)
+                .defaultRouteKey("numerology")
+                .isActive(true).isEditable(false).isVisibleInAdmin(true).isSystemCritical(false)
+                .ownerModule("numerology")
+                .codeReference("NotificationScheduler#generateNumerologyCheckins")
+                .build(),
+
+            NotificationDefinition.builder()
                 .definitionKey("dream_reminder")
                 .displayName("Rüya Hatırlatıcı")
                 .description("Her sabah 08:00'da kullanıcıları rüya günlüğü yazmaya davet eden hatırlatıcı.")
@@ -258,6 +273,18 @@ public class TriggerRegistrar {
                 .isActive(true).isPausable(true).isSystemCritical(false)
                 .ownerModule("notifications")
                 .codeReference("NotificationScheduler#generateDailyNotifications")
+                .build(),
+
+            NotificationTrigger.builder()
+                .triggerKey("numerology_checkin_job")
+                .definitionKey("numerology_checkin")
+                .displayName("Numeroloji Check-in İşi")
+                .description("Her gün 12:15'te numeroloji check-in bildirimlerini gönderir.")
+                .cadenceType(NotificationTrigger.CadenceType.DAILY)
+                .cronExpression("0 15 12 * * *")
+                .isActive(true).isPausable(true).isSystemCritical(false)
+                .ownerModule("numerology")
+                .codeReference("NotificationScheduler#generateNumerologyCheckins")
                 .build(),
 
             NotificationTrigger.builder()

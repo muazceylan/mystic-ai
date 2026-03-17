@@ -48,6 +48,8 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/auth/social-login",
             "/api/auth/verification/resend",
             "/api/auth/verify-email",
+            "/api/auth/verify-email-otp",
+            "/api/auth/quick-start",
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/auth/check-email",
@@ -55,6 +57,8 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/v1/auth/social-login",
             "/api/v1/auth/verification/resend",
             "/api/v1/auth/verify-email",
+            "/api/v1/auth/verify-email-otp",
+            "/api/v1/auth/quick-start",
             "/actuator/health",
             "/actuator/info"
     );
@@ -136,13 +140,19 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             );
         }
 
+        String userType = claims.get("user_type", String.class);
+
         // Add user context headers
         ServerHttpRequest mutatedRequest = request.mutate()
                 .headers(headers -> {
                     headers.remove("X-User-Id");
                     headers.remove("X-Username");
+                    headers.remove("X-User-Type");
                     headers.set("X-User-Id", userId.toString());
                     headers.set("X-Username", username);
+                    if (userType != null) {
+                        headers.set("X-User-Type", userType);
+                    }
                 })
                 .build();
 
@@ -178,7 +188,9 @@ public class JwtAuthenticationFilter implements GlobalFilter {
     }
 
     private boolean hasUserContextHeaders(ServerHttpRequest request) {
-        return request.getHeaders().containsKey("X-User-Id") || request.getHeaders().containsKey("X-Username");
+        return request.getHeaders().containsKey("X-User-Id")
+                || request.getHeaders().containsKey("X-Username")
+                || request.getHeaders().containsKey("X-User-Type");
     }
 
     private Mono<Void> unauthorizedResponse(

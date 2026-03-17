@@ -64,7 +64,9 @@
       "remove": "Fotoğrafı kaldır",
       "loading": "Fotoğraf hazırlanıyor...",
       "permissionDenied": "Galeri izni kapalı. Ayarlardan fotoğraf erişimine izin verin.",
-      "pickerError": "Fotoğraf seçilemedi. Lütfen tekrar deneyin."
+      "pickerError": "Fotoğraf seçilemedi. Lütfen tekrar deneyin.",
+      "uploadError": "Fotoğraf yüklenemedi. Lütfen tekrar deneyin.",
+      "removeError": "Fotoğraf kaldırılamadı. Lütfen tekrar deneyin."
     }
   },
   "birthInfo": {
@@ -190,7 +192,8 @@
     "privacy": "Gizlilik",
     "security": "Güvenlik",
     "themeSettings": "Tema Ayarı",
-    "tutorialCenter": "Rehber Merkezi"
+    "tutorialCenter": "Rehber Merkezi",
+    "linkAccount": "Hesabı Bağla"
   },
   "zodiac": {
     "pisces": "Balık"
@@ -303,14 +306,13 @@
     "retroUranus": "Ani değişimlere karşı hazırlıklı ol; esnekliğini koru.",
     "retroNeptune": "Yanıltıcı durumlar olabilir; sezgine güven ama netlik ara.",
     "retroPluto": "Derin dönüşümler sürüyor; kontrol edemeyeceklerini bırak.",
-    "swotLoading": "SWOT analizi yükleniyor...",
+    "swotLoading": "Haftalık enerji analizi yükleniyor...",
     "swotError": "Haftalık enerji analizi yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.",
     "swotRetry": "SWOT analizini tekrar yükle",
     "areaActiveThisWeek": "Bu alan bu hafta aktif.",
     "showDetails": "Detayları Göster",
     "hideDetails": "Detayları Gizle",
     "tipsLabel": "İpuçları",
-    "swotLoading": "Haftalık enerji analizi yükleniyor...",
     "swotLoadError": "Haftalık enerji analizi yüklenemedi",
     "swotRetryBtn": "Tekrar dene",
     "swotCloseModal": "Modal dışına tıkla kapat",
@@ -374,49 +376,133 @@
     },
     "actionMap": {
       "ask": {
-        "lucky": ["Kalbinde sakladığın o sözü bugün söyleyebilirsin.", "Bağı güçlendiren beklenmedik bir jest yap."],
-        "mixed": ["Duygusal konuşmaları dikkatli yönet; sabırlı ol.", "Sezgine güven ama hızlı karar verme."],
-        "caution": ["Hassas ilişki konularını bugün ertelemeyi düşün.", "Dinlemeye odaklan, konuşmaya değil."]
+        "lucky": [
+          "Kalbinde sakladığın o sözü bugün söyleyebilirsin.",
+          "Bağı güçlendiren beklenmedik bir jest yap."
+        ],
+        "mixed": [
+          "Duygusal konuşmaları dikkatli yönet; sabırlı ol.",
+          "Sezgine güven ama hızlı karar verme."
+        ],
+        "caution": [
+          "Hassas ilişki konularını bugün ertelemeyi düşün.",
+          "Dinlemeye odaklan, konuşmaya değil."
+        ]
       },
       "para": {
-        "lucky": ["Ertelediğin finansal adımı bugün atmak için doğru an.", "Kısa vadeli yatırım için iyi bir gün."],
-        "mixed": ["Mali kararlar alırken iki kez kontrol et.", "Fırsatları değerlendir ama büyük risk alma."],
-        "caution": ["Büyük harcama ve yatırım kararlarını birkaç güne ertele.", "Mevcut finansal düzeni gözden geçir."]
+        "lucky": [
+          "Ertelediğin finansal adımı bugün atmak için doğru an.",
+          "Kısa vadeli yatırım için iyi bir gün."
+        ],
+        "mixed": [
+          "Mali kararlar alırken iki kez kontrol et.",
+          "Fırsatları değerlendir ama büyük risk alma."
+        ],
+        "caution": [
+          "Büyük harcama ve yatırım kararlarını birkaç güne ertele.",
+          "Mevcut finansal düzeni gözden geçir."
+        ]
       },
       "kariyer": {
-        "lucky": ["Liderlik gösterebileceğin bir konuda söz al.", "Fark yaratacak projeye bugün başla."],
-        "mixed": ["Mevcut projeleri güçlendir; yenilerini planlamaya başla.", "Takım içi iletişimi güçlendir."],
-        "caution": ["Müzakere ve pazarlıkları ertele; zemin hazırlamaya odaklan.", "Hızlı değil, doğru adım at."]
+        "lucky": [
+          "Liderlik gösterebileceğin bir konuda söz al.",
+          "Fark yaratacak projeye bugün başla."
+        ],
+        "mixed": [
+          "Mevcut projeleri güçlendir; yenilerini planlamaya başla.",
+          "Takım içi iletişimi güçlendir."
+        ],
+        "caution": [
+          "Müzakere ve pazarlıkları ertele; zemin hazırlamaya odaklan.",
+          "Hızlı değil, doğru adım at."
+        ]
       },
       "aile": {
-        "lucky": ["Aile içi eski bir gerilimi yumuşatmak için bugün konuş.", "Sevdiklerinle kaliteli zaman planla."],
-        "mixed": ["Ev içi konuşmalarda kelimelerine dikkat et.", "Dinlemeye öncelik ver."],
-        "caution": ["Ev içi hassas konuları bugün ertelemeyi düşün.", "Sabırlı ve anlayışlı bir tutum benimse."]
+        "lucky": [
+          "Aile içi eski bir gerilimi yumuşatmak için bugün konuş.",
+          "Sevdiklerinle kaliteli zaman planla."
+        ],
+        "mixed": [
+          "Ev içi konuşmalarda kelimelerine dikkat et.",
+          "Dinlemeye öncelik ver."
+        ],
+        "caution": [
+          "Ev içi hassas konuları bugün ertelemeyi düşün.",
+          "Sabırlı ve anlayışlı bir tutum benimse."
+        ]
       },
       "arkadaslik": {
-        "lucky": ["Samimi bir bağlantı kurmak için harika bir gün.", "Uzun süredir görmediğin birine ulaş."],
-        "mixed": ["Sosyal planları esnek tut; değişebilirler.", "Yüzeysel değil, derin bağlantılara odaklan."],
-        "caution": ["Sosyal anlaşmazlıklardan kaçın; bugün dinleyici ol.", "Yeni taahhütler almadan önce düşün."]
+        "lucky": [
+          "Samimi bir bağlantı kurmak için harika bir gün.",
+          "Uzun süredir görmediğin birine ulaş."
+        ],
+        "mixed": [
+          "Sosyal planları esnek tut; değişebilirler.",
+          "Yüzeysel değil, derin bağlantılara odaklan."
+        ],
+        "caution": [
+          "Sosyal anlaşmazlıklardan kaçın; bugün dinleyici ol.",
+          "Yeni taahhütler almadan önce düşün."
+        ]
       },
       "ticaret": {
-        "lucky": ["İş birliği teklifi için doğru an.", "Müzakere masasında güçlü bir pozisyondasın."],
-        "mixed": ["Sözleşme detaylarını dikkatlice incele.", "Ticari kararları aceleci verme."],
-        "caution": ["Sözleşme imzalamayı ertele; koşulları yeniden değerlendir.", "İş ortaklarının niyetlerini sorgula."]
+        "lucky": [
+          "İş birliği teklifi için doğru an.",
+          "Müzakere masasında güçlü bir pozisyondasın."
+        ],
+        "mixed": [
+          "Sözleşme detaylarını dikkatlice incele.",
+          "Ticari kararları aceleci verme."
+        ],
+        "caution": [
+          "Sözleşme imzalamayı ertele; koşulları yeniden değerlendir.",
+          "İş ortaklarının niyetlerini sorgula."
+        ]
       },
       "genel": {
-        "lucky": ["Uzun süredir ertelediğin adımı bugün atmak için iyi bir an.", "Yeni bağlantılar ve fırsatlar için alan aç."],
-        "mixed": ["Kararları aceleci verme; bir adım geri çekil, değerlendir.", "Enerjiyi odaklı tut; dağıtma."],
-        "caution": ["Bugün gözlemci kal; hamleni yarına sakla.", "Mevcut durumu stabilize et, büyütme."]
+        "lucky": [
+          "Uzun süredir ertelediğin adımı bugün atmak için iyi bir an.",
+          "Yeni bağlantılar ve fırsatlar için alan aç."
+        ],
+        "mixed": [
+          "Kararları aceleci verme; bir adım geri çekil, değerlendir.",
+          "Enerjiyi odaklı tut; dağıtma."
+        ],
+        "caution": [
+          "Bugün gözlemci kal; hamleni yarına sakla.",
+          "Mevcut durumu stabilize et, büyütme."
+        ]
       }
     },
     "secretPatterns": {
-      "ask": ["bugün bir kelimenin tonu, sandığından daha derin bir yakınlaşma başlatabilir.", "kısa bir mesajlaşma, uzun süredir beklediğin duygusal netliği açabilir."],
-      "para": ["küçük bir harcama kararı, bu hafta büyük rahatlık getirecek bir düzene dönebilir.", "gün içinde duyacağın bir fikir, gelirini sade bir şekilde güçlendirebilir."],
-      "kariyer": ["bugün atılan küçük bir adım, bir üst seviyeye geçişin kapısını aralayabilir.", "günün ortasında gelecek bir geri bildirim, yönünü netleştirmen için işaret olabilir."],
-      "aile": ["ev içindeki kısa bir konuşma, uzun süredir biriken bir konuyu yumuşatabilir.", "bugün göstereceğin minik bir ilgi, aile bağlarını beklediğinden hızlı güçlendirebilir."],
-      "arkadaslik": ["bugün kuracağın samimi bir bağlantı, haftanın en güçlü desteği olabilir.", "kısa bir buluşma planı, uzun zamandır eksik kalan aidiyet hissini canlandırabilir."],
-      "ticaret": ["gün içindeki bir tanışma, sandığından daha verimli bir iş birliğine dönebilir.", "küçük bir pazarlıkta sakin kalman, tahminden daha iyi bir sonuç getirebilir."],
-      "genel": ["bugün fark etmediğin bir işaret senin için tekrar edecek; ikinciyi kaçırma.", "gün içinde kısa bir duraklama, uzun süredir beklediğin netliği getirecek."]
+      "ask": [
+        "bugün bir kelimenin tonu, sandığından daha derin bir yakınlaşma başlatabilir.",
+        "kısa bir mesajlaşma, uzun süredir beklediğin duygusal netliği açabilir."
+      ],
+      "para": [
+        "küçük bir harcama kararı, bu hafta büyük rahatlık getirecek bir düzene dönebilir.",
+        "gün içinde duyacağın bir fikir, gelirini sade bir şekilde güçlendirebilir."
+      ],
+      "kariyer": [
+        "bugün atılan küçük bir adım, bir üst seviyeye geçişin kapısını aralayabilir.",
+        "günün ortasında gelecek bir geri bildirim, yönünü netleştirmen için işaret olabilir."
+      ],
+      "aile": [
+        "ev içindeki kısa bir konuşma, uzun süredir biriken bir konuyu yumuşatabilir.",
+        "bugün göstereceğin minik bir ilgi, aile bağlarını beklediğinden hızlı güçlendirebilir."
+      ],
+      "arkadaslik": [
+        "bugün kuracağın samimi bir bağlantı, haftanın en güçlü desteği olabilir.",
+        "kısa bir buluşma planı, uzun zamandır eksik kalan aidiyet hissini canlandırabilir."
+      ],
+      "ticaret": [
+        "gün içindeki bir tanışma, sandığından daha verimli bir iş birliğine dönebilir.",
+        "küçük bir pazarlıkta sakin kalman, tahminden daha iyi bir sonuç getirebilir."
+      ],
+      "genel": [
+        "bugün fark etmediğin bir işaret senin için tekrar edecek; ikinciyi kaçırma.",
+        "gün içinde kısa bir duraklama, uzun süredir beklediğin netliği getirecek."
+      ]
     },
     "dailyGuide": {
       "kicker": "Kozmik Yaşam Rehberi",
@@ -457,35 +543,71 @@
     "destiny": "Kader Sayısı",
     "soulUrge": "Ruh Güdüsü",
     "interpretation": "Yorum",
-    "heroKicker": "Sayı Dosyan",
-    "heroFootnote": "Bu yorum psikoloji-öncelikli bir rehberdir; kesin hüküm değil, farkındalık katmanı olarak tasarlanmıştır.",
+    "heroKicker": "Sayı Profilin",
+    "heroFootnote": "Bu yorum farkındalık katmanı olarak hazırlanmıştır; kesin hüküm değildir.",
     "shareCta": "Paylaş",
     "shareMenuTitle": "Paylaşım türünü seç",
     "shareMenuDescription": "Numeroloji kartını hikaye, standart kart veya galeri kaydı olarak paylaşabilirsin.",
-    "shareOptionStory": "Story kartı",
+    "shareOptionStory": "Hikaye kartı",
     "shareOptionStandard": "Standart paylaşım",
     "shareOptionGallery": "Galeriye kaydet",
     "snapshotCta": "Kaydet",
     "howCalculatedCta": "Nasıl hesaplandı?",
-    "staleBadge": "Son veri",
-    "staleDescription": "Şu an son hesaplanan veriyi görüyorsun. Oluşturulma tarihi: {{date}}",
-    "personalYearPill": "Kişisel Yıl {{year}}",
-    "thisPeriod": "Bu Yıl / Bu Dönem",
-    "timingTitle": "Döngünün neresindesin?",
-    "personalYearShort": "Kişisel Yıl {{year}}",
-    "universalYearShort": "Evrensel {{year}}",
-    "cycleProgress": "Yıllık ilerleme",
+    "staleBadge": "Son hesaplama",
+    "staleDescription": "Şu an son hesaplanan veriyi görüyorsun. Hesaplanma tarihi: {{date}}",
+    "personalYearPill": "Bu yıl ana tema: {{year}}",
+    "thisPeriod": "Bu yılın özeti",
+    "timingTitle": "Şu an yıl döngünün neresindesin?",
+    "personalYearLabel": "Bu yılın ana teması",
+    "universalYearLabel": "Herkes için yılın genel havası",
+    "personalYearShort": "{{year}}",
+    "universalYearShort": "{{year}}",
+    "cycleProgress": "Yılın hangi bölümündesin?",
+    "whatIs": "ℹ",
+    "personalYearExplain": "Bu yıl senin ana dersini ve enerji odağını anlatır. Hangi konuya daha çok enerji ayırmanın iyi olacağını gösterir.",
+    "universalYearExplain": "Herkesin içinde bulunduğu ortak atmosferdir. Senin yıl temanla birlikte okunur.",
+    "cycleProgressExplain": "Yılın yüzde kaçını geçtiğini gösterir. Başlangıç, derinleşme ve tamamlama ritmini anlamanı kolaylaştırır.",
+    "monthDayPill": "Ay {{month}} • Gün {{day}}",
+    "nextRefresh": "Bir sonraki güncelleme: {{date}}",
+    "snapshotEyebrow": "Hızlı Özet",
+    "snapshotTitle": "Bugün, bu hafta ve bu ay",
+    "todayCard": "Bugün",
+    "weekCard": "Bu Hafta",
+    "monthCard": "Bu Ay",
+    "monthCardHint": "Bu ayın ritmi: {{month}} · Bugünün ritmi: {{day}}",
     "yearPhase": "Yıl fazı",
     "currentFocus": "Şu anki odak",
-    "guidanceEyebrow": "Dinamik Katman",
-    "guidanceTitle": "Bugün ve bu hafta için mini rehber",
+    "angelEyebrow": "Günlük sayı sinyali",
+    "angelTitle": "Bugün öne çıkan sayı",
+    "angelAction": "Bugün için öneri",
+    "classicCycleEyebrow": "Klasik döngüler",
+    "classicCycleTitle": "Zirve / Ders / Yaşam döngüsü",
+    "activePinnacle": "Aktif zirve sayısı",
+    "activeChallenge": "Aktif ders sayısı",
+    "activeLifeCycle": "Aktif yaşam döngüsü",
+    "karmicEyebrow": "Öğrenme tekrarları",
+    "karmicTitle": "Karmik borç sinyali",
+    "karmicSources": "Bu sinyalin kaynağı",
+    "noDebt": "Belirgin borç yok",
+    "checkInEyebrow": "Günlük Ritim",
+    "checkInTitle": "Bugün kısa bir giriş yap",
+    "checkInDone": "Bugün tamamlandı",
+    "checkInPending": "Bugün açık",
+    "checkInDoneText": "Bugünkü giriş tamamlandı. Haftanın genel havasına geçmek istersen aşağıdaki butonu kullanabilirsin.",
+    "checkInPendingText": "Düzenli giriş yaptıkça günlük ve haftalık yorumların daha netleşir.",
+    "checkInCta": "Bugünü işaretle",
+    "weeklyReturn": "Bu hafta tamamlanan giriş: {{count}}",
+    "weeklyViewCta": "Haftalık görünüme geç",
+    "checkInError": "Günlük yoklama kaydedilemedi. Lütfen tekrar dene.",
+    "guidanceEyebrow": "Kısa Rehber",
+    "guidanceTitle": "Bugün ve bu hafta için mesajın",
     "dailyTab": "Günlük",
     "weeklyTab": "Haftalık",
     "dailyFocusLabel": "Odak cümlen",
-    "miniGuidanceLabel": "Mini rehber",
+    "miniGuidanceLabel": "Kısa yönlendirme",
     "reflectionPrompt": "Düşünme sorusu",
     "validFor": "Geçerlilik: {{value}}",
-    "masterNumber": "Master Number",
+    "masterNumber": "Usta sayı",
     "essence": "Öz enerji",
     "gifts": "Güçlü yanlar",
     "watchouts": "Dikkat alanları",
@@ -499,21 +621,25 @@
     "decisionStyle": "Karar stili",
     "relationshipStyle": "İlişki stili",
     "growthArc": "Gelişim yayı",
-    "compatibilityTeaser": "Uyum teaser'ı",
-    "profileEyebrow": "Derin İçgörü",
-    "profileTitle": "Birlikte senden ne istiyorlar?",
-    "profileEssence": "Profil özü",
-    "strengths": "Doğal avantajlar",
-    "growthEdges": "Gelişim alanları",
+    "compatibilityTeaser": "Uyum özeti",
+    "profileEyebrow": "Profil Özeti",
+    "profileTitle": "Bu profil seni nasıl anlatıyor?",
+    "profileEssence": "Seni en çok anlatan yapı",
+    "strengths": "Doğal güçlü yönlerin",
+    "growthEdges": "Dengelemen gereken alanlar",
     "howCalculatedTitle": "Nasıl hesaplandı?",
     "howCalculatedLead": "Temel sayılar doğum tarihi ve isimden türetilir. Türkçe karakterler Latin eşdeğerlerine normalize edilir; 11, 22 ve 33 indirgenmeden korunur.",
-    "personalYearMethod": "Kişisel yıl yöntemi",
-    "masterNumbers": "Master number davranışı",
+    "personalYearMethod": "Bu yıl ana tema hesabı",
+    "masterNumbers": "Usta sayı davranışı",
+    "advancedTitle": "Daha ayrıntılı sayı yorumu",
+    "advancedDescription": "Döngü, karmik alan ve klasik yaşam evrelerini tek panelde inceleyebilirsin.",
+    "advancedCta": "Ayrıntıları aç",
+    "advancedSheetTitle": "Derin numeroloji ayrıntıları",
     "formulas": "Formül özeti",
     "normalizationNotes": "Normalizasyon notları",
     "shareCardKicker": "Numeroloji Özeti",
     "shareMainNumber": "Ana sayı",
-    "sharePersonalYear": "Kişisel yıl",
+    "sharePersonalYear": "Bu yılın ana sayısı",
     "shareTheme": "Kısa tema",
     "shareFooter": "Mystic AI ile oluşturuldu",
     "networkErrorTitle": "Numeroloji rehberi yüklenemedi",
@@ -524,26 +650,32 @@
     "partial": {
       "timingTitle": "Zaman katmanı eksik",
       "timingDescription": "Kişisel yıl fazı şu anda tam üretilemedi. Çekirdek profil görünmeye devam ediyor.",
+      "angelTitle": "Günlük sayı sinyali eksik",
+      "angelDescription": "Bugüne özel sayı sinyali bu yanıtta yok. Diğer kartlardan akışı yine okuyabilirsin.",
       "guidanceTitle": "Mini rehber hazırlanamadı",
       "guidanceDescription": "Dinamik rehber şu an eksik. Çekirdek profil ve zaman katmanı yine de kullanılabilir.",
+      "classicCycleTitle": "Klasik döngü kartı eksik",
+      "classicCycleDescription": "Zirve, ders ve yaşam döngüsü katmanı bu yanıtta yok. Temel profil görünmeye devam ediyor.",
+      "karmicTitle": "Karmik borç katmanı eksik",
+      "karmicDescription": "Karmik borç alanı şu an üretilemedi. Çekirdek sayılarla yoruma devam edebilirsin.",
       "combinedTitle": "Birleşik profil hazır değil",
       "combinedDescription": "Sayıların birleşik anlatımı bu yanıtta eksik. Aşağıdaki özet metni yedek içerik olarak kullanıyoruz.",
       "profileTitle": "Derin içgörü eksik",
       "profileDescription": "Profilin uygulama katmanı tam oluşmadı. Sayı kartları üzerinden okumaya devam edebilirsin."
     },
-    "coreNumbersTitle": "Dört ana sayı",
+    "coreNumbersTitle": "Seni anlatan 4 ana sayı",
     "profileSectionTitle": "Birleşik okuma",
     "deepInsightsTitle": "Derin içgörü ve ilişki katmanı",
-    "deepInsightsDescription": "Büyüme alanları, karar stili ve ilişki paterni premium katmanda açılır.",
-    "unlockPremium": "Premium ile aç",
-    "bridgeTitle": "İsminin enerjisi bu profili nasıl destekliyor?",
+    "deepInsightsDescription": "Büyüme alanları, karar stili ve ilişki paterni özel üyelik katmanında açılır.",
+    "unlockPremium": "Özel üyelikle aç",
+    "bridgeTitle": "İsmin enerjisi bu profili nasıl destekliyor?",
     "bridgeDescription": "Doğum tarihinden gelen enerji ile isim titreşimini ayrı ekranda birlikte okuyabilirsin.",
     "bridgeCta": "İsim analizine git",
     "summaryFallbackTitle": "Yapılandırılmış alanlar eksik",
     "summaryFallbackDescription": "Bazı bölümler eksik geldiği için yedek numeroloji özetini gösteriyoruz.",
     "summaryFallbackBodyTitle": "Yedek özet",
-    "snapshotSaved": "Yıllık numeroloji snapshot'ı cihazına kaydedildi.",
-    "snapshotSaveError": "Snapshot kaydedilemedi. Lütfen tekrar dene.",
+    "snapshotSaved": "Yıllık numeroloji kaydı cihazına kaydedildi.",
+    "snapshotSaveError": "Yıllık kayıt kaydedilemedi. Lütfen tekrar dene.",
     "shareError": "Paylaşım başlatılamadı.",
     "empty": {
       "nameMissingTitle": "Numeroloji profilin için ismine ihtiyacımız var",
@@ -555,7 +687,13 @@
       "bothMissingTitle": "Numeroloji profilini başlatmak için birkaç bilgi eksik",
       "bothMissingDescription": "Hem isim hem doğum tarihi gerekli. Bunları eklediğinde tüm profil ve günlük rehber açılır.",
       "bothMissingCta": "Profili Tamamla"
-    }
+    },
+    "timingEyebrow": "Yıl Döngün",
+    "timingPersonalYearLabel": "Bu yılın ana teması",
+    "timingUniversalYearLabel": "Herkes için yılın genel havası",
+    "timingCycleLabel": "Yıl döngüsünde ilerleme",
+    "phaseFocusLabel": "Bu dönemin odağı",
+    "infoIconAccessibility": "Bu kavramın açıklamasını göster"
   },
   "nameAnalysis": {
     "title": "İsim Analizi",
@@ -736,7 +874,7 @@
     "compatibility": "Uyum",
     "natalChart": "Haritam",
     "profile": "Profil",
-    "horoscope": "Burc\u0327"
+    "horoscope": "Burç"
   },
   "discover": {
     "title": "Keşfet",
@@ -885,8 +1023,8 @@
     "spiritualDesc": "Zikir, dua ve manevi rehberlik",
     "compatibility": "İlişki Uyumu",
     "compatibilityDesc": "Sinastri analizi ve uyum skoru",
-    "horoscopeTitle": "Gu\u0308nlu\u0308k Burc\u0327",
-    "horoscopeDesc": "Ki\u015fisel kozmik rehberin",
+    "horoscopeTitle": "Günlük Burç",
+    "horoscopeDesc": "Kişisel kozmik rehberin",
     "retroPlanets": "gezegen retroda",
     "dreamReminder": "Dün gece bir rüya gördün mü?",
     "dreamReminderHint": "Rüyanı kaydet, kozmik şifresini çözelim"
@@ -931,7 +1069,7 @@
     "hour": "Saat",
     "minute": "Dakika",
     "birthLocationTitle": "Doğum Yeriniz?",
-    "birthLocationSubtitle": "Doğum şehrinizi ve ülkenizi seçin",
+    "birthLocationSubtitle": "Doğduğunuz ülke, il ve ilçeyi seçebilirsiniz.",
     "focusPointTitle": "Odak Noktan?",
     "focusPointSubtitle": "Bu hayatta odak noktanın hangisi olduğunu düşünüyorsun?",
     "focusPointHint": "En fazla 3 seçim yapabilirsiniz",
@@ -950,7 +1088,6 @@
     "districtOptional": "İlçe seçmek ister misiniz? (isteğe bağlı)",
     "noCityFound": "Şehir bulunamadı",
     "noDistrictFound": "İlçe bulunamadı",
-    "birthLocationSubtitle": "Doğduğunuz ülke, il ve ilçeyi seçebilirsiniz.",
     "countryCityPlaceholder": "Ülke, Şehir",
     "country": "Ülke",
     "skip": "Atla",
@@ -993,22 +1130,20 @@
     },
     "verifyPending": {
       "title": "Email adresini doğrula",
-      "subtitle": "Email adresine doğrulama bağlantısı gönderdik. Girişi aktifleştirmek için onayla.",
-      "checklistTitle": "Hızlı kontrol listesi",
-      "checklistSpam": "Spam, tanıtımlar ve güncellemeler klasörünü kontrol et.",
-      "checklistWait": "Yeni email istemeden önce en az 1 dakika bekle.",
-      "checklistLatest": "Son gelen emaili kullan; eski linkler iptal edilmiş olabilir.",
-      "resendButton": "Doğrulama mailini tekrar gönder",
+      "subtitle": "Email adresine 6 haneli doğrulama kodu gönderdik. Kodu gir ve hesabını aktifleştir.",
+      "otpPlaceholder": "000000",
+      "otpLabel": "6 haneli doğrulama kodu",
+      "verifyButton": "Doğrula",
+      "verifying": "Doğrulanıyor...",
+      "resendButton": "Kodu tekrar gönder",
       "resendIn": "{{seconds}} sn sonra tekrar gönder",
       "cooldownText": "{{seconds}} saniye sonra yeniden isteyebilirsin.",
-      "resendDisabledHint": "Tekrar gönderme kapalı. Lütfen {{seconds}} saniye bekle.",
-      "resendDisabledMissingEmail": "Email bulunamadığı için tekrar gönderme kapalı.",
-      "resendSuccess": "Doğrulama maili gönderildi. Gelen kutusu ve spam klasörünü kontrol et.",
-      "resendError": "Şu anda doğrulama maili gönderilemedi. Lütfen sonra tekrar dene.",
+      "resendSuccess": "Yeni kod gönderildi. Gelen kutusu ve spam klasörünü kontrol et.",
+      "resendError": "Şu anda kod gönderilemedi. Lütfen sonra tekrar dene.",
       "missingEmail": "Email adresi bulunamadı. Lütfen email yazarak tekrar dene.",
-      "openMailApp": "Mail uygulamasını aç",
-      "openMailHint": "Cihazdaki varsayılan mail uygulamasını açmayı dener",
-      "openMailError": "Mail uygulaması otomatik açılamadı. Gelen kutunu manuel aç.",
+      "otpInvalid": "Kod hatalı. Lütfen tekrar dene.",
+      "otpExpired": "Kodun süresi dolmuş. Lütfen yeni kod iste.",
+      "alreadyVerified": "Bu hesap zaten doğrulanmış.",
       "changeEmail": "Emaili değiştir",
       "goToLogin": "Girişe git"
     },
@@ -1481,58 +1616,58 @@
     "emailCheckFailed": "E-posta kontrolü yapılamadı. Lütfen tekrar deneyin."
   },
   "horoscope": {
-    "title": "Burc\u0327 Yorumlar\u0131",
-    "hubTitle": "Burc\u0327 Yorumlar\u0131",
+    "title": "Burç Yorumları",
+    "hubTitle": "Burç Yorumları",
     "yourSign": "Senin Burcun",
-    "allSigns": "Tu\u0308m Burc\u0327lar",
-    "today": "Bugu\u0308n",
+    "allSigns": "Tüm Burçlar",
+    "today": "Bugün",
     "thisWeek": "Bu Hafta",
-    "goToDetail": "Detay\u0131 Go\u0308r",
+    "goToDetail": "Detayı Gör",
     "general": "Genel",
-    "love": "As\u0327k",
+    "love": "Aşk",
     "career": "Kariyer",
     "money": "Para",
-    "health": "Sag\u030Cl\u0131k",
+    "health": "Saǧlık",
     "advice": "Tavsiye",
-    "luckyColor": "S\u0327ansl\u0131 Renk",
-    "luckyNumber": "S\u0327ansl\u0131 Say\u0131",
+    "luckyColor": "Şanslı Renk",
+    "luckyNumber": "Şanslı Sayı",
     "compatibility": "En Uyumlu",
     "mood": "Ruh Hali",
-    "share": "Paylas\u0327",
+    "share": "Paylaş",
     "favorite": "Favori",
-    "loading": "Y\u0131ld\u0131zlar okunuyor...",
-    "error": "Burc\u0327 yorumu yu\u0308klenemedi.",
+    "loading": "Yıldızlar okunuyor...",
+    "error": "Burç yorumu yüklenemedi.",
     "retry": "Tekrar Dene",
-    "highlights": "O\u0308ne C\u0327\u0131kanlar",
-    "dailyForecast": "Gu\u0308nlu\u0308k Yorum",
-    "weeklyForecast": "Haftal\u0131k Yorum",
+    "highlights": "Öne Çıkanlar",
+    "dailyForecast": "Günlük Yorum",
+    "weeklyForecast": "Haftalık Yorum",
     "signs": {
-      "aries": "Koc\u0327",
-      "taurus": "Bog\u030Ca",
-      "gemini": "I\u0307kizler",
-      "cancer": "Yengec\u0327",
+      "aries": "Koç",
+      "taurus": "Boǧa",
+      "gemini": "İkizler",
+      "cancer": "Yengeç",
       "leo": "Aslan",
-      "virgo": "Bas\u0327ak",
+      "virgo": "Başak",
       "libra": "Terazi",
       "scorpio": "Akrep",
       "sagittarius": "Yay",
-      "capricorn": "Og\u030Clak",
+      "capricorn": "Oǧlak",
       "aquarius": "Kova",
-      "pisces": "Bal\u0131k"
+      "pisces": "Balık"
     },
     "dateRanges": {
       "aries": "21 Mar - 19 Nis",
       "taurus": "20 Nis - 20 May",
       "gemini": "21 May - 20 Haz",
       "cancer": "21 Haz - 22 Tem",
-      "leo": "23 Tem - 22 Ag\u030Cu",
-      "virgo": "23 Ag\u030Cu - 22 Eyl",
+      "leo": "23 Tem - 22 Aǧu",
+      "virgo": "23 Aǧu - 22 Eyl",
       "libra": "23 Eyl - 22 Eki",
       "scorpio": "23 Eki - 21 Kas",
       "sagittarius": "22 Kas - 21 Ara",
       "capricorn": "22 Ara - 19 Oca",
-      "aquarius": "20 Oca - 18 S\u0327ub",
-      "pisces": "19 S\u0327ub - 20 Mar"
+      "aquarius": "20 Oca - 18 Şub",
+      "pisces": "19 Şub - 20 Mar"
     }
   },
   "dreamDictionary": {
@@ -1613,5 +1748,58 @@
     "quietEnd": "Sessiz saat bitişi",
     "systemSettings": "Cihaz bildirim ayarları",
     "footnote": "Sistem bildirimleri cihaz ayarlarından da yönetilebilir."
+  },
+  "quickStart": {
+    "button": "Hızlı Giriş",
+    "accessibilityLabel": "Kayıt olmadan hızlıca giriş yap",
+    "loading": "Oturum açılıyor...",
+    "error": "Oturum başlatılamadı. Lütfen tekrar deneyin."
+  },
+  "guestBanner": {
+    "title": "Geçici Oturum",
+    "description": "Verilerini güvenle saklamak ve cihazlar arasında taşımak için hesabını bağla",
+    "linkButton": "Hesabını Bağla"
+  },
+  "linkAccount": {
+    "title": "Hesabını Bağla",
+    "subtitle": "Kalıcı hesap oluşturarak verilerini güvende tut ve cihazlar arası senkronize et",
+    "withGoogle": "Google ile Bağla",
+    "withApple": "Apple ile Bağla",
+    "withEmail": "E-posta ile Hesap Oluştur",
+    "firstNameLabel": "Ad",
+    "firstNamePlaceholder": "Adın",
+    "lastNameLabel": "Soyad",
+    "lastNamePlaceholder": "Soyadın",
+    "emailLabel": "E-posta",
+    "emailPlaceholder": "E-posta adresin",
+    "passwordLabel": "Şifre",
+    "passwordPlaceholder": "En az 8 karakter",
+    "passwordPolicy": "En az 8 karakter, 1 büyük, 1 küçük harf ve 1 özel karakter",
+    "submit": "Devam Et",
+    "submitting": "Gönderiliyor...",
+    "otpTitle": "E-postanı Doğrula",
+    "otpSubtitle": "{{email}} adresine 6 haneli doğrulama kodu gönderdik.",
+    "otpLabel": "Doğrulama Kodu",
+    "otpPlaceholder": "_ _ _ _ _ _",
+    "otpVerify": "Hesabı Bağla",
+    "otpVerifying": "Doğrulanıyor...",
+    "otpResend": "Kodu Tekrar Gönder",
+    "otpExpired": "Kod süresi doldu. Lütfen tekrar dene.",
+    "otpInvalid": "Hatalı kod. Lütfen tekrar dene.",
+    "verificationSent": "Doğrulama e-postası gönderildi. Lütfen e-postanı kontrol et.",
+    "success": "Hesabın başarıyla bağlandı!",
+    "emailConflict": "Bu e-posta adresi zaten kayıtlı. Mevcut hesabınla giriş yap.",
+    "socialConflict": "Bu sosyal hesap zaten başka bir kullanıcıya bağlı.",
+    "alreadyLinked": "Hesabın zaten bağlı.",
+    "genericError": "Hesap bağlanamadı. Lütfen tekrar deneyin."
+  },
+  "guestGate": {
+    "title": "Ücretsiz Hesap Oluştur",
+    "description": "Bu özellik kayıtlı kullanıcılara özeldir. Hesap bağlamak bir dakikadan az sürer ve mevcut oturum verilerin korunur.",
+    "perk1": "Okumalarınız ve geçmişiniz kaydedilir",
+    "perk2": "Tüm cihazlarında senkronize et",
+    "perk3": "Kişiselleştirilmiş bildirimler ve içgörüler",
+    "cta": "Hesabı Bağla — Ücretsiz",
+    "dismiss": "Şimdi değil"
   }
 }

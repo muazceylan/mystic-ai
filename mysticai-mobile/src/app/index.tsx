@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import { useAuthStore } from '../store/useAuthStore';
+import { needsOnboarding } from '../utils/authOnboarding';
 
 export default function Index() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
   const [isHydrated, setIsHydrated] = useState(useAuthStore.persist.hasHydrated());
 
   useEffect(() => {
@@ -17,7 +19,13 @@ export default function Index() {
     return null;
   }
 
+  const redirectHref = !isAuthenticated
+    ? '/(auth)/welcome'
+    : needsOnboarding(user)
+      ? '/(auth)/birth-date'
+      : '/(tabs)/home';
+
   return (
-    <Redirect href={isAuthenticated ? '/(tabs)/home' : '/(auth)/welcome'} />
+    <Redirect href={redirectHref} />
   );
 }

@@ -140,7 +140,7 @@ public class NotificationGenerationService {
 
     private NotificationCategory categorizeType(NotificationType type) {
         return switch (type) {
-            case DAILY_SUMMARY, MINI_INSIGHT -> NotificationCategory.DAILY;
+            case DAILY_SUMMARY, MINI_INSIGHT, NUMEROLOGY_CHECKIN -> NotificationCategory.DAILY;
             case ENERGY_UPDATE -> NotificationCategory.INTRADAY;
             case WEEKLY_SUMMARY -> NotificationCategory.WEEKLY;
             case PRAYER_REMINDER, MEDITATION_REMINDER, PLANNER_REMINDER, DREAM_REMINDER, EVENING_CHECKIN ->
@@ -154,14 +154,14 @@ public class NotificationGenerationService {
         return switch (type) {
             case DAILY_SUMMARY, WEEKLY_SUMMARY, AI_ANALYSIS_COMPLETE, COMPATIBILITY_UPDATE -> Priority.HIGH;
             case RE_ENGAGEMENT -> Priority.NORMAL;
-            case ENERGY_UPDATE, MINI_INSIGHT -> Priority.LOW;
+            case ENERGY_UPDATE, MINI_INSIGHT, NUMEROLOGY_CHECKIN -> Priority.LOW;
             default -> Priority.NORMAL;
         };
     }
 
     private LocalDateTime calculateExpiry(NotificationType type) {
         return switch (type) {
-            case DAILY_SUMMARY, ENERGY_UPDATE, MINI_INSIGHT -> LocalDateTime.now().plusDays(1);
+            case DAILY_SUMMARY, ENERGY_UPDATE, MINI_INSIGHT, NUMEROLOGY_CHECKIN -> LocalDateTime.now().plusDays(1);
             case WEEKLY_SUMMARY -> LocalDateTime.now().plusDays(7);
             case PRAYER_REMINDER, MEDITATION_REMINDER, PLANNER_REMINDER, EVENING_CHECKIN, DREAM_REMINDER ->
                     LocalDateTime.now().plusHours(12);

@@ -1,5 +1,6 @@
 package com.mysticai.auth.service;
 
+import com.mysticai.auth.config.properties.PublicUrlProperties;
 import com.mysticai.auth.config.properties.PasswordResetProperties;
 import com.mysticai.auth.config.properties.VerificationProperties;
 import com.mysticai.auth.dto.ChangePasswordRequest;
@@ -14,6 +15,7 @@ import com.mysticai.auth.dto.verification.OkResponse;
 import com.mysticai.auth.dto.verification.RegisterResponse;
 import com.mysticai.auth.entity.User;
 import com.mysticai.auth.entity.enums.AccountStatus;
+import com.mysticai.auth.entity.enums.UserType;
 import com.mysticai.auth.entity.token.EmailVerificationToken;
 import com.mysticai.auth.entity.token.PasswordResetToken;
 import com.mysticai.auth.exception.domain.EmailNotVerifiedException;
@@ -24,20 +26,29 @@ import com.mysticai.auth.messaging.EmailVerificationMessage;
 import com.mysticai.auth.messaging.EmailVerificationPublisher;
 import com.mysticai.auth.messaging.PasswordResetEmailMessage;
 import com.mysticai.auth.messaging.PasswordResetEmailPublisher;
+import com.mysticai.auth.entity.token.LinkAccountOtpToken;
 import com.mysticai.auth.repository.UserRepository;
 import com.mysticai.auth.repository.token.EmailVerificationTokenRepository;
+import com.mysticai.auth.repository.token.LinkAccountOtpRepository;
 import com.mysticai.auth.repository.token.PasswordResetTokenRepository;
 import com.mysticai.auth.security.JwtTokenProvider;
 import com.mysticai.auth.security.SocialTokenVerifier;
 import com.mysticai.auth.security.SocialTokenVerifier.SocialUserInfo;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -46,6 +57,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Locale;
@@ -64,10 +76,16 @@ public class AuthService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile(STRONG_PASSWORD_REGEX);
+    private static final int OTP_TTL_MINUTES = 10;
+
+    @Value("${auth.mail.from:no-reply@mysticai.local}")
+    private String fromAddress;
 
     private final UserRepository userRepository;
     private final EmailVerificationTokenRepository verificationTokenRepository;
+    private final LinkAccountOtpRepository linkAccountOtpRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final JavaMailSender mailSender;
     private final EmailVerificationPublisher emailVerificationPublisher;
     private final PasswordResetEmailPublisher passwordResetEmailPublisher;
     private final VerificationProperties verificationProperties;
@@ -77,6 +95,8 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final SocialTokenVerifier socialTokenVerifier;
     private final NatalChartProvisioningService natalChartProvisioningService;
+    private final AvatarStorageService avatarStorageService;
+    private final PublicUrlProperties publicUrlProperties;
     private final Clock clock;
 
     public enum VerificationOutcome {
@@ -90,6 +110,8 @@ public class AuthService {
         EXPIRED,
         INVALID
     }
+
+    public record AvatarBinary(Resource resource, MediaType mediaType, long contentLength) {}
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -447,6 +469,66 @@ public class AuthService {
     }
 
     @Transactional
+    public UserDTO uploadAvatar(Long userId, MultipartFile avatar) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        AvatarStorageService.StoredAvatar storedAvatar = avatarStorageService.store(userId, avatar);
+        String previousAvatarPath = trimToNull(user.getAvatarPath());
+        user.setAvatarPath(storedAvatar.relativePath());
+
+        User saved;
+        try {
+            saved = userRepository.save(user);
+        } catch (RuntimeException ex) {
+            avatarStorageService.delete(storedAvatar.relativePath());
+            throw ex;
+        }
+
+        if (previousAvatarPath != null && !previousAvatarPath.equals(storedAvatar.relativePath())) {
+            avatarStorageService.delete(previousAvatarPath);
+        }
+
+        return toUserDTO(saved);
+    }
+
+    @Transactional
+    public UserDTO removeAvatar(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String previousAvatarPath = trimToNull(user.getAvatarPath());
+        if (previousAvatarPath == null) {
+            return toUserDTO(user);
+        }
+
+        user.setAvatarPath(null);
+        User saved = userRepository.save(user);
+        avatarStorageService.delete(previousAvatarPath);
+        return toUserDTO(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AvatarBinary> getAvatar(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String avatarPath = trimToNull(userOpt.get().getAvatarPath());
+        if (avatarPath == null) {
+            return Optional.empty();
+        }
+
+        return avatarStorageService.read(avatarPath)
+                .map(file -> new AvatarBinary(
+                        file.resource(),
+                        safeMediaType(file.contentType()),
+                        file.contentLength()
+                ));
+    }
+
+    @Transactional
     public UserDTO setPassword(Long userId, SetPasswordRequest request) {
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new PasswordMismatchException();
@@ -493,9 +575,293 @@ public class AuthService {
         return toUserDTO(saved);
     }
 
+    // -------------------------------------------------------------------------
+    // Quick start (guest session)
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public LoginResponse createQuickSession() {
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        String guestSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        String username = "guest_" + guestSuffix;
+        String email = username + "@anon.mystic-ai.internal";
+
+        User guestUser = User.builder()
+                .username(username)
+                .email(email)
+                .password(buildGuestPlaceholderPassword(guestSuffix))
+                .roles(Set.of("USER"))
+                .enabled(true)
+                .hasLocalPassword(false)
+                .accountStatus(AccountStatus.ACTIVE)
+                .emailVerifiedAt(now)
+                .userType(UserType.GUEST)
+                .isAnonymous(true)
+                .isAccountLinked(false)
+                .build();
+
+        User saved = userRepository.save(guestUser);
+        log.info("Quick session created: guestId={}", saved.getId());
+
+        String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.GUEST);
+        String refreshToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.GUEST);
+        return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(saved), true);
+    }
+
+    // -------------------------------------------------------------------------
+    // Account linking (guest → registered)
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public LoginResponse linkAccountWithSocial(Long userId, SocialLoginRequest request) {
+        User guestUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (guestUser.getUserType() != UserType.GUEST) {
+            throw new IllegalArgumentException("ACCOUNT_ALREADY_LINKED");
+        }
+
+        SocialUserInfo userInfo;
+        String provider = request.provider().toLowerCase(Locale.ROOT);
+        switch (provider) {
+            case "google" -> userInfo = socialTokenVerifier.verifyGoogleToken(request.idToken());
+            case "apple" -> userInfo = socialTokenVerifier.verifyAppleToken(request.idToken());
+            default -> throw new IllegalArgumentException("Unsupported provider: " + request.provider());
+        }
+
+        // Conflict check: social account already used by another user
+        Optional<User> existingByProvider = userRepository.findByProviderAndSocialId(provider, userInfo.socialId());
+        if (existingByProvider.isPresent() && !existingByProvider.get().getId().equals(userId)) {
+            throw new IllegalArgumentException("SOCIAL_ACCOUNT_ALREADY_LINKED");
+        }
+
+        String normalizedEmail = userInfo.email() != null ? normalizeIdentifier(userInfo.email()) : null;
+
+        // Conflict check: email already used by another user
+        if (normalizedEmail != null) {
+            Optional<User> existingByEmail = userRepository.findByEmailIgnoreCase(normalizedEmail);
+            if (existingByEmail.isPresent() && !existingByEmail.get().getId().equals(userId)) {
+                throw new IllegalArgumentException("EMAIL_ALREADY_REGISTERED");
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        // Upgrade guest user → registered
+        if (normalizedEmail != null) {
+            guestUser.setEmail(normalizedEmail);
+            guestUser.setUsername(normalizedEmail);
+        } else {
+            String fallbackEmail = provider + "_" + userInfo.socialId() + "@" + provider + ".social";
+            guestUser.setEmail(fallbackEmail);
+            guestUser.setUsername(fallbackEmail);
+        }
+        guestUser.setProvider(provider);
+        guestUser.setSocialId(userInfo.socialId());
+        ensureSocialUserHasPassword(guestUser, provider, userInfo.socialId());
+        guestUser.setUserType(UserType.REGISTERED);
+        guestUser.setIsAnonymous(false);
+        guestUser.setIsAccountLinked(true);
+        guestUser.setHasLocalPassword(false);
+        guestUser.setAccountStatus(AccountStatus.ACTIVE);
+        if (guestUser.getEmailVerifiedAt() == null) {
+            guestUser.setEmailVerifiedAt(now);
+        }
+        // Fill name only if not already set by user
+        if (userInfo.firstName() != null && isBlank(guestUser.getFirstName())) {
+            guestUser.setFirstName(userInfo.firstName());
+        }
+        if (userInfo.lastName() != null && isBlank(guestUser.getLastName())) {
+            guestUser.setLastName(userInfo.lastName());
+        }
+        guestUser.setName(buildName(guestUser.getFirstName(), guestUser.getLastName()));
+
+        User saved = userRepository.save(guestUser);
+        log.info("Guest account linked with social: userId={}, provider={}", saved.getId(), provider);
+
+        String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
+        String refreshToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
+        return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(saved), false);
+    }
+
+    /**
+     * Step 1: saves credentials + name to the guest account, issues an OTP code,
+     * and sends it via email. The account is upgraded to REGISTERED only after
+     * the OTP is verified in {@link #verifyLinkAccountEmailOtp}.
+     */
+    @Transactional
+    public OkResponse linkAccountWithEmail(Long userId, String email, String password,
+                                           String firstName, String lastName) {
+        User guestUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (guestUser.getUserType() != UserType.GUEST) {
+            throw new IllegalArgumentException("ACCOUNT_ALREADY_LINKED");
+        }
+
+        ensureStrongPassword(password);
+        String normalizedEmail = normalizeIdentifier(email);
+
+        Optional<User> existingByEmail = userRepository.findByEmailIgnoreCase(normalizedEmail);
+        if (existingByEmail.isPresent() && !existingByEmail.get().getId().equals(userId)) {
+            throw new IllegalArgumentException("EMAIL_ALREADY_REGISTERED");
+        }
+
+        // Persist credentials and name on the guest user (still GUEST until OTP verified)
+        guestUser.setEmail(normalizedEmail);
+        guestUser.setUsername(normalizedEmail);
+        guestUser.setPassword(passwordEncoder.encode(password));
+        guestUser.setHasLocalPassword(true);
+        if (firstName != null && !firstName.isBlank() && isBlank(guestUser.getFirstName())) {
+            guestUser.setFirstName(firstName.trim());
+        }
+        if (lastName != null && !lastName.isBlank() && isBlank(guestUser.getLastName())) {
+            guestUser.setLastName(lastName.trim());
+        }
+        guestUser.setName(buildName(guestUser.getFirstName(), guestUser.getLastName()));
+        userRepository.save(guestUser);
+
+        // Generate and store OTP
+        String rawCode = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        String codeHash = hashToken(rawCode, verificationProperties.tokenPepper());
+        LocalDateTime now = LocalDateTime.now(clock);
+        linkAccountOtpRepository.deleteAllByUserId(userId);
+        linkAccountOtpRepository.save(LinkAccountOtpToken.builder()
+                .user(guestUser)
+                .codeHash(codeHash)
+                .expiresAt(now.plusMinutes(OTP_TTL_MINUTES))
+                .createdAt(now)
+                .build());
+
+        sendOtpEmail(normalizedEmail, rawCode);
+        log.info("Link-account OTP sent: userId={}", userId);
+        return new OkResponse(true);
+    }
+
+    /**
+     * Step 2: verifies the OTP code and completes the account upgrade to REGISTERED.
+     */
+    @Transactional
+    public LoginResponse verifyLinkAccountEmailOtp(Long userId, String email, String code) {
+        User guestUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (guestUser.getUserType() != UserType.GUEST) {
+            throw new IllegalArgumentException("ACCOUNT_ALREADY_LINKED");
+        }
+
+        String normalizedEmail = normalizeIdentifier(email);
+        if (!normalizedEmail.equalsIgnoreCase(guestUser.getEmail())) {
+            throw new IllegalArgumentException("OTP_INVALID");
+        }
+
+        LinkAccountOtpToken otpToken = linkAccountOtpRepository
+                .findTopByUserIdOrderByCreatedAtDesc(userId)
+                .orElseThrow(() -> new IllegalArgumentException("OTP_INVALID"));
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (otpToken.isUsed() || otpToken.isExpired(now)) {
+            throw new IllegalArgumentException("OTP_EXPIRED");
+        }
+
+        String codeHash = hashToken(code, verificationProperties.tokenPepper());
+        if (!codeHash.equals(otpToken.getCodeHash())) {
+            throw new IllegalArgumentException("OTP_INVALID");
+        }
+
+        otpToken.setUsedAt(now);
+        linkAccountOtpRepository.save(otpToken);
+
+        // Upgrade to REGISTERED
+        guestUser.setUserType(UserType.REGISTERED);
+        guestUser.setIsAnonymous(false);
+        guestUser.setIsAccountLinked(true);
+        guestUser.setAccountStatus(AccountStatus.ACTIVE);
+        guestUser.setEmailVerifiedAt(now);
+        User saved = userRepository.save(guestUser);
+        log.info("Guest account linked with email and verified: userId={}", saved.getId());
+
+        String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
+        String refreshToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
+        return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(saved), false);
+    }
+
+    /**
+     * Verifies the 6-digit OTP sent during registration and activates the account.
+     * Returns a full LoginResponse so the mobile client can auto-login after verification.
+     */
+    @Transactional
+    public LoginResponse verifyEmailOtp(String email, String code) {
+        String normalizedEmail = normalizeIdentifier(email);
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new IllegalArgumentException("OTP_INVALID"));
+
+        if (user.getAccountStatus() == AccountStatus.ACTIVE) {
+            throw new IllegalArgumentException("ALREADY_VERIFIED");
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        String tokenHash = hashToken(user.getId() + ":" + code, verificationProperties.tokenPepper());
+
+        int consumed = verificationTokenRepository.consumeTokenIfValid(tokenHash, now);
+        if (consumed == 0) {
+            Optional<EmailVerificationToken> token = verificationTokenRepository.findByTokenHash(tokenHash);
+            if (token.isEmpty() || token.get().isRevoked()) {
+                throw new IllegalArgumentException("OTP_INVALID");
+            }
+            if (token.get().isExpired(now)) {
+                throw new IllegalArgumentException("OTP_EXPIRED");
+            }
+            throw new IllegalArgumentException("OTP_INVALID");
+        }
+
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setEmailVerifiedAt(now);
+        verificationTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
+        User saved = userRepository.save(user);
+        log.info("Email OTP verified, account activated: userId={}", saved.getId());
+
+        natalChartProvisioningService.ensureNatalChartIfEligible(saved);
+
+        String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
+        String refreshToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
+        return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(saved));
+    }
+
+    private void sendOtpEmail(String toEmail, String code) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject("Mystic AI — Doğrulama Kodu");
+            helper.setText(
+                "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px'>"
+                + "<h2 style='color:#9D4EDD'>Doğrulama Kodun</h2>"
+                + "<p>Hesabını bağlamak için aşağıdaki 6 haneli kodu kullan. Kod <strong>10 dakika</strong> geçerlidir.</p>"
+                + "<div style='font-size:36px;font-weight:700;letter-spacing:8px;color:#9D4EDD;padding:24px;text-align:center;"
+                + "background:#F9F0FF;border-radius:12px;margin:24px 0'>" + code + "</div>"
+                + "<p style='color:#888;font-size:13px'>Bu kodu kimseyle paylaşma.</p>"
+                + "</div>", true);
+            mailSender.send(mimeMessage);
+        } catch (Exception e) {
+            log.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage());
+            throw new IllegalStateException("EMAIL_SEND_FAILED");
+        }
+    }
+
+    private String buildGuestPlaceholderPassword(String guestSuffix) {
+        String raw = "guest:" + guestSuffix + ":" + UUID.randomUUID();
+        return passwordEncoder.encode(raw);
+    }
+
+    // -------------------------------------------------------------------------
+
     private LoginResponse buildSocialLoginResponse(User user, boolean isNewUser) {
-        String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail());
+        UserType userType = user.getUserType() != null ? user.getUserType() : UserType.REGISTERED;
+        String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail(), userType);
+        String refreshToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail(), userType);
         return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(user), isNewUser);
     }
 
@@ -537,26 +903,41 @@ public class AuthService {
 
         verificationTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
 
-        String rawToken = generateRawToken(verificationProperties.tokenBytes());
-        String tokenHash = hashToken(rawToken, verificationProperties.tokenPepper());
+        String rawCode = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        // Include userId in hash to prevent cross-user collisions on the same 6-digit code
+        String tokenHash = hashToken(user.getId() + ":" + rawCode, verificationProperties.tokenPepper());
 
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
                 .user(user)
                 .tokenHash(tokenHash)
-                .expiresAt(now.plus(verificationProperties.tokenTtl()))
+                .expiresAt(now.plusMinutes(OTP_TTL_MINUTES))
                 .createdAt(now)
                 .build();
 
         verificationTokenRepository.save(verificationToken);
+        sendVerificationOtpEmail(user.getEmail(), rawCode);
+    }
 
-        EmailVerificationMessage message = new EmailVerificationMessage(
-                user.getId(),
-                user.getEmail(),
-                rawToken,
-                UUID.randomUUID().toString()
-        );
-
-        emailVerificationPublisher.publish(message);
+    private void sendVerificationOtpEmail(String toEmail, String code) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject("Mystic AI — E-posta Doğrulama Kodu");
+            helper.setText(
+                "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px'>"
+                + "<h2 style='color:#9D4EDD'>E-posta Doğrulama Kodun</h2>"
+                + "<p>Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan. Kod <strong>10 dakika</strong> geçerlidir.</p>"
+                + "<div style='font-size:36px;font-weight:700;letter-spacing:8px;color:#9D4EDD;padding:24px;text-align:center;"
+                + "background:#F9F0FF;border-radius:12px;margin:24px 0'>" + code + "</div>"
+                + "<p style='color:#888;font-size:13px'>Bu kodu kimseyle paylaşma.</p>"
+                + "</div>", true);
+            mailSender.send(mimeMessage);
+        } catch (Exception e) {
+            log.error("Failed to send verification OTP email to {}: {}", toEmail, e.getMessage());
+            throw new IllegalStateException("EMAIL_SEND_FAILED");
+        }
     }
 
     private void issuePasswordResetToken(User user) {
@@ -645,7 +1026,33 @@ public class AuthService {
         return normalized.isAfter(now) ? now : normalized;
     }
 
+    private MediaType safeMediaType(String contentType) {
+        try {
+            return MediaType.parseMediaType(contentType);
+        } catch (Exception ex) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+    }
+
+    private String buildAvatarUrl(User user) {
+        String avatarPath = trimToNull(user.getAvatarPath());
+        if (avatarPath == null || user.getId() == null) {
+            return null;
+        }
+
+        long version = user.getUpdatedAt() != null
+                ? user.getUpdatedAt().atOffset(ZoneOffset.UTC).toEpochSecond()
+                : 0L;
+
+        return publicUrlProperties.apiPublicUrl()
+                + "/api/v1/auth/profile/avatar/"
+                + user.getId()
+                + "?v="
+                + version;
+    }
+
     private UserDTO toUserDTO(User user) {
+        String avatarUrl = buildAvatarUrl(user);
         return UserDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -666,6 +1073,8 @@ public class AuthService {
                 .maritalStatus(user.getMaritalStatus())
                 .focusPoint(user.getFocusPoint())
                 .zodiacSign(user.getZodiacSign())
+                .avatarUri(avatarUrl)
+                .avatarUrl(avatarUrl)
                 .preferredLanguage(user.getPreferredLanguage())
                 .roles(user.getRoles())
                 .enabled(user.isEnabled())
@@ -673,6 +1082,9 @@ public class AuthService {
                 .updatedAt(user.getUpdatedAt())
                 .hasPassword(Boolean.TRUE.equals(user.getHasLocalPassword()))
                 .provider(user.getProvider())
+                .userType(user.getUserType() != null ? user.getUserType().name() : UserType.REGISTERED.name())
+                .isAnonymous(Boolean.TRUE.equals(user.getIsAnonymous()))
+                .isAccountLinked(Boolean.TRUE.equals(user.getIsAccountLinked()))
                 .build();
     }
 }

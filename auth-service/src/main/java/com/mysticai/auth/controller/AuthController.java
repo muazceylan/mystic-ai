@@ -4,6 +4,9 @@ import com.mysticai.auth.config.properties.DeploymentEnv;
 import com.mysticai.auth.config.properties.PublicUrlProperties;
 import com.mysticai.auth.dto.ChangePasswordRequest;
 import com.mysticai.auth.dto.CheckEmailRequest;
+import com.mysticai.auth.dto.LinkEmailRequest;
+import com.mysticai.auth.dto.LinkEmailVerifyOtpRequest;
+import com.mysticai.auth.dto.VerifyEmailOtpRequest;
 import com.mysticai.auth.dto.CheckEmailResponse;
 import com.mysticai.auth.dto.LoginRequest;
 import com.mysticai.auth.dto.LoginResponse;
@@ -22,11 +25,15 @@ import com.mysticai.auth.service.AuthService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,9 +41,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Locale;
+import java.util.Optional;
 
 @RestController
 @RequestMapping({"/api/v1/auth", "/api/auth"})
@@ -218,9 +228,65 @@ public class AuthController {
                 available ? "Email is available" : "Email already exists"));
     }
 
+    /**
+     * Step 2 of email registration: verifies the 6-digit OTP and activates the account.
+     * Returns full login tokens so the client auto-logs in on success.
+     */
+    @PostMapping("/verify-email-otp")
+    public ResponseEntity<LoginResponse> verifyEmailOtp(@Valid @RequestBody VerifyEmailOtpRequest request) {
+        LoginResponse response = authService.verifyEmailOtp(request.email(), request.code());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/social-login")
     public ResponseEntity<LoginResponse> socialLogin(@Valid @RequestBody SocialLoginRequest request) {
         LoginResponse response = authService.socialLogin(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Creates a temporary anonymous guest session.
+     * No body or auth required — returns full JWT so the guest can use all services.
+     */
+    @PostMapping("/quick-start")
+    public ResponseEntity<LoginResponse> quickStart() {
+        LoginResponse response = authService.createQuickSession();
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Links a guest account to a social provider (Google / Apple).
+     * Preserves the user's ID and all existing data.
+     */
+    @PostMapping("/link-account/social")
+    public ResponseEntity<LoginResponse> linkAccountWithSocial(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody SocialLoginRequest request) {
+        LoginResponse response = authService.linkAccountWithSocial(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Step 1: saves credentials + name, sends a 6-digit OTP to the email address.
+     * The account remains GUEST until the OTP is verified.
+     */
+    @PostMapping("/link-account/email")
+    public ResponseEntity<OkResponse> linkAccountWithEmail(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody LinkEmailRequest request) {
+        OkResponse response = authService.linkAccountWithEmail(
+                userId, request.email(), request.password(), request.firstName(), request.lastName());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Step 2: verifies the OTP and upgrades the guest account to REGISTERED + ACTIVE.
+     */
+    @PostMapping("/link-account/email/verify-otp")
+    public ResponseEntity<LoginResponse> verifyLinkAccountEmailOtp(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody LinkEmailVerifyOtpRequest request) {
+        LoginResponse response = authService.verifyLinkAccountEmailOtp(userId, request.email(), request.code());
         return ResponseEntity.ok(response);
     }
 
@@ -230,6 +296,35 @@ public class AuthController {
             @RequestBody UpdateProfileRequest request) {
         UserDTO updated = authService.updateProfile(userId, request);
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping(value = "/profile/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserDTO> uploadAvatar(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestParam("avatar") MultipartFile avatar) {
+        UserDTO updated = authService.uploadAvatar(userId, avatar);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/profile/avatar")
+    public ResponseEntity<UserDTO> removeAvatar(@RequestHeader("X-User-Id") Long userId) {
+        UserDTO updated = authService.removeAvatar(userId);
+        return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/profile/avatar/{userId}")
+    public ResponseEntity<Resource> getAvatar(@PathVariable Long userId) {
+        Optional<AuthService.AvatarBinary> avatar = authService.getAvatar(userId);
+        if (avatar.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        AuthService.AvatarBinary payload = avatar.get();
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofDays(7)).cachePublic())
+                .contentType(payload.mediaType())
+                .contentLength(payload.contentLength())
+                .body(payload.resource());
     }
 
     @PostMapping("/set-password")

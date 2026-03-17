@@ -746,7 +746,7 @@ export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardPar
       locale: resolvedLocale,
     }),
     fetchSkyPulse(resolvedLocale),
-    user?.id ? fetchWeeklySwot(user.id, resolvedLocale) : Promise.resolve(null),
+    (user?.id && user?.birthDate) ? fetchWeeklySwot(user.id, resolvedLocale) : Promise.resolve(null),
   ]);
 
   const homeBrief = homeBriefResult.status === 'fulfilled' ? homeBriefResult.value.data : null;
@@ -757,7 +757,12 @@ export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardPar
       : null;
 
   if (homeBriefResult.status === 'rejected') {
-    logApiError('home-dashboard', homeBriefResult.reason, { source: 'home-brief' });
+    // ECONNABORTED = axios timeout; oracle yokken dashboard fallback içerikle render edilir.
+    const isTimeout = (homeBriefResult.reason as any)?.code === 'ECONNABORTED';
+    logApiError('home-dashboard', homeBriefResult.reason, {
+      source: 'home-brief',
+      timed_out: isTimeout,
+    });
   }
 
   if (skyPulseResult.status === 'rejected') {

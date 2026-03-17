@@ -164,7 +164,7 @@ public class AstrologyService {
     public NatalChartResponse getLatestNatalChartByUserId(Long userId) {
         NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(
                         userId != null ? userId.toString() : null)
-                .orElseThrow(() -> new IllegalArgumentException("No natal chart found for user: " + userId));
+                .orElseThrow(() -> new IllegalArgumentException("Natal chart not found for user: " + userId));
         return mapToResponse(chart, null, null, chart.getAiInterpretation());
     }
 

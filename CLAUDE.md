@@ -4,6 +4,76 @@ Bu dosya, `mystic-ai` reposunda calisan AI coding agent'lar icin ilk okunacak op
 
 Kod yazmadan once bu dosyayi, sonra ilgili bounded context'i okuyun. Tum repoyu bastan sona taramak yerine dogru giris noktasini secmek bu projede kalite, hiz ve tutarlilik farkini belirler.
 
+## 0. README'siz Ilk Kurulum (Local Dev Bootstrap)
+
+Bu bolum, projeyi ilk kez ayağa kaldirmak isteyen kisi icin en kisa ve guvenli akistir.
+`README.md` acmadan da lokal ortam kurulabilir.
+
+### 0.1 Gereksinimler
+
+- Java 21
+- Maven 3.9+
+- Node.js 20+
+- pnpm 8+ (admin panel icin)
+- Docker + Docker Compose
+- Yerel araclar: `curl`, `lsof`, `pkill`
+
+### 0.2 Ilk Kurulum Komutlari
+
+Repo root'unda:
+
+```bash
+# 1) Env dosyalarini hazirla
+cp .env.example .env
+cp mysticai-mobile/.env.example mysticai-mobile/.env
+
+# 2) Altyapiyi baslat (PostgreSQL, RabbitMQ, Redis, MailHog)
+make infra
+
+# 3) Tum backend servislerini derle + baslat
+chmod +x start-services.sh
+./start-services.sh
+```
+
+Ayri terminallerde:
+
+```bash
+# 4) Admin panel
+cd mystic-admin
+pnpm install
+pnpm dev
+# http://localhost:3001
+```
+
+```bash
+# 5) Mobile (Expo)
+cd mysticai-mobile
+npm install
+npm run start
+```
+
+### 0.3 Hizli Dogrulama
+
+Backend ayakta mi?
+
+```bash
+curl -sS http://localhost:8080/actuator/health
+curl -sS "http://localhost:8080/api/v1/auth/check-email?email=startup-check@mystic.ai"
+```
+
+Yardimci paneller:
+
+- Eureka: `http://localhost:8761`
+- Gateway Swagger: `http://localhost:8080/swagger-ui.html`
+- RabbitMQ UI: `http://localhost:15672`
+- MailHog: `http://localhost:8025`
+
+### 0.4 Ilk Kurulumda Sik Takilan Noktalar
+
+- `503` / auth route hatasi: once `make infra`, sonra `./start-services.sh` tekrar calistir.
+- `8081 already in use`: `lsof -ti :8081 | xargs kill -9`, sonra script'i tekrar calistir.
+- Admin icin `pnpm` yoksa: `corepack enable && corepack prepare pnpm@latest --activate`.
+
 ## Read This First
 
 ### Source Of Truth Order

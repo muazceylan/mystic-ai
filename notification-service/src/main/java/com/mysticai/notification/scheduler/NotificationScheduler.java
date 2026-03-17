@@ -72,6 +72,16 @@ public class NotificationScheduler {
         triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
+    /** Numerology check-in reminder - 12:15 every day */
+    @Scheduled(cron = "0 15 12 * * *")
+    public void generateNumerologyCheckins() {
+        final String key = "numerology_checkin_job";
+        if (skipIfDisabled(key)) return;
+        log.info("Running numerology check-in generation");
+        int count = generateForAll(NotificationType.NUMEROLOGY_CHECKIN);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
+    }
+
     /** Prayer reminder - 06:00 every day */
     @Scheduled(cron = "0 0 6 * * *")
     public void generatePrayerReminders() {

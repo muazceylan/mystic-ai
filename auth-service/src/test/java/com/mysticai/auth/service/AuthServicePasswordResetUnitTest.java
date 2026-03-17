@@ -1,6 +1,7 @@
 package com.mysticai.auth.service;
 
 import com.mysticai.auth.config.properties.PasswordResetProperties;
+import com.mysticai.auth.config.properties.PublicUrlProperties;
 import com.mysticai.auth.config.properties.VerificationProperties;
 import com.mysticai.auth.entity.User;
 import com.mysticai.auth.entity.enums.AccountStatus;
@@ -9,9 +10,11 @@ import com.mysticai.auth.messaging.EmailVerificationPublisher;
 import com.mysticai.auth.messaging.PasswordResetEmailPublisher;
 import com.mysticai.auth.repository.UserRepository;
 import com.mysticai.auth.repository.token.EmailVerificationTokenRepository;
+import com.mysticai.auth.repository.token.LinkAccountOtpRepository;
 import com.mysticai.auth.repository.token.PasswordResetTokenRepository;
 import com.mysticai.auth.security.JwtTokenProvider;
 import com.mysticai.auth.security.SocialTokenVerifier;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +43,9 @@ class AuthServicePasswordResetUnitTest {
 
     @Mock private UserRepository userRepository;
     @Mock private EmailVerificationTokenRepository verificationTokenRepository;
+    @Mock private LinkAccountOtpRepository linkAccountOtpRepository;
     @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
+    @Mock private JavaMailSender mailSender;
     @Mock private EmailVerificationPublisher emailVerificationPublisher;
     @Mock private PasswordResetEmailPublisher passwordResetEmailPublisher;
     @Mock private PasswordEncoder passwordEncoder;
@@ -48,6 +53,8 @@ class AuthServicePasswordResetUnitTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private SocialTokenVerifier socialTokenVerifier;
     @Mock private NatalChartProvisioningService natalChartProvisioningService;
+    @Mock private AvatarStorageService avatarStorageService;
+    @Mock private PublicUrlProperties publicUrlProperties;
 
     private AuthService authService;
     private Clock fixedClock;
@@ -60,7 +67,9 @@ class AuthServicePasswordResetUnitTest {
         authService = new AuthService(
                 userRepository,
                 verificationTokenRepository,
+                linkAccountOtpRepository,
                 passwordResetTokenRepository,
+                mailSender,
                 emailVerificationPublisher,
                 passwordResetEmailPublisher,
                 verificationProperties,
@@ -70,6 +79,8 @@ class AuthServicePasswordResetUnitTest {
                 authenticationManager,
                 socialTokenVerifier,
                 natalChartProvisioningService,
+                avatarStorageService,
+                publicUrlProperties,
                 fixedClock
         );
     }
@@ -119,10 +130,10 @@ class AuthServicePasswordResetUnitTest {
 
         when(passwordResetTokenRepository.consumeTokenIfValid(tokenHash, now)).thenReturn(1);
         when(passwordResetTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(token));
-        when(passwordEncoder.matches("NewPass123", "encoded-old")).thenReturn(false);
-        when(passwordEncoder.encode("NewPass123")).thenReturn("encoded-new");
+        when(passwordEncoder.matches("NewP@ss123", "encoded-old")).thenReturn(false);
+        when(passwordEncoder.encode("NewP@ss123")).thenReturn("encoded-new");
 
-        AuthService.PasswordResetOutcome outcome = authService.resetPassword("valid-token", "NewPass123", "NewPass123");
+        AuthService.PasswordResetOutcome outcome = authService.resetPassword("valid-token", "NewP@ss123", "NewP@ss123");
 
         assertThat(outcome).isEqualTo(AuthService.PasswordResetOutcome.SUCCESS);
         assertThat(user.getPassword()).isEqualTo("encoded-new");

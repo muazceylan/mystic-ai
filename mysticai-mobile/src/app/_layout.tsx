@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AppState,
   AppStateStatus,
+  InteractionManager,
   View,
   ActivityIndicator,
   Dimensions,
@@ -36,6 +37,9 @@ import { TutorialProvider, TUTORIAL_SCREEN_KEYS, useTutorialTrigger } from '../f
 import { initI18n } from '../i18n';
 import { COLORS } from '../constants/colors';
 import { queryClient } from '../lib/queryClient';
+import { needsOnboarding } from '../utils/authOnboarding';
+import { isGuestUser } from '../store/useAuthStore';
+import { trackEvent } from '../services/analytics';
 import {
   registerPushTokenIfNeeded,
   setupNotificationResponseHandler,
@@ -170,6 +174,7 @@ function useProtectedRoute(i18nReady: boolean) {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isHydrated = useAuthStore((s) => s.isHydrated);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     // Must wait for both conditions before attempting any navigation
@@ -178,6 +183,7 @@ function useProtectedRoute(i18nReady: boolean) {
     const currentRoute = topLevelRoute(pathname);
     const inAuthRoute = AUTH_ROUTES.has(currentRoute);
     const inOnboardingFlow = ONBOARDING_AUTH_ROUTES.has(currentRoute);
+    const onboardingRequired = needsOnboarding(user);
 
     if (!isAuthenticated) {
       if (!inAuthRoute) {
@@ -186,10 +192,17 @@ function useProtectedRoute(i18nReady: boolean) {
       return;
     }
 
+    if (onboardingRequired) {
+      if (!inOnboardingFlow) {
+        router.replace('/(auth)/birth-date');
+      }
+      return;
+    }
+
     if (inAuthRoute && !inOnboardingFlow) {
       router.replace('/(tabs)/home');
     }
-  }, [isAuthenticated, isHydrated, i18nReady, pathname]);
+  }, [isAuthenticated, isHydrated, i18nReady, pathname, user]);
 }
 
 function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
@@ -210,6 +223,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
       <NotificationBootstrap />
       <AppConfigBootstrap />
       <TutorialBootstrap />
+      <GuestSessionBootstrap />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -265,14 +279,16 @@ function NotificationBootstrap() {
       return;
     }
 
-    // Setup push infrastructure
-    void setupNotificationChannel();
-    void registerPushTokenIfNeeded();
-    void fetchUnreadCount();
-
+    // Push altyapısını ve unread count'u home render'ını bloklamayacak şekilde
+    // geçiş animasyonları tamamlandıktan sonra başlat.
     let pushCleanup: (() => void) | null = null;
-    setupNotificationResponseHandler(isAuthenticated).then((unsub) => {
-      pushCleanup = unsub;
+    const deferredTask = InteractionManager.runAfterInteractions(() => {
+      void setupNotificationChannel();
+      void registerPushTokenIfNeeded();
+      void fetchUnreadCount();
+      setupNotificationResponseHandler(isAuthenticated).then((unsub) => {
+        pushCleanup = unsub;
+      });
     });
 
     // AppState listener: refresh on foreground return (background → active)
@@ -289,6 +305,7 @@ function NotificationBootstrap() {
     }, 5 * 60_000);
 
     return () => {
+      deferredTask.cancel();
       appStateSub.remove();
       clearInterval(interval);
       pushCleanup?.();
@@ -304,8 +321,12 @@ function AppConfigBootstrap() {
   const isHydrated = useAuthStore((s) => s.isHydrated);
 
   useEffect(() => {
-    // Load config on startup (no auth required — public endpoint)
-    void loadConfig();
+    // App config'i geçiş animasyonları bittikten sonra yükle;
+    // home render'ını bloklamasın. Config zaten local fallback ile çalışır.
+    const task = InteractionManager.runAfterInteractions(() => {
+      void loadConfig();
+    });
+    return () => task.cancel();
   }, []);
 
   useEffect(() => {
@@ -351,6 +372,30 @@ function TutorialBootstrap() {
     void trigger('first_app_open');
     void trigger('version_changed');
   }, [isAuthenticated, isHydrated, pathname, trigger, userId]);
+
+  return null;
+}
+
+/**
+ * Fires a single `quick_session_restored` analytics event when a guest session
+ * is found in persistent storage on cold start (once per hydration).
+ */
+function GuestSessionBootstrap() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const user = useAuthStore((s) => s.user);
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated || firedRef.current) return;
+    if (isGuestUser(user)) {
+      firedRef.current = true;
+      trackEvent('quick_session_restored', {
+        user_type: 'GUEST',
+        user_id: user?.id ?? null,
+      });
+    }
+  }, [isHydrated, isAuthenticated, user]);
 
   return null;
 }

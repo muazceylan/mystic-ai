@@ -239,6 +239,15 @@ export interface DashboardSummary {
   recentNotifications: AdminNotification[];
 }
 
+// ── Guest Funnel ──────────────────────────────────────────
+
+export interface GuestStats {
+  totalGuests: number;
+  convertedToday: number;
+  staleGuests: number;
+  conversionRatePct: number;
+}
+
 // ── Content CMS — Home / Explore / Banners ────────────────
 
 export type CmsContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';

@@ -17,14 +17,16 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
 import { makeRedirectUri } from 'expo-auth-session';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { socialLogin, login as loginApi } from '../../services/auth';
+import { socialLogin, login as loginApi, quickStart as quickStartApi } from '../../services/auth';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { trackEvent } from '../../services/analytics';
+import { needsOnboarding } from '../../utils/authOnboarding';
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
 
@@ -33,23 +35,6 @@ function firstParam(value: string | string[] | undefined): string {
     return value[0] ?? '';
   }
   return value ?? '';
-}
-
-function needsOnboarding(user: {
-  birthDate?: string;
-  birthCountry?: string;
-  birthCity?: string;
-  gender?: string;
-  focusPoint?: string;
-}): boolean {
-  const isBlank = (value?: string) => !value || value.trim().length === 0;
-  return (
-    isBlank(user.birthDate) ||
-    isBlank(user.birthCountry) ||
-    isBlank(user.birthCity) ||
-    isBlank(user.gender) ||
-    isBlank(user.focusPoint)
-  );
 }
 
 type GoogleAuthLikeResult = {
@@ -192,6 +177,24 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     appleText: {
       color: C.white,
     },
+    quickStartButton: {
+      marginTop: 10,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+    quickStartGradient: {
+      paddingVertical: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+    },
+    quickStartText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: C.white,
+      letterSpacing: 0.3,
+    },
     divider: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -262,6 +265,7 @@ export default function WelcomeScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [quickStartLoading, setQuickStartLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const handledGoogleTokenRef = useRef<string | null>(null);
   const styles = makeStyles(colors);
@@ -450,6 +454,28 @@ export default function WelcomeScreen() {
     }
   };
 
+  const handleQuickStart = async () => {
+    if (loading || quickStartLoading) return;
+    setQuickStartLoading(true);
+    try {
+      trackEvent('quick_start_clicked', { entry_point: 'welcome', user_type: 'GUEST', auth_provider: 'ANONYMOUS' });
+      const res = await quickStartApi();
+      const { accessToken, refreshToken, user } = res.data;
+      trackEvent('quick_session_created', { user_type: 'GUEST', auth_provider: 'ANONYMOUS' });
+      storeLogin(accessToken, refreshToken, user);
+      if (needsOnboarding(user)) {
+        router.replace('/(auth)/birth-date');
+      } else {
+        router.replace('/(tabs)/home');
+      }
+    } catch (error: any) {
+      const message = error?.response?.data?.message || t('quickStart.error');
+      Alert.alert(t('common.error'), message);
+    } finally {
+      setQuickStartLoading(false);
+    }
+  };
+
   const handleRegister = () => {
     router.push({
       pathname: '/(auth)/signup',
@@ -570,7 +596,7 @@ export default function WelcomeScreen() {
               <TouchableOpacity
                 style={[styles.socialButton, styles.appleButton]}
                 onPress={handleAppleLogin}
-                disabled={loading}
+                disabled={loading || quickStartLoading}
                 accessibilityLabel={t('auth.loginWithApple')}
                 accessibilityRole="button"
               >
@@ -582,27 +608,52 @@ export default function WelcomeScreen() {
             <TouchableOpacity
               style={styles.socialButton}
               onPress={handleGoogleLogin}
-              disabled={loading}
+              disabled={loading || quickStartLoading}
               accessibilityLabel={t('auth.loginWithGoogle')}
               accessibilityRole="button"
             >
               <Ionicons name="logo-google" size={22} color={colors.googleRed} style={styles.icon} />
               <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickStartButton}
+              onPress={handleQuickStart}
+              disabled={loading || quickStartLoading}
+              accessibilityLabel={t('quickStart.accessibilityLabel')}
+              accessibilityRole="button"
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#9D4EDD', '#7C3AED']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.quickStartGradient}
+              >
+                {quickStartLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="flash" size={17} color="#fff" />
+                    <Text style={styles.quickStartText}>{t('quickStart.button')}</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </ScrollView>
 
-      {loading && (
+      {(loading || quickStartLoading) && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
 
-      <View style={styles.footer} pointerEvents={loading ? 'none' : 'auto'}>
+      <View style={styles.footer} pointerEvents={(loading || quickStartLoading) ? 'none' : 'auto'}>
         <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
         <TouchableOpacity
           onPress={handleRegister}
-          disabled={loading}
+          disabled={loading || quickStartLoading}
           accessibilityLabel={t('auth.signUp')}
           accessibilityRole="button"
         >

@@ -714,6 +714,14 @@ export default function NatalChartTab() {
       return;
     }
 
+    const request = buildRequest();
+    if (!request) {
+      setErrorMessage('Dogum bilgileriniz eksik. Lutfen profilinizi guncelleyin.');
+      setState('error');
+      setCacheError(t('natalChart.missingBirthData'));
+      return;
+    }
+
     if (!forceRefresh && cachedChart && !isStale()) {
       setChart(cachedChart);
       setState('ready');
@@ -728,14 +736,6 @@ export default function NatalChartTab() {
       setCachedChart(response.data);
       setState('ready');
     } catch {
-      const request = buildRequest();
-      if (!request) {
-        setErrorMessage('Dogum bilgileriniz eksik. Lutfen profilinizi guncelleyin.');
-        setState('error');
-        setCacheError(t('natalChart.missingBirthData'));
-        return;
-      }
-
       try {
         setState('calculating');
         startCalcAnimation();

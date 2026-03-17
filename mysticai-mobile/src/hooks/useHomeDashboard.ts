@@ -3,6 +3,10 @@ import { queryKeys } from '../lib/queryKeys';
 import { type FetchHomeDashboardParams, fetchHomeDashboard } from '../services/home-dashboard.service';
 
 const ONE_MINUTE = 60 * 1000;
+// Dashboard verisi 3 dakika boyunca geçerli kabul edilir.
+// Kullanıcı tab'lar arasında gezip döndüğünde cache süresi dolmadıkça
+// gereksiz network çağrısı yapılmaz.
+const STALE_TIME = 3 * ONE_MINUTE;
 
 export function useHomeDashboard(params: FetchHomeDashboardParams) {
   const userId = params.user?.id ?? 'guest';
@@ -12,11 +16,13 @@ export function useHomeDashboard(params: FetchHomeDashboardParams) {
   return useQuery({
     queryKey: queryKeys.homeDashboard(userId, sign, locale),
     queryFn: () => fetchHomeDashboard(params),
-    staleTime: ONE_MINUTE,
-    refetchOnMount: true,
+    staleTime: STALE_TIME,
+    // Cache süresi dolmamışsa mount'ta yeniden fetch yapma.
+    // Arka plandan öne geçişte stale olan veri zaten refetchOnReconnect ile güncellenir.
+    refetchOnMount: false,
     refetchOnReconnect: true,
-    refetchOnWindowFocus: true,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10_000),
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8_000),
   });
 }

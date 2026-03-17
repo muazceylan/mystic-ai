@@ -19,9 +19,9 @@ import java.util.Objects;
 @Service
 public class NumerologyCalculator {
 
-    private static final String VERSION = "numerology_v2";
-    private static final String CONTENT_VERSION = "numerology_content_v2_1";
-    private static final String CALCULATION_VERSION = "numerology_calc_v2_1";
+    private static final String VERSION = "numerology_v3";
+    private static final String CONTENT_VERSION = "numerology_content_v3_0";
+    private static final String CALCULATION_VERSION = "numerology_calc_v3_0";
     private static final String BRAND_MARK = "Mystic AI";
     private static final boolean PREMIUM_FEATURES_ENABLED = false;
     private static final Map<Character, Integer> PYTHAGOREAN_CHART = new HashMap<>();
@@ -93,6 +93,14 @@ public class NumerologyCalculator {
         String normalizedName = normalizeNameForCalculation(safeName);
         String generatedAt = Instant.now().toString();
 
+        int lifePathRaw = sumDigits(String.format(
+                "%04d%02d%02d",
+                birthDate.getYear(),
+                birthDate.getMonthValue(),
+                birthDate.getDayOfMonth()
+        ));
+        int destinyRaw = calculateNameSum(normalizedName);
+        int soulUrgeRaw = calculateVowelSum(normalizedName);
         int lifePathNumber = calculateLifePathNumber(birthDate);
         int birthdayNumber = reduceToSingleDigit(birthDate.getDayOfMonth());
         int destinyNumber = calculateDestinyNumber(normalizedName);
@@ -107,18 +115,38 @@ public class NumerologyCalculator {
 
         int universalYear = calculateUniversalYear(effectiveDate.getYear());
         int personalYear = calculatePersonalYear(birthDate, effectiveDate.getYear());
+        int personalMonth = calculatePersonalMonth(personalYear, effectiveDate.getMonthValue());
+        int personalDay = calculatePersonalDay(personalMonth, effectiveDate.getDayOfMonth());
         int cycleProgress = calculateCycleProgress(effectiveDate);
         String yearPhase = buildYearPhase(effectiveDate, english);
         String shortTheme = describePersonalYearTheme(personalYear, english);
         String currentPeriodFocus = buildCurrentPeriodFocus(personalYear, yearPhase, english);
+        String nextRefreshAt = buildNextRefreshAt(effectiveDate, weeklyGuidance);
 
         NumerologyResponse.Timing timing = new NumerologyResponse.Timing(
                 personalYear,
                 universalYear,
+                personalMonth,
+                personalDay,
                 cycleProgress,
                 yearPhase,
                 currentPeriodFocus,
-                shortTheme
+                shortTheme,
+                nextRefreshAt
+        );
+
+        NumerologyResponse.ClassicCycle classicCycle = buildClassicCycle(
+                birthDate,
+                effectiveDate,
+                lifePathNumber,
+                english
+        );
+        NumerologyResponse.KarmicDebt karmicDebt = buildKarmicDebt(
+                lifePathRaw,
+                destinyRaw,
+                soulUrgeRaw,
+                birthDate.getDayOfMonth(),
+                english
         );
 
         DominantNumber dominant = determineDominantNumber(lifePathNumber, birthdayNumber, destinyNumber, soulUrgeNumber);
@@ -152,6 +180,13 @@ public class NumerologyCalculator {
         );
 
         int seed = Math.abs(Objects.hash(normalizedName, birthDateStr, effectiveDate.toString(), VERSION, guidancePeriod));
+        NumerologyResponse.AngelSignal angelSignal = buildAngelSignal(
+                personalDay,
+                effectiveDate,
+                seed,
+                english,
+                weeklyGuidance
+        );
         NumerologyResponse.MiniGuidance miniGuidance = new NumerologyResponse.MiniGuidance(
                 buildDailyFocus(personalYear, seed, english, weeklyGuidance),
                 buildMiniGuidance(personalYear, dominant.value(), yearPhase, seed, english, weeklyGuidance),
@@ -208,11 +243,26 @@ public class NumerologyCalculator {
                                 english,
                                 "Soul Urge = isimdeki sesli harflerin toplamı.",
                                 "Soul Urge = sum of vowels in the name."
+                        ),
+                        t(
+                                english,
+                                "Personal Month = kişisel yıl + ay numarası.",
+                                "Personal Month = personal year + month number."
+                        ),
+                        t(
+                                english,
+                                "Personal Day = kişisel ay + gün numarası.",
+                                "Personal Day = personal month + day number."
+                        ),
+                        t(
+                                english,
+                                "Pinnacle / Challenge döngüleri yaşam evrelerine göre hesaplanır.",
+                                "Pinnacle / Challenge cycles are calculated by life stages."
                         )
                 )
         );
 
-        String summary = buildSummary(headline, timing, combinedProfile, miniGuidance, english);
+        String summary = buildSummary(headline, timing, combinedProfile, miniGuidance, angelSignal, english);
 
         return new NumerologyResponse(
                 safeName,
@@ -220,6 +270,9 @@ public class NumerologyCalculator {
                 headline,
                 coreNumbers,
                 timing,
+                classicCycle,
+                karmicDebt,
+                angelSignal,
                 profile,
                 combinedProfile,
                 miniGuidance,
@@ -294,6 +347,18 @@ public class NumerologyCalculator {
     }
 
     private int calculateDestinyNumber(String normalizedName) {
+        return reduceToSingleDigit(calculateNameSum(normalizedName));
+    }
+
+    private int calculateSoulUrgeNumber(String normalizedName, int destinyNumber) {
+        int sum = calculateVowelSum(normalizedName);
+        if (sum == 0) {
+            return destinyNumber;
+        }
+        return reduceToSingleDigit(sum);
+    }
+
+    private int calculateNameSum(String normalizedName) {
         int sum = 0;
         for (char c : normalizedName.toCharArray()) {
             Integer value = PYTHAGOREAN_CHART.get(c);
@@ -301,10 +366,10 @@ public class NumerologyCalculator {
                 sum += value;
             }
         }
-        return reduceToSingleDigit(sum);
+        return sum;
     }
 
-    private int calculateSoulUrgeNumber(String normalizedName, int destinyNumber) {
+    private int calculateVowelSum(String normalizedName) {
         int sum = 0;
         for (char c : normalizedName.toCharArray()) {
             if (isVowel(c)) {
@@ -314,10 +379,7 @@ public class NumerologyCalculator {
                 }
             }
         }
-        if (sum == 0) {
-            return destinyNumber;
-        }
-        return reduceToSingleDigit(sum);
+        return sum;
     }
 
     private int calculateUniversalYear(int year) {
@@ -329,6 +391,20 @@ public class NumerologyCalculator {
         int dayDigits = sumDigits(String.valueOf(birthDate.getDayOfMonth()));
         int yearDigits = sumDigits(String.valueOf(effectiveYear));
         return reduceToSingleDigit(monthDigits + dayDigits + yearDigits);
+    }
+
+    private int calculatePersonalMonth(int personalYear, int month) {
+        return reduceToSingleDigit(personalYear + month);
+    }
+
+    private int calculatePersonalDay(int personalMonth, int day) {
+        return reduceToSingleDigit(personalMonth + day);
+    }
+
+    private String buildNextRefreshAt(LocalDate effectiveDate, boolean weeklyGuidance) {
+        return weeklyGuidance
+                ? effectiveDate.plusDays(7).toString()
+                : effectiveDate.plusDays(1).toString();
     }
 
     private int calculateCycleProgress(LocalDate effectiveDate) {
@@ -389,6 +465,256 @@ public class NumerologyCalculator {
 
     private boolean isMasterNumber(int number) {
         return number == 11 || number == 22 || number == 33;
+    }
+
+    private NumerologyResponse.ClassicCycle buildClassicCycle(
+            LocalDate birthDate,
+            LocalDate effectiveDate,
+            int lifePathNumber,
+            boolean english
+    ) {
+        int monthBase = reduceToSingleDigit(birthDate.getMonthValue());
+        int dayBase = reduceToSingleDigit(birthDate.getDayOfMonth());
+        int yearBase = reduceToSingleDigit(sumDigits(String.valueOf(birthDate.getYear())));
+
+        int p1 = reduceToSingleDigit(monthBase + dayBase);
+        int p2 = reduceToSingleDigit(dayBase + yearBase);
+        int p3 = reduceToSingleDigit(p1 + p2);
+        int p4 = reduceToSingleDigit(monthBase + yearBase);
+
+        int c1 = reduceChallenge(Math.abs(monthBase - dayBase));
+        int c2 = reduceChallenge(Math.abs(dayBase - yearBase));
+        int c3 = reduceChallenge(Math.abs(c1 - c2));
+        int c4 = reduceChallenge(Math.abs(monthBase - yearBase));
+
+        int age = Math.max(0, (int) ChronoUnit.YEARS.between(birthDate, effectiveDate));
+        int firstSpanEnd = Math.max(27, 36 - reduceForCycle(lifePathNumber));
+        int secondSpanEnd = firstSpanEnd + 9;
+        int thirdSpanEnd = secondSpanEnd + 9;
+
+        List<NumerologyResponse.PinnaclePhase> pinnacles = List.of(
+                new NumerologyResponse.PinnaclePhase(1, p1, 0, firstSpanEnd, describePinnacleTheme(p1, english)),
+                new NumerologyResponse.PinnaclePhase(2, p2, firstSpanEnd + 1, secondSpanEnd, describePinnacleTheme(p2, english)),
+                new NumerologyResponse.PinnaclePhase(3, p3, secondSpanEnd + 1, thirdSpanEnd, describePinnacleTheme(p3, english)),
+                new NumerologyResponse.PinnaclePhase(4, p4, thirdSpanEnd + 1, 120, describePinnacleTheme(p4, english))
+        );
+
+        List<NumerologyResponse.ChallengePhase> challenges = List.of(
+                new NumerologyResponse.ChallengePhase(1, c1, 0, firstSpanEnd, describeChallengeFocus(c1, english)),
+                new NumerologyResponse.ChallengePhase(2, c2, firstSpanEnd + 1, secondSpanEnd, describeChallengeFocus(c2, english)),
+                new NumerologyResponse.ChallengePhase(3, c3, secondSpanEnd + 1, thirdSpanEnd, describeChallengeFocus(c3, english)),
+                new NumerologyResponse.ChallengePhase(4, c4, thirdSpanEnd + 1, 120, describeChallengeFocus(c4, english))
+        );
+
+        List<NumerologyResponse.LifeCyclePhase> lifeCycles = List.of(
+                new NumerologyResponse.LifeCyclePhase(
+                        "formative",
+                        monthBase,
+                        0,
+                        27,
+                        t(english, "Temel Kurulum", "Formative Cycle"),
+                        describeLifeCycleTheme(monthBase, english)
+                ),
+                new NumerologyResponse.LifeCyclePhase(
+                        "productive",
+                        dayBase,
+                        28,
+                        56,
+                        t(english, "Üretim ve Sorumluluk", "Productive Cycle"),
+                        describeLifeCycleTheme(dayBase, english)
+                ),
+                new NumerologyResponse.LifeCyclePhase(
+                        "harvest",
+                        yearBase,
+                        57,
+                        120,
+                        t(english, "Hasat ve Aktarım", "Harvest Cycle"),
+                        describeLifeCycleTheme(yearBase, english)
+                )
+        );
+
+        return new NumerologyResponse.ClassicCycle(
+                pinnacles,
+                challenges,
+                lifeCycles,
+                findActiveAgePhase(age, pinnacles),
+                findActiveAgePhase(age, challenges),
+                findActiveAgePhase(age, lifeCycles)
+        );
+    }
+
+    private NumerologyResponse.KarmicDebt buildKarmicDebt(
+            int lifePathRaw,
+            int destinyRaw,
+            int soulUrgeRaw,
+            int birthdayRaw,
+            boolean english
+    ) {
+        List<Integer> debts = new ArrayList<>();
+        List<String> sources = new ArrayList<>();
+
+        detectKarmicDebt(debts, sources, lifePathRaw, t(english, "Yaşam yolu toplamı", "Life Path total"));
+        detectKarmicDebt(debts, sources, destinyRaw, t(english, "Kader toplamı", "Destiny total"));
+        detectKarmicDebt(debts, sources, soulUrgeRaw, t(english, "Ruh güdüsü toplamı", "Soul Urge total"));
+        detectKarmicDebt(debts, sources, birthdayRaw, t(english, "Doğum günü", "Birthday number"));
+
+        String summary = debts.isEmpty()
+                ? t(
+                        english,
+                        "Bu okumada baskın bir karmik borç sayısı görünmüyor. Tema daha çok güncel döngü ve eylem netliği.",
+                        "No dominant karmic debt number is visible in this reading. The theme is mostly current cycle and action clarity."
+                )
+                : t(
+                        english,
+                        "Karmik borç sayıları bu dönemde tekrar eden öğrenme temalarını işaret ediyor. Sert kader değil, farkındalık çağrısıdır.",
+                        "Karmic debt numbers indicate repeating learning themes in this period. They are awareness calls, not rigid fate."
+                );
+
+        return new NumerologyResponse.KarmicDebt(debts, sources, summary);
+    }
+
+    private NumerologyResponse.AngelSignal buildAngelSignal(
+            int personalDay,
+            LocalDate effectiveDate,
+            int seed,
+            boolean english,
+            boolean weeklyGuidance
+    ) {
+        int digit = Math.max(1, Math.min(9, Math.floorMod(personalDay + effectiveDate.getDayOfMonth() + seed, 9) + 1));
+        int angelNumber = digit * 111;
+        return new NumerologyResponse.AngelSignal(
+                angelNumber,
+                angelMeaning(digit, english),
+                angelAction(digit, english),
+                weeklyGuidance
+                        ? t(english, "Bu hafta", "This week")
+                        : effectiveDate.toString()
+        );
+    }
+
+    private void detectKarmicDebt(List<Integer> debts, List<String> sources, int value, String sourceLabel) {
+        if (value == 13 || value == 14 || value == 16 || value == 19) {
+            if (!debts.contains(value)) {
+                debts.add(value);
+            }
+            sources.add(sourceLabel);
+        }
+    }
+
+    private int reduceChallenge(int value) {
+        if (value <= 9) {
+            return value;
+        }
+        return sumDigits(String.valueOf(value));
+    }
+
+    private int reduceForCycle(int value) {
+        if (value <= 9) {
+            return value;
+        }
+        return sumDigits(String.valueOf(value));
+    }
+
+    private int findActiveAgePhase(int age, List<? extends Object> phases) {
+        for (int i = 0; i < phases.size(); i++) {
+            Object phase = phases.get(i);
+            int startAge;
+            int endAge;
+            if (phase instanceof NumerologyResponse.PinnaclePhase pinnacle) {
+                startAge = pinnacle.startAge();
+                endAge = pinnacle.endAge();
+            } else if (phase instanceof NumerologyResponse.ChallengePhase challenge) {
+                startAge = challenge.startAge();
+                endAge = challenge.endAge();
+            } else if (phase instanceof NumerologyResponse.LifeCyclePhase lifeCycle) {
+                startAge = lifeCycle.startAge();
+                endAge = lifeCycle.endAge();
+            } else {
+                continue;
+            }
+
+            if (age >= startAge && age <= endAge) {
+                return i;
+            }
+        }
+        return Math.max(0, phases.size() - 1);
+    }
+
+    private String describePinnacleTheme(int number, boolean english) {
+        return switch (number) {
+            case 1 -> t(english, "Başlatma ve liderlik", "Initiation and leadership");
+            case 2 -> t(english, "Uyum ve ortaklık", "Harmony and partnership");
+            case 3 -> t(english, "İfade ve görünürlük", "Expression and visibility");
+            case 4 -> t(english, "Yapı ve disiplin", "Structure and discipline");
+            case 5 -> t(english, "Değişim ve cesaret", "Change and courage");
+            case 6 -> t(english, "Sorumluluk ve bakım", "Responsibility and care");
+            case 7 -> t(english, "Derinlik ve içgörü", "Depth and insight");
+            case 8 -> t(english, "Sonuç ve güç", "Results and power");
+            case 9 -> t(english, "Tamamlama ve bırakma", "Completion and release");
+            case 11 -> t(english, "Sezgi ve ilham", "Intuition and inspiration");
+            case 22 -> t(english, "Büyük inşa", "Large-scale building");
+            case 33 -> t(english, "Şefkatli hizmet", "Compassionate service");
+            default -> t(english, "Kişisel büyüme", "Personal growth");
+        };
+    }
+
+    private String describeChallengeFocus(int number, boolean english) {
+        return switch (number) {
+            case 0 -> t(english, "Açık alan: yönünü özgürce seçebilirsin.", "Open field: you can choose your direction freely.");
+            case 1 -> t(english, "Benlik ve net sınır koyma", "Selfhood and setting clear boundaries");
+            case 2 -> t(english, "Duygusal denge ve sabır", "Emotional balance and patience");
+            case 3 -> t(english, "Dağılmadan ifade", "Expression without scattering");
+            case 4 -> t(english, "Esneklik içinde düzen", "Order with flexibility");
+            case 5 -> t(english, "Özgürlükte tutarlılık", "Consistency within freedom");
+            case 6 -> t(english, "Bakım verirken öz bakım", "Self-care while caring for others");
+            case 7 -> t(english, "Aşırı analiz yerine netlik", "Clarity instead of over-analysis");
+            case 8 -> t(english, "Güç kullanımında denge", "Balance in using power");
+            case 9 -> t(english, "Bırakma ve kapanış", "Release and closure");
+            default -> t(english, "Farkındalık ve denge", "Awareness and balance");
+        };
+    }
+
+    private String describeLifeCycleTheme(int number, boolean english) {
+        return switch (number) {
+            case 1, 8 -> t(english, "Öne çıkma, karar alma, etki yaratma", "Stepping forward, deciding, and creating impact");
+            case 2, 6 -> t(english, "İlişki, bakım, ortak ritim", "Relationship, care, and shared rhythm");
+            case 3, 5 -> t(english, "İfade, yenilenme, hareket", "Expression, renewal, and movement");
+            case 4 -> t(english, "Sistem kurma, istikrar", "Building systems and stability");
+            case 7, 11 -> t(english, "İçe dönüş, sezgi, anlam", "Introspection, intuition, and meaning");
+            case 9, 33 -> t(english, "Hizmet, tamamlama, aktarım", "Service, completion, and transmission");
+            case 22 -> t(english, "Vizyonu somuta indirme", "Turning vision into structure");
+            default -> t(english, "Kişisel gelişim", "Personal development");
+        };
+    }
+
+    private String angelMeaning(int digit, boolean english) {
+        return switch (digit) {
+            case 1 -> t(english, "Yeni başlangıç enerjisi", "A new beginning energy");
+            case 2 -> t(english, "Denge ve ortaklık sinyali", "A signal for balance and partnership");
+            case 3 -> t(english, "İfade et ve görünür ol", "Express and be visible");
+            case 4 -> t(english, "Temelini güçlendir", "Strengthen your foundations");
+            case 5 -> t(english, "Değişime alan aç", "Make room for change");
+            case 6 -> t(english, "Bağlarını ve sorumluluklarını düzenle", "Align your bonds and responsibilities");
+            case 7 -> t(english, "Sakinleş, derinleş", "Slow down and deepen");
+            case 8 -> t(english, "Somut sonuç odaklı kal", "Stay focused on concrete results");
+            case 9 -> t(english, "Tamamla ve hafifle", "Complete and lighten");
+            default -> t(english, "Günün akışını sadeleştir", "Simplify the flow of your day");
+        };
+    }
+
+    private String angelAction(int digit, boolean english) {
+        return switch (digit) {
+            case 1 -> t(english, "Bugün tek bir yeni adım başlat.", "Start one new step today.");
+            case 2 -> t(english, "Bir konuşmada önce dinleyip sonra cevap ver.", "Listen first, then respond in one conversation.");
+            case 3 -> t(english, "Aklındaki fikri kısa bir notla görünür kıl.", "Make one idea visible with a short note.");
+            case 4 -> t(english, "Yarım kalan tek bir işi kapat.", "Close one unfinished task.");
+            case 5 -> t(english, "Rutinine küçük bir yenilik ekle.", "Add one small novelty to your routine.");
+            case 6 -> t(english, "Birine destek olurken sınırını da söyle.", "State your boundary while supporting someone.");
+            case 7 -> t(english, "15 dakikalık sessiz bir düşünme alanı aç.", "Create a 15-minute quiet reflection block.");
+            case 8 -> t(english, "Ölçülebilir tek bir hedef belirle.", "Set one measurable target.");
+            case 9 -> t(english, "Seni yoran bir yükü bugün bırak.", "Release one burden that drains you today.");
+            default -> t(english, "Bugünü sade tut.", "Keep today simple.");
+        };
     }
 
     private NumerologyResponse.CoreNumber buildCoreNumber(String id, int value, boolean english) {
@@ -1020,6 +1346,7 @@ public class NumerologyCalculator {
             NumerologyResponse.Timing timing,
             NumerologyResponse.CombinedProfile combinedProfile,
             NumerologyResponse.MiniGuidance miniGuidance,
+            NumerologyResponse.AngelSignal angelSignal,
             boolean english
     ) {
         return String.join(
@@ -1027,10 +1354,20 @@ public class NumerologyCalculator {
                 headline,
                 t(
                         english,
+                        "Bu ay / bugün ritmi: Ay %d, Gün %d",
+                        "This month/day rhythm: Month %d, Day %d"
+                ).formatted(timing.personalMonth(), timing.personalDay()),
+                t(
+                        english,
                         "Bu dönem odağı: %s",
                         "Current period focus: %s"
                 ).formatted(timing.currentPeriodFocus()),
                 combinedProfile.dominantEnergy(),
+                t(
+                        english,
+                        "Melek sinyali %d: %s",
+                        "Angel signal %d: %s"
+                ).formatted(angelSignal.angelNumber(), angelSignal.meaning()),
                 t(
                         english,
                         "Günlük rehber: %s",

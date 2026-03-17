@@ -8,6 +8,9 @@ export type NumerologyEmptyVariant = 'none' | 'name_missing' | 'birth_date_missi
 export type NumerologyCacheStatus = 'fresh' | 'stale' | 'none';
 export type NumerologyPartialSection =
   | 'timing'
+  | 'classicCycle'
+  | 'karmicDebt'
+  | 'angelSignal'
   | 'coreNumbers'
   | 'combinedProfile'
   | 'profile'
@@ -30,10 +33,60 @@ export interface NumerologyCoreNumber {
 export interface NumerologyTiming {
   personalYear: number;
   universalYear: number;
+  personalMonth?: number;
+  personalDay?: number;
   cycleProgress: number;
   yearPhase: string;
   currentPeriodFocus: string;
   shortTheme: string;
+  nextRefreshAt?: string;
+}
+
+export interface NumerologyPinnaclePhase {
+  order: number;
+  number: number;
+  startAge: number;
+  endAge: number;
+  theme: string;
+}
+
+export interface NumerologyChallengePhase {
+  order: number;
+  number: number;
+  startAge: number;
+  endAge: number;
+  focus: string;
+}
+
+export interface NumerologyLifeCyclePhase {
+  id: string;
+  number: number;
+  startAge: number;
+  endAge: number;
+  label: string;
+  theme: string;
+}
+
+export interface NumerologyClassicCycle {
+  pinnacles: NumerologyPinnaclePhase[];
+  challenges: NumerologyChallengePhase[];
+  lifeCycles: NumerologyLifeCyclePhase[];
+  activePinnacleIndex: number;
+  activeChallengeIndex: number;
+  activeLifeCycleIndex: number;
+}
+
+export interface NumerologyKarmicDebt {
+  debts: number[];
+  sources: string[];
+  summary: string;
+}
+
+export interface NumerologyAngelSignal {
+  angelNumber: number;
+  meaning: string;
+  action: string;
+  signalFor: string;
 }
 
 export interface NumerologyProfile {
@@ -92,6 +145,9 @@ export interface NumerologyResponse {
   headline: string;
   coreNumbers: NumerologyCoreNumber[];
   timing: NumerologyTiming | null;
+  classicCycle: NumerologyClassicCycle | null;
+  karmicDebt: NumerologyKarmicDebt | null;
+  angelSignal: NumerologyAngelSignal | null;
   profile: NumerologyProfile | null;
   combinedProfile: NumerologyCombinedProfile | null;
   miniGuidance: NumerologyMiniGuidance | null;
@@ -141,8 +197,15 @@ export interface SavedNumerologySnapshot {
   payload: NumerologyResponse;
 }
 
+export interface NumerologyCheckInState {
+  checkInDates: string[];
+  lastCheckInDate: string | null;
+  lastCheckInAt: string | null;
+}
+
 const NUMEROLOGY_BASE = '/api/numerology';
 const NUMEROLOGY_SNAPSHOT_PREFIX = 'numerology:snapshot';
+const NUMEROLOGY_CHECKIN_PREFIX = 'numerology:checkin';
 
 export function normalizeBirthDateInput(value?: string | null): string {
   return (value ?? '').split('T')[0]?.trim() ?? '';
@@ -328,8 +391,22 @@ export function detectPartialSections(data: NumerologyResponse | null | undefine
 
   const sections: NumerologyPartialSection[] = [];
 
-  if (!data.timing?.shortTheme || !data.timing?.currentPeriodFocus) {
+  if (
+    !data.timing?.shortTheme
+    || !data.timing?.currentPeriodFocus
+    || !data.timing?.personalMonth
+    || !data.timing?.personalDay
+  ) {
     sections.push('timing');
+  }
+  if (!data.classicCycle?.pinnacles?.length || !data.classicCycle?.challenges?.length || !data.classicCycle?.lifeCycles?.length) {
+    sections.push('classicCycle');
+  }
+  if (!data.karmicDebt?.summary) {
+    sections.push('karmicDebt');
+  }
+  if (!data.angelSignal?.angelNumber || !data.angelSignal?.meaning || !data.angelSignal?.action) {
+    sections.push('angelSignal');
   }
   if (!data.coreNumbers?.length || data.coreNumbers.length < 4) {
     sections.push('coreNumbers');
@@ -355,6 +432,45 @@ export function detectPartialSections(data: NumerologyResponse | null | undefine
 
 function buildSnapshotStorageKey(userId: number | string, annualSnapshotKey: string): string {
   return `${NUMEROLOGY_SNAPSHOT_PREFIX}:${String(userId)}:${annualSnapshotKey}`;
+}
+
+function buildCheckInStorageKey(userId: number | string): string {
+  return `${NUMEROLOGY_CHECKIN_PREFIX}:${String(userId)}`;
+}
+
+function parseDateKey(key: string): Date {
+  return new Date(`${key}T00:00:00`);
+}
+
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getWeekStartDate(dateKey: string): string {
+  const date = parseDateKey(dateKey);
+  const jsDay = date.getDay();
+  const dayOffset = (jsDay + 6) % 7; // Monday as week start
+  date.setDate(date.getDate() - dayOffset);
+  return toDateKey(date);
+}
+
+function normalizeCheckInState(data: Partial<NumerologyCheckInState> | null | undefined): NumerologyCheckInState {
+  const rawDates = data?.checkInDates ?? [];
+  const nextDates = Array.isArray(data?.checkInDates)
+    ? rawDates
+      .filter((item): item is string => typeof item === 'string' && item.length >= 10)
+      .map((item) => item.slice(0, 10))
+      .sort((a, b) => b.localeCompare(a))
+      .slice(0, 60)
+    : [];
+  return {
+    checkInDates: Array.from(new Set(nextDates)),
+    lastCheckInDate: data?.lastCheckInDate ?? nextDates[0] ?? null,
+    lastCheckInAt: data?.lastCheckInAt ?? null,
+  };
 }
 
 export interface NumerologySnapshotRepository {
@@ -450,4 +566,61 @@ export async function getNumerologySnapshot(
   annualSnapshotKey: string,
 ): Promise<SavedNumerologySnapshot | null> {
   return snapshotRepository.get(userId, annualSnapshotKey);
+}
+
+export async function getNumerologyCheckInState(
+  userId: number | string,
+): Promise<NumerologyCheckInState> {
+  const raw = await AsyncStorage.getItem(buildCheckInStorageKey(userId));
+  if (!raw) {
+    return normalizeCheckInState(null);
+  }
+  try {
+    return normalizeCheckInState(JSON.parse(raw) as NumerologyCheckInState);
+  } catch {
+    return normalizeCheckInState(null);
+  }
+}
+
+export async function markNumerologyCheckIn(
+  userId: number | string,
+  dateKey: string,
+): Promise<NumerologyCheckInState> {
+  const current = await getNumerologyCheckInState(userId);
+  const normalizedDate = dateKey.slice(0, 10);
+  const next = normalizeCheckInState({
+    ...current,
+    checkInDates: [normalizedDate, ...current.checkInDates],
+    lastCheckInDate: normalizedDate,
+    lastCheckInAt: new Date().toISOString(),
+  });
+  await AsyncStorage.setItem(buildCheckInStorageKey(userId), JSON.stringify(next));
+  return next;
+}
+
+export function hasNumerologyCheckInOnDate(
+  state: NumerologyCheckInState | null | undefined,
+  dateKey: string,
+): boolean {
+  if (!state?.checkInDates?.length) {
+    return false;
+  }
+  return state.checkInDates.includes(dateKey.slice(0, 10));
+}
+
+export function countNumerologyWeeklyCheckIns(
+  state: NumerologyCheckInState | null | undefined,
+  referenceDate: string,
+): number {
+  if (!state?.checkInDates?.length) {
+    return 0;
+  }
+  const weekStart = getWeekStartDate(referenceDate.slice(0, 10));
+  const weekStartDate = parseDateKey(weekStart);
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setDate(weekStartDate.getDate() + 6);
+  return state.checkInDates.filter((item) => {
+    const candidate = parseDateKey(item);
+    return candidate >= weekStartDate && candidate <= weekEndDate;
+  }).length;
 }

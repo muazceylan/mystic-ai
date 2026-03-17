@@ -53,6 +53,24 @@ public class NotificationTemplateService {
                     new NotificationTemplate("mini_insight", "tr", 0, "Bugunku mini onerin hazir", "Gunun icin kisa bir kozmik ipucu.", "/(tabs)/home"),
                     new NotificationTemplate("mini_insight", "tr", 1, "Kararlarini sade tut", "Bugun icin akilli bir adim onerimiz var.", "/(tabs)/home")
             )),
+            Map.entry(NotificationType.NUMEROLOGY_CHECKIN, List.of(
+                    new NotificationTemplate(
+                            "numerology_checkin",
+                            "tr",
+                            0,
+                            "Numeroloji yoklama zamani",
+                            "Bugunun sayi sinyaline bakip kisa yoklama yap.",
+                            "/numerology?entry_point=push_numerology_checkin"
+                    ),
+                    new NotificationTemplate(
+                            "numerology_checkin",
+                            "tr",
+                            1,
+                            "Bugunku numeroloji akisin hazir",
+                            "Bu yilin temasini bugunun ritmiyle hizala.",
+                            "/numerology?entry_point=push_numerology_checkin"
+                    )
+            )),
             Map.entry(NotificationType.AI_ANALYSIS_COMPLETE, List.of(
                     new NotificationTemplate("ai_analysis_complete", "tr", 0, "Analizin tamamlandi", "Sonuclari gormek icin tikla.", "/(tabs)/home")
             )),
@@ -97,6 +115,24 @@ public class NotificationTemplateService {
             )),
             Map.entry(NotificationType.MINI_INSIGHT, List.of(
                     new NotificationTemplate("mini_insight", "en", 0, "Today's mini tip is ready", "A quick cosmic hint for your day.", "/(tabs)/home")
+            )),
+            Map.entry(NotificationType.NUMEROLOGY_CHECKIN, List.of(
+                    new NotificationTemplate(
+                            "numerology_checkin",
+                            "en",
+                            0,
+                            "Numerology check-in time",
+                            "Open today's number signal and do a short check-in.",
+                            "/numerology?entry_point=push_numerology_checkin"
+                    ),
+                    new NotificationTemplate(
+                            "numerology_checkin",
+                            "en",
+                            1,
+                            "Your numerology flow is ready",
+                            "Align today's rhythm with your yearly theme.",
+                            "/numerology?entry_point=push_numerology_checkin"
+                    )
             )),
             Map.entry(NotificationType.AI_ANALYSIS_COMPLETE, List.of(
                     new NotificationTemplate("ai_analysis_complete", "en", 0, "Analysis complete", "Tap to see your results.", "/(tabs)/home")

@@ -2,10 +2,10 @@
 
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '@/lib/api';
-import { DashboardSummary } from '@/types';
+import { dashboardApi, guestApi } from '@/lib/api';
+import { DashboardSummary, GuestStats } from '@/types';
 import { formatDate, timeAgo, statusColor } from '@/lib/utils';
-import { Bell, Map, CheckCircle, AlertCircle, Calendar, TrendingUp, Layers, Navigation, Users, Wrench, Sun, CalendarDays, BookOpen, Star, Zap, Activity, Home, Compass, CreditCard, Image } from 'lucide-react';
+import { Bell, Map, CheckCircle, AlertCircle, Calendar, TrendingUp, Layers, Navigation, Users, Wrench, Sun, CalendarDays, BookOpen, Star, Zap, Activity, Home, Compass, CreditCard, Image, UserX, ArrowRight, Percent, Ghost } from 'lucide-react';
 
 function StatCard({ label, value, icon: Icon, color }: {
   label: string; value: number; icon: React.ElementType; color: string;
@@ -28,6 +28,12 @@ export default function DashboardPage() {
     queryKey: ['dashboard-summary'],
     queryFn: () => dashboardApi.summary().then((r) => r.data),
     refetchInterval: 30_000,
+  });
+
+  const { data: guestStats } = useQuery<GuestStats>({
+    queryKey: ['guest-stats'],
+    queryFn: () => guestApi.stats().then((r) => r.data),
+    refetchInterval: 60_000,
   });
 
   return (
@@ -101,11 +107,45 @@ export default function DashboardPage() {
 
           {/* Stat cards — Routes & Admin */}
           <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Routes & Yönetim</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <StatCard label="Aktif Route" value={data.activeRoutes} icon={Map} color="bg-indigo-900/50 text-indigo-300" />
             <StatCard label="Deprecated Route" value={data.deprecatedRoutes} icon={TrendingUp} color="bg-yellow-900/50 text-yellow-300" />
             <StatCard label="Stale Route" value={data.staleRoutes} icon={AlertCircle} color="bg-red-900/50 text-red-300" />
             <StatCard label="Admin Kullanıcı" value={data.totalAdminUsers} icon={Users} color="bg-purple-900/50 text-purple-300" />
+          </div>
+
+          {/* Stat cards — Guest Funnel */}
+          <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Misafir Dönüşümü</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <StatCard
+              label="Aktif Misafir"
+              value={guestStats?.totalGuests ?? 0}
+              icon={Ghost}
+              color="bg-slate-800 text-slate-300"
+            />
+            <StatCard
+              label="Bugün Hesap Bağlayan"
+              value={guestStats?.convertedToday ?? 0}
+              icon={ArrowRight}
+              color="bg-emerald-900/50 text-emerald-300"
+            />
+            <StatCard
+              label="Eski Misafir (30g+)"
+              value={guestStats?.staleGuests ?? 0}
+              icon={UserX}
+              color={(guestStats?.staleGuests ?? 0) > 100 ? 'bg-orange-900/50 text-orange-300' : 'bg-gray-800 text-gray-400'}
+            />
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-400">Dönüşüm Oranı</span>
+                <div className="p-2 rounded-lg bg-blue-900/50 text-blue-300">
+                  <Percent className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {guestStats ? `${guestStats.conversionRatePct.toFixed(1)}%` : '—'}
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

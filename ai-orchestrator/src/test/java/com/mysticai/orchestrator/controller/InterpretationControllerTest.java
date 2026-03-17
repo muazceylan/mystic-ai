@@ -66,12 +66,39 @@ class InterpretationControllerTest {
         assertEquals("user", mysticalAiService.lastUserPrompt);
     }
 
+    @Test
+    void shouldUseEditorialTranslationEndpoint() throws Exception {
+        mockMvc.perform(post("/api/ai/horoscope/translate-editorial")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sourceText": "Today you should pace yourself.",
+                                  "sign": "aries",
+                                  "period": "daily",
+                                  "locale": "tr"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Editoryal Türkçe metin")));
+
+        assertTrue(mysticalAiService.editorialCalled);
+        assertEquals("Today you should pace yourself.", mysticalAiService.lastSourceText);
+        assertEquals("aries", mysticalAiService.lastSign);
+        assertEquals("daily", mysticalAiService.lastPeriod);
+        assertEquals("tr", mysticalAiService.lastLocale);
+    }
+
     private static final class StubMysticalAiService extends MysticalAiService {
 
         private boolean simpleCalled;
         private boolean fusionCalled;
+        private boolean editorialCalled;
         private String lastSystemPrompt;
         private String lastUserPrompt;
+        private String lastSourceText;
+        private String lastSign;
+        private String lastPeriod;
+        private String lastLocale;
 
         private StubMysticalAiService() {
             super(null, null, new ObjectMapper());
@@ -91,6 +118,16 @@ class InterpretationControllerTest {
             lastSystemPrompt = systemPrompt;
             lastUserPrompt = userPrompt;
             return "{\"ok\":true}";
+        }
+
+        @Override
+        public String generateEditorialHoroscopeTranslation(String sourceText, String sign, String period, String locale) {
+            editorialCalled = true;
+            lastSourceText = sourceText;
+            lastSign = sign;
+            lastPeriod = period;
+            lastLocale = locale;
+            return "Editoryal Türkçe metin";
         }
     }
 }

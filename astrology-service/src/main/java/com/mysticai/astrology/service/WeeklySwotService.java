@@ -114,10 +114,14 @@ public class WeeklySwotService {
             log.debug("Cache miss for weekly-swot user {} week {}", userId, weekStart);
         }
 
-        // Fetch natal chart
-        NatalChart chart = natalChartRepository
-                .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString())
-                .orElseThrow(() -> new IllegalArgumentException("Natal chart not found for user: " + userId));
+        // Fetch natal chart — return empty response if user has no chart yet
+        Optional<NatalChart> chartOpt = natalChartRepository
+                .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString());
+        if (chartOpt.isEmpty()) {
+            log.debug("No natal chart found for user {}, returning empty weekly swot", userId);
+            return emptySwot();
+        }
+        NatalChart chart = chartOpt.get();
 
         List<PlanetPosition> natalPlanets = parseJsonList(chart.getPlanetPositionsJson(), PlanetPosition.class);
         List<HousePlacement> natalHouses = parseJsonList(chart.getHousePlacementsJson(), HousePlacement.class);
@@ -549,6 +553,15 @@ public class WeeklySwotService {
 
     private int clampScore(int raw) {
         return Math.min(100, Math.max(5, raw));
+    }
+
+    private WeeklySwotResponse emptySwot() {
+        LocalDate today = LocalDate.now();
+        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+        LocalDate weekEnd = weekStart.plusDays(6);
+        SwotPoint empty = new SwotPoint("STRENGTH", "", "", 0, "");
+        FlashInsight flash = new FlashInsight("FORTUNE", "", "");
+        return new WeeklySwotResponse(empty, empty, empty, empty, flash, weekStart, weekEnd);
     }
 
     private <T> List<T> parseJsonList(String json, Class<T> clazz) {

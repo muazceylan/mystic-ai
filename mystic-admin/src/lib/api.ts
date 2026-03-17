@@ -66,6 +66,11 @@ export const dashboardApi = {
   summary: () => api.get('/api/admin/v1/dashboard/summary'),
 };
 
+// ── Guest Funnel ───────────────────────────────────────────
+export const guestApi = {
+  stats: () => api.get('/api/auth/admin/guests/stats'),
+};
+
 // ── Routes ────────────────────────────────────────────────
 export const routesApi = {
   list: (params?: Record<string, unknown>) => api.get('/api/admin/v1/routes', { params }),

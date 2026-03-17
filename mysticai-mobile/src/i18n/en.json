@@ -64,7 +64,9 @@
       "remove": "Remove photo",
       "loading": "Preparing photo...",
       "permissionDenied": "Gallery permission is disabled. Allow photo access in settings.",
-      "pickerError": "Photo could not be selected. Please try again."
+      "pickerError": "Photo could not be selected. Please try again.",
+      "uploadError": "Photo upload failed. Please try again.",
+      "removeError": "Photo could not be removed. Please try again."
     }
   },
   "birthInfo": {
@@ -190,7 +192,8 @@
     "privacy": "Privacy",
     "security": "Security",
     "themeSettings": "Theme Settings",
-    "tutorialCenter": "Guide Center"
+    "tutorialCenter": "Guide Center",
+    "linkAccount": "Link Account"
   },
   "zodiac": {
     "pisces": "Pisces"
@@ -373,49 +376,133 @@
     },
     "actionMap": {
       "ask": {
-        "lucky": ["You can say that word you've been holding in your heart today.", "Make an unexpected gesture to strengthen the bond."],
-        "mixed": ["Manage emotional conversations carefully; be patient.", "Trust your intuition but don't rush decisions."],
-        "caution": ["Consider postponing sensitive relationship topics today.", "Focus on listening, not speaking."]
+        "lucky": [
+          "You can say that word you've been holding in your heart today.",
+          "Make an unexpected gesture to strengthen the bond."
+        ],
+        "mixed": [
+          "Manage emotional conversations carefully; be patient.",
+          "Trust your intuition but don't rush decisions."
+        ],
+        "caution": [
+          "Consider postponing sensitive relationship topics today.",
+          "Focus on listening, not speaking."
+        ]
       },
       "para": {
-        "lucky": ["Right moment to take that financial step you've been putting off.", "Good day for short-term investment."],
-        "mixed": ["Double-check financial decisions.", "Evaluate opportunities but don't take big risks."],
-        "caution": ["Postpone major spending and investment decisions for a few days.", "Review your current financial setup."]
+        "lucky": [
+          "Right moment to take that financial step you've been putting off.",
+          "Good day for short-term investment."
+        ],
+        "mixed": [
+          "Double-check financial decisions.",
+          "Evaluate opportunities but don't take big risks."
+        ],
+        "caution": [
+          "Postpone major spending and investment decisions for a few days.",
+          "Review your current financial setup."
+        ]
       },
       "kariyer": {
-        "lucky": ["Speak up on a topic where you can show leadership.", "Start the project that will make a difference today."],
-        "mixed": ["Strengthen existing projects; start planning new ones.", "Strengthen team communication."],
-        "caution": ["Postpone negotiations and deals; focus on groundwork.", "Take the right step, not the fast one."]
+        "lucky": [
+          "Speak up on a topic where you can show leadership.",
+          "Start the project that will make a difference today."
+        ],
+        "mixed": [
+          "Strengthen existing projects; start planning new ones.",
+          "Strengthen team communication."
+        ],
+        "caution": [
+          "Postpone negotiations and deals; focus on groundwork.",
+          "Take the right step, not the fast one."
+        ]
       },
       "aile": {
-        "lucky": ["Talk today to ease an old family tension.", "Plan quality time with loved ones."],
-        "mixed": ["Watch your words in home conversations.", "Prioritize listening."],
-        "caution": ["Consider postponing sensitive home topics today.", "Adopt a patient and understanding attitude."]
+        "lucky": [
+          "Talk today to ease an old family tension.",
+          "Plan quality time with loved ones."
+        ],
+        "mixed": [
+          "Watch your words in home conversations.",
+          "Prioritize listening."
+        ],
+        "caution": [
+          "Consider postponing sensitive home topics today.",
+          "Adopt a patient and understanding attitude."
+        ]
       },
       "arkadaslik": {
-        "lucky": ["Great day to build a genuine connection.", "Reach out to someone you haven't seen in a while."],
-        "mixed": ["Keep social plans flexible; they may change.", "Focus on depth, not surface connections."],
-        "caution": ["Avoid social conflicts; be a listener today.", "Think before making new commitments."]
+        "lucky": [
+          "Great day to build a genuine connection.",
+          "Reach out to someone you haven't seen in a while."
+        ],
+        "mixed": [
+          "Keep social plans flexible; they may change.",
+          "Focus on depth, not surface connections."
+        ],
+        "caution": [
+          "Avoid social conflicts; be a listener today.",
+          "Think before making new commitments."
+        ]
       },
       "ticaret": {
-        "lucky": ["Right moment for a partnership offer.", "Strong position at the negotiation table."],
-        "mixed": ["Review contract details carefully.", "Don't rush business decisions."],
-        "caution": ["Postpone signing contracts; reassess terms.", "Question partners' intentions."]
+        "lucky": [
+          "Right moment for a partnership offer.",
+          "Strong position at the negotiation table."
+        ],
+        "mixed": [
+          "Review contract details carefully.",
+          "Don't rush business decisions."
+        ],
+        "caution": [
+          "Postpone signing contracts; reassess terms.",
+          "Question partners' intentions."
+        ]
       },
       "genel": {
-        "lucky": ["Good moment to take that step you've been postponing.", "Open space for new connections and opportunities."],
-        "mixed": ["Don't rush decisions; step back and evaluate.", "Keep energy focused; don't scatter."],
-        "caution": ["Stay observant today; save your move for tomorrow.", "Stabilize the current situation; don't expand."]
+        "lucky": [
+          "Good moment to take that step you've been postponing.",
+          "Open space for new connections and opportunities."
+        ],
+        "mixed": [
+          "Don't rush decisions; step back and evaluate.",
+          "Keep energy focused; don't scatter."
+        ],
+        "caution": [
+          "Stay observant today; save your move for tomorrow.",
+          "Stabilize the current situation; don't expand."
+        ]
       }
     },
     "secretPatterns": {
-      "ask": ["Today the tone of one word may start a deeper connection than you think.", "A short message may open the emotional clarity you've long been waiting for."],
-      "para": ["A small spending decision may turn into a great relief this week.", "An idea you'll hear during the day may simply strengthen your income."],
-      "kariyer": ["A small step taken today may open the door to the next level.", "A feedback in the middle of the day may be a sign to clarify your direction."],
-      "aile": ["A short conversation at home may soften a topic that has been building.", "A tiny show of care today may strengthen family bonds faster than expected."],
-      "arkadaslik": ["A genuine connection you build today may be the strongest support of the week.", "A short meeting plan may revive the sense of belonging you've been missing."],
-      "ticaret": ["A meeting during the day may turn into a more productive partnership than you think.", "Staying calm in a small negotiation may bring a better result than expected."],
-      "genel": ["A sign you don't notice today will repeat for you; don't miss the second one.", "A short pause during the day will bring the clarity you've long been waiting for."]
+      "ask": [
+        "Today the tone of one word may start a deeper connection than you think.",
+        "A short message may open the emotional clarity you've long been waiting for."
+      ],
+      "para": [
+        "A small spending decision may turn into a great relief this week.",
+        "An idea you'll hear during the day may simply strengthen your income."
+      ],
+      "kariyer": [
+        "A small step taken today may open the door to the next level.",
+        "A feedback in the middle of the day may be a sign to clarify your direction."
+      ],
+      "aile": [
+        "A short conversation at home may soften a topic that has been building.",
+        "A tiny show of care today may strengthen family bonds faster than expected."
+      ],
+      "arkadaslik": [
+        "A genuine connection you build today may be the strongest support of the week.",
+        "A short meeting plan may revive the sense of belonging you've been missing."
+      ],
+      "ticaret": [
+        "A meeting during the day may turn into a more productive partnership than you think.",
+        "Staying calm in a small negotiation may bring a better result than expected."
+      ],
+      "genel": [
+        "A sign you don't notice today will repeat for you; don't miss the second one.",
+        "A short pause during the day will bring the clarity you've long been waiting for."
+      ]
     },
     "dailyGuide": {
       "kicker": "Cosmic Life Guide",
@@ -468,14 +555,50 @@
     "howCalculatedCta": "How it was calculated",
     "staleBadge": "Last result",
     "staleDescription": "You are seeing the last calculated profile right now. Generated on: {{date}}",
-    "personalYearPill": "Personal Year {{year}}",
-    "thisPeriod": "This Year / This Period",
-    "timingTitle": "Where are you in the cycle?",
-    "personalYearShort": "Personal {{year}}",
-    "universalYearShort": "Universal {{year}}",
-    "cycleProgress": "Year progress",
+    "personalYearPill": "Main theme year {{year}}",
+    "thisPeriod": "This year at a glance",
+    "timingTitle": "Which part of the year are you in?",
+    "personalYearLabel": "Your main theme this year",
+    "universalYearLabel": "The year's shared tone",
+    "personalYearShort": "{{year}}",
+    "universalYearShort": "{{year}}",
+    "cycleProgress": "Which part of the year are you in?",
+    "whatIs": "What is this?",
+    "personalYearExplain": "It shows your main lesson this year and where your energy is best used.",
+    "universalYearExplain": "It is the collective tone everyone shares this year. Read it together with your personal year.",
+    "cycleProgressExplain": "It shows how much of the year has passed, so you can follow opening, deepening, and integration phases.",
+    "monthDayPill": "Month {{month}} • Day {{day}}",
+    "nextRefresh": "Next refresh: {{date}}",
+    "snapshotEyebrow": "Quick snapshot",
+    "snapshotTitle": "Today / This Week / This Month",
+    "todayCard": "Today",
+    "weekCard": "This Week",
+    "monthCard": "This Month",
+    "monthCardHint": "Month rhythm {{month}}, day rhythm {{day}}",
     "yearPhase": "Year phase",
     "currentFocus": "Current focus",
+    "angelEyebrow": "Daily number signal",
+    "angelTitle": "Angel Signal",
+    "angelAction": "Suggested action",
+    "classicCycleEyebrow": "Classic cycles",
+    "classicCycleTitle": "Pinnacle / Challenge / Life Cycle",
+    "activePinnacle": "Active Pinnacle",
+    "activeChallenge": "Active Challenge",
+    "activeLifeCycle": "Active Life Cycle",
+    "karmicEyebrow": "Repeating lessons",
+    "karmicTitle": "Karmic debt signal",
+    "karmicSources": "Signal source",
+    "noDebt": "No clear debt",
+    "checkInEyebrow": "Return rhythm",
+    "checkInTitle": "Daily check-in",
+    "checkInDone": "Done today",
+    "checkInPending": "Open today",
+    "checkInDoneText": "Today's check-in is complete. You can switch to weekly view for a broader tone.",
+    "checkInPendingText": "Mark a short daily check-in. Regular returns make the guidance more meaningful.",
+    "checkInCta": "Mark today",
+    "weeklyReturn": "Weekly return count: {{count}}",
+    "weeklyViewCta": "Open weekly view",
+    "checkInError": "Check-in could not be saved. Please try again.",
     "guidanceEyebrow": "Dynamic Layer",
     "guidanceTitle": "Mini guidance for today and this week",
     "dailyTab": "Daily",
@@ -508,6 +631,10 @@
     "howCalculatedLead": "Core numbers are derived from birth date and name. Turkish characters are normalized to Latin equivalents, and 11, 22, and 33 remain unreduced.",
     "personalYearMethod": "Personal year method",
     "masterNumbers": "Master number behavior",
+    "advancedTitle": "Deeper numerology layer",
+    "advancedDescription": "If you want, you can open cycle and karmic details in one focused panel.",
+    "advancedCta": "Open details",
+    "advancedSheetTitle": "Deep numerology details",
     "formulas": "Formula summary",
     "normalizationNotes": "Normalization notes",
     "shareCardKicker": "Numerology Summary",
@@ -523,8 +650,14 @@
     "partial": {
       "timingTitle": "Timing layer is missing",
       "timingDescription": "Your personal year phase could not be fully generated right now. The core profile is still available.",
+      "angelTitle": "Daily number signal is missing",
+      "angelDescription": "The daily signal is unavailable in this response. You can still continue with the other cards.",
       "guidanceTitle": "Mini guidance is unavailable",
       "guidanceDescription": "The dynamic guidance layer is missing at the moment. The core profile and timing layer are still usable.",
+      "classicCycleTitle": "Classic cycle card is missing",
+      "classicCycleDescription": "Pinnacle/Challenge/Life Cycle did not arrive in this response. The core profile is still available.",
+      "karmicTitle": "Karmic debt layer is missing",
+      "karmicDescription": "Karmic debt details could not be generated right now. You can continue with the core numbers.",
       "combinedTitle": "Combined profile is not ready",
       "combinedDescription": "The synthesis of your numbers is missing in this response. We are using the backup summary below.",
       "profileTitle": "Deep insight is missing",
@@ -554,7 +687,14 @@
       "bothMissingTitle": "A few details are missing to start your numerology profile",
       "bothMissingDescription": "Both name and birth date are required. Once added, the full profile and daily guidance unlock.",
       "bothMissingCta": "Complete Profile"
-    }
+    },
+    "timingEyebrow": "Year Cycle",
+    "timingPersonalYearLabel": "This year's main theme",
+    "timingUniversalYearLabel": "Universal atmosphere this year",
+    "timingCycleLabel": "Progress in year cycle",
+    "phaseFocusLabel": "Current period focus",
+    "infoIconAccessibility": "Show explanation for this concept",
+    "statusBadgeText": "Completed"
   },
   "nameAnalysis": {
     "title": "Name Analysis",
@@ -930,7 +1070,7 @@
     "hour": "Hour",
     "minute": "Minute",
     "birthLocationTitle": "Your Place of Birth?",
-    "birthLocationSubtitle": "Select your birth city and country",
+    "birthLocationSubtitle": "You can select your country, city and district.",
     "focusPointTitle": "Your Focus Point?",
     "focusPointSubtitle": "What do you think is your focus in life?",
     "focusPointHint": "You can select up to 3",
@@ -949,7 +1089,6 @@
     "districtOptional": "Would you like to select a district? (optional)",
     "noCityFound": "No city found",
     "noDistrictFound": "No district found",
-    "birthLocationSubtitle": "You can select your country, city and district.",
     "countryCityPlaceholder": "Country, City",
     "country": "Country",
     "skip": "Skip",
@@ -992,22 +1131,20 @@
     },
     "verifyPending": {
       "title": "Verify your email",
-      "subtitle": "We sent a verification link to your email address. Confirm it to activate login.",
-      "checklistTitle": "Quick checklist",
-      "checklistSpam": "Check spam, promotions, and updates folders.",
-      "checklistWait": "Wait at least one minute before requesting a new email.",
-      "checklistLatest": "Use the latest email; older links may be revoked.",
-      "resendButton": "Resend verification email",
+      "subtitle": "We sent a 6-digit verification code to your email address. Enter the code to activate your account.",
+      "otpPlaceholder": "000000",
+      "otpLabel": "6-digit verification code",
+      "verifyButton": "Verify",
+      "verifying": "Verifying...",
+      "resendButton": "Resend code",
       "resendIn": "Resend in {{seconds}}s",
-      "cooldownText": "You can request another email after {{seconds}} seconds.",
-      "resendDisabledHint": "Resend disabled. Please wait {{seconds}} seconds.",
-      "resendDisabledMissingEmail": "Resend is disabled because email is missing.",
-      "resendSuccess": "Verification email sent. Check inbox and spam folders.",
-      "resendError": "Could not send verification email now. Please try again later.",
+      "cooldownText": "You can request another code after {{seconds}} seconds.",
+      "resendSuccess": "New code sent. Check inbox and spam folders.",
+      "resendError": "Could not send code now. Please try again later.",
       "missingEmail": "Email address is missing. Please enter your email and try again.",
-      "openMailApp": "Open mail app",
-      "openMailHint": "Tries to open the default mail app on your device",
-      "openMailError": "Could not open mail app automatically. Open your inbox manually.",
+      "otpInvalid": "Incorrect code. Please try again.",
+      "otpExpired": "Code has expired. Please request a new one.",
+      "alreadyVerified": "This account is already verified.",
       "changeEmail": "Change email",
       "goToLogin": "Go to login"
     },
@@ -1612,5 +1749,58 @@
     "quietEnd": "Quiet hours end",
     "systemSettings": "Device notification settings",
     "footnote": "System notifications can also be managed from device settings."
+  },
+  "quickStart": {
+    "button": "Quick Login",
+    "accessibilityLabel": "Sign in quickly without registering",
+    "loading": "Starting session...",
+    "error": "Could not start session. Please try again."
+  },
+  "guestBanner": {
+    "title": "Temporary Session",
+    "description": "Link your account to securely save your data and sync across devices",
+    "linkButton": "Link Account"
+  },
+  "linkAccount": {
+    "title": "Link Your Account",
+    "subtitle": "Create a permanent account to keep your data safe and sync across devices",
+    "withGoogle": "Link with Google",
+    "withApple": "Link with Apple",
+    "withEmail": "Create Account with Email",
+    "firstNameLabel": "First Name",
+    "firstNamePlaceholder": "Your first name",
+    "lastNameLabel": "Last Name",
+    "lastNamePlaceholder": "Your last name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Your email address",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "At least 8 characters",
+    "passwordPolicy": "At least 8 characters, 1 uppercase, 1 lowercase, and 1 special character",
+    "submit": "Continue",
+    "submitting": "Sending...",
+    "otpTitle": "Verify Your Email",
+    "otpSubtitle": "We sent a 6-digit code to {{email}}.",
+    "otpLabel": "Verification Code",
+    "otpPlaceholder": "_ _ _ _ _ _",
+    "otpVerify": "Link Account",
+    "otpVerifying": "Verifying...",
+    "otpResend": "Resend Code",
+    "otpExpired": "Code expired. Please try again.",
+    "otpInvalid": "Invalid code. Please try again.",
+    "verificationSent": "Verification email sent. Please check your inbox.",
+    "success": "Account linked successfully!",
+    "emailConflict": "This email is already registered. Sign in with your existing account.",
+    "socialConflict": "This social account is already linked to another user.",
+    "alreadyLinked": "Your account is already linked.",
+    "genericError": "Could not link account. Please try again."
+  },
+  "guestGate": {
+    "title": "Create a Free Account",
+    "description": "This feature is available for registered users. Linking takes less than a minute and your session data is preserved.",
+    "perk1": "Your readings and history are saved",
+    "perk2": "Sync across all your devices",
+    "perk3": "Personalized notifications and insights",
+    "cta": "Link Account — Free",
+    "dismiss": "Maybe later"
   }
 }

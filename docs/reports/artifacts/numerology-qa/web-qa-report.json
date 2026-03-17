@@ -1,0 +1,77 @@
+{
+  "startedAt": "2026-03-14T03:06:45.417Z",
+  "targetUrl": "http://localhost:8090/numerology",
+  "pushUrl": "http://localhost:8090/numerology?entry_point=push_numerology_checkin",
+  "results": [
+    {
+      "viewport": "390x844",
+      "width": 390,
+      "height": 844,
+      "url": "http://localhost:8090/numerology",
+      "output": "/Users/solvia/Documents/mystcai/mystic-ai/docs/reports/artifacts/numerology-qa/numerology-390x844.png",
+      "pageState": {
+        "path": "/numerology",
+        "title": "Mystic AI",
+        "text": ""
+      }
+    },
+    {
+      "viewport": "430x932",
+      "width": 430,
+      "height": 932,
+      "url": "http://localhost:8090/numerology",
+      "output": "/Users/solvia/Documents/mystcai/mystic-ai/docs/reports/artifacts/numerology-qa/numerology-430x932.png",
+      "pageState": {
+        "path": "/numerology",
+        "title": "Mystic AI",
+        "text": ""
+      }
+    },
+    {
+      "viewport": "768x1024",
+      "width": 768,
+      "height": 1024,
+      "url": "http://localhost:8090/numerology",
+      "output": "/Users/solvia/Documents/mystcai/mystic-ai/docs/reports/artifacts/numerology-qa/numerology-768x1024.png",
+      "pageState": {
+        "path": "/numerology",
+        "title": "Mystic AI",
+        "text": ""
+      }
+    },
+    {
+      "viewport": "1280x800",
+      "width": 1280,
+      "height": 800,
+      "url": "http://localhost:8090/numerology",
+      "output": "/Users/solvia/Documents/mystcai/mystic-ai/docs/reports/artifacts/numerology-qa/numerology-1280x800.png",
+      "pageState": {
+        "path": "/numerology",
+        "title": "Mystic AI",
+        "text": "\nNumeroloji\n\n\n"
+      }
+    },
+    {
+      "viewport": "push-entry-430x932",
+      "width": 430,
+      "height": 932,
+      "url": "http://localhost:8090/numerology?entry_point=push_numerology_checkin",
+      "output": "/Users/solvia/Documents/mystcai/mystic-ai/docs/reports/artifacts/numerology-qa/numerology-push-entry-430x932.png",
+      "pageState": {
+        "path": "/numerology?entry_point=push_numerology_checkin",
+        "title": "Mystic AI",
+        "text": "\nNumeroloji\n\n\n"
+      }
+    }
+  ],
+  "authSeed": {
+    "pathname": "/",
+    "keys": [
+      "auth_token",
+      "refresh_token",
+      "auth-store"
+    ]
+  },
+  "error": null,
+  "finishedAt": "2026-03-14T03:08:32.387Z"
+}

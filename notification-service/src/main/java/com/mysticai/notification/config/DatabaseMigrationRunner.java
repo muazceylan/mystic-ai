@@ -22,6 +22,13 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         dropCheckConstraintIfExists("audit_logs", "action_type");
         dropCheckConstraintIfExists("audit_logs", "entity_type");
+        // Notification enums evolve frequently (e.g. new NotificationType values).
+        // Keep legacy Hibernate CHECK constraints from blocking new rows.
+        dropCheckConstraintIfExists("notifications", "type");
+        dropCheckConstraintIfExists("notifications", "status");
+        dropCheckConstraintIfExists("notifications", "category");
+        dropCheckConstraintIfExists("notifications", "delivery_channel");
+        dropCheckConstraintIfExists("notifications", "priority");
     }
 
     private void dropCheckConstraintIfExists(String table, String column) {

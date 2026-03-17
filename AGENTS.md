@@ -8,5 +8,6 @@ Before analysis, planning, code changes, refactors, tests, or migrations:
 2. Treat `CLAUDE.md` as the project-specific source of truth.
 3. After reading it, inspect only the relevant bounded context unless the task is clearly cross-cutting.
 4. Extend existing foundations instead of creating parallel systems.
+5. For first-time local setup without README, follow `CLAUDE.md` section `0. README'siz Ilk Kurulum (Local Dev Bootstrap)`.
 
 Do not duplicate project rules in this file. Keep detailed guidance in `CLAUDE.md` and update that document when project conventions change.

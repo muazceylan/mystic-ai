@@ -92,7 +92,7 @@ public class NotificationDispatchService {
 
     private boolean isTypeEnabled(NotificationPreference pref, NotificationType type) {
         return switch (type) {
-            case DAILY_SUMMARY, MINI_INSIGHT -> pref.isDailyEnabled();
+            case DAILY_SUMMARY, MINI_INSIGHT, NUMEROLOGY_CHECKIN -> pref.isDailyEnabled();
             case ENERGY_UPDATE -> pref.isIntradayEnabled();
             case WEEKLY_SUMMARY -> pref.isWeeklyEnabled();
             case PLANNER_REMINDER -> pref.isPlannerReminderEnabled();

@@ -17,11 +17,13 @@ import * as Haptics from '../../utils/haptics';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
 import { SafeScreen, TabHeader } from '../../components/ui';
 import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
+import { trackEvent } from '../../services/analytics';
+import { removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
 import {
@@ -84,9 +86,10 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectingAvatar, setSelectingAvatar] = useState(false);
 
-  const initials = `${user?.firstName ? user.firstName[0] : '?'}${
-    user?.lastName ? user.lastName[0] : ''
-  }`.toUpperCase();
+  const isGuest = isGuestUser(user);
+  const initials = isGuest
+    ? '?'
+    : `${user?.firstName ? user.firstName[0] : '?'}${user?.lastName ? user.lastName[0] : ''}`.toUpperCase();
 
   const zodiac = user?.zodiacSign || getZodiacFromBirthDate(user?.birthDate);
   const premium = isPremium(user?.roles);
@@ -138,9 +141,26 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isGuest) {
+      trackEvent('quick_user_logout', {
+        user_type: 'GUEST',
+        user_id: user?.id ?? null,
+        entry_point: 'profile',
+      });
+    }
     logout();
     router.replace('/(auth)/welcome');
   };
+
+  const applyUserFromServer = useCallback((incomingUser: Record<string, any>) => {
+    const resolvedAvatar = incomingUser?.avatarUrl ?? incomingUser?.avatarUri ?? null;
+    setUser({
+      ...(user ?? {}),
+      ...incomingUser,
+      avatarUrl: resolvedAvatar,
+      avatarUri: resolvedAvatar,
+    });
+  }, [setUser, user]);
 
   const handlePickAvatar = async () => {
     if (!user) return;
@@ -169,26 +189,32 @@ export default function ProfileScreen() {
       const selected = result.assets[0];
       if (!selected?.uri) return;
 
-      setUser({
-        ...user,
-        avatarUri: selected.uri,
-      });
+      const response = await uploadProfileAvatar(
+        selected.uri,
+        (selected as any).fileName ?? 'avatar.jpg',
+        (selected as any).mimeType ?? null
+      );
+      applyUserFromServer(response.data as any);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
-      Alert.alert(t('common.error'), t('profile.avatar.pickerError'));
+      Alert.alert(t('common.error'), t('profile.avatar.uploadError'));
     } finally {
       setSelectingAvatar(false);
     }
   };
 
-  const handleRemoveAvatar = () => {
-    if (!user) return;
-
-    setUser({
-      ...user,
-      avatarUri: null,
-    });
-    Haptics.selectionAsync();
+  const handleRemoveAvatar = async () => {
+    if (!user || selectingAvatar) return;
+    setSelectingAvatar(true);
+    try {
+      const response = await removeProfileAvatar();
+      applyUserFromServer(response.data as any);
+      Haptics.selectionAsync();
+    } catch {
+      Alert.alert(t('common.error'), t('profile.avatar.removeError'));
+    } finally {
+      setSelectingAvatar(false);
+    }
   };
 
   const S = makeStyles(colors);
@@ -232,11 +258,11 @@ export default function ProfileScreen() {
           <View style={S.profileHeader}>
           <TouchableOpacity
             style={S.avatarButton}
-            onPress={handlePickAvatar}
-            accessibilityLabel={t('profile.avatar.change')}
+            onPress={isGuest ? undefined : handlePickAvatar}
+            accessibilityLabel={isGuest ? t('common.guest') : t('profile.avatar.change')}
             accessibilityRole="button"
-            disabled={selectingAvatar}
-            activeOpacity={0.85}
+            disabled={isGuest || selectingAvatar}
+            activeOpacity={isGuest ? 1 : 0.85}
           >
             <View style={S.avatarContainer}>
               {avatarUri ? (
@@ -268,10 +294,11 @@ export default function ProfileScreen() {
           </TouchableOpacity>
           {avatarUri ? (
             <TouchableOpacity
-              style={S.avatarRemoveButton}
+              style={[S.avatarRemoveButton, selectingAvatar && S.avatarActionButtonDisabled]}
               onPress={handleRemoveAvatar}
               accessibilityLabel={t('profile.avatar.remove')}
               accessibilityRole="button"
+              disabled={selectingAvatar}
               activeOpacity={0.8}
             >
               <Ionicons name="trash-outline" size={12} color={colors.subtext} />
@@ -279,9 +306,11 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ) : null}
           <Text style={S.userName}>
-            {user?.firstName || t('common.unknown')}{user?.lastName ? ` ${user.lastName}` : ''}
+            {isGuest
+              ? t('common.guest')
+              : `${user?.firstName || t('common.unknown')}${user?.lastName ? ` ${user.lastName}` : ''}`}
           </Text>
-          <Text style={S.userEmail}>{user?.email || ''}</Text>
+          {!isGuest && <Text style={S.userEmail}>{user?.email || ''}</Text>}
           {zodiac ? (
             <View style={S.zodiacBadge}>
               <Ionicons name="star" size={11} color={colors.gold} />
@@ -333,6 +362,26 @@ export default function ProfileScreen() {
               <Text style={S.upgradeButtonText}>{t('profile.premium.upgradeBtn')}</Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {/* ── Guest Banner ── */}
+        {isGuestUser(user) && (
+          <TouchableOpacity
+            style={S.guestBanner}
+            onPress={() => router.push('/link-account' as any)}
+            accessibilityRole="button"
+            accessibilityLabel={t('guestBanner.linkButton')}
+            activeOpacity={0.85}
+          >
+            <View style={S.guestBannerContent}>
+              <Ionicons name="link-outline" size={20} color={colors.primary} />
+              <View style={S.guestBannerText}>
+                <Text style={S.guestBannerTitle}>{t('guestBanner.title')}</Text>
+                <Text style={S.guestBannerDescription}>{t('guestBanner.description')}</Text>
+              </View>
+            </View>
+            <Text style={S.guestBannerCta}>{t('guestBanner.linkButton')}</Text>
+          </TouchableOpacity>
         )}
 
         {/* ── Settings ── */}
@@ -527,6 +576,34 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingHorizontal: 14, paddingVertical: 8,
     },
     upgradeButtonText: { color: C.text, fontSize: 12, fontWeight: '700' },
+    // Guest banner
+    guestBanner: {
+      backgroundColor: C.primarySoft,
+      borderRadius: 16,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: C.primary,
+      marginBottom: 20,
+    },
+    guestBannerContent: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      marginBottom: 10,
+    },
+    guestBannerText: { flex: 1 },
+    guestBannerTitle: { color: C.primary, fontSize: 13, fontWeight: '700', marginBottom: 2 },
+    guestBannerDescription: { color: C.text, fontSize: 12, lineHeight: 18 },
+    guestBannerCta: {
+      color: C.white,
+      fontSize: 14,
+      fontWeight: '700',
+      textAlign: 'center',
+      backgroundColor: C.primary,
+      borderRadius: 10,
+      paddingVertical: 10,
+      overflow: 'hidden',
+    },
     // Logout
     logoutButton: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

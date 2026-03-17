@@ -9,7 +9,9 @@ const persister = experimental_createQueryPersister({
   storage: AsyncStorage,
   maxAge: CACHE_MAX_AGE,
   prefix: PERSIST_PREFIX,
-  refetchOnRestore: true,
+  // Cold start'ta tüm restore edilen query'lerin aynı anda refetch yapmasını önler.
+  // Tazelenme; staleTime dolduğunda mount/reconnect üzerinden doğal olarak gerçekleşir.
+  refetchOnRestore: false,
 });
 
 export const queryClient = new QueryClient({

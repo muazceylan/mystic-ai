@@ -1,6 +1,7 @@
 package com.mysticai.auth.security;
 
 import com.mysticai.auth.entity.User;
+import com.mysticai.auth.entity.enums.UserType;
 import com.mysticai.auth.repository.UserRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -47,28 +48,30 @@ public class JwtTokenProvider {
     }
 
     private String generateToken(String username, long expiration) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expiration);
-
-        // Get user ID from database
-        Long userId = userRepository.findByUsername(username)
-                .map(User::getId)
-                .orElse(null);
-
-        return generateToken(userId, username, null, expiration);
+        User user = userRepository.findByUsername(username).orElse(null);
+        Long userId = user != null ? user.getId() : null;
+        UserType userType = user != null && user.getUserType() != null ? user.getUserType() : UserType.REGISTERED;
+        return generateToken(userId, username, null, expiration, userType);
     }
 
+    /** Backward-compatible — defaults user_type to REGISTERED. */
     public String generateToken(Long userId, String username, String email) {
-        return generateToken(userId, username, email, jwtExpiration);
+        return generateToken(userId, username, email, jwtExpiration, UserType.REGISTERED);
     }
 
-    private String generateToken(Long userId, String username, String email, long expiration) {
+    /** Preferred overload — includes user_type claim. */
+    public String generateToken(Long userId, String username, String email, UserType userType) {
+        return generateToken(userId, username, email, jwtExpiration, userType);
+    }
+
+    private String generateToken(Long userId, String username, String email, long expiration, UserType userType) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
         var builder = Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
+                .claim("user_type", userType != null ? userType.name() : UserType.REGISTERED.name())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(getSigningKey());
