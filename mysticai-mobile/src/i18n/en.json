@@ -262,6 +262,12 @@
       "yearPill": "Year {{year}}",
       "focusLabel": "Focus: {{focus}}"
     },
+    "featureCards": {
+      "numerology": "Numerology",
+      "numerologySubtitle": "Mystery of numbers",
+      "compatibility": "Compatibility",
+      "compatibilitySubtitle": "Star matching"
+    },
     "retry": {
       "title": "Data is being prepared",
       "accessibility": "Refresh home data"

@@ -102,6 +102,26 @@ public class NotificationScheduler {
         triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
     }
 
+    /** Energy update - 14:00 every day */
+    @Scheduled(cron = "0 0 14 * * *")
+    public void generateEnergyUpdates() {
+        final String key = "energy_update_job";
+        if (skipIfDisabled(key)) return;
+        log.info("Running energy update generation");
+        int count = generateForAll(NotificationType.ENERGY_UPDATE);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
+    }
+
+    /** Mini insight - 16:30 every day */
+    @Scheduled(cron = "0 30 16 * * *")
+    public void generateMiniInsights() {
+        final String key = "mini_insight_job";
+        if (skipIfDisabled(key)) return;
+        log.info("Running mini insight generation");
+        int count = generateForAll(NotificationType.MINI_INSIGHT);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
+    }
+
     /** Meditation reminder - 20:00 every day */
     @Scheduled(cron = "0 0 20 * * *")
     public void generateMeditationReminders() {

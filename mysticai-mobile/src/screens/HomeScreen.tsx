@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { DailyTransitsCard } from '../components/Home/DailyTransitsCard';
@@ -14,10 +13,8 @@ import { SkyHeroCard } from '../components/Home/SkyHeroCard';
 import { WeeklyHighlightsCompact } from '../components/Home/WeeklyHighlightsCompact';
 import type { IconName, QuickAction, WeeklyItem } from '../components/Home/types';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
-import { useNumerology } from '../hooks/useNumerology';
 import { trackEvent } from '../services/analytics';
 import { fetchHomeContentBundle, type HomeSection, type CmsBanner } from '../services/homeContent.service';
-import { getLockedSections, isPremiumUser } from '../services/numerology.service';
 import { envConfig } from '../config/env';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNotificationStore } from '../store/useNotificationStore';
@@ -269,19 +266,6 @@ function LoadingBlock({ height, style }: { height: number; style: object }) {
   return <View style={[style, { height }]} />;
 }
 
-function resolveNumerologyWidgetRoute(emptyVariant: 'none' | 'name_missing' | 'birth_date_missing' | 'both_missing') {
-  switch (emptyVariant) {
-    case 'name_missing':
-      return '/edit-profile-name';
-    case 'birth_date_missing':
-      return '/edit-birth-info';
-    case 'both_missing':
-      return '/(tabs)/profile';
-    default:
-      return '/numerology?entry_point=home_widget';
-  }
-}
-
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -300,18 +284,11 @@ export default function HomeScreen() {
   const viewTrackedRef = useRef(false);
   const contentLoadedTrackedRef = useRef(false);
   const emptyHeroRefetchTriedRef = useRef(false);
-  const numerologyWidgetTrackedRef = useRef(false);
   const tutorialBootstrapRef = useRef<string | null>(null);
   const resolvedLocale = useMemo<'tr' | 'en'>(
     () => ((i18n.resolvedLanguage ?? i18n.language ?? user?.preferredLanguage ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     [i18n.language, i18n.resolvedLanguage, user?.preferredLanguage],
   );
-  const homeNumerology = useNumerology({
-    user,
-    locale: resolvedLocale,
-    guidancePeriod: 'day',
-  });
-
   const {
     data: dashboard,
     isLoading,
@@ -450,46 +427,6 @@ export default function HomeScreen() {
   const transitMoonPhase = dashboard?.transitsToday?.moonPhase?.trim() || '';
   const transitMoonSign = dashboard?.transitsToday?.moonSign?.trim() || '';
   const transitRetroCount = dashboard?.transitsToday?.retroCount ?? 0;
-  const numerologyWidget = useMemo(() => {
-    if (homeNumerology.emptyVariant === 'name_missing') {
-      return {
-        state: 'name_missing',
-        title: t('numerology.empty.nameMissingTitle'),
-        body: t('numerology.empty.nameMissingDescription'),
-        focus: null,
-        cta: t('numerology.empty.nameMissingCta'),
-      };
-    }
-    if (homeNumerology.emptyVariant === 'birth_date_missing') {
-      return {
-        state: 'birth_date_missing',
-        title: t('numerology.empty.birthDateMissingTitle'),
-        body: t('numerology.empty.birthDateMissingDescription'),
-        focus: null,
-        cta: t('numerology.empty.birthDateMissingCta'),
-      };
-    }
-    if (homeNumerology.emptyVariant === 'both_missing') {
-      return {
-        state: 'both_missing',
-        title: t('numerology.empty.bothMissingTitle'),
-        body: t('numerology.empty.bothMissingDescription'),
-        focus: null,
-        cta: t('numerology.empty.bothMissingCta'),
-      };
-    }
-    if (homeNumerology.data?.timing) {
-      return {
-        state: 'ready',
-        title: t('homeSurface.numerology.readyTitle', { year: homeNumerology.data.timing.personalYear }),
-        body: homeNumerology.data.timing.shortTheme,
-        focus: homeNumerology.data.miniGuidance?.dailyFocus ?? null,
-        cta: t('homeSurface.numerology.readyCta'),
-      };
-    }
-    return null;
-  }, [homeNumerology.data, homeNumerology.emptyVariant, t]);
-
   const initialLoading = !dashboard && (isLoading || isFetching);
   const showRetry = isError && !dashboard;
 
@@ -537,30 +474,6 @@ export default function HomeScreen() {
       quick_actions_count: quickActions.length,
     });
   }, [dashboard, hasToday, hasWeekly, quickActions.length]);
-
-  useEffect(() => {
-    if (numerologyWidgetTrackedRef.current || !numerologyWidget) {
-      return;
-    }
-
-    numerologyWidgetTrackedRef.current = true;
-    trackEvent('numerology_widget_viewed', {
-      source_surface: 'home_widget',
-      entry_point: 'home_widget',
-      has_birth_date: homeNumerology.missingFields.indexOf('birthDate') === -1,
-      has_name: homeNumerology.missingFields.indexOf('name') === -1,
-      is_premium_user: isPremiumUser(user?.roles),
-      locked_sections: getLockedSections(homeNumerology.data?.sectionLockState, isPremiumUser(user?.roles)).join(',') || 'none',
-      personal_year: homeNumerology.data?.timing?.personalYear ?? null,
-      dominant_number: homeNumerology.data?.combinedProfile?.dominantNumber ?? null,
-      response_version: homeNumerology.data?.contentVersion ?? homeNumerology.data?.version ?? null,
-      guidance_period: 'day',
-      cache_status: homeNumerology.cacheStatus,
-      locale: homeNumerology.data?.locale ?? resolvedLocale,
-      snapshot_exists: null,
-      widget_state: numerologyWidget.state,
-    });
-  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.missingFields, numerologyWidget, resolvedLocale, user?.roles]);
 
   const pushRoute = useCallback(
     (route: string) => {
@@ -665,30 +578,15 @@ export default function HomeScreen() {
     [pushRoute, weeklyAnalysisRoute],
   );
 
-  const handlePressNumerologyWidget = useCallback(() => {
-    if (!numerologyWidget) {
-      return;
-    }
+  const handlePressNumerologyCard = useCallback(() => {
+    trackEvent('home_shortcut_click', { shortcut_key: 'numerology', surface: 'feature_row' });
+    pushRoute('/numerology?entry_point=home_card');
+  }, [pushRoute]);
 
-    const route = resolveNumerologyWidgetRoute(homeNumerology.emptyVariant);
-    trackEvent('numerology_widget_clicked', {
-      source_surface: 'home_widget',
-      entry_point: 'home_widget',
-      has_birth_date: homeNumerology.missingFields.indexOf('birthDate') === -1,
-      has_name: homeNumerology.missingFields.indexOf('name') === -1,
-      is_premium_user: isPremiumUser(user?.roles),
-      locked_sections: getLockedSections(homeNumerology.data?.sectionLockState, isPremiumUser(user?.roles)).join(',') || 'none',
-      personal_year: homeNumerology.data?.timing?.personalYear ?? null,
-      dominant_number: homeNumerology.data?.combinedProfile?.dominantNumber ?? null,
-      response_version: homeNumerology.data?.contentVersion ?? homeNumerology.data?.version ?? null,
-      guidance_period: 'day',
-      cache_status: homeNumerology.cacheStatus,
-      locale: homeNumerology.data?.locale ?? resolvedLocale,
-      snapshot_exists: null,
-      widget_state: numerologyWidget.state,
-    });
-    pushRoute(route);
-  }, [homeNumerology.cacheStatus, homeNumerology.data, homeNumerology.emptyVariant, homeNumerology.missingFields, numerologyWidget, pushRoute, resolvedLocale, user?.roles]);
+  const handlePressCompatibilityCard = useCallback(() => {
+    trackEvent('home_shortcut_click', { shortcut_key: 'compatibility', surface: 'feature_row' });
+    pushRoute('/(tabs)/compatibility');
+  }, [pushRoute]);
 
   const notificationBadgeText = notificationCount > 9 ? '9+' : String(notificationCount);
   const notificationA11y =
@@ -771,73 +669,62 @@ export default function HomeScreen() {
           </SpotlightTarget>
         ) : null}
 
-        {numerologyWidget ? (
-          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
+        <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
+          <View style={styles.featureRow}>
             <Pressable
-              onPress={handlePressNumerologyWidget}
+              onPress={handlePressNumerologyCard}
               accessibilityRole="button"
-              accessibilityLabel={t('homeSurface.numerology.openAccessibility')}
-              style={({ pressed }) => [styles.numerologyWidget, pressed && styles.pressed]}
+              accessibilityLabel={t('homeSurface.featureCards.numerology')}
+              style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
             >
-              <LinearGradient
-                colors={['#0F1A36', '#1C1B4C', '#352658']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.numerologyWidgetInner}
-              >
-                <View style={styles.numerologyWidgetHeader}>
-                  <Text style={styles.numerologyWidgetKicker}>{t('homeSurface.numerology.kicker')}</Text>
-                  {homeNumerology.data?.timing?.personalYear ? (
-                    <View style={styles.numerologyYearPill}>
-                      <Text style={styles.numerologyYearPillText}>
-                        {t('homeSurface.numerology.yearPill', { year: homeNumerology.data.timing.personalYear })}
-                      </Text>
-                    </View>
-                  ) : null}
+              <View style={styles.featureCardTop}>
+                <View style={[styles.featureIconShell, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="keypad" size={22} color="#B45309" />
                 </View>
-                <Text style={styles.numerologyWidgetTitle}>{numerologyWidget.title}</Text>
-                <Text style={styles.numerologyWidgetBody}>{numerologyWidget.body}</Text>
-                {numerologyWidget.state === 'ready' && numerologyWidget.focus ? (
-                  <Text style={styles.numerologyWidgetFocus} numberOfLines={2}>
-                    {t('homeSurface.numerology.focusLabel', { focus: numerologyWidget.focus })}
-                  </Text>
-                ) : null}
-                <View style={styles.numerologyWidgetFooter}>
-                  <Text style={styles.numerologyWidgetCta}>{numerologyWidget.cta}</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#F8E6AF" />
-                </View>
-              </LinearGradient>
+                <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
+              </View>
+              <View style={styles.featureCardBottom}>
+                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardTitle}>
+                  {t('homeSurface.featureCards.numerology')}
+                </Text>
+                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardSubtitle}>
+                  {t('homeSurface.featureCards.numerologySubtitle')}
+                </Text>
+              </View>
             </Pressable>
-          </SpotlightTarget>
-        ) : homeNumerology.isLoading ? (
-          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
-            <LoadingBlock style={styles.loadingBlock} height={138} />
-          </SpotlightTarget>
-        ) : null}
+            <Pressable
+              onPress={handlePressCompatibilityCard}
+              accessibilityRole="button"
+              accessibilityLabel={t('homeSurface.featureCards.compatibility')}
+              style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
+            >
+              <View style={styles.featureCardTop}>
+                <View style={[styles.featureIconShell, { backgroundColor: '#F9E5F4' }]}>
+                  <Ionicons name="heart-half" size={22} color="#C4549A" />
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
+              </View>
+              <View style={styles.featureCardBottom}>
+                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardTitle}>
+                  {t('homeSurface.featureCards.compatibility')}
+                </Text>
+                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardSubtitle}>
+                  {t('homeSurface.featureCards.compatibilitySubtitle')}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        </SpotlightTarget>
 
-        {!numerologyWidget && !homeNumerology.isLoading ? (
-          <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
-            <HoroscopeSummaryCard
-              sign={signName}
-              theme={todayTheme}
-              advice={todayAdvice}
-              isLoading={initialLoading && !hasToday}
-              onPressToday={handlePressTodayTab}
-              onPressWeek={handlePressWeekTab}
-              onPressDetails={handlePressHoroscopeDetails}
-            />
-          </SpotlightTarget>
-        ) : (
-          <HoroscopeSummaryCard
-            sign={signName}
-            theme={todayTheme}
-            advice={todayAdvice}
-            isLoading={initialLoading && !hasToday}
-            onPressToday={handlePressTodayTab}
-            onPressWeek={handlePressWeekTab}
-            onPressDetails={handlePressHoroscopeDetails}
-          />
-        )}
+        <HoroscopeSummaryCard
+          sign={signName}
+          theme={todayTheme}
+          advice={todayAdvice}
+          isLoading={initialLoading && !hasToday}
+          onPressToday={handlePressTodayTab}
+          onPressWeek={handlePressWeekTab}
+          onPressDetails={handlePressHoroscopeDetails}
+        />
 
         <DailyTransitsCard
           phase={transitMoonPhase}
@@ -941,70 +828,51 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       marginTop: spacing.cardGap,
       gap: spacing.sm,
     },
-    numerologyWidget: {
+    featureRow: {
       marginTop: spacing.cardGap,
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    featureCard: {
+      flex: 1,
+      height: spacing.xxl * 5 + spacing.xs,
       borderRadius: radius.card,
-      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
       ...shadowSubtle,
     },
-    numerologyWidgetInner: {
-      borderRadius: radius.card,
-      borderWidth: 1,
-      borderColor: 'rgba(240, 204, 85, 0.24)',
-      paddingHorizontal: spacing.cardPadding,
-      paddingVertical: spacing.lg,
-    },
-    numerologyWidgetHeader: {
+    featureCardTop: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
-      gap: spacing.sm,
-      marginBottom: spacing.sm,
     },
-    numerologyWidgetKicker: {
-      ...typography.Caption,
-      color: 'rgba(255,255,255,0.7)',
-      fontWeight: '700',
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-    },
-    numerologyYearPill: {
-      borderRadius: radius.pill,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xxs,
-      backgroundColor: 'rgba(248,230,175,0.18)',
+    featureIconShell: {
+      width: spacing.iconWrap,
+      height: spacing.iconWrap,
+      borderRadius: radius.icon,
+      alignItems: 'center',
+      justifyContent: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(248,230,175,0.28)',
+      borderColor: C.surface,
     },
-    numerologyYearPillText: {
-      ...typography.Caption,
-      color: '#F8E6AF',
-      fontWeight: '700',
+    featureCardBottom: {
+      paddingRight: spacing.xs,
+      minHeight: spacing.xl + spacing.md,
     },
-    numerologyWidgetTitle: {
-      ...typography.H2,
-      color: '#FFFFFF',
-      marginBottom: spacing.xs,
-    },
-    numerologyWidgetBody: {
+    featureCardTitle: {
       ...typography.Body,
-      color: 'rgba(255,255,255,0.8)',
+      lineHeight: 20,
+      fontWeight: '600',
+      color: C.text,
     },
-    numerologyWidgetFocus: {
+    featureCardSubtitle: {
       ...typography.Caption,
-      marginTop: spacing.xs,
-      color: 'rgba(248,230,175,0.92)',
-      fontWeight: '700',
-    },
-    numerologyWidgetFooter: {
-      marginTop: spacing.md,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    numerologyWidgetCta: {
-      ...typography.Button,
-      color: '#F8E6AF',
+      marginTop: spacing.xxs + 1,
+      color: C.subtext,
     },
     loadingBlock: {
       borderRadius: radius.card,

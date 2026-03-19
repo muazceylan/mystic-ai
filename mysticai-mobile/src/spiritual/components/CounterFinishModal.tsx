@@ -9,16 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { MoodSelector } from './MoodSelector';
-import type { Mood } from '../types';
-
 interface Props {
   visible: boolean;
   itemName: string;
   completed: number;
   target: number;
   durationSec: number;
-  onSave: (data: { note?: string; mood?: Mood }) => void;
+  onSave: (data: { note?: string }) => void;
   onDismiss: () => void;
   accentColor?: string;
   textColor?: string;
@@ -40,12 +37,10 @@ export const CounterFinishModal = memo(function CounterFinishModal({
   bgColor = '#0F2B1E',
 }: Props) {
   const [note, setNote] = useState('');
-  const [mood, setMood] = useState<Mood | undefined>(undefined);
 
   const handleSave = () => {
-    onSave({ note: note.trim() || undefined, mood });
+    onSave({ note: note.trim() || undefined });
     setNote('');
-    setMood(undefined);
   };
 
   const mins = Math.floor(durationSec / 60);
@@ -92,15 +87,6 @@ export const CounterFinishModal = memo(function CounterFinishModal({
           </View>
 
           <Text style={[styles.itemName, { color: textColor + 'CC' }]}>{itemName}</Text>
-
-          {/* Mood */}
-          <Text style={[styles.sectionLabel, { color: textColor + '99' }]}>Nasıl hissediyorsun?</Text>
-          <MoodSelector
-            selected={mood}
-            onSelect={setMood}
-            accentColor={accentColor}
-            textColor={textColor}
-          />
 
           {/* Note */}
           <TextInput
@@ -161,7 +147,6 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 11 },
   divider: { width: 1, height: 32 },
   itemName: { fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
-  sectionLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
   noteInput: {
     borderWidth: 1,
     borderRadius: 12,

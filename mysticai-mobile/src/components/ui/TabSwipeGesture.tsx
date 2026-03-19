@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { TabActions, useNavigation } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { useTranslation } from 'react-i18next';
@@ -45,8 +46,7 @@ const CAPTURE_OPTIONS = {
   result: 'tmpfile',
 } as const;
 
-const previewCache = new Map<MainTabRoute, { uri: string; capturedAt: number }>();
-const PREVIEW_STALE_MS = 10_000; // Previews older than 10s are considered stale
+const previewCache = new Map<MainTabRoute, string>();
 
 const ACTIVATE_HORIZONTAL_DELTA = 18;
 const MIN_SWIPE_DISTANCE = 50;
@@ -82,27 +82,21 @@ function resolveTargetTab(tab: MainTabRoute, gestureState: PanResponderGestureSt
 
 function setCachedPreview(tab: MainTabRoute, uri: string) {
   const previous = previewCache.get(tab);
-  if (previous && previous.uri !== uri) {
+  if (previous && previous !== uri) {
     try {
-      releaseCapture(previous.uri);
+      releaseCapture(previous);
     } catch {
       // Ignore release failures; stale tmp files are tolerable in development.
     }
   }
-  previewCache.set(tab, { uri, capturedAt: Date.now() });
-}
-
-function getFreshPreview(tab: MainTabRoute): string | null {
-  const entry = previewCache.get(tab);
-  if (!entry) return null;
-  if (Date.now() - entry.capturedAt > PREVIEW_STALE_MS) return null;
-  return entry.uri;
+  previewCache.set(tab, uri);
 }
 
 export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const isNavigatingRef = useRef(false);
   const viewShotRef = useRef<ViewShot | null>(null);
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,6 +124,7 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
     }, delay);
   }, [tab]);
 
+  // Capture on mount
   useEffect(() => {
     scheduleCapture(420);
     return () => {
@@ -139,6 +134,13 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
       }
     };
   }, [scheduleCapture]);
+
+  // Recapture every time this tab gains focus (so adjacent tabs see fresh preview)
+  useEffect(() => {
+    if (isFocused) {
+      scheduleCapture(300);
+    }
+  }, [isFocused, scheduleCapture]);
 
   const animateBackToCenter = useCallback(() => {
     if (isNavigatingRef.current) return;
@@ -216,9 +218,6 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
         isNavigatingRef.current = true;
 
         const exitTo = gestureState.dx < 0 ? -containerWidth : containerWidth;
-        // Clear stale preview for target tab so it gets recaptured on arrival.
-        previewCache.delete(targetTab);
-
         Animated.timing(translateX, {
           toValue: exitTo,
           duration: 180,
@@ -236,7 +235,7 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
     [animateBackToCenter, containerWidth, hasLeftTab, hasRightTab, navigateToTab, tab, translateX],
   );
 
-  const previewUri = previewTab ? getFreshPreview(previewTab) : null;
+  const previewUri = previewTab ? previewCache.get(previewTab) ?? null : null;
   const previewMeta = previewTab ? TAB_META[previewTab] : null;
 
   const handleLayout = useCallback((event: any) => {

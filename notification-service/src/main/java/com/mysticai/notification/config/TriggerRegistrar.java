@@ -131,6 +131,36 @@ public class TriggerRegistrar {
                 .build(),
 
             NotificationDefinition.builder()
+                .definitionKey("energy_update")
+                .displayName("Gün İçi Enerji Güncellemesi")
+                .description("Her gün 14:00'te enerji penceresi ve gün içi kozmik değişimleri bildiren bildirim.")
+                .category("INTRADAY")
+                .channelType(NotificationDefinition.ChannelType.BOTH)
+                .cadenceType(NotificationDefinition.CadenceType.DAILY)
+                .sourceType(NotificationDefinition.SourceType.STATIC_BACKEND)
+                .triggerType(NotificationDefinition.TriggerType.CRON)
+                .defaultRouteKey("calendar")
+                .isActive(true).isEditable(false).isVisibleInAdmin(true).isSystemCritical(false)
+                .ownerModule("notifications")
+                .codeReference("NotificationScheduler#generateEnergyUpdates")
+                .build(),
+
+            NotificationDefinition.builder()
+                .definitionKey("mini_insight")
+                .displayName("Mini İçgörü")
+                .description("Her gün 16:30'da kısa kozmik ipucu veya günlük mini öneri bildirimi.")
+                .category("DAILY")
+                .channelType(NotificationDefinition.ChannelType.BOTH)
+                .cadenceType(NotificationDefinition.CadenceType.DAILY)
+                .sourceType(NotificationDefinition.SourceType.STATIC_BACKEND)
+                .triggerType(NotificationDefinition.TriggerType.CRON)
+                .defaultRouteKey("home")
+                .isActive(true).isEditable(false).isVisibleInAdmin(true).isSystemCritical(false)
+                .ownerModule("notifications")
+                .codeReference("NotificationScheduler#generateMiniInsights")
+                .build(),
+
+            NotificationDefinition.builder()
                 .definitionKey("evening_checkin")
                 .displayName("Akşam Girişi")
                 .description("Her gece 21:00'da günlük akşam check-in bildirimi.")
@@ -333,6 +363,30 @@ public class TriggerRegistrar {
                 .isActive(true).isPausable(true).isSystemCritical(false)
                 .ownerModule("wellness")
                 .codeReference("NotificationScheduler#generateMeditationReminders")
+                .build(),
+
+            NotificationTrigger.builder()
+                .triggerKey("energy_update_job")
+                .definitionKey("energy_update")
+                .displayName("Enerji Güncelleme İşi")
+                .description("Her gün 14:00'te gün içi enerji güncelleme bildirimlerini gönderir.")
+                .cadenceType(NotificationTrigger.CadenceType.DAILY)
+                .cronExpression("0 0 14 * * *")
+                .isActive(true).isPausable(true).isSystemCritical(false)
+                .ownerModule("notifications")
+                .codeReference("NotificationScheduler#generateEnergyUpdates")
+                .build(),
+
+            NotificationTrigger.builder()
+                .triggerKey("mini_insight_job")
+                .definitionKey("mini_insight")
+                .displayName("Mini İçgörü İşi")
+                .description("Her gün 16:30'da mini içgörü bildirimlerini gönderir.")
+                .cadenceType(NotificationTrigger.CadenceType.DAILY)
+                .cronExpression("0 30 16 * * *")
+                .isActive(true).isPausable(true).isSystemCritical(false)
+                .ownerModule("notifications")
+                .codeReference("NotificationScheduler#generateMiniInsights")
                 .build(),
 
             NotificationTrigger.builder()

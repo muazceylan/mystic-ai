@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   Linking,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -261,6 +262,70 @@ function makeStyles(C: ThemeColors) {
     systemSettingsText: { fontSize: 13, fontWeight: '500', color: C.primary },
 
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+    // Time picker modal
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalContent: {
+      width: 280,
+      backgroundColor: C.surface,
+      borderRadius: 20,
+      padding: 24,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    modalTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: C.text,
+      marginBottom: 20,
+    },
+    pickerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 24,
+    },
+    pickerColumn: {
+      alignItems: 'center',
+      gap: 8,
+    },
+    pickerArrow: {
+      width: 44,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 8,
+      backgroundColor: C.primarySoft,
+    },
+    pickerValue: {
+      fontSize: 32,
+      fontWeight: '700',
+      color: C.text,
+      fontVariant: ['tabular-nums'],
+    },
+    pickerSep: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: C.subtext,
+      marginTop: 4,
+    },
+    modalSaveBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 40,
+      borderRadius: 10,
+      backgroundColor: C.primary,
+    },
+    modalSaveText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#fff',
+    },
   });
 }
 
@@ -276,7 +341,13 @@ export default function NotificationsSettingsScreen() {
     fetchPreferences,
     updatePreferences,
     registerPushToken,
+    deactivatePushToken,
   } = useNotificationStore();
+
+  const [quietPickerVisible, setQuietPickerVisible] = useState(false);
+  const [quietPickerField, setQuietPickerField] = useState<'start' | 'end'>('start');
+  const [quietPickerHour, setQuietPickerHour] = useState(22);
+  const [quietPickerMinute, setQuietPickerMinute] = useState(0);
 
   useEffect(() => {
     fetchPreferences();
@@ -287,21 +358,27 @@ export default function NotificationsSettingsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await updatePreferences({ [key]: value });
 
-      // Register push token when enabling push
-      if (key === 'pushEnabled' && value && Platform.OS !== 'web') {
+      if (key === 'pushEnabled' && Platform.OS !== 'web') {
         try {
           const { default: Notifications } = await import('expo-notifications');
-          const { status } = await Notifications.requestPermissionsAsync();
-          if (status === 'granted') {
+          if (value) {
+            // Register push token when enabling push
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status === 'granted') {
+              const tokenData = await Notifications.getExpoPushTokenAsync();
+              await registerPushToken(tokenData.data, Platform.OS);
+            }
+          } else {
+            // Deactivate push token when disabling push
             const tokenData = await Notifications.getExpoPushTokenAsync();
-            await registerPushToken(tokenData.data, Platform.OS);
+            await deactivatePushToken(tokenData.data);
           }
         } catch {
           // silently fail
         }
       }
     },
-    [updatePreferences, registerPushToken]
+    [updatePreferences, registerPushToken, deactivatePushToken]
   );
 
   const handleFrequency = useCallback(
@@ -436,18 +513,42 @@ export default function NotificationsSettingsScreen() {
           {/* Quiet Hours */}
           <Text style={styles.sectionTitle}>{t('notifSettings.sectionQuietHours')}</Text>
           <View style={styles.card}>
-            <View style={styles.quietRow}>
+            <Pressable
+              style={styles.quietRow}
+              onPress={() => {
+                const parts = (preferences?.quietHoursStart ?? '22:30').split(':');
+                setQuietPickerHour(parseInt(parts[0], 10));
+                setQuietPickerMinute(parseInt(parts[1], 10));
+                setQuietPickerField('start');
+                setQuietPickerVisible(true);
+              }}
+            >
               <Text style={styles.quietLabel}>{t('notifSettings.quietStart')}</Text>
-              <Text style={styles.quietValue}>
-                {preferences?.quietHoursStart ?? '22:30'}
-              </Text>
-            </View>
-            <View style={[styles.quietRow, styles.rowBorder]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.quietValue}>
+                  {preferences?.quietHoursStart ?? '22:30'}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.subtext} />
+              </View>
+            </Pressable>
+            <Pressable
+              style={[styles.quietRow, styles.rowBorder]}
+              onPress={() => {
+                const parts = (preferences?.quietHoursEnd ?? '08:00').split(':');
+                setQuietPickerHour(parseInt(parts[0], 10));
+                setQuietPickerMinute(parseInt(parts[1], 10));
+                setQuietPickerField('end');
+                setQuietPickerVisible(true);
+              }}
+            >
               <Text style={styles.quietLabel}>{t('notifSettings.quietEnd')}</Text>
-              <Text style={styles.quietValue}>
-                {preferences?.quietHoursEnd ?? '08:00'}
-              </Text>
-            </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.quietValue}>
+                  {preferences?.quietHoursEnd ?? '08:00'}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.subtext} />
+              </View>
+            </Pressable>
           </View>
 
           {/* System Settings */}
@@ -460,6 +561,76 @@ export default function NotificationsSettingsScreen() {
 
           <Text style={styles.footnote}>{t('notifSettings.footnote')}</Text>
         </ScrollView>
+
+        {/* Quiet Hours Time Picker Modal */}
+        <Modal
+          visible={quietPickerVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setQuietPickerVisible(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setQuietPickerVisible(false)}
+          >
+            <Pressable style={styles.modalContent} onPress={() => {}}>
+              <Text style={styles.modalTitle}>
+                {quietPickerField === 'start'
+                  ? t('notifSettings.quietStart')
+                  : t('notifSettings.quietEnd')}
+              </Text>
+              <View style={styles.pickerRow}>
+                <View style={styles.pickerColumn}>
+                  <Pressable
+                    onPress={() => setQuietPickerHour((h) => (h + 1) % 24)}
+                    style={styles.pickerArrow}
+                  >
+                    <Ionicons name="chevron-up" size={22} color={colors.text} />
+                  </Pressable>
+                  <Text style={styles.pickerValue}>
+                    {String(quietPickerHour).padStart(2, '0')}
+                  </Text>
+                  <Pressable
+                    onPress={() => setQuietPickerHour((h) => (h - 1 + 24) % 24)}
+                    style={styles.pickerArrow}
+                  >
+                    <Ionicons name="chevron-down" size={22} color={colors.text} />
+                  </Pressable>
+                </View>
+                <Text style={styles.pickerSep}>:</Text>
+                <View style={styles.pickerColumn}>
+                  <Pressable
+                    onPress={() => setQuietPickerMinute((m) => (m + 15) % 60)}
+                    style={styles.pickerArrow}
+                  >
+                    <Ionicons name="chevron-up" size={22} color={colors.text} />
+                  </Pressable>
+                  <Text style={styles.pickerValue}>
+                    {String(quietPickerMinute).padStart(2, '0')}
+                  </Text>
+                  <Pressable
+                    onPress={() => setQuietPickerMinute((m) => (m - 15 + 60) % 60)}
+                    style={styles.pickerArrow}
+                  >
+                    <Ionicons name="chevron-down" size={22} color={colors.text} />
+                  </Pressable>
+                </View>
+              </View>
+              <Pressable
+                style={styles.modalSaveBtn}
+                onPress={() => {
+                  const timeStr = `${String(quietPickerHour).padStart(2, '0')}:${String(quietPickerMinute).padStart(2, '0')}`;
+                  const key = quietPickerField === 'start' ? 'quietHoursStart' : 'quietHoursEnd';
+                  updatePreferences({ [key]: timeStr });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setQuietPickerVisible(false);
+                }}
+              >
+                <Text style={styles.modalSaveText}>{t('common.save')}</Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </SafeScreen>
   );

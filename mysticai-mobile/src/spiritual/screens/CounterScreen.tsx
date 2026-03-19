@@ -29,7 +29,7 @@ import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { useSpiritualSettingsStore } from '../store/useSpiritualSettingsStore';
 import { CounterFinishModal } from '../components/CounterFinishModal';
-import type { Mood, CustomSetItem } from '../types';
+import type { CustomSetItem } from '../types';
 
 export default function CounterScreen() {
   const params = useLocalSearchParams<{
@@ -81,6 +81,7 @@ export default function CounterScreen() {
   }, [params.itemType, params.itemId, contentStore]);
 
   useEffect(() => {
+    setShowFinish(false);
     store.start({
       itemType: params.itemType ?? 'esma',
       itemId: parseInt(params.itemId ?? '0', 10),
@@ -104,9 +105,11 @@ export default function CounterScreen() {
     };
   }, [store.status]);
 
-  // Show finish modal when done
+  // Show finish modal when done — read fresh status from store to avoid
+  // stale closure after router.replace reuses the component
   useEffect(() => {
-    if (store.status === 'finished' && !showFinish) {
+    const currentStatus = useCounterStore.getState().status;
+    if (currentStatus === 'finished' && !showFinish) {
       setShowFinish(true);
     }
   }, [store.status]);
@@ -161,7 +164,7 @@ export default function CounterScreen() {
   }, [setItems, setIndex, contentStore, params.setItems]);
 
   const handleSave = useCallback(
-    ({ note, mood }: { note?: string; mood?: Mood }) => {
+    ({ note }: { note?: string }) => {
       const durationSec = Math.floor(store.elapsedMs / 1000);
       const dateISO = new Date().toISOString().slice(0, 10);
       journal.addEntry({

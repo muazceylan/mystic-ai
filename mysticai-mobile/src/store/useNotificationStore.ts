@@ -31,6 +31,7 @@ interface NotificationState {
   fetchPreferences: () => Promise<void>;
   updatePreferences: (payload: UpdatePreferencesPayload) => Promise<void>;
   registerPushToken: (token: string, platform: string) => Promise<void>;
+  deactivatePushToken: (token: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -215,6 +216,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   registerPushToken: async (token, platform) => {
     try {
       await notificationService.registerPushToken(token, platform);
+    } catch {}
+  },
+
+  deactivatePushToken: async (token) => {
+    try {
+      await notificationService.deactivatePushToken(token);
     } catch {}
   },
 

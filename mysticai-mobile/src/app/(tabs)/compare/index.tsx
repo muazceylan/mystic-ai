@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Info, Sparkles } from 'lucide-react-native';
+import { Info, Share2, Sparkles } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { AccessibleText, SafeScreen } from '../../../components/ui';
@@ -1166,7 +1166,7 @@ export default function CompareOverviewScreen() {
     });
   }, [data, matchId]);
 
-  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
+  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
 
   const onSwitchType = (nextType: RelationshipType) => {
     trackEvent('compare_tab_switch', {
@@ -1446,6 +1446,34 @@ export default function CompareOverviewScreen() {
               <Pressable onPress={goTechnical} style={styles.primaryCta}>
                 <AccessibleText style={styles.primaryCtaText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
                   Detaylı Analiz
+                </AccessibleText>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  trackEvent('compare_share_card_open', {
+                    module: data.module,
+                    relationship_type: data.relationshipType,
+                    match_id: matchId ?? 0,
+                    score: data.overall.score,
+                  });
+                  router.push({
+                    pathname: '/share-card-preview',
+                    params: {
+                      matchId: String(matchId ?? ''),
+                      personAName: leftName,
+                      personBName: rightName,
+                      personASignLabel: leftSignLabel ?? '',
+                      personBSignLabel: rightSignLabel ?? '',
+                      overallScore: String(data.overall.score),
+                    },
+                  } as never);
+                }}
+                style={styles.shareBtn}
+              >
+                <Share2 size={18} color="#6D28D9" />
+                <AccessibleText style={styles.shareBtnText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
+                  Paylaşılabilir Kart
                 </AccessibleText>
               </Pressable>
             </View>
@@ -1731,6 +1759,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  shareBtn: {
+    minHeight: 50,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F3EAFF',
+    borderWidth: 1,
+    borderColor: '#E0D0F7',
+    marginTop: 2,
+  },
+  shareBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6D28D9',
     letterSpacing: -0.2,
   },
 });

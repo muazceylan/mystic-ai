@@ -2,7 +2,8 @@ package com.mysticai.notification.listener;
 
 import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.notification.entity.Notification;
-import com.mysticai.notification.service.PushService;
+import com.mysticai.notification.entity.Notification.NotificationType;
+import com.mysticai.notification.service.NotificationGenerationService;
 import com.mysticai.notification.service.WebSocketNotificationService;
 import com.mysticai.common.event.AiAnalysisResponseEvent;
 import lombok.RequiredArgsConstructor;
@@ -15,8 +16,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AiResponseListener {
 
-    private final WebSocketNotificationService notificationService;
-    private final PushService pushService;
+    private final WebSocketNotificationService wsService;
+    private final NotificationGenerationService generationService;
 
     @RabbitListener(queues = "ai.responses.notification.queue")
     public void handleAiResponse(AiAnalysisResponseEvent event) {
@@ -25,10 +26,15 @@ public class AiResponseListener {
 
         try {
             Notification.AnalysisType analysisType = mapAnalysisType(event.analysisType());
+            NotificationType notifType = mapToNotificationType(analysisType);
+
+            // Generate notification through the central service (creates in-app record + sends push)
+            generationService.generateNotification(event.userId(), notifType, null);
+
+            // Also send WebSocket for real-time AI result delivery
             String title = generateTitle(analysisType);
             String message = generateMessage(analysisType);
-
-            notificationService.sendNotification(
+            wsService.sendNotification(
                     event.userId(),
                     event.correlationId(),
                     analysisType,
@@ -37,19 +43,18 @@ public class AiResponseListener {
                     event.originalPayload()
             );
 
-            // Also send push notification
-            Notification pushNotif = Notification.builder()
-                    .title(title)
-                    .body(message)
-                    .deeplink(getDeeplinkForAnalysisType(analysisType))
-                    .build();
-            pushService.sendPush(event.userId(), pushNotif);
-
             log.info("Notification sent successfully for user {}", event.userId());
         } catch (Exception e) {
             log.error("Failed to send notification for user {}: {}",
                     event.userId(), e.getMessage(), e);
         }
+    }
+
+    private NotificationType mapToNotificationType(Notification.AnalysisType analysisType) {
+        return switch (analysisType) {
+            case COMPATIBILITY -> NotificationType.COMPATIBILITY_UPDATE;
+            default -> NotificationType.AI_ANALYSIS_COMPLETE;
+        };
     }
 
     private Notification.AnalysisType mapAnalysisType(AiAnalysisEvent.AnalysisType type) {

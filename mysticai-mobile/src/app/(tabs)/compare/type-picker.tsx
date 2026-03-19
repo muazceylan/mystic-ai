@@ -43,7 +43,7 @@ export default function RelationshipTypePickerScreen() {
   const rightAvatarUri = firstParam(params.rightAvatarUri);
   const leftSignLabel = firstParam(params.leftSignLabel);
   const rightSignLabel = firstParam(params.rightSignLabel);
-  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
+  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
 
   const goCompare = (type: RelationshipType) => {
     router.push({
