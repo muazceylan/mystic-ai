@@ -27,6 +27,12 @@ public class NotificationGenerationService {
 
     @Transactional
     public Optional<Notification> generateNotification(Long userId, NotificationType type, String locale) {
+        return generateNotification(userId, type, locale, null);
+    }
+
+    @Transactional
+    public Optional<Notification> generateNotification(Long userId, NotificationType type, String locale,
+                                                       AnalysisType analysisType) {
         NotificationPreference pref = preferenceRepository.findById(userId)
                 .orElse(NotificationPreference.builder().userId(userId).build());
 
@@ -41,12 +47,14 @@ public class NotificationGenerationService {
                 ? DeliveryChannel.BOTH
                 : DeliveryChannel.IN_APP;
 
-        return createAndSave(userId, type, locale, pref, channel, dedupKey);
+        return createAndSave(userId, type, locale, pref, channel, dedupKey, analysisType);
     }
 
     private Optional<Notification> createAndSave(Long userId, NotificationType type, String locale,
-                                                  NotificationPreference pref, DeliveryChannel channel, String dedupKey) {
+                                                  NotificationPreference pref, DeliveryChannel channel,
+                                                  String dedupKey, AnalysisType analysisType) {
         NotificationTemplateService.NotificationTemplate template = templateService.getTemplate(type, locale, userId);
+        RouteTarget routeTarget = resolveRouteTarget(type, template, analysisType);
         NotificationCategory category = categorizeType(type);
         Priority priority = determinePriority(type);
 
@@ -56,12 +64,13 @@ public class NotificationGenerationService {
                 .category(category)
                 .title(template.title())
                 .body(template.body())
-                .deeplink(template.deeplink())
+                .deeplink(routeTarget.deeplink())
                 .deliveryChannel(channel)
                 .priority(priority)
-                .sourceModule(type.name().toLowerCase())
+                .sourceModule(routeTarget.moduleKey())
                 .templateKey(template.templateKey())
                 .variantKey(template.variantKey())
+                .analysisType(analysisType)
                 .dedupKey(dedupKey)
                 .expiresAt(calculateExpiry(type))
                 .build();
@@ -98,7 +107,7 @@ public class NotificationGenerationService {
         NotificationPreference pref = preferenceRepository.findById(userId)
                 .orElse(NotificationPreference.builder().userId(userId).build());
         String dedupKey = "test:" + userId + ":" + type + ":" + System.currentTimeMillis();
-        return createAndSave(userId, type, null, pref, DeliveryChannel.BOTH, dedupKey);
+        return createAndSave(userId, type, null, pref, DeliveryChannel.BOTH, dedupKey, null);
     }
 
     /**
@@ -170,4 +179,29 @@ public class NotificationGenerationService {
             case PRODUCT_UPDATE -> LocalDateTime.now().plusDays(30);
         };
     }
+
+    private RouteTarget resolveRouteTarget(
+            NotificationType type,
+            NotificationTemplateService.NotificationTemplate template,
+            AnalysisType analysisType
+    ) {
+        if (type == NotificationType.AI_ANALYSIS_COMPLETE && analysisType != null) {
+            return routeTargetForAnalysis(analysisType);
+        }
+        return new RouteTarget(template.moduleKey(), template.deeplink());
+    }
+
+    private RouteTarget routeTargetForAnalysis(AnalysisType analysisType) {
+        return switch (analysisType) {
+            case DREAM -> new RouteTarget("dream_analysis", "/(tabs)/dreams");
+            case NUMEROLOGY -> new RouteTarget("numerology", "/numerology?entry_point=push_ai_analysis");
+            case COMPATIBILITY -> new RouteTarget("compatibility", "/(tabs)/compatibility");
+            case HOROSCOPE -> new RouteTarget("weekly_horoscope", "/(tabs)/horoscope");
+            case NATAL_CHART -> new RouteTarget("daily_transits", "/(tabs)/natal-chart");
+            case ASTROLOGY -> new RouteTarget("daily_transits", "/(tabs)/calendar");
+            case TAROT, ORACLE -> new RouteTarget("daily_transits", "/daily-summary?entry_point=push_ai_analysis");
+        };
+    }
+
+    private record RouteTarget(String moduleKey, String deeplink) {}
 }

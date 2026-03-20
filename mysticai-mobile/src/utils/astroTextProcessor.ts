@@ -32,7 +32,21 @@ function normalizeForMatch(text: string): string {
 }
 
 function normalizeAiTextForParagraphs(rawText: string): string {
-  return rawText
+  const withoutMetaNoise = rawText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return true;
+      if (/^[{}\[\],"]+$/.test(line)) return false;
+      if (/^("?)(version|tone|sections?|sectionList|topics|planetHighlights|planets|planet_insights|opening|coreSummary|overview|closing|conclusion|analysisLines|bulletPoints|dailyLifeExample|daily_life_example|planetId|intro|character|depth|title|body)\1\s*:/i.test(line)) {
+        return false;
+      }
+      if (/^natal_v\d+$/i.test(line)) return false;
+      return true;
+    })
+    .join('\n');
+
+  return withoutMetaNoise
     .replace(/\r\n/g, '\n')
     .replace(/\u00A0/g, ' ')
     // LLM bazen tek satır sonu ile paragraf verir; cümle sonrası tek newline'ı paragraf kabul et.

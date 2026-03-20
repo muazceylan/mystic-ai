@@ -176,7 +176,7 @@ export default function NatalChartHeroCard({
           <View style={styles.identityCol}>
             <Text style={[styles.eyebrow, { color: colors.violet }]}>YILDIZ HARİTA BİLGİLERİ</Text>
             <Text style={[styles.name, { color: colors.textSlate }]} numberOfLines={1}>
-              {name || 'Mystic Soul'}
+              {name || 'Astro Soul'}
             </Text>
             <Text style={[styles.headerSub, { color: colors.textMuted }]} numberOfLines={1}>
               {dateTimeLine}

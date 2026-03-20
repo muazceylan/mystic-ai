@@ -294,6 +294,7 @@ export default function HomeScreen() {
     isLoading,
     isFetching,
     isError,
+    isOracleLoading,
     refetch,
   } = useHomeDashboard({ user, locale: resolvedLocale });
 
@@ -427,7 +428,9 @@ export default function HomeScreen() {
   const transitMoonPhase = dashboard?.transitsToday?.moonPhase?.trim() || '';
   const transitMoonSign = dashboard?.transitsToday?.moonSign?.trim() || '';
   const transitRetroCount = dashboard?.transitsToday?.retroCount ?? 0;
-  const initialLoading = !dashboard && (isLoading || isFetching);
+  // Fast faz (~1-2sn) tamamlanana kadar true; oracle beklenmez.
+  // Oracle ayrı sorguda yüklenirken sayfa zaten görünür durumdadır.
+  const initialLoading = !dashboard && isLoading;
   const showRetry = isError && !dashboard;
 
   useEffect(() => {
@@ -651,7 +654,7 @@ export default function HomeScreen() {
             illumination={heroIllumination}
             insight={heroInsight}
             ctaLabel={heroCtaText}
-            isLoading={initialLoading}
+            isLoading={initialLoading || isOracleLoading}
             onPress={handlePressSkyCard}
           />
         </SpotlightTarget>
@@ -720,7 +723,7 @@ export default function HomeScreen() {
           sign={signName}
           theme={todayTheme}
           advice={todayAdvice}
-          isLoading={initialLoading && !hasToday}
+          isLoading={(initialLoading || isOracleLoading) && !hasToday}
           onPressToday={handlePressTodayTab}
           onPressWeek={handlePressWeekTab}
           onPressDetails={handlePressHoroscopeDetails}

@@ -1466,6 +1466,8 @@ export default function CompareOverviewScreen() {
                       personASignLabel: leftSignLabel ?? '',
                       personBSignLabel: rightSignLabel ?? '',
                       overallScore: String(data.overall.score),
+                      relationshipType: String(data.relationshipType ?? ''),
+                      relationLabel: `${RELATIONSHIP_TYPE_LABELS[data.relationshipType]} Uyumu`,
                     },
                   } as never);
                 }}

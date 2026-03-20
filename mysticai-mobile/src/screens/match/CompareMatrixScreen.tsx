@@ -34,6 +34,28 @@ function parseSignLabel(value: string | undefined) {
   return parseLocalizedSignLabel(value, '');
 }
 
+function relationLabelFromParam(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const source = String(raw ?? '')
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ş/g, 's')
+    .replace(/ü/g, 'u');
+
+  if (source.includes('work') || source.includes('business')) return 'İş Uyumu';
+  if (source.includes('friend')) return 'Arkadaşlık Uyumu';
+  if (source.includes('family') || source.includes('aile')) return 'Aile Uyumu';
+  if (source.includes('rival') || source.includes('rekabet')) return 'Rekabet Dinamiği';
+  if (source.includes('love') || source.includes('ask') || source.includes('partner') || source.includes('es')) {
+    return 'Aşk Uyumu';
+  }
+  return null;
+}
+
 function resultLabel(value: MatchResultKind) {
   if (value === 'UYUMLU') return 'Uyumlu';
   if (value === 'DIKKAT') return 'Dikkat';
@@ -50,6 +72,8 @@ export default function CompareMatrixScreen() {
     personAAvatarUri?: string;
     personBAvatarUri?: string;
     overallScore?: string;
+    relationshipType?: string;
+    relationLabel?: string;
   }>();
   const { colors } = useTheme();
   const [filter, setFilter] = useState<MatrixFilter>('HEPSI');
@@ -91,6 +115,10 @@ export default function CompareMatrixScreen() {
         personASignLabel: params.personASignLabel,
         personBSignLabel: params.personBSignLabel,
         overallScore: String(data?.overallScore ?? overallScore ?? 0),
+        ...(params.relationshipType ? { relationshipType: params.relationshipType } : {}),
+        ...((params.relationLabel ?? relationLabelFromParam(params.relationshipType))
+          ? { relationLabel: params.relationLabel ?? relationLabelFromParam(params.relationshipType) ?? undefined }
+          : {}),
       },
     } as any);
   };

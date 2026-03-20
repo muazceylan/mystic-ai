@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4E2AAF"/>
+      <stop offset="55%" stop-color="#2D0D83"/>
+      <stop offset="100%" stop-color="#190744"/>
+    </linearGradient>
+    <linearGradient id="gfill" x1="0.18" y1="0.12" x2="0.82" y2="0.88">
+      <stop offset="0%" stop-color="#F5EDFF"/>
+      <stop offset="30%" stop-color="#D7B6FF"/>
+      <stop offset="62%" stop-color="#9E56FF"/>
+      <stop offset="100%" stop-color="#5F22D8"/>
+    </linearGradient>
+    <linearGradient id="tailfill" x1="0.2" y1="0.2" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F0DEFF"/>
+      <stop offset="35%" stop-color="#C896FF"/>
+      <stop offset="100%" stop-color="#6A27E2"/>
+    </linearGradient>
+    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="38%" stop-color="#F7E9FF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#B257FF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="haloBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <g id="background">
+    <rect width="1024" height="1024" rx="0" fill="url(#bg)"/>
+    <circle cx="512" cy="468" r="350" fill="#7A46FF" opacity="0.12" filter="url(#softGlow)"/>
+  </g>
+  <g id="halo">
+    <path d="M258 430 C 275 325, 352 240, 470 210 C 678 155, 850 262, 840 430" fill="none" stroke="#A765FF" stroke-opacity="0.45" stroke-width="18" stroke-linecap="round" filter="url(#haloBlur)"/>
+    <path d="M278 708 C 350 792, 490 834, 650 800 C 763 776, 834 712, 848 640" fill="none" stroke="#7F38FF" stroke-opacity="0.42" stroke-width="18" stroke-linecap="round" filter="url(#haloBlur)"/>
+  </g>
+  <g id="symbol-shadow" opacity="0.33">
+    <path d="M292 325 C 380 198, 592 171, 730 258 C 756 274, 770 291, 780 309 C 742 290, 694 281, 627 286 C 481 296, 370 355, 344 465 C 317 584, 391 687, 538 700 C 614 706, 676 687, 730 650 C 713 690, 684 724, 635 748 C 554 788, 440 790, 355 749 C 233 690, 183 564, 221 452 C 235 408, 256 364, 292 325 Z" fill="#0F062C"/>
+    <path d="M530 470 C 630 442, 737 446, 792 492 C 835 529, 830 602, 790 658 C 749 716, 684 758, 595 770 C 648 740, 684 708, 703 665 C 721 624, 717 592, 692 568 C 650 528, 567 516, 474 533 C 484 503, 499 481, 530 470 Z" fill="#0F062C"/>
+  </g>
+  <g id="symbol-main">
+    <path d="M282 306 C 366 210, 559 178, 700 238 C 749 258, 784 287, 806 322 C 748 300, 688 293, 616 300 C 475 314, 373 365, 341 454 C 301 570, 378 676, 515 694 C 606 706, 684 683, 753 624 C 734 689, 690 742, 624 777 C 547 818, 432 817, 342 773 C 219 714, 163 589, 195 472 C 216 404, 242 352, 282 306 Z" fill="url(#gfill)"/>
+    <path d="M512 460 C 627 431, 747 439, 806 491 C 858 537, 848 624, 792 689 C 737 753, 663 790, 568 799 C 630 760, 672 722, 692 674 C 710 631, 703 596, 674 569 C 629 527, 549 517, 455 534 C 472 494, 486 470, 512 460 Z" fill="url(#tailfill)"/>
+  </g>
+  <g id="star">
+    <circle cx="512" cy="476" r="128" fill="url(#starGlow)"/>
+    <circle cx="512" cy="476" r="20" fill="#FFFFFF"/>
+    <path d="M512 332 L525 463 L656 476 L525 489 L512 620 L499 489 L368 476 L499 463 Z" fill="#FFF8FF" opacity="0.96"/>
+    <path d="M436 400 L491 455 L512 476 L491 497 L436 552 L491 497 L512 476 L491 455 Z" fill="#EED4FF" opacity="0.78"/>
+    <path d="M588 400 L533 455 L512 476 L533 497 L588 552 L533 497 L512 476 L533 455 Z" fill="#EED4FF" opacity="0.78"/>
+  </g>
+</svg>

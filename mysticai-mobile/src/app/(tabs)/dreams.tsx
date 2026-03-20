@@ -1227,7 +1227,7 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   <div class="section-label" style="margin-top:24px">✦ Kozmik Yorum</div>
   <div class="story">${story.replace(/\n/g, '<br/>')}</div>
   ${dreamRows ? `<div class="dreams-section"><div class="dreams-title">📋 Bu Aydaki Rüyalarım (${entries.length} Adet)</div>${dreamRows}</div>` : ''}
-  <div class="footer">Mystic AI tarafından oluşturuldu • ${period}</div>
+  <div class="footer">Astro Guru tarafından oluşturuldu • ${period}</div>
 </body>
 </html>`;
 }

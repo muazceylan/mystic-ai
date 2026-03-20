@@ -48,6 +48,59 @@ type CardPanel = {
   footnote?: string | null;
 };
 
+type CardVisualTheme = {
+  cardGradient: [string, string, string];
+  scoreGradient: [string, string];
+  scoreBorder: string;
+  scoreShadow: string;
+  headerText: string;
+  headerLine: string;
+  nameText: string;
+  connectorText: string;
+  sublineText: string;
+  metricBg: string;
+  metricBorder: string;
+  metricText: string;
+  metricValue: string;
+  panelBg: string;
+  panelBorder: string;
+  panelTitle: string;
+  panelBody: string;
+  panelSoftText: string;
+  panelBubble: string;
+  summaryBg: string;
+  summaryBorder: string;
+  summaryMainText: string;
+  summarySubText: string;
+  footerBg: string;
+  footerBorder: string;
+  footerMainText: string;
+  footerSoftText: string;
+  glowMain: string;
+  glowAltA: string;
+  glowAltB: string;
+  cloudA: string;
+  cloudB: string;
+  showHearts: boolean;
+};
+
+type CardCopyBudget = {
+  summary: number;
+  summaryLine: number;
+  traitList: number;
+  axisNote: number;
+  scoreHint: number;
+  duoRow: number;
+  panelEmphasis: number;
+  panelLead: number;
+  panelCallout: number;
+  panelFootnote: number;
+  genericLead: number;
+  genericBullet: number;
+  strongest: number;
+  caution: number;
+};
+
 const DISPLAY_SCRIPT = Platform.select({
   ios: 'Snell Roundhand',
   android: 'serif',
@@ -91,16 +144,196 @@ function clip(text: string | null | undefined, max = 88) {
   return `${normalized.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
-function relationTheme(type?: RelationshipType, relationLabel?: string) {
+function concise(text: string | null | undefined, max = 52) {
+  const normalized = String(text ?? '').trim().replace(/\s+/g, ' ');
+  if (!normalized) return '';
+  const firstSentence = normalized.split(/(?<=[.!?])\s+/)[0] || normalized;
+  const firstClause = firstSentence.split(/[,:;]/)[0]?.trim() || firstSentence;
+  const compacted = firstClause
+    .replace(/\b(aynı zamanda|oldukça|genellikle|özellikle)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const candidate = compacted || firstClause;
+  if (candidate.length <= max) return candidate;
+
+  const trimWordSafe = (value: string, limit: number) => {
+    if (value.length <= limit) return value;
+    const slice = value.slice(0, limit + 1);
+    const boundary = slice.lastIndexOf(' ');
+    const shortened = (boundary > 10 ? slice.slice(0, boundary) : value.slice(0, limit)).trim();
+    return shortened;
+  };
+
+  const shortCandidate = trimWordSafe(candidate, max);
+  if (shortCandidate.length >= Math.max(12, Math.floor(max * 0.55))) return shortCandidate;
+
+  const shortSentence = trimWordSafe(firstSentence, max);
+  if (shortSentence.length >= Math.max(12, Math.floor(max * 0.55))) return shortSentence;
+
+  const shortNormalized = trimWordSafe(normalized, max);
+  if (shortNormalized.length >= Math.max(12, Math.floor(max * 0.55))) return shortNormalized;
+
+  return trimWordSafe('Denge korunuyor', max);
+}
+
+function relationCopyBudget(type?: RelationshipType): CardCopyBudget {
+  if (type === 'LOVE') {
+    return {
+      summary: 64,
+      summaryLine: 40,
+      traitList: 40,
+      axisNote: 38,
+      scoreHint: 38,
+      duoRow: 24,
+      panelEmphasis: 32,
+      panelLead: 32,
+      panelCallout: 28,
+      panelFootnote: 30,
+      genericLead: 34,
+      genericBullet: 32,
+      strongest: 24,
+      caution: 26,
+    };
+  }
+  if (type === 'FRIENDSHIP') {
+    return {
+      summary: 68,
+      summaryLine: 44,
+      traitList: 42,
+      axisNote: 40,
+      scoreHint: 40,
+      duoRow: 26,
+      panelEmphasis: 34,
+      panelLead: 34,
+      panelCallout: 30,
+      panelFootnote: 32,
+      genericLead: 36,
+      genericBullet: 34,
+      strongest: 24,
+      caution: 28,
+    };
+  }
+  if (type === 'BUSINESS') {
+    return {
+      summary: 62,
+      summaryLine: 38,
+      traitList: 38,
+      axisNote: 36,
+      scoreHint: 36,
+      duoRow: 23,
+      panelEmphasis: 30,
+      panelLead: 30,
+      panelCallout: 27,
+      panelFootnote: 29,
+      genericLead: 32,
+      genericBullet: 30,
+      strongest: 22,
+      caution: 26,
+    };
+  }
+  if (type === 'FAMILY') {
+    return {
+      summary: 64,
+      summaryLine: 40,
+      traitList: 40,
+      axisNote: 38,
+      scoreHint: 38,
+      duoRow: 24,
+      panelEmphasis: 32,
+      panelLead: 32,
+      panelCallout: 28,
+      panelFootnote: 30,
+      genericLead: 34,
+      genericBullet: 32,
+      strongest: 24,
+      caution: 28,
+    };
+  }
+  if (type === 'RIVAL') {
+    return {
+      summary: 60,
+      summaryLine: 36,
+      traitList: 36,
+      axisNote: 34,
+      scoreHint: 34,
+      duoRow: 22,
+      panelEmphasis: 28,
+      panelLead: 28,
+      panelCallout: 26,
+      panelFootnote: 28,
+      genericLead: 30,
+      genericBullet: 28,
+      strongest: 22,
+      caution: 24,
+    };
+  }
+  return {
+    summary: 62,
+    summaryLine: 40,
+    traitList: 40,
+    axisNote: 38,
+    scoreHint: 38,
+    duoRow: 24,
+    panelEmphasis: 32,
+    panelLead: 32,
+    panelCallout: 28,
+    panelFootnote: 30,
+    genericLead: 34,
+    genericBullet: 32,
+    strongest: 24,
+    caution: 26,
+  };
+}
+
+function relationTheme(type?: RelationshipType, relationLabel?: string): {
+  title: string;
+  cardKind: string;
+  connector: string;
+  footerCta: string;
+  visual: CardVisualTheme;
+} {
   switch (type) {
     case 'LOVE':
       return {
-        title: 'EŞ UYUMU',
+        title: 'AŞK UYUMU',
         cardKind: 'SYNASTRY KARTI',
         connector: '♡',
         footerCta: 'Kendi uyum kartını oluştur',
-        primaryGlow: '#FF4FD8',
-        secondaryGlow: '#A855F7',
+        visual: {
+          cardGradient: ['#F8F1FF', '#F0E3FB', '#E6D3F6'],
+          scoreGradient: ['rgba(197,146,243,0.96)', 'rgba(152,103,214,0.96)'],
+          scoreBorder: 'rgba(255,255,255,0.58)',
+          scoreShadow: '#B06DE4',
+          headerText: '#725394',
+          headerLine: 'rgba(126, 86, 170, 0.18)',
+          nameText: '#7C49B4',
+          connectorText: '#9E6BD4',
+          sublineText: '#6D5A8F',
+          metricBg: 'rgba(255,255,255,0.58)',
+          metricBorder: 'rgba(255,255,255,0.66)',
+          metricText: '#66468C',
+          metricValue: '#563381',
+          panelBg: 'rgba(255,255,255,0.52)',
+          panelBorder: 'rgba(255,255,255,0.74)',
+          panelTitle: '#6A4595',
+          panelBody: '#654D87',
+          panelSoftText: '#7A629B',
+          panelBubble: 'rgba(227, 202, 246, 0.46)',
+          summaryBg: 'rgba(255,255,255,0.56)',
+          summaryBorder: 'rgba(255,255,255,0.72)',
+          summaryMainText: '#603F89',
+          summarySubText: '#6E518F',
+          footerBg: 'rgba(255,255,255,0.46)',
+          footerBorder: 'rgba(255,255,255,0.64)',
+          footerMainText: '#64448C',
+          footerSoftText: '#73569A',
+          glowMain: '#FFFFFF',
+          glowAltA: '#F5CFFF',
+          glowAltB: '#E7D7FF',
+          cloudA: 'rgba(242, 221, 255, 0.75)',
+          cloudB: 'rgba(225, 194, 247, 0.72)',
+          showHearts: true,
+        },
       };
     case 'FRIENDSHIP':
       return {
@@ -108,8 +341,41 @@ function relationTheme(type?: RelationshipType, relationLabel?: string) {
         cardKind: 'SYNASTRY KARTI',
         connector: '♡',
         footerCta: 'Kendi arkadaşlık kartını oluştur',
-        primaryGlow: '#FF4FD8',
-        secondaryGlow: '#7C3AED',
+        visual: {
+          cardGradient: ['#FFF2FE', '#F9E5FF', '#EED5FB'],
+          scoreGradient: ['rgba(240,116,209,0.94)', 'rgba(164,90,226,0.94)'],
+          scoreBorder: 'rgba(255,255,255,0.62)',
+          scoreShadow: '#D152B2',
+          headerText: '#7A4798',
+          headerLine: 'rgba(154, 95, 181, 0.2)',
+          nameText: '#A038A1',
+          connectorText: '#C16AC9',
+          sublineText: '#744F8D',
+          metricBg: 'rgba(255,255,255,0.58)',
+          metricBorder: 'rgba(255,255,255,0.7)',
+          metricText: '#6A3E88',
+          metricValue: '#9138A4',
+          panelBg: 'rgba(255,255,255,0.56)',
+          panelBorder: 'rgba(255,255,255,0.76)',
+          panelTitle: '#7B4699',
+          panelBody: '#654D87',
+          panelSoftText: '#805F9D',
+          panelBubble: 'rgba(245, 198, 244, 0.52)',
+          summaryBg: 'rgba(255,255,255,0.58)',
+          summaryBorder: 'rgba(255,255,255,0.74)',
+          summaryMainText: '#6B418C',
+          summarySubText: '#744E92',
+          footerBg: 'rgba(255,255,255,0.5)',
+          footerBorder: 'rgba(255,255,255,0.66)',
+          footerMainText: '#734691',
+          footerSoftText: '#825DA0',
+          glowMain: '#FFE6FF',
+          glowAltA: '#FFB3F0',
+          glowAltB: '#F0D4FF',
+          cloudA: 'rgba(255, 216, 245, 0.77)',
+          cloudB: 'rgba(240, 188, 241, 0.72)',
+          showHearts: true,
+        },
       };
     case 'BUSINESS':
       return {
@@ -117,8 +383,41 @@ function relationTheme(type?: RelationshipType, relationLabel?: string) {
         cardKind: 'SYNASTRY KARTI',
         connector: '✦',
         footerCta: 'Kendi iş uyum kartını oluştur',
-        primaryGlow: '#F472B6',
-        secondaryGlow: '#2563EB',
+        visual: {
+          cardGradient: ['#EEF4FF', '#E3ECFF', '#D4E3FF'],
+          scoreGradient: ['rgba(105,153,239,0.95)', 'rgba(67,116,206,0.95)'],
+          scoreBorder: 'rgba(255,255,255,0.64)',
+          scoreShadow: '#5C87D2',
+          headerText: '#4A648C',
+          headerLine: 'rgba(88, 124, 176, 0.24)',
+          nameText: '#3E5B93',
+          connectorText: '#5F76B2',
+          sublineText: '#566985',
+          metricBg: 'rgba(255,255,255,0.66)',
+          metricBorder: 'rgba(255,255,255,0.8)',
+          metricText: '#4B5F82',
+          metricValue: '#3D5480',
+          panelBg: 'rgba(255,255,255,0.62)',
+          panelBorder: 'rgba(255,255,255,0.8)',
+          panelTitle: '#4A6392',
+          panelBody: '#4F607D',
+          panelSoftText: '#617391',
+          panelBubble: 'rgba(197, 219, 255, 0.6)',
+          summaryBg: 'rgba(255,255,255,0.64)',
+          summaryBorder: 'rgba(255,255,255,0.8)',
+          summaryMainText: '#415C8A',
+          summarySubText: '#536A8C',
+          footerBg: 'rgba(255,255,255,0.58)',
+          footerBorder: 'rgba(255,255,255,0.74)',
+          footerMainText: '#45608E',
+          footerSoftText: '#5D7398',
+          glowMain: '#ECF4FF',
+          glowAltA: '#C3D8FF',
+          glowAltB: '#BFD1F9',
+          cloudA: 'rgba(215, 229, 255, 0.78)',
+          cloudB: 'rgba(193, 213, 247, 0.72)',
+          showHearts: false,
+        },
       };
     case 'FAMILY':
       return {
@@ -126,8 +425,41 @@ function relationTheme(type?: RelationshipType, relationLabel?: string) {
         cardKind: 'SYNASTRY KARTI',
         connector: '♡',
         footerCta: 'Kendi aile uyum kartını oluştur',
-        primaryGlow: '#FB7185',
-        secondaryGlow: '#A855F7',
+        visual: {
+          cardGradient: ['#FFF5F7', '#FDEAF1', '#F6DDEB'],
+          scoreGradient: ['rgba(232,133,181,0.94)', 'rgba(186,102,157,0.94)'],
+          scoreBorder: 'rgba(255,255,255,0.62)',
+          scoreShadow: '#C3719A',
+          headerText: '#8C5074',
+          headerLine: 'rgba(181, 117, 152, 0.2)',
+          nameText: '#A14C80',
+          connectorText: '#BD6C98',
+          sublineText: '#805E73',
+          metricBg: 'rgba(255,255,255,0.6)',
+          metricBorder: 'rgba(255,255,255,0.74)',
+          metricText: '#7D506B',
+          metricValue: '#914A77',
+          panelBg: 'rgba(255,255,255,0.56)',
+          panelBorder: 'rgba(255,255,255,0.74)',
+          panelTitle: '#8E4D74',
+          panelBody: '#74576D',
+          panelSoftText: '#8A6880',
+          panelBubble: 'rgba(247, 206, 226, 0.6)',
+          summaryBg: 'rgba(255,255,255,0.58)',
+          summaryBorder: 'rgba(255,255,255,0.74)',
+          summaryMainText: '#7D4E68',
+          summarySubText: '#87627A',
+          footerBg: 'rgba(255,255,255,0.5)',
+          footerBorder: 'rgba(255,255,255,0.68)',
+          footerMainText: '#83506E',
+          footerSoftText: '#916C82',
+          glowMain: '#FFECEF',
+          glowAltA: '#F8C8DD',
+          glowAltB: '#F1D9F6',
+          cloudA: 'rgba(251, 225, 236, 0.78)',
+          cloudB: 'rgba(241, 205, 223, 0.72)',
+          showHearts: true,
+        },
       };
     case 'RIVAL':
       return {
@@ -135,8 +467,41 @@ function relationTheme(type?: RelationshipType, relationLabel?: string) {
         cardKind: 'SYNASTRY KARTI',
         connector: '✦',
         footerCta: 'Kendi rekabet kartını oluştur',
-        primaryGlow: '#F43F5E',
-        secondaryGlow: '#7C3AED',
+        visual: {
+          cardGradient: ['#FFF1F6', '#F8E2EC', '#EBD8E9'],
+          scoreGradient: ['rgba(220,100,146,0.95)', 'rgba(124,88,180,0.95)'],
+          scoreBorder: 'rgba(255,255,255,0.6)',
+          scoreShadow: '#8E5B9D',
+          headerText: '#704760',
+          headerLine: 'rgba(144, 94, 129, 0.22)',
+          nameText: '#8A436C',
+          connectorText: '#A65D88',
+          sublineText: '#6B5567',
+          metricBg: 'rgba(255,255,255,0.62)',
+          metricBorder: 'rgba(255,255,255,0.76)',
+          metricText: '#6B4B67',
+          metricValue: '#7F3D6A',
+          panelBg: 'rgba(255,255,255,0.58)',
+          panelBorder: 'rgba(255,255,255,0.76)',
+          panelTitle: '#754A73',
+          panelBody: '#6A576A',
+          panelSoftText: '#7F6A7D',
+          panelBubble: 'rgba(232, 201, 230, 0.62)',
+          summaryBg: 'rgba(255,255,255,0.6)',
+          summaryBorder: 'rgba(255,255,255,0.74)',
+          summaryMainText: '#6B4268',
+          summarySubText: '#775A76',
+          footerBg: 'rgba(255,255,255,0.54)',
+          footerBorder: 'rgba(255,255,255,0.68)',
+          footerMainText: '#704A6F',
+          footerSoftText: '#856A84',
+          glowMain: '#FFE9F1',
+          glowAltA: '#F0BDD6',
+          glowAltB: '#E0CCF0',
+          cloudA: 'rgba(243, 221, 234, 0.78)',
+          cloudB: 'rgba(226, 198, 220, 0.72)',
+          showHearts: false,
+        },
       };
     default:
       return {
@@ -144,8 +509,41 @@ function relationTheme(type?: RelationshipType, relationLabel?: string) {
         cardKind: 'SYNASTRY KARTI',
         connector: '✦',
         footerCta: 'Kendi yıldız kartını oluştur',
-        primaryGlow: '#FF4FD8',
-        secondaryGlow: '#8B5CF6',
+        visual: {
+          cardGradient: ['#F8F1FF', '#F0E3FB', '#E6D3F6'],
+          scoreGradient: ['rgba(197,146,243,0.96)', 'rgba(152,103,214,0.96)'],
+          scoreBorder: 'rgba(255,255,255,0.58)',
+          scoreShadow: '#B06DE4',
+          headerText: '#725394',
+          headerLine: 'rgba(126, 86, 170, 0.18)',
+          nameText: '#7C49B4',
+          connectorText: '#9E6BD4',
+          sublineText: '#6D5A8F',
+          metricBg: 'rgba(255,255,255,0.58)',
+          metricBorder: 'rgba(255,255,255,0.66)',
+          metricText: '#66468C',
+          metricValue: '#563381',
+          panelBg: 'rgba(255,255,255,0.52)',
+          panelBorder: 'rgba(255,255,255,0.74)',
+          panelTitle: '#6A4595',
+          panelBody: '#654D87',
+          panelSoftText: '#7A629B',
+          panelBubble: 'rgba(227, 202, 246, 0.46)',
+          summaryBg: 'rgba(255,255,255,0.56)',
+          summaryBorder: 'rgba(255,255,255,0.72)',
+          summaryMainText: '#603F89',
+          summarySubText: '#6E518F',
+          footerBg: 'rgba(255,255,255,0.46)',
+          footerBorder: 'rgba(255,255,255,0.64)',
+          footerMainText: '#64448C',
+          footerSoftText: '#73569A',
+          glowMain: '#FFFFFF',
+          glowAltA: '#F5CFFF',
+          glowAltB: '#E7D7FF',
+          cloudA: 'rgba(242, 221, 255, 0.75)',
+          cloudB: 'rgba(225, 194, 247, 0.72)',
+          showHearts: true,
+        },
       };
   }
 }
@@ -260,14 +658,14 @@ function compactTraitLabel(label?: string | null, fallback = 'Denge') {
     .replace(/\s+/g, ' ')
     .trim();
   if (!cleaned) return fallback;
-  return clip(cleaned, 18);
+  return clip(cleaned, 16);
 }
 
 function traitPair(a?: string | null, b?: string | null, fallbackA = 'İlgi', fallbackB = 'Destek') {
   return `${compactTraitLabel(a, fallbackA)} + ${compactTraitLabel(b, fallbackB)}`;
 }
 
-function combineTraitList(values: Array<string | null | undefined>, fallback: string) {
+function combineTraitList(values: Array<string | null | undefined>, fallback: string, max = 46) {
   const unique = Array.from(
     new Set(
       values
@@ -276,7 +674,7 @@ function combineTraitList(values: Array<string | null | undefined>, fallback: st
     ),
   );
   if (!unique.length) return fallback;
-  return clip(unique.map((v) => compactTraitLabel(v)).join(', '), 54);
+  return concise(unique.map((v) => compactTraitLabel(v)).join(', '), max);
 }
 
 function relationPanelTemplates(type?: RelationshipType): Array<{ icon: string; title: string }> {
@@ -333,11 +731,12 @@ function buildPanels(
   traitAxes: TraitAxis[],
   summary: string,
   overallScore: number,
+  budget: CardCopyBudget,
 ): CardPanel[] {
   const templates = relationPanelTemplates(relationshipType);
   const linesFromSummary = summary
     .split(/(?<=[.!?])\s+/)
-    .map((s) => clip(s, 54))
+    .map((s) => concise(s, budget.summaryLine))
     .filter(Boolean);
 
   if (relationshipType === 'LOVE') {
@@ -376,7 +775,7 @@ function buildPanels(
             text: traitPair(d0?.balancing, d1?.balancing, 'Destek', 'Dokunuş'),
           },
         ],
-        emphasis: clip(linesFromSummary[0] || 'Sevgi ritminiz birbirine iyi geliyor.', 54),
+        emphasis: concise(linesFromSummary[0] || 'Sevgi ritminiz birbirine iyi geliyor.', budget.panelEmphasis),
       },
       {
         icon: '💬',
@@ -387,36 +786,34 @@ function buildPanels(
         leadText: combineTraitList(
           [d0?.dominant, d1?.dominant, d2?.dominant, d3?.dominant],
           'Şefkat, destek, teslimiyet',
+          budget.traitList,
         ),
         calloutLabel: 'Altın kural',
-        calloutText: clip(linesFromSummary[1] || 'Önce duygu, sonra çözüm.', 52),
-        footnote: clip(traitAxes[1]?.note || 'Kırgınlık varsa önce onu duyun.', 50),
+        calloutText: concise(linesFromSummary[1] || 'Önce duygu, sonra çözüm.', budget.panelCallout),
+        footnote: concise(traitAxes[1]?.note || 'Kırgınlık varsa önce onu duyun.', budget.panelFootnote),
       },
       {
         icon: '🔥',
         title: 'Çekim & Tutku',
         lines: [],
         variant: 'focus',
-        leadText: clip(attractionTone, 56),
+        leadText: concise(attractionTone, budget.panelLead),
         calloutLabel: 'Dikkat',
-        calloutText: clip(
-          `${compactTraitLabel(d3?.balancing, 'Rutin')} tarafı ihmal edilirse yanlış anlamalar büyüyebilir.`,
-          54,
-        ),
-        footnote: clip(traitAxes[3]?.note || 'Açık konuşma çekimi korur.', 50),
+        calloutText: concise(`${compactTraitLabel(d3?.balancing, 'Rutin')} ihmal edilirse gerginlik artar.`, budget.panelCallout),
+        footnote: concise(traitAxes[3]?.note || 'Açık konuşma çekimi korur.', budget.panelFootnote),
       },
       {
         icon: '🛡️',
         title: 'Güven & Bağlılık',
         lines: [],
         variant: 'trust',
-        leadText: clip(trustTone, 56),
+        leadText: concise(trustTone, budget.panelLead),
         calloutLabel: 'İstikrarı besleyen anahtar',
-        calloutText: clip(
+        calloutText: concise(
           `${compactTraitLabel(d2?.dominant, 'Samimi açıklık')} + ${compactTraitLabel(d2?.balancing, 'Netlik')}`,
-          54,
+          budget.panelCallout,
         ),
-        footnote: clip(traitAxes[2]?.note || 'Söz-eylem uyumu bağı sakinleştirir.', 50),
+        footnote: concise(traitAxes[2]?.note || 'Söz-eylem uyumu bağı sakinleştirir.', budget.panelFootnote),
       },
     ];
   }
@@ -446,7 +843,7 @@ function buildPanels(
             text: traitPair(d0?.balancing, d1?.balancing, 'Neşe', 'Destek'),
           },
         ],
-        emphasis: clip(linesFromSummary[0] || 'Birlikte keşfetmeyi seviyorsunuz.', 54),
+        emphasis: concise(linesFromSummary[0] || 'Birlikte keşfetmeyi seviyorsunuz.', budget.panelEmphasis),
       },
       {
         icon: '🎉',
@@ -461,8 +858,8 @@ function buildPanels(
               ? 'Aynı ritmi bulunca keyif hızla artar.'
               : 'Kısa planlar eğlence akışını toparlar.',
         calloutLabel: 'Mini not',
-        calloutText: clip(linesFromSummary[1] || 'Kısa kaçamaklar bağınızı canlandırır.', 54),
-        footnote: clip(traitAxes[1]?.note || 'Tempo farkında sırayla aktivite seçin.', 52),
+        calloutText: concise(linesFromSummary[1] || 'Kısa kaçamaklar bağınızı canlandırır.', budget.panelCallout),
+        footnote: concise(traitAxes[1]?.note || 'Tempo farkında sırayla aktivite seçin.', budget.panelFootnote),
       },
       {
         icon: '🛡️',
@@ -476,11 +873,11 @@ function buildPanels(
               ? 'Güven hızla oturur; düzenli temas iyi gelir.'
               : 'Güven yavaş açılır; baskısız iletişim daha iyi çalışır.',
         calloutLabel: 'Hızlı güven',
-        calloutText: clip(
+        calloutText: concise(
           `${compactTraitLabel(d2?.dominant, 'Yanında olma')} + ${compactTraitLabel(d2?.balancing, 'Tutarlılık')}`,
-          54,
+          budget.panelCallout,
         ),
-        footnote: clip(traitAxes[2]?.note || 'Yargısız dinlemek güveni artırır.', 52),
+        footnote: concise(traitAxes[2]?.note || 'Yargısız dinlemek güveni artırır.', budget.panelFootnote),
       },
       {
         icon: '💞',
@@ -494,8 +891,8 @@ function buildPanels(
               ? 'Destek gücünüz iyi; zamanlama ile daha da artar.'
               : 'Destek var; beklentiyi açık konuşmak işleri kolaylaştırır.',
         calloutLabel: 'Altın anahtar',
-        calloutText: clip(`${compactTraitLabel(d3?.dominant, 'Empati')} + pozitif yaklaşım`, 54),
-        footnote: clip(traitAxes[3]?.note || 'Zor anda ihtiyaç sorusu çok işe yarar.', 52),
+        calloutText: concise(`${compactTraitLabel(d3?.dominant, 'Empati')} + pozitif yaklaşım`, budget.panelCallout),
+        footnote: concise(traitAxes[3]?.note || 'Zor anda ihtiyaç sorusu çok işe yarar.', budget.panelFootnote),
       },
     ];
   }
@@ -518,7 +915,7 @@ function buildPanels(
           { name: user1Name, text: traitPair(d0?.dominant, d1?.dominant, 'Vizyon', 'İcra') },
           { name: user2Name, text: traitPair(d0?.balancing, d1?.balancing, 'Plan', 'Takip') },
         ],
-        emphasis: clip(linesFromSummary[0] || 'Net hedef koyunca verim artar.', 54),
+        emphasis: concise(linesFromSummary[0] || 'Net hedef koyunca verim artar.', budget.panelEmphasis),
       },
       {
         icon: '💬',
@@ -526,10 +923,10 @@ function buildPanels(
         lines: [],
         variant: 'bond',
         leadLabel: 'Karar ritmi',
-        leadText: combineTraitList([d1?.dominant, d1?.balancing, d2?.dominant], 'Netlik, hız, koordinasyon'),
+        leadText: combineTraitList([d1?.dominant, d1?.balancing, d2?.dominant], 'Netlik, hız, koordinasyon', budget.traitList),
         calloutLabel: 'Toplantı kuralı',
-        calloutText: clip(linesFromSummary[1] || 'Önce hedef, sonra seçenek.', 52),
-        footnote: clip(traitAxes[1]?.note || 'Rol netliği sürtünmeyi azaltır.', 50),
+        calloutText: concise(linesFromSummary[1] || 'Önce hedef, sonra seçenek.', budget.panelCallout),
+        footnote: concise(traitAxes[1]?.note || 'Rol netliği sürtünmeyi azaltır.', budget.panelFootnote),
       },
       {
         icon: '🧩',
@@ -541,8 +938,8 @@ function buildPanels(
             ? 'Rol paylaşımı doğruysa iş akışı hızlanır.'
             : 'Rol sınırları netleşince verim artar.',
         calloutLabel: 'Dikkat',
-        calloutText: clip(`${compactTraitLabel(d2?.balancing, 'Yetki')} belirsizliği yavaşlatır.`, 52),
-        footnote: clip(traitAxes[2]?.note || 'Sorumlulukları yazılı netleştirin.', 50),
+        calloutText: concise(`${compactTraitLabel(d2?.balancing, 'Yetki')} belirsizliği yavaşlatır.`, budget.panelCallout),
+        footnote: concise(traitAxes[2]?.note || 'Sorumlulukları yazılı netleştirin.', budget.panelFootnote),
       },
       {
         icon: '🛡️',
@@ -554,8 +951,8 @@ function buildPanels(
             ? 'Takip ve tutarlılık profesyonel güven kuruyor.'
             : 'Güven için zamanında teslim ve görünür iletişim kritik.',
         calloutLabel: 'Anahtar',
-        calloutText: clip(`${compactTraitLabel(d3?.dominant, 'Takip')} + ${compactTraitLabel(d3?.balancing, 'Şeffaflık')}`, 54),
-        footnote: clip(traitAxes[3]?.note || 'Teslim tarihi netliği güven kurar.', 50),
+        calloutText: concise(`${compactTraitLabel(d3?.dominant, 'Takip')} + ${compactTraitLabel(d3?.balancing, 'Şeffaflık')}`, budget.panelCallout),
+        footnote: concise(traitAxes[3]?.note || 'Teslim tarihi netliği güven kurar.', budget.panelFootnote),
       },
     ];
   }
@@ -578,7 +975,7 @@ function buildPanels(
           { name: user1Name, text: traitPair(d0?.dominant, d2?.dominant, 'İlgi', 'Yakınlık') },
           { name: user2Name, text: traitPair(d0?.balancing, d2?.balancing, 'Destek', 'Sabır') },
         ],
-        emphasis: clip(linesFromSummary[0] || 'Şefkat diliniz farklı, niyetiniz ortak.', 54),
+        emphasis: concise(linesFromSummary[0] || 'Şefkat diliniz farklı, niyetiniz ortak.', budget.panelEmphasis),
       },
       {
         icon: '🏡',
@@ -591,18 +988,18 @@ function buildPanels(
             ? 'Düzen ve temas bir araya gelince huzur artar.'
             : 'Ritim farkları konuşuldukça denge güçlenir.',
         calloutLabel: 'Mini kural',
-        calloutText: clip(linesFromSummary[1] || 'Küçük rutinler gerilimi azaltır.', 52),
-        footnote: clip(traitAxes[1]?.note || 'Rol paylaşımı görünür olsun.', 50),
+        calloutText: concise(linesFromSummary[1] || 'Küçük rutinler gerilimi azaltır.', budget.panelCallout),
+        footnote: concise(traitAxes[1]?.note || 'Rol paylaşımı görünür olsun.', budget.panelFootnote),
       },
       {
         icon: '💬',
         title: 'Duygu & İletişim',
         lines: [],
         variant: 'focus',
-        leadText: 'Duygular konuşulunca yanlış anlamalar hızla çözülür.',
+        leadText: 'Duygular konuşulunca yanlış anlama azalır.',
         calloutLabel: 'Dikkat',
-        calloutText: clip(`${compactTraitLabel(d2?.balancing, 'Savunma')} yükselirse tonu yumuşatın.`, 54),
-        footnote: clip(traitAxes[2]?.note || 'Önce duygu, sonra çözüm daha iyi işler.', 50),
+        calloutText: concise(`${compactTraitLabel(d2?.balancing, 'Savunma')} yükselirse tonu yumuşatın.`, budget.panelCallout),
+        footnote: concise(traitAxes[2]?.note || 'Önce duygu, sonra çözüm daha iyi işler.', budget.panelFootnote),
       },
       {
         icon: '🤝',
@@ -614,8 +1011,8 @@ function buildPanels(
             ? 'Zor zamanda birlikte toparlanma gücünüz yüksek.'
             : 'Dayanışma var; iş bölümü netleşince güçlenir.',
         calloutLabel: 'Güçlendiren anahtar',
-        calloutText: clip(`${compactTraitLabel(d3?.dominant, 'Sahip çıkma')} + ${compactTraitLabel(d3?.balancing, 'Sakinlik')}`, 54),
-        footnote: clip(traitAxes[3]?.note || 'Yük paylaşımı aile bağını güçlendirir.', 50),
+        calloutText: concise(`${compactTraitLabel(d3?.dominant, 'Sahip çıkma')} + ${compactTraitLabel(d3?.balancing, 'Sakinlik')}`, budget.panelCallout),
+        footnote: concise(traitAxes[3]?.note || 'Yük paylaşımı aile bağını güçlendirir.', budget.panelFootnote),
       },
     ];
   }
@@ -638,7 +1035,7 @@ function buildPanels(
           { name: user1Name, text: traitPair(d0?.dominant, d1?.dominant, 'Hamle', 'Tempo') },
           { name: user2Name, text: traitPair(d0?.balancing, d1?.balancing, 'Karşı hamle', 'Sabır') },
         ],
-        emphasis: clip(linesFromSummary[0] || 'Tempo ve psikolojik üstünlük oyunu belirgin.', 54),
+        emphasis: concise(linesFromSummary[0] || 'Tempo ve psikolojik üstünlük oyunu belirgin.', budget.panelEmphasis),
       },
       {
         icon: '🧠',
@@ -646,10 +1043,10 @@ function buildPanels(
         lines: [],
         variant: 'bond',
         leadLabel: 'Avantaj alanı',
-        leadText: combineTraitList([d1?.dominant, d3?.dominant, d1?.balancing], 'Strateji, zamanlama, okuma gücü'),
+        leadText: combineTraitList([d1?.dominant, d3?.dominant, d1?.balancing], 'Strateji, zamanlama, okuma gücü', budget.traitList),
         calloutLabel: 'Kritik hamle',
-        calloutText: clip(linesFromSummary[1] || 'Rakibin ritmini bozarken kendi düzenini koru.', 54),
-        footnote: clip(traitAxes[1]?.note || 'Sabırlı bekleme de avantaj yaratır.', 50),
+        calloutText: concise(linesFromSummary[1] || 'Rakibin ritmini bozarken düzenini koru.', budget.panelCallout),
+        footnote: concise(traitAxes[1]?.note || 'Sabırlı bekleme de avantaj yaratır.', budget.panelFootnote),
       },
       {
         icon: '⚡',
@@ -661,8 +1058,8 @@ function buildPanels(
             ? 'Gerilim yüksek; küçük tetikler büyütebilir.'
             : 'Sınırlar korunursa rekabet daha sağlıklı kalır.',
         calloutLabel: 'Dikkat',
-        calloutText: clip(`${compactTraitLabel(d2?.balancing, 'Ego sürtünmesi')} yükselirse oyun sertleşir.`, 54),
-        footnote: clip(traitAxes[2]?.note || 'Kural ve sınır netliği tırmanışı azaltır.', 50),
+        calloutText: concise(`${compactTraitLabel(d2?.balancing, 'Ego sürtünmesi')} yükselirse oyun sertleşir.`, budget.panelCallout),
+        footnote: concise(traitAxes[2]?.note || 'Kural ve sınır netliği tırmanışı azaltır.', budget.panelFootnote),
       },
       {
         icon: '🎯',
@@ -674,8 +1071,8 @@ function buildPanels(
             ? 'Plan + sabır sonuç alma gücünü yükseltir.'
             : 'Doğru anda odak, gereksiz hamleyi azaltır.',
         calloutLabel: 'Anahtar',
-        calloutText: clip(`${compactTraitLabel(d3?.dominant, 'Odak')} + ${compactTraitLabel(d0?.balancing, 'Disiplin')}`, 54),
-        footnote: clip(traitAxes[3]?.note || 'Güçlü alana yüklenmek daha etkilidir.', 50),
+        calloutText: concise(`${compactTraitLabel(d3?.dominant, 'Odak')} + ${compactTraitLabel(d0?.balancing, 'Disiplin')}`, budget.panelCallout),
+        footnote: concise(traitAxes[3]?.note || 'Güçlü alana yüklenmek daha etkilidir.', budget.panelFootnote),
       },
     ];
   }
@@ -683,9 +1080,9 @@ function buildPanels(
   return templates.map((tpl, idx) => {
     const axis = traitAxes[idx] ?? traitAxes[idx % Math.max(1, traitAxes.length)] ?? null;
     const dir = axisDirection(axis);
-    const axisNote = clip(axis?.note, 52);
+    const axisNote = concise(axis?.note, budget.axisNote);
     const scoreHint = dir
-      ? clip(`${dir.dominant} daha baskın; ${dir.balancing.toLowerCase()} denge kurar.`, 52)
+      ? concise(`${dir.dominant} baskın; ${dir.balancing.toLowerCase()} denge kurar.`, budget.scoreHint)
       : overallScore >= 70
         ? 'Bu alanda akış doğal ve destekleyici.'
         : 'Bu alanda dengeyi iletişim belirliyor.';
@@ -729,7 +1126,7 @@ function strongestAndCautionAxes(traitAxes: TraitAxis[]) {
   return { strongest, caution };
 }
 
-function GalaxyBackdrop() {
+function GalaxyBackdrop({ visual }: { visual: CardVisualTheme }) {
   const stars = [
     [18, 24, 1.1], [52, 42, 1.4], [85, 26, 0.9], [114, 36, 1.2], [148, 22, 1.0], [188, 34, 1.1], [226, 22, 1.0], [262, 34, 1.2], [308, 24, 1.3], [336, 42, 1.0],
     [22, 84, 0.9], [48, 102, 1.0], [92, 92, 1.1], [132, 110, 1.0], [174, 94, 0.9], [220, 108, 1.2], [260, 92, 1.0], [304, 108, 1.0], [342, 88, 0.9],
@@ -744,20 +1141,20 @@ function GalaxyBackdrop() {
 
   return (
     <View pointerEvents="none" style={styles.galaxyLayer}>
-      <Svg width="100%" height="100%" viewBox="0 0 360 540">
+      <Svg width="100%" height="100%" viewBox="0 0 360 720">
         <Defs>
           <SvgRadialGradient id="lavGlowA" cx="50%" cy="12%" r="76%">
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.88" />
-            <Stop offset="45%" stopColor="#F5E9FF" stopOpacity="0.42" />
-            <Stop offset="100%" stopColor="#F5E9FF" stopOpacity="0.02" />
+            <Stop offset="0%" stopColor={visual.glowMain} stopOpacity="0.88" />
+            <Stop offset="45%" stopColor={visual.glowMain} stopOpacity="0.42" />
+            <Stop offset="100%" stopColor={visual.glowMain} stopOpacity="0.02" />
           </SvgRadialGradient>
           <SvgRadialGradient id="lavGlowB" cx="18%" cy="58%" r="52%">
-            <Stop offset="0%" stopColor="#F5CFFF" stopOpacity="0.26" />
-            <Stop offset="100%" stopColor="#F5CFFF" stopOpacity="0" />
+            <Stop offset="0%" stopColor={visual.glowAltA} stopOpacity="0.26" />
+            <Stop offset="100%" stopColor={visual.glowAltA} stopOpacity="0" />
           </SvgRadialGradient>
           <SvgRadialGradient id="lavGlowC" cx="84%" cy="62%" r="48%">
-            <Stop offset="0%" stopColor="#E7D7FF" stopOpacity="0.28" />
-            <Stop offset="100%" stopColor="#E7D7FF" stopOpacity="0" />
+            <Stop offset="0%" stopColor={visual.glowAltB} stopOpacity="0.28" />
+            <Stop offset="100%" stopColor={visual.glowAltB} stopOpacity="0" />
           </SvgRadialGradient>
           <SvgRadialGradient id="softPanelLight" cx="50%" cy="50%" r="50%">
             <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.22" />
@@ -776,21 +1173,21 @@ function GalaxyBackdrop() {
         />
 
         <Path
-          d="M-8 476 C40 440, 88 444, 132 478 C172 506, 220 506, 270 478 C312 452, 340 454, 368 486 L368 540 L-8 540 Z"
-          fill="rgba(242, 221, 255, 0.75)"
+          d="M-8 646 C40 610, 88 614, 132 648 C172 676, 220 676, 270 648 C312 622, 340 624, 368 656 L368 720 L-8 720 Z"
+          fill={visual.cloudA}
         />
         <Path
-          d="M-6 500 C38 476, 86 480, 128 502 C172 526, 224 526, 276 500 C314 484, 340 486, 366 506 L366 540 L-6 540 Z"
-          fill="rgba(225, 194, 247, 0.72)"
+          d="M-6 676 C38 652, 86 656, 128 678 C172 702, 224 702, 276 676 C314 660, 340 662, 366 682 L366 720 L-6 720 Z"
+          fill={visual.cloudB}
         />
 
         <Path d="M2 166 C70 214, 132 214, 180 186 C228 214, 290 214, 358 166" stroke="rgba(255,255,255,0.34)" strokeWidth={1.9} fill="none" />
         <Path d="M-2 186 C70 232, 132 232, 180 206 C228 232, 290 232, 362 186" stroke="rgba(218,180,247,0.34)" strokeWidth={1.8} fill="none" />
         <Path d="M16 154 C84 198, 138 198, 180 176 C222 198, 276 198, 344 154" stroke="rgba(255,255,255,0.22)" strokeWidth={1.2} fill="none" />
-        <Path d="M18 446 H342" stroke="rgba(130, 93, 170, 0.12)" strokeWidth={1} />
-        <Path d="M18 478 H342" stroke="rgba(130, 93, 170, 0.10)" strokeWidth={1} />
+        <Path d="M18 564 H342" stroke="rgba(130, 93, 170, 0.12)" strokeWidth={1} />
+        <Path d="M18 604 H342" stroke="rgba(130, 93, 170, 0.10)" strokeWidth={1} />
 
-        {hearts.map(([x, y, size, opacity], idx) => (
+        {visual.showHearts && hearts.map(([x, y, size, opacity], idx) => (
           <Path
             key={`heart-bg-${idx}`}
             d={`M ${x} ${y + size * 0.9}
@@ -830,16 +1227,24 @@ function GalaxyBackdrop() {
   );
 }
 
-function MetricRow({ items }: { items: CardMetric[] }) {
+function MetricRow({ items, visual }: { items: CardMetric[]; visual: CardVisualTheme }) {
   return (
-    <View style={styles.metricBand}>
+    <View
+      style={[
+        styles.metricBand,
+        {
+          backgroundColor: visual.metricBg,
+          borderColor: visual.metricBorder,
+        },
+      ]}
+    >
       <View style={styles.metricRow}>
         {items.map((item, idx) => (
           <View key={`${item.label}-${idx}`} style={styles.metricItem}>
-            <Text style={styles.metricText}>
-              {item.icon} {item.label}: <Text style={styles.metricValueText}>{item.value}</Text>
+            <Text style={[styles.metricText, { color: visual.metricText }]}>
+              {item.icon} {item.label}: <Text style={[styles.metricValueText, { color: visual.metricValue }]}>{item.value}</Text>
             </Text>
-            {idx < items.length - 1 ? <Text style={styles.metricDivider}>|</Text> : null}
+            {idx < items.length - 1 ? <Text style={[styles.metricDivider, { color: visual.metricText }]}>|</Text> : null}
           </View>
         ))}
       </View>
@@ -847,12 +1252,31 @@ function MetricRow({ items }: { items: CardMetric[] }) {
   );
 }
 
-function InsightPanel({ panel, compact = false }: { panel: CardPanel; compact?: boolean }) {
+function InsightPanel({
+  panel,
+  compact = false,
+  visual,
+  budget,
+}: {
+  panel: CardPanel;
+  compact?: boolean;
+  visual: CardVisualTheme;
+  budget: CardCopyBudget;
+}) {
   if (panel.variant === 'duo' && panel.duoRows?.length) {
     return (
-      <View style={[styles.panelCard, compact && styles.panelCardCompact]}>
+      <View
+        style={[
+          styles.panelCard,
+          compact && styles.panelCardCompact,
+          {
+            backgroundColor: visual.panelBg,
+            borderColor: visual.panelBorder,
+          },
+        ]}
+      >
         <View style={styles.panelHeaderLine}>
-          <Text style={styles.panelTitle}>
+          <Text style={[styles.panelTitle, { color: visual.panelTitle }]}>
             {panel.icon} {panel.title}
           </Text>
         </View>
@@ -862,16 +1286,16 @@ function InsightPanel({ panel, compact = false }: { panel: CardPanel; compact?: 
               <Text style={styles.duoRowName} numberOfLines={1}>
                 {row.name}:
               </Text>
-              <Text style={styles.duoRowValue} numberOfLines={1}>
-                {clip(row.text, 24)}
+              <Text style={[styles.duoRowValue, { color: visual.panelBody }]} numberOfLines={2}>
+                {concise(row.text, budget.duoRow)}
               </Text>
             </View>
           ))}
         </View>
         {panel.emphasis ? (
-          <View style={styles.panelEmphasisBubble}>
-            <Text style={styles.panelEmphasis} numberOfLines={2}>
-              {clip(panel.emphasis, 56)}
+          <View style={[styles.panelEmphasisBubble, { backgroundColor: visual.panelBubble }]}>
+            <Text style={[styles.panelEmphasis, { color: visual.panelTitle }]} numberOfLines={2}>
+              {concise(panel.emphasis, budget.panelEmphasis)}
             </Text>
           </View>
         ) : null}
@@ -881,29 +1305,38 @@ function InsightPanel({ panel, compact = false }: { panel: CardPanel; compact?: 
 
   if (panel.variant === 'bond') {
     return (
-      <View style={[styles.panelCard, compact && styles.panelCardCompact]}>
+      <View
+        style={[
+          styles.panelCard,
+          compact && styles.panelCardCompact,
+          {
+            backgroundColor: visual.panelBg,
+            borderColor: visual.panelBorder,
+          },
+        ]}
+      >
         <View style={styles.panelHeaderLine}>
-          <Text style={styles.panelTitle}>
+          <Text style={[styles.panelTitle, { color: visual.panelTitle }]}>
             {panel.icon} {panel.title}
           </Text>
         </View>
-        {panel.leadLabel ? <Text style={styles.panelLabel}>{panel.leadLabel}:</Text> : null}
+        {panel.leadLabel ? <Text style={[styles.panelLabel, { color: visual.panelTitle }]}>{panel.leadLabel}:</Text> : null}
         {panel.leadText ? (
-          <Text style={styles.panelLeadText} numberOfLines={2}>
-            {clip(panel.leadText, 58)}
+          <Text style={[styles.panelLeadText, { color: visual.panelBody }]} numberOfLines={2}>
+            {concise(panel.leadText, budget.panelLead)}
           </Text>
         ) : null}
         {(panel.calloutLabel || panel.calloutText) ? (
-          <View style={styles.panelEmphasisBubble}>
-            <Text style={styles.panelCalloutLine} numberOfLines={2}>
-              {panel.calloutLabel ? <Text style={styles.panelCalloutLabel}>{panel.calloutLabel}: </Text> : null}
-              {clip(panel.calloutText, 56)}
+          <View style={[styles.panelEmphasisBubble, { backgroundColor: visual.panelBubble }]}>
+            <Text style={[styles.panelCalloutLine, { color: visual.panelBody }]} numberOfLines={2}>
+              {panel.calloutLabel ? <Text style={[styles.panelCalloutLabel, { color: visual.panelTitle }]}>{panel.calloutLabel}: </Text> : null}
+              {concise(panel.calloutText, budget.panelCallout)}
             </Text>
           </View>
         ) : null}
         {panel.footnote ? (
-          <Text style={styles.panelFootnote} numberOfLines={2}>
-            *{clip(panel.footnote, 54)}
+          <Text style={[styles.panelFootnote, { color: visual.panelSoftText }]} numberOfLines={2}>
+            *{concise(panel.footnote, budget.panelFootnote)}
           </Text>
         ) : null}
       </View>
@@ -912,28 +1345,37 @@ function InsightPanel({ panel, compact = false }: { panel: CardPanel; compact?: 
 
   if (panel.variant === 'focus' || panel.variant === 'trust') {
     return (
-      <View style={[styles.panelCard, compact && styles.panelCardCompact]}>
+      <View
+        style={[
+          styles.panelCard,
+          compact && styles.panelCardCompact,
+          {
+            backgroundColor: visual.panelBg,
+            borderColor: visual.panelBorder,
+          },
+        ]}
+      >
         <View style={styles.panelHeaderLine}>
-          <Text style={styles.panelTitle}>
+          <Text style={[styles.panelTitle, { color: visual.panelTitle }]}>
             {panel.icon} {panel.title}
           </Text>
         </View>
         {panel.leadText ? (
-          <Text style={styles.panelLeadText} numberOfLines={2}>
-            {clip(panel.leadText, 58)}
+          <Text style={[styles.panelLeadText, { color: visual.panelBody }]} numberOfLines={2}>
+            {concise(panel.leadText, budget.panelLead)}
           </Text>
         ) : null}
         {(panel.calloutLabel || panel.calloutText) ? (
-          <View style={styles.panelEmphasisBubble}>
-            <Text style={styles.panelCalloutLine} numberOfLines={2}>
-              {panel.calloutLabel ? <Text style={styles.panelCalloutLabel}>{panel.calloutLabel}: </Text> : null}
-              {clip(panel.calloutText, 56)}
+          <View style={[styles.panelEmphasisBubble, { backgroundColor: visual.panelBubble }]}>
+            <Text style={[styles.panelCalloutLine, { color: visual.panelBody }]} numberOfLines={2}>
+              {panel.calloutLabel ? <Text style={[styles.panelCalloutLabel, { color: visual.panelTitle }]}>{panel.calloutLabel}: </Text> : null}
+              {concise(panel.calloutText, budget.panelCallout)}
             </Text>
           </View>
         ) : null}
         {panel.footnote ? (
-          <Text style={styles.panelFootnote} numberOfLines={2}>
-            {clip(panel.footnote, 54)}
+          <Text style={[styles.panelFootnote, { color: visual.panelSoftText }]} numberOfLines={2}>
+            {concise(panel.footnote, budget.panelFootnote)}
           </Text>
         ) : null}
       </View>
@@ -941,21 +1383,30 @@ function InsightPanel({ panel, compact = false }: { panel: CardPanel; compact?: 
   }
 
   return (
-    <View style={[styles.panelCard, compact && styles.panelCardCompact]}>
+    <View
+      style={[
+        styles.panelCard,
+        compact && styles.panelCardCompact,
+        {
+          backgroundColor: visual.panelBg,
+          borderColor: visual.panelBorder,
+        },
+      ]}
+    >
       <View style={styles.panelHeaderLine}>
-        <Text style={styles.panelTitle}>
+        <Text style={[styles.panelTitle, { color: visual.panelTitle }]}>
           {panel.icon} {panel.title}
         </Text>
       </View>
       {panel.lines.map((line, idx) => (
-        <Text key={`${panel.title}-line-${idx}`} style={styles.panelLine} numberOfLines={2}>
-          {idx === 0 ? clip(line, compact ? 56 : 64) : `• ${clip(line, compact ? 52 : 60)}`}
+        <Text key={`${panel.title}-line-${idx}`} style={[styles.panelLine, { color: visual.panelBody }]} numberOfLines={2}>
+          {idx === 0 ? concise(line, compact ? budget.genericLead : budget.genericLead + 10) : `• ${concise(line, compact ? budget.genericBullet : budget.genericBullet + 10)}`}
         </Text>
       ))}
       {panel.emphasis ? (
-        <View style={styles.panelEmphasisBubble}>
-          <Text style={styles.panelEmphasis} numberOfLines={2}>
-            {clip(panel.emphasis, 56)}
+        <View style={[styles.panelEmphasisBubble, { backgroundColor: visual.panelBubble }]}>
+          <Text style={[styles.panelEmphasis, { color: visual.panelTitle }]} numberOfLines={2}>
+            {concise(panel.emphasis, budget.panelEmphasis)}
           </Text>
         </View>
       ) : null}
@@ -980,6 +1431,8 @@ function MatchCard({
 }: MatchCardProps) {
   const overallScore = clampScore(scoreBreakdown?.overall, compatibilityScore);
   const theme = relationTheme(relationshipType, relationLabel);
+  const visual = theme.visual;
+  const budget = useMemo(() => relationCopyBudget(relationshipType), [relationshipType]);
   const safeAxes = useMemo(() => (traitAxes ?? []).slice(0, 6), [traitAxes]);
   const metrics = useMemo(() => {
     const official = normalizeOfficialMetrics(displayMetrics, relationshipType);
@@ -987,44 +1440,53 @@ function MatchCard({
     return deriveMetrics(relationshipType, overallScore, scoreBreakdown, safeAxes);
   }, [displayMetrics, relationshipType, overallScore, scoreBreakdown, safeAxes]);
   const summary = useMemo(
-    () => clip(cardSummary || aiSummary || 'Birlikteyken hem çekim hem öğrenme alanı oluşturan dikkat çekici bir bağ görünümü var.', 110),
-    [aiSummary, cardSummary],
+    () => concise(cardSummary || aiSummary || 'Birbiriniz için neyin önemli olduğunu birlikte daha net görüyorsunuz.', budget.summary),
+    [aiSummary, budget.summary, cardSummary],
   );
   const panels = useMemo(
-    () => buildPanels(relationshipType, user1Name, user2Name, safeAxes, summary, overallScore),
-    [relationshipType, user1Name, user2Name, safeAxes, summary, overallScore],
+    () => buildPanels(relationshipType, user1Name, user2Name, safeAxes, summary, overallScore, budget),
+    [relationshipType, user1Name, user2Name, safeAxes, summary, overallScore, budget],
   );
   const { strongest, caution } = useMemo(() => strongestAndCautionAxes(safeAxes), [safeAxes]);
 
   return (
     <View style={styles.frame} collapsable={false}>
       <LinearGradient
-        colors={['#F8F1FF', '#F0E3FB', '#E6D3F6']}
+        colors={visual.cardGradient}
         start={{ x: 0.08, y: 0 }}
         end={{ x: 0.94, y: 1 }}
         style={styles.card}
       >
-        <GalaxyBackdrop />
+        <GalaxyBackdrop visual={visual} />
 
         <View style={styles.topHeader}>
-          <View style={styles.topHeaderLine} />
-          <Text style={styles.topHeaderText}>🪐 {theme.title} • {theme.cardKind}</Text>
-          <View style={styles.topHeaderLine} />
+          <View style={[styles.topHeaderLine, { backgroundColor: visual.headerLine }]} />
+          <Text style={[styles.topHeaderText, { color: visual.headerText }]}>🪐 {theme.title} • {theme.cardKind}</Text>
+          <View style={[styles.topHeaderLine, { backgroundColor: visual.headerLine }]} />
         </View>
 
-        <Text style={styles.nameTitle} numberOfLines={1}>
+        <Text style={[styles.nameTitle, { color: visual.nameText }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
           {user1Name}
-          <Text style={styles.nameConnector}> {theme.connector} </Text>
+          <Text style={[styles.nameConnector, { color: visual.connectorText }]}> {theme.connector} </Text>
           {user2Name}
+        </Text>
+        <Text style={[styles.nameSubline, { color: visual.sublineText }]} numberOfLines={2}>
+          {summary}
         </Text>
         <View style={styles.centerStageSpacer} />
 
         <View style={styles.scoreBannerWrap}>
           <LinearGradient
-            colors={['rgba(197,146,243,0.95)', 'rgba(152,103,214,0.95)']}
+            colors={visual.scoreGradient}
             start={{ x: 0, y: 0.45 }}
             end={{ x: 1, y: 0.55 }}
-            style={styles.scoreBanner}
+            style={[
+              styles.scoreBanner,
+              {
+                borderColor: visual.scoreBorder,
+                shadowColor: visual.scoreShadow,
+              },
+            ]}
           >
             <Text style={styles.scoreBannerText}>
               GENEL UYUM: <Text style={styles.scoreBannerValue}>{overallScore}</Text> / 100
@@ -1032,32 +1494,48 @@ function MatchCard({
           </LinearGradient>
         </View>
 
-        <MetricRow items={metrics} />
+        <MetricRow items={metrics} visual={visual} />
 
         <View style={styles.panelGrid}>
-          <InsightPanel panel={panels[0]} compact />
-          <InsightPanel panel={panels[1]} compact />
-          <InsightPanel panel={panels[2]} compact />
-          <InsightPanel panel={panels[3]} compact />
+          <InsightPanel panel={panels[0]} compact visual={visual} budget={budget} />
+          <InsightPanel panel={panels[1]} compact visual={visual} budget={budget} />
+          <InsightPanel panel={panels[2]} compact visual={visual} budget={budget} />
+          <InsightPanel panel={panels[3]} compact visual={visual} budget={budget} />
         </View>
 
-        <View style={styles.summaryBand}>
-          <Text style={styles.summaryBandMain} numberOfLines={1}>
-            En güçlü bağınız: {clip(strongest, 28)}
+        <View
+          style={[
+            styles.summaryBand,
+            {
+              backgroundColor: visual.summaryBg,
+              borderColor: visual.summaryBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.summaryBandMain, { color: visual.summaryMainText }]} numberOfLines={1}>
+            En güçlü bağ: {concise(strongest, budget.strongest)}
           </Text>
-          <Text style={styles.summaryBandSub} numberOfLines={1}>
-            Dikkat noktası: {clip(caution, 34)}
+          <Text style={[styles.summaryBandSub, { color: visual.summarySubText }]} numberOfLines={1}>
+            Dikkat: {concise(caution, budget.caution)}
           </Text>
         </View>
 
-        <View style={styles.footerCtaWrap}>
-          <Text style={styles.footerCta} numberOfLines={1}>
-            ✨ {theme.footerCta} • @{`mysticai`}
+        <View
+          style={[
+            styles.footerCtaWrap,
+            {
+              backgroundColor: visual.footerBg,
+              borderColor: visual.footerBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.footerCta, { color: visual.footerMainText }]} numberOfLines={1}>
+            ✨ {theme.footerCta} • @{`astroguru`}
           </Text>
-          <Text style={styles.footerTags} numberOfLines={1}>
-            #{relationshipType === 'FRIENDSHIP' ? 'arkadaşlık' : relationshipType === 'LOVE' ? 'aşk' : 'synastry'} #uyum #synastry
+          <Text style={[styles.footerTags, { color: visual.footerSoftText }]} numberOfLines={1}>
+            #{relationshipType === 'FRIENDSHIP' ? 'arkadaşlık' : relationshipType === 'LOVE' ? 'aşk' : relationshipType === 'BUSINESS' ? 'işuyumu' : relationshipType === 'FAMILY' ? 'aile' : relationshipType === 'RIVAL' ? 'rekabet' : 'uyum'} #uyum #mysticai
           </Text>
-          <Text style={styles.footerMeta} numberOfLines={1}>
+          <Text style={[styles.footerMeta, { color: visual.footerSoftText }]} numberOfLines={1}>
             {user1Sign} • {user2Sign} • {aspectsCount} açı
           </Text>
         </View>
@@ -1126,16 +1604,16 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   centerStageSpacer: {
-    height: 36,
+    height: 12,
   },
   nameSubline: {
-    marginTop: 6,
+    marginTop: 8,
     textAlign: 'center',
     color: '#6D5A8F',
-    fontSize: 12.5,
-    lineHeight: 16.5,
+    fontSize: 13.2,
+    lineHeight: 18.2,
     fontFamily: UI_FONT,
-    paddingHorizontal: 24,
+    paddingHorizontal: 30,
   },
   scoreBannerWrap: {
     alignItems: 'center',
@@ -1264,8 +1742,8 @@ const styles = StyleSheet.create({
   },
   panelLeadText: {
     color: '#654D87',
-    fontSize: 10.6,
-    lineHeight: 14.4,
+    fontSize: 10.2,
+    lineHeight: 13.6,
     fontFamily: UI_FONT,
   },
   duoRowsWrap: {
@@ -1286,8 +1764,8 @@ const styles = StyleSheet.create({
   duoRowValue: {
     flex: 1,
     color: '#654D87',
-    fontSize: 10.3,
-    lineHeight: 13.8,
+    fontSize: 9.9,
+    lineHeight: 13.2,
     fontFamily: UI_FONT,
   },
   panelEmphasisBubble: {
@@ -1307,8 +1785,8 @@ const styles = StyleSheet.create({
   },
   panelCalloutLine: {
     color: '#694C8E',
-    fontSize: 10.1,
-    lineHeight: 13.6,
+    fontSize: 9.9,
+    lineHeight: 13.2,
     fontFamily: UI_FONT,
   },
   panelCalloutLabel: {

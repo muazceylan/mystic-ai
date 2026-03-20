@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
+import { useTranslation } from 'react-i18next';
 import type {
   HousePlacement,
   NightSkyProjectionResponse,
@@ -253,6 +254,8 @@ const displaySerif = Platform.select({
 });
 
 export default function BirthNightSkyPoster(props: Props) {
+  const { t, i18n } = useTranslation();
+  const isEnglish = i18n.language?.startsWith('en');
   const variant = props.variant ?? 'minimal';
   const variantVisual = VARIANT_CONFIG[variant];
   const timestamp = useMemo(() => dateTimeToDate(props.birthDate, props.birthTime), [props.birthDate, props.birthTime]);
@@ -474,9 +477,8 @@ export default function BirthNightSkyPoster(props: Props) {
     return { center, radius, stars, lines, planets: plottedFinal, horizonLeft, horizonRight };
   }, [seed, props.houses, props.planets, props.projection, variantVisual.lineBudget, variantVisual.lineOpacityBoost, variantVisual.starCount]);
 
-  const headerName = props.name?.trim() || 'Mystic Soul';
-  const timeLabel = (props.projection?.birthTime || props.birthTime)?.slice(0, 5) ?? 'Saat bilinmiyor';
-  const showProjectionBadge = Boolean(props.projection?.projectionModel);
+  const headerName = props.name?.trim() || 'Astro Soul';
+  const timeLabel = (props.projection?.birthTime || props.birthTime)?.slice(0, 5) ?? (isEnglish ? 'Time unknown' : 'Saat bilinmiyor');
 
   return (
     <View style={[styles.frame, { backgroundColor: variantVisual.frameTone }]} collapsable={false}>
@@ -490,7 +492,9 @@ export default function BirthNightSkyPoster(props: Props) {
         <View style={[styles.goldHaloB, { backgroundColor: variantVisual.haloB }]} />
 
         <View style={styles.topMeta}>
-          <Text style={styles.eyebrow}>THE NIGHT YOU WERE BORN</Text>
+          <Text style={styles.eyebrow}>
+            {isEnglish ? 'THE NIGHT YOU WERE BORN' : 'DOĞDUĞUN GECE GÖKYÜZÜ'}
+          </Text>
           <Text style={styles.name}>{headerName}</Text>
           <Text style={styles.metaLine}>
             {props.birthDate} • {timeLabel}
@@ -499,11 +503,6 @@ export default function BirthNightSkyPoster(props: Props) {
           <Text style={styles.metaLineSmall}>
             {props.latitude.toFixed(4)}, {props.longitude.toFixed(4)}
           </Text>
-          {showProjectionBadge ? (
-            <Text style={[styles.metaLineSmall, { color: variantVisual.zenithColor }]}>
-              Zenith projection • Swiss Ephemeris
-            </Text>
-          ) : null}
         </View>
 
         <View style={styles.skyStage}>
@@ -530,17 +529,6 @@ export default function BirthNightSkyPoster(props: Props) {
               stroke={variantVisual.horizonStroke}
               strokeWidth={1}
             />
-
-            <SvgText
-              x={sky.center.x}
-              y={sky.center.y - sky.radius - 6}
-              fill={variantVisual.zenithColor}
-              fontSize={10}
-              textAnchor="middle"
-              letterSpacing={1.2}
-            >
-              ZENITH
-            </SvgText>
 
             {sky.lines.map((line, idx) => (
               <Line
@@ -601,9 +589,9 @@ export default function BirthNightSkyPoster(props: Props) {
 
         <View style={styles.phaseCard}>
           <View style={styles.phaseHeader}>
-            <Text style={styles.phaseTitle}>Moon Phase</Text>
+            <Text style={styles.phaseTitle}>{isEnglish ? 'Moon Phase' : 'Ay Evresi'}</Text>
             <Text style={styles.phaseValue}>
-              %{illuminationPercent} aydınlık
+              {isEnglish ? `${illuminationPercent}% illuminated` : `%${illuminationPercent} aydınlık`}
             </Text>
           </View>
           <View style={styles.phaseRow}>
@@ -624,24 +612,26 @@ export default function BirthNightSkyPoster(props: Props) {
         </View>
 
         <View style={styles.footer}>
-          <View style={styles.footerLeft}>
-            <Text style={styles.slogan}>Bu senin gökyüzün.</Text>
-            <Text style={styles.footerSub}>Mystic AI ile paylaşılabilir gece posteri</Text>
-            <Text style={styles.footerLink} numberOfLines={1}>
-              {props.shareUrl}
-            </Text>
-          </View>
-          {props.shareUrl ? (
-            <View style={styles.qrShell}>
-              <QRCode
-                value={props.shareUrl}
-                size={48}
-                color="#0A0D14"
-                backgroundColor="#F8FAFC"
-                quietZone={4}
-              />
+          <View style={styles.footerDivider} />
+          <View style={styles.footerContent}>
+            <View style={styles.footerLeft}>
+              <Text style={styles.slogan}>
+                {isEnglish ? 'Your personal sky map.' : 'Senin gökyüzü haritan.'}
+              </Text>
+              <Text style={styles.footerBrand}>ASTRO GURU</Text>
             </View>
-          ) : null}
+            {props.shareUrl ? (
+              <View style={styles.qrShell}>
+                <QRCode
+                  value={props.shareUrl}
+                  size={52}
+                  color="#0A0D14"
+                  backgroundColor="#F8FAFC"
+                  quietZone={3}
+                />
+              </View>
+            ) : null}
+          </View>
         </View>
       </LinearGradient>
     </View>
@@ -685,9 +675,10 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     color: 'rgba(248,213,126,0.92)',
-    letterSpacing: 2.1,
-    fontSize: 10,
+    letterSpacing: 2.8,
+    fontSize: 9.5,
     fontWeight: '700',
+    textAlign: 'center',
   },
   name: {
     color: '#F8FAFC',
@@ -777,34 +768,41 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 'auto',
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
     gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-    paddingTop: 12,
+  },
+  footerDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(248,213,126,0.15)',
+  },
+  footerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   footerLeft: {
     flex: 1,
-    gap: 3,
+    gap: 4,
   },
   slogan: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '700',
+    color: 'rgba(226,232,240,0.85)',
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
-  footerSub: {
-    color: 'rgba(226,232,240,0.7)',
-    fontSize: 9.5,
-  },
-  footerLink: {
-    color: 'rgba(248,213,126,0.9)',
-    fontSize: 9.5,
+  footerBrand: {
+    color: 'rgba(248,213,126,0.92)',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 2.5,
   },
   qrShell: {
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
-    padding: 4,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });

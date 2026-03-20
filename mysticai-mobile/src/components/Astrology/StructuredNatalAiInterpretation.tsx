@@ -35,6 +35,25 @@ type NatalAiStructuredPayload = {
   closing?: string;
 };
 
+type DisplaySection = {
+  _id: string;
+  id?: string;
+  title: string;
+  body: string;
+  preview: string;
+  metaLabels: string[];
+  bulletPoints?: Array<{ title?: string; detail?: string }>;
+  dailyLifeExample?: string;
+};
+
+type OverviewSignal = {
+  id: string;
+  title: string;
+  text: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: 'accent' | 'success' | 'warning';
+};
+
 type Props = {
   text: string;
   fallbackTextStyle?: any;
@@ -210,7 +229,7 @@ function normalizeBulletPoints(value: unknown): Array<{ title?: string; detail?:
     .map((item): { title?: string; detail?: string } | null => {
       if (typeof item === 'string') {
         const detail = cleanText(item) ?? undefined;
-        return detail ? { title: 'Ana Nokta', detail } : null;
+        return detail ? { title: 'Öne Çıkan', detail } : null;
       }
       const record = asRecord(item);
       if (!record) return null;
@@ -499,6 +518,164 @@ function ParagraphBlock({ text }: { text?: string | null }) {
   );
 }
 
+function extractSentences(text?: string | null): string[] {
+  const cleaned = cleanText(text);
+  if (!cleaned) return [];
+  return splitAiBodyToParagraphs(cleaned)
+    .flatMap((paragraph) => paragraph.split(/(?<=[.!?])\s+/))
+    .map((sentence) => sentence.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
+function compactText(text?: string | null, maxLength = 112): string | null {
+  const candidate = extractSentences(text)[0] ?? cleanText(text);
+  if (!candidate) return null;
+  if (candidate.length <= maxLength) return candidate;
+  const clipped = candidate.slice(0, maxLength).trim();
+  const lastSpace = clipped.lastIndexOf(' ');
+  const safeEnd = lastSpace > Math.floor(maxLength * 0.58) ? lastSpace : clipped.length;
+  return `${clipped.slice(0, safeEnd).trim()}…`;
+}
+
+function MetaPill({
+  label,
+  tone = 'neutral',
+}: {
+  label: string;
+  tone?: 'neutral' | 'accent' | 'success' | 'warning';
+}) {
+  const { colors } = useTheme();
+  const toneMap = {
+    neutral: {
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      textColor: colors.textSoft,
+    },
+    accent: {
+      backgroundColor: colors.violetBg,
+      borderColor: colors.violet + '22',
+      textColor: colors.violet,
+    },
+    success: {
+      backgroundColor: colors.successBg,
+      borderColor: colors.success + '22',
+      textColor: colors.success,
+    },
+    warning: {
+      backgroundColor: colors.warningBg,
+      borderColor: colors.warning + '22',
+      textColor: colors.warning,
+    },
+  } as const;
+
+  const palette = toneMap[tone];
+
+  return (
+    <View
+      style={[
+        styles.metaPill,
+        {
+          backgroundColor: palette.backgroundColor,
+          borderColor: palette.borderColor,
+        },
+      ]}
+    >
+      <Text style={[styles.metaPillText, { color: palette.textColor }]}>{label}</Text>
+    </View>
+  );
+}
+
+function InsightSignalCard({
+  title,
+  text,
+  icon,
+  tone = 'accent',
+}: {
+  title: string;
+  text: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone?: 'accent' | 'success' | 'warning';
+}) {
+  const { colors } = useTheme();
+  const toneMap = {
+    accent: {
+      backgroundColor: colors.card,
+      borderColor: colors.violet + '20',
+      iconBackground: colors.violetBg,
+      iconColor: colors.violet,
+    },
+    success: {
+      backgroundColor: colors.card,
+      borderColor: colors.success + '20',
+      iconBackground: colors.successBg,
+      iconColor: colors.success,
+    },
+    warning: {
+      backgroundColor: colors.card,
+      borderColor: colors.warning + '20',
+      iconBackground: colors.warningBg,
+      iconColor: colors.warning,
+    },
+  } as const;
+
+  const palette = toneMap[tone];
+
+  return (
+    <View
+      style={[
+        styles.signalCard,
+        {
+          backgroundColor: palette.backgroundColor,
+          borderColor: palette.borderColor,
+        },
+      ]}
+    >
+      <View style={[styles.signalIconWrap, { backgroundColor: palette.iconBackground }]}>
+        <Ionicons name={icon} size={15} color={palette.iconColor} />
+      </View>
+      <Text style={[styles.signalTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.signalText, { color: colors.textSoft }]} numberOfLines={3}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+function SectionDigestCard({
+  title,
+  text,
+  icon,
+}: {
+  title: string;
+  text: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={[
+        styles.digestCard,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <View style={styles.digestHeader}>
+        <View style={[styles.digestIconWrap, { backgroundColor: colors.primaryTint }]}>
+          <Ionicons name={icon} size={14} color={colors.violet} />
+        </View>
+        <Text style={[styles.digestTitle, { color: colors.text }]} numberOfLines={1}>
+          {title}
+        </Text>
+      </View>
+      <Text style={[styles.digestText, { color: colors.textSoft }]} numberOfLines={3}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
 export default function StructuredNatalAiInterpretation({ text, fallbackTextStyle }: Props) {
   const { colors } = useTheme();
 
@@ -541,6 +718,154 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
 
   const sections = parsedSections;
   const planetHighlights = parsedPlanetHighlights;
+  const structuredPayload = aiMode.useStructured ? payload : null;
+
+  const displaySections = useMemo<DisplaySection[]>(() => {
+    if (aiMode.useStructured) {
+      const items: DisplaySection[] = [];
+      sections.forEach((section) => {
+        const preview = compactText(section.body ?? section.dailyLifeExample, 108);
+        if (!preview || !cleanText(section.body)) return;
+        const metaLabels = [
+          (section.bulletPoints ?? []).length > 0 ? `${(section.bulletPoints ?? []).length} vurgu` : null,
+          cleanText(section.dailyLifeExample) ? 'günlük yansıma' : null,
+        ].filter((label): label is string => Boolean(label));
+
+        items.push({
+          ...section,
+          preview,
+          metaLabels,
+        });
+      });
+      return items;
+    }
+
+    const items: DisplaySection[] = [];
+    plainBlocks.forEach((block) => {
+      const body = cleanText(block.body) ?? '';
+      const preview = compactText(body, 108);
+      if (!body || !preview) return;
+      items.push({
+        _id: block.id,
+        id: block.id,
+        title: cleanAstroHeading(block.title),
+        body,
+        preview,
+        metaLabels: [],
+        bulletPoints: [],
+      });
+    });
+    return items;
+  }, [aiMode.useStructured, plainBlocks, sections]);
+
+  const heroLead = useMemo(() => {
+    if (aiMode.useStructured) {
+      return compactText(
+        structuredPayload?.opening ?? structuredPayload?.coreSummary ?? sections[0]?.body,
+        142,
+      );
+    }
+    return compactText(plainBlocks[0]?.body, 142);
+  }, [aiMode.useStructured, plainBlocks, sections, structuredPayload]);
+
+  const heroSupport = useMemo(() => {
+    if (aiMode.useStructured) {
+      return compactText(
+        structuredPayload?.coreSummary
+          ?? sections.find((section) => cleanText(section.dailyLifeExample))?.dailyLifeExample
+          ?? structuredPayload?.closing
+          ?? sections[1]?.body,
+        118,
+      );
+    }
+    return compactText(plainBlocks[1]?.body ?? plainBlocks[0]?.body, 118);
+  }, [aiMode.useStructured, plainBlocks, sections, structuredPayload]);
+
+  const overviewSignals = useMemo<OverviewSignal[]>(() => {
+    if (aiMode.useStructured) {
+      const firstPlanet = planetHighlights[0];
+      const firstPlanetMeta = firstPlanet ? (PLANET_META[firstPlanet._id] ?? { label: 'Gezegen' }) : null;
+      const items: OverviewSignal[] = [];
+      const energy = compactText(structuredPayload?.opening ?? sections[0]?.body, 90);
+      const balance = compactText(structuredPayload?.coreSummary ?? sections[1]?.body ?? structuredPayload?.closing, 90);
+      const life = compactText(
+        firstPlanet
+          ? firstPlanet.intro ?? firstPlanet.character ?? firstPlanet.depth
+          : sections.find((section) => cleanText(section.dailyLifeExample))?.dailyLifeExample ?? structuredPayload?.closing,
+        90,
+      );
+
+      if (energy) {
+        items.push({
+          id: 'energy',
+          title: 'Ana enerji',
+          text: energy,
+          icon: 'sparkles-outline',
+          tone: 'accent',
+        });
+      }
+      if (balance) {
+        items.push({
+          id: 'balance',
+          title: 'Denge noktası',
+          text: balance,
+          icon: 'compass-outline',
+          tone: 'warning',
+        });
+      }
+      if (life) {
+        items.push({
+          id: 'life',
+          title: firstPlanetMeta ? `${firstPlanetMeta.label} vurgusu` : 'Hayata yansıması',
+          text: life,
+          icon: firstPlanet ? 'planet-outline' : 'sunny-outline',
+          tone: 'success',
+        });
+      }
+      return items;
+    }
+
+    const items: OverviewSignal[] = [];
+    const summary = compactText(plainBlocks[0]?.body, 90);
+    const focus = compactText(plainBlocks[1]?.body ?? plainBlocks[0]?.body, 90);
+    const flow = compactText(plainBlocks[2]?.body ?? plainBlocks[1]?.body ?? plainBlocks[0]?.body, 90);
+
+    if (summary) {
+      items.push({
+        id: 'summary',
+        title: cleanAstroHeading(plainBlocks[0]?.title || 'Ana Tema'),
+        text: summary,
+        icon: 'sparkles-outline',
+        tone: 'accent',
+      });
+    }
+    if (focus) {
+      items.push({
+        id: 'focus',
+        title: cleanAstroHeading(plainBlocks[1]?.title || 'Denge Noktası'),
+        text: focus,
+        icon: 'albums-outline',
+        tone: 'warning',
+      });
+    }
+    if (flow) {
+      items.push({
+        id: 'flow',
+        title: cleanAstroHeading(plainBlocks[2]?.title || 'Hayata Yansıması'),
+        text: flow,
+        icon: 'navigate-outline',
+        tone: 'success',
+      });
+    }
+    return items;
+  }, [aiMode.useStructured, plainBlocks, planetHighlights, sections, structuredPayload]);
+
+  const digestCards = useMemo(() => displaySections.slice(0, 3).map((section, idx) => ({
+    id: section._id,
+    title: section.title,
+    text: section.preview,
+    icon: (['layers-outline', 'trail-sign-outline', 'flash-outline'][idx] ?? 'ellipse-outline') as keyof typeof Ionicons.glyphMap,
+  })), [displaySections]);
 
   if (!aiMode.useStructured && plainBlocks.length === 0) {
     return (
@@ -551,130 +876,120 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
     );
   }
 
-  if (!aiMode.useStructured && plainBlocks.length > 0) {
-    const plainTitle = aiMode.isRecoveryMode ? 'Yorum Onarıldı' : 'Kozmik Yorum';
-    const plainInfo = aiMode.isRecoveryMode
-      ? 'AI çıktısı şema dışıydı; içerik başlıklara ayrıştırılarak okunabilir hale getirildi.'
-      : 'Yorum metni güvenli biçimde başlıklara ayrıştırıldı. Başlıklara dokunarak alt bölümleri açabilirsin.';
-    const plainModeLabel = aiMode.isRecoveryMode ? 'Kurtarılan içerik' : 'Serbest metin';
-
-    return (
-      <View style={styles.container}>
-        <View
-          style={[
-            styles.heroCard,
-            {
-              backgroundColor: colors.primaryTint,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={styles.heroHeader}>
-            <Ionicons name="sparkles" size={14} color={colors.violet} />
-            <Text style={[styles.heroTitle, { color: colors.text }]}>{plainTitle}</Text>
-          </View>
-          <Text style={[styles.heroSubText, { color: colors.textSoft }]}>
-            {plainInfo}
-          </Text>
-          <View style={styles.heroMetaRow}>
-            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.heroMetaText, { color: colors.text }]}>
-                {plainBlocks.length} bölüm
-              </Text>
-            </View>
-            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.heroMetaText, { color: colors.textSoft }]}>
-                {plainModeLabel}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.group}>
-          <Text style={[styles.groupTitle, { color: colors.text }]}>Yorum Akışı</Text>
-          {plainBlocks.map((block) => (
-            <AccordionSection
-              key={block.id}
-              id={block.id}
-              title={block.title}
-              subtitle={undefined}
-              icon="document-text-outline"
-              expanded={openSectionId === block.id}
-              onToggle={(id) => setOpenSectionId((prev) => (prev === id ? null : id))}
-              lazy
-              deferBodyMount
-            >
-              <View style={styles.nestedBody}>
-                <ParagraphBlock text={block.body} />
-              </View>
-            </AccordionSection>
-          ))}
-        </View>
-      </View>
-    );
-  }
-
-  const structuredPayload = payload!;
-
   return (
     <View style={styles.container}>
-      {(structuredPayload.opening || structuredPayload.coreSummary) && (
+      <View
+        style={[
+          styles.heroCard,
+          {
+            backgroundColor: colors.primaryTint,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <View style={styles.heroHeader}>
+          <View style={[styles.heroIconWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="sparkles" size={15} color={colors.violet} />
+          </View>
+          <View style={styles.heroHeaderText}>
+            <Text style={[styles.heroTitle, { color: colors.text }]}>Kozmik Ana Tema</Text>
+            <Text style={[styles.heroEyebrow, { color: colors.subtext }]}>
+              Önce kısa resmi gör, sonra merak ettiğin başlığı aç.
+            </Text>
+          </View>
+        </View>
+        {heroLead ? (
+          <Text style={[styles.heroHeadline, { color: colors.text }]}>{heroLead}</Text>
+        ) : null}
+        {heroSupport ? (
+          <Text style={[styles.heroSubText, { color: colors.textSoft }]}>{heroSupport}</Text>
+        ) : null}
+        <View style={styles.signalGrid}>
+          {overviewSignals.map((signal) => (
+            <InsightSignalCard
+              key={signal.id}
+              title={signal.title}
+              text={signal.text}
+              icon={signal.icon}
+              tone={signal.tone}
+            />
+          ))}
+        </View>
+        <View style={styles.heroMetaRow}>
+          <MetaPill label={`${displaySections.length} başlık`} tone="accent" />
+          {planetHighlights.length > 0 ? <MetaPill label={`${planetHighlights.length} gezegen odağı`} tone="success" /> : null}
+        </View>
+      </View>
+
+      {digestCards.length > 0 ? (
         <View
           style={[
-            styles.heroCard,
+            styles.digestSection,
             {
-              backgroundColor: colors.primaryTint,
+              backgroundColor: colors.surfaceAlt,
               borderColor: colors.border,
             },
           ]}
         >
-          <View style={styles.heroHeader}>
-            <Ionicons name="sparkles" size={14} color={colors.violet} />
-            <Text style={[styles.heroTitle, { color: colors.text }]}>Kozmik Özet</Text>
-          </View>
-          {structuredPayload.opening ? (
-            <Text style={[styles.heroText, { color: colors.body }]}>{structuredPayload.opening}</Text>
-          ) : null}
-          {structuredPayload.coreSummary ? (
-            <Text style={[styles.heroSubText, { color: colors.textSoft }]}>{structuredPayload.coreSummary}</Text>
-          ) : null}
-          <View style={styles.heroMetaRow}>
-            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.heroMetaText, { color: colors.text }]}>
-                {sections.length} bölüm
-              </Text>
-            </View>
-            {planetHighlights.length > 0 ? (
-              <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.heroMetaText, { color: colors.text }]}>
-                  {planetHighlights.length} gezegen
-                </Text>
-              </View>
-            ) : null}
-            <View style={[styles.heroMetaPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.heroMetaText, { color: colors.textSoft }]}>Yapılandırılmış</Text>
-            </View>
+          <Text style={[styles.groupTitle, { color: colors.text }]}>Nereden Başlamalı?</Text>
+          <Text style={[styles.groupHint, { color: colors.subtext }]}>
+            En çok işine yarayacak başlıkları kısa açıklamayla burada gör.
+          </Text>
+          <View style={styles.digestGrid}>
+            {digestCards.map((card) => (
+              <SectionDigestCard
+                key={card.id}
+                title={card.title}
+                text={card.text}
+                icon={card.icon}
+              />
+            ))}
           </View>
         </View>
-      )}
+      ) : null}
 
-      {sections.length > 0 && (
+      {displaySections.length > 0 && (
         <View style={styles.group}>
-          <Text style={[styles.groupTitle, { color: colors.text }]}>Yorum Bölümleri</Text>
-          {sections.map((section) => (
+          <Text style={[styles.groupTitle, { color: colors.text }]}>Harita Yorumu</Text>
+          {displaySections.map((section, index) => (
             <AccordionSection
               key={section._id}
               id={section._id}
               title={inferTurkishAiTitle(section.body, section.title)}
-              subtitle={undefined}
+              subtitle={section.preview}
               icon="sparkles-outline"
               expanded={openSectionId === section._id}
               onToggle={(id) => setOpenSectionId((prev) => (prev === id ? null : id))}
+              headerMeta={section.metaLabels.length > 0 ? (
+                <View style={styles.metaRow}>
+                  {section.metaLabels.map((label, labelIdx) => (
+                    <MetaPill
+                      key={`${section._id}-tag-${labelIdx}`}
+                      label={label}
+                      tone={labelIdx === 0 ? 'accent' : 'neutral'}
+                    />
+                  ))}
+                </View>
+              ) : null}
               lazy
               deferBodyMount
             >
               <View style={styles.nestedBody}>
-                <ParagraphBlock text={section.body} />
+                <View
+                  style={[
+                    styles.summaryCard,
+                    {
+                      backgroundColor: colors.primaryTint,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.summaryHeader}>
+                    <Ionicons name="sparkles-outline" size={14} color={colors.violet} />
+                    <Text style={[styles.summaryTitle, { color: colors.text }]}>Bu başlığın özeti</Text>
+                  </View>
+                  <Text style={[styles.summaryText, { color: colors.body }]}>{section.preview}</Text>
+                </View>
                 {(section.bulletPoints ?? []).length > 0 ? (
                   <View style={styles.bulletGroup}>
                     {section.bulletPoints?.map((bp, bpIdx) => (
@@ -702,28 +1017,49 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
                     </Text>
                   </View>
                 ) : null}
+                <View style={styles.detailBlock}>
+                  <Text style={[styles.detailLabel, { color: colors.subtext }]}>
+                    {index === 0 ? 'Derin yorum' : 'Detaylı okuma'}
+                  </Text>
+                  <ParagraphBlock text={section.body} />
+                </View>
               </View>
             </AccordionSection>
           ))}
         </View>
       )}
 
-      {planetHighlights.length > 0 && (
+      {aiMode.useStructured && planetHighlights.length > 0 && (
         <View style={styles.group}>
-          <Text style={[styles.groupTitle, { color: colors.text }]}>Gezegen Rehberi</Text>
+          <Text style={[styles.groupTitle, { color: colors.text }]}>Gezegensel Etkiler</Text>
           {planetHighlights.map((planet, idx) => {
             const id = planet._id;
             const meta = PLANET_META[id] ?? { glyph: '✦', label: 'Gezegen' };
             const cardTitle = cleanAstroHeading(translateAstroTermsForUi(planet._accordionTitle ?? cleanText(planet.title) ?? `${meta.label} Yerleşimi`));
+            const planetPreview = compactText(
+              planet.character ?? planet.intro ?? planet.depth ?? planet.dailyLifeExample,
+              100,
+            );
             return (
               <AccordionSection
                 key={`${id || 'planet'}-${idx}`}
                 id={`planet-${id || idx}`}
                 title={`${meta.glyph} ${cardTitle}`}
-                subtitle={`${meta.label} • Satır satır yorum`}
+                subtitle={planetPreview ?? `${meta.label} yerleşim analizi`}
                 icon="planet-outline"
                 expanded={openPlanetId === `planet-${id || idx}`}
                 onToggle={(itemId) => setOpenPlanetId((prev) => (prev === itemId ? null : itemId))}
+                headerMeta={(
+                  <View style={styles.metaRow}>
+                    {safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).length > 0 ? (
+                      <MetaPill
+                        label={`${safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).length} vurgu`}
+                        tone="accent"
+                      />
+                    ) : null}
+                    {cleanText(planet.dailyLifeExample) ? <MetaPill label="günlük yansıma" tone="neutral" /> : null}
+                  </View>
+                )}
                 lazy
                 deferBodyMount
               >
@@ -738,6 +1074,24 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
                     </View>
                   </View>
 
+                  {planetPreview ? (
+                    <View
+                      style={[
+                        styles.summaryCard,
+                        {
+                          backgroundColor: colors.primaryTint,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                    >
+                      <View style={styles.summaryHeader}>
+                        <Ionicons name="planet-outline" size={14} color={colors.violet} />
+                        <Text style={[styles.summaryTitle, { color: colors.text }]}>Kısa etkisi</Text>
+                      </View>
+                      <Text style={[styles.summaryText, { color: colors.body }]}>{planetPreview}</Text>
+                    </View>
+                  ) : null}
+
                   {safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).length > 0 ? (
                     <View style={styles.bulletGroup}>
                       {safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).map((line, lineIdx) => (
@@ -750,12 +1104,12 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
                     </View>
                   ) : (
                     <>
-                      <MiniInfoBlock title="Karakter Analizi" text={cleanText(planet.character) ?? cleanText(planet.intro)} />
-                      <MiniInfoBlock title="Seni Nasıl Etkiler?" text={cleanText(planet.depth)} />
+                      <MiniInfoBlock title="Karakter Yansıması" text={cleanText(planet.character) ?? cleanText(planet.intro)} />
+                      <MiniInfoBlock title="Kişisel Etki Alanı" text={cleanText(planet.depth)} />
                     </>
                   )}
-                  <MiniInfoBlock title="Giriş" text={safeArray(planet.analysisLines).length ? null : cleanText(planet.intro)} />
-                  <MiniInfoBlock title="Derinlik" text={safeArray(planet.analysisLines).length ? null : cleanText(planet.depth)} />
+                  <MiniInfoBlock title="Genel Bakış" text={safeArray(planet.analysisLines).length ? null : cleanText(planet.intro)} />
+                  <MiniInfoBlock title="Derinlemesine Analiz" text={safeArray(planet.analysisLines).length ? null : cleanText(planet.depth)} />
 
                   {cleanText(planet.dailyLifeExample) ? (
                     <View
@@ -764,7 +1118,7 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
                         { backgroundColor: colors.primaryTint, borderColor: colors.border },
                       ]}
                     >
-                      <Text style={[styles.exampleLabel, { color: colors.violet }]}>Hayat Senaryosu</Text>
+                      <Text style={[styles.exampleLabel, { color: colors.violet }]}>Pratik Yansıması</Text>
                       <Text style={[styles.exampleText, { color: colors.textSoft }]}>
                         {translateAstroTermsForUi(planet.dailyLifeExample)}
                       </Text>
@@ -777,7 +1131,7 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
         </View>
       )}
 
-      {structuredPayload.closing ? (
+      {structuredPayload?.closing ? (
         <View
           style={[
             styles.closingCard,
@@ -787,8 +1141,10 @@ export default function StructuredNatalAiInterpretation({ text, fallbackTextStyl
             },
           ]}
         >
-          <Text style={[styles.closingTitle, { color: colors.text }]}>Kapanış Notu</Text>
-          <Text style={[styles.closingText, { color: colors.body }]}>{structuredPayload.closing}</Text>
+          <Text style={[styles.closingTitle, { color: colors.text }]}>Yanında Kalsın</Text>
+          <Text style={[styles.closingText, { color: colors.body }]}>
+            {compactText(structuredPayload.closing, 190) ?? structuredPayload.closing}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -800,43 +1156,99 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heroCard: {
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
-    padding: 12,
-    gap: 8,
+    padding: 14,
+    gap: 12,
   },
   heroHeader: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  heroIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+  },
+  heroHeaderText: {
+    flex: 1,
+    gap: 2,
   },
   heroTitle: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '800',
   },
-  heroText: {
-    fontSize: 13.5,
-    lineHeight: 20,
+  heroEyebrow: {
+    fontSize: 11.5,
+    lineHeight: 16,
+  },
+  heroHeadline: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   heroSubText: {
     fontSize: 12.5,
-    lineHeight: 18,
+    lineHeight: 19,
+  },
+  signalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  signalCard: {
+    minWidth: 148,
+    flexGrow: 1,
+    flexBasis: 0,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 10,
+    gap: 8,
+  },
+  signalIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signalTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  signalText: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   heroMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 2,
   },
-  heroMetaPill: {
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  metaPill: {
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  heroMetaText: {
-    fontSize: 11,
+  metaPillText: {
+    fontSize: 10.5,
     fontWeight: '700',
+  },
+  digestSection: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
   },
   group: {
     gap: 10,
@@ -844,6 +1256,46 @@ const styles = StyleSheet.create({
   groupTitle: {
     fontSize: 13,
     fontWeight: '800',
+  },
+  groupHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: -4,
+  },
+  digestGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  digestCard: {
+    minWidth: 148,
+    flexGrow: 1,
+    flexBasis: 0,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 10,
+    gap: 8,
+  },
+  digestHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  digestIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  digestTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  digestText: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   nestedBody: {
     gap: 10,
@@ -885,6 +1337,34 @@ const styles = StyleSheet.create({
   sectionBody: {
     fontSize: 13,
     lineHeight: 20,
+  },
+  summaryCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 11,
+    gap: 6,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  summaryTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  summaryText: {
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  detailBlock: {
+    gap: 8,
+  },
+  detailLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   exampleBox: {
     borderRadius: 12,

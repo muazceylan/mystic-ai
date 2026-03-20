@@ -18,8 +18,9 @@ export type DiscoverModuleKey =
   | 'numerology'
   | 'name_analysis'
   | 'decision_compass'
-  | 'spiritual_prayers'
+  | 'spiritual_dua'
   | 'spiritual_esma'
+  | 'spiritual_sure'
   | 'spiritual_meditation'
   | 'spiritual_breathing'
   | 'spiritual_recommendations'
@@ -188,13 +189,13 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
     recommended: true,
   },
   {
-    key: 'spiritual_prayers',
+    key: 'spiritual_dua',
     categoryKey: 'spiritual',
-    titleKey: 'discover.modules.spiritualPrayers.title',
-    subtitleKey: 'discover.modules.spiritualPrayers.subtitle',
+    titleKey: 'discover.modules.spiritualDua.title',
+    subtitleKey: 'discover.modules.spiritualDua.subtitle',
     icon: 'book-outline',
-    route: '/(tabs)/spiritual/prayers',
-    keywords: ['dua', 'prayer', 'ibadet', 'worship'],
+    route: '/(tabs)/spiritual/dua',
+    keywords: ['dua', 'prayer', 'ibadet', 'worship', 'namaz'],
   },
   {
     key: 'spiritual_esma',
@@ -202,8 +203,17 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
     titleKey: 'discover.modules.spiritualEsma.title',
     subtitleKey: 'discover.modules.spiritualEsma.subtitle',
     icon: 'sparkles-outline',
-    route: '/(tabs)/spiritual/esma',
-    keywords: ['esma', 'asma', 'zikir', 'dhikr'],
+    route: '/(tabs)/spiritual/asma',
+    keywords: ['esma', 'asma', 'zikir', 'dhikr', 'allah', 'isim'],
+  },
+  {
+    key: 'spiritual_sure',
+    categoryKey: 'spiritual',
+    titleKey: 'discover.modules.spiritualSure.title',
+    subtitleKey: 'discover.modules.spiritualSure.subtitle',
+    icon: 'document-text-outline',
+    route: '/(tabs)/spiritual/sure',
+    keywords: ['sure', 'surah', 'kuran', 'quran', 'ayet', 'verse'],
   },
   {
     key: 'spiritual_meditation',

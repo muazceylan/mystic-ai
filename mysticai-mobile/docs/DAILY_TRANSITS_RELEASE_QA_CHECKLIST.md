@@ -4,7 +4,7 @@ Bu checklist `DailyTransitsScreen` ve `TodayActionsScreen` için release onayı 
 
 ## 0) On Kosullar (Setup)
 
-- Mock kapali test: `USE_MOCK=false` veya `EXPO_PUBLIC_USE_MOCK=false`
+- Mock kapali test: `USE_MOCK=fapaylaşlse` veya `EXPO_PUBLIC_USE_MOCK=false`
 - Mock acik test: `USE_MOCK=true` (en az 1 tur)
 - Cihaz saati: TR (`+03`) ve en az bir tur farkli timezone
 - Uygulama cold start: uygulamayi tamamen kapatip ac

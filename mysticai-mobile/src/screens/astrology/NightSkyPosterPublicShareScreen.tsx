@@ -56,7 +56,7 @@ function parsePayload(payload: Record<string, unknown> | null | undefined): Pars
   if (!birthDate) return null;
 
   return {
-    name: asString(payload.name) ?? 'Mystic Soul',
+    name: asString(payload.name) ?? 'Astro Soul',
     birthDate,
     birthTime: asString(payload.birthTime) ?? null,
     birthLocation,
@@ -279,7 +279,7 @@ export default function NightSkyPosterPublicShareScreen() {
             <View style={styles.actionRow}>
               <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={handleOpenApp}>
                 <Ionicons name="phone-portrait-outline" size={16} color="#FFF" />
-                <Text style={styles.primaryBtnText}>Mystic AI'da Aç</Text>
+                <Text style={styles.primaryBtnText}>Astro Guru'da Aç</Text>
               </Pressable>
               <Pressable style={[styles.secondaryBtn, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleShareLink}>
                 <Ionicons name="share-social-outline" size={16} color={colors.text} />

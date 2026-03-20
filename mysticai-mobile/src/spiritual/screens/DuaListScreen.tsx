@@ -74,10 +74,15 @@ export default function DuaListScreen() {
 
   const categoryLabel = (cat: string) => {
     const labels: Record<string, string> = {
+      // Local JSON categories
       SABAH: 'Sabah', AKSAM: 'Akşam', GECE: 'Gece', 'ZİKİR': 'Zikir',
       KORUNMA: 'Korunma', SALAVAT: 'Salavat', BEREKET: 'Bereket',
       HUZUR: 'Huzur', 'ŞİFA': 'Şifa', 'İLİM': 'İlim',
       SABAH_AKSAM: 'Sabah/Akşam',
+      // CMS enum categories
+      MORNING: 'Sabah', EVENING: 'Akşam', GRATITUDE: 'Şükür',
+      PROTECTION: 'Korunma', HEALING: 'Şifa', FORGIVENESS: 'Tövbe',
+      GUIDANCE: 'Hidayet', ABUNDANCE: 'Bereket', GENERAL: 'Genel',
     };
     return labels[cat] ?? cat;
   };

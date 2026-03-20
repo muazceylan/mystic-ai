@@ -68,7 +68,7 @@ export default function HoroscopeDetailScreen() {
 
   const handleShare = useCallback(async () => {
     if (!current) return;
-    const text = `${signData?.emoji} ${signName}\n${current.date}\n\n${horoscopeText}\n\n— Mystic AI`;
+    const text = `${signData?.emoji} ${signName}\n${current.date}\n\n${horoscopeText}\n\n— Astro Guru`;
     try {
       await Sharing.shareAsync('data:text/plain;base64,' + btoa(unescape(encodeURIComponent(text))), {
         mimeType: 'text/plain',

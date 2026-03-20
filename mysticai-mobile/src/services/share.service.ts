@@ -50,7 +50,7 @@ function logShareAnalytics(payload: AnalyticsPayload) {
 
 function buildPhotosSettingsMessage() {
   if (Platform.OS === 'ios') {
-    return 'Galeriye kaydetmek için fotoğraf izni gerekli. Ayarlar > Fotoğraflar > Mystic AI yolundan izin verebilirsiniz.';
+    return 'Galeriye kaydetmek için fotoğraf izni gerekli. Ayarlar > Fotoğraflar > Astro Guru yolundan izin verebilirsiniz.';
   }
   return 'Galeriye kaydetmek için medya izni gerekli. Gerekirse Ayarlar > Fotoğraflar (iOS) veya uygulama izinleri ekranından erişimi açın.';
 }

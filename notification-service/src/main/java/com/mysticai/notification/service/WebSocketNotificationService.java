@@ -53,6 +53,7 @@ public class WebSocketNotificationService {
                 .title(title)
                 .body(message)
                 .deeplink(getDeeplinkForAnalysisType(analysisType))
+                .sourceModule(getSourceModuleForAnalysisType(analysisType))
                 .metadata(payload)
                 .build();
 
@@ -135,13 +136,26 @@ public class WebSocketNotificationService {
     }
 
     private String getDeeplinkForAnalysisType(Notification.AnalysisType type) {
-        if (type == null) return "/(tabs)/home";
+        if (type == null) return "/(tabs)/notifications";
         return switch (type) {
             case DREAM -> "/(tabs)/dreams";
-            case TAROT, ASTROLOGY, NUMEROLOGY, ORACLE -> "/(tabs)/home";
+            case NUMEROLOGY -> "/numerology?entry_point=push_ai_analysis";
+            case ASTROLOGY -> "/(tabs)/calendar";
+            case TAROT, ORACLE -> "/daily-summary?entry_point=push_ai_analysis";
             case NATAL_CHART -> "/(tabs)/natal-chart";
             case COMPATIBILITY -> "/(tabs)/compatibility";
             case HOROSCOPE -> "/(tabs)/horoscope";
+        };
+    }
+
+    private String getSourceModuleForAnalysisType(Notification.AnalysisType type) {
+        if (type == null) return "notifications";
+        return switch (type) {
+            case DREAM -> "dream_analysis";
+            case NUMEROLOGY -> "numerology";
+            case COMPATIBILITY -> "compatibility";
+            case HOROSCOPE -> "weekly_horoscope";
+            case NATAL_CHART, TAROT, ASTROLOGY, ORACLE -> "daily_transits";
         };
     }
 }

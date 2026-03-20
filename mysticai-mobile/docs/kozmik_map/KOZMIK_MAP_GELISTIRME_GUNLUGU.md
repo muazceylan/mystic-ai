@@ -371,7 +371,7 @@ Akış:
 Özellikler:
 - Expired token durumunda bilgilendirme ekranı
 - `429` rate-limit durumunda kullanıcıya açıklayıcı hata
-- `Mystic AI'da Aç` (deep-link fallback mantığı)
+- `Astro Guru'da Aç` (deep-link fallback mantığı)
 - Sistem paylaşımı ile link paylaşma butonu
 
 Not:
@@ -1825,3 +1825,234 @@ Kalıcı çözüm:
 - yapışık iyelik+İngilizce tokenlar (`Muaz'insometimes`) ayrıştırılıp Türkçeleştiriliyor
 - gözlenen bozuk tokenlar (`worldsine`, `nguồnını`, `poççğimiz`) normalize ediliyor
 - frontend `translateAstroTermsForUi(...)` içine de aynı düzeltmeler eklendi (cache'li eski yorumları da anlık düzeltmek için)
+
+#### 10.36.14 Yıldız Kartı (Synastry) Referans Tasarım Geri Dönüşü + İlişki Tipi Bazlı Profesyonel Tema
+
+Kullanıcı referans görseline göre `Yıldız Kartı` bileşeni tekrar ele alındı ve güncel versiyondaki sapma giderildi.
+
+Yapılanlar:
+- `LOVE` kartı referanstaki pastel/lila estetiğe geri yaklaştırıldı (`AŞK UYUMU • SYNASTRY KARTI`)
+- isim satırı altına referans görseldeki kısa açıklama metni (summary) tekrar eklendi
+- her ilişki tipi için (`LOVE`, `FRIENDSHIP`, `BUSINESS`, `FAMILY`, `RIVAL`) ayrı profesyonel renk sistemi tanımlandı:
+  - arka plan gradient
+  - skor kapsülü gradient/border/shadow
+  - metrik bandı/panel kart/özet/footer tonları
+  - galaksi glow + bulut renkleri
+- dekoratif katman ilişki tipine göre ayarlandı (kalp motifleri gerekli tiplerde açık)
+- kart kompozisyonu korunarak tüm ilişki tiplerinde içerik + görsel uyum güçlendirildi
+
+Teknik not:
+- tema sistemi `relationTheme(...).visual` altında merkezileştirildi
+- `MetricRow` ve `InsightPanel` bileşenleri tema renklerini prop ile alacak şekilde güncellendi
+- galaksi arka plan SVG'si tema bazlı renk alanlarını kullanır hale geldi
+
+#### 10.36.15 `share-card-preview` Ekranının Güncel Yıldız Kartı Tasarımına Geçişi
+
+Kullanıcı bildirimi: `http://localhost:8090/share-card-preview?...` linki hâlâ eski kart ekranını (`StoryCardPreview`) açıyordu.
+
+Yapılan düzeltme:
+- `ShareCardPreviewScreen` artık eski `StoryCardPreview` yerine güncel `MatchCard` bileşenini render eder
+- böylece `share-card-preview` ve `match-card-preview` görsel dili tekilleştirildi
+- `matchId` üzerinden `getSynastry` çağrısı eklenerek ilişki tipi (`relationshipType`) ve resmi skor meta verileri (`scoreBreakdown`, `displayMetrics`) karta bağlandı
+- route paramı varsa `relationshipType/relationLabel` aktarımı desteklendi
+- çağıran ekranlarda (`compare/index`, `MatchOverview`, `CompareMatrix`) `share-card-preview` yönlendirmelerine `relationshipType` (ve uygun yerde `relationLabel`) paramları eklendi
+
+Sonuç:
+- `share-card-preview` linki artık güncel kartı gösterir
+- ilişki türüne göre renk sistemi ve içerik düzeni doğru şekilde çalışır
+
+#### 10.36.16 `share-card-preview` için Profesyonel Paylaşım Atölyesi
+
+Kullanıcı talebi doğrultusunda paylaşılabilir kart ekranına profesyonel paylaşım alanı eklendi.
+
+Eklenenler:
+- yüksek çözünürlüklü kart capture (gizli `ViewShot`, 1080x2160)
+- otomatik görsel üretimi (ilk render sonrası auto-generate)
+- aksiyonlar:
+  - `Sistemde Paylaş`
+  - `Instagram Story`
+  - `Galeriye Kaydet`
+  - `Kartı Yeniden Oluştur`
+- başarı/hata bannerları ve izin yönlendirmeli hata yönetimi (`ShareServiceError`)
+- `share-card-preview` artık hem güncel kartı gösterir hem de aynı ekran içinde üretip paylaşır
+
+Ek UX düzenlemesi (`share-card-preview`):
+- `Sistemde Paylaş` butonu `Hemen Paylaş` olarak güncellendi
+- paylaşım alanı metin ağırlıklı yapıdan ikon odaklı 2x2 hızlı aksiyon düzenine geçirildi
+  - Hemen Paylaş
+  - Story
+  - Kaydet
+  - Yenile
+- aksiyon kartlarında ikon boyutu artırıldı, etiketler kısaltıldı
+
+#### 10.36.17 Paylaşılabilir Kartta Kırpılma Azaltma (Sade Metin + Sığan Layout)
+
+Kullanıcı geri bildirimi: paylaşılabilir kartta panel metinleri fazla kırpılıyor ve bazı ifadeler agresif ellipsis ile kesiliyordu.
+
+Yapılan iyileştirmeler (`MatchCard`):
+- kart metinleri için yeni `concise(...)` yardımcı fonksiyonu eklendi
+  - ilk cümle/ilk anlamlı bölüm seçilir
+  - dolgu ifadeleri sadeleştirilir
+  - daha kısa, kart dostu metin üretilir
+- panel içerikleri (LOVE / FRIENDSHIP / BUSINESS / FAMILY / RIVAL) daha kısa cümlelerle yeniden düzenlendi
+- `trait note` ve `summary` kaynaklı uzun ifadeler kısa versiyona normalize edildi
+- panel render tarafında `clip(...)` yerine kritik alanlarda `concise(...)` kullanıldı
+  - duo satırları
+  - başlık altı vurgu
+  - lead/callout/footnote satırları
+- isim altı açıklama (`summary`) daha kısa formatta üretilir hale getirildi
+
+Tasarım/okunabilirlik dokunuşları:
+- panel içi metin tipografisi karta sığması için dengelendi
+  - uzun satırlarda taşma yerine daha kontrollü kısa metin
+  - alt satır yoğunluğu azaltıldı
+- duo satır değerleri tek satırdan 2 satıra açılarak isim+özellik kırpılması azaltıldı
+
+Sonuç:
+- kart genel estetiği korunarak kırpılan metin oranı düşürüldü
+- cümleler daha kısa, okunabilir ve paylaşım görseline uygun hale geldi
+
+#### 10.36.18 Kırpılma Sert Azaltma + Story Aksiyonunun Kaldırılması
+
+Kullanıcı geri bildirimi üzerine paylaşılabilir kartta kalan kırpılmalar ve Story aksiyonu yeniden düzenlendi.
+
+Kırpılma/sadeleştirme tarafı (`MatchCard`):
+- `concise(...)` fonksiyonu artık ellipsis (`…`) üretmeden, kelime sınırında kısa metin döner
+- metin hâlâ uzunsa genel/sade bilgiye düşer (`Denge korunuyor` fallback)
+- panel render limitleri daha da daraltıldı (kart içine güvenli sığma için)
+  - duo satırı, vurgu, lead/callout/footnote ve generic line alanları
+- isim satırında uzun adlar için `adjustsFontSizeToFit` açıldı
+- alt özet bandı kısa etiketlerle sadeleştirildi (`En güçlü bağ`, `Dikkat`)
+- footer hashtag satırı kısaltıldı
+
+Paylaşım tarafı (`ShareCardPreviewScreen`):
+- `Story` hızlı aksiyonu tamamen kaldırıldı
+- paylaşım paneli 3 aksiyona indirildi:
+  - `Hemen Paylaş` (tam genişlik, ana aksiyon)
+  - `Kaydet`
+  - `Yenile`
+- `Hemen Paylaş` sistem paylaşım menüsünü açar; cihazda yüklüyse Instagram dahil uygulamalar görünür
+- Story kaynaklı hata yüzeyi kapatıldı
+
+Sonuç:
+- kart metinleri daha sade ve daha az kırpılmış görünür
+- paylaşım akışı tek ve güvenli ana rota üzerinden ilerler
+
+#### 10.36.19 Paylaşılabilir Kartta İlişki Tipi Sabitleme (Kategori Doğruluğu)
+
+Kullanıcı geri bildirimi: `İş Uyumu` seçildiğinde paylaşılabilir kart bazen `Aşk` temasıyla açılıyordu.
+
+Kök neden:
+- `share-card-preview` ekranında backend `getSynastry(matchId)` sonucu, route ile gelen seçili `relationshipType` değerini ezebiliyordu
+- `parseRelationshipType(...)` fonksiyonundaki string replace yaklaşımı bazı değerlerde güvenilir değildi (ör. friendship türevleri)
+
+Yapılan düzeltmeler:
+- `parseRelationshipType(...)` alias-map tabanlı güvenli çözüme geçirildi
+  - LOVE / BUSINESS / FRIENDSHIP / FAMILY / RIVAL için Türkçe+İngilizce alias desteği
+  - normalize adımı ile (tr karakter katlama + temizleme) daha dayanıklı eşleme
+- `share-card-preview` içinde ilişki tipi önceliği güncellendi:
+  - **1. öncelik:** route paramındaki seçili tip
+  - **2. öncelik:** backend synastry tipi
+- `preview` oluşturulurken de route tipi öncelikli hale getirildi (kategori drift engellendi)
+- Compare ana ekranından (`/(tabs)/compare/index`) paylaşım route’una `relationLabel` de geçirildi
+- Compare Matrix paylaşım geçişinde `relationLabel` yoksa `relationshipType` paramından türetilen fallback eklendi
+
+Sonuç:
+- hangi ilişki kategorisi seçildiyse paylaşılabilir kart aynı kategori temasında açılır
+- `İş Uyumu` -> BUSINESS kartı, `Arkadaşlık` -> FRIENDSHIP kartı vb. tutarlı çalışır
+
+#### 10.36.20 İlişki Tipine Özel Karakter Bütçesi + Smoke Check Tablosu
+
+Kullanıcı talebi doğrultusunda paylaşılabilir kart metin kırpılması bir üst seviyeye taşındı.
+
+Yapılanlar (`MatchCard`):
+- `relationCopyBudget(...)` eklendi
+  - `LOVE`, `FRIENDSHIP`, `BUSINESS`, `FAMILY`, `RIVAL` için ayrı metin bütçeleri tanımlandı
+  - bütçeler: `summary`, `summaryLine`, `traitList`, `duoRow`, `panelLead/callout/footnote`, `genericLead/bullet`, `strongest/caution`
+- `buildPanels(...)` fonksiyonu artık ilişki tipine özel `CardCopyBudget` ile çalışıyor
+- `InsightPanel` render katmanı da aynı bütçeyi kullanıyor (tek yerde limit kontrolü)
+- böylece her ilişki tipi kendi metin yoğunluğuna göre düzenleniyor; kırpılma/taşma riski azaltıldı
+
+Smoke-check dokümanı:
+- yeni dosya eklendi:
+  - `docs/kozmik_map/SHARE_CARD_RELATIONSHIP_SMOKE_CHECK.md`
+- 5 ilişki tipi için hızlı doğrulama tablosu ve adım adım test akışı tanımlandı
+
+Sonuç:
+- ilişki tipine göre kart içi metin yoğunluğu daha kontrollü
+- QA tarafında tip doğrulama (Aşk/İş/Arkadaşlık/Aile/Rekabet) tek tablodan hızlı yapılabilir
+
+Ek düzeltme:
+- `CompareMatrixScreen` içindeki `relationLabelFromParam` yardımcı fonksiyonunda `friendship` gibi değerlerin yanlışlıkla `İş Uyumu`na düşmesine neden olabilecek `includes('is')` kontrolü kaldırıldı.
+
+#### 06.50.43 Harita Yorumu + Kozmik Ana Tema UX Refactor
+
+Kullanıcı geri bildirimi: `Harita Yorumu` ve üstteki ana yorum alanı fazla yazı ağırlıklı kaldığı için yorucu hissediyordu.
+
+Yapılan tasarım/kod güncellemeleri (`StructuredNatalAiInterpretation`):
+- üst blok tamamen yeniden kurgulandı
+  - başlık `Kozmik Ana Tema` olarak sadeleştirildi
+  - uzun paragraf yerine kısa bir ana cümle + destekleyici ikinci satır kullanıldı
+  - altına 3 adet hızlı okuma kartı eklendi:
+    - `Ana enerji`
+    - `Denge noktası`
+    - `Hayata yansıması` / ilk gezegen vurgusu
+- yorum akışına `Nereden Başlamalı?` bölümü eklendi
+  - ilk 3 yorumsal başlık küçük özet kartlarla önceden gösteriliyor
+  - kullanıcı tüm akordiyonları açmadan hangi başlığa gireceğini anlayabiliyor
+- `Harita Yorumu` akordiyon başlıkları artık kendi kısa özetini subtitle alanında gösteriyor
+- her akordiyon gövdesinin en üstüne `Bu başlığın özeti` kartı eklendi
+  - uzun paragraf doğrudan yüzeye çıkmak yerine önce kısa anlam katmanı veriliyor
+- günlük hayat örnekleri ve vurgu maddeleri korunarak okunabilir akışta aşağı taşındı
+- gezegen yorumları da aynı mantıkla hafifletildi
+  - başlık altında kısa etki cümlesi
+  - vurgu pill’leri
+  - detay isteyen kullanıcı için daha aşağıda tam açıklama
+- kapanış kartı tek paragraf yığını olmaktan çıkarılıp kısa `Yanında Kalsın` notuna dönüştürüldü
+
+Ürün yaklaşımı:
+- varsayılan görünüm artık `taranabilir`
+- derinlik kaybolmadı; sadece ikinci katmana alındı
+- kullanıcı ilk bakışta "bu yorum bana ne söylüyor?" sorusunun cevabını birkaç saniyede alabiliyor
+
+Doğrulama:
+- `npx tsc --noEmit --pretty false` çalıştırıldı
+- bu refactor sonrası `StructuredNatalAiInterpretation.tsx` için yeni TypeScript hatası kalmadı
+- repoda önceden mevcut başka TypeScript hataları ayrı olarak devam ediyor
+
+#### 08.28.34 Harita Yorumu Prod-Ready Temizlik
+
+Kullanıcı talebi: yorum ekranında `version` benzeri teknik his veren yazılar ve mock/fallback tadı veren yardımcı metinler kaldırılmalı.
+
+Yapılan temizlikler:
+- `StructuredNatalAiInterpretation` içinde kullanıcıya görünen teknik/mode pill’leri kaldırıldı
+  - `katmanlı yorum`
+  - `özet mod`
+- yapay/fallback hissi veren section etiketleri kaldırıldı
+  - `önce buna bak`
+  - `özet`
+  - `başlık`
+  - `özet yorum`
+- gerçek veri yoksa sahte preview metni basılmıyor
+  - önceki fallback: `Bu başlık, haritanın bu alandaki ana dinamiğini özetler.`
+  - yeni davranış: preview yoksa ilgili kart/alt etiket üretilmiyor
+- plain-text modunda üst özet kart başlıkları daha doğal hale getirildi
+  - sabit jenerik etiketler yerine mümkün olduğunda gerçek bölüm başlıkları kullanılıyor
+
+Metin temizleme katmanı (`astroTextProcessor`):
+- AI çıktısı düz metin moda düşerse JSON/meta satırları kullanıcıya sızmasın diye filtre eklendi
+- aşağıdaki teknik satırlar otomatik ayıklanıyor:
+  - `version:`
+  - `tone:`
+  - `sections:`
+  - `planetHighlights:`
+  - `opening:`
+  - `coreSummary:`
+  - `closing:`
+  - benzeri JSON key/meta satırları
+- ayrıca tek başına kalan `{ } [ ]` gibi JSON parçaları da ayıklanıyor
+
+Sonuç:
+- yorum alanı daha ürünleşmiş ve sessiz görünüyor
+- kullanıcı yalnızca gerçek yorum içeriğini görüyor
+- parse uyumluluğu için teknik alanlar backend/normalization tarafında korunuyor, fakat UI’da görünmüyor

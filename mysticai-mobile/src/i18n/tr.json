@@ -36,7 +36,7 @@
     "title": "Profil",
     "settings": "Ayarlar",
     "logout": "Çıkış Yap",
-    "version": "Mystic AI v1.0.0",
+    "version": "Astro Guru v1.0.0",
     "stats": {
       "plannedDays": "Planlanan Günler",
       "dreamCount": "Rüya Kaydı",
@@ -647,7 +647,7 @@
     "shareMainNumber": "Ana sayı",
     "sharePersonalYear": "Bu yılın ana sayısı",
     "shareTheme": "Kısa tema",
-    "shareFooter": "Mystic AI ile oluşturuldu",
+    "shareFooter": "Astro Guru ile oluşturuldu",
     "networkErrorTitle": "Numeroloji rehberi yüklenemedi",
     "networkErrorDescription": "Bağlantı kurulamadı. Bu modül profil bilgilerine göre kişisel sonuç üretir; tekrar denediğinde güncel katman yenilenir.",
     "staleStateTitle": "Son hesaplanan profil gösteriliyor",
@@ -965,13 +965,17 @@
         "title": "Karar Pusulası",
         "subtitle": "Anlık karar rehberi"
       },
-      "spiritualPrayers": {
-        "title": "Dua Akışı",
-        "subtitle": "Günlük dua listeleri"
+      "spiritualDua": {
+        "title": "Dualar",
+        "subtitle": "Dua koleksiyonu ve zikir"
       },
       "spiritualEsma": {
-        "title": "Esma Zikir",
-        "subtitle": "Esma ve tekrar"
+        "title": "Esmalar",
+        "subtitle": "Esmaül Hüsna"
+      },
+      "spiritualSure": {
+        "title": "Sureler",
+        "subtitle": "Kur'an sureleri"
       },
       "spiritualMeditation": {
         "title": "Meditasyon",
@@ -1155,7 +1159,7 @@
     },
     "verifyResult": {
       "successTitle": "Email başarıyla doğrulandı",
-      "successDescription": "Hesabın aktif. Giriş yaparak Mystic AI'ı kullanmaya başlayabilirsin.",
+      "successDescription": "Hesabın aktif. Giriş yaparak Astro Guru'yu kullanmaya başlayabilirsin.",
       "expiredTitle": "Doğrulama linkinin süresi doldu",
       "expiredDescription": "Hesap aktivasyonunu tamamlamak için yeni bir doğrulama maili iste.",
       "invalidTitle": "Doğrulama linki geçersiz",
@@ -1430,7 +1434,11 @@
     "onboardingStepRegister": "Hesap oluşturuluyor",
     "onboardingStepChart": "Doğum haritası hazırlanıyor",
     "onboardingStepReady": "Her şey hazır!",
-    "onboardingRegisterError": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin."
+    "onboardingRegisterError": "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+    "birthNightTitle": "Doğduğun Gece Gökyüzü",
+    "birthNightSubtitle": "Kişisel gece haritan",
+    "birthNightCta": "Poster Atölyesini Aç",
+    "birthNightOpenPoster": "Doğduğun gece posterini oluştur"
   },
   "notificationPermission": {
     "title": "Bildirimleri Aç",
@@ -1445,7 +1453,7 @@
   },
   "premium": {
     "title": "Premium",
-    "heroTitle": "Mystic AI Premium",
+    "heroTitle": "Astro Guru Premium",
     "heroSub": "Kozmik potansiyelinizi tam açın",
     "monthly": "Aylık",
     "yearly": "Yıllık",
@@ -1489,7 +1497,7 @@
     "faq3q": "Ses kaydım neden yüklenmedi?",
     "faq3a": "Mikrofon izni verilmiş mi kontrol edin. Kayıt 30 saniyeyi aşmamalıdır. İnternet bağlantınızı kontrol edin.",
     "faq4q": "Premium'u nasıl iptal edebilirim?",
-    "faq4a": "iOS: Ayarlar → Apple ID → Abonelikler → Mystic AI. Android: Play Store → Hesap → Abonelikler → Mystic AI.",
+    "faq4a": "iOS: Ayarlar → Apple ID → Abonelikler → Astro Guru. Android: Play Store → Hesap → Abonelikler → Astro Guru.",
     "faq5q": "Verilerimi nasıl silebilirim?",
     "faq5a": "Hesap ve tüm veriler için destek@mystic.ai adresine \"Hesap Silme Talebi\" konusuyla e-posta gönderin."
   },
@@ -1498,7 +1506,7 @@
     "yourDataInControl": "Verileriniz sizin kontrolünüzde",
     "lastUpdate": "Son güncelleme: Şubat 2026",
     "section1Title": "Topladığımız Veriler",
-    "section1Body": "Mystic AI; doğum tarihi, saati ve konumu, rüya kayıtları ve uygulama kullanım istatistiklerini toplar. Bu veriler yalnızca kişiselleştirilmiş astroloji ve rüya yorumları sunmak için kullanılır.",
+    "section1Body": "Astro Guru; doğum tarihi, saati ve konumu, rüya kayıtları ve uygulama kullanım istatistiklerini toplar. Bu veriler yalnızca kişiselleştirilmiş astroloji ve rüya yorumları sunmak için kullanılır.",
     "section2Title": "Veri Saklama ve Güvenlik",
     "section2Body": "Tüm verileriniz şifreli bağlantılar (TLS) üzerinden iletilir ve güvenli sunucularda saklanır. Şifreler asla düz metin olarak tutulmaz; bcrypt ile hashlenir.",
     "section3Title": "Üçüncü Taraf Paylaşımı",

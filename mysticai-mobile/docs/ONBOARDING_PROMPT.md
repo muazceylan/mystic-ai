@@ -1,6 +1,6 @@
 # GÖREV: Flutter Çok Adımlı Kayıt (Onboarding) Modülü Geliştirme
 
-Mystic AI projemiz için, kullanıcı deneyimini artıracak, modern ve şık bir "Sihirbaz" (Wizard) tabanlı kayıt akışı tasarlamanı ve kodlamanı istiyorum.
+Astro Guru projemiz için, kullanıcı deneyimini artıracak, modern ve şık bir "Sihirbaz" (Wizard) tabanlı kayıt akışı tasarlamanı ve kodlamanı istiyorum.
 
 ## 1. Tasarım Dili (ÖNEMLİ)
 Referans görseller açık tema (light mode) olabilir ancak biz **Mystic Dark Theme** kullanıyoruz.

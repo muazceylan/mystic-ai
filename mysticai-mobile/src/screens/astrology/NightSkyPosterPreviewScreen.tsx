@@ -96,7 +96,7 @@ export default function NightSkyPosterPreviewScreen() {
       setDraft({
         userId: user?.id ?? chart.userId,
         chartId: chart.id,
-        name: user?.name || user?.firstName || chart.name || 'Mystic Soul',
+        name: user?.name || user?.firstName || chart.name || 'Astro Soul',
         birthDate: String(chart.birthDate),
         birthTime: chart.birthTime ?? null,
         birthLocation: chart.birthLocation ?? '',

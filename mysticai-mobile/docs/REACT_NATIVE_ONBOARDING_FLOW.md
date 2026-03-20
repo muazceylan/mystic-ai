@@ -1,4 +1,4 @@
-# Mystic AI - React Native (Expo) Onboarding Akış Planı
+# Astro Guru - React Native (Expo) Onboarding Akış Planı
 
 ## 🏗 Teknik Mimari
 - **Framework:** Expo (Router)

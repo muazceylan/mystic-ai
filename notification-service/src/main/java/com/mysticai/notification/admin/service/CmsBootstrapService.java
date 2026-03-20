@@ -129,7 +129,7 @@ public class CmsBootstrapService implements ApplicationRunner {
         int n = 0;
         n += upsertCategory("cosmic_flow_cms",    "Kozmik Akış",      "Bugün ve hafta ritmini buradan takip et.", "planet-outline",   1);
         n += upsertCategory("self_discovery_cms", "Kendini Keşfet",   "Haritan ve kişisel içgörüler tek yerde.", "aperture-outline", 2);
-        n += upsertCategory("spiritual_cms",      "Ruhsal Pratikler", "Dua, esma, nefes ve meditasyon akışları.", "leaf-outline",    3);
+        n += upsertCategory("spiritual_cms",      "Ruhsal Pratikler", "Dua, esma, sure, nefes ve meditasyon.", "leaf-outline",    3);
         n += upsertCategory("social_compat_cms",  "Sosyal & Uyum",    "İlişki uyumu ve paylaşım deneyimleri.", "people-outline",   4);
         return n;
     }
@@ -211,31 +211,40 @@ public class CmsBootstrapService implements ApplicationRunner {
                 false, false, 5);
 
         // ── spiritual_cms ────────────────────────────────────────────────────
-        n += upsertCard("spiritual_prayers_card",         "spiritual_cms",
-                "Dua Akışı",                 "Günlük dua listeleri",
-                "Sabah, öğle, akşam ve yatmadan önce; duruma göre seçilmiş dua listeleri ve rehberli dua akışları.",
-                "/(tabs)/spiritual/prayers", null, "Dualara Bak",
+        // Remove old prayer/esma cards — replaced by dua/esma/sure cards
+        n += removeCard("spiritual_prayers_card");
+        n += removeCard("spiritual_esma_card");
+
+        n += upsertCard("spiritual_dua_card",             "spiritual_cms",
+                "Dualar",                    "Dua koleksiyonu ve zikir",
+                "Sabah, akşam, korunma, şifa ve daha birçok kategoride dua koleksiyonu. Seç, oku ve zikir sayacıyla takip et.",
+                "/(tabs)/spiritual/dua", null, "Dualara Bak",
                 true, false, 1);
-        n += upsertCard("spiritual_esma_card",            "spiritual_cms",
-                "Esma Zikir",                "Esma ve tekrar sayacı",
-                "Allah'ın 99 güzel ismi. Her esmanın anlamı, fazileti ve önerilen tekrar sayısıyla zikir sayacı.",
-                "/(tabs)/spiritual/esma", null, "Esmaları Gör",
+        n += upsertCard("spiritual_esma_card_v2",         "spiritual_cms",
+                "Esmalar",                   "Esmaül Hüsna",
+                "Allah'ın 99 güzel ismi. Her esmanın Arapça yazılışı, anlamı ve önerilen tekrar sayısıyla zikir sayacı.",
+                "/(tabs)/spiritual/asma", null, "Esmaları Gör",
                 false, false, 2);
+        n += upsertCard("spiritual_sure_card",            "spiritual_cms",
+                "Sureler",                   "Kur'an sureleri",
+                "Kur'an-ı Kerim surelerini oku, dinle ve zikir sayacıyla takip et.",
+                "/(tabs)/spiritual/sure", null, "Sureleri Gör",
+                false, false, 3);
         n += upsertCard("spiritual_meditation_card",      "spiritual_cms",
                 "Meditasyon",                "Sessiz odak seansları",
                 "Rehberli meditasyon seansları. Zihni sakinleştir, odaklan ve iç huzuru bul.",
                 "/(tabs)/spiritual/meditation", null, "Meditasyona Başla",
-                false, false, 3);
+                false, false, 4);
         n += upsertCard("spiritual_breathing_card",       "spiritual_cms",
                 "Nefes Egzersizleri",        "Nefes ve rahatlama",
                 "Box breathing, 4-7-8 ve diğer nefes teknikleriyle stresi azalt, zihni berraklaştır.",
                 "/(tabs)/spiritual/breathing", null, "Nefes Al",
-                false, false, 4);
+                false, false, 5);
         n += upsertCard("spiritual_recommendations_card", "spiritual_cms",
                 "Ruhsal Öneri",              "Güne uygun pratik",
                 "Bugünün kozmik enerjisine ve kişisel profiline göre özel ruhsal pratik önerileri.",
                 "/(tabs)/spiritual/recommendations", null, "Öneriyi Gör",
-                false, false, 5);
+                false, false, 6);
 
         // ── social_compat_cms ────────────────────────────────────────────────
         n += upsertCard("compatibility_card",    "social_compat_cms",
@@ -282,6 +291,16 @@ public class CmsBootstrapService implements ApplicationRunner {
         if (blank(c.getRouteKey()) && !blank(routeKey)) { c.setRouteKey(routeKey); changed = true; }
         if (c.getStatus() == null)     { c.setStatus(ExploreCard.Status.PUBLISHED); changed = true; }
         if (changed) { exploreCardRepo.save(c); log.info("[CmsBootstrap] ExploreCard ENRICHED: {}", key); return 1; }
+        return 0;
+    }
+
+    private int removeCard(String key) {
+        var opt = exploreCardRepo.findByCardKey(key);
+        if (opt.isPresent()) {
+            exploreCardRepo.delete(opt.get());
+            log.info("[CmsBootstrap] ExploreCard REMOVED: {}", key);
+            return 1;
+        }
         return 0;
     }
 

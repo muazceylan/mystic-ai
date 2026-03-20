@@ -470,6 +470,8 @@ export default function MatchOverviewScreen(props: MatchOverviewScreenProps) {
         personASignLabel: props.personASignLabel,
         personBSignLabel: props.personBSignLabel,
         overallScore: String(resolvedData.overallScore),
+        relationshipType: props.relationshipType,
+        relationLabel: props.relationLabel,
       },
     } as never);
   };

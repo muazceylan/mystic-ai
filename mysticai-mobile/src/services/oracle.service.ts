@@ -36,10 +36,10 @@ export interface HomeBrief {
 }
 
 const ORACLE_BASE = '/api/v1/oracle';
-// Oracle synthesis AI orchestration'a giderse ~3-8sn sürer.
-// 10sn yeterli; timeout sonrası dashboard skyPulse fallback içeriğiyle
-// tam olarak render edilebilir (buildDashboardFromSources null-safe).
-const ORACLE_SYNTHESIS_TIMEOUT_MS = 10000;
+// Oracle synthesis: backend cache miss'te AI orchestration ~15-20sn sürebilir.
+// Backend toplam timeout 18sn + gateway buffer = mobil 22sn.
+// Timeout sonrası dashboard skyPulse fallback içeriğiyle render edilir.
+const ORACLE_SYNTHESIS_TIMEOUT_MS = 22000;
 
 export const fetchDailySecret = (params?: {
   name?: string;

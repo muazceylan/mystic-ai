@@ -125,7 +125,7 @@ export async function setupNotificationChannel(): Promise<void> {
     if (!mod) return;
 
     await mod.setNotificationChannelAsync('mysticai-notifications', {
-      name: 'Mystic AI',
+      name: 'Astro Guru',
       importance: mod.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#9D4EDD',

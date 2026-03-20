@@ -1,4 +1,4 @@
-# Mystic AI — Mobil UI / UX İyileştirme Planı
+# Astro Guru — Mobil UI / UX İyileştirme Planı
 
 Bu doküman, repo içindeki kapsamlı analize dayanarak önerilen tüm UI/UX geliştirmelerini listeler. Seninle maddeleri tek tek işleyip PR'lara dönüştüreceğiz — önce hangi maddeyle başlamak istediğini söyle.
 

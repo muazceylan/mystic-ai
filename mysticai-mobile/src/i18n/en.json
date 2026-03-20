@@ -36,7 +36,7 @@
     "title": "Profile",
     "settings": "Settings",
     "logout": "Sign Out",
-    "version": "Mystic AI v1.0.0",
+    "version": "Astro Guru v1.0.0",
     "stats": {
       "plannedDays": "Planned Days",
       "dreamCount": "Dream Entries",
@@ -274,7 +274,7 @@
     }
   },
   "home": {
-    "title": "Mystic Compass",
+    "title": "Astro Guru",
     "greeting": "Welcome",
     "dailyVibe": "Daily Energy",
     "services": "Cosmic Services",
@@ -647,7 +647,7 @@
     "shareMainNumber": "Main number",
     "sharePersonalYear": "Personal year",
     "shareTheme": "Short theme",
-    "shareFooter": "Created with Mystic AI",
+    "shareFooter": "Created with Astro Guru",
     "networkErrorTitle": "Numerology guidance could not be loaded",
     "networkErrorDescription": "The connection failed. This module generates a personal reading from your profile data; retry to refresh the current layer.",
     "staleStateTitle": "Showing the last calculated profile",
@@ -966,13 +966,17 @@
         "title": "Decision Compass",
         "subtitle": "Instant decision guide"
       },
-      "spiritualPrayers": {
-        "title": "Prayer Flow",
-        "subtitle": "Daily prayer lists"
+      "spiritualDua": {
+        "title": "Prayers",
+        "subtitle": "Prayer collection & dhikr"
       },
       "spiritualEsma": {
-        "title": "Esma Dhikr",
-        "subtitle": "Esma and repetition"
+        "title": "Asma al-Husna",
+        "subtitle": "99 Names of Allah"
+      },
+      "spiritualSure": {
+        "title": "Surahs",
+        "subtitle": "Quranic chapters"
       },
       "spiritualMeditation": {
         "title": "Meditation",
@@ -1156,7 +1160,7 @@
     },
     "verifyResult": {
       "successTitle": "Email verified successfully",
-      "successDescription": "Your account is active. Continue to login and start using Mystic AI.",
+      "successDescription": "Your account is active. Continue to login and start using Astro Guru.",
       "expiredTitle": "Verification link expired",
       "expiredDescription": "Request a new verification email to complete your account activation.",
       "invalidTitle": "Verification link is invalid",
@@ -1431,7 +1435,11 @@
     "onboardingStepRegister": "Creating account",
     "onboardingStepChart": "Preparing birth chart",
     "onboardingStepReady": "All set!",
-    "onboardingRegisterError": "An error occurred during registration. Please try again."
+    "onboardingRegisterError": "An error occurred during registration. Please try again.",
+    "birthNightTitle": "Your Birth Night Sky",
+    "birthNightSubtitle": "Your personal night map",
+    "birthNightCta": "Open Poster Studio",
+    "birthNightOpenPoster": "Create your birth night sky poster"
   },
   "notificationPermission": {
     "title": "Enable Notifications",
@@ -1450,7 +1458,7 @@
     "restoreTitle": "Restore Purchases",
     "restoreMessage": "Checking your existing purchases...",
     "title": "Premium",
-    "heroTitle": "Mystic AI Premium",
+    "heroTitle": "Astro Guru Premium",
     "heroSub": "Unlock your full cosmic potential",
     "comingSoon": "Coming Soon",
     "comingSoonMessage": "Payment integration will be active soon. This feature is currently in development.",
@@ -1490,7 +1498,7 @@
     "faq3q": "Why didn't my voice recording upload?",
     "faq3a": "Check if microphone permission is granted. Recording should not exceed 30 seconds. Check your internet connection.",
     "faq4q": "How can I cancel Premium?",
-    "faq4a": "iOS: Settings → Apple ID → Subscriptions → Mystic AI. Android: Play Store → Account → Subscriptions → Mystic AI.",
+    "faq4a": "iOS: Settings → Apple ID → Subscriptions → Astro Guru. Android: Play Store → Account → Subscriptions → Astro Guru.",
     "faq5q": "How can I delete my data?",
     "faq5a": "Send an email to support@mystic.ai with the subject \"Account Deletion Request\" for account and all data deletion."
   },
@@ -1499,7 +1507,7 @@
     "yourDataInControl": "Your data is under your control",
     "lastUpdate": "Last updated: February 2026",
     "section1Title": "Data We Collect",
-    "section1Body": "Mystic AI collects birth date, time and location, dream entries, and app usage statistics. This data is used only to provide personalized astrology and dream interpretations.",
+    "section1Body": "Astro Guru collects birth date, time and location, dream entries, and app usage statistics. This data is used only to provide personalized astrology and dream interpretations.",
     "section2Title": "Data Storage and Security",
     "section2Body": "All your data is transmitted over encrypted connections (TLS) and stored on secure servers. Passwords are never stored in plain text; they are hashed with bcrypt.",
     "section3Title": "Third-Party Sharing",

@@ -1736,7 +1736,7 @@ export default function NatalChartTab() {
     setNightSkyPosterDraft({
       userId: user?.id,
       chartId: chart.id,
-      name: activeProfileName || chart.name || 'Mystic Soul',
+      name: activeProfileName || chart.name || 'Astro Soul',
       birthDate: String(chart.birthDate),
       birthTime: chart.birthTime ?? null,
       birthLocation: chart.birthLocation,
@@ -1754,7 +1754,7 @@ export default function NatalChartTab() {
   const openNatalVisualsPreview = () => {
     if (!chart) return;
     setNatalVisualsDraft({
-      name: activeProfileName || chart.name || 'Mystic Soul',
+      name: activeProfileName || chart.name || 'Astro Soul',
       birthDate: String(chart.birthDate),
       birthTime: chart.birthTime ?? null,
       birthLocation: chart.birthLocation,
@@ -1807,8 +1807,8 @@ export default function NatalChartTab() {
         return (
           <AccordionSection
             id="night_poster"
-            title="Doğduğun Gece"
-            subtitle="Paylaşılabilir gece posteri • Dokunarak poster modülünü aç"
+            title={t('natalChart.birthNightTitle', 'Doğduğun Gece Gökyüzü')}
+            subtitle={t('natalChart.birthNightSubtitle', 'Kişisel gece haritan')}
             icon="moon-outline"
             expanded={openAccordionKey === 'night_poster'}
             onToggle={toggleAccordion}
@@ -1818,14 +1818,11 @@ export default function NatalChartTab() {
             headerRight={headerRight}
           >
             <View style={styles.posterAccordionInner}>
-              <Text style={styles.posterPreviewHint}>
-                Doğum anının gökyüzü estetiğini buradan önizleyebilirsin. Tam ekran poster, varyant ve paylaşım ayarları için aşağıdaki butonu kullan.
-              </Text>
               <View style={styles.posterPreviewShell}>
                 <View style={styles.posterPreviewViewport}>
                   <View style={styles.posterPreviewScaled}>
                     <BirthNightSkyPoster
-                      name={activeProfileName || chart.name || 'Mystic Soul'}
+                      name={activeProfileName || chart.name || 'Astro Soul'}
                       birthDate={String(chart.birthDate)}
                       birthTime={chart.birthTime ?? null}
                       birthLocation={chart.birthLocation}
@@ -1843,11 +1840,11 @@ export default function NatalChartTab() {
                 <Pressable
                   style={styles.posterBtn}
                   onPress={openNightSkyPosterPreview}
-                  accessibilityLabel="Doğduğun gece posterini oluştur"
+                  accessibilityLabel={t('natalChart.birthNightOpenPoster', 'Doğduğun gece posterini oluştur')}
                   accessibilityRole="button"
                 >
                   <Ionicons name="moon-outline" size={16} color={colors.goldDark} />
-                  <Text style={styles.posterBtnText}>Poster Atölyesini Aç</Text>
+                  <Text style={styles.posterBtnText}>{t('natalChart.birthNightCta', 'Poster Atölyesini Aç')}</Text>
                   <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
                 </Pressable>
               </View>
@@ -2037,7 +2034,7 @@ export default function NatalChartTab() {
           <AccordionSection
             id="cosmic_balance"
             title="Kozmik Denge"
-            subtitle="Element ve nitelik dağılımı • özet yorum"
+            subtitle="Haritandaki elementel ve modal enerji dağılımı"
             icon="pie-chart-outline"
             expanded={openAccordionKey === 'cosmic_balance'}
             onToggle={toggleAccordion}
@@ -2206,8 +2203,8 @@ export default function NatalChartTab() {
           <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.INSIGHT_PANEL}>
             <AccordionSection
               id="ai_interpretation"
-              title="AI Analizi"
-              subtitle="Kozmik yorum • Türkçe başlıklı alt akordiyonlar ile hiyerarşik okuma"
+              title="Harita Yorumu"
+              subtitle="Doğum haritanın uzman astrolojik analizi"
               icon="sparkles-outline"
               expanded={openAccordionKey === 'ai_interpretation'}
               onToggle={toggleAccordion}
@@ -4159,35 +4156,38 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
 
   posterAccordionInner: {
-    gap: 12,
-  },
-  posterPreviewHint: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: C.muted,
+    gap: 14,
+    alignItems: 'center',
   },
   posterPreviewShell: {
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
   },
   posterPreviewViewport: {
-    width: 290,
-    height: 516,
-    borderRadius: 20,
+    width: 300,
+    height: 534,
+    borderRadius: 22,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: 'rgba(248,213,126,0.12)',
     backgroundColor: '#02040A',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 6,
   },
   posterPreviewScaled: {
     width: 360,
     height: 640,
-    transform: [{ scale: 0.805 }],
+    transform: [{ scale: 0.834 }],
   },
   posterModuleActions: {
     marginTop: 2,
+    width: '100%',
   },
 
   // ── Big Three Trinity ─────────────────────────────────────────────

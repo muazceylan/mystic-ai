@@ -27,7 +27,7 @@ export function ShareCard({ data, lang }: Props) {
         <Text style={S.sign}>{name}</Text>
         <Text style={S.date}>{data.date}</Text>
         <Text style={S.text} numberOfLines={5}>{data.sections.general}</Text>
-        <Text style={S.brand}>Mystic AI</Text>
+        <Text style={S.brand}>Astro Guru</Text>
       </LinearGradient>
     </View>
   );

@@ -81,7 +81,7 @@ export default function StoryCardPreview({ data }: StoryCardPreviewProps) {
         <View style={styles.footer}>
           <Sparkles size={16} color="#E9D5FF" />
           <AccessibleText style={styles.footerText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            mystic ai • Uyum Haritası
+            astro guru • Uyum Haritası
           </AccessibleText>
         </View>
       </LinearGradient>

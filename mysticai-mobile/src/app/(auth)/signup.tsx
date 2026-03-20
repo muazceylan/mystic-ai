@@ -263,7 +263,7 @@ export default function SignupScreen() {
 
             <View style={styles.brandBadge}>
               <Ionicons name="sparkles" size={12} color={colors.primary} />
-              <Text style={styles.brandText}>MYSTIC AI</Text>
+              <Text style={styles.brandText}>ASTRO GURU</Text>
             </View>
           </View>
 

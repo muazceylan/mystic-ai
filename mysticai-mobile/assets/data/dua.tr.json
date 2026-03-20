@@ -8,9 +8,19 @@
     "meaningTr": "Ey Allah'ım! Senin adınla sabahladık, Senin adınla akşamladık, Senin adınla yaşarız, Senin adınla ölürüz ve dönüş yalnızca Sanadır.",
     "shortBenefit": "Güne bereketli başlamak ve Allah'ın himayesine girmek",
     "defaultTargetCount": 3,
-    "tags": ["sabah", "sukur", "tevekkul"],
+    "tags": [
+      "sabah",
+      "sukur",
+      "tevekkul"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Dualar", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Dualar",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 2,
@@ -21,9 +31,19 @@
     "meaningTr": "Ey Allah'ım! Senin adınla akşamladık, Senin adınla sabahladık, Senin adınla yaşarız, Senin adınla ölürüz ve dönüş yalnızca Sanadır.",
     "shortBenefit": "Günü şükranla bitirmek, gece boyunca koruma istemek",
     "defaultTargetCount": 3,
-    "tags": ["aksam", "sukur", "korunma"],
+    "tags": [
+      "aksam",
+      "sukur",
+      "korunma"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Dualar", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Dualar",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 3,
@@ -34,9 +54,19 @@
     "meaningTr": "Ey Allah'ım! Senin adınla ölür (uyur) ve Senin adınla dirilirim (uyanırım).",
     "shortBenefit": "Güvenli ve huzurlu uyku, koruyucu dua",
     "defaultTargetCount": 3,
-    "tags": ["gece", "huzur", "korunma"],
+    "tags": [
+      "gece",
+      "huzur",
+      "korunma"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Dualar", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Dualar",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 4,
@@ -47,9 +77,20 @@
     "meaningTr": "Kendisinden başka ilah olmayan, diri ve her şeyi ayakta tutan yüce Allah'tan bağışlanmamı diler ve O'na tövbe ederim.",
     "shortBenefit": "Günahların affedilmesi, kalp temizliği",
     "defaultTargetCount": 100,
-    "tags": ["tevbe", "magfiret", "kalp", "arınma"],
+    "tags": [
+      "tevbe",
+      "magfiret",
+      "kalp",
+      "arınma"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Temel Dualar", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Temel Dualar",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 5,
@@ -60,9 +101,19 @@
     "meaningTr": "Allah her türlü noksanlıktan uzaktır, O'nu tenzih ederim.",
     "shortBenefit": "Günah silme, sevap kazanma",
     "defaultTargetCount": 33,
-    "tags": ["zikir", "sukur", "tevhid"],
+    "tags": [
+      "zikir",
+      "sukur",
+      "tevhid"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Zikirler", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Zikirler",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 6,
@@ -73,9 +124,19 @@
     "meaningTr": "Hamd (övgü), alemlerin Rabbi olan Allah'a mahsustur.",
     "shortBenefit": "Şükür, nimet artışı, kalp huzuru",
     "defaultTargetCount": 33,
-    "tags": ["sukur", "zikir", "huzur"],
+    "tags": [
+      "sukur",
+      "zikir",
+      "huzur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Zikirler", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Zikirler",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 7,
@@ -86,9 +147,19 @@
     "meaningTr": "Allah en büyüktür.",
     "shortBenefit": "Dünya kaygılarından uzaklaşmak, Allah'ı büyüklemek",
     "defaultTargetCount": 34,
-    "tags": ["zikir", "tevhid", "iman"],
+    "tags": [
+      "zikir",
+      "tevhid",
+      "iman"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Zikirler", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Zikirler",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 8,
@@ -99,9 +170,19 @@
     "meaningTr": "Allah'tan başka ilah yoktur.",
     "shortBenefit": "İmanın tazelenmesi, kalbin Allah'a bağlanması",
     "defaultTargetCount": 100,
-    "tags": ["tevhid", "iman", "zikir"],
+    "tags": [
+      "tevhid",
+      "iman",
+      "zikir"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Kelime-i Tevhid", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kelime-i Tevhid",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 9,
@@ -112,9 +193,22 @@
     "meaningTr": "Allah bize yeter, O ne güzel vekildir.",
     "shortBenefit": "Zor anlarda güç ve tevekkül",
     "defaultTargetCount": 40,
-    "tags": ["tevekkul", "korunma", "sabir"],
-    "relatedAyahRef": {"surah": "Ali İmran", "ayah": 173},
-    "sources": [{"provider": "Diyanet", "ref": "Kuran-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali"}]
+    "tags": [
+      "tevekkul",
+      "korunma",
+      "sabir"
+    ],
+    "relatedAyahRef": {
+      "surah": "Ali İmran",
+      "ayah": 173
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kuran-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali"
+      }
+    ]
   },
   {
     "id": 10,
@@ -125,9 +219,19 @@
     "meaningTr": "Allah'ım! Muhammed'e ve Muhammed'in ailesine salat eyle (rahmet et).",
     "shortBenefit": "Sevap kazanmak, duaların kabulü, huzur",
     "defaultTargetCount": 100,
-    "tags": ["salavat", "sukur", "rahmet"],
+    "tags": [
+      "salavat",
+      "sukur",
+      "rahmet"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Salavat Duaları", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Salavat Duaları",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 11,
@@ -138,9 +242,18 @@
     "meaningTr": "Bizi öldürdükten (uyuttuktan) sonra dirilten (uyandıran) Allah'a hamdolsun. Dönüş yalnızca O'nadır.",
     "shortBenefit": "Sabah uyanışının şükrünü ifade etmek",
     "defaultTargetCount": 3,
-    "tags": ["sabah", "sukur"],
+    "tags": [
+      "sabah",
+      "sukur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Sabah Duaları", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Sabah Duaları",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 12,
@@ -151,9 +264,19 @@
     "meaningTr": "Allah'ım! Haram kılacaklarını değil, helal kılacaklarınla beni doyur ve lütfunla beni herkesten müstağni kıl.",
     "shortBenefit": "Helal rızık ve bereket için dua",
     "defaultTargetCount": 3,
-    "tags": ["rizik", "bereket", "nimet"],
+    "tags": [
+      "rizik",
+      "bereket",
+      "nimet"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Rızık Duaları", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Rızık Duaları",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 13,
@@ -164,9 +287,22 @@
     "meaningTr": "Senden başka ilah yoktur. Seni tenzih ederim. Ben gerçekten zalimlerden oldum.",
     "shortBenefit": "Sıkıntı ve zorluktan kurtulmak, Hz. Yunus'un duası",
     "defaultTargetCount": 40,
-    "tags": ["huzur", "korunma", "tevbe"],
-    "relatedAyahRef": {"surah": "Enbiya", "ayah": 87},
-    "sources": [{"provider": "Diyanet", "ref": "Kuran-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali"}]
+    "tags": [
+      "huzur",
+      "korunma",
+      "tevbe"
+    ],
+    "relatedAyahRef": {
+      "surah": "Enbiya",
+      "ayah": 87
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kuran-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali"
+      }
+    ]
   },
   {
     "id": 14,
@@ -177,9 +313,19 @@
     "meaningTr": "Ey insanların Rabbi, ey Allah'ım! Hastalığı gider, şifa ver. Şafiler ancak Sensin. Senin şifandan başka şifa yoktur.",
     "shortBenefit": "Hasta için şifa ve iyileşme duası",
     "defaultTargetCount": 7,
-    "tags": ["saglik", "sifa", "rahmet"],
+    "tags": [
+      "saglik",
+      "sifa",
+      "rahmet"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Şifa Duaları", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Şifa Duaları",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 15,
@@ -190,9 +336,22 @@
     "meaningTr": "Rabbim, ilmimi artır.",
     "shortBenefit": "Bilgi, anlayış ve hikmetin artması",
     "defaultTargetCount": 100,
-    "tags": ["ilim", "zihin", "hikmet"],
-    "relatedAyahRef": {"surah": "Ta-Ha", "ayah": 114},
-    "sources": [{"provider": "Diyanet", "ref": "Kuran-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali"}]
+    "tags": [
+      "ilim",
+      "zihin",
+      "hikmet"
+    ],
+    "relatedAyahRef": {
+      "surah": "Ta-Ha",
+      "ayah": 114
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kuran-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali"
+      }
+    ]
   },
   {
     "id": 16,
@@ -203,9 +362,24 @@
     "meaningTr": "Rahman ve Rahim olan Allah'ın adıyla. Hamd, alemlerin Rabbi Allah'a mahsustur. O, Rahman ve Rahim'dir. Din gününün (kıyamet gününün) sahibidir. Yalnız Sana ibadet eder ve yalnız Senden yardım dileriz. Bizi doğru yola ilet; nimet verdiğin kimselerin yoluna. Gazaba uğramışların ve sapmışların yoluna değil.",
     "shortBenefit": "Namazın direği, her hayrın anahtarı, her derde şifa olan sure",
     "defaultTargetCount": 7,
-    "tags": ["sure", "huzur", "sifa", "korunma", "sukur"],
-    "relatedAyahRef": {"surah": "Fatiha", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (1. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "huzur",
+      "sifa",
+      "korunma",
+      "sukur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Fatiha",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (1. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 17,
@@ -216,9 +390,23 @@
     "meaningTr": "Rahman ve Rahim olan Allah'ın adıyla. De ki: O, Allah birdir. Allah Samed'dir (her şey O'na muhtaç, O hiçbir şeye muhtaç değildir). O doğurmamış ve doğurulmamıştır. O'nun hiçbir dengi yoktur.",
     "shortBenefit": "Kur'an'ın üçte birine denk, tevhidin özeti, 3 kez okumak Kur'an hatmi gibi",
     "defaultTargetCount": 3,
-    "tags": ["sure", "tevhid", "iman", "korunma"],
-    "relatedAyahRef": {"surah": "İhlas", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (112. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "tevhid",
+      "iman",
+      "korunma"
+    ],
+    "relatedAyahRef": {
+      "surah": "İhlas",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (112. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 18,
@@ -229,9 +417,23 @@
     "meaningTr": "Rahman ve Rahim olan Allah'ın adıyla. De ki: Sabahın Rabbine sığınırım. Yarattığı şeylerin kötülüğünden; karanlığı çöktüğünde gecenin kötülüğünden; düğümlere üfleyenlerin kötülüğünden; haset ettiğinde hasetçinin kötülüğünden.",
     "shortBenefit": "Kötülüklerden, büyü ve nazardan korunma; her gün 3 kez okunması tavsiye edilir",
     "defaultTargetCount": 3,
-    "tags": ["sure", "korunma", "nazardan", "sifa"],
-    "relatedAyahRef": {"surah": "Felak", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (113. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "korunma",
+      "nazardan",
+      "sifa"
+    ],
+    "relatedAyahRef": {
+      "surah": "Felak",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (113. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 19,
@@ -242,9 +444,23 @@
     "meaningTr": "Rahman ve Rahim olan Allah'ın adıyla. De ki: İnsanların Rabbine sığınırım. İnsanların Melikine. İnsanların İlahına. Geri çekilen vesvesecinin kötülüğünden ki o, insanların göğüslerine vesvese verir. Cinlerden ve insanlardan (olan vesvesecilerin kötülüğünden).",
     "shortBenefit": "Şeytanın vesvesesinden ve kötü düşüncelerden korunma; gece yatmadan okunur",
     "defaultTargetCount": 3,
-    "tags": ["sure", "korunma", "huzur", "gece"],
-    "relatedAyahRef": {"surah": "Nas", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (114. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "korunma",
+      "huzur",
+      "gece"
+    ],
+    "relatedAyahRef": {
+      "surah": "Nas",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (114. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 20,
@@ -255,9 +471,23 @@
     "meaningTr": "Rahman ve Rahim olan Allah'ın adıyla. Şüphesiz Biz sana Kevser'i verdik. O hâlde Rabbin için namaz kıl ve kurban kes. Asıl sonu kesik olan, seni çekemeyendir.",
     "shortBenefit": "Bolluk, bereket ve şükran; en kısa sure, namazda sıkça okunur",
     "defaultTargetCount": 7,
-    "tags": ["sure", "bereket", "sukur", "nimet"],
-    "relatedAyahRef": {"surah": "Kevser", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (108. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "bereket",
+      "sukur",
+      "nimet"
+    ],
+    "relatedAyahRef": {
+      "surah": "Kevser",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (108. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 21,
@@ -268,9 +498,23 @@
     "meaningTr": "Şüphesiz Biz onu (Kur'an'ı) Kadir gecesinde indirdik. Kadir gecesinin ne olduğunu sana ne bildirdi? Kadir gecesi bin aydan daha hayırlıdır. O gecede Rablerine ait her türlü iş için melekler ve Ruh iner. Fecrin doğuşuna kadar esenlik doludur.",
     "shortBenefit": "Bin aydan hayırlı gece; Ramazan'da sıkça okunur, huzur ve nur verir",
     "defaultTargetCount": 7,
-    "tags": ["sure", "huzur", "iman", "sukur"],
-    "relatedAyahRef": {"surah": "Kadr", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (97. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "huzur",
+      "iman",
+      "sukur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Kadr",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (97. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 22,
@@ -281,9 +525,23 @@
     "meaningTr": "Andolsun zamana ki, insan gerçekten ziyan içindedir. Ancak iman edip salih amel işleyenler, birbirlerine hakkı tavsiye edenler ve birbirlerine sabrı tavsiye edenler bunun dışındadır.",
     "shortBenefit": "Zamanın değerini hatırlatır; sabır ve doğrulukla kurtuluşun yolunu gösterir",
     "defaultTargetCount": 3,
-    "tags": ["sure", "sabir", "iman", "azim"],
-    "relatedAyahRef": {"surah": "Asr", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (103. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "sabir",
+      "iman",
+      "azim"
+    ],
+    "relatedAyahRef": {
+      "surah": "Asr",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (103. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 23,
@@ -294,9 +552,23 @@
     "meaningTr": "Allah'tan başka ilah yoktur. O, Hay'dır (diridir), Kayyum'dur (her şeyi ayakta tutandır). O'nu ne gaflet basar ne de uyku. Göklerde ve yerde ne varsa hepsi O'nundur.",
     "shortBenefit": "Her namazdan sonra ve yatmadan önce okunur; evi ve kişiyi korur",
     "defaultTargetCount": 3,
-    "tags": ["korunma", "tevhid", "iman", "gece"],
-    "relatedAyahRef": {"surah": "Bakara", "ayah": 255},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "korunma",
+      "tevhid",
+      "iman",
+      "gece"
+    ],
+    "relatedAyahRef": {
+      "surah": "Bakara",
+      "ayah": 255
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 24,
@@ -307,9 +579,20 @@
     "meaningTr": "Allah'ı tesbih ederim ve O'na hamdederim.",
     "shortBenefit": "Günde 100 kez okunursa günahlar silinir; mizanda ağır gelen zikir",
     "defaultTargetCount": 100,
-    "tags": ["zikir", "sukur", "tevhid", "tesbihat"],
+    "tags": [
+      "zikir",
+      "sukur",
+      "tevhid",
+      "tesbihat"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Buhârî, Müslim)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Buhârî, Müslim)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 25,
@@ -320,9 +603,20 @@
     "meaningTr": "Güç ve kuvvet ancak yüce ve büyük Allah'a aittir.",
     "shortBenefit": "Cennetin hazinelerinden biri; güçlük anında okunur, 99 hastalığa şifa",
     "defaultTargetCount": 40,
-    "tags": ["zikir", "tevekkul", "sabir", "huzur"],
+    "tags": [
+      "zikir",
+      "tevekkul",
+      "sabir",
+      "huzur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Buhârî, Müslim)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Buhârî, Müslim)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 26,
@@ -333,9 +627,20 @@
     "meaningTr": "Allah'ım! Efendimiz Hz. Muhammed'e, bizi bütün korku ve belalardan kurtaracak bir salat ile salat et.",
     "shortBenefit": "Musibetlerden, hastalıktan ve korku anlarından kurtuluş için okunur",
     "defaultTargetCount": 11,
-    "tags": ["salavat", "korunma", "huzur", "rahmet"],
+    "tags": [
+      "salavat",
+      "korunma",
+      "huzur",
+      "rahmet"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Salavat-ı Şerifler", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Salavat-ı Şerifler",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 27,
@@ -346,9 +651,23 @@
     "meaningTr": "Rabbimiz! Bize dünyada da iyilik ver, ahirette de iyilik ver ve bizi cehennem azabından koru.",
     "shortBenefit": "Hem dünya hem ahiret saadetini kapsayan kapsamlı dua",
     "defaultTargetCount": 7,
-    "tags": ["bereket", "nimet", "sukur", "huzur"],
-    "relatedAyahRef": {"surah": "Bakara", "ayah": 201},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "bereket",
+      "nimet",
+      "sukur",
+      "huzur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Bakara",
+      "ayah": 201
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 28,
@@ -359,9 +678,20 @@
     "meaningTr": "Allah her türlü noksanlıktan münezzehtir. Hamd Allah'a mahsustur. Allah'tan başka ilah yoktur. Allah en büyüktür.",
     "shortBenefit": "Namazın ardından 33'er kez okunması tavsiye edilen; büyük sevap ve huzur",
     "defaultTargetCount": 33,
-    "tags": ["zikir", "sukur", "tevhid", "tesbihat"],
+    "tags": [
+      "zikir",
+      "sukur",
+      "tevhid",
+      "tesbihat"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Namaz Sonrası Zikirler (Müslim)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Namaz Sonrası Zikirler (Müslim)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 29,
@@ -372,9 +702,22 @@
     "meaningTr": "De ki: O, Allah birdir.",
     "shortBenefit": "Tevhid zihniyetini pekiştirmek; kısa ve güçlü zikir",
     "defaultTargetCount": 100,
-    "tags": ["zikir", "tevhid", "iman"],
-    "relatedAyahRef": {"surah": "İhlas", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (112. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "zikir",
+      "tevhid",
+      "iman"
+    ],
+    "relatedAyahRef": {
+      "surah": "İhlas",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (112. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 30,
@@ -385,9 +728,19 @@
     "meaningTr": "Sabaha erdik ve mülk Allah'ın olarak sabahladı. Hamd Allah'a aittir, O'nun ortağı yoktur.",
     "shortBenefit": "Sabaha şükranla başlamak; güne Allah'ın hükümranlığını tanıyarak başlamak",
     "defaultTargetCount": 3,
-    "tags": ["sabah", "sukur", "tevhid"],
+    "tags": [
+      "sabah",
+      "sukur",
+      "tevhid"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Sabah Zikirler (Müslim)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Sabah Zikirler (Müslim)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 31,
@@ -398,9 +751,22 @@
     "meaningTr": "Rabbinin fil sahiplerine ne yaptığını görmedin mi? Onların tuzaklarını boşa çıkarmadı mı? Üzerlerine sürü sürü kuşlar gönderdi. Onlara pişmiş çamurdan taşlar atıyorlardı. Sonunda onları yenilmiş ekin yaprağı gibi yaptı.",
     "shortBenefit": "Allah'ın düşmanlara karşı koruyuculuğunu hatırlatır",
     "defaultTargetCount": 3,
-    "tags": ["sure", "korunma", "iman"],
-    "relatedAyahRef": {"surah": "Fil", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (105. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "korunma",
+      "iman"
+    ],
+    "relatedAyahRef": {
+      "surah": "Fil",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (105. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 32,
@@ -411,9 +777,23 @@
     "meaningTr": "Kureyş'in güvenliğini sağladığı için, onların kışın ve yazın yolculuklarındaki güvenliğini sağladığı için, bu Evin (Kabe'nin) Rabbine kulluk etsinler. O ki onları açlıktan doyurmuş ve korkudan güvene kavuşturmuştur.",
     "shortBenefit": "Rızık, güvenlik ve şükür; bereket ve huzur duası yerine okunur",
     "defaultTargetCount": 3,
-    "tags": ["sure", "rizik", "bereket", "sukur"],
-    "relatedAyahRef": {"surah": "Kureyş", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (106. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "rizik",
+      "bereket",
+      "sukur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Kureyş",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (106. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 33,
@@ -424,9 +804,23 @@
     "meaningTr": "Dini yalanlayan kimseyi gördün mü? İşte yetimi iten odur. Yoksulu doyurmayı teşvik etmez. Yazıklar olsun o namaz kılanlara ki, onlar namazlarını ciddiye almazlar. Onlar gösteriş yapanlardır ve hayra da engel olanlardır.",
     "shortBenefit": "Samimi ibadet ve sosyal sorumluluk bilinci; riyadan korunma",
     "defaultTargetCount": 3,
-    "tags": ["sure", "iman", "sabir", "huzur"],
-    "relatedAyahRef": {"surah": "Mâûn", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (107. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "iman",
+      "sabir",
+      "huzur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Mâûn",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (107. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 34,
@@ -437,9 +831,22 @@
     "meaningTr": "Ebu Leheb'in iki eli kurusun! Kurudu da. Malı ve kazandıkları ona fayda vermedi. Alevli bir ateşe girecektir. Karısı da odun hamalı olarak. Boynunda bükülmüş liften bir ip olacak.",
     "shortBenefit": "İmanı baltalayanlara karşı Allah'ın adaletini hatırlatır",
     "defaultTargetCount": 3,
-    "tags": ["sure", "iman", "tevhid"],
-    "relatedAyahRef": {"surah": "Tebbet", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (111. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "iman",
+      "tevhid"
+    ],
+    "relatedAyahRef": {
+      "surah": "Tebbet",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (111. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 35,
@@ -450,9 +857,23 @@
     "meaningTr": "Allah'ın yardımı ve fetih geldiğinde, insanların bölük bölük Allah'ın dinine girdiklerini gördüğünde, Rabbine hamd ederek tespih et ve O'ndan bağışlanma dile. Şüphesiz O, tövbeleri çok kabul edendir.",
     "shortBenefit": "Zafer ve başarı sonrası şükür; tevazu ve istiğfar hatırlatması",
     "defaultTargetCount": 3,
-    "tags": ["sure", "sukur", "tevbe", "basari"],
-    "relatedAyahRef": {"surah": "Nasr", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (110. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "sukur",
+      "tevbe",
+      "basari"
+    ],
+    "relatedAyahRef": {
+      "surah": "Nasr",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (110. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 36,
@@ -463,9 +884,23 @@
     "meaningTr": "De ki: Ey kâfirler! Ben sizin taptıklarınıza tapmam. Siz de benim taptığıma tapmazsınız. Ben sizin taptıklarınıza tapacak değilim. Siz de benim taptığıma tapacak değilsiniz. Sizin dininiz size, benim dinim banadır.",
     "shortBenefit": "Tevhid bilinci ve iman sağlamlığı; yatmadan önce okunması tavsiye edilir",
     "defaultTargetCount": 3,
-    "tags": ["sure", "tevhid", "iman", "gece"],
-    "relatedAyahRef": {"surah": "Kâfirûn", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (109. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "tevhid",
+      "iman",
+      "gece"
+    ],
+    "relatedAyahRef": {
+      "surah": "Kâfirûn",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (109. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 37,
@@ -476,9 +911,23 @@
     "meaningTr": "İncire ve zeytine andolsun. Sîna dağına andolsun. Bu güvenli beldeye andolsun. Biz insanı en güzel biçimde yarattık. Sonra onu aşağıların aşağısına çevirdik. Ancak iman edip salih amel işleyenler bunun dışındadır. Onlar için kesintisiz bir mükâfat vardır. O hâlde bundan sonra seni dini yalanlamaya iten nedir? Allah, hâkimlerin en âdili değil midir?",
     "shortBenefit": "İnsanın yaratılış değerini ve iman+salih amelin önemini hatırlatır",
     "defaultTargetCount": 3,
-    "tags": ["sure", "iman", "sukur", "hikmet"],
-    "relatedAyahRef": {"surah": "Tîn", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (95. Sure)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "iman",
+      "sukur",
+      "hikmet"
+    ],
+    "relatedAyahRef": {
+      "surah": "Tîn",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (95. Sure)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 38,
@@ -489,9 +938,19 @@
     "meaningTr": "Allah'ın eksiksiz kelimelerine, yarattıklarının şerrinden sığınırım.",
     "shortBenefit": "Her türlü kötülükten sabah-akşam korunma; 3 kez okunur",
     "defaultTargetCount": 3,
-    "tags": ["sabah", "korunma", "huzur"],
+    "tags": [
+      "sabah",
+      "korunma",
+      "huzur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Müslim)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Müslim)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 39,
@@ -502,9 +961,22 @@
     "meaningTr": "Bunu bizim hizmetimize veren Allah'ı tenzih ederiz. Yoksa biz buna güç yetiremezdik. Şüphesiz biz Rabbimize döneceğiz.",
     "shortBenefit": "Yolculuğa çıkarken okunur; güvenli yolculuk duası",
     "defaultTargetCount": 3,
-    "tags": ["korunma", "tevekkul", "sukur"],
-    "relatedAyahRef": {"surah": "Zuhruf", "ayah": 13},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim / Hadis", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "tags": [
+      "korunma",
+      "tevekkul",
+      "sukur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Zuhruf",
+      "ayah": 13
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim / Hadis",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 40,
@@ -515,9 +987,19 @@
     "meaningTr": "Allah'ım! Üzüntü ve kederden, acizlik ve tembellikten Sana sığınırım.",
     "shortBenefit": "Kaygı, stres ve üzüntüden kurtulmak; sabah-akşam okunur",
     "defaultTargetCount": 7,
-    "tags": ["huzur", "sabir", "korunma"],
+    "tags": [
+      "huzur",
+      "sabir",
+      "korunma"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Buhârî)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Buhârî)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 41,
@@ -528,9 +1010,19 @@
     "meaningTr": "Allah'ım! Helâlinle beni haramdan koru ve lütfunla beni Senden başkasına muhtaç etme.",
     "shortBenefit": "Borç sıkıntısı için okunur; helal rızık ve mali bereket",
     "defaultTargetCount": 7,
-    "tags": ["bereket", "rizik", "tevekkul"],
+    "tags": [
+      "bereket",
+      "rizik",
+      "tevekkul"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Tirmizi)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Tirmizi)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 42,
@@ -541,9 +1033,19 @@
     "meaningTr": "Allah'ın adıyla ki, O'nun adı anıldığında yerde ve gökte hiçbir şey zarar veremez. O, hakkıyla işiten ve bilendir.",
     "shortBenefit": "Akşam 3 kez okunursa sabaha kadar hiçbir şey zarar veremez",
     "defaultTargetCount": 3,
-    "tags": ["aksam", "korunma", "huzur"],
+    "tags": [
+      "aksam",
+      "korunma",
+      "huzur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Tirmizi, Ebu Davud)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Tirmizi, Ebu Davud)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 43,
@@ -554,9 +1056,19 @@
     "meaningTr": "Allah'ın tam olan kelimelerine, her şeytandan, zararlı hayvandan ve kem gözden sığınırım.",
     "shortBenefit": "Nazar ve kötü gözden korunma; çocuklar için de okunur",
     "defaultTargetCount": 3,
-    "tags": ["korunma", "nazardan", "huzur"],
+    "tags": [
+      "korunma",
+      "nazardan",
+      "huzur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Buhârî)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Buhârî)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 44,
@@ -567,9 +1079,22 @@
     "meaningTr": "Rabbimiz! Üzerimize sabır yağdır, ayaklarımızı sabit kıl ve inkârcı topluma karşı bize yardım et.",
     "shortBenefit": "Zor zamanlarda sabır ve metanet için okunur",
     "defaultTargetCount": 7,
-    "tags": ["huzur", "sabir", "azim"],
-    "relatedAyahRef": {"surah": "Bakara", "ayah": 250},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "huzur",
+      "sabir",
+      "azim"
+    ],
+    "relatedAyahRef": {
+      "surah": "Bakara",
+      "ayah": 250
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 45,
@@ -580,9 +1105,19 @@
     "meaningTr": "Yüce Allah'ı hamdederek tenzih ederim.",
     "shortBenefit": "Cennet ağaçları dikilir; dile hafif, mizanda ağır iki kelime",
     "defaultTargetCount": 100,
-    "tags": ["zikir", "sukur", "tevhid"],
+    "tags": [
+      "zikir",
+      "sukur",
+      "tevhid"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Buhârî, Müslim)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Buhârî, Müslim)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 46,
@@ -593,9 +1128,19 @@
     "meaningTr": "Allah'ım! Bize verdiğin rızıkta bereket ver ve bizi cehennem azabından koru. Allah'ın adıyla.",
     "shortBenefit": "Yemek öncesi okunur; bereket ve şükür",
     "defaultTargetCount": 1,
-    "tags": ["bereket", "sukur", "yemek"],
+    "tags": [
+      "bereket",
+      "sukur",
+      "yemek"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Dualar", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Dualar",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 47,
@@ -606,9 +1151,19 @@
     "meaningTr": "Bizi yediren, içiren ve Müslümanlardan kılan Allah'a hamdolsun.",
     "shortBenefit": "Yemek sonrası şükür duası; nimete karşı teşekkür",
     "defaultTargetCount": 1,
-    "tags": ["bereket", "sukur", "yemek"],
+    "tags": [
+      "bereket",
+      "sukur",
+      "yemek"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Günlük Dualar (Tirmizi)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Günlük Dualar (Tirmizi)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı yayınları"
+      }
+    ]
   },
   {
     "id": 48,
@@ -619,9 +1174,19 @@
     "meaningTr": "Allah'ım! Kullarını dirilttiğin gün beni azabından koru.",
     "shortBenefit": "Yatmadan önce 3 kez okunur; ahiret azabından korunma",
     "defaultTargetCount": 3,
-    "tags": ["gece", "korunma", "huzur"],
+    "tags": [
+      "gece",
+      "korunma",
+      "huzur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Ebu Davud)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Ebu Davud)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 49,
@@ -632,9 +1197,19 @@
     "meaningTr": "Bedenime afiyet veren, ruhumu bana geri veren ve bana kendisini anma izni veren Allah'a hamdolsun.",
     "shortBenefit": "Uyanınca ilk okunacak dua; beden ve ruh sağlığı için şükür",
     "defaultTargetCount": 1,
-    "tags": ["sabah", "sukur", "saglik"],
+    "tags": [
+      "sabah",
+      "sukur",
+      "saglik"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Tirmizi)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Tirmizi)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 50,
@@ -645,9 +1220,19 @@
     "meaningTr": "Allah'ın adıyla, Allah'a tevekkül ettim. Güç ve kuvvet ancak Allah'a aittir.",
     "shortBenefit": "Evden çıkarken okunur; her türlü kötülükten korunma",
     "defaultTargetCount": 1,
-    "tags": ["korunma", "tevekkul", "sabah"],
+    "tags": [
+      "korunma",
+      "tevekkul",
+      "sabah"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Tirmizi, Ebu Davud)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Tirmizi, Ebu Davud)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 51,
@@ -658,9 +1243,20 @@
     "meaningTr": "Ey kederleri gideren, gamları kaldıran, çaresizlerin duasına icabet eden, dünyanın ve ahiretin Rahmân'ı ve ikisinin de Rahîm'i olan Allah'ım!",
     "shortBenefit": "Cevşen-i Kebîr'den; derin sıkıntı ve üzüntü anlarında okunur",
     "defaultTargetCount": 7,
-    "tags": ["huzur", "korunma", "sabir", "cevsen"],
+    "tags": [
+      "huzur",
+      "korunma",
+      "sabir",
+      "cevsen"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Cevşen-i Kebîr", "licenseNote": "Kaynak: Cevşen-i Kebîr duası (Risale-i Nur Külliyatı)"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Cevşen-i Kebîr",
+        "licenseNote": "Kaynak: Cevşen-i Kebîr duası (Risale-i Nur Külliyatı)"
+      }
+    ]
   },
   {
     "id": 52,
@@ -671,9 +1267,19 @@
     "meaningTr": "Ey kendisine dua edilenlerin en hayırlısı, kendisinden istenenler en hayırlısı, verenler en hayırlısı, ümit edilenlerin en hayırlısı!",
     "shortBenefit": "Cevşen-i Kebîr'den; Allah'ın yardımını ve lütfunu talep etmek",
     "defaultTargetCount": 7,
-    "tags": ["korunma", "tevekkul", "cevsen"],
+    "tags": [
+      "korunma",
+      "tevekkul",
+      "cevsen"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Cevşen-i Kebîr", "licenseNote": "Kaynak: Cevşen-i Kebîr duası (Risale-i Nur Külliyatı)"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Cevşen-i Kebîr",
+        "licenseNote": "Kaynak: Cevşen-i Kebîr duası (Risale-i Nur Külliyatı)"
+      }
+    ]
   },
   {
     "id": 53,
@@ -684,9 +1290,22 @@
     "meaningTr": "Rabbim! Bana salihlerden (çocuklar) bağışla. Rabbim! Beni ve soyumdan gelenleri namazı dosdoğru kılanlardan eyle. Rabbimiz! Duamı kabul et.",
     "shortBenefit": "Çocuklar ve nesil için dua; salih evlat ve nesil devamı",
     "defaultTargetCount": 7,
-    "tags": ["korunma", "huzur", "sukur"],
-    "relatedAyahRef": {"surah": "İbrahim", "ayah": 40},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "korunma",
+      "huzur",
+      "sukur"
+    ],
+    "relatedAyahRef": {
+      "surah": "İbrahim",
+      "ayah": 40
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 54,
@@ -697,9 +1316,22 @@
     "meaningTr": "Rabbim! Ben kendime zulmettim. Beni bağışla.",
     "shortBenefit": "Hz. Musa'nın tövbe duası; samimi pişmanlık ifadesi",
     "defaultTargetCount": 40,
-    "tags": ["tevbe", "magfiret", "huzur"],
-    "relatedAyahRef": {"surah": "Kasas", "ayah": 16},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "tevbe",
+      "magfiret",
+      "huzur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Kasas",
+      "ayah": 16
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 55,
@@ -710,35 +1342,76 @@
     "meaningTr": "Yâ Sîn. Hikmetli Kur'an'a andolsun ki, sen dosdoğru bir yol üzere gönderilmiş peygamberlerdensin. Bu, mutlak galip ve çok merhametli olan Allah'ın indirmesidir. Babaları uyarılmamış, bu yüzden gaflet içinde olan bir kavmi uyarman için. Andolsun, onların çoğu hakkında söz gerçekleşmiştir; artık iman etmezler.",
     "shortBenefit": "Kur'an'ın kalbi; ölülere, hastalara ve sıkıntılı anlarda okunur — 1. Bölüm",
     "defaultTargetCount": 1,
-    "tags": ["sure", "huzur", "sifa", "iman"],
-    "relatedAyahRef": {"surah": "Yasin", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (36. Sure, 1-12. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "huzur",
+      "sifa",
+      "iman"
+    ],
+    "relatedAyahRef": {
+      "surah": "Yasin",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (36. Sure, 1-12. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 56,
     "title": "Yasin Suresi (2. Bölüm: 13-32)",
     "category": "SURE",
-    "arabic": "وَاضْرِبْ لَهُمْ مَثَلًا أَصْحَابَ الْقَرْيَةِ إِذْ جَاءَهَا الْمُرْسَلُونَ ۝ إِذْ أَرْسَلْنَا إِلَيْهِمُ اثْنَيْنِ فَكَذَّبُوهُمَا فَعَزَّزْنَا بِثَالِثٍ فَقَالُوا إِنَّا إِلَيْكُمْ مُرْسَلُونَ",
-    "transliteration": "Vadrib lehüm meselen ashâbe'l-karyeti iz câeha'l-mürselûn. İz erselnâ ileyhimü'sneyni fekezzebu'humâ fe'azzeznâ bi sâlisin fekâlû innâ ileyküm mürselûn.",
-    "meaningTr": "Onlara o kasaba halkını misal ver. Hani oraya elçiler gelmişti. Biz onlara iki kişi göndermiştik, onları yalanladılar. Biz de üçüncü ile destekledik. 'Biz size gönderilmiş elçileriz' dediler.",
+    "arabic": "وَاضْرِبْ لَهُمْ مَثَلًا أَصْحَابَ الْقَرْيَةِ إِذْ جَاءَهَا الْمُرْسَلُونَ ۝ إِذْ أَرْسَلْنَا إِلَيْهِمُ اثْنَيْنِ فَكَذَّبُوهُمَا فَعَزَّزْنَا بِثَالِثٍ فَقَالُوا إِنَّا إِلَيْكُمْ مُرْسَلُونَ ۝ قَالُوا مَا أَنْتُمْ إِلَّا بَشَرٌ مِثْلُنَا وَمَا أَنْزَلَ الرَّحْمَٰنُ مِنْ شَيْءٍ إِنْ أَنْتُمْ إِلَّا تَكْذِبُونَ ۝ قَالُوا رَبُّنَا يَعْلَمُ إِنَّا إِلَيْكُمْ لَمُرْسَلُونَ ۝ وَمَا عَلَيْنَا إِلَّا الْبَلَاغُ الْمُبِينُ ۝ قَالُوا إِنَّا تَطَيَّرْنَا بِكُمْ لَئِنْ لَمْ تَنْتَهُوا لَنَرْجُمَنَّكُمْ وَلَيَمَسَّنَّكُمْ مِنَّا عَذَابٌ أَلِيمٌ ۝ قَالُوا طَائِرُكُمْ مَعَكُمْ أَئِنْ ذُكِّرْتُمْ بَلْ أَنْتُمْ قَوْمٌ مُسْرِفُونَ ۝ وَجَاءَ مِنْ أَقْصَى الْمَدِينَةِ رَجُلٌ يَسْعَىٰ قَالَ يَا قَوْمِ اتَّبِعُوا الْمُرْسَلِينَ ۝ اتَّبِعُوا مَنْ لَا يَسْأَلُكُمْ أَجْرًا وَهُمْ مُهْتَدُونَ ۝ وَمَا لِيَ لَا أَعْبُدُ الَّذِي فَطَرَنِي وَإِلَيْهِ تُرْجَعُونَ ۝ أَأَتَّخِذُ مِنْ دُونِهِ آلِهَةً إِنْ يُرِدْنِ الرَّحْمَٰنُ بِضُرٍّ لَا تُغْنِ عَنِّي شَفَاعَتُهُمْ شَيْئًا وَلَا يُنْقِذُونِ ۝ إِنِّي إِذًا لَفِي ضَلَالٍ مُبِينٍ ۝ إِنِّي آمَنْتُ بِرَبِّكُمْ فَاسْمَعُونِ ۝ قِيلَ ادْخُلِ الْجَنَّةَ قَالَ يَا لَيْتَ قَوْمِي يَعْلَمُونَ ۝ بِمَا غَفَرَ لِي رَبِّي وَجَعَلَنِي مِنَ الْمُكْرَمِينَ ۝ وَمَا أَنْزَلْنَا عَلَىٰ قَوْمِهِ مِنْ بَعْدِهِ مِنْ جُنْدٍ مِنَ السَّمَاءِ وَمَا كُنَّا مُنْزِلِينَ ۝ إِنْ كَانَتْ إِلَّا صَيْحَةً وَاحِدَةً فَإِذَا هُمْ خَامِدُونَ ۝ يَا حَسْرَةً عَلَى الْعِبَادِ مَا يَأْتِيهِمْ مِنْ رَسُولٍ إِلَّا كَانُوا بِهِ يَسْتَهْزِئُونَ ۝ أَلَمْ يَرَوْا كَمْ أَهْلَكْنَا قَبْلَهُمْ مِنَ الْقُرُونِ أَنَّهُمْ إِلَيْهِمْ لَا يَرْجِعُونَ ۝ وَإِنْ كُلٌّ لَمَّا جَمِيعٌ لَدَيْنَا مُحْضَرُونَ",
+    "transliteration": "Vadrib lehüm meselen ashâbel karyeti iz câehel mürselûn. İz erselnâ ileyhimüsneyni fekezzebûhümâ feazzeznâ bisâlisin fekâlû innâ ileyküm mürselûn. Kâlû mâ entüm illâ beşerun mislünâ ve mâ enzelar rahmânü min şey'in in entüm illâ tekzibûn. Kâlû rabbünâ ya'lemü innâ ileyküm lemürselûn. Ve mâ aleynâ illel belâğul mübîn. Kâlû innâ tetayyernâ biküm lein lem tentehû lenerculenneküm ve leyemessenneküm minnâ azâbün elîm. Kâlû tâiruküm meaküm ein zükkirtüm bel entüm kavmün müsrifûn. Ve câe min aksal medîneti racülün yes'â kâle yâ kavmittebiul mürselîn. İttebiû men lâ yes'elüküm ecran ve hüm mühtedûn. Ve mâ liye lâ a'büdüllezî fetaranî ve ileyhi türceûn. Eettehizü min dûnihî âliheten in yüridnir rahmânü bidurrin lâ tuğnî annî şefâatühüm şey'en ve lâ yünkızûn. İnnî izen lefî dalâlin mübîn. İnnî âmentü birabbiküm fesmeûn. Kîledhulil cennete kâle yâ leyte kavmî ya'lemûn. Bimâ ğafera lî rabbî ve cealenî minel mükramîn. Ve mâ enzelnâ alâ kavmihî min ba'dihî min cündin mines semâi ve mâ künnâ münzilîn. İn kânet illâ sayhaten vâhideten feizâ hüm hâmidûn. Yâ hasraten alel ibâdi mâ ye'tîhim min resûlin illâ kânû bihî yestehziûn. Elem yerav kem ehleknâ kablehüm minel kurûni ennehüm ileyhim lâ yerciûn. Ve in küllün lemmâ cemîun ledeynâ muhdarûn.",
+    "meaningTr": "Onlara o şehir halkını misal olarak anlat. Hani oraya elçiler gelmişti. Hani biz onlara iki elçi göndermiştik de onları yalanlamışlardı. Biz de bir üçüncü ile desteklemiştik. Onlar: \"Biz size gönderilmiş elçileriz\" dediler. Şehir halkı: \"Siz de bizim gibi insandan başka bir şey değilsiniz. Rahmân hiçbir şey indirmemiştir. Siz sadece yalan söylüyorsunuz\" dediler. Elçiler: \"Rabbimiz biliyor ki biz gerçekten size gönderilmiş elçileriz\" dediler. \"Bize düşen ancak apaçık bir tebliğdir.\" Şehir halkı: \"Doğrusu biz sizin yüzünüzden uğursuzluğa uğradık. Eğer vazgeçmezseniz, andolsun sizi taşlayarak öldürürüz ve bizden size acı bir azap dokunur\" dediler. Elçiler: \"Uğursuzluğunuz kendinizdendir. Size öğüt verildi diye mi? Hayır, siz haddi aşan bir kavimsiniz\" dediler. Şehrin en uzak yerinden bir adam koşarak geldi ve dedi ki: \"Ey kavmim! Bu elçilere uyun.\" \"Sizden hiçbir ücret istemeyen kimselere uyun, onlar doğru yol üzeredirler.\" \"Beni yaratana neden kulluk etmeyeyim? Halbuki hepiniz O'na döndürüleceksiniz.\" \"O'nu bırakıp da başka ilahlar mı edineyim? Eğer Rahmân bana bir zarar vermek isterse, onların şefaati bana hiçbir fayda sağlamaz ve beni kurtaramazlar.\" \"O takdirde ben apaçık bir sapıklık içinde olurum.\" \"Şüphesiz ben Rabbinize iman ettim, beni dinleyin.\" Kendisine \"Cennete gir\" denildi. O da: \"Keşke kavmim bilseydi!\" dedi. \"Rabbimin beni bağışladığını ve beni ikram edilenlerden kıldığını.\" Onun ardından kavminin üzerine gökten bir ordu indirmedik, indirecek de değildik. Sadece korkunç bir çığlık oldu, bir anda sönüverdiler. Yazık o kullara! Kendilerine gelen her peygamberle mutlaka alay ediyorlardı. Onlardan önce nice nesilleri helak ettiğimizi görmediler mi? O helak edilenler bir daha onlara dönmeyeceklerdir. Hepsi de toplanıp huzurumuza getirileceklerdir.",
     "shortBenefit": "Yasin Suresi — Kasaba halkının kıssası, iman ve inkâr mücadelesi — 2. Bölüm",
     "defaultTargetCount": 1,
-    "tags": ["sure", "huzur", "iman"],
-    "relatedAyahRef": {"surah": "Yasin", "ayah": 13},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (36. Sure, 13-32. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "huzur",
+      "iman"
+    ],
+    "relatedAyahRef": {
+      "surah": "Yasin",
+      "ayah": 13
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (36. Sure, 13-32. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 57,
     "title": "Yasin Suresi (3. Bölüm: 33-50)",
     "category": "SURE",
-    "arabic": "وَآيَةٌ لَهُمُ الْأَرْضُ الْمَيْتَةُ أَحْيَيْنَاهَا وَأَخْرَجْنَا مِنْهَا حَبًّا فَمِنْهُ يَأْكُلُونَ ۝ وَجَعَلْنَا فِيهَا جَنَّاتٍ مِنْ نَخِيلٍ وَأَعْنَابٍ وَفَجَّرْنَا فِيهَا مِنَ الْعُيُونِ",
-    "transliteration": "Ve âyetün lehümü'l-ardu'l-meyteti ahyeynâhâ ve ahracnâ minhâ habben feminhü ye'külûn. Ve ce'alnâ fîhâ cennâtin min nahîlin ve a'nâbin ve feccernâ fîhâ mine'l-uyûn.",
-    "meaningTr": "Ölü toprak da onlar için bir ibrettir. Onu diriltip içinden daneler çıkardık, işte ondan yemektedirler. Orada hurma ve üzüm bağları oluşturduk ve pınarlar fışkırttık.",
+    "arabic": "وَآيَةٌ لَّهُمُ الْأَرْضُ الْمَيْتَةُ أَحْيَيْنَاهَا وَأَخْرَجْنَا مِنْهَا حَبًّا فَمِنْهُ يَأْكُلُونَ ۝ وَجَعَلْنَا فِيهَا جَنَّاتٍ مِّن نَّخِيلٍ وَأَعْنَابٍ وَفَجَّرْنَا فِيهَا مِنَ الْعُيُونِ ۝ لِيَأْكُلُوا مِن ثَمَرِهِ وَمَا عَمِلَتْهُ أَيْدِيهِمْ أَفَلَا يَشْكُرُونَ ۝ سُبْحَانَ الَّذِي خَلَقَ الْأَزْوَاجَ كُلَّهَا مِمَّا تُنبِتُ الْأَرْضُ وَمِنْ أَنفُسِهِمْ وَمِمَّا لَا يَعْلَمُونَ ۝ وَآيَةٌ لَّهُمُ اللَّيْلُ نَسْلَخُ مِنْهُ النَّهَارَ فَإِذَا هُم مُّظْلِمُونَ ۝ وَالشَّمْسُ تَجْرِي لِمُسْتَقَرٍّ لَّهَا ذَٰلِكَ تَقْدِيرُ الْعَزِيزِ الْعَلِيمِ ۝ وَالْقَمَرَ قَدَّرْنَاهُ مَنَازِلَ حَتَّىٰ عَادَ كَالْعُرْجُونِ الْقَدِيمِ ۝ لَا الشَّمْسُ يَنبَغِي لَهَا أَن تُدْرِكَ الْقَمَرَ وَلَا اللَّيْلُ سَابِقُ النَّهَارِ وَكُلٌّ فِي فَلَكٍ يَسْبَحُونَ ۝ وَآيَةٌ لَّهُمْ أَنَّا حَمَلْنَا ذُرِّيَّتَهُمْ فِي الْفُلْكِ الْمَشْحُونِ ۝ وَخَلَقْنَا لَهُم مِّن مِّثْلِهِ مَا يَرْكَبُونَ ۝ وَإِن نَّشَأْ نُغْرِقْهُمْ فَلَا صَرِيخَ لَهُمْ وَلَا هُمْ يُنقَذُونَ ۝ إِلَّا رَحْمَةً مِّنَّا وَمَتَاعًا إِلَىٰ حِينٍ ۝ وَإِذَا قِيلَ لَهُمُ اتَّقُوا مَا بَيْنَ أَيْدِيكُمْ وَمَا خَلْفَكُمْ لَعَلَّكُمْ تُرْحَمُونَ ۝ وَمَا تَأْتِيهِم مِّنْ آيَةٍ مِّنْ آيَاتِ رَبِّهِمْ إِلَّا كَانُوا عَنْهَا مُعْرِضِينَ ۝ وَإِذَا قِيلَ لَهُمْ أَنفِقُوا مِمَّا رَزَقَكُمُ اللَّهُ قَالَ الَّذِينَ كَفَرُوا لِلَّذِينَ آمَنُوا أَنُطْعِمُ مَن لَّوْ يَشَاءُ اللَّهُ أَطْعَمَهُ إِنْ أَنتُمْ إِلَّا فِي ضَلَالٍ مُّبِينٍ ۝ وَيَقُولُونَ مَتَىٰ هَٰذَا الْوَعْدُ إِن كُنتُمْ صَادِقِينَ ۝ مَا يَنظُرُونَ إِلَّا صَيْحَةً وَاحِدَةً تَأْخُذُهُمْ وَهُمْ يَخِصِّمُونَ ۝ فَلَا يَسْتَطِيعُونَ تَوْصِيَةً وَلَا إِلَىٰ أَهْلِهِمْ يَرْجِعُونَ",
+    "transliteration": "Ve âyetün lehümül ardul meytetu ahyeynâhâ ve ahracnâ minhâ habben feminhu ye'külûn. Ve cealnâ fîhâ cennâtin min nahîlin ve a'nâbin ve feccernâ fîhâ minel uyûn. Liye'külû min semerihî ve mâ amilethü eydîhim efelâ yeşkürûn. Sübhânellezî halakal ezvâce küllehâ mimmâ tünbitül ardu ve min enfüsihim ve mimmâ lâ ya'lemûn. Ve âyetün lehümül leylü neslehü minhün nehâre feizâ hüm muzlimûn. Veş şemsü tecrî limüstekarrin lehâ zâlike takdîrul azîzil alîm. Vel kamere kaddernâhü menâzile hattâ âde kel urcûnil kadîm. Leş şemsü yenbeğî lehâ en tüdrikel kamere ve lel leylü sâbikun nehâr ve küllün fî felekin yesbehûn. Ve âyetün lehüm ennâ hamelnâ zürriyyetehüm fil fülkil meşhûn. Ve halaknâ lehüm min mislihî mâ yerkebûn. Ve in neşe' nuğrikhüm felâ sarîha lehüm ve lâ hüm yünkazûn. İllâ rahmeten minnâ ve metâan ilâ hîn. Ve izâ kîle lehümüttekû mâ beyne eydîküm ve mâ halfeküm lealleküm türhamûn. Ve mâ te'tîhim min âyetin min âyâti rabbihim illâ kânû anhâ mu'ridîn. Ve izâ kîle lehüm enfikû mimmâ razekakümüllâhü kâlellezîne keferû lillezîne âmenû enut'imü men lev yeşâüllâhü at'amehû in entüm illâ fî dalâlin mübîn. Ve yekûlûne metâ hâzel va'dü in küntüm sâdikîn. Mâ yenzurûne illâ sayhaten vâhideten te'huzühüm ve hüm yehissimûn. Felâ yestetîûne tevsiyeten ve lâ ilâ ehlihim yerciûn.",
+    "meaningTr": "Ölü toprak onlar için bir delildir. Biz onu diriltip ondan taneler çıkardık da ondan yiyorlar. Orada hurma ve üzüm bahçeleri meydana getirdik, içlerinden pınarlar fışkırttık. Ki onun meyvelerinden ve kendi ellerinin emeklerinden yesinler. Hâlâ şükretmezler mi? Yerin bitirdiklerinden, insanların kendilerinden ve henüz bilmedikleri şeylerden bütün çiftleri yaratan Allah'ın şanı yücedir. Gece de onlar için bir delildir. Gündüzü ondan sıyırıp çekeriz, bir de bakarlar ki karanlığa gömülmüşler. Güneş de kendisi için belirlenen yörüngede akıp gitmektedir. İşte bu, mutlak güç sahibi, hakkıyla bilen Allah'ın takdiridir. Ay'a gelince, biz onun için de menziller takdir ettik; sonunda o, eski bir hurma dalının eğrilmiş hâli gibi döner. Ne güneş aya yetişebilir ne de gece gündüzün önüne geçebilir. Her biri bir yörüngede yüzmektedir. Onlar için bir delil de, nesillerini dolu gemide taşımamızdır. Kendileri için onun benzeri daha nice binekler yarattık. Dilersek onları suda boğarız da ne onların imdadına yetişen olur ne de kurtarılırlar. Ancak tarafımızdan bir rahmet ve bir süreye kadar dünya nimetlerinden faydalandırma müstesna. Onlara: \"Önünüzdekinden ve arkanızdakinden sakının ki size merhamet edilsin\" denildiğinde yüz çevirirler. Kendilerine Rablerinin ayetlerinden bir ayet gelmez ki ondan yüz çevirmiş olmasınlar. Onlara: \"Allah'ın size rızık olarak verdiklerinden hayra harcayın\" denildiğinde, inkâr edenler iman edenlere: \"Allah'ın dilese doyuracağı kimseyi biz mi besleyeceğiz? Siz gerçekten apaçık bir sapıklık içindesiniz\" derler. \"Eğer doğru söyleyenlerdenseniz bu tehdit ne zaman gerçekleşecek?\" derler. Onlar sadece, birbirleriyle çekişirlerken kendilerini yakalayacak korkunç bir tek sesi bekliyorlar. Artık ne bir vasiyette bulunmaya güçleri yeter ne de ailelerine dönebilirler.",
     "shortBenefit": "Yasin Suresi — Allah'ın kudret delilleri: diriliş, gece-gündüz, gemi — 3. Bölüm",
     "defaultTargetCount": 1,
-    "tags": ["sure", "sukur", "iman", "hikmet"],
-    "relatedAyahRef": {"surah": "Yasin", "ayah": 33},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (36. Sure, 33-50. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "sukur",
+      "iman",
+      "hikmet"
+    ],
+    "relatedAyahRef": {
+      "surah": "Yasin",
+      "ayah": 33
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (36. Sure, 33-50. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 58,
@@ -749,9 +1422,23 @@
     "meaningTr": "Sûr'a üflenir. Bir de bakarsın, kabirlerinden kalkıp Rablerine koşuyorlar. 'Eyvah bize! Bizi uyuduğumuz yerden kim diriltip kaldırdı?' derler. İşte bu, Rahmân'ın vaad ettiği şeydir ve peygamberler doğru söylemiştir.",
     "shortBenefit": "Yasin Suresi — Kıyamet, diriliş ve Allah'ın kudreti — 4. Bölüm (Son)",
     "defaultTargetCount": 1,
-    "tags": ["sure", "iman", "ahiret", "huzur"],
-    "relatedAyahRef": {"surah": "Yasin", "ayah": 51},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (36. Sure, 51-83. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "iman",
+      "ahiret",
+      "huzur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Yasin",
+      "ayah": 51
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (36. Sure, 51-83. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 59,
@@ -762,9 +1449,23 @@
     "meaningTr": "Hükümranlık elinde olan Allah ne yücedir! O, her şeye gücü yetendir. O, hanginizin daha güzel amel yapacağını sınamak için ölümü ve hayatı yaratandır. O, mutlak galip, çok bağışlayandır.",
     "shortBenefit": "Kabir azabından koruyucu; her gece okunması tavsiye edilir — 1. Bölüm",
     "defaultTargetCount": 1,
-    "tags": ["sure", "korunma", "gece", "iman"],
-    "relatedAyahRef": {"surah": "Mülk", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (67. Sure, 1-14. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "korunma",
+      "gece",
+      "iman"
+    ],
+    "relatedAyahRef": {
+      "surah": "Mülk",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (67. Sure, 1-14. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 60,
@@ -775,9 +1476,23 @@
     "meaningTr": "Yeryüzünü sizin için boyun eğdirip uysal kılan O'dur. Yerin sırtlarında dolaşın ve Allah'ın rızkından yiyin. Sonunda dönüş O'nadır. Göktekinin sizi yere batırmayacağından emin misiniz?",
     "shortBenefit": "Mülk Suresi — Allah'ın nimetleri, uyarılar, tefekkür — 2. Bölüm (Son)",
     "defaultTargetCount": 1,
-    "tags": ["sure", "korunma", "gece", "sukur"],
-    "relatedAyahRef": {"surah": "Mülk", "ayah": 15},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (67. Sure, 15-30. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "korunma",
+      "gece",
+      "sukur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Mülk",
+      "ayah": 15
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (67. Sure, 15-30. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 61,
@@ -788,9 +1503,22 @@
     "meaningTr": "Birbirlerine neyi soruyorlar? Hakkında ihtilaf ettikleri o büyük haberi mi? Hayır, yakında bilecekler! Yine hayır, yakında bilecekler!",
     "shortBenefit": "Kıyamet haberi ve ahiret hazırlığı; tefekkür ve ibret — 1. Bölüm",
     "defaultTargetCount": 1,
-    "tags": ["sure", "ahiret", "iman"],
-    "relatedAyahRef": {"surah": "Nebe", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (78. Sure, 1-20. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "ahiret",
+      "iman"
+    ],
+    "relatedAyahRef": {
+      "surah": "Nebe",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (78. Sure, 1-20. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 62,
@@ -801,9 +1529,23 @@
     "meaningTr": "Şüphesiz cehennem bir gözetleme yeridir. Azgınlar için bir varış yeridir. Orada çağlar boyu kalacaklardır. Orada ne bir serinlik tadacaklar ne de bir içecek.",
     "shortBenefit": "Nebe Suresi — Cennet, cehennem ve hesap günü — 2. Bölüm (Son)",
     "defaultTargetCount": 1,
-    "tags": ["sure", "ahiret", "iman", "huzur"],
-    "relatedAyahRef": {"surah": "Nebe", "ayah": 21},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (78. Sure, 21-40. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "ahiret",
+      "iman",
+      "huzur"
+    ],
+    "relatedAyahRef": {
+      "surah": "Nebe",
+      "ayah": 21
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (78. Sure, 21-40. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 63,
@@ -814,9 +1556,19 @@
     "meaningTr": "Allah'ım! Beni çok tövbe edenlerden ve çok temizlenenlerden eyle.",
     "shortBenefit": "Abdest aldıktan sonra okunur; manevi temizlenme",
     "defaultTargetCount": 1,
-    "tags": ["zikir", "tevbe", "huzur"],
+    "tags": [
+      "zikir",
+      "tevbe",
+      "huzur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Tirmizi)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Tirmizi)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 64,
@@ -827,9 +1579,19 @@
     "meaningTr": "Allah'ım! Bana rahmet kapılarını aç.",
     "shortBenefit": "Camiye veya mescide girerken okunur",
     "defaultTargetCount": 1,
-    "tags": ["zikir", "huzur", "sukur"],
+    "tags": [
+      "zikir",
+      "huzur",
+      "sukur"
+    ],
     "relatedAyahRef": null,
-    "sources": [{"provider": "Diyanet", "ref": "Hadis-i Şerifler (Müslim)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"}]
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Hadis-i Şerifler (Müslim)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Hadis Kaynakları"
+      }
+    ]
   },
   {
     "id": 65,
@@ -840,9 +1602,23 @@
     "meaningTr": "Kıyamet koptuğu zaman -ki onun kopuşunu yalanlayacak yoktur- o kimini alçaltır, kimini yükseltir. Yer şiddetle sarsıldığı, dağlar parçalanıp toz duman olduğu zaman.",
     "shortBenefit": "Rızık ve bereket suresi; her gece okunması tavsiye edilir — 1. Bölüm",
     "defaultTargetCount": 1,
-    "tags": ["sure", "bereket", "rizik", "gece"],
-    "relatedAyahRef": {"surah": "Vakıa", "ayah": 1},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (56. Sure, 1-40. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "bereket",
+      "rizik",
+      "gece"
+    ],
+    "relatedAyahRef": {
+      "surah": "Vakıa",
+      "ayah": 1
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (56. Sure, 1-40. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   },
   {
     "id": 66,
@@ -853,8 +1629,22 @@
     "meaningTr": "Sol ehli; nedir o sol ehli! Kızgın rüzgâr ve kaynar su içinde. Kapkara dumandan bir gölge altında; ne serin ne de hoş.",
     "shortBenefit": "Vâkıa Suresi — Hesap, cennet-cehennem, Kur'an'ın yüceliği — 2. Bölüm (Son)",
     "defaultTargetCount": 1,
-    "tags": ["sure", "bereket", "iman", "ahiret"],
-    "relatedAyahRef": {"surah": "Vakıa", "ayah": 41},
-    "sources": [{"provider": "Diyanet", "ref": "Kur'an-ı Kerim (56. Sure, 41-96. Ayetler)", "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"}]
+    "tags": [
+      "sure",
+      "bereket",
+      "iman",
+      "ahiret"
+    ],
+    "relatedAyahRef": {
+      "surah": "Vakıa",
+      "ayah": 41
+    },
+    "sources": [
+      {
+        "provider": "Diyanet",
+        "ref": "Kur'an-ı Kerim (56. Sure, 41-96. Ayetler)",
+        "licenseNote": "Kaynak: Diyanet İşleri Başkanlığı - Kur'an-ı Kerim Meali ve Tefsiri"
+      }
+    ]
   }
 ]

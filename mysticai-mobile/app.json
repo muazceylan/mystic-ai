@@ -1,10 +1,16 @@
 {
   "expo": {
-    "name": "Mystic AI",
+    "name": "Astro Guru",
     "slug": "mystic",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a0a3e"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -12,6 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mysticai.app",
       "usesAppleSignIn": true,
+      "icon": "./assets/brand/app-icons/ios/astro-guru-ios-app-store-1024.png",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Yıldız kartlarını galeriye kaydedebilmen için fotoğraf kütüphanene erişim izni istiyoruz.",
         "NSPhotoLibraryAddUsageDescription": "Oluşturduğun yıldız kartlarını galeriye kaydetmek için fotoğraf kütüphanene yazma izni istiyoruz."
@@ -19,7 +26,11 @@
     },
     "android": {
       "package": "com.mysticai.app",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/app-icons/android/astro-guru-icon-adaptive-foreground.png",
+        "backgroundImage": "./assets/brand/app-icons/android/astro-guru-icon-adaptive-background.png"
+      }
     },
     "plugins": [
       "expo-router",
@@ -51,6 +62,9 @@
       "eas": {
         "projectId": "ae6fd7e4-2d11-45f8-828c-d916782b852f"
       }
+    },
+    "web": {
+      "favicon": "./assets/brand/web/astro-guru-favicon-32.png"
     },
     "owner": "mystic-apis-organization"
   }

@@ -391,31 +391,51 @@ function buildBalanceSummary(
   elements: ScoredSlice<BalanceKey>[],
   modalities: ScoredSlice<ModalityKey>[],
 ) {
-  const dominantElement = [...elements].sort((a, b) => b.score - a.score)[0];
-  const lowestElement = [...elements].sort((a, b) => a.score - b.score)[0];
+  const sorted = [...elements].sort((a, b) => b.score - a.score);
+  const dominantElement = sorted[0];
+  const secondElement = sorted[1];
+  const lowestElement = sorted[sorted.length - 1];
   const dominantModality = [...modalities].sort((a, b) => b.score - a.score)[0];
 
-  const elementText: Record<BalanceKey, string> = {
-    Ateş: 'Ateş baskın; iç motivasyonun hızlı tutuşuyor ve harekete geçmekte gecikmiyorsun.',
-    Toprak: 'Toprak baskın; güven, somut sonuç ve düzen duygusu kararlarını güçlü biçimde yönlendiriyor.',
-    Hava: 'Hava baskın; zihnin bağlantı kurmaya, konuşmaya ve anlam üretmeye doğal olarak açık.',
-    Su: 'Su baskın; sezgilerin çoğu zaman mantıksal analizden önce sinyal veriyor.',
+  const dominantPct = dominantElement.pct;
+  const secondPct = secondElement.pct;
+  const lowestPct = lowestElement.pct;
+
+  const elementIntro: Record<BalanceKey, string> = {
+    Ateş: 'Haritanda Ateş elementi ön planda. Bu, güçlü bir irade, hızlı karar alma kapasitesi ve aksiyona yatkın bir enerji yapısına işaret eder.',
+    Toprak: 'Haritanda Toprak elementi ön planda. Bu, sonuç odaklı düşünce yapısı, pratik zeka ve güvenli temeller kurma eğilimi anlamına gelir.',
+    Hava: 'Haritanda Hava elementi ön planda. Bu, güçlü analitik düşünce, iletişim becerisi ve bilgi aracılığıyla anlam kurma eğilimi gösterir.',
+    Su: 'Haritanda Su elementi ön planda. Bu, derin sezgisel algı, duygusal zeka ve empatik kavrayış kapasitesine işaret eder.',
   };
 
-  const modalityText: Record<ModalityKey, string> = {
-    Öncü: 'Öncü vurgu yüksek; başlatma enerjin güçlü, fakat sürdürülebilir ritim kurmak önemli.',
-    Sabit: 'Sabit vurgu yüksek; sadakat ve direnç büyük artın, esneklik çalışıldığında çok güçlenirsin.',
-    Değişken: 'Değişken vurgu yüksek; adapte olman kolay, dağılmamak için öncelik listesi kritik.',
+  const modalityDepth: Record<ModalityKey, string> = {
+    Öncü: 'Öncü (Kardinal) mod vurgun yüksek olduğundan yeni süreçleri başlatma ve inisiyatif alma konusunda doğal bir eğilimin var. Sürdürülebilirlik için projelere yapısal bir ritim kazandırmak gelişim alanın olabilir.',
+    Sabit: 'Sabit (Fixed) mod vurgun güçlü olduğundan kararlılık, sadakat ve uzun soluklu odaklanma senin doğal avantajın. Değişen koşullara esnek yanıt verebilme becerini geliştirmek potansiyelini artırır.',
+    Değişken: 'Değişken (Mutable) mod vurgun baskın olduğundan uyum sağlama, farklı bakış açılarını benimseme ve çok yönlü düşünme konusunda güçlüsün. Odak noktanı netleştirmek ve öncelik sıralaman üzerine çalışmak sana avantaj sağlar.',
   };
 
-  const balanceHint: Record<BalanceKey, string> = {
-    Ateş: 'Ateş düşük kaldığında cesaret gerektiren konularda küçük ama net aksiyonlar sana iyi gelir.',
-    Toprak: 'Toprak düşük kaldığında rutin, uyku ve finans gibi somut alanlarda plan yapmak denge sağlar.',
-    Hava: 'Hava düşük kaldığında duygunu konuşarak netleştirmek ve zihinsel boşluk açmak rahatlatır.',
-    Su: 'Su düşük kaldığında beden sinyallerini dinlemek ve duygulara alan açmak iç dengeyi güçlendirir.',
+  const balanceAdvice: Record<BalanceKey, string> = {
+    Ateş: 'Ateş enerjisinin düşük kalması, motivasyon ve cesareti bilinçli olarak beslemen gerektiğini gösterir. Küçük ama kararlı adımlar atmak bu alandaki dengeyi güçlendirir.',
+    Toprak: 'Toprak enerjisinin düşük kalması, somut planlama ve maddi düzene bilinçli önem vermen gerektiğini gösterir. Günlük rutinler ve finansal yapılandırma bu alandaki dengeyi destekler.',
+    Hava: 'Hava enerjisinin düşük kalması, düşüncelerini sözlü ifade etme ve zihinsel netlik konusunda bilinçli çaba göstermen gerektiğini gösterir. Düşünceni yazıya dökmek veya paylaşmak bu alandaki dengeyi güçlendirir.',
+    Su: 'Su enerjisinin düşük kalması, duygusal farkındalık ve sezgisel dinleme konusunda bilinçli alan açman gerektiğini gösterir. Bedeni ve duyguları gözlemleme pratiği bu alandaki dengeyi destekler.',
   };
 
-  return `${elementText[dominantElement.key]} ${modalityText[dominantModality.key]} ${balanceHint[lowestElement.key]}`;
+  const parts: string[] = [];
+
+  parts.push(elementIntro[dominantElement.key]);
+
+  if (dominantPct - secondPct < 8) {
+    parts.push(`${secondElement.key} elementinin de yakın ağırlıkta olması, bu iki enerjinin birbirini besleyen bir denge oluşturduğunu gösterir.`);
+  }
+
+  parts.push(modalityDepth[dominantModality.key]);
+
+  if (lowestPct < 15) {
+    parts.push(balanceAdvice[lowestElement.key]);
+  }
+
+  return parts.join('\n\n');
 }
 
 function MiniDonut<T extends string>({
@@ -1003,8 +1023,8 @@ function CosmicBalance({
   return (
     <View style={stylesLocal.balanceWrap}>
       <View style={stylesLocal.balanceDonutsRow}>
-        <MiniDonut title="Element" subtitle="Kozmik Denge" slices={elementSlices} />
-        <MiniDonut title="Nitelik" subtitle="Mod Analizi" slices={modalitySlices} />
+        <MiniDonut title="Element" subtitle="Ateş · Toprak · Hava · Su" slices={elementSlices} />
+        <MiniDonut title="Nitelik" subtitle="Öncü · Sabit · Değişken" slices={modalitySlices} />
       </View>
 
       <View
@@ -1016,7 +1036,7 @@ function CosmicBalance({
           },
         ]}
       >
-        <Text style={[stylesLocal.balanceSummaryTitle, { color: colors.violet }]}>Kısa Yorum</Text>
+        <Text style={[stylesLocal.balanceSummaryTitle, { color: colors.violet }]}>Enerji Dağılımı Analizi</Text>
         <Text style={[stylesLocal.balanceSummaryText, { color: colors.body }]}>{summary}</Text>
       </View>
     </View>
@@ -1111,7 +1131,7 @@ export default function NatalChartProPanels({
       {enabledPanels.has('balance') ? (
         <SectionCard
           title="Kozmik Denge"
-          subtitle="Element ve nitelik ağırlıkları (kişisel gezegenler daha yüksek puanlı)"
+          subtitle="Haritandaki elementel ve modal enerji dağılımının astrolojik analizi"
         >
           <CosmicBalance planets={chartPlanets} risingSign={risingSign} />
         </SectionCard>

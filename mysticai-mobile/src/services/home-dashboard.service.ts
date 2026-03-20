@@ -725,6 +725,37 @@ function buildDashboardFromSources(
   };
 }
 
+/**
+ * Hızlı faz: Sadece skyPulse + weeklySwot (~1-2sn).
+ * Oracle AI synthesis beklenmiyor; dashboard fallback içerikle anında render edilir.
+ * Oracle verisi ayrı sorguda gelince üst katar olarak uygulanır.
+ */
+export async function fetchHomeDashboardFast({ user, locale }: FetchHomeDashboardParams): Promise<HomeDashboardResponse> {
+  const resolvedLocale = normalizeLocale(locale ?? user?.preferredLanguage ?? 'tr');
+
+  if (!envConfig.isApiConfigured) {
+    return buildDashboardFromSources(user, null, null, null, resolvedLocale);
+  }
+
+  const [skyPulseResult, weeklySwotResult] = await Promise.allSettled([
+    fetchSkyPulse(resolvedLocale),
+    (user?.id && user?.birthDate) ? fetchWeeklySwot(user.id, resolvedLocale) : Promise.resolve(null),
+  ]);
+
+  const skyPulse = skyPulseResult.status === 'fulfilled' ? skyPulseResult.value.data : null;
+  const weeklySwot =
+    weeklySwotResult.status === 'fulfilled'
+      ? (weeklySwotResult.value && 'data' in weeklySwotResult.value ? weeklySwotResult.value.data : null)
+      : null;
+
+  if (skyPulseResult.status === 'rejected') {
+    logApiError('home-dashboard-fast', skyPulseResult.reason, { source: 'sky-pulse' });
+  }
+
+  // skyPulse yoksa minimal dashboard; en kötü durumda statik quick actions gösterilir.
+  return buildDashboardFromSources(user, null, skyPulse, weeklySwot, resolvedLocale);
+}
+
 export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardParams): Promise<HomeDashboardResponse> {
   const resolvedLocale = normalizeLocale(locale ?? user?.preferredLanguage ?? 'tr');
   if (!envConfig.isApiConfigured) {

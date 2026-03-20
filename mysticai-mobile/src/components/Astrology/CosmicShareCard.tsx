@@ -3,7 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
-const mysticLogo = require('../../../assets/icon.png');
+const mysticLogo = require('../../../assets/brand/logo/astro-guru-icon-transparent-128.png');
 
 type CosmicShareCardProps = {
   personAName: string;
@@ -112,7 +112,7 @@ export default function CosmicShareCard(props: CosmicShareCardProps) {
         ))}
 
         <View style={styles.brandTop}>
-          <Text style={styles.brandWord}>MYSTIC AI</Text>
+          <Text style={styles.brandWord}>ASTRO GURU</Text>
           <Text style={styles.brandSub}>Cosmic Compatibility Report</Text>
         </View>
 
@@ -154,7 +154,7 @@ export default function CosmicShareCard(props: CosmicShareCardProps) {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerBrand}>Mystic AI</Text>
+          <Text style={styles.footerBrand}>Astro Guru</Text>
           <View style={styles.qrWrap}>
             <View style={styles.qrShell}>
               <QRCode
@@ -170,7 +170,7 @@ export default function CosmicShareCard(props: CosmicShareCardProps) {
               />
             </View>
           </View>
-          <Text style={styles.storeText}>App Store / Play Store: Mystic AI</Text>
+          <Text style={styles.storeText}>App Store / Play Store: Astro Guru</Text>
         </View>
       </LinearGradient>
     </View>

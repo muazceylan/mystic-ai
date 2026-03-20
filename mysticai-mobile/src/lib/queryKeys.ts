@@ -6,6 +6,8 @@ export const queryKeys = {
     ['oracle', 'daily-secret', params ?? {}] as const,
   homeBrief: (params?: Record<string, string | undefined>) =>
     ['oracle', 'home-brief', params ?? {}] as const,
+  homeDashboardFast: (userId: number | string, locale?: string) =>
+    ['oracle', 'home-dashboard-fast', userId, locale ?? 'tr'] as const,
   homeDashboard: (userId: number | string, sign?: string, locale?: string) =>
     ['oracle', 'home-dashboard', userId, sign ?? '', locale ?? 'tr'] as const,
   skyPulse: () => ['astrology', 'sky-pulse'] as const,

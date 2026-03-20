@@ -800,7 +800,7 @@ export function NumerologyShareCard(props: {
       end={{ x: 1, y: 1 }}
       style={[styles.shareCard, story ? styles.shareCardStory : styles.shareCardSquare]}
     >
-      <Text style={styles.shareBrand}>{props.payload.brandMark || 'Mystic AI'}</Text>
+      <Text style={styles.shareBrand}>{props.payload.brandMark || 'Astro Guru'}</Text>
       <Text style={styles.shareKicker}>{t('numerology.shareCardKicker')}</Text>
       <Text style={styles.shareName}>{props.payload.name}</Text>
       <View style={styles.shareNumberBox}>

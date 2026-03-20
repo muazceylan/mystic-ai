@@ -242,22 +242,7 @@ export default function CounterScreen() {
             <Text style={[styles.setFlowLabel, { color: ACCENT }]}>{setFlowLabel}</Text>
           )}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Pressable
-            onPress={handleEarlySave}
-            style={styles.headerBtn}
-            hitSlop={12}
-            disabled={store.completed === 0}
-            accessibilityLabel="Kaydet ve çık"
-          >
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={24}
-              color={store.completed > 0 ? ACCENT : SUBTEXT + '44'}
-            />
-          </Pressable>
-          <HeaderRightIcons tintColor={TEXT} />
-        </View>
+        <HeaderRightIcons tintColor={TEXT} />
       </View>
 
       {/* Counter badge (top-left overlay) */}
@@ -318,56 +303,64 @@ export default function CounterScreen() {
         />
       </View>
 
-      {/* Bottom Toolbar */}
-      <View style={[styles.toolbar, { backgroundColor: SURFACE_BG, borderColor: ACCENT_LIGHT }]}>
-        <ToolbarBtn
-          icon="remove-outline"
-          label="-1"
-          color={ACCENT}
-          onPress={handleTap}
-          disabled={store.status !== 'running' || store.remaining <= 0}
-        />
-        <ToolbarBtn
-          icon="add-outline"
-          label="+1"
-          color={SUBTEXT}
-          onPress={() => store.increment()}
-          disabled={store.status !== 'running' || store.completed <= 0}
-        />
-        <ToolbarBtn
-          icon="arrow-undo-outline"
-          label="Geri Al"
-          color={SUBTEXT}
-          disabled={store.history.length === 0}
-          onPress={() => store.undo()}
-        />
-        <ToolbarBtn
-          icon={store.status === 'paused' ? 'play-outline' : 'pause-outline'}
-          label={store.status === 'paused' ? 'Devam' : 'Duraklat'}
-          color={ACCENT}
-          onPress={() => (store.status === 'paused' ? store.resume() : store.pause())}
-        />
-        <ToolbarBtn
-          icon="refresh-outline"
-          label="Sıfırla"
-          color={SUBTEXT}
-          onPress={() => store.reset()}
-        />
-      </View>
+      {/* Bottom controls */}
+      <View style={styles.bottomSection}>
+        {/* Toolbar row */}
+        <View style={[styles.toolbar, { backgroundColor: SURFACE_BG, borderColor: ACCENT_LIGHT }]}>
+          <ToolbarBtn
+            icon="remove-outline"
+            label="-1"
+            color={ACCENT}
+            onPress={handleTap}
+            disabled={store.status !== 'running' || store.remaining <= 0}
+          />
+          <ToolbarBtn
+            icon="add-outline"
+            label="+1"
+            color={SUBTEXT}
+            onPress={() => store.increment()}
+            disabled={store.status !== 'running' || store.completed <= 0}
+          />
+          <ToolbarBtn
+            icon="arrow-undo-outline"
+            label="Geri Al"
+            color={SUBTEXT}
+            disabled={store.history.length === 0}
+            onPress={() => store.undo()}
+          />
+          <ToolbarBtn
+            icon={store.status === 'paused' ? 'play-outline' : 'pause-outline'}
+            label={store.status === 'paused' ? 'Devam' : 'Duraklat'}
+            color={ACCENT}
+            onPress={() => (store.status === 'paused' ? store.resume() : store.pause())}
+          />
+          <ToolbarBtn
+            icon="refresh-outline"
+            label="Sıfırla"
+            color={SUBTEXT}
+            onPress={() => store.reset()}
+          />
+        </View>
 
-      {/* Save and exit button */}
-      {store.completed > 0 && store.status === 'running' && (
-        <Pressable
-          style={[styles.earlySaveBtn, { backgroundColor: ACCENT + '12', borderColor: ACCENT + '30' }]}
-          onPress={handleEarlySave}
-          accessibilityLabel="İlerlemeyi kaydet ve çık"
-        >
-          <Ionicons name="save-outline" size={16} color={ACCENT} />
-          <Text style={[styles.earlySaveText, { color: ACCENT }]}>
-            İlerlemeyi Kaydet ve Çık ({store.completed}/{store.target})
-          </Text>
-        </Pressable>
-      )}
+        {/* Primary save button */}
+        {store.completed > 0 && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.saveButton,
+              { backgroundColor: ACCENT },
+              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+            ]}
+            onPress={handleEarlySave}
+            accessibilityRole="button"
+            accessibilityLabel={`${store.completed} zikir kaydet ve çık`}
+          >
+            <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+            <Text style={styles.saveButtonText}>
+              Kaydet ({store.completed}/{store.target})
+            </Text>
+          </Pressable>
+        )}
+      </View>
 
       <CounterFinishModal
         visible={showFinish}
@@ -508,31 +501,38 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
+  bottomSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    gap: 12,
+  },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 14,
     paddingHorizontal: 8,
     borderTopWidth: 1,
-    marginHorizontal: 16,
     borderRadius: 22,
   },
   toolbarItem: { alignItems: 'center', gap: 5, paddingHorizontal: 10 },
   toolbarLabel: { fontSize: 10, fontWeight: '600' },
-  earlySaveBtn: {
+  saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 32,
-    paddingVertical: 14,
+    gap: 10,
+    paddingVertical: 16,
     borderRadius: 16,
-    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  earlySaveText: {
-    fontSize: 14,
-    fontWeight: '700',
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
 });

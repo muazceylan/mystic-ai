@@ -52,6 +52,8 @@ public class OracleService {
                 .switchIfEmpty(computeDailySecret(userId, name, birthDate, maritalStatus, focusPoint, cacheKey));
     }
 
+    private static final Duration HOME_BRIEF_TIMEOUT = Duration.ofSeconds(18);
+
     public Mono<HomeBriefResponse> getHomeBrief(
             Long userId,
             String username,
@@ -64,6 +66,7 @@ public class OracleService {
         Mono<List<HomeBriefResponse.WeeklyCard>> weeklyCardsMono = fetchWeeklyCards(userId);
 
         return Mono.zip(oracleMono, weeklyCardsMono)
+                .timeout(HOME_BRIEF_TIMEOUT)
                 .map(tuple -> {
                     OracleResponse oracle = tuple.getT1();
                     List<HomeBriefResponse.WeeklyCard> weeklyCards = tuple.getT2();
@@ -484,10 +487,16 @@ public class OracleService {
         int impact = response.impactScore() != null ? response.impactScore() : 50;
         int readability = response.readabilityScore() != null ? response.readabilityScore() : 55;
         int points = response.transitPoints() != null ? response.transitPoints().size() : 0;
-        boolean weakSecret = response.secret() == null || response.secret().length() < 24;
+        boolean weakSecret = response.secret() == null || response.secret().length() < 12;
         boolean weakMessage = response.message() == null || response.message().isBlank();
-        return impact < 55 || readability < 45 || points < 2 || weakSecret || weakMessage;
+        // Retry only on truly poor quality — both score thresholds must fail,
+        // or critical content (secret/message) is missing entirely.
+        boolean scoreTooLow = impact < 35 && readability < 30;
+        boolean contentMissing = (weakSecret || weakMessage) && points < 1;
+        return scoreTooLow || contentMissing;
     }
+
+    private static final Duration RETRY_VARIANT_TIMEOUT = Duration.ofSeconds(12);
 
     private Mono<OracleResponse> retryWithAlternateVariant(AiSynthesisRequest request, OracleResponse primary) {
         String alternateVariant = "A".equalsIgnoreCase(request.promptVariant()) ? "B" : "A";
@@ -495,6 +504,7 @@ public class OracleService {
         log.info("Retrying oracle prompt with variant {} due to low quality primary response", alternateVariant);
 
         return callAiOrchestrator(alternateRequest)
+                .timeout(RETRY_VARIANT_TIMEOUT)
                 .onErrorResume(error -> {
                     log.warn("Alternate variant {} failed: {}", alternateVariant, error.getMessage());
                     return Mono.empty();

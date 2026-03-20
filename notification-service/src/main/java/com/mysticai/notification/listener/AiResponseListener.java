@@ -29,7 +29,7 @@ public class AiResponseListener {
             NotificationType notifType = mapToNotificationType(analysisType);
 
             // Generate notification through the central service (creates in-app record + sends push)
-            generationService.generateNotification(event.userId(), notifType, null);
+            generationService.generateNotification(event.userId(), notifType, null, analysisType);
 
             // Also send WebSocket for real-time AI result delivery
             String title = generateTitle(analysisType);
@@ -96,13 +96,4 @@ public class AiResponseListener {
         };
     }
 
-    private String getDeeplinkForAnalysisType(Notification.AnalysisType type) {
-        return switch (type) {
-            case DREAM -> "/(tabs)/dreams";
-            case TAROT, ASTROLOGY, NUMEROLOGY, ORACLE -> "/(tabs)/home";
-            case NATAL_CHART -> "/(tabs)/natal-chart";
-            case COMPATIBILITY -> "/(tabs)/compatibility";
-            case HOROSCOPE -> "/(tabs)/horoscope";
-        };
-    }
 }
