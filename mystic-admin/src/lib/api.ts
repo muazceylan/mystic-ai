@@ -349,3 +349,51 @@ export interface UserSummary {
   email: string;
   name: string;
 }
+
+// ── Monetization ──────────────────────────────────────────
+
+export const monetizationSettingsApi = {
+  list: () => api.get('/api/admin/v1/monetization/settings'),
+  get: (id: number) => api.get(`/api/admin/v1/monetization/settings/${id}`),
+  getActive: () => api.get('/api/admin/v1/monetization/settings/active'),
+  create: (data: unknown) => api.post('/api/admin/v1/monetization/settings', data),
+  update: (id: number, data: unknown) => api.put(`/api/admin/v1/monetization/settings/${id}`, data),
+  publish: (id: number) => api.post(`/api/admin/v1/monetization/settings/${id}/publish`),
+  archive: (id: number) => api.post(`/api/admin/v1/monetization/settings/${id}/archive`),
+};
+
+export const moduleRulesApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/v1/monetization/module-rules', { params }),
+  get: (id: number) => api.get(`/api/admin/v1/monetization/module-rules/${id}`),
+  create: (data: unknown) => api.post('/api/admin/v1/monetization/module-rules', data),
+  update: (id: number, data: unknown) => api.put(`/api/admin/v1/monetization/module-rules/${id}`, data),
+  delete: (id: number) => api.delete(`/api/admin/v1/monetization/module-rules/${id}`),
+};
+
+export const monetizationActionsApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/v1/monetization/actions', { params }),
+  get: (id: number) => api.get(`/api/admin/v1/monetization/actions/${id}`),
+  create: (data: unknown) => api.post('/api/admin/v1/monetization/actions', data),
+  update: (id: number, data: unknown) => api.put(`/api/admin/v1/monetization/actions/${id}`, data),
+  delete: (id: number) => api.delete(`/api/admin/v1/monetization/actions/${id}`),
+};
+
+export const guruProductsApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/v1/monetization/guru-products', { params }),
+  get: (id: number) => api.get(`/api/admin/v1/monetization/guru-products/${id}`),
+  create: (data: unknown) => api.post('/api/admin/v1/monetization/guru-products', data),
+  update: (id: number, data: unknown) => api.put(`/api/admin/v1/monetization/guru-products/${id}`, data),
+  enable: (id: number) => api.post(`/api/admin/v1/monetization/guru-products/${id}/enable`),
+  disable: (id: number) => api.post(`/api/admin/v1/monetization/guru-products/${id}/disable`),
+};
+
+export const guruWalletApi = {
+  getWallet: (userId: number) => api.get(`/api/admin/v1/monetization/wallets/${userId}`),
+  getLedger: (userId: number, params?: Record<string, unknown>) => api.get(`/api/admin/v1/monetization/wallets/${userId}/ledger`, { params }),
+  grant: (userId: number, data: { amount: number; reason: string }) => api.post(`/api/admin/v1/monetization/wallets/${userId}/grant`, data),
+  revoke: (userId: number, data: { amount: number; reason: string }) => api.post(`/api/admin/v1/monetization/wallets/${userId}/revoke`, data),
+};
+
+export const monetizationSimulationApi = {
+  simulate: (data: unknown) => api.post('/api/admin/v1/monetization/simulation', data),
+};

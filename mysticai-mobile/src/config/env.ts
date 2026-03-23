@@ -177,6 +177,11 @@ const premiumFeaturesEnabled = asBool(process.env.EXPO_PUBLIC_PREMIUM_FEATURES_E
 const numerologyForceUnlockAllSections = asBool(process.env.EXPO_PUBLIC_NUMEROLOGY_FORCE_UNLOCK_ALL)
   || !premiumFeaturesEnabled;
 
+// ── AdMob ────────────────────────────────────────────────────────────
+const admobUseTestIds = asBool(process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS) || __DEV__;
+const admobAndroidRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_UNIT_ID ?? '').trim();
+const admobIosRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_IOS_REWARDED_UNIT_ID ?? '').trim();
+
 export const envConfig = {
   appEnv,
   apiBaseUrl: resolvedBaseUrl,
@@ -194,5 +199,10 @@ export const envConfig = {
   features: {
     premiumFeaturesEnabled,
     numerologyForceUnlockAllSections,
+  },
+  admob: {
+    useTestIds: admobUseTestIds,
+    androidRewardedUnitId: admobAndroidRewardedUnitId,
+    iosRewardedUnitId: admobIosRewardedUnitId,
   },
 } as const;

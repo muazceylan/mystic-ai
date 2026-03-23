@@ -29,6 +29,18 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
         dropCheckConstraintIfExists("notifications", "category");
         dropCheckConstraintIfExists("notifications", "delivery_channel");
         dropCheckConstraintIfExists("notifications", "priority");
+        // Monetization enum constraints — evolve as new strategies/types are added
+        dropCheckConstraintIfExists("monetization_settings", "status");
+        dropCheckConstraintIfExists("module_monetization_rules", "ad_strategy");
+        dropCheckConstraintIfExists("module_monetization_rules", "ad_offer_frequency_mode");
+        dropCheckConstraintIfExists("module_monetization_rules", "preview_depth_mode");
+        dropCheckConstraintIfExists("module_monetization_rules", "rollout_status");
+        dropCheckConstraintIfExists("monetization_actions", "unlock_type");
+        dropCheckConstraintIfExists("guru_wallet", "status");
+        dropCheckConstraintIfExists("guru_ledger", "transaction_type");
+        dropCheckConstraintIfExists("guru_ledger", "source_type");
+        dropCheckConstraintIfExists("guru_product_catalog", "product_type");
+        dropCheckConstraintIfExists("guru_product_catalog", "rollout_status");
     }
 
     private void dropCheckConstraintIfExists(String table, String column) {

@@ -18,6 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mysticai.app",
       "usesAppleSignIn": true,
+      "googleServicesFile": "./GoogleService-Info.plist",
       "icon": "./assets/brand/app-icons/ios/astro-guru-ios-app-store-1024.png",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Yıldız kartlarını galeriye kaydedebilmen için fotoğraf kütüphanene erişim izni istiyoruz.",
@@ -33,6 +34,21 @@
       }
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "extraPods": [
+              {
+                "name": "GoogleUtilities",
+                "modular_headers": true
+              }
+            ]
+          }
+        }
+      ],
+      "@react-native-firebase/app",
       "expo-router",
       "expo-apple-authentication",
       [

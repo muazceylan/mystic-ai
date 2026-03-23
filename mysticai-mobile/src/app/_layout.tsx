@@ -39,12 +39,21 @@ import { COLORS } from '../constants/colors';
 import { queryClient } from '../lib/queryClient';
 import { needsOnboarding } from '../utils/authOnboarding';
 import { isGuestUser } from '../store/useAuthStore';
-import { trackEvent } from '../services/analytics';
+import {
+  trackEvent,
+  logScreen,
+  setAnalyticsUserId,
+  setAnalyticsUserProperties,
+  resetAnalyticsIdentity,
+} from '../services/analytics';
+import { resolveScreenName } from '../services/analyticsScreenNames';
 import {
   registerPushTokenIfNeeded,
   setupNotificationResponseHandler,
   setupNotificationChannel,
 } from '../utils/pushNotifications';
+import { useMonetizationStore, useGuruWalletStore } from '../features/monetization';
+import { initializeAdProvider } from '../features/monetization/providers/initProvider';
 
 // Expo Go + expo-router native sitemap bug guard:
 // Some generated routes read window.location.origin on native where location can be undefined.
@@ -222,8 +231,11 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
       <CompanionBootstrap />
       <NotificationBootstrap />
       <AppConfigBootstrap />
+      <MonetizationBootstrap />
       <TutorialBootstrap />
       <GuestSessionBootstrap />
+      <ScreenTracker />
+      <AnalyticsIdentityBootstrap />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -345,6 +357,53 @@ function AppConfigBootstrap() {
   return null;
 }
 
+/** Loads monetization config on startup; wallet only if config is enabled and user is authenticated.
+ *  Also initializes the ad provider (AdMob in native builds, stub in Expo Go/web). */
+function MonetizationBootstrap() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const adProviderInitRef = useRef(false);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const task = InteractionManager.runAfterInteractions(async () => {
+      await useMonetizationStore.getState().loadConfig();
+
+      // Initialize the ad provider once (AdMob or stub depending on environment)
+      if (!adProviderInitRef.current) {
+        adProviderInitRef.current = true;
+        const adsEnabled = useMonetizationStore.getState().config?.adsEnabled ?? false;
+        await initializeAdProvider(adsEnabled);
+      }
+
+      // Only load wallet if monetization is enabled and user is authenticated
+      if (isAuthenticated && useMonetizationStore.getState().isMonetizationEnabled()) {
+        void useGuruWalletStore.getState().loadWallet();
+      }
+    });
+    return () => task.cancel();
+  }, [isHydrated, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    const appState = { current: AppState.currentState };
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (appState.current === 'background' && next === 'active') {
+        void useMonetizationStore.getState().loadConfig().then(() => {
+          if (useAuthStore.getState().isAuthenticated && useMonetizationStore.getState().isMonetizationEnabled()) {
+            void useGuruWalletStore.getState().loadWallet();
+          }
+        });
+      }
+      appState.current = next;
+    });
+    return () => sub.remove();
+  }, [isHydrated]);
+
+  return null;
+}
+
 function TutorialBootstrap() {
   const pathname = usePathname();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -372,6 +431,62 @@ function TutorialBootstrap() {
     void trigger('first_app_open');
     void trigger('version_changed');
   }, [isAuthenticated, isHydrated, pathname, trigger, userId]);
+
+  return null;
+}
+
+/**
+ * Centralized screen tracking.
+ * Logs a screen_view event on every route change via the analytics facade.
+ * Deduplicates consecutive identical paths.
+ */
+function ScreenTracker() {
+  const pathname = usePathname();
+  const lastPathRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!pathname || pathname === lastPathRef.current) return;
+    lastPathRef.current = pathname;
+
+    const screenName = resolveScreenName(pathname);
+    if (screenName) {
+      logScreen(screenName, pathname);
+    }
+  }, [pathname]);
+
+  return null;
+}
+
+/**
+ * Syncs analytics user identity with auth state.
+ * Sets userId + user properties on login; clears on logout.
+ */
+function AnalyticsIdentityBootstrap() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const user = useAuthStore((s) => s.user);
+  const prevUserIdRef = useRef<number | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const userId = user?.id ?? null;
+
+    // Avoid re-setting if the user hasn't changed
+    if (userId === prevUserIdRef.current) return;
+    prevUserIdRef.current = userId;
+
+    if (isAuthenticated && userId) {
+      setAnalyticsUserId(String(userId));
+      setAnalyticsUserProperties({
+        account_type: isGuestUser(user) ? 'guest' : 'registered',
+        preferred_language: user?.preferredLanguage ?? null,
+        zodiac_sign: user?.zodiacSign ?? null,
+      });
+    } else {
+      resetAnalyticsIdentity();
+    }
+  }, [isHydrated, isAuthenticated, user?.id]);
 
   return null;
 }

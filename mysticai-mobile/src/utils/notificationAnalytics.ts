@@ -1,8 +1,11 @@
 /**
  * Centralized notification analytics event tracker.
  * All notification-related events flow through here.
- * Swap the `emit` implementation to plug in Amplitude, Mixpanel, PostHog, etc.
+ * Events are sent to all active providers (Amplitude + Firebase GA4)
+ * via the shared trackEvent facade.
  */
+
+import { trackEvent, type AnalyticsParams } from '../services/analytics';
 
 export const NotificationEvent = {
   // Notification Center
@@ -54,18 +57,27 @@ export interface NotificationEventPayload {
 
 /**
  * Track a notification analytics event.
- * In dev, logs to console. In prod, send to your analytics SDK.
+ * Routes to the shared analytics facade (Amplitude + Firebase GA4).
  */
 export function trackNotificationEvent(
   event: NotificationEventName,
   payload?: NotificationEventPayload
 ): void {
-  if (__DEV__) {
-    console.log('[NotifAnalytics]', event, payload ?? {});
+  // Build a clean params object — exclude undefined/complex values
+  const params: AnalyticsParams = {};
+  if (payload) {
+    for (const [key, value] of Object.entries(payload)) {
+      if (
+        value === undefined ||
+        (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean' && value !== null)
+      ) {
+        continue;
+      }
+      params[key] = value as string | number | boolean | null;
+    }
   }
 
-  // TODO: integrate your analytics SDK here, e.g.:
-  // Analytics.track(event, { ...payload, _source: 'notification_module' });
+  trackEvent(event, params);
 }
 
 /** Convenience: build a standard payload from a NotificationItem */

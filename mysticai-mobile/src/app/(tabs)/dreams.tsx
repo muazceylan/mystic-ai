@@ -17,6 +17,15 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from 'expo-router';
+import {
+  useModuleMonetization,
+  AdOfferCard,
+  GuruUnlockModal,
+  PurchaseCatalogSheet,
+  GuruBalanceBadge,
+  MonetizationEvents,
+} from '../../features/monetization';
 import { useDreamStore } from '../../store/useDreamStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ErrorStateCard, SafeScreen, TabHeader } from '../../components/ui';
@@ -112,6 +121,13 @@ export default function DreamsScreen() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const [bookRefreshing, setBookRefreshing] = useState(false);
 
+  // ── Monetization ─────────────────────────────────────────────────
+  const monetization = useModuleMonetization('dreams');
+  const [showAdOffer, setShowAdOffer] = useState(false);
+  const [showGuruModal, setShowGuruModal] = useState(false);
+  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const focusCountRef = useRef(0);
+
   // ── Refs ──────────────────────────────────────────────────────────
   const recordingRef  = useRef<Audio.Recording | null>(null);
   const recordingUri  = useRef<string | null>(null);
@@ -129,6 +145,14 @@ export default function DreamsScreen() {
   useEffect(() => {
     if (userId) { fetchDreams(userId); fetchSymbols(userId); }
   }, [userId]);
+
+  // Track monetization module entry on each focus (tab re-visits)
+  useFocusEffect(
+    useCallback(() => {
+      focusCountRef.current += 1;
+      monetization.trackEntry();
+    }, [monetization.trackEntry]),
+  );
 
   useEffect(() => {
     const scope = userId ? String(userId) : 'guest';
@@ -241,7 +265,7 @@ export default function DreamsScreen() {
     recordingUri.current = null;
   };
 
-  // ─── Save dream ───────────────────────────────────────────────────
+  // ─── Save dream (core flow — always works, never monetization-gated) ──
   const handleSave = async () => {
     if (!dreamText.trim() || submitting) return;
     try {
@@ -316,7 +340,7 @@ export default function DreamsScreen() {
     }
   }, [userId, tab, bookYear, bookMonth]);
 
-  const handleBookGenerate = async () => {
+  const executeBookGenerate = async () => {
     if (!userId) return;
     setGenerating(true);
     try {
@@ -327,6 +351,28 @@ export default function DreamsScreen() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Monetization gate for dream book generation (premium action)
+  const handleBookGenerate = async () => {
+    const bookAction = monetization.getAction('monthly_dream_story');
+    if (bookAction && monetization.guruEnabled) {
+      if (monetization.canAffordAction('monthly_dream_story')) {
+        MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'guru_spend');
+        setShowGuruModal(true);
+        return;
+      }
+      if (monetization.shouldShowAd && monetization.adsEnabled) {
+        MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'ad');
+        setShowAdOffer(true);
+        return;
+      }
+      MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'guru_spend');
+      setShowGuruModal(true);
+      return;
+    }
+
+    await executeBookGenerate();
   };
 
   const handleBookRefresh = async () => {
@@ -805,6 +851,7 @@ export default function DreamsScreen() {
         subtitle={t('dreams.subtitle')}
         rightActions={
           <View style={styles.headerActionRow}>
+            {monetization.guruEnabled && <GuruBalanceBadge />}
             <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
               <TouchableOpacity
                 style={styles.helpBtn}
@@ -945,6 +992,48 @@ export default function DreamsScreen() {
         </SpotlightTarget>
       )}
     </LinearGradient>
+
+      {/* Monetization: AdOfferCard for dream book generation */}
+      {showAdOffer && monetization.adsEnabled && (
+        <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
+          <AdOfferCard
+            moduleKey="dreams"
+            actionKey="monthly_dream_story"
+            onComplete={() => {
+              setShowAdOffer(false);
+              // Ad completed — user earned Guru, can now afford action
+            }}
+            onDismiss={() => {
+              setShowAdOffer(false);
+              // Dismiss does NOT proceed with the premium action
+            }}
+          />
+        </View>
+      )}
+
+      <GuruUnlockModal
+        visible={showGuruModal}
+        moduleKey="dreams"
+        actionKey="monthly_dream_story"
+        onUnlocked={() => {
+          setShowGuruModal(false);
+          void executeBookGenerate();
+        }}
+        onDismiss={() => setShowGuruModal(false)}
+        onShowAdOffer={monetization.adsEnabled ? () => {
+          setShowGuruModal(false);
+          setShowAdOffer(true);
+        } : undefined}
+        onShowPurchase={monetization.isActionPurchaseAllowed('monthly_dream_story') ? () => {
+          setShowGuruModal(false);
+          setShowPurchaseSheet(true);
+        } : undefined}
+      />
+
+      <PurchaseCatalogSheet
+        visible={showPurchaseSheet}
+        onDismiss={() => setShowPurchaseSheet(false)}
+      />
     </SafeScreen>
   );
 }

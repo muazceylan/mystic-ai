@@ -13,6 +13,14 @@ import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 import { useNumerology } from '../hooks/useNumerology';
 import { trackEvent } from '../services/analytics';
 import {
+  useModuleMonetization,
+  AdOfferCard,
+  GuruUnlockModal,
+  PurchaseCatalogSheet,
+  GuruBalanceBadge,
+  MonetizationEvents,
+} from '../features/monetization';
+import {
   NUMEROLOGY_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
   TUTORIAL_IDS,
@@ -171,6 +179,13 @@ export default function NumerologyScreen() {
   const [snapshotExists, setSnapshotExists] = useState<boolean | null>(null);
   const [checkInDates, setCheckInDates] = useState<string[]>([]);
 
+  // ── Monetization ──
+  const monetization = useModuleMonetization('numerology');
+  const [showAdOffer, setShowAdOffer] = useState(false);
+  const [showGuruModal, setShowGuruModal] = useState(false);
+  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const monetizationEntryRef = useRef(false);
+
   const startRef = useRef(Date.now());
   const tutorialBootstrapRef = useRef<string | null>(null);
   const screenViewedRef = useRef(false);
@@ -258,6 +273,14 @@ export default function NumerologyScreen() {
 
   const shareLoading = storyShareLoading || squareShareLoading;
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
+
+  // Track monetization module entry (once per stack screen mount)
+  useEffect(() => {
+    if (!monetizationEntryRef.current) {
+      monetizationEntryRef.current = true;
+      monetization.trackEntry();
+    }
+  }, [monetization.trackEntry]);
 
   useEffect(() => {
     const scope = user?.id ? String(user.id) : 'guest';
@@ -443,6 +466,26 @@ export default function NumerologyScreen() {
 
   const handleOpenAdvanced = () => {
     if (checkPremiumGated()) return;
+
+    // Monetization gate: if guru unlock is configured for this action, gate it
+    const advancedAction = monetization.getAction('advanced_analysis');
+    if (advancedAction && monetization.guruEnabled) {
+      if (monetization.canAffordAction('advanced_analysis')) {
+        MonetizationEvents.gateSeen('numerology', 'advanced_analysis', 'guru_spend');
+        setShowGuruModal(true);
+        return;
+      }
+      // Can't afford — show ad offer if eligible, else show guru modal with insufficient state
+      if (monetization.shouldShowAd && monetization.adsEnabled) {
+        MonetizationEvents.gateSeen('numerology', 'advanced_analysis', 'ad');
+        setShowAdOffer(true);
+        return;
+      }
+      MonetizationEvents.gateSeen('numerology', 'advanced_analysis', 'guru_spend');
+      setShowGuruModal(true);
+      return;
+    }
+
     setAdvancedVisible(true);
     trackEvent('numerology_advanced_opened', commonEventProps);
   };
@@ -576,13 +619,16 @@ export default function NumerologyScreen() {
             goBack();
           }}
           rightActions={(
-            <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <SurfaceHeaderIconButton
-                iconName="help-circle-outline"
-                onPress={handlePressTutorialHelp}
-                accessibilityLabel={t('numerology.howCalculatedCta')}
-              />
-            </SpotlightTarget>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {monetization.guruEnabled && <GuruBalanceBadge />}
+              <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+                <SurfaceHeaderIconButton
+                  iconName="help-circle-outline"
+                  onPress={handlePressTutorialHelp}
+                  accessibilityLabel={t('numerology.howCalculatedCta')}
+                />
+              </SpotlightTarget>
+            </View>
           )}
         />
 
@@ -649,6 +695,22 @@ export default function NumerologyScreen() {
                   onCheckIn={() => { void handleCheckIn(); }}
                   onOpenWeekly={handleOpenWeekly}
                 />
+
+                {showAdOffer && monetization.adsEnabled && (
+                  <AdOfferCard
+                    moduleKey="numerology"
+                    actionKey="advanced_analysis"
+                    onComplete={() => {
+                      setShowAdOffer(false);
+                      // Ad completed successfully — do NOT auto-open advanced
+                      // User earned Guru and can now afford the action
+                    }}
+                    onDismiss={() => {
+                      setShowAdOffer(false);
+                      // Dismiss does NOT grant access
+                    }}
+                  />
+                )}
 
                 {data.timing ? (
                   <NumerologyTimingCard
@@ -787,6 +849,31 @@ export default function NumerologyScreen() {
       </View>
 
       <GuestGate {...premiumGateProps} />
+
+      <GuruUnlockModal
+        visible={showGuruModal}
+        moduleKey="numerology"
+        actionKey="advanced_analysis"
+        onUnlocked={() => {
+          setShowGuruModal(false);
+          setAdvancedVisible(true);
+          trackEvent('numerology_advanced_opened', commonEventProps);
+        }}
+        onDismiss={() => setShowGuruModal(false)}
+        onShowAdOffer={monetization.adsEnabled ? () => {
+          setShowGuruModal(false);
+          setShowAdOffer(true);
+        } : undefined}
+        onShowPurchase={monetization.isActionPurchaseAllowed('advanced_analysis') ? () => {
+          setShowGuruModal(false);
+          setShowPurchaseSheet(true);
+        } : undefined}
+      />
+
+      <PurchaseCatalogSheet
+        visible={showPurchaseSheet}
+        onDismiss={() => setShowPurchaseSheet(false)}
+      />
     </SafeScreen>
   );
 }

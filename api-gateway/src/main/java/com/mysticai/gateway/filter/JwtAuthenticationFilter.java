@@ -60,7 +60,10 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/v1/auth/verify-email-otp",
             "/api/v1/auth/quick-start",
             "/actuator/health",
-            "/actuator/info"
+            "/actuator/info",
+            // Monetization config is public (fail-safe: app needs config before login)
+            "/api/v1/monetization/config",
+            "/api/v1/monetization/modules/"
     );
 
     public JwtAuthenticationFilter(GatewaySecurityMetrics securityMetrics) {

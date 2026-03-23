@@ -9,12 +9,20 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useSynastryStore } from '../../store/useSynastryStore';
+import {
+  useModuleMonetization,
+  AdOfferCard,
+  GuruUnlockModal,
+  PurchaseCatalogSheet,
+  GuruBalanceBadge,
+  MonetizationEvents,
+} from '../../features/monetization';
 import {
   RelationshipType,
   SavedPersonResponse,
@@ -297,12 +305,27 @@ export default function CompatibilityScreen() {
   const autoRunKeyRef = useRef<string | null>(null);
   const redirectedSynastryRef = useRef<number | null>(null);
 
+  // ── Monetization ──
+  const monetization = useModuleMonetization('compatibility');
+  const [showAdOffer, setShowAdOffer] = useState(false);
+  const [showGuruModal, setShowGuruModal] = useState(false);
+  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const focusCountRef = useRef(0);
+
   const autoCompare = firstParam(params.autoCompare) === '1';
   const personAIdParam = parsePositiveInt(params.personAId);
   const personBIdParam = parsePositiveInt(params.personBId) ?? parsePositiveInt(params.savedPersonId);
   const relationshipTypeParam = parseRelationshipType(params.relationshipType);
 
   const userDisplayName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Sen';
+
+  // Track monetization module entry on each focus (tab re-visits)
+  useFocusEffect(
+    useCallback(() => {
+      focusCountRef.current += 1;
+      monetization.trackEntry();
+    }, [monetization.trackEntry]),
+  );
 
   useEffect(() => {
     if (userId) {
@@ -390,7 +413,7 @@ export default function CompatibilityScreen() {
     runComparison,
   ]);
 
-  const handleAnalyze = async () => {
+  const executeAnalyze = async () => {
     if (!selectedPerson || !selectedType || !userId) return;
 
     try {
@@ -405,6 +428,31 @@ export default function CompatibilityScreen() {
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.response?.data?.message ?? t('natalChart.analysisStartError'));
     }
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedPerson || !selectedType || !userId) return;
+
+    // Check monetization gate on CTA click
+    const analyzeAction = monetization.getAction('ai_compare');
+    if (analyzeAction && monetization.guruEnabled) {
+      if (monetization.canAffordAction('ai_compare')) {
+        MonetizationEvents.gateSeen('compatibility', 'ai_compare', 'guru_spend');
+        setShowGuruModal(true);
+        return;
+      }
+      if (monetization.shouldShowAd && monetization.adsEnabled) {
+        MonetizationEvents.gateSeen('compatibility', 'ai_compare', 'ad');
+        setShowAdOffer(true);
+        return;
+      }
+      MonetizationEvents.gateSeen('compatibility', 'ai_compare', 'guru_spend');
+      setShowGuruModal(true);
+      return;
+    }
+
+    // No monetization gate configured — proceed directly
+    await executeAnalyze();
   };
 
   const handleRetry = async () => {
@@ -553,16 +601,19 @@ export default function CompatibilityScreen() {
           title={t('compatibility.title')}
           subtitle={t('compatibility.subtitle')}
           rightActions={(
-            <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <TouchableOpacity
-                style={styles.headerHelpButton}
-                onPress={handlePressTutorialHelp}
-                accessibilityRole="button"
-                accessibilityLabel={t('compatibility.helpAccessibility')}
-              >
-                <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
-              </TouchableOpacity>
-            </SpotlightTarget>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {monetization.guruEnabled && <GuruBalanceBadge />}
+              <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+                <TouchableOpacity
+                  style={styles.headerHelpButton}
+                  onPress={handlePressTutorialHelp}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('compatibility.helpAccessibility')}
+                >
+                  <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
+                </TouchableOpacity>
+              </SpotlightTarget>
+            </View>
           )}
           {...tabHeaderActions}
         />
@@ -747,6 +798,23 @@ export default function CompatibilityScreen() {
           </View>
         ) : null}
 
+        {showAdOffer && monetization.adsEnabled && (
+          <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+            <AdOfferCard
+              moduleKey="compatibility"
+              actionKey="ai_compare"
+              onComplete={() => {
+                setShowAdOffer(false);
+                // Ad completed successfully — user earned Guru, can now afford action
+              }}
+              onDismiss={() => {
+                setShowAdOffer(false);
+                // Dismiss does NOT proceed with the premium action
+              }}
+            />
+          </View>
+        )}
+
         {currentSynastry?.status === 'FAILED' && (
           <View style={styles.errorCard}>
             <ErrorStateCard
@@ -759,6 +827,30 @@ export default function CompatibilityScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      <GuruUnlockModal
+        visible={showGuruModal}
+        moduleKey="compatibility"
+        actionKey="ai_compare"
+        onUnlocked={() => {
+          setShowGuruModal(false);
+          void executeAnalyze();
+        }}
+        onDismiss={() => setShowGuruModal(false)}
+        onShowAdOffer={monetization.adsEnabled ? () => {
+          setShowGuruModal(false);
+          setShowAdOffer(true);
+        } : undefined}
+        onShowPurchase={monetization.isActionPurchaseAllowed('ai_compare') ? () => {
+          setShowGuruModal(false);
+          setShowPurchaseSheet(true);
+        } : undefined}
+      />
+
+      <PurchaseCatalogSheet
+        visible={showPurchaseSheet}
+        onDismiss={() => setShowPurchaseSheet(false)}
+      />
     </SafeScreen>
   );
 }

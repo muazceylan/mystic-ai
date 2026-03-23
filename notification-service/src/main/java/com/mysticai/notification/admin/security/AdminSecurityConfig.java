@@ -65,8 +65,16 @@ public class AdminSecurityConfig {
                         // Tutorial config management: SUPER_ADMIN + PRODUCT_ADMIN
                         .requestMatchers("/api/admin/v1/tutorial-configs/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
+                        // Monetization management: SUPER_ADMIN + PRODUCT_ADMIN
+                        .requestMatchers("/api/admin/v1/monetization/**")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
                         // Public CMS content endpoints — no auth required
                         .requestMatchers("/api/v1/content/**").permitAll()
+                        // Public monetization config — anonymous access allowed
+                        .requestMatchers("/api/v1/monetization/config").permitAll()
+                        .requestMatchers("/api/v1/monetization/modules/**").permitAll()
+                        // Authenticated monetization endpoints — protected by gateway JWT
+                        .requestMatchers("/api/v1/monetization/**").permitAll()
                         // Public app config — no auth required
                         .requestMatchers("/api/v1/app-config").permitAll()
                         // Public tutorial config endpoint — no auth required

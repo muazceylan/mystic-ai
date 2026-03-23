@@ -32,6 +32,12 @@ spring:
           predicates:
             - Path=/api/v1/tutorial-configs,/api/v1/tutorial-configs/**
 
+        # Monetization — public config/wallet/reward endpoints on notification-service
+        - id: monetization
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/monetization/**
+
         # CMS Content — public horoscope/prayer endpoints on notification-service
         - id: cms-content
           uri: lb://notification-service

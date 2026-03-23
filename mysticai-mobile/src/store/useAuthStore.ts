@@ -141,6 +141,16 @@ export const useAuthStore = create<AuthState>()(
           const { useGuestPromptStore } = require('./useGuestPromptStore');
           useGuestPromptStore.getState().reset();
         } catch {}
+        try {
+          const { useMonetizationStore, clearMonetizationCache } = require('../features/monetization');
+          clearMonetizationCache();
+          useMonetizationStore.setState({ config: null, lastFetchedAt: 0 });
+          useMonetizationStore.getState().clearExposure();
+        } catch {}
+        try {
+          const { useGuruWalletStore } = require('../features/monetization');
+          useGuruWalletStore.getState().clearWallet();
+        } catch {}
 
         set({
           token: null,

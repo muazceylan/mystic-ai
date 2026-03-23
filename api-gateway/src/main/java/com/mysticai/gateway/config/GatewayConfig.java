@@ -81,6 +81,10 @@ public class GatewayConfig {
                 .route("notification-tutorial-config", r -> r
                         .path("/api/v1/tutorial-configs", "/api/v1/tutorial-configs/**")
                         .uri("lb://notification-service"))
+                // Monetization - public config/wallet/reward endpoints (notification-service)
+                .route("monetization", r -> r
+                        .path("/api/v1/monetization/**")
+                        .uri("lb://notification-service"))
                 // Vision Service
                 .route("vision-service", r -> r
                         .path("/api/vision/**")

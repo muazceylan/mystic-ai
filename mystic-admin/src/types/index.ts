@@ -705,3 +705,181 @@ export interface IngestStatus {
   successCount: number;
   failureCount: number;
 }
+
+// ── Monetization ──────────────────────────────────────────
+
+export type MonetizationSettingsStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface MonetizationSettings {
+  id: number;
+  settingsKey: string;
+  isEnabled: boolean;
+  isAdsEnabled: boolean;
+  isGuruEnabled: boolean;
+  isGuruPurchaseEnabled: boolean;
+  defaultAdProvider: string;
+  defaultCurrency: string;
+  globalDailyAdCap: number;
+  globalWeeklyAdCap: number;
+  globalMinHoursBetweenOffers: number;
+  globalMinSessionsBetweenOffers: number;
+  environmentRulesJson?: string;
+  rolloutRulesJson?: string;
+  status: MonetizationSettingsStatus;
+  configVersion: number;
+  publishedByAdminId?: number;
+  publishedAt?: string;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdStrategy = 'ON_ENTRY' | 'ON_DETAIL_CLICK' | 'ON_CTA_CLICK' | 'USER_TRIGGERED_ONLY' | 'MIXED';
+export type AdOfferFrequencyMode = 'EVERY_N_ENTRIES' | 'TIME_BASED' | 'SESSION_BASED' | 'COMBINED';
+export type PreviewDepthMode = 'NONE' | 'SUMMARY_ONLY' | 'PARTIAL_CONTENT' | 'FULL_WITH_BLUR';
+export type ModuleRolloutStatus = 'DISABLED' | 'INTERNAL_ONLY' | 'PERCENTAGE_ROLLOUT' | 'ENABLED';
+
+export interface ModuleMonetizationRule {
+  id: number;
+  moduleKey: string;
+  isEnabled: boolean;
+  isAdsEnabled: boolean;
+  isGuruEnabled: boolean;
+  isGuruPurchaseEnabled: boolean;
+  adStrategy: AdStrategy;
+  adProvider: string;
+  adFormats: string;
+  firstNEntriesWithoutAd: number;
+  adOfferStartEntry: number;
+  adOfferFrequencyMode: AdOfferFrequencyMode;
+  minimumSessionsBetweenOffers: number;
+  minimumHoursBetweenOffers: number;
+  dailyOfferCap: number;
+  weeklyOfferCap: number;
+  isOnlyUserTriggeredOffer: boolean;
+  isShowOfferOnDetailClick: boolean;
+  isShowOfferOnSecondEntry: boolean;
+  guruRewardAmountPerCompletedAd: number;
+  guruCostsByActionJson?: string;
+  isAllowFreePreview: boolean;
+  previewDepthMode: PreviewDepthMode;
+  rolloutStatus: ModuleRolloutStatus;
+  platformOverridesJson?: string;
+  localeOverridesJson?: string;
+  configVersion: number;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type UnlockType = 'FREE' | 'AD_WATCH' | 'GURU_SPEND' | 'AD_OR_GURU' | 'PURCHASE_ONLY';
+
+export interface MonetizationAction {
+  id: number;
+  actionKey: string;
+  moduleKey: string;
+  displayName?: string;
+  description?: string;
+  unlockType: UnlockType;
+  guruCost: number;
+  rewardAmount: number;
+  isAdRequired: boolean;
+  isPurchaseRequired: boolean;
+  isPreviewAllowed: boolean;
+  isEnabled: boolean;
+  displayPriority: number;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GuruProductType = 'CONSUMABLE' | 'BUNDLE' | 'SUBSCRIPTION_BONUS' | 'PROMOTIONAL';
+export type GuruProductRolloutStatus = 'DISABLED' | 'INTERNAL_ONLY' | 'ENABLED';
+
+export interface GuruProductCatalog {
+  id: number;
+  productKey: string;
+  productType: GuruProductType;
+  title: string;
+  description?: string;
+  guruAmount: number;
+  bonusGuruAmount: number;
+  price?: string;
+  currency: string;
+  iosProductId?: string;
+  androidProductId?: string;
+  isEnabled: boolean;
+  sortOrder: number;
+  badge?: string;
+  campaignLabel?: string;
+  rolloutStatus: GuruProductRolloutStatus;
+  localeTargetingJson?: string;
+  regionTargetingJson?: string;
+  startDate?: string;
+  endDate?: string;
+  createdByAdminId?: number;
+  updatedByAdminId?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type WalletStatus = 'ACTIVE' | 'SUSPENDED' | 'FROZEN';
+
+export interface GuruWallet {
+  id: number;
+  userId: number;
+  currentBalance: number;
+  lifetimeEarned: number;
+  lifetimeSpent: number;
+  lifetimePurchased: number;
+  lastEarnedAt?: string;
+  lastSpentAt?: string;
+  status: WalletStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GuruTransactionType = 'REWARD_EARNED' | 'GURU_SPENT' | 'PURCHASE_COMPLETED' | 'ADMIN_GRANT' | 'ADMIN_REVOKE' | 'REFUND_ADJUSTMENT' | 'MIGRATION_ADJUSTMENT' | 'WELCOME_BONUS';
+export type GuruSourceType = 'REWARDED_AD' | 'ACTION_UNLOCK' | 'GURU_PURCHASE' | 'ADMIN' | 'SYSTEM' | 'PROMOTIONAL';
+
+export interface GuruLedger {
+  id: string;
+  userId: number;
+  transactionType: GuruTransactionType;
+  sourceType: GuruSourceType;
+  sourceKey?: string;
+  moduleKey?: string;
+  actionKey?: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  platform?: string;
+  locale?: string;
+  metadataJson?: string;
+  idempotencyKey?: string;
+  createdAt: string;
+}
+
+export interface SimulationRequest {
+  moduleKey: string;
+  actionKey?: string;
+  entryCount: number;
+  dailyAdCount: number;
+  weeklyAdCount: number;
+  hoursSinceLastOffer: number;
+  walletBalance: number;
+  platform?: string;
+  locale?: string;
+}
+
+export interface SimulationResult {
+  monetizationActive: boolean;
+  adOfferEligible: boolean;
+  guruUnlockAvailable: boolean;
+  purchaseFallbackAvailable: boolean;
+  decisions: string[];
+  warnings: string[];
+}

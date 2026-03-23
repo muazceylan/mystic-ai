@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image } from 'lucide-react';
+import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image, Coins, ScrollText, Wand2, ShoppingBag, Wallet, FlaskConical } from 'lucide-react';
 import { cn, roleColor } from '@/lib/utils';
 import { getUser, removeToken, canViewAudit, canManageRoutes, canManageNotifications, canManageNameSources, isSuperAdmin } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
@@ -26,6 +26,12 @@ const navItems = [
   { href: '/routes', label: 'Route Registry', icon: Map, check: canManageRoutes },
   { href: '/names', label: 'Canonical Names', icon: Type, check: canManageNameSources },
   { href: '/name-review-queue', label: 'Name Review Queue', icon: GitMerge, check: canManageNameSources },
+  { href: '/monetization/settings', label: 'Monetization', icon: Coins, check: canManageRoutes },
+  { href: '/monetization/module-rules', label: 'Modül Kuralları', icon: ScrollText, check: canManageRoutes },
+  { href: '/monetization/actions', label: 'Aksiyonlar', icon: Wand2, check: canManageRoutes },
+  { href: '/monetization/guru-products', label: 'Guru Ürünleri', icon: ShoppingBag, check: canManageRoutes },
+  { href: '/monetization/wallets', label: 'Cüzdanlar', icon: Wallet, check: canManageRoutes },
+  { href: '/monetization/simulation', label: 'Simülasyon', icon: FlaskConical, check: canManageRoutes },
   { href: '/admin-users', label: 'Admin Users', icon: Users, check: isSuperAdmin },
   { href: '/audit-logs', label: 'Audit Logs', icon: ClipboardList, check: canViewAudit },
 ];
