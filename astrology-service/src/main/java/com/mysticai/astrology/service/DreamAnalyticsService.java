@@ -73,7 +73,7 @@ public class DreamAnalyticsService {
     // ─────────────────────────────────────────────────────────────────────────
 
     public DreamAnalyticsResponse getAnalytics(Long userId) {
-        List<DreamEntry> dreams = dreamEntryRepository.findAllByUserIdOrderByDreamDateDesc(userId);
+        List<DreamEntry> dreams = dreamEntryRepository.findAllByUserIdOrderByDreamDateDescCreatedAtDesc(userId);
         List<DreamSymbol> symbols = dreamSymbolRepository.findAllByUserIdOrderByCountDesc(userId);
 
         int total = dreams.size();

@@ -260,7 +260,7 @@ public class DreamService {
     }
 
     public List<DreamEntryResponse> getDreamsByUser(Long userId) {
-        return dreamEntryRepository.findAllByUserIdOrderByDreamDateDesc(userId)
+        return dreamEntryRepository.findAllByUserIdOrderByDreamDateDescCreatedAtDesc(userId)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

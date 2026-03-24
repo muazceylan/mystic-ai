@@ -1,6 +1,7 @@
 package com.mysticai.astrology.listener;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.entity.DreamEntry;
 import com.mysticai.astrology.entity.LuckyDatesResult;
@@ -129,16 +130,19 @@ public class AstrologyResponseListener {
 
             // Parse the JSON response: {"interpretation":"...","opportunities":[...],"warnings":[...]}
             String aiJson = event.interpretation();
+            DreamSynthesisContent content = parseDreamSynthesisContent(aiJson);
             try {
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> parsed = objectMapper.readValue(aiJson, java.util.Map.class);
-                entry.setInterpretation((String) parsed.get("interpretation"));
-                entry.setOpportunitiesJson(objectMapper.writeValueAsString(parsed.get("opportunities")));
-                entry.setWarningsJson(objectMapper.writeValueAsString(parsed.get("warnings")));
+                if (content.hasContent()) {
+                    entry.setInterpretation(content.interpretation());
+                    entry.setOpportunitiesJson(objectMapper.writeValueAsString(content.opportunities()));
+                    entry.setWarningsJson(objectMapper.writeValueAsString(content.warnings()));
+                } else {
+                    throw new IllegalArgumentException("Dream synthesis payload was empty after normalization");
+                }
             } catch (Exception parseEx) {
-                // If AI didn't return JSON, store the raw text as interpretation
-                log.warn("Dream synthesis response was not JSON, storing as raw text");
-                entry.setInterpretation(aiJson);
+                // Preserve raw narrative if normalization fails so the journal never stays blank.
+                log.warn("Dream synthesis response could not be normalized, storing raw text");
+                entry.setInterpretation(stripMarkdown(aiJson));
                 entry.setOpportunitiesJson("[]");
                 entry.setWarningsJson("[]");
             }
@@ -149,6 +153,298 @@ public class AstrologyResponseListener {
         } catch (Exception e) {
             log.error("Failed to process dream synthesis response", e);
         }
+    }
+
+    private DreamSynthesisContent parseDreamSynthesisContent(String rawResponse) {
+        for (String candidate : buildDreamJsonParseCandidates(rawResponse)) {
+            try {
+                JsonNode parsed = objectMapper.readTree(candidate);
+                DreamSynthesisContent content = extractDreamSynthesisContent(parsed);
+                if (content.hasContent()) {
+                    return content;
+                }
+            } catch (Exception ignored) {
+                // Keep trying alternate candidates.
+            }
+        }
+        return DreamSynthesisContent.empty();
+    }
+
+    private DreamSynthesisContent extractDreamSynthesisContent(JsonNode parsed) {
+        if (parsed == null || parsed.isNull()) {
+            return DreamSynthesisContent.empty();
+        }
+
+        if (parsed.isTextual()) {
+            String text = normalizeDreamText(parsed.asText(""));
+            return text.isBlank()
+                    ? DreamSynthesisContent.empty()
+                    : new DreamSynthesisContent(text, List.of(), List.of());
+        }
+
+        if (!parsed.isObject()) {
+            return DreamSynthesisContent.empty();
+        }
+
+        String interpretation = firstNonBlank(
+                readDreamText(parsed, "interpretation"),
+                readDreamText(parsed, "yorum"),
+                readDreamText(parsed, "analysis"),
+                readDreamText(parsed, "message"),
+                readDreamText(parsed, "cosmicInterpretation"),
+                readDreamText(parsed, "dreamInterpretation"),
+                findLongestDreamNarrative(parsed)
+        );
+
+        List<String> opportunities = firstNonEmptyList(
+                readDreamList(parsed, "opportunities"),
+                readDreamList(parsed, "firsatlar"),
+                readDreamList(parsed, "fırsatlar"),
+                readDreamList(parsed, "actions"),
+                readDreamList(parsed, "guidance")
+        );
+
+        List<String> warnings = firstNonEmptyList(
+                readDreamList(parsed, "warnings"),
+                readDreamList(parsed, "uyarilar"),
+                readDreamList(parsed, "uyarılar"),
+                readDreamList(parsed, "cautions")
+        );
+
+        return new DreamSynthesisContent(blankToNull(interpretation), opportunities, warnings);
+    }
+
+    @SafeVarargs
+    private final List<String> firstNonEmptyList(List<String>... candidates) {
+        for (List<String> candidate : candidates) {
+            if (candidate != null && !candidate.isEmpty()) {
+                return candidate;
+            }
+        }
+        return List.of();
+    }
+
+    private String readDreamText(JsonNode root, String key) {
+        JsonNode node = root.path(key);
+        if (node.isMissingNode() || node.isNull()) {
+            return "";
+        }
+        return normalizeDreamText(node.asText(""));
+    }
+
+    private List<String> readDreamList(JsonNode root, String key) {
+        JsonNode node = root.path(key);
+        if (node.isMissingNode() || node.isNull()) {
+            return List.of();
+        }
+        return normalizeDreamList(node);
+    }
+
+    private List<String> normalizeDreamList(JsonNode node) {
+        List<String> values = new ArrayList<>();
+        if (node == null || node.isNull()) {
+            return values;
+        }
+
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                addDreamListValue(values, child == null ? "" : child.asText(""));
+            }
+            return values;
+        }
+
+        if (!node.isTextual()) {
+            return values;
+        }
+
+        String rawText = stripMarkdown(node.asText(""))
+                .replace("\\n", "\n")
+                .trim();
+        if (rawText.isBlank()) {
+            return values;
+        }
+
+        if (rawText.startsWith("[") && rawText.endsWith("]")) {
+            try {
+                JsonNode parsed = objectMapper.readTree(rawText);
+                if (parsed.isArray()) {
+                    for (JsonNode child : parsed) {
+                        addDreamListValue(values, child == null ? "" : child.asText(""));
+                    }
+                    return values;
+                }
+            } catch (Exception ignored) {
+                // Fall through to plain-text splitting.
+            }
+        }
+
+        for (String part : rawText.split("\\r?\\n|\\s*[•;]\\s*")) {
+            addDreamListValue(values, part);
+        }
+        return values;
+    }
+
+    private void addDreamListValue(List<String> target, String rawValue) {
+        String normalized = normalizeDreamText(rawValue)
+                .replaceFirst("^[\\-•*\\d.)\\s]+", "")
+                .trim();
+        if (!normalized.isBlank() && !target.contains(normalized)) {
+            target.add(normalized);
+        }
+    }
+
+    private String findLongestDreamNarrative(JsonNode root) {
+        String best = "";
+        if (root == null || !root.isObject()) {
+            return best;
+        }
+
+        var fields = root.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String key = field.getKey() == null ? "" : field.getKey().toLowerCase(Locale.ROOT);
+            if (isDreamListKey(key)) {
+                continue;
+            }
+            JsonNode value = field.getValue();
+            if (value != null && value.isTextual()) {
+                String candidate = normalizeDreamText(value.asText(""));
+                if (candidate.length() > best.length()) {
+                    best = candidate;
+                }
+            }
+        }
+        return best;
+    }
+
+    private boolean isDreamListKey(String key) {
+        return key.contains("warning")
+                || key.contains("uyarı")
+                || key.contains("uyari")
+                || key.contains("opportun")
+                || key.contains("fırsat")
+                || key.contains("firsat")
+                || key.contains("action")
+                || key.contains("guidance")
+                || key.contains("caution");
+    }
+
+    private List<String> buildDreamJsonParseCandidates(String response) {
+        List<String> candidates = new ArrayList<>();
+        String raw = response == null ? "" : response.trim();
+        String markdownStripped = stripMarkdown(raw);
+        String extracted = extractJsonObject(markdownStripped);
+        String normalized = normalizeLooseJson(extracted.isBlank() ? markdownStripped : extracted);
+        String unwrappedStringified = unwrapStringifiedJsonCandidate(markdownStripped);
+
+        addParseCandidate(candidates, raw);
+        addParseCandidate(candidates, markdownStripped);
+        addParseCandidate(candidates, extracted);
+        addParseCandidate(candidates, normalized);
+        addParseCandidate(candidates, extractJsonObject(normalized));
+
+        if (!unwrappedStringified.isBlank()) {
+            String normalizedInner = normalizeLooseJson(unwrappedStringified);
+            addParseCandidate(candidates, unwrappedStringified);
+            addParseCandidate(candidates, extractJsonObject(unwrappedStringified));
+            addParseCandidate(candidates, normalizedInner);
+            addParseCandidate(candidates, extractJsonObject(normalizedInner));
+        }
+
+        return candidates;
+    }
+
+    private void addParseCandidate(List<String> target, String candidate) {
+        if (candidate == null) {
+            return;
+        }
+        String trimmed = candidate.trim();
+        if (!trimmed.isEmpty() && !target.contains(trimmed)) {
+            target.add(trimmed);
+        }
+    }
+
+    private String stripMarkdown(String response) {
+        if (response == null) {
+            return "";
+        }
+        String normalized = response.trim();
+        if (normalized.startsWith("```")) {
+            int firstNewLine = normalized.indexOf('\n');
+            normalized = firstNewLine >= 0
+                    ? normalized.substring(firstNewLine + 1).trim()
+                    : normalized.substring(3).trim();
+        }
+        if (normalized.endsWith("```")) {
+            normalized = normalized.substring(0, normalized.lastIndexOf("```")).trim();
+        }
+        return normalized;
+    }
+
+    private String extractJsonObject(String response) {
+        if (response == null || response.isBlank()) {
+            return "";
+        }
+        int start = response.indexOf('{');
+        int end = response.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return response.substring(start, end + 1).trim();
+        }
+        return response.trim();
+    }
+
+    private String normalizeLooseJson(String input) {
+        if (input == null || input.isBlank()) {
+            return "";
+        }
+        return input
+                .replace('“', '"')
+                .replace('”', '"')
+                .replace('‘', '\'')
+                .replace('’', '\'')
+                .replaceAll(",\\s*([}\\]])", "$1")
+                .replaceAll("([{,]\\s*)([A-Za-z_][A-Za-z0-9_-]*)(\\s*:)", "$1\"$2\"$3")
+                .replaceAll("([{,]\\s*)'([^']+)'(\\s*:)", "$1\"$2\"$3")
+                .replaceAll(":\\s*'([^'\\\\]*(?:\\\\.[^'\\\\]*)*)'(\\s*[,}\\]])", ": \"$1\"$2");
+    }
+
+    private String unwrapStringifiedJsonCandidate(String input) {
+        if (input == null || input.isBlank()) {
+            return "";
+        }
+        String trimmed = input.trim();
+        if (!(trimmed.startsWith("\"") && trimmed.endsWith("\""))) {
+            return "";
+        }
+        try {
+            JsonNode parsed = objectMapper.readTree(trimmed);
+            return parsed != null && parsed.isTextual() ? parsed.asText("").trim() : "";
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String normalizeDreamText(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return stripMarkdown(raw)
+                .replace("\\n", "\n")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    private String firstNonBlank(String... candidates) {
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
+            }
+        }
+        return "";
     }
 
     private void handleMonthlyDreamStoryResponse(AiAnalysisResponseEvent event) {
@@ -412,4 +708,20 @@ public class AstrologyResponseListener {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record NatalChartPayload(Long chartId) {}
+
+    private record DreamSynthesisContent(
+            String interpretation,
+            List<String> opportunities,
+            List<String> warnings
+    ) {
+        private static DreamSynthesisContent empty() {
+            return new DreamSynthesisContent(null, List.of(), List.of());
+        }
+
+        private boolean hasContent() {
+            return (interpretation != null && !interpretation.isBlank())
+                    || (opportunities != null && !opportunities.isEmpty())
+                    || (warnings != null && !warnings.isEmpty());
+        }
+    }
 }
