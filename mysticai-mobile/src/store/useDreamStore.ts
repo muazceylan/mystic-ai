@@ -41,6 +41,19 @@ interface DreamStore {
   clearError: () => void;
 }
 
+const toDreamTimestamp = (dream: DreamEntryResponse): number => {
+  const createdAt = dream.createdAt ? Date.parse(dream.createdAt) : NaN;
+  if (Number.isFinite(createdAt)) return createdAt;
+
+  const dreamDate = dream.dreamDate ? Date.parse(`${dream.dreamDate}T00:00:00`) : NaN;
+  if (Number.isFinite(dreamDate)) return dreamDate;
+
+  return dream.id ?? 0;
+};
+
+const sortDreamsNewestFirst = (dreams: DreamEntryResponse[]) =>
+  [...dreams].sort((a, b) => toDreamTimestamp(b) - toDreamTimestamp(a));
+
 export const useDreamStore = create<DreamStore>((set, get) => ({
   dreams: [],
   symbols: [],
@@ -61,7 +74,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   fetchDreams: async (userId) => {
     set({ loading: true, error: null });
     try {
-      const dreams = await dreamService.getDreamsByUser(userId);
+      const dreams = sortDreamsNewestFirst(await dreamService.getDreamsByUser(userId));
       set({ dreams, loading: false });
       // Restart polling for any dreams that are still PENDING
       dreams
@@ -85,7 +98,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       // Pass current i18n language as locale so AI responds in the correct language
       const locale = i18n.language ?? 'tr';
       const result = await dreamService.submitDream({ userId, text, dreamDate, title, locale });
-      set(s => ({ submitting: false, dreams: [result, ...s.dreams] }));
+      set(s => ({ submitting: false, dreams: sortDreamsNewestFirst([result, ...s.dreams]) }));
       return result;
     } catch (e: any) {
       set({ submitting: false, error: e.message ?? 'Rüya kaydedilemedi' });
@@ -131,7 +144,9 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   },
 
   updateDreamStatus: (dreamId, updated) => {
-    set(s => ({ dreams: s.dreams.map(d => d.id === dreamId ? updated : d) }));
+    set(s => ({
+      dreams: sortDreamsNewestFirst(s.dreams.map(d => d.id === dreamId ? updated : d)),
+    }));
   },
 
   fetchAnalytics: async (userId) => {

@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface DreamEntryRepository extends JpaRepository<DreamEntry, Long> {
 
-    List<DreamEntry> findAllByUserIdOrderByDreamDateDesc(Long userId);
+    List<DreamEntry> findAllByUserIdOrderByDreamDateDescCreatedAtDesc(Long userId);
 
     Optional<DreamEntry> findByCorrelationId(UUID correlationId);
 

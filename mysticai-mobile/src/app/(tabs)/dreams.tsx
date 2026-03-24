@@ -47,6 +47,151 @@ import {
 
 type Tab      = 'journal' | 'compose' | 'dictionary' | 'book';
 type RecState = 'idle' | 'recording' | 'transcribing' | 'done';
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const DREAM_INTERPRETATION_KEYS = [
+  'interpretation',
+  'yorum',
+  'analysis',
+  'message',
+  'cosmicInterpretation',
+  'dreamInterpretation',
+] as const;
+
+const DREAM_OPPORTUNITY_KEYS = [
+  'opportunities',
+  'firsatlar',
+  'fırsatlar',
+  'actions',
+  'guidance',
+] as const;
+
+const DREAM_WARNING_KEYS = [
+  'warnings',
+  'uyarilar',
+  'uyarılar',
+  'cautions',
+] as const;
+
+const stripMarkdownFence = (raw: string) => {
+  let normalized = raw.trim();
+  if (normalized.startsWith('```')) {
+    const firstNewLine = normalized.indexOf('\n');
+    normalized = firstNewLine >= 0
+      ? normalized.slice(firstNewLine + 1).trim()
+      : normalized.slice(3).trim();
+  }
+  if (normalized.endsWith('```')) {
+    normalized = normalized.slice(0, normalized.lastIndexOf('```')).trim();
+  }
+  return normalized;
+};
+
+const extractJsonBlock = (raw: string) => {
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start >= 0 && end > start) return raw.slice(start, end + 1).trim();
+  return raw.trim();
+};
+
+const normalizeLooseJson = (raw: string) =>
+  raw
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, '\'')
+    .replace(/,\s*([}\]])/g, '$1')
+    .replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)/g, '$1"$2"$3')
+    .replace(/([{,]\s*)'([^']+)'(\s*:)/g, '$1"$2"$3')
+    .replace(/:\s*'([^'\\]*(?:\\.[^'\\]*)*)'(\s*[,}\]])/g, ': "$1"$2');
+
+const unwrapStringifiedJson = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'string' ? parsed.trim() : '';
+  } catch {
+    return '';
+  }
+};
+
+const addParseCandidate = (target: string[], value: string) => {
+  const trimmed = value.trim();
+  if (trimmed && !target.includes(trimmed)) target.push(trimmed);
+};
+
+const normalizeText = (value: unknown) =>
+  typeof value === 'string'
+    ? stripMarkdownFence(value).replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim()
+    : '';
+
+const toStringArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .map(item => normalizeText(item))
+      .filter(Boolean);
+  }
+
+  const rawText = typeof value === 'string'
+    ? stripMarkdownFence(value).replace(/\\n/g, '\n').trim()
+    : '';
+  if (!rawText) return [];
+
+  if (rawText.startsWith('[') && rawText.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(rawText);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(item => normalizeText(item))
+          .filter(Boolean);
+      }
+    } catch {
+      // Fall back to plain-text splitting below.
+    }
+  }
+
+  return rawText
+    .split(/\r?\n|\s*[•;]\s*/)
+    .map(item => item.replace(/^[\-\•*\d.)\s]+/, '').trim())
+    .filter(Boolean);
+};
+
+const pickFirstText = (parsed: Record<string, unknown>, keys: readonly string[]) => {
+  for (const key of keys) {
+    const value = normalizeText(parsed[key]);
+    if (value) return value;
+  }
+
+  let longest = '';
+  for (const [key, value] of Object.entries(parsed)) {
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey.includes('warning') ||
+      lowerKey.includes('uyarı') ||
+      lowerKey.includes('uyari') ||
+      lowerKey.includes('opportun') ||
+      lowerKey.includes('fırsat') ||
+      lowerKey.includes('firsat') ||
+      lowerKey.includes('action') ||
+      lowerKey.includes('guidance') ||
+      lowerKey.includes('caution')
+    ) {
+      continue;
+    }
+
+    const candidate = normalizeText(value);
+    if (candidate.length > longest.length) {
+      longest = candidate;
+    }
+  }
+
+  return longest;
+};
+
+const pickFirstArray = (parsed: Record<string, unknown>, keys: readonly string[]) => {
+  for (const key of keys) {
+    const values = toStringArray(parsed[key]);
+    if (values.length > 0) return values;
+  }
+  return [];
+};
 
 // ─── JSON-leak guard ──────────────────────────────────────────────
 // The backend stores parsed fields separately, but if the AI returned a
@@ -58,18 +203,43 @@ function parseInterpretation(dream: DreamEntryResponse): {
   warnings: string[];
 } {
   const raw = (dream.interpretation ?? '').trim();
-  if (raw.startsWith('{')) {
+  const markdownStripped = stripMarkdownFence(raw);
+  const extracted = extractJsonBlock(markdownStripped);
+  const candidates: string[] = [];
+
+  addParseCandidate(candidates, raw);
+  addParseCandidate(candidates, markdownStripped);
+  addParseCandidate(candidates, extracted);
+  addParseCandidate(candidates, normalizeLooseJson(extracted || markdownStripped));
+
+  const stringified = unwrapStringifiedJson(markdownStripped);
+  if (stringified) {
+    addParseCandidate(candidates, stringified);
+    addParseCandidate(candidates, extractJsonBlock(stringified));
+    addParseCandidate(candidates, normalizeLooseJson(extractJsonBlock(stringified)));
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate.startsWith('{')) continue;
     try {
-      const parsed = JSON.parse(raw);
-      return {
-        interpretation: typeof parsed.interpretation === 'string' ? parsed.interpretation : raw,
-        opportunities:  Array.isArray(parsed.opportunities) ? parsed.opportunities : (dream.opportunities ?? []),
-        warnings:       Array.isArray(parsed.warnings)      ? parsed.warnings      : (dream.warnings ?? []),
-      };
-    } catch { /* fall through to safe default */ }
+      const parsed = JSON.parse(candidate) as Record<string, unknown>;
+      const interpretation = pickFirstText(parsed, DREAM_INTERPRETATION_KEYS);
+      const opportunities = pickFirstArray(parsed, DREAM_OPPORTUNITY_KEYS);
+      const warnings = pickFirstArray(parsed, DREAM_WARNING_KEYS);
+
+      if (interpretation || opportunities.length > 0 || warnings.length > 0) {
+        return {
+          interpretation,
+          opportunities: opportunities.length > 0 ? opportunities : (dream.opportunities ?? []),
+          warnings: warnings.length > 0 ? warnings : (dream.warnings ?? []),
+        };
+      }
+    } catch {
+      // Fall through to the persisted fields below.
+    }
   }
   return {
-    interpretation: raw,
+    interpretation: markdownStripped,
     opportunities:  dream.opportunities ?? [],
     warnings:       dream.warnings ?? [],
   };
@@ -132,6 +302,7 @@ export default function DreamsScreen() {
   const recordingRef  = useRef<Audio.Recording | null>(null);
   const recordingUri  = useRef<string | null>(null);
   const durationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const journalAutoExpandedRef = useRef(false);
 
   // ── Mic animation ─────────────────────────────────────────────────
   const micScale = useSharedValue(1);
@@ -153,6 +324,20 @@ export default function DreamsScreen() {
       monetization.trackEntry();
     }, [monetization.trackEntry]),
   );
+
+  useEffect(() => {
+    if (dreams.length === 0) {
+      journalAutoExpandedRef.current = false;
+      return;
+    }
+
+    if (tab !== 'journal' || expandedId !== null || journalAutoExpandedRef.current) {
+      return;
+    }
+
+    setExpandedId(dreams[0].id);
+    journalAutoExpandedRef.current = true;
+  }, [dreams, expandedId, tab]);
 
   useEffect(() => {
     const scope = userId ? String(userId) : 'guest';
@@ -272,6 +457,7 @@ export default function DreamsScreen() {
       const title = dreamTitle.trim() || undefined;
       const result = await submitDream(userId, dreamText.trim(), toIso(selectedDate), title);
       resetCompose();
+      setExpandedId(result.id);
       setTab('journal');
       if (result.id) pollUntilComplete(result.id);
     } catch { Alert.alert(t('common.error'), t('dreams.saveError')); }
@@ -426,6 +612,122 @@ export default function DreamsScreen() {
   const isPending = monthlyStory?.status === 'PENDING';
   const isCompleted = monthlyStory?.status === 'COMPLETED';
   const isEmpty = !monthlyStory || monthlyStory.status === 'EMPTY';
+  const recurringSymbols = symbols.filter(s => s.recurring);
+  const completedDreamCount = dreams.filter(d => d.interpretationStatus === 'COMPLETED').length;
+  const pendingDreamCount = dreams.filter(d => d.interpretationStatus === 'PENDING').length;
+  const latestDream = dreams[0] ?? null;
+
+  const renderOverviewMetric = (icon: IoniconName, value: string, label: string) => (
+    <View key={`${icon}-${label}-${value}`} style={styles.overviewMetricCard}>
+      <View style={styles.overviewMetricIcon}>
+        <Ionicons name={icon} size={15} color={colors.primary} />
+      </View>
+      <Text style={styles.overviewMetricValue}>{value}</Text>
+      <Text style={styles.overviewMetricLabel}>{label}</Text>
+    </View>
+  );
+
+  const renderOverviewPanel = () => {
+    if (tab === 'compose') {
+      return null;
+    }
+
+    let eyebrow = t('dreams.journal');
+    let title = 'Gecenin atlasin';
+    let subtitle = latestDream?.dreamDate ? fmtCardDate(latestDream.dreamDate) : t('dreams.subtitle');
+    let icon: IoniconName = 'moon-outline';
+    let excerptLabel = latestDream ? 'Son kayit' : 'Rüya akisi';
+    let excerptBody = latestDream?.text?.trim()
+      ? latestDream.text.trim()
+      : 'Kozmik yorumlarin, tekrar eden sembollerin ve bilinçalti izlerin burada birikir.';
+    let metrics: Array<{ icon: IoniconName; value: string; label: string }> = [
+      { icon: 'book-outline', value: String(dreams.length), label: 'Kayit' },
+      { icon: 'sparkles', value: String(completedDreamCount), label: 'Yorum' },
+      { icon: 'time-outline', value: String(pendingDreamCount), label: 'Bekleyen' },
+    ];
+
+    if (tab === 'dictionary') {
+      eyebrow = t('dreams.dictionary');
+      title = 'Sembollerin arsivi';
+      subtitle = recurringSymbols.length > 0
+        ? 'Tekrar eden imgeleri hizla takip et.'
+        : 'Her imgenin arkasindaki anlama daha zarif bir yüzeyden ulas.';
+      icon = 'library-outline';
+      excerptLabel = recurringSymbols.length > 0 ? 'En güçlü tema' : 'Sözlük modu';
+      excerptBody = recurringSymbols.length > 0
+        ? recurringSymbols
+            .slice(0, 3)
+            .map(item => `${item.symbolName} ${item.count}x`)
+            .join(' • ')
+        : 'At, su, gökyüzü ya da kapilar gibi simgeler burada birer rehbere dönüsür.';
+      metrics = [
+        { icon: 'library-outline', value: String(symbols.length), label: 'Simge' },
+        { icon: 'layers-outline', value: String(recurringSymbols.length), label: 'Tekrar' },
+        { icon: 'moon-outline', value: String(dreams.length), label: 'Rüya' },
+      ];
+    }
+
+    if (tab === 'book') {
+      eyebrow = t('dreams.book');
+      title = 'Aylik rüya kitabin';
+      subtitle = yearMonthLabel;
+      icon = 'journal-outline';
+      excerptLabel = isCompleted ? 'Kozmik hikaye hazir' : 'Bu ayin izi';
+      excerptBody = monthlyStory?.story?.trim()
+        ? monthlyStory.story.trim()
+        : `${monthDreams.length} rüya bu dönemin kitabini besliyor. Yorumu hazir oldugunda burada premium bir anlatida toplanacak.`;
+      metrics = [
+        { icon: 'calendar-outline', value: yearMonthLabel, label: 'Dönem' },
+        { icon: 'book-outline', value: String(monthDreams.length), label: 'Rüya' },
+        { icon: 'sparkles', value: isCompleted ? 'Hazir' : (isPending ? 'Yaziliyor' : 'Bekliyor'), label: 'Durum' },
+      ];
+    }
+
+    return (
+      <View style={styles.overviewPanel}>
+        <LinearGradient
+          colors={[colors.surfaceGlass, colors.primarySoftBg, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.overviewGradient}
+        >
+          <View style={styles.overviewGlowPrimary} pointerEvents="none" />
+          <View style={styles.overviewGlowGold} pointerEvents="none" />
+
+          <View style={styles.overviewHeaderRow}>
+            <View style={styles.overviewCopy}>
+              <View style={styles.overviewBadge}>
+                <Text style={styles.overviewBadgeText}>{eyebrow}</Text>
+              </View>
+              <Text style={styles.overviewTitle}>{title}</Text>
+              <Text style={styles.overviewSubtitle}>{subtitle}</Text>
+            </View>
+
+            <View style={styles.overviewIconShell}>
+              <View style={styles.overviewIconGlow} />
+              <Ionicons name={icon} size={24} color={colors.goldDark} />
+            </View>
+          </View>
+
+          <View style={styles.overviewMetricsRow}>
+            {metrics.map(item => renderOverviewMetric(item.icon, item.value, item.label))}
+          </View>
+
+          <View style={styles.overviewExcerptCard}>
+            <View style={styles.overviewExcerptMeta}>
+              <Text style={styles.overviewExcerptLabel}>{excerptLabel}</Text>
+              {latestDream?.dreamDate && tab === 'journal' ? (
+                <Text style={styles.overviewExcerptDate}>{fmtCardDate(latestDream.dreamDate)}</Text>
+              ) : null}
+            </View>
+            <Text style={styles.overviewExcerptText} numberOfLines={2}>
+              {excerptBody}
+            </Text>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  };
 
   // ─── Dream card ───────────────────────────────────────────────────
   const renderCard = (dream: DreamEntryResponse) => {
@@ -435,6 +737,8 @@ export default function DreamsScreen() {
     const deleting = deletingId === dream.id;
     const recurring = dream.recurringSymbols ?? [];
     const { interpretation, opportunities, warnings } = parseInterpretation(dream);
+    const hasInsight = Boolean(interpretation) || opportunities.length > 0 || warnings.length > 0;
+    const readyLabel = hasInsight ? 'Yorum hazir' : 'Kaydedildi';
 
     return (
       <Animated.View key={dream.id} entering={FadeInDown.delay(40).springify()}>
@@ -446,15 +750,34 @@ export default function DreamsScreen() {
           accessibilityRole="button"
         >
           {/* Header */}
-          <View style={styles.cardRow}>
-            <View style={{ flex: 1 }}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardMetaColumn}>
+              <View style={styles.cardTopRow}>
+                <View style={styles.cardDatePill}>
+                  <Ionicons name="moon-outline" size={13} color={colors.primary} />
+                  <Text style={styles.cardDate}>{fmtCardDate(dream.dreamDate)}</Text>
+                </View>
+
+                <View style={[styles.cardStateBadge, pending ? styles.cardStateBadgePending : styles.cardStateBadgeReady]}>
+                  <Ionicons
+                    name={pending ? 'time-outline' : 'sparkles'}
+                    size={12}
+                    color={pending ? colors.goldDark : colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.cardStateText,
+                      { color: pending ? colors.goldDark : colors.primary },
+                    ]}
+                  >
+                    {pending ? t('dreams.pending') : readyLabel}
+                  </Text>
+                </View>
+              </View>
+
               {dream.title ? (
                 <Text style={styles.cardTitle}>{dream.title}</Text>
               ) : null}
-              <Text style={styles.cardDate}>{fmtCardDate(dream.dreamDate)}</Text>
-              <Text style={styles.cardPreview} numberOfLines={expanded ? undefined : 2}>
-                {dream.text}
-              </Text>
             </View>
             <View style={styles.cardActions}>
               {deleting
@@ -473,6 +796,12 @@ export default function DreamsScreen() {
                 size={16} color={colors.subtext} style={{ marginTop: 4 }}
               />
             </View>
+          </View>
+
+          <View style={styles.cardPreviewFrame}>
+            <Text style={styles.cardPreview} numberOfLines={expanded ? undefined : 3}>
+              {dream.text}
+            </Text>
           </View>
 
           {/* Recurring badges */}
@@ -515,7 +844,7 @@ export default function DreamsScreen() {
           )}
 
           {/* Expanded interpretation */}
-          {expanded && !pending && interpretation && (
+          {expanded && !pending && hasInsight && (
             <Animated.View entering={FadeIn.duration(260)} style={styles.interp}>
 
               {/* Speak button */}
@@ -530,10 +859,12 @@ export default function DreamsScreen() {
               </TouchableOpacity>
 
               {/* 🌙 Yorum */}
-              <View style={styles.section}>
-                <Text style={styles.sectionHead}>🌙 {t('dreams.cosmic')}</Text>
-                <Text style={styles.interpText}>{interpretation}</Text>
-              </View>
+              {interpretation ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionHead}>🌙 {t('dreams.cosmic')}</Text>
+                  <Text style={styles.interpText}>{interpretation}</Text>
+                </View>
+              ) : null}
 
               {/* ✨ Fırsatlar */}
               {opportunities.length > 0 && (
@@ -575,6 +906,46 @@ export default function DreamsScreen() {
       contentContainerStyle={styles.composeContent}
       keyboardShouldPersistTaps="handled"
     >
+      <View style={styles.composeIntro}>
+        <LinearGradient
+          colors={[colors.surfaceGlass, colors.primarySoftBg, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.composeIntroGradient}
+        >
+          <View style={styles.composeIntroTopRow}>
+            <View style={styles.composeIntroCopy}>
+              <Text style={styles.composeIntroEyebrow}>Yeni kayit</Text>
+              <Text style={styles.composeIntroTitle}>Rüyan hala sicakken yakala</Text>
+              <Text style={styles.composeIntroSubtitle}>
+                Sesinle anlat ya da yaz. Günlügünde premium bir kart olarak islenip yorumuyla birlikte saklanacak.
+              </Text>
+            </View>
+
+            <View style={styles.composeIntroIcon}>
+              <Ionicons name="mic" size={24} color={colors.goldDark} />
+            </View>
+          </View>
+
+          <View style={styles.composeIntroStats}>
+            <View style={styles.composeIntroStat}>
+              <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+              <Text style={styles.composeIntroStatText}>{fmtDate(selectedDate)}</Text>
+            </View>
+            <View style={styles.composeIntroStat}>
+              <Ionicons
+                name={recState === 'idle' ? 'sparkles' : recState === 'recording' ? 'mic' : 'hourglass-outline'}
+                size={14}
+                color={colors.primary}
+              />
+              <Text style={styles.composeIntroStatText}>
+                {recState === 'idle' ? 'Ses veya yazi' : recState === 'recording' ? 'Kayit sürüyor' : 'Isleniyor'}
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
       {/* ── Date picker ── */}
       <View style={styles.datePicker}>
         <TouchableOpacity
@@ -845,6 +1216,23 @@ export default function DreamsScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
       <LinearGradient colors={[colors.background, colors.surfaceMuted, colors.background]} style={styles.container}>
+        <LinearGradient
+          pointerEvents="none"
+          colors={[colors.glowTop, 'transparent']}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.7, y: 1 }}
+          style={styles.ambientTopGlow}
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={[colors.glowBottom, 'transparent']}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0.2, y: 1 }}
+          style={styles.ambientBottomGlow}
+        />
+        <View pointerEvents="none" style={styles.ambientOrbPrimary} />
+        <View pointerEvents="none" style={styles.ambientOrbGold} />
+
         {/* Header */}
       <TabHeader
         title={t('tabs.dream')}
@@ -915,22 +1303,7 @@ export default function DreamsScreen() {
         </SpotlightTarget>
       )}
 
-      {/* Recurring symbols strip (journal only) */}
-      {tab === 'journal' && symbols.filter(s => s.recurring).length > 0 && (
-        <Animated.View entering={FadeIn} style={styles.strip}>
-          <Text style={styles.stripLabel}>{t('dreams.recurringSymbols')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {symbols.filter(s => s.recurring).map((s, i) => (
-              <View key={i} style={styles.chip}>
-                <Text style={styles.chipText}>🔁 {s.symbolName}</Text>
-                <View style={styles.chipBubble}>
-                  <Text style={styles.chipCount}>{s.count}x</Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </Animated.View>
-      )}
+      {tab !== 'journal' && renderOverviewPanel()}
 
       {/* ── COMPOSE TAB ── */}
       {tab === 'compose' && renderCompose()}
@@ -947,7 +1320,10 @@ export default function DreamsScreen() {
 
       {/* ── JOURNAL TAB ── */}
       {tab === 'journal' && (
-        <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.INTERPRETATION_RESULT}>
+        <SpotlightTarget
+          targetKey={DREAMS_TUTORIAL_TARGET_KEYS.INTERPRETATION_RESULT}
+          style={{ flex: 1 }}
+        >
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={styles.journalContent}
@@ -956,37 +1332,68 @@ export default function DreamsScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
             }
           >
+            {renderOverviewPanel()}
+
+            {recurringSymbols.length > 0 && (
+              <Animated.View entering={FadeIn} style={styles.strip}>
+                <View style={styles.stripHeader}>
+                  <Text style={styles.stripLabel}>{t('dreams.recurringSymbols')}</Text>
+                  <Text style={styles.stripCount}>{recurringSymbols.length} tema</Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {recurringSymbols.map((s, i) => (
+                    <View key={i} style={styles.chip}>
+                      <Text style={styles.chipText}>🔁 {s.symbolName}</Text>
+                      <View style={styles.chipBubble}>
+                        <Text style={styles.chipCount}>{s.count}x</Text>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              </Animated.View>
+            )}
+
             {loading && (
-              <View style={styles.centerBox}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.centerText}>{t('dreams.loading')}</Text>
+              <View style={styles.journalBody}>
+                <View style={styles.centerBox}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.centerText}>{t('dreams.loading')}</Text>
+                </View>
               </View>
             )}
             {!loading && error && (
-              <View style={styles.centerBox}>
-                <ErrorStateCard
-                  message={error}
-                  onRetry={() => fetchDreams(userId)}
-                  accessibilityLabel={t('dreams.reloadDreams')}
-                />
+              <View style={styles.journalBody}>
+                <View style={styles.centerBox}>
+                  <ErrorStateCard
+                    message={error}
+                    onRetry={() => fetchDreams(userId)}
+                    accessibilityLabel={t('dreams.reloadDreams')}
+                  />
+                </View>
               </View>
             )}
             {!loading && !error && dreams.length === 0 && (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyEmoji}>🌙</Text>
-                <Text style={styles.emptyTitle}>Henüz rüya kaydın yok</Text>
-                <Text style={styles.emptySub}>İlk rüyanı kaydetmek için + butonuna dokun</Text>
-                <TouchableOpacity
-                  style={styles.emptyBtn}
-                  onPress={() => setTab('compose')}
-                  accessibilityLabel={t('dreams.addFirstDream')}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.emptyBtnText}>{t('dreams.addDream')}</Text>
-                </TouchableOpacity>
+              <View style={styles.journalBody}>
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyEmoji}>🌙</Text>
+                  <Text style={styles.emptyTitle}>Henüz rüya kaydın yok</Text>
+                  <Text style={styles.emptySub}>İlk rüyanı kaydetmek için + butonuna dokun</Text>
+                  <TouchableOpacity
+                    style={styles.emptyBtn}
+                    onPress={() => setTab('compose')}
+                    accessibilityLabel={t('dreams.addFirstDream')}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.emptyBtnText}>{t('dreams.addDream')}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
-            {!loading && !error && dreams.map(d => renderCard(d))}
+            {!loading && !error && dreams.length > 0 && (
+              <View style={styles.journalBody}>
+                {dreams.map(d => renderCard(d))}
+              </View>
+            )}
             <View style={{ height: 40 }} />
           </ScrollView>
         </SpotlightTarget>
@@ -1040,216 +1447,819 @@ export default function DreamsScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+  const isDark = C.statusBar === 'light';
+
   return StyleSheet.create({
-  container: { flex: 1 },
+    container: { flex: 1, position: 'relative' },
+    ambientTopGlow: {
+      position: 'absolute',
+      top: -36,
+      left: -12,
+      width: 240,
+      height: 220,
+      borderRadius: 120,
+      opacity: isDark ? 0.18 : 0.72,
+    },
+    ambientBottomGlow: {
+      position: 'absolute',
+      top: 190,
+      right: -44,
+      width: 240,
+      height: 240,
+      borderRadius: 120,
+      opacity: isDark ? 0.12 : 0.5,
+    },
+    ambientOrbPrimary: {
+      position: 'absolute',
+      top: 96,
+      right: -34,
+      width: 132,
+      height: 132,
+      borderRadius: 66,
+      backgroundColor: C.primaryTint,
+      opacity: isDark ? 0.3 : 0.8,
+    },
+    ambientOrbGold: {
+      position: 'absolute',
+      top: 54,
+      left: -48,
+      width: 154,
+      height: 154,
+      borderRadius: 77,
+      backgroundColor: 'rgba(212,175,55,0.10)',
+      opacity: isDark ? 0.15 : 0.5,
+    },
 
-  // Header (addBtn kept for rightActions slot)
-  headerActionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  helpBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: C.border,
-    backgroundColor: C.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtn:      { width:38, height:38, borderRadius:19, backgroundColor:C.primary,
-                 alignItems:'center', justifyContent:'center' },
-  addBtnClose: { backgroundColor: C.overlayDark },
+    headerActionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    helpBtn: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.16 : 0.08,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 18,
+      elevation: 5,
+    },
+    addBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: C.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: C.primary,
+      shadowOpacity: 0.35,
+      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 18,
+      elevation: 8,
+    },
+    addBtnClose: { backgroundColor: C.overlayDark },
 
-  // Symbol strip
-  strip:      { paddingHorizontal:20, marginBottom:10 },
-  stripLabel: { fontSize:10, color:C.dim, marginBottom:7, textTransform:'uppercase', letterSpacing:0.8 },
-  chip:       { flexDirection:'row', alignItems:'center', backgroundColor:C.surfaceAlt,
-                borderRadius:18, paddingHorizontal:11, paddingVertical:5, marginRight:8,
-                borderWidth:1, borderColor:C.border },
-  chipText:   { fontSize:12, color:C.textSoft },
-  chipBubble: { marginLeft:5, backgroundColor:C.primary, borderRadius:9,
-                paddingHorizontal:5, paddingVertical:1 },
-  chipCount:  { fontSize:9, color:C.white, fontWeight:'700' },
+    overviewPanel: { paddingHorizontal: 20, marginTop: 8, marginBottom: 12 },
+    overviewGradient: {
+      overflow: 'hidden',
+      borderRadius: 26,
+      paddingHorizontal: 18,
+      paddingVertical: 18,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.2 : 0.1,
+      shadowOffset: { width: 0, height: 16 },
+      shadowRadius: 28,
+      elevation: 7,
+    },
+    overviewGlowPrimary: {
+      position: 'absolute',
+      top: -22,
+      right: -18,
+      width: 128,
+      height: 128,
+      borderRadius: 64,
+      backgroundColor: C.primaryTint,
+      opacity: isDark ? 0.35 : 0.9,
+    },
+    overviewGlowGold: {
+      position: 'absolute',
+      bottom: -28,
+      left: -12,
+      width: 110,
+      height: 110,
+      borderRadius: 55,
+      backgroundColor: 'rgba(212,175,55,0.12)',
+      opacity: isDark ? 0.16 : 0.55,
+    },
+    overviewHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+    overviewCopy: { flex: 1, gap: 8 },
+    overviewBadge: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: C.primaryTint,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    overviewBadgeText: {
+      fontSize: 11,
+      color: C.primary,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    overviewTitle: {
+      fontSize: 28,
+      lineHeight: 32,
+      color: C.textDark,
+      fontWeight: '800',
+      letterSpacing: -0.7,
+    },
+    overviewSubtitle: {
+      fontSize: 13,
+      lineHeight: 20,
+      color: C.subtext,
+      maxWidth: '92%',
+    },
+    overviewIconShell: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      borderWidth: 1,
+      borderColor: 'rgba(212,175,55,0.28)',
+      backgroundColor: 'rgba(255,255,255,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    overviewIconGlow: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      backgroundColor: 'rgba(212,175,55,0.12)',
+    },
+    overviewMetricsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 16,
+    },
+    overviewMetricCard: {
+      minWidth: '30%',
+      flexGrow: 1,
+      borderRadius: 18,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.55)',
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      gap: 6,
+    },
+    overviewMetricIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: C.primaryTint,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    overviewMetricValue: {
+      color: C.textDark,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    overviewMetricLabel: {
+      color: C.subtext,
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    overviewExcerptCard: {
+      marginTop: 16,
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.58)',
+      borderWidth: 1,
+      borderColor: C.borderLight,
+      gap: 6,
+    },
+    overviewExcerptMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    overviewExcerptLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: C.goldDark,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    overviewExcerptDate: {
+      fontSize: 11,
+      color: C.subtext,
+      fontWeight: '600',
+    },
+    overviewExcerptText: {
+      fontSize: 14,
+      lineHeight: 22,
+      color: C.textSoft,
+    },
 
-  // Compose
-  composeContent: { paddingHorizontal:20, paddingTop:6, paddingBottom:48 },
+    strip: {
+      marginHorizontal: 20,
+      marginBottom: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderRadius: 22,
+      backgroundColor: C.surfaceGlass,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.14 : 0.06,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 20,
+      elevation: 4,
+    },
+    stripHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+    },
+    stripLabel: {
+      fontSize: 11,
+      color: C.primary,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    stripCount: {
+      fontSize: 11,
+      color: C.subtext,
+      fontWeight: '600',
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? C.surfaceAlt : C.primarySoftBg,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    chipText: { fontSize: 12, color: C.textSoft, fontWeight: '600' },
+    chipBubble: {
+      marginLeft: 7,
+      backgroundColor: C.primary,
+      borderRadius: 999,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+    },
+    chipCount: { fontSize: 10, color: C.white, fontWeight: '800' },
 
-  // Date picker
-  datePicker: { flexDirection:'row', alignItems:'center', backgroundColor:C.surface,
-                borderRadius:14, borderWidth:1, borderColor:C.border,
-                marginBottom:20, paddingVertical:12 },
-  dateArrow:  { paddingHorizontal:14 },
-  dateArrowDisabled: { opacity:0.3 },
-  dateCenter: { flex:1, alignItems:'center' },
-  dateMain:   { fontSize:16, fontWeight:'600', color:C.text },
-  dateTodayBtn: { fontSize:11, color:C.primary, marginTop:4 },
+    composeContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 52 },
+    composeIntro: { marginBottom: 16 },
+    composeIntroGradient: {
+      borderRadius: 26,
+      paddingHorizontal: 18,
+      paddingVertical: 18,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surfaceGlass,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.18 : 0.08,
+      shadowOffset: { width: 0, height: 16 },
+      shadowRadius: 28,
+      elevation: 6,
+      gap: 16,
+    },
+    composeIntroTopRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 14,
+    },
+    composeIntroCopy: { flex: 1, gap: 8 },
+    composeIntroEyebrow: {
+      fontSize: 11,
+      color: C.primary,
+      fontWeight: '700',
+      letterSpacing: 0.9,
+      textTransform: 'uppercase',
+    },
+    composeIntroTitle: {
+      fontSize: 24,
+      lineHeight: 28,
+      color: C.textDark,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+    },
+    composeIntroSubtitle: {
+      fontSize: 13,
+      lineHeight: 20,
+      color: C.subtext,
+    },
+    composeIntroIcon: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(212,175,55,0.14)',
+      borderWidth: 1,
+      borderColor: 'rgba(212,175,55,0.28)',
+    },
+    composeIntroStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    composeIntroStat: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.52)',
+      borderWidth: 1,
+      borderColor: C.borderLight,
+    },
+    composeIntroStatText: {
+      fontSize: 12,
+      color: C.textSoft,
+      fontWeight: '600',
+    },
 
-  // Title input
-  titleBox:   { flexDirection:'row', alignItems:'center', gap:8, backgroundColor:C.surface,
-                borderRadius:12, borderWidth:1, borderColor:C.border,
-                paddingHorizontal:14, paddingVertical:10, marginBottom:14 },
-  titleInput: { flex:1, color:C.text, fontSize:14 },
+    datePicker: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      marginBottom: 18,
+      paddingVertical: 14,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.16 : 0.06,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 22,
+      elevation: 3,
+    },
+    dateArrow: { paddingHorizontal: 16 },
+    dateArrowDisabled: { opacity: 0.32 },
+    dateCenter: { flex: 1, alignItems: 'center' },
+    dateMain: { fontSize: 17, fontWeight: '700', color: C.textDark },
+    dateTodayBtn: { fontSize: 12, color: C.primary, marginTop: 4, fontWeight: '600' },
 
-  // Mic
-  micSection:       { alignItems:'center', marginBottom:10 },
-  micRow:           { alignItems:'center', gap:10 },
-  micHint:          { fontSize:13, color:C.subtext },
-  micRing:          { width:86, height:86, borderRadius:43, alignItems:'center',
-                      justifyContent:'center', shadowColor:C.primary,
-                      shadowOffset:{width:0,height:0}, shadowRadius:18, elevation:10 },
-  micRingRec:       { shadowColor:C.red },
-  micCore:          { width:78, height:78, borderRadius:39, alignItems:'center', justifyContent:'center' },
+    titleBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+      marginBottom: 14,
+    },
+    titleInput: { flex: 1, color: C.text, fontSize: 15 },
 
-  // Live words
-  liveWords:     { backgroundColor:C.surfaceAlt, borderRadius:12, padding:12,
-                   borderWidth:1, borderColor:C.border, marginBottom:12, minHeight:58,
-                   width:'100%' },
-  liveWordsLabel:{ fontSize:11, color:C.primary, fontWeight:'600', marginBottom:5 },
-  liveWordsText: { fontSize:15, color:C.textSoft, letterSpacing:1.5, fontStyle:'italic' },
+    micSection: { alignItems: 'center', marginBottom: 12 },
+    micRow: { alignItems: 'center', gap: 12 },
+    micHint: { fontSize: 13, color: C.subtext, fontWeight: '600' },
+    micRing: {
+      width: 98,
+      height: 98,
+      borderRadius: 49,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.24)',
+      shadowColor: C.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    micRingRec: { shadowColor: C.red },
+    micCore: { width: 86, height: 86, borderRadius: 43, alignItems: 'center', justifyContent: 'center' },
 
-  // Transcribing
-  transcribingBox: { flexDirection:'row', alignItems:'center', gap:8,
-                     backgroundColor:C.surfaceAlt, borderRadius:12, padding:14,
-                     borderWidth:1, borderColor:C.goldDark, marginBottom:16, width:'100%' },
-  transcribingText:{ fontSize:14, color:C.goldDark },
+    liveWords: {
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      marginBottom: 12,
+      minHeight: 58,
+      width: '100%',
+    },
+    liveWordsLabel: { fontSize: 11, color: C.primary, fontWeight: '700', marginBottom: 5, letterSpacing: 0.5 },
+    liveWordsText: { fontSize: 15, color: C.textSoft, letterSpacing: 1.2, fontStyle: 'italic' },
 
-  // Divider
-  divider: { flexDirection:'row', alignItems:'center', marginVertical:16, gap:10 },
-  divLine: { flex:1, height:1, backgroundColor:C.border },
-  divText:  { color:C.dim, fontSize:12 },
+    transcribingBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(212,175,55,0.10)',
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(212,175,55,0.28)',
+      marginBottom: 16,
+      width: '100%',
+    },
+    transcribingText: { fontSize: 14, color: C.goldDark, fontWeight: '600' },
 
-  // Text area
-  textBox:   { backgroundColor:C.surface, borderRadius:14, borderWidth:1, borderColor:C.border,
-               padding:14, marginBottom:14, minHeight:130 },
-  textInput: { color:C.text, fontSize:15, lineHeight:22, minHeight:95 },
-  charCount: { textAlign:'right', color:C.dim, fontSize:10, marginTop:6 },
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 18, gap: 10 },
+    divLine: { flex: 1, height: 1, backgroundColor: C.borderLight },
+    divText: { color: C.dim, fontSize: 12, fontWeight: '600', letterSpacing: 0.4 },
 
-  // Action buttons
-  actionRow:   { flexDirection:'row', gap:10 },
-  cancelBtn:   { flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center',
-                 gap:6, backgroundColor:C.surfaceAlt, borderRadius:14, paddingVertical:14,
-                 borderWidth:1, borderColor:C.border },
-  cancelBtnText:{ color:C.subtext, fontWeight:'600', fontSize:14 },
-  saveBtn:     { flex:2, flexDirection:'row', alignItems:'center', justifyContent:'center',
-                 gap:7, backgroundColor:C.primary, borderRadius:14, paddingVertical:14 },
-  saveBtnOff:  { opacity:0.38 },
-  saveBtnText: { color:C.white, fontWeight:'700', fontSize:15 },
+    textBox: {
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      padding: 16,
+      marginBottom: 16,
+      minHeight: 154,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.16 : 0.06,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 22,
+      elevation: 3,
+    },
+    textInput: { color: C.text, fontSize: 15, lineHeight: 24, minHeight: 108, maxHeight: 220 },
+    charCount: { textAlign: 'right', color: C.dim, fontSize: 11, marginTop: 8, fontWeight: '600' },
 
-  // Journal
-  journalContent: { paddingHorizontal:14, paddingTop:4 },
-  centerBox:      { alignItems:'center', paddingTop:55, gap:10 },
-  centerText:     { color:C.subtext, fontSize:13 },
-  emptyBox:       { alignItems:'center', paddingTop:55, paddingHorizontal:32 },
-  emptyEmoji:     { fontSize:58, marginBottom:14 },
-  emptyTitle:     { fontSize:19, fontWeight:'600', color:C.text, marginBottom:7, textAlign:'center' },
-  emptySub:       { fontSize:13, color:C.subtext, textAlign:'center', lineHeight:19, marginBottom:22 },
-  emptyBtn:       { backgroundColor:C.primary, borderRadius:22, paddingHorizontal:26, paddingVertical:11 },
-  emptyBtnText:   { color:C.white, fontWeight:'600', fontSize:14 },
+    actionRow: { flexDirection: 'row', gap: 10 },
+    cancelBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 18,
+      paddingVertical: 15,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    cancelBtnText: { color: C.subtext, fontWeight: '700', fontSize: 14 },
+    saveBtn: {
+      flex: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 7,
+      backgroundColor: C.primary,
+      borderRadius: 18,
+      paddingVertical: 15,
+      shadowColor: C.primary,
+      shadowOpacity: 0.32,
+      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 18,
+      elevation: 6,
+    },
+    saveBtnOff: { opacity: 0.42 },
+    saveBtnText: { color: C.white, fontWeight: '800', fontSize: 15 },
 
-  // Tab switcher
-  tabRow: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 6,
-    marginTop: 4,
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  tabBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 7,
-    borderRadius: 10,
-  },
-  tabBtnActive: {
-    backgroundColor: C.background,
-    shadowColor: C.primary,
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-  },
-  tabBtnText: { fontSize: 13, fontWeight: '600', color: C.subtext },
-  tabBtnTextActive: { color: C.primary },
+    journalContent: { paddingTop: 2, paddingBottom: 34 },
+    journalBody: { paddingHorizontal: 20 },
+    centerBox: {
+      alignItems: 'center',
+      marginTop: 22,
+      paddingVertical: 30,
+      paddingHorizontal: 24,
+      borderRadius: 24,
+      backgroundColor: C.surfaceGlass,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      gap: 10,
+    },
+    centerText: { color: C.subtext, fontSize: 13, fontWeight: '600' },
+    emptyBox: {
+      alignItems: 'center',
+      marginTop: 18,
+      paddingVertical: 34,
+      paddingHorizontal: 28,
+      borderRadius: 24,
+      backgroundColor: C.surfaceGlass,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    emptyEmoji: { fontSize: 58, marginBottom: 16 },
+    emptyTitle: { fontSize: 21, fontWeight: '800', color: C.textDark, marginBottom: 8, textAlign: 'center' },
+    emptySub: { fontSize: 13, color: C.subtext, textAlign: 'center', lineHeight: 20, marginBottom: 22 },
+    emptyBtn: {
+      backgroundColor: C.primary,
+      borderRadius: 999,
+      paddingHorizontal: 28,
+      paddingVertical: 12,
+      shadowColor: C.primary,
+      shadowOpacity: 0.28,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 18,
+    },
+    emptyBtnText: { color: C.white, fontWeight: '800', fontSize: 14 },
 
-  // Dream book tab
-  bookScroll: { paddingTop: 24, paddingBottom: 40 },
-  bookHeaderBlock: { alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 },
-  bookMoonGlyph: { fontSize: 44, marginBottom: 8 },
-  bookHeaderTitle: { fontSize: 26, fontWeight: '800', color: C.goldDark, letterSpacing: 1.5, textAlign: 'center' },
-  bookHeaderSub: { fontSize: 13, color: C.subtext, marginTop: 4, fontStyle: 'italic', textAlign: 'center' },
-  monthPicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginHorizontal: 20, marginBottom: 16, backgroundColor: C.surface, borderRadius: 14, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
-  monthArrow: { padding: 6 },
-  monthArrowDisabled: { opacity: 0.3 },
-  monthLabel: { fontSize: 17, fontWeight: '700', color: C.text, minWidth: 140, textAlign: 'center' },
-  storyCard: { marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.border, shadowColor: C.primary, shadowOpacity: 0.2, shadowOffset: { width: 0, height: 8 }, shadowRadius: 16, elevation: 4, minHeight: 200 },
-  loadingBlock: { alignItems: 'center', paddingVertical: 30, gap: 12 },
-  loadingText: { fontSize: 16, fontWeight: '600', color: C.text },
-  loadingSubText: { fontSize: 12, color: C.subtext, fontStyle: 'italic', textAlign: 'center', paddingHorizontal: 20 },
-  symbolsSection: { marginBottom: 12 },
-  sectionLabel: { fontSize: 10, fontWeight: '700', color: C.goldDark, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 },
-  symbolsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  symChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(200,168,75,0.12)', borderWidth: 1, borderColor: 'rgba(200,168,75,0.3)' },
-  symChipText: { fontSize: 12, color: C.goldDark, fontWeight: '600' },
-  countBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 },
-  countText: { fontSize: 12, color: C.subtext, fontStyle: 'italic' },
-  storyText: { fontSize: 15, lineHeight: 26, color: C.text, marginBottom: 20 },
-  exportRow: { flexDirection: 'row', gap: 8, marginTop: 4, alignItems: 'center' },
-  refreshBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1.5, borderColor: C.primary, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(157,78,221,0.07)' },
-  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20 },
-  exportBtnText: { color: C.white, fontSize: 14, fontWeight: '700' },
-  emptyBlock: { alignItems: 'center', paddingVertical: 24, gap: 10 },
-  emptyIcon: { fontSize: 36 },
-  storyEmptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
-  storyEmptySub: { fontSize: 12, color: C.subtext, textAlign: 'center', paddingHorizontal: 16, lineHeight: 18 },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.gold, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 22, marginTop: 6 },
-  generateBtnText: { color: C.text, fontSize: 14, fontWeight: '800' },
-  infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginHorizontal: 20, marginTop: 14, backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.border },
-  infoText: { flex: 1, fontSize: 12, color: C.subtext, lineHeight: 18 },
+    tabRow: {
+      flexDirection: 'row',
+      marginHorizontal: 20,
+      marginBottom: 10,
+      marginTop: 6,
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 18,
+      padding: 4,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.16 : 0.05,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 20,
+      elevation: 3,
+    },
+    tabBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 10,
+      borderRadius: 14,
+    },
+    tabBtnActive: {
+      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.86)',
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      shadowColor: C.primary,
+      shadowOpacity: 0.18,
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 14,
+    },
+    tabBtnText: { fontSize: 13, fontWeight: '700', color: C.subtext },
+    tabBtnTextActive: { color: C.primary },
 
-  // Card
-  card:       { backgroundColor:C.surface, borderRadius:16, padding:15,
-                marginBottom:11, borderWidth:1, borderColor:C.border },
-  cardActive: { borderColor:C.primary, borderWidth:1.5 },
-  cardRow:    { flexDirection:'row', alignItems:'flex-start', gap:8 },
-  cardActions:{ alignItems:'center', gap:8 },
-  cardTitle:  { fontSize:14, fontWeight:'700', color:C.primary, marginBottom:2 },
-  cardDate:   { fontSize:11, color:C.subtext, marginBottom:4 },
-  cardPreview:{ fontSize:14, color:C.textSoft, lineHeight:20 },
-  badgeRow:   { flexDirection:'row', flexWrap:'wrap', gap:5, marginTop:9 },
-  badge:      { backgroundColor:C.surfaceAlt, borderRadius:11, paddingHorizontal:9,
-                paddingVertical:3, borderWidth:1, borderColor:C.primary },
-  badgeText:  { fontSize:11, color:C.primaryLight, fontWeight:'600' },
-  // Insight badges (opportunity / warning counts on collapsed card)
-  insightRow:       { flexDirection:'row', gap:6, marginTop:8, flexWrap:'wrap' },
-  insightBadge:     { flexDirection:'row', alignItems:'center', borderRadius:12,
-                      paddingHorizontal:10, paddingVertical:4 },
-  insightGreen:     { backgroundColor:C.greenBg, borderWidth:1, borderColor:C.green },
-  insightOrange:    { backgroundColor:C.orangeBg, borderWidth:1, borderColor:C.orange },
-  insightBadgeText: { fontSize:11, fontWeight:'700' },
-  pendingPill:{ flexDirection:'row', alignItems:'center', backgroundColor:C.surfaceAlt,
-                borderRadius:20, paddingHorizontal:12, paddingVertical:7,
-                alignSelf:'flex-start', marginTop:10, borderWidth:1, borderColor:C.border },
-  pendingPillText:{ color:C.subtext, fontSize:12, fontStyle:'italic' },
+    bookScroll: { paddingTop: 10, paddingBottom: 40 },
+    bookHeaderBlock: { alignItems: 'center', paddingHorizontal: 20, marginBottom: 18 },
+    bookMoonGlyph: { fontSize: 44, marginBottom: 8 },
+    bookHeaderTitle: { fontSize: 27, fontWeight: '800', color: C.goldDark, letterSpacing: 1.2, textAlign: 'center' },
+    bookHeaderSub: { fontSize: 13, color: C.subtext, marginTop: 5, fontStyle: 'italic', textAlign: 'center' },
+    monthPicker: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 18,
+      marginHorizontal: 20,
+      marginBottom: 16,
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 20,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    monthArrow: { padding: 8 },
+    monthArrowDisabled: { opacity: 0.3 },
+    monthLabel: { fontSize: 17, fontWeight: '800', color: C.textDark, minWidth: 140, textAlign: 'center' },
+    storyCard: {
+      marginHorizontal: 20,
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 26,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.2 : 0.09,
+      shadowOffset: { width: 0, height: 16 },
+      shadowRadius: 26,
+      elevation: 6,
+      minHeight: 220,
+    },
+    loadingBlock: { alignItems: 'center', paddingVertical: 34, gap: 12 },
+    loadingText: { fontSize: 16, fontWeight: '700', color: C.textDark },
+    loadingSubText: { fontSize: 12, color: C.subtext, fontStyle: 'italic', textAlign: 'center', paddingHorizontal: 20, lineHeight: 18 },
+    symbolsSection: { marginBottom: 14 },
+    sectionLabel: { fontSize: 10, fontWeight: '800', color: C.goldDark, textTransform: 'uppercase', letterSpacing: 1.6, marginBottom: 8 },
+    symbolsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    symChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 999,
+      backgroundColor: 'rgba(212,175,55,0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(212,175,55,0.28)',
+    },
+    symChipText: { fontSize: 12, color: C.goldDark, fontWeight: '700' },
+    countBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+    countText: { fontSize: 12, color: C.subtext, fontStyle: 'italic' },
+    storyText: { fontSize: 15, lineHeight: 27, color: C.textSoft, marginBottom: 20 },
+    exportRow: { flexDirection: 'row', gap: 8, marginTop: 4, alignItems: 'center' },
+    refreshBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: 15,
+      borderWidth: 1.5,
+      borderColor: C.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.primaryTint,
+    },
+    exportBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: C.primary,
+      borderRadius: 15,
+      paddingVertical: 13,
+      paddingHorizontal: 20,
+    },
+    exportBtnText: { color: C.white, fontSize: 14, fontWeight: '800' },
+    emptyBlock: { alignItems: 'center', paddingVertical: 28, gap: 10 },
+    emptyIcon: { fontSize: 36 },
+    storyEmptyTitle: { fontSize: 16, fontWeight: '700', color: C.textDark },
+    storyEmptySub: { fontSize: 12, color: C.subtext, textAlign: 'center', paddingHorizontal: 16, lineHeight: 18 },
+    generateBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: C.gold,
+      borderRadius: 14,
+      paddingVertical: 12,
+      paddingHorizontal: 22,
+      marginTop: 6,
+    },
+    generateBtnText: { color: C.textDark, fontSize: 14, fontWeight: '800' },
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      marginHorizontal: 20,
+      marginTop: 14,
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    infoText: { flex: 1, fontSize: 12, color: C.subtext, lineHeight: 18 },
 
-  // Interpretation
-  interp:       { marginTop:14, gap:12, borderTopWidth:1, borderTopColor:C.border, paddingTop:14 },
-  speakBtn:     { flexDirection:'row', alignItems:'center', gap:5, alignSelf:'flex-end',
-                  backgroundColor:C.surfaceAlt, borderRadius:18, paddingHorizontal:12,
-                  paddingVertical:7, borderWidth:1, borderColor:C.accent },
-  speakText:    { color:C.accent, fontSize:12, fontWeight:'600' },
-  section:      { gap:7 },
-  sectionGreen: { backgroundColor:C.greenBg, borderRadius:10, padding:10 },
-  sectionOrange:{ backgroundColor:C.orangeBg, borderRadius:10, padding:10 },
-  sectionHead:  { fontSize:13, fontWeight:'700', color:C.text, marginBottom:3 },
-  interpText:   { fontSize:14, color:C.textSoft, lineHeight:21 },
-  bulletRow:    { flexDirection:'row', gap:7, alignItems:'flex-start' },
-  bulletText:   { flex:1, fontSize:13, lineHeight:20 },
-});
+    card: {
+      backgroundColor: C.surfaceGlass,
+      borderRadius: 24,
+      padding: 16,
+      marginBottom: 14,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.18 : 0.06,
+      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 24,
+      elevation: 4,
+    },
+    cardActive: {
+      borderColor: C.primary,
+      shadowColor: C.primary,
+      shadowOpacity: 0.18,
+    },
+    cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    cardMetaColumn: { flex: 1, gap: 8 },
+    cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    cardDatePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: C.primaryTint,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      alignSelf: 'flex-start',
+    },
+    cardStateBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+    },
+    cardStateBadgePending: {
+      backgroundColor: 'rgba(212,175,55,0.10)',
+      borderColor: 'rgba(212,175,55,0.24)',
+    },
+    cardStateBadgeReady: {
+      backgroundColor: C.primaryTint,
+      borderColor: C.surfaceGlassBorder,
+    },
+    cardStateText: { fontSize: 11, fontWeight: '700' },
+    cardActions: { alignItems: 'center', gap: 10, paddingTop: 2 },
+    cardTitle: { fontSize: 18, fontWeight: '800', color: C.textDark, letterSpacing: -0.4 },
+    cardDate: { fontSize: 11, color: C.subtext, fontWeight: '700' },
+    cardPreviewFrame: {
+      marginTop: 14,
+      borderRadius: 18,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.56)',
+      borderWidth: 1,
+      borderColor: C.borderLight,
+    },
+    cardPreview: { fontSize: 15, color: C.textSoft, lineHeight: 23 },
+    badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
+    badge: {
+      backgroundColor: isDark ? C.surfaceAlt : C.primarySoftBg,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+    },
+    badgeText: { fontSize: 11, color: C.primary, fontWeight: '700' },
+    insightRow: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
+    insightBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 999,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
+      borderWidth: 1,
+    },
+    insightGreen: { backgroundColor: C.greenBg, borderColor: 'rgba(63,164,106,0.35)' },
+    insightOrange: { backgroundColor: C.orangeBg, borderColor: 'rgba(230,81,0,0.28)' },
+    insightBadgeText: { fontSize: 11, fontWeight: '800' },
+    pendingPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(212,175,55,0.10)',
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      alignSelf: 'flex-start',
+      marginTop: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(212,175,55,0.24)',
+    },
+    pendingPillText: { color: C.goldDark, fontSize: 12, fontWeight: '700' },
+
+    interp: {
+      marginTop: 16,
+      gap: 12,
+      borderTopWidth: 1,
+      borderTopColor: C.borderLight,
+      paddingTop: 16,
+    },
+    speakBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      alignSelf: 'flex-start',
+      backgroundColor: C.accentSoft,
+      borderRadius: 999,
+      paddingHorizontal: 13,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(46,74,156,0.16)',
+    },
+    speakText: { color: C.accent, fontSize: 12, fontWeight: '700' },
+    section: {
+      gap: 8,
+      borderRadius: 18,
+      padding: 14,
+      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.54)',
+      borderWidth: 1,
+      borderColor: C.borderLight,
+    },
+    sectionGreen: {
+      backgroundColor: C.greenBg,
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(63,164,106,0.26)',
+    },
+    sectionOrange: {
+      backgroundColor: C.orangeBg,
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(230,81,0,0.24)',
+    },
+    sectionHead: { fontSize: 13, fontWeight: '800', color: C.textDark, marginBottom: 2, letterSpacing: 0.2 },
+    interpText: { fontSize: 14, color: C.textSoft, lineHeight: 22 },
+    bulletRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+    bulletText: { flex: 1, fontSize: 13, lineHeight: 20 },
+  });
 }
 
 function buildPdfHtml(story: string, period: string, symbols: string[], entries: DreamEntryResponse[]): string {
