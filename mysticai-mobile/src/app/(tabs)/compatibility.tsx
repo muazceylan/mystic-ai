@@ -30,7 +30,7 @@ import {
 } from '../../services/synastry.service';
 import { useTheme } from '../../context/ThemeContext';
 import i18n from '../../i18n';
-import { ErrorStateCard, SafeScreen, TabHeader } from '../../components/ui';
+import { ErrorStateCard, SafeScreen, TabHeader, SurfaceHeaderIconButton } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import type { RelationshipType as CompareRelationshipType } from '../../types/compare';
 import {
@@ -109,16 +109,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     sectionTitle: { fontSize: 16, fontWeight: '700', color: C.text },
     addButton: { padding: 4 },
-    headerHelpButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: C.surface,
-      borderWidth: 1,
-      borderColor: C.border,
-    },
     emptyPeopleCard: {
       alignItems: 'center',
       padding: 32,
@@ -604,14 +594,11 @@ export default function CompatibilityScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {monetization.guruEnabled && <GuruBalanceBadge />}
               <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-                <TouchableOpacity
-                  style={styles.headerHelpButton}
+                <SurfaceHeaderIconButton
+                  iconName="help-circle-outline"
                   onPress={handlePressTutorialHelp}
-                  accessibilityRole="button"
                   accessibilityLabel={t('compatibility.helpAccessibility')}
-                >
-                  <Ionicons name="help-circle-outline" size={18} color={colors.primary} />
-                </TouchableOpacity>
+                />
               </SpotlightTarget>
             </View>
           )}

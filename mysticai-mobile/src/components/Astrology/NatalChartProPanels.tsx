@@ -36,6 +36,8 @@ type NatalChartProPanelsProps = {
   onAspectPress?: (aspect: PlanetaryAspect) => void;
   mode?: 'full' | 'hero';
   panels?: Array<'wheel' | 'matrix' | 'balance' | 'positions'>;
+  renderWidthOverride?: number;
+  presentation?: 'default' | 'poster';
 };
 
 type AspectCell = PlanetaryAspect | null;
@@ -171,6 +173,21 @@ const SIGN_MODALITY: Record<string, ModalityKey> = {
   PISCES: 'Değişken',
 };
 
+const SIGN_ACCENT_COLORS: Record<string, string> = {
+  ARIES: '#EF4444',
+  TAURUS: '#43A047',
+  GEMINI: '#F59E0B',
+  CANCER: '#2F80ED',
+  LEO: '#F97316',
+  VIRGO: '#2E9F62',
+  LIBRA: '#F59E0B',
+  SCORPIO: '#2563EB',
+  SAGITTARIUS: '#F97316',
+  CAPRICORN: '#2E8B57',
+  AQUARIUS: '#F59E0B',
+  PISCES: '#3B82F6',
+};
+
 const PLANET_WEIGHTS: Record<string, number> = {
   Sun: 3.4,
   Moon: 3.4,
@@ -238,6 +255,11 @@ function compactPlanetLabel(planetKey: string, labels?: Record<string, string>) 
   };
   if (map[label]) return map[label];
   return label.length > 4 ? label.slice(0, 3) : label;
+}
+
+function signAccentColor(sign: string | null | undefined) {
+  if (!sign) return '#64748B';
+  return SIGN_ACCENT_COLORS[sign.toUpperCase()] ?? '#64748B';
 }
 
 function formatPlanetDegreeMinute(planet: PlanetPosition) {
@@ -308,6 +330,20 @@ function polarPoint(cx: number, cy: number, radius: number, degrees: number) {
   return {
     x: cx + radius * Math.cos(rad),
     y: cy + radius * Math.sin(rad),
+  };
+}
+
+function circularDistance(a: number, b: number) {
+  const delta = Math.abs(normalizeAngle(a) - normalizeAngle(b));
+  return delta > 180 ? 360 - delta : delta;
+}
+
+function nudgePointTangential(point: { x: number; y: number }, degrees: number, offset: number) {
+  if (!offset) return point;
+  const rad = ((degrees - 90) * Math.PI) / 180;
+  return {
+    x: point.x - Math.sin(rad) * offset,
+    y: point.y + Math.cos(rad) * offset,
   };
 }
 
@@ -538,24 +574,49 @@ function NatalWheel({
   aspects,
   planetNames,
   mode = 'full',
+  renderWidthOverride,
+  showMetaRow = false,
+  showAuras = true,
 }: {
   planets: PlanetPosition[];
   houses: HousePlacement[];
   aspects: PlanetaryAspect[];
   planetNames?: Record<string, string>;
   mode?: 'full' | 'hero';
+  renderWidthOverride?: number;
+  showMetaRow?: boolean;
+  showAuras?: boolean;
 }) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
-
-  const size = mode === 'hero' ? clamp(width - 28, 220, 270) : clamp(width - 56, 280, 360);
+  const isHero = mode === 'hero';
+  const isPoster = !isHero && !showMetaRow && !showAuras;
+  const layoutWidth = renderWidthOverride ?? width;
+  const size = isHero
+    ? clamp(layoutWidth - 34, 232, 282)
+    : isPoster
+      ? clamp(layoutWidth - 4, 560, 760)
+      : renderWidthOverride
+      ? clamp(layoutWidth - 8, 520, 720)
+      : clamp(layoutWidth - 36, 324, 404);
   const cx = size / 2;
   const cy = size / 2;
-  const outerR = size * 0.46;
-  const signR = size * 0.405;
-  const houseR = size * 0.335;
-  const planetR = size * 0.275;
-  const aspectR = size * 0.2;
+  const outerR = size * (isPoster ? 0.446 : 0.468);
+  const signR = size * (isPoster ? 0.386 : 0.402);
+  const houseR = size * (isPoster ? 0.334 : 0.322);
+  const planetR = size * (isPoster ? 0.372 : 0.252);
+  const aspectR = size * (isPoster ? 0.205 : 0.162);
+  const signGlyphSize = isHero ? 15 : isPoster ? 25 : 18;
+  const signNameSize = isHero ? 6.4 : 7.5;
+  const houseLabelSize = isHero ? 9 : isPoster ? 15 : 10.5;
+  const planetGlyphSize = isHero ? 12 : isPoster ? 18 : 14;
+  const planetGlyphRadius = isHero ? 10.5 : isPoster ? 14 : 12.5;
+  const degreeLabelSize = isHero ? 8 : isPoster ? 10.5 : 9.5;
+  const planetNameSize = isHero ? 6.4 : 7.4;
+  const posterLine = '#111827';
+  const posterMinor = '#CBD5E1';
+  const posterMuted = '#64748B';
+  const posterSurface = '#FFFFFF';
 
   const aspectList = useMemo(
     () => (aspects.length ? effectiveAspects(aspects) : calculateFallbackAspects(planets)),
@@ -585,161 +646,350 @@ function NatalWheel({
       .map((p) => ({ ...p, absLon: planetAbsoluteLongitude(p) }))
       .sort((a, b) => a.absLon - b.absLon);
 
-    return sorted.map((planet, index) => {
-      const prev = index > 0 ? sorted[index - 1] : null;
-      const delta = prev ? Math.abs(planet.absLon - prev.absLon) : 99;
-      const clusterOffset = delta < 4 ? 10 : 0;
+    if (!sorted.length) return [];
+
+    const threshold = isHero ? 5.5 : 7;
+    const groups: Array<typeof sorted> = [];
+    let currentGroup: typeof sorted = [];
+
+    sorted.forEach((planet) => {
+      const last = currentGroup[currentGroup.length - 1];
+      if (!last || circularDistance(last.absLon, planet.absLon) <= threshold) {
+        currentGroup.push(planet);
+        return;
+      }
+
+      groups.push(currentGroup);
+      currentGroup = [planet];
+    });
+
+    if (currentGroup.length) {
+      groups.push(currentGroup);
+    }
+
+    if (
+      groups.length > 1
+      && circularDistance(groups[0][0].absLon, groups[groups.length - 1][groups[groups.length - 1].length - 1].absLon) <= threshold
+    ) {
+      groups[0] = [...groups[groups.length - 1], ...groups[0]];
+      groups.pop();
+    }
+
+    return groups.flatMap((group) => group.map((planet, index) => {
+      const center = (group.length - 1) / 2;
+      const relativeIndex = index - center;
+      const layer = Math.max(0, Math.round(Math.abs(relativeIndex)));
+      const radialUnit = isHero ? 6 : isPoster ? 10 : 8;
+      const tangentialUnit = isHero ? 8 : isPoster ? 16 : 12;
+
       return {
         ...planet,
-        radialOffset: clusterOffset,
+        radialOffset: relativeIndex === 0 ? 0 : Math.sign(relativeIndex) * radialUnit * layer,
+        tangentialOffset: relativeIndex * tangentialUnit,
+        labelTangentialOffset: relativeIndex * (tangentialUnit + 2),
       };
-    });
-  }, [orderedPlanets]);
+    }));
+  }, [isHero, orderedPlanets]);
 
   return (
     <View style={stylesLocal.wheelWrap}>
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Defs>
-          <SvgLinearGradient id="wheelRing" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={colors.violet} stopOpacity={0.22} />
-            <Stop offset="100%" stopColor={colors.blue} stopOpacity={0.08} />
-          </SvgLinearGradient>
-        </Defs>
+      <View
+        style={[
+          stylesLocal.wheelStage,
+          isHero ? stylesLocal.wheelStageHero : isPoster ? stylesLocal.wheelStagePoster : stylesLocal.wheelStageFull,
+          {
+            width: size,
+            height: size,
+            backgroundColor: colors.surface,
+            borderColor: colors.borderLight,
+            shadowColor: colors.shadow,
+          },
+        ]}
+      >
+        {showAuras ? <View style={[stylesLocal.wheelAuraPrimary, { backgroundColor: colors.horoscopeGlow }]} /> : null}
+        {showAuras ? <View style={[stylesLocal.wheelAuraSecondary, { backgroundColor: colors.blueBg }]} /> : null}
 
-        <Circle cx={cx} cy={cy} r={outerR} fill="url(#wheelRing)" stroke={colors.border} strokeWidth={1.2} />
-        <Circle cx={cx} cy={cy} r={signR} fill="transparent" stroke={colors.borderLight} strokeWidth={1} />
-        <Circle cx={cx} cy={cy} r={houseR} fill="transparent" stroke={colors.borderLight} strokeWidth={1} />
-        <Circle cx={cx} cy={cy} r={planetR + 12} fill="transparent" stroke={colors.borderLight} strokeWidth={0.8} />
-        <Circle cx={cx} cy={cy} r={aspectR + 16} fill="rgba(255,255,255,0.55)" stroke={colors.borderLight} strokeWidth={1} />
+        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <Defs>
+            <SvgLinearGradient id="wheelRing" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor={colors.violet} stopOpacity={0.24} />
+              <Stop offset="48%" stopColor={colors.goldLight} stopOpacity={0.12} />
+              <Stop offset="100%" stopColor={colors.blue} stopOpacity={0.1} />
+            </SvgLinearGradient>
+          </Defs>
 
-        {Array.from({ length: 12 }, (_, i) => {
-          const absoluteLon = i * 30;
-          const angle = toWheelAngle(absoluteLon);
-          const outer = polarPoint(cx, cy, outerR, angle);
-          const inner = polarPoint(cx, cy, signR, angle);
-          const mid = polarPoint(cx, cy, (outerR + signR) / 2, angle + 15);
-          const signInfo = getZodiacInfo(SIGN_KEYS_IN_ORDER[i]);
-          return (
-            <G key={`sign-${i}`}>
-              <Line x1={outer.x} y1={outer.y} x2={inner.x} y2={inner.y} stroke={colors.border} strokeWidth={1} />
-              <SvgText
-                x={mid.x}
-                y={mid.y + 5}
-                fontSize={16}
-                fontWeight="700"
-                fill={colors.text}
-                textAnchor="middle"
-              >
-                {signInfo.symbol}
-              </SvgText>
-              <SvgText
-                x={mid.x}
-                y={mid.y + 14}
-                fontSize={6.8}
-                fill={colors.textMuted}
-                textAnchor="middle"
-              >
-                {signInfo.name}
-              </SvgText>
-            </G>
-          );
-        })}
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={outerR}
+            fill={isPoster ? posterSurface : 'url(#wheelRing)'}
+            stroke={isPoster ? posterLine : colors.border}
+            strokeWidth={isPoster ? 1.35 : 1.2}
+          />
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={signR}
+            fill="transparent"
+            stroke={isPoster ? posterMinor : colors.borderLight}
+            strokeWidth={1}
+          />
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={houseR}
+            fill="transparent"
+            stroke={isPoster ? posterMinor : colors.borderLight}
+            strokeWidth={1}
+          />
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={planetR + (isPoster ? 10 : 14)}
+            fill="transparent"
+            stroke={isPoster ? posterMinor : colors.borderLight}
+            strokeWidth={0.85}
+          />
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={aspectR + 18}
+            fill={isPoster ? posterSurface : colors.card}
+            stroke={isPoster ? posterLine : colors.borderLight}
+            strokeWidth={1}
+          />
 
-        {houseCusps.map((cusp) => {
-          const angle = toWheelAngle(cusp.lon);
-          const outer = polarPoint(cx, cy, signR, angle);
-          const inner = polarPoint(cx, cy, aspectR + 18, angle);
-          const labelPt = polarPoint(cx, cy, (signR + houseR) / 2, angle + 10);
-          return (
-            <G key={`house-${cusp.house}`}>
+          {isPoster ? Array.from({ length: 72 }, (_, index) => {
+            const absoluteLon = index * 5;
+            const angle = toWheelAngle(absoluteLon);
+            const outer = polarPoint(cx, cy, outerR - 1, angle);
+            const isBoundary = absoluteLon % 30 === 0;
+            const isTenStep = absoluteLon % 10 === 0;
+            const tickDepth = isBoundary ? 18 : isTenStep ? 13 : 8;
+            const inner = polarPoint(cx, cy, outerR - tickDepth, angle);
+            return (
               <Line
+                key={`tick-${absoluteLon}`}
                 x1={outer.x}
                 y1={outer.y}
                 x2={inner.x}
                 y2={inner.y}
-                stroke={cusp.house === 1 || cusp.house === 10 ? colors.violet : colors.borderMuted}
-                strokeWidth={cusp.house === 1 || cusp.house === 10 ? 1.8 : 1}
+                stroke={posterLine}
+                strokeWidth={isBoundary ? 1.1 : isTenStep ? 0.8 : 0.55}
+                strokeOpacity={isBoundary ? 0.92 : 0.74}
               />
-              <SvgText
-                x={labelPt.x}
-                y={labelPt.y + 4}
-                fontSize={10}
-                fontWeight="700"
-                fill={colors.textMuted}
-                textAnchor="middle"
-              >
-                {String(cusp.house)}
-              </SvgText>
-            </G>
-          );
-        })}
+            );
+          }) : null}
 
-        {aspectList.map((aspect, idx) => {
-          const p1 = displayedPlanets.find((p) => p.planet === aspect.planet1);
-          const p2 = displayedPlanets.find((p) => p.planet === aspect.planet2);
-          if (!p1 || !p2) return null;
-          const a1 = toWheelAngle(p1.absLon);
-          const a2 = toWheelAngle(p2.absLon);
-          const p1Pt = polarPoint(cx, cy, aspectR, a1);
-          const p2Pt = polarPoint(cx, cy, aspectR, a2);
-          const meta = ASPECT_META[aspect.type];
-          const lineColor = meta ? (colors.statusBar === 'dark' ? meta.colorDark : meta.colorLight) : colors.violet;
-          return (
-            <Line
-              key={`aspect-line-${idx}`}
-              x1={p1Pt.x}
-              y1={p1Pt.y}
-              x2={p2Pt.x}
-              y2={p2Pt.y}
-              stroke={lineColor}
-              strokeOpacity={0.78}
-              strokeWidth={aspect.orb <= 2 ? 1.8 : 1.2}
-            />
-          );
-        })}
-
-        {displayedPlanets.map((planet) => {
-          const angle = toWheelAngle(planet.absLon);
-          const point = polarPoint(cx, cy, planetR + planet.radialOffset, angle);
-          const degreePoint = polarPoint(cx, cy, planetR + 20 + planet.radialOffset, angle);
-          const namePoint = polarPoint(cx, cy, planetR + 31 + planet.radialOffset, angle);
-          const glyph = PLANET_GLYPHS[planet.planet] ?? '•';
-          return (
-            <G key={`planet-${planet.planet}`}>
-              <Circle cx={point.x} cy={point.y} r={11} fill={colors.card} stroke={colors.border} strokeWidth={1} />
+          {isPoster ? Array.from({ length: 12 }, (_, signIndex) => [5, 10, 15, 20, 25].map((degree) => {
+            const angle = toWheelAngle(signIndex * 30 + degree);
+            const point = polarPoint(cx, cy, outerR - 22, angle);
+            return (
               <SvgText
+                key={`degree-marker-${signIndex}-${degree}`}
                 x={point.x}
-                y={point.y + 4}
-                fontSize={13}
-                fontWeight="700"
-                fill={colors.text}
+                y={point.y + 3}
+                fontSize={7.5}
+                fill={posterMuted}
                 textAnchor="middle"
               >
-                {glyph}
+                {degree}
               </SvgText>
-              <SvgText
-                x={degreePoint.x}
-                y={degreePoint.y + 3}
-                fontSize={8.5}
-                fill={colors.textMuted}
-                textAnchor="middle"
-              >
-                {`${Math.floor(planet.degree)}°`}
-              </SvgText>
-              <SvgText
-                x={namePoint.x}
-                y={namePoint.y + 3}
-                fontSize={6.8}
-                fill={colors.textMuted}
-                textAnchor="middle"
-              >
-                {compactPlanetLabel(planet.planet, planetNames)}
-              </SvgText>
-            </G>
-          );
-        })}
-      </Svg>
+            );
+          })) : null}
 
+          {Array.from({ length: 12 }, (_, i) => {
+            const absoluteLon = i * 30;
+            const angle = toWheelAngle(absoluteLon);
+            const outer = polarPoint(cx, cy, outerR, angle);
+            const inner = polarPoint(cx, cy, signR, angle);
+            const glyphPoint = polarPoint(
+              cx,
+              cy,
+              isPoster ? outerR + 10 : (outerR + signR) / 2,
+              angle + 15,
+            );
+            const posterNamePoint = polarPoint(cx, cy, outerR + 25, angle + 15);
+            const mid = polarPoint(cx, cy, (outerR + signR) / 2, angle + 15);
+            const signInfo = getZodiacInfo(SIGN_KEYS_IN_ORDER[i]);
+            return (
+              <G key={`sign-${i}`}>
+                <Line
+                  x1={outer.x}
+                  y1={outer.y}
+                  x2={inner.x}
+                  y2={inner.y}
+                  stroke={isPoster ? posterLine : colors.border}
+                  strokeWidth={1}
+                />
+                <SvgText
+                  x={isPoster ? glyphPoint.x : mid.x}
+                  y={(isPoster ? glyphPoint.y : mid.y) + (isPoster ? 8 : 5)}
+                  fontSize={signGlyphSize}
+                  fontWeight="700"
+                  fill={isPoster ? signAccentColor(SIGN_KEYS_IN_ORDER[i]) : colors.text}
+                  textAnchor="middle"
+                >
+                  {signInfo.symbol}
+                </SvgText>
+                <SvgText
+                  x={isPoster ? posterNamePoint.x : mid.x}
+                  y={isPoster ? posterNamePoint.y + 3 : mid.y + (isHero ? 12 : 15)}
+                  fontSize={isPoster ? 8.4 : signNameSize}
+                  fill={isPoster ? posterMuted : colors.textMuted}
+                  textAnchor="middle"
+                >
+                  {signInfo.name}
+                </SvgText>
+              </G>
+            );
+          })}
+
+          {houseCusps.map((cusp) => {
+            const angle = toWheelAngle(cusp.lon);
+            const outer = polarPoint(cx, cy, signR, angle);
+            const inner = polarPoint(cx, cy, aspectR + 18, angle);
+            const labelPt = polarPoint(cx, cy, (signR + houseR) / 2, angle + 10);
+            return (
+              <G key={`house-${cusp.house}`}>
+                <Line
+                  x1={outer.x}
+                  y1={outer.y}
+                  x2={inner.x}
+                  y2={inner.y}
+                  stroke={
+                    isPoster
+                      ? posterLine
+                      : cusp.house === 1 || cusp.house === 10
+                        ? colors.violet
+                        : colors.borderMuted
+                  }
+                  strokeWidth={cusp.house === 1 || cusp.house === 10 ? 1.8 : 1}
+                />
+                <SvgText
+                  x={labelPt.x}
+                  y={labelPt.y + 4}
+                  fontSize={houseLabelSize}
+                  fontWeight="700"
+                  fill={isPoster ? posterLine : colors.textMuted}
+                  textAnchor="middle"
+                >
+                  {String(cusp.house)}
+                </SvgText>
+              </G>
+            );
+          })}
+
+          {aspectList.map((aspect, idx) => {
+            const p1 = displayedPlanets.find((p) => p.planet === aspect.planet1);
+            const p2 = displayedPlanets.find((p) => p.planet === aspect.planet2);
+            if (!p1 || !p2) return null;
+            const a1 = toWheelAngle(p1.absLon);
+            const a2 = toWheelAngle(p2.absLon);
+            const p1Pt = polarPoint(cx, cy, aspectR, a1);
+            const p2Pt = polarPoint(cx, cy, aspectR, a2);
+            const meta = ASPECT_META[aspect.type];
+            const lineColor = meta
+              ? isPoster
+                ? meta.colorLight
+                : (colors.statusBar === 'dark' ? meta.colorDark : meta.colorLight)
+              : colors.violet;
+            return (
+              <Line
+                key={`aspect-line-${idx}`}
+                x1={p1Pt.x}
+                y1={p1Pt.y}
+                x2={p2Pt.x}
+                y2={p2Pt.y}
+                stroke={lineColor}
+                strokeOpacity={0.76}
+                strokeWidth={aspect.orb <= 2 ? 1.8 : 1.15}
+              />
+            );
+          })}
+
+          {displayedPlanets.map((planet) => {
+            const angle = toWheelAngle(planet.absLon);
+            const point = nudgePointTangential(
+              polarPoint(cx, cy, planetR + planet.radialOffset, angle),
+              angle,
+              planet.tangentialOffset,
+            );
+            const degreePoint = nudgePointTangential(
+              polarPoint(
+                cx,
+                cy,
+                (isPoster ? planetR - 22 : planetR + 22) + planet.radialOffset,
+                angle,
+              ),
+              angle,
+              planet.labelTangentialOffset,
+            );
+            const namePoint = nudgePointTangential(
+              polarPoint(cx, cy, planetR + 36 + planet.radialOffset, angle),
+              angle,
+              planet.labelTangentialOffset * 1.1,
+            );
+            const glyph = PLANET_GLYPHS[planet.planet] ?? '•';
+            return (
+              <G key={`planet-${planet.planet}`}>
+                <Circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={planetGlyphRadius}
+                  fill={isPoster ? posterSurface : colors.card}
+                  stroke={isPoster ? posterLine : colors.border}
+                  strokeWidth={1}
+                />
+                <SvgText
+                  x={point.x}
+                  y={point.y + 4}
+                  fontSize={planetGlyphSize}
+                  fontWeight="700"
+                  fill={isPoster ? posterLine : colors.text}
+                  textAnchor="middle"
+                >
+                  {glyph}
+                </SvgText>
+                <SvgText
+                  x={degreePoint.x}
+                  y={degreePoint.y + 3}
+                  fontSize={degreeLabelSize}
+                  fill={isPoster ? signAccentColor(planet.sign) : colors.textMuted}
+                  textAnchor="middle"
+                >
+                  {isPoster ? formatPlanetDegreeMinute(planet) : `${Math.floor(planet.degree)}°`}
+                </SvgText>
+                {!isPoster ? (
+                  <SvgText
+                    x={namePoint.x}
+                    y={namePoint.y + 3}
+                    fontSize={planetNameSize}
+                    fill={colors.textMuted}
+                    textAnchor="middle"
+                  >
+                    {compactPlanetLabel(planet.planet, planetNames)}
+                  </SvgText>
+                ) : null}
+              </G>
+            );
+          })}
+        </Svg>
+      </View>
+
+      {!isHero && showMetaRow ? (
+        <View style={stylesLocal.wheelMetaRow}>
+          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.primaryTint, borderColor: colors.borderLight }]}>
+            <Text style={[stylesLocal.wheelMetaLabel, { color: colors.violet }]}>Premium Wheel</Text>
+          </View>
+          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
+            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>Tropikal</Text>
+          </View>
+          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
+            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>Placidus</Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1052,6 +1302,8 @@ export default function NatalChartProPanels({
   onAspectPress,
   mode = 'full',
   panels,
+  renderWidthOverride,
+  presentation = 'default',
 }: NatalChartProPanelsProps) {
   const chartPlanets = useMemo(
     () => planets.filter((p) => PLANET_ORDER.includes(p.planet as (typeof PLANET_ORDER)[number])),
@@ -1080,8 +1332,30 @@ export default function NatalChartProPanels({
           aspects={chartAspects}
           planetNames={planetNames}
           mode="hero"
+          renderWidthOverride={renderWidthOverride}
+          showMetaRow={false}
+          showAuras
         />
       </SectionCard>
+    );
+  }
+
+  if (
+    presentation === 'poster'
+    && enabledPanels.size === 1
+    && enabledPanels.has('wheel')
+  ) {
+    return (
+      <NatalWheel
+        planets={chartPlanets}
+        houses={houses}
+        aspects={chartAspects}
+        planetNames={planetNames}
+        mode="full"
+        renderWidthOverride={renderWidthOverride}
+        showMetaRow={false}
+        showAuras={false}
+      />
     );
   }
 
@@ -1098,6 +1372,7 @@ export default function NatalChartProPanels({
             aspects={chartAspects}
             planetNames={planetNames}
             mode="full"
+            renderWidthOverride={renderWidthOverride}
           />
         </SectionCard>
       ) : null}
@@ -1172,6 +1447,67 @@ const stylesLocal = StyleSheet.create({
   wheelWrap: {
     alignItems: 'center',
     gap: 12,
+  },
+  wheelStage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 28,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.1,
+    shadowRadius: 28,
+    elevation: 4,
+  },
+  wheelStageFull: {
+    marginHorizontal: -10,
+  },
+  wheelStagePoster: {
+    marginHorizontal: 0,
+  },
+  wheelStageHero: {
+    borderRadius: 22,
+  },
+  wheelAuraPrimary: {
+    position: 'absolute',
+    top: 22,
+    right: 18,
+    width: 120,
+    height: 120,
+    borderRadius: 999,
+    opacity: 0.9,
+  },
+  wheelAuraSecondary: {
+    position: 'absolute',
+    bottom: 30,
+    left: 22,
+    width: 92,
+    height: 92,
+    borderRadius: 999,
+    opacity: 0.72,
+  },
+  wheelMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: -2,
+  },
+  wheelMetaPill: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  wheelMetaLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  wheelMetaText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   wheelLegend: {
     width: '100%',

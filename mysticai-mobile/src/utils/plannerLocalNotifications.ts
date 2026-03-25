@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import type { ReminderType } from '../services/reminder.service';
+import { ensureNotificationHandlerInstalled } from './pushNotifications';
 
 type PlannerReminderPayload = {
   deeplink: string;
@@ -55,14 +56,37 @@ export function buildPlannerReminderDate(dateKey: string, time: string): Date {
   return new Date(year, month - 1, day, hours, minutes, 0, 0);
 }
 
-async function ensureNotificationPermission(): Promise<boolean> {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  if (existingStatus === 'granted') {
+function allowsNotifications(
+  settings: Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>,
+): boolean {
+  if (settings.granted) {
     return true;
   }
 
-  const { status } = await Notifications.requestPermissionsAsync();
-  return status === 'granted';
+  if (Platform.OS !== 'ios') {
+    return settings.status === 'granted';
+  }
+
+  const iosStatus = settings.ios?.status;
+  return iosStatus === Notifications.IosAuthorizationStatus.AUTHORIZED
+    || iosStatus === Notifications.IosAuthorizationStatus.PROVISIONAL
+    || iosStatus === Notifications.IosAuthorizationStatus.EPHEMERAL;
+}
+
+async function ensureNotificationPermission(): Promise<boolean> {
+  const existingSettings = await Notifications.getPermissionsAsync();
+  if (allowsNotifications(existingSettings)) {
+    return true;
+  }
+
+  const requestedSettings = await Notifications.requestPermissionsAsync({
+    ios: {
+      allowAlert: true,
+      allowBadge: true,
+      allowSound: true,
+    },
+  });
+  return allowsNotifications(requestedSettings);
 }
 
 export async function schedulePlannerLocalNotification(
@@ -72,21 +96,28 @@ export async function schedulePlannerLocalNotification(
     return { status: 'unsupported' };
   }
 
+  await ensureNotificationHandlerInstalled();
+
   const hasPermission = await ensureNotificationPermission();
   if (!hasPermission) {
     return { status: 'permission-denied' };
   }
 
   const scheduledFor = buildPlannerReminderDate(input.date, input.time);
+  const androidChannelId = Platform.OS === 'android' ? 'mysticai-notifications' : undefined;
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: input.title,
       body: input.body,
       sound: 'default',
       data: input.payload,
-      ...(Platform.OS === 'android' ? { channelId: 'mysticai-notifications' } : {}),
+      ...(androidChannelId ? { channelId: androidChannelId } : {}),
     },
-    trigger: scheduledFor,
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: scheduledFor,
+      ...(androidChannelId ? { channelId: androidChannelId } : {}),
+    },
   });
 
   return {

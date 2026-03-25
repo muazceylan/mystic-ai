@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import type { HousePlacement, PlanetPosition, PlanetaryAspect } from '../services/astrology.service';
 
+export type NatalVisualPresetKey = 'wheel' | 'matrix' | 'balance';
+
 export type NatalVisualsDraft = {
   name?: string | null;
   birthDate?: string | null;
   birthTime?: string | null;
   birthLocation?: string | null;
   risingSign?: string | null;
+  presetKey?: NatalVisualPresetKey;
   planets: PlanetPosition[];
   houses: HousePlacement[];
   aspects: PlanetaryAspect[];

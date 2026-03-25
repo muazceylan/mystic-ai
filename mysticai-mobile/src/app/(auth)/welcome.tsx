@@ -268,6 +268,7 @@ export default function WelcomeScreen() {
   const [quickStartLoading, setQuickStartLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const handledGoogleTokenRef = useRef<string | null>(null);
+  const authTransitionRef = useRef(false);
   const styles = makeStyles(colors);
   const isFormValid = email.trim().length > 0 && password.length > 0;
 
@@ -293,6 +294,7 @@ export default function WelcomeScreen() {
   });
 
   const handleSocialLoginResult = async (provider: string, idToken: string) => {
+    if (authTransitionRef.current) return;
     setLoading(true);
     try {
       const res = await socialLogin(provider, idToken);
@@ -304,17 +306,18 @@ export default function WelcomeScreen() {
         if (user.firstName) onboarding.setFirstName(user.firstName);
         if (user.lastName) onboarding.setLastName(user.lastName);
         if (user.email) onboarding.setEmail(user.email);
-        // Save token — user is authenticated but needs to complete onboarding
-        storeLogin(accessToken, refreshToken, user);
-        router.replace('/(auth)/birth-date');
-      } else {
-        storeLogin(accessToken, refreshToken, user);
-        router.replace('/(tabs)/home');
       }
+
+      // Route changes are owned by the root auth guard. Triggering replace here
+      // as well causes duplicate navigation on Android during fast auth flows.
+      storeLogin(accessToken, refreshToken, user);
+      authTransitionRef.current = true;
     } catch (error: any) {
+      authTransitionRef.current = false;
       const message = error?.response?.data?.message || t('auth.loginError');
       Alert.alert(t('common.error'), message);
     } finally {
+      if (authTransitionRef.current) return;
       setLoading(false);
     }
   };
@@ -412,20 +415,16 @@ export default function WelcomeScreen() {
   };
 
   const handleEmailLogin = async () => {
-    if (!isFormValid || loading) return;
+    if (!isFormValid || loading || authTransitionRef.current) return;
     setErrorMessage(null);
     setLoading(true);
     try {
       const res = await loginApi({ username: email.trim().toLowerCase(), password });
       const { accessToken, refreshToken, user } = res.data;
-      const shouldStartOnboarding = needsOnboarding(user);
       storeLogin(accessToken, refreshToken, user);
-      if (shouldStartOnboarding) {
-        router.replace('/(auth)/birth-date');
-      } else {
-        router.replace('/(tabs)/home');
-      }
+      authTransitionRef.current = true;
     } catch (error: any) {
+      authTransitionRef.current = false;
       const status = error?.response?.status;
       const message = String(error?.response?.data?.message ?? '');
       const code = String(error?.response?.data?.code ?? '');
@@ -450,12 +449,13 @@ export default function WelcomeScreen() {
         setErrorMessage(t('auth.loginError'));
       }
     } finally {
+      if (authTransitionRef.current) return;
       setLoading(false);
     }
   };
 
   const handleQuickStart = async () => {
-    if (loading || quickStartLoading) return;
+    if (loading || quickStartLoading || authTransitionRef.current) return;
     setQuickStartLoading(true);
     try {
       trackEvent('quick_start_clicked', { entry_point: 'welcome', user_type: 'GUEST', auth_provider: 'ANONYMOUS' });
@@ -463,15 +463,13 @@ export default function WelcomeScreen() {
       const { accessToken, refreshToken, user } = res.data;
       trackEvent('quick_session_created', { user_type: 'GUEST', auth_provider: 'ANONYMOUS' });
       storeLogin(accessToken, refreshToken, user);
-      if (needsOnboarding(user)) {
-        router.replace('/(auth)/birth-date');
-      } else {
-        router.replace('/(tabs)/home');
-      }
+      authTransitionRef.current = true;
     } catch (error: any) {
+      authTransitionRef.current = false;
       const message = error?.response?.data?.message || t('quickStart.error');
       Alert.alert(t('common.error'), message);
     } finally {
+      if (authTransitionRef.current) return;
       setQuickStartLoading(false);
     }
   };

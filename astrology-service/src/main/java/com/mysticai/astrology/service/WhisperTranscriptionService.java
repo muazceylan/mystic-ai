@@ -23,6 +23,8 @@ import java.util.Map;
 public class WhisperTranscriptionService {
 
     private static final String WHISPER_MODEL = "whisper-large-v3-turbo";
+    private static final String DEFAULT_AUDIO_FILENAME = "recording.m4a";
+    private static final String DEFAULT_AUDIO_MIME_TYPE = "audio/mp4";
 
     private final String apiKey;
     private final String baseUrl;
@@ -54,12 +56,10 @@ public class WhisperTranscriptionService {
         log.info("Transcribing audio: name={}, size={} bytes, contentType={}",
                 audioFile.getOriginalFilename(), audioFile.getSize(), audioFile.getContentType());
 
-        String filename = audioFile.getOriginalFilename() != null
-                ? audioFile.getOriginalFilename() : "recording.m4a";
+        String filename = normalizeFilename(audioFile.getOriginalFilename());
 
         // Detect audio content type for the file part header
-        String mimeType = audioFile.getContentType() != null
-                ? audioFile.getContentType() : "audio/m4a";
+        String mimeType = normalizeMimeType(audioFile.getContentType(), filename);
 
         // Wrap bytes as a named resource
         byte[] bytes = audioFile.getBytes();
@@ -97,5 +97,36 @@ public class WhisperTranscriptionService {
             }
         }
         throw new RuntimeException("Whisper returned empty transcription (status: " + response.getStatusCode() + ")");
+    }
+
+    private String normalizeFilename(String originalFilename) {
+        return (originalFilename != null && !originalFilename.isBlank()) ? originalFilename : DEFAULT_AUDIO_FILENAME;
+    }
+
+    private String normalizeMimeType(String rawMimeType, String filename) {
+        if (rawMimeType != null && !rawMimeType.isBlank()) {
+            if ("audio/m4a".equalsIgnoreCase(rawMimeType)) {
+                return DEFAULT_AUDIO_MIME_TYPE;
+            }
+            return rawMimeType;
+        }
+
+        String lowerCaseFilename = filename.toLowerCase();
+        if (lowerCaseFilename.endsWith(".m4a") || lowerCaseFilename.endsWith(".mp4")) {
+            return DEFAULT_AUDIO_MIME_TYPE;
+        }
+        if (lowerCaseFilename.endsWith(".3gp")) {
+            return "audio/3gpp";
+        }
+        if (lowerCaseFilename.endsWith(".wav")) {
+            return "audio/wav";
+        }
+        if (lowerCaseFilename.endsWith(".mp3")) {
+            return "audio/mpeg";
+        }
+        if (lowerCaseFilename.endsWith(".caf")) {
+            return "audio/x-caf";
+        }
+        return "application/octet-stream";
     }
 }

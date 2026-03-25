@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Reanimated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '../../context/ThemeContext';
-import StaggeredAiText from './StaggeredAiText';
-import { AccordionSection } from '../ui';
 import { cleanAstroHeading, translateAstroTermsForUi } from '../../constants/astroLabelMap';
-import { inferTurkishAiTitle, splitAiBodyToParagraphs, splitPlainAiTextToBlocks } from '../../utils/astroTextProcessor';
+import {
+  inferTurkishAiTitle,
+  sanitizeAiNarrativeText,
+  splitAiBodyToParagraphs,
+  splitPlainAiTextToBlocks,
+} from '../../utils/astroTextProcessor';
+import StaggeredAiText from './StaggeredAiText';
+
+// ═══════════════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════════════
 
 type NatalAiSection = {
   id?: string;
@@ -35,70 +44,186 @@ type NatalAiStructuredPayload = {
   closing?: string;
 };
 
-type DisplaySection = {
-  _id: string;
-  id?: string;
-  title: string;
-  body: string;
-  preview: string;
-  metaLabels: string[];
-  bulletPoints?: Array<{ title?: string; detail?: string }>;
-  dailyLifeExample?: string;
-};
-
-type OverviewSignal = {
-  id: string;
-  title: string;
-  text: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  tone: 'accent' | 'success' | 'warning';
-};
-
 type Props = {
   text: string;
   fallbackTextStyle?: any;
 };
 
-const PLANET_META: Record<string, { glyph: string; label: string }> = {
-  sun: { glyph: '☉', label: 'Güneş' },
-  moon: { glyph: '☽', label: 'Ay' },
-  mercury: { glyph: '☿', label: 'Merkür' },
-  venus: { glyph: '♀', label: 'Venüs' },
-  mars: { glyph: '♂', label: 'Mars' },
-  jupiter: { glyph: '♃', label: 'Jüpiter' },
-  saturn: { glyph: '♄', label: 'Satürn' },
-  uranus: { glyph: '♅', label: 'Uranüs' },
-  neptune: { glyph: '♆', label: 'Neptün' },
-  pluto: { glyph: '♇', label: 'Plüton' },
-  chiron: { glyph: '⚷', label: 'Kiron' },
-  north_node: { glyph: '☊', label: 'Kuzey Düğümü' },
+const HIDDEN_SECTION_TITLES = new Set(['kozmik ana tema']);
+
+function normalizeSectionTitleForCompare(title?: string | null): string {
+  return cleanAstroHeading(translateAstroTermsForUi(title ?? ''))
+    .toLocaleLowerCase('tr-TR')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function shouldHideSectionTitle(title?: string | null): boolean {
+  return HIDDEN_SECTION_TITLES.has(normalizeSectionTitleForCompare(title));
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PLANET META
+// ═══════════════════════════════════════════════════════════════════════
+
+const PLANET_META: Record<string, { glyph: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  sun: { glyph: '☉', label: 'Güneş', icon: 'sunny-outline' },
+  moon: { glyph: '☽', label: 'Ay', icon: 'moon-outline' },
+  mercury: { glyph: '☿', label: 'Merkür', icon: 'chatbubble-ellipses-outline' },
+  venus: { glyph: '♀', label: 'Venüs', icon: 'heart-outline' },
+  mars: { glyph: '♂', label: 'Mars', icon: 'flame-outline' },
+  jupiter: { glyph: '♃', label: 'Jüpiter', icon: 'expand-outline' },
+  saturn: { glyph: '♄', label: 'Satürn', icon: 'shield-outline' },
+  uranus: { glyph: '♅', label: 'Uranüs', icon: 'flash-outline' },
+  neptune: { glyph: '♆', label: 'Neptün', icon: 'water-outline' },
+  pluto: { glyph: '♇', label: 'Plüton', icon: 'skull-outline' },
+  chiron: { glyph: '⚷', label: 'Kiron', icon: 'medkit-outline' },
+  north_node: { glyph: '☊', label: 'Kuzey Düğümü', icon: 'compass-outline' },
 };
+
+// ═══════════════════════════════════════════════════════════════════════
+// JSON PARSING — robust, handles all LLM quirks
+// ═══════════════════════════════════════════════════════════════════════
+
+// JSON key names and English terms that must NEVER appear in user-visible text
+const ENGLISH_TO_TURKISH: Array<[RegExp, string]> = [
+  // JSON schema field names (camelCase & snake_case)
+  [/\bbulletPoints?\b/gi, 'Öne Çıkan Noktalar'],
+  [/\bbullet_points?\b/gi, 'Öne Çıkan Noktalar'],
+  [/\bdailyLifeExample\b/gi, 'Günlük Hayat Örneği'],
+  [/\bdaily_life_example\b/gi, 'Günlük Hayat Örneği'],
+  [/\banalysisLines?\b/gi, 'Analiz Satırları'],
+  [/\banalysis_lines?\b/gi, 'Analiz Satırları'],
+  [/\bplanetHighlights?\b/gi, 'Gezegen Vurguları'],
+  [/\bplanet_highlights?\b/gi, 'Gezegen Vurguları'],
+  [/\bplanet_insights?\b/gi, 'Gezegen Görüşleri'],
+  [/\bcoreSummary\b/gi, 'Temel Özet'],
+  [/\bcore_summary\b/gi, 'Temel Özet'],
+  [/\bsectionList\b/gi, 'Bölümler'],
+  [/\bsection_list\b/gi, 'Bölümler'],
+  [/\bplanetId\b/gi, ''],
+  [/\bplanet_id\b/gi, ''],
+  [/\bfinalNote\b/gi, 'Son Not'],
+  [/\bfinal_note\b/gi, 'Son Not'],
+  // Aspect types
+  [/\bCONJUNCTION\b/gi, 'Kavuşum (Güç Birliği)'],
+  [/\bSEXTILE\b/gi, 'Altıgen (Fırsat Akışı)'],
+  [/\bSQUARE\b/gi, 'Kare (Gelişim Gerilimi)'],
+  [/\bTRINE\b/gi, 'Üçgen (Doğal Akış)'],
+  [/\bOPPOSITION\b/gi, 'Karşıt (Denge Dersi)'],
+  // Section & analysis title translations (longer phrases first)
+  [/\bInner Conflicts and Power Centers\b/gi, 'İç Çatışmalar ve Güç Merkezleri'],
+  [/\bNatural Gifts and Talents\b/gi, 'Doğal Yetenekler ve Armağanlar'],
+  [/\bCareer and Life Purpose\b/gi, 'Kariyer ve Yaşam Amacı'],
+  [/\bStrengths and Weaknesses\b/gi, 'Güçlü ve Zayıf Yönler'],
+  [/\bLove and Relationships?\b/gi, 'Aşk ve İlişkiler'],
+  [/\bMoney and Abundance\b/gi, 'Para ve Bolluk'],
+  [/\bThings To Watch Out For\b/gi, 'Dikkat Etmen Gerekenler'],
+  [/\bHow It Affects You\b/gi, 'Seni Nasıl Etkiler'],
+  [/\bCharacter Analysis\b/gi, 'Karakter Analizi'],
+  [/\bHighlighted Traits\b/gi, 'Öne Çıkan Özellikler'],
+  [/\bEmotional Intelligence\b/gi, 'Duygusal Zeka'],
+  [/\bCommunication Style\b/gi, 'İletişim Tarzı'],
+  [/\bPractical Reflection\b/gi, 'Pratik Yansıma'],
+  [/\bPlanetary Placements?\b/gi, 'Gezegen Yerleşimleri'],
+  [/\bRelationship Dynamics?\b/gi, 'İlişki Dinamikleri'],
+  [/\bSpiritual Mission\b/gi, 'Ruhsal Misyon'],
+  [/\bCore Portrait\b/gi, 'Kozmik Portrenin Özü'],
+  [/\bCosmic Portrait\b/gi, 'Kozmik Portre'],
+  [/\bCosmic Balance\b/gi, 'Kozmik Denge'],
+  [/\bKarmic Tests?\b/gi, 'Kadersel Sınavlar'],
+  [/\bHidden Talents?\b/gi, 'Gizli Yetenekler'],
+  [/\bNatural Gifts?\b/gi, 'Doğal Yetenekler'],
+  [/\bInner Conflicts?\b/gi, 'İç Çatışmalar'],
+  [/\bPower Centers?\b/gi, 'Güç Merkezleri'],
+  [/\bEmotional World\b/gi, 'Duygusal Dünya'],
+  [/\bKey Strengths?\b/gi, 'Güçlü Yönler'],
+  [/\bGrowth Areas?\b/gi, 'Gelişim Alanları'],
+  [/\bLife Purpose\b/gi, 'Yaşam Amacı'],
+  [/\bSoul Purpose\b/gi, 'Ruhsal Amaç'],
+  [/\bBalance Point\b/gi, 'Denge Noktası'],
+  [/\bMain Energy\b/gi, 'Ana Enerji'],
+  [/\bMain Theme\b/gi, 'Ana Tema'],
+  [/\bDeep Analysis\b/gi, 'Derin Analiz'],
+  [/\bDetailed Reading\b/gi, 'Detaylı Okuma'],
+  [/\bDaily Life\b/gi, 'Günlük Hayat'],
+  [/\bNorth Node\b/gi, 'Kuzey Düğümü'],
+  [/\bSouth Node\b/gi, 'Güney Düğümü'],
+  [/\bPlacement\b/gi, 'Yerleşim'],
+  [/\bAspects?\b/gi, 'Açılar'],
+  // Generic English words that might leak as standalone text
+  [/\bopening\b/gi, 'giriş'],
+  [/\bclosing\b/gi, 'kapanış'],
+  [/\bsections?\b/gi, 'bölümler'],
+  [/\bversion\b/gi, ''],
+  [/\btone\b/gi, ''],
+  [/\bintro\b/gi, 'giriş'],
+  [/\bdepth\b/gi, 'derinlik'],
+  [/\boverview\b/gi, 'genel bakış'],
+  [/\bconclusion\b/gi, 'sonuç'],
+  [/\bsummary\b/gi, 'özet'],
+  [/\bhighlights?\b/gi, 'vurgular'],
+  [/\bdetails?\b/gi, 'detaylar'],
+  [/\bexamples?\b/gi, 'örnekler'],
+  [/\bstrengths?\b/gi, 'güçlü yönler'],
+  [/\bweaknesses?\b/gi, 'zayıf yönler'],
+  [/\binsights?\b/gi, 'içgörüler'],
+  [/\bwarnings?\b/gi, 'uyarılar'],
+  [/\badvice\b/gi, 'tavsiye'],
+  [/\bpotential\b/gi, 'potansiyel'],
+  [/\benergy\b/gi, 'enerji'],
+  [/\bharmony\b/gi, 'uyum'],
+  [/\btension\b/gi, 'gerilim'],
+  [/\bbalance\b/gi, 'denge'],
+  [/\bfocus\b/gi, 'odak'],
+  [/\bgrowth\b/gi, 'gelişim'],
+  [/\blesson\b/gi, 'ders'],
+  [/\btalent\b/gi, 'yetenek'],
+  [/\bgift\b/gi, 'armağan'],
+  [/\bmission\b/gi, 'misyon'],
+  [/\bdestiny\b/gi, 'kader'],
+  [/\bkarma\b/gi, 'karma'],
+];
+
+// Values that are purely technical and should be filtered entirely
+const TECHNICAL_VALUES = /^(natal_v\d+|scientific_warm|version|tone|opening|closing|sections?|bullet_?points?|daily_?life_?example|analysis_?lines?|planet_?highlights?|planet_?id|core_?summary|section_?list|final_?note|overview|conclusion|intro|depth|character|body|text|content|description|title|heading|name|label|detail|icon|id)$/i;
+
+// AI meta/disclaimer sentences that leak into content
+const META_NOISE_PATTERNS = [
+  /temel yorum korunarak.*?zenginleşir\.?/gi,
+  /detaylar yeniden üretimde.*?\.?/gi,
+  /bu yorum yapay zeka tarafından.*?\.?/gi,
+  /\bnot[ea]?\s*:\s*this (is|was) (a |an )?ai[- ]generated.*?\.?/gi,
+];
 
 function cleanText(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const v = value.trim();
   if (!v.length) return null;
-  return translateAstroTermsForUi(v)
-    .replace(/\bCONJUNCTION\b/gi, 'Kavuşum (Güç Birliği)')
-    .replace(/\bSEXTILE\b/gi, 'Altıgen (Fırsat Akışı)')
-    .replace(/\bSQUARE\b/gi, 'Kare (Gelişim Gerilimi)')
-    .replace(/\bTRINE\b/gi, 'Üçgen (Doğal Akış)')
-    .replace(/\bOPPOSITION\b/gi, 'Karşıt (Denge Dersi)');
+  // Filter out purely technical/meta values
+  if (TECHNICAL_VALUES.test(v)) return null;
+
+  let result = translateAstroTermsForUi(v);
+  for (const [pattern, replacement] of ENGLISH_TO_TURKISH) {
+    result = result.replace(pattern, replacement);
+  }
+  // Strip AI meta/disclaimer noise
+  for (const noise of META_NOISE_PATTERNS) {
+    result = result.replace(noise, '');
+  }
+  // Clean up any resulting double spaces or leading/trailing whitespace
+  result = result.replace(/\s{2,}/g, ' ').trim();
+  return result || null;
 }
 
 function safeArray<T = unknown>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
-const TECHNICAL_RECOVERY_MARKERS = [
-  'json şemasına',
-  'normalize edilmiş',
-  'teknik olarak düzeltildi',
-  'yorum dönüştürme notu',
-  'ham içerik özeti',
-  'normalizasyon',
-  'recovery',
-];
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
 
 function unwrapCodeFence(text: string): string {
   const trimmed = text.trim();
@@ -110,12 +235,10 @@ function unwrapCodeFence(text: string): string {
 function normalizeJsonCandidate(text: string): string {
   let normalized = text
     .trim()
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'");
-
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'");
   normalized = normalized.replace(/,\s*([}\]])/g, '$1');
   normalized = normalized.replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)/g, '$1"$2"$3');
-
   if (/'[^']+'\s*:/.test(normalized)) {
     normalized = normalized.replace(/([{,]\s*)'([^']+?)'(\s*:)/g, '$1"$2"$3');
   }
@@ -124,17 +247,6 @@ function normalizeJsonCandidate(text: string): string {
     (_match, value: string, suffix: string) => `: "${value.replace(/"/g, '\\"')}"${suffix}`,
   );
   return normalized;
-}
-
-function unwrapStringifiedJson(text: string): string | null {
-  const trimmed = text.trim();
-  if (!trimmed.startsWith('"') || !trimmed.endsWith('"')) return null;
-  try {
-    const parsed = JSON.parse(trimmed);
-    return typeof parsed === 'string' ? parsed.trim() : null;
-  } catch {
-    return null;
-  }
 }
 
 function extractJsonObjectBlock(text: string): string {
@@ -149,35 +261,17 @@ function extractJsonObjectBlock(text: string): string {
   for (let idx = 0; idx < trimmed.length; idx += 1) {
     const char = trimmed[idx];
     if (inString) {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (char === '\\') {
-        escaped = true;
-        continue;
-      }
-      if (char === '"') {
-        inString = false;
-      }
+      if (escaped) { escaped = false; continue; }
+      if (char === '\\') { escaped = true; continue; }
+      if (char === '"') { inString = false; }
       continue;
     }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-    if (char === '{') {
-      if (start === -1) start = idx;
-      depth += 1;
-      continue;
-    }
+    if (char === '"') { inString = true; continue; }
+    if (char === '{') { if (start === -1) start = idx; depth += 1; continue; }
     if (char === '}') {
       if (depth <= 0) continue;
       depth -= 1;
-      if (start !== -1 && depth === 0) {
-        return trimmed.slice(start, idx + 1);
-      }
+      if (start !== -1 && depth === 0) return trimmed.slice(start, idx + 1);
     }
   }
 
@@ -188,57 +282,60 @@ function extractJsonObjectBlock(text: string): string {
   return trimmed;
 }
 
-function addUniqueCandidate(target: string[], candidate: string | null | undefined) {
-  if (typeof candidate !== 'string') return;
-  const trimmed = candidate.trim();
-  if (!trimmed || target.includes(trimmed)) return;
-  target.push(trimmed);
-}
-
-function buildJsonCandidates(text: string): string[] {
-  const candidates: string[] = [];
+function tryParseJson(text: string): unknown {
+  const candidates = new Set<string>();
   const raw = text.trim();
   const unwrapped = unwrapCodeFence(raw);
   const normalized = normalizeJsonCandidate(unwrapped);
-  const stringified = unwrapStringifiedJson(unwrapped);
 
-  addUniqueCandidate(candidates, raw);
-  addUniqueCandidate(candidates, unwrapped);
-  addUniqueCandidate(candidates, extractJsonObjectBlock(unwrapped));
-  addUniqueCandidate(candidates, normalized);
-  addUniqueCandidate(candidates, extractJsonObjectBlock(normalized));
+  candidates.add(raw);
+  candidates.add(unwrapped);
+  candidates.add(extractJsonObjectBlock(unwrapped));
+  candidates.add(normalized);
+  candidates.add(extractJsonObjectBlock(normalized));
 
-  if (stringified) {
-    const normalizedInner = normalizeJsonCandidate(stringified);
-    addUniqueCandidate(candidates, stringified);
-    addUniqueCandidate(candidates, extractJsonObjectBlock(stringified));
-    addUniqueCandidate(candidates, normalizedInner);
-    addUniqueCandidate(candidates, extractJsonObjectBlock(normalizedInner));
+  // Handle double-stringified JSON
+  try {
+    const inner = JSON.parse(raw);
+    if (typeof inner === 'string') {
+      candidates.add(inner.trim());
+      candidates.add(normalizeJsonCandidate(inner.trim()));
+      candidates.add(extractJsonObjectBlock(normalizeJsonCandidate(inner.trim())));
+    }
+  } catch { /* ignore */ }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (typeof parsed === 'string') {
+        try {
+          const inner = JSON.parse(parsed);
+          if (inner && typeof inner === 'object') return inner;
+        } catch { /* ignore */ }
+        continue;
+      }
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch { /* ignore */ }
   }
 
-  return candidates.slice(0, 12);
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
+  return null;
 }
 
 function normalizeBulletPoints(value: unknown): Array<{ title?: string; detail?: string }> {
-  const mapped = safeArray<unknown>(value)
+  return safeArray<unknown>(value)
     .map((item): { title?: string; detail?: string } | null => {
       if (typeof item === 'string') {
         const detail = cleanText(item) ?? undefined;
-        return detail ? { title: 'Öne Çıkan', detail } : null;
+        return detail ? { detail } : null;
       }
-      const record = asRecord(item);
-      if (!record) return null;
+      const r = asRecord(item);
+      if (!r) return null;
       return {
-        title: cleanText(record.title ?? record.label ?? record.name) ?? undefined,
-        detail: cleanText(record.detail ?? record.text ?? record.body) ?? undefined,
+        title: cleanText(pick(r, 'title', 'label', 'name', 'başlık', 'baslik', 'isim')) ?? undefined,
+        detail: cleanText(pick(r, 'detail', 'text', 'body', 'detay', 'açıklama', 'aciklama', 'içerik', 'icerik')) ?? undefined,
       };
-    });
-  return mapped.filter((bp): bp is { title?: string; detail?: string } => Boolean(bp && (bp.title || bp.detail)));
+    })
+    .filter((bp): bp is { title?: string; detail?: string } => Boolean(bp && (bp.title || bp.detail)));
 }
 
 function normalizeSections(value: unknown): NatalAiSection[] {
@@ -251,16 +348,14 @@ function normalizeSections(value: unknown): NatalAiSection[] {
 
   return source
     .map((item) => {
-      const section = asRecord(item);
-      if (!section) return null;
+      const s = asRecord(item);
+      if (!s) return null;
       return {
-        id: cleanText(section.id) ?? undefined,
-        title: cleanText(section.title ?? section.heading ?? section.name) ?? undefined,
-        body: cleanText(section.body ?? section.text ?? section.content ?? section.description) ?? undefined,
-        dailyLifeExample: cleanText(
-          section.dailyLifeExample ?? section.daily_life_example ?? section.example,
-        ) ?? undefined,
-        bulletPoints: normalizeBulletPoints(section.bulletPoints ?? section.bullets),
+        id: cleanText(pick(s, 'id', 'kimlik')) ?? undefined,
+        title: cleanText(pick(s, 'title', 'heading', 'name', 'başlık', 'baslik')) ?? undefined,
+        body: cleanText(pick(s, 'body', 'text', 'content', 'description', 'içerik', 'icerik', 'metin', 'açıklama', 'aciklama')) ?? undefined,
+        dailyLifeExample: cleanText(pick(s, 'dailyLifeExample', 'daily_life_example', 'example', 'günlükHayatÖrneği', 'gunlukHayatOrnegi', 'günlükÖrnek', 'gunlukOrnek', 'örnek', 'ornek')) ?? undefined,
+        bulletPoints: normalizeBulletPoints(pick(s, 'bulletPoints', 'bullet_points', 'bullets', 'vurgular', 'öneÇıkanlar', 'oneCikanlar', 'noktalar') as unknown),
       } as NatalAiSection;
     })
     .filter((section): section is NatalAiSection => Boolean(section && (section.title || section.body)));
@@ -269,21 +364,25 @@ function normalizeSections(value: unknown): NatalAiSection[] {
 function normalizePlanetHighlights(value: unknown): NatalAiPlanetHighlight[] {
   return safeArray<unknown>(value)
     .map((item) => {
-      const planet = asRecord(item);
-      if (!planet) return null;
+      const p = asRecord(item);
+      if (!p) return null;
       return {
-        planetId: cleanText(planet.planetId ?? planet.planet ?? planet.id) ?? undefined,
-        title: cleanText(planet.title) ?? undefined,
-        intro: cleanText(planet.intro) ?? undefined,
-        character: cleanText(planet.character) ?? undefined,
-        depth: cleanText(planet.depth) ?? undefined,
-        dailyLifeExample: cleanText(planet.dailyLifeExample ?? planet.daily_life_example) ?? undefined,
-        analysisLines: safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines)
-          .map((line) => ({
-            title: cleanText(line?.title) ?? undefined,
-            text: cleanText(line?.text) ?? undefined,
-            icon: cleanText(line?.icon) ?? undefined,
-          }))
+        planetId: cleanText(pick(p, 'planetId', 'planet_id', 'planet', 'id', 'gezegen', 'gezegenId')) ?? undefined,
+        title: cleanText(pick(p, 'title', 'başlık', 'baslik')) ?? undefined,
+        intro: cleanText(pick(p, 'intro', 'giriş', 'giris', 'tanıtım', 'tanitim')) ?? undefined,
+        character: cleanText(pick(p, 'character', 'karakter')) ?? undefined,
+        depth: cleanText(pick(p, 'depth', 'derinlik', 'detay')) ?? undefined,
+        dailyLifeExample: cleanText(pick(p, 'dailyLifeExample', 'daily_life_example', 'günlükHayatÖrneği', 'gunlukHayatOrnegi', 'örnek', 'ornek')) ?? undefined,
+        analysisLines: safeArray<Record<string, unknown>>(pick(p, 'analysisLines', 'analysis_lines', 'analizSatırları', 'analizSatirlari', 'satırlar', 'satirlar') as unknown)
+          .map((line) => {
+            const lr = asRecord(line);
+            if (!lr) return { title: undefined, text: undefined, icon: undefined };
+            return {
+              title: cleanText(pick(lr, 'title', 'başlık', 'baslik')) ?? undefined,
+              text: cleanText(pick(lr, 'text', 'metin', 'açıklama', 'aciklama')) ?? undefined,
+              icon: (typeof pick(lr, 'icon', 'ikon', 'simge') === 'string' ? pick(lr, 'icon', 'ikon', 'simge') as string : undefined),
+            };
+          })
           .filter((line) => line.title || line.text),
       } as NatalAiPlanetHighlight;
     })
@@ -292,1174 +391,984 @@ function normalizePlanetHighlights(value: unknown): NatalAiPlanetHighlight[] {
     ));
 }
 
-function toStructuredPayload(value: unknown): NatalAiStructuredPayload | null {
-  const parsed = asRecord(value);
-  if (!parsed) return null;
+// Helper: get a field from a record by trying multiple key aliases (EN + TR)
+function pick(record: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const key of keys) {
+    if (record[key] !== undefined && record[key] !== null && record[key] !== '') return record[key];
+  }
+  return undefined;
+}
 
-  const sections = normalizeSections(parsed.sections ?? parsed.sectionList ?? parsed.topics);
+function parseStructuredPayload(text: string): NatalAiStructuredPayload | null {
+  const parsed = tryParseJson(text);
+  const record = asRecord(parsed);
+  if (!record) return null;
+
+  // Support both English and Turkish JSON keys
+  const opening = cleanText(
+    pick(record, 'opening', 'intro', 'summary', 'giriş', 'giris', 'açılış', 'acilis', 'özet'),
+  ) ?? undefined;
+
+  const coreSummary = cleanText(
+    pick(record, 'coreSummary', 'core_summary', 'overview', 'Temel Özet', 'temelÖzet', 'temelOzet', 'genelBakış', 'genelBakis'),
+  ) ?? undefined;
+
+  const closing = cleanText(
+    pick(record, 'closing', 'conclusion', 'finalNote', 'final_note', 'kapanış', 'kapanis', 'sonuç', 'sonuc', 'sonNot'),
+  ) ?? undefined;
+
+  const sections = normalizeSections(
+    pick(record, 'sections', 'sectionList', 'section_list', 'topics', 'bölümler', 'bolumler', 'bölüm', 'bolum'),
+  );
+
   const planetHighlights = normalizePlanetHighlights(
-    parsed.planetHighlights ?? parsed.planets ?? parsed.planet_insights,
+    pick(record, 'planetHighlights', 'planet_highlights', 'planets', 'planet_insights', 'gezegenVurguları', 'gezegenVurgulari', 'gezegen_vurgulari', 'gezegenler'),
   );
 
-  const opening = cleanText(parsed.opening ?? parsed.intro ?? parsed.summary) ?? undefined;
-  const coreSummary = cleanText(parsed.coreSummary ?? parsed.overview) ?? undefined;
-  const closing = cleanText(parsed.closing ?? parsed.conclusion ?? parsed.finalNote) ?? undefined;
+  const hasContent = Boolean(opening) || Boolean(coreSummary) || sections.length > 0 || planetHighlights.length > 0;
+  if (!hasContent) return null;
 
-  const looksStructured =
-    parsed.version === 'natal_v2'
-    || Boolean(opening)
-    || sections.length > 0
-    || planetHighlights.length > 0;
+  const version = typeof record.version === 'string' ? record.version
+    : typeof record[''] === 'string' && /^natal_v\d+$/i.test(record[''] as string) ? (record[''] as string)
+    : undefined;
 
-  if (!looksStructured) return null;
-
-  return {
-    version: cleanText(parsed.version) ?? undefined,
-    tone: cleanText(parsed.tone) ?? undefined,
-    opening,
-    coreSummary,
-    sections,
-    planetHighlights,
-    closing,
-  };
+  return { version, tone: undefined, opening, coreSummary, sections, planetHighlights, closing };
 }
 
-function parseStructuredNatalAi(text: string): NatalAiStructuredPayload | null {
-  for (const candidate of buildJsonCandidates(text)) {
-    try {
-      const parsed = JSON.parse(candidate) as unknown;
-      if (typeof parsed === 'string') {
-        for (const innerCandidate of buildJsonCandidates(parsed)) {
-          try {
-            const innerParsed = JSON.parse(innerCandidate) as unknown;
-            const nestedPayload = toStructuredPayload(innerParsed);
-            if (nestedPayload) return nestedPayload;
-          } catch {
-            // Continue with next inner candidate.
-          }
-        }
-        continue;
+// ═══════════════════════════════════════════════════════════════════════
+// ICON MAPPING for analysisLines
+// ═══════════════════════════════════════════════════════════════════════
+
+const ANALYSIS_LINE_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
+  sparkles: 'sparkles-outline',
+  rocket: 'rocket-outline',
+  warning: 'warning-outline',
+  star: 'star-outline',
+  heart: 'heart-outline',
+  shield: 'shield-outline',
+  flash: 'flash-outline',
+  eye: 'eye-outline',
+  leaf: 'leaf-outline',
+  compass: 'compass-outline',
+};
+
+function resolveLineIcon(icon?: string): keyof typeof Ionicons.glyphMap {
+  if (!icon) return 'ellipse-outline';
+  const key = icon.toLowerCase().replace(/[-_\s]/g, '');
+  return ANALYSIS_LINE_ICON_MAP[key] ?? 'ellipse-outline';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SECTION ICON MAP
+// ═══════════════════════════════════════════════════════════════════════
+
+const SECTION_ICONS: Array<{ keywords: string[]; icon: keyof typeof Ionicons.glyphMap }> = [
+  { keywords: ['portre', 'özü', 'big three', 'ana tema'], icon: 'sparkles-outline' },
+  { keywords: ['çatışma', 'güç merkez', 'gerilim'], icon: 'flash-outline' },
+  { keywords: ['yetenek', 'armağan', 'doğal'], icon: 'diamond-outline' },
+  { keywords: ['gezegen', 'yerleşim'], icon: 'planet-outline' },
+  { keywords: ['kariyer', 'iş', 'amaç', 'başarı'], icon: 'briefcase-outline' },
+  { keywords: ['ilişki', 'partner', 'sevgi', 'aşk'], icon: 'heart-outline' },
+  { keywords: ['kader', 'sınav', 'saturn', 'ders'], icon: 'shield-outline' },
+  { keywords: ['gizli', 'derin', 'dönüşüm', 'plüton'], icon: 'eye-outline' },
+  { keywords: ['ruhsal', 'misyon', 'düğüm', 'kuzey'], icon: 'compass-outline' },
+];
+
+function resolveSectionIcon(title?: string): keyof typeof Ionicons.glyphMap {
+  if (!title) return 'book-outline';
+  const normalized = title.toLocaleLowerCase('tr-TR');
+  for (const rule of SECTION_ICONS) {
+    if (rule.keywords.some((kw) => normalized.includes(kw))) return rule.icon;
+  }
+  return 'book-outline';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SUBCOMPONENTS
+// ═══════════════════════════════════════════════════════════════════════
+
+// Parse inline **bold** / *italic* markdown into Text spans
+function MarkdownText({
+  children,
+  baseStyle,
+  headingStyle,
+  bodyColor,
+  headingColor,
+}: {
+  children: string;
+  baseStyle: any;
+  headingStyle: any;
+  bodyColor: string;
+  headingColor: string;
+}) {
+  const parts = useMemo(() => {
+    const result: Array<{ type: 'text' | 'bold' | 'italic'; value: string }> = [];
+    // Match **bold** first, then *italic*
+    const regex = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(children)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ type: 'text', value: children.slice(lastIndex, match.index) });
       }
-      const payload = toStructuredPayload(parsed);
-      if (payload) return payload;
-    } catch {
-      // Continue with next candidate.
+      if (match[1]) {
+        result.push({ type: 'bold', value: match[1] });
+      } else if (match[2]) {
+        result.push({ type: 'italic', value: match[2] });
+      }
+      lastIndex = regex.lastIndex;
     }
-  }
-  return null;
-}
-
-function looksLikeTechnicalRecoveryPayload(payload: NatalAiStructuredPayload): boolean {
-  const haystack = [
-    payload.opening,
-    payload.coreSummary,
-    payload.closing,
-    ...(payload.sections ?? []).flatMap((section) => [
-      section.id,
-      section.title,
-      section.body,
-      section.dailyLifeExample,
-      ...safeArray<{ title?: string; detail?: string }>(section.bulletPoints).flatMap((bp) => [bp.title, bp.detail]),
-    ]),
-  ]
-    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-    .join(' ')
-    .toLocaleLowerCase('tr-TR');
-
-  return TECHNICAL_RECOVERY_MARKERS.some((marker) => haystack.includes(marker));
-}
-
-function isTechnicalNarrative(value?: string | null): boolean {
-  const cleaned = cleanText(value);
-  if (!cleaned) return false;
-  const normalized = cleaned.toLocaleLowerCase('tr-TR');
-  return TECHNICAL_RECOVERY_MARKERS.some((marker) => normalized.includes(marker));
-}
-
-function buildRecoveryNarrative(payload: NatalAiStructuredPayload, rawText: string): string {
-  const fragments: string[] = [];
-  const push = (value?: string | null) => {
-    const cleaned = cleanText(value);
-    if (!cleaned || isTechnicalNarrative(cleaned) || fragments.includes(cleaned)) return;
-    fragments.push(cleaned);
-  };
-
-  push(payload.opening);
-  push(payload.coreSummary);
-  for (const section of payload.sections ?? []) {
-    push(section.body);
-    push(section.dailyLifeExample);
-    for (const bullet of safeArray<{ title?: string; detail?: string }>(section.bulletPoints)) {
-      push(bullet.detail);
+    if (lastIndex < children.length) {
+      result.push({ type: 'text', value: children.slice(lastIndex) });
     }
-  }
-  for (const planet of payload.planetHighlights ?? []) {
-    push(planet.intro);
-    push(planet.character);
-    push(planet.depth);
-    push(planet.dailyLifeExample);
-  }
-  push(payload.closing);
+    return result;
+  }, [children]);
 
-  if (fragments.length > 0) {
-    return fragments.slice(0, 8).join('\n\n');
+  if (parts.length === 0) return null;
+
+  // Check if this paragraph is a standalone bold heading (entire line is **bold**)
+  const isBoldHeading = parts.length === 1 && parts[0].type === 'bold';
+
+  if (isBoldHeading) {
+    return (
+      <Text style={[headingStyle, { color: headingColor }]}>
+        {parts[0].value}
+      </Text>
+    );
   }
 
-  const fallback = unwrapCodeFence(rawText);
-  if (fallback.includes('{') && fallback.includes('}')) {
-    return normalizeJsonCandidate(fallback)
-      .replace(/[{}[\]"]/g, ' ')
-      .replace(/[,;]+/g, '. ')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
+  const startsWithBoldHeading = parts[0]?.type === 'bold';
+
+  if (startsWithBoldHeading) {
+    const trailingParts = parts.slice(1).map((part, index) => ({
+      ...part,
+      value: index === 0 ? part.value.trimStart() : part.value,
+    }));
+
+    return (
+      <View style={paragraphStyles.entry}>
+        <Text style={[headingStyle, { color: headingColor }]}>
+          {parts[0].value}
+        </Text>
+        {trailingParts.length > 0 ? (
+          <Text style={[baseStyle, { color: bodyColor }]}>
+            {trailingParts.map((part, i) => {
+              if (part.type === 'bold') {
+                return (
+                  <Text key={i} style={{ fontWeight: '800', color: headingColor }}>
+                    {part.value}
+                  </Text>
+                );
+              }
+              if (part.type === 'italic') {
+                return (
+                  <Text key={i} style={{ fontStyle: 'italic' }}>
+                    {part.value}
+                  </Text>
+                );
+              }
+              return <Text key={i}>{part.value}</Text>;
+            })}
+          </Text>
+        ) : null}
+      </View>
+    );
   }
-  return fallback;
-}
 
-function buildSafePlainText(text: string): string {
-  return unwrapCodeFence(text);
-}
-
-function parsePlainBlocks(text: string) {
-  const normalized = buildSafePlainText(text);
-  if (!normalized) return [];
-  return splitPlainAiTextToBlocks(normalized);
-}
-
-function parseAiMode(text: string, payload: NatalAiStructuredPayload | null) {
-  if (!payload) {
-    return {
-      useStructured: false,
-      plainSource: buildSafePlainText(text),
-      isRecoveryMode: false,
-    };
-  }
-  const isRecoveryMode = looksLikeTechnicalRecoveryPayload(payload);
-  if (!isRecoveryMode) {
-    return {
-      useStructured: true,
-      plainSource: '',
-      isRecoveryMode: false,
-    };
-  }
-  return {
-    useStructured: false,
-    plainSource: buildRecoveryNarrative(payload, text),
-    isRecoveryMode: true,
-  };
-}
-
-function parseStructuredText(text: string): NatalAiStructuredPayload | null {
-  const payload = parseStructuredNatalAi(text);
-  if (payload) return payload;
-  try {
-    const raw = JSON.parse(text.trim()) as unknown;
-    return toStructuredPayload(raw);
-  } catch {
-    return null;
-  }
-}
-
-function MiniInfoBlock({
-  title,
-  text,
-}: {
-  title: string;
-  text?: string | null;
-}) {
-  const { colors } = useTheme();
-  if (!text) return null;
   return (
-    <View style={styles.infoBlock}>
-      <Text style={[styles.infoBlockTitle, { color: colors.violet }]}>{title}</Text>
-      <Text style={[styles.infoBlockText, { color: colors.body }]}>{text}</Text>
-    </View>
+    <Text style={[baseStyle, { color: bodyColor }]}>
+      {parts.map((part, i) => {
+        if (part.type === 'bold') {
+          return (
+            <Text key={i} style={{ fontWeight: '800', color: headingColor }}>
+              {part.value}
+            </Text>
+          );
+        }
+        if (part.type === 'italic') {
+          return (
+            <Text key={i} style={{ fontStyle: 'italic' }}>
+              {part.value}
+            </Text>
+          );
+        }
+        return <Text key={i}>{part.value}</Text>;
+      })}
+    </Text>
   );
 }
 
-function BulletInfoBlock({
-  title,
-  detail,
-}: {
-  title?: string | null;
-  detail?: string | null;
-}) {
-  const { colors } = useTheme();
-  if (!title && !detail) return null;
-  return (
-    <View
-      style={[
-        styles.bulletCard,
-        {
-          backgroundColor: colors.surfaceAlt,
-          borderColor: colors.borderLight,
-        },
-      ]}
-    >
-      {title ? <Text style={[styles.bulletTitle, { color: colors.text }]}>{cleanAstroHeading(title)}</Text> : null}
-      {detail ? <Text style={[styles.bulletText, { color: colors.textSoft }]}>{detail}</Text> : null}
-    </View>
-  );
-}
-
-function ParagraphBlock({ text }: { text?: string | null }) {
+function ParagraphRenderer({ text }: { text?: string | null }) {
   const { colors } = useTheme();
   const paragraphs = useMemo(() => splitAiBodyToParagraphs(text), [text]);
   if (paragraphs.length === 0) return null;
 
   return (
-    <View style={styles.paragraphGroup}>
+    <View style={paragraphStyles.wrap}>
       {paragraphs.map((paragraph, idx) => (
-        <Text key={`paragraph-${idx}`} style={[styles.sectionBody, { color: colors.body }]}>
+        <MarkdownText
+          key={`p-${idx}`}
+          baseStyle={paragraphStyles.text}
+          headingStyle={paragraphStyles.heading}
+          bodyColor={colors.body}
+          headingColor={colors.text}
+        >
           {paragraph}
-        </Text>
+        </MarkdownText>
       ))}
     </View>
   );
 }
 
-function extractSentences(text?: string | null): string[] {
-  const cleaned = cleanText(text);
-  if (!cleaned) return [];
-  return splitAiBodyToParagraphs(cleaned)
-    .flatMap((paragraph) => paragraph.split(/(?<=[.!?])\s+/))
-    .map((sentence) => sentence.replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
-}
+const paragraphStyles = StyleSheet.create({
+  wrap: { gap: 12 },
+  entry: { gap: 0 },
+  text: { fontSize: 13.5, lineHeight: 21 },
+  heading: { fontSize: 15, fontWeight: '900', lineHeight: 22, letterSpacing: -0.2, marginTop: 4, marginBottom: 6 },
+});
 
-function compactText(text?: string | null, maxLength = 112): string | null {
-  const candidate = extractSentences(text)[0] ?? cleanText(text);
-  if (!candidate) return null;
-  if (candidate.length <= maxLength) return candidate;
-  const clipped = candidate.slice(0, maxLength).trim();
-  const lastSpace = clipped.lastIndexOf(' ');
-  const safeEnd = lastSpace > Math.floor(maxLength * 0.58) ? lastSpace : clipped.length;
-  return `${clipped.slice(0, safeEnd).trim()}…`;
-}
-
-function MetaPill({
-  label,
-  tone = 'neutral',
-}: {
-  label: string;
-  tone?: 'neutral' | 'accent' | 'success' | 'warning';
-}) {
-  const { colors } = useTheme();
-  const toneMap = {
-    neutral: {
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-      textColor: colors.textSoft,
-    },
-    accent: {
-      backgroundColor: colors.violetBg,
-      borderColor: colors.violet + '22',
-      textColor: colors.violet,
-    },
-    success: {
-      backgroundColor: colors.successBg,
-      borderColor: colors.success + '22',
-      textColor: colors.success,
-    },
-    warning: {
-      backgroundColor: colors.warningBg,
-      borderColor: colors.warning + '22',
-      textColor: colors.warning,
-    },
-  } as const;
-
-  const palette = toneMap[tone];
-
-  return (
-    <View
-      style={[
-        styles.metaPill,
-        {
-          backgroundColor: palette.backgroundColor,
-          borderColor: palette.borderColor,
-        },
-      ]}
-    >
-      <Text style={[styles.metaPillText, { color: palette.textColor }]}>{label}</Text>
-    </View>
-  );
-}
-
-function InsightSignalCard({
+function ExpandableSectionCard({
   title,
-  text,
   icon,
-  tone = 'accent',
+  body,
+  bulletPoints,
+  dailyLifeExample,
+  index,
 }: {
   title: string;
-  text: string;
   icon: keyof typeof Ionicons.glyphMap;
-  tone?: 'accent' | 'success' | 'warning';
+  body?: string | null;
+  bulletPoints?: Array<{ title?: string; detail?: string }>;
+  dailyLifeExample?: string | null;
+  index: number;
 }) {
   const { colors } = useTheme();
-  const toneMap = {
-    accent: {
-      backgroundColor: colors.card,
-      borderColor: colors.violet + '20',
-      iconBackground: colors.violetBg,
-      iconColor: colors.violet,
-    },
-    success: {
-      backgroundColor: colors.card,
-      borderColor: colors.success + '20',
-      iconBackground: colors.successBg,
-      iconColor: colors.success,
-    },
-    warning: {
-      backgroundColor: colors.card,
-      borderColor: colors.warning + '20',
-      iconBackground: colors.warningBg,
-      iconColor: colors.warning,
-    },
-  } as const;
+  const [expanded, setExpanded] = useState(false);
+  const hasBullets = (bulletPoints ?? []).length > 0;
+  const hasExample = Boolean(cleanText(dailyLifeExample));
+  const previewText = useMemo(() => {
+    const cleaned = sanitizeAiNarrativeText(cleanText(body) ?? '')
+      .replace(/\*\*/g, '')
+      .replace(/\n{2,}/g, '\n')
+      .trim();
+    if (!cleaned) return null;
+    if (cleaned.length <= 320) return cleaned;
 
-  const palette = toneMap[tone];
-
-  return (
-    <View
-      style={[
-        styles.signalCard,
-        {
-          backgroundColor: palette.backgroundColor,
-          borderColor: palette.borderColor,
-        },
-      ]}
-    >
-      <View style={[styles.signalIconWrap, { backgroundColor: palette.iconBackground }]}>
-        <Ionicons name={icon} size={15} color={palette.iconColor} />
-      </View>
-      <Text style={[styles.signalTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.signalText, { color: colors.textSoft }]} numberOfLines={3}>
-        {text}
-      </Text>
-    </View>
-  );
-}
-
-function SectionDigestCard({
-  title,
-  text,
-  icon,
-}: {
-  title: string;
-  text: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}) {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        styles.digestCard,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        },
-      ]}
-    >
-      <View style={styles.digestHeader}>
-        <View style={[styles.digestIconWrap, { backgroundColor: colors.primaryTint }]}>
-          <Ionicons name={icon} size={14} color={colors.violet} />
-        </View>
-        <Text style={[styles.digestTitle, { color: colors.text }]} numberOfLines={1}>
-          {title}
-        </Text>
-      </View>
-      <Text style={[styles.digestText, { color: colors.textSoft }]} numberOfLines={3}>
-        {text}
-      </Text>
-    </View>
-  );
-}
-
-export default function StructuredNatalAiInterpretation({ text, fallbackTextStyle }: Props) {
-  const { colors } = useTheme();
-
-  const payload = useMemo(() => parseStructuredText(text), [text]);
-  const aiMode = useMemo(() => parseAiMode(text, payload), [text, payload]);
-  const plainBlocks = useMemo(() => parsePlainBlocks(aiMode.plainSource), [aiMode.plainSource]);
-  const [openSectionId, setOpenSectionId] = useState<string | null>(null);
-  const [openPlanetId, setOpenPlanetId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setOpenSectionId(null);
-    setOpenPlanetId(null);
-  }, [text]);
-
-  const parsedSections = useMemo(() => {
-    if (!payload || !aiMode.useStructured) return [];
-    return (payload.sections ?? []).map((section, idx) => {
-      const body = cleanText(section.body) ?? '';
-      const title = inferTurkishAiTitle(body, cleanText(section.title) ?? section.id ?? `Bölüm ${idx + 1}`);
-      return { ...section, body, title, _id: String(section.id ?? `section-${idx + 1}`) };
-    });
-  }, [aiMode.useStructured, payload]);
-
-  const parsedPlanetHighlights = useMemo(() => {
-    if (!payload || !aiMode.useStructured) return [];
-    return (payload.planetHighlights ?? []).slice(0, 8).map((planet, idx) => {
-      const id = (planet.planetId ?? `planet-${idx + 1}`).toLowerCase();
-      const composedBody = [
-        cleanText(planet.intro),
-        cleanText(planet.character),
-        cleanText(planet.depth),
-        cleanText(planet.dailyLifeExample),
-      ]
-        .filter(Boolean)
-        .join(' ');
-      const title = inferTurkishAiTitle(composedBody, cleanText(planet.title) ?? `${id} yerleşimi`);
-      return { ...planet, _id: id, _accordionTitle: title };
-    });
-  }, [aiMode.useStructured, payload]);
-
-  const sections = parsedSections;
-  const planetHighlights = parsedPlanetHighlights;
-  const structuredPayload = aiMode.useStructured ? payload : null;
-
-  const displaySections = useMemo<DisplaySection[]>(() => {
-    if (aiMode.useStructured) {
-      const items: DisplaySection[] = [];
-      sections.forEach((section) => {
-        const preview = compactText(section.body ?? section.dailyLifeExample, 108);
-        if (!preview || !cleanText(section.body)) return;
-        const metaLabels = [
-          (section.bulletPoints ?? []).length > 0 ? `${(section.bulletPoints ?? []).length} vurgu` : null,
-          cleanText(section.dailyLifeExample) ? 'günlük yansıma' : null,
-        ].filter((label): label is string => Boolean(label));
-
-        items.push({
-          ...section,
-          preview,
-          metaLabels,
-        });
-      });
-      return items;
-    }
-
-    const items: DisplaySection[] = [];
-    plainBlocks.forEach((block) => {
-      const body = cleanText(block.body) ?? '';
-      const preview = compactText(body, 108);
-      if (!body || !preview) return;
-      items.push({
-        _id: block.id,
-        id: block.id,
-        title: cleanAstroHeading(block.title),
-        body,
-        preview,
-        metaLabels: [],
-        bulletPoints: [],
-      });
-    });
-    return items;
-  }, [aiMode.useStructured, plainBlocks, sections]);
-
-  const heroLead = useMemo(() => {
-    if (aiMode.useStructured) {
-      return compactText(
-        structuredPayload?.opening ?? structuredPayload?.coreSummary ?? sections[0]?.body,
-        142,
-      );
-    }
-    return compactText(plainBlocks[0]?.body, 142);
-  }, [aiMode.useStructured, plainBlocks, sections, structuredPayload]);
-
-  const heroSupport = useMemo(() => {
-    if (aiMode.useStructured) {
-      return compactText(
-        structuredPayload?.coreSummary
-          ?? sections.find((section) => cleanText(section.dailyLifeExample))?.dailyLifeExample
-          ?? structuredPayload?.closing
-          ?? sections[1]?.body,
-        118,
-      );
-    }
-    return compactText(plainBlocks[1]?.body ?? plainBlocks[0]?.body, 118);
-  }, [aiMode.useStructured, plainBlocks, sections, structuredPayload]);
-
-  const overviewSignals = useMemo<OverviewSignal[]>(() => {
-    if (aiMode.useStructured) {
-      const firstPlanet = planetHighlights[0];
-      const firstPlanetMeta = firstPlanet ? (PLANET_META[firstPlanet._id] ?? { label: 'Gezegen' }) : null;
-      const items: OverviewSignal[] = [];
-      const energy = compactText(structuredPayload?.opening ?? sections[0]?.body, 90);
-      const balance = compactText(structuredPayload?.coreSummary ?? sections[1]?.body ?? structuredPayload?.closing, 90);
-      const life = compactText(
-        firstPlanet
-          ? firstPlanet.intro ?? firstPlanet.character ?? firstPlanet.depth
-          : sections.find((section) => cleanText(section.dailyLifeExample))?.dailyLifeExample ?? structuredPayload?.closing,
-        90,
-      );
-
-      if (energy) {
-        items.push({
-          id: 'energy',
-          title: 'Ana enerji',
-          text: energy,
-          icon: 'sparkles-outline',
-          tone: 'accent',
-        });
-      }
-      if (balance) {
-        items.push({
-          id: 'balance',
-          title: 'Denge noktası',
-          text: balance,
-          icon: 'compass-outline',
-          tone: 'warning',
-        });
-      }
-      if (life) {
-        items.push({
-          id: 'life',
-          title: firstPlanetMeta ? `${firstPlanetMeta.label} vurgusu` : 'Hayata yansıması',
-          text: life,
-          icon: firstPlanet ? 'planet-outline' : 'sunny-outline',
-          tone: 'success',
-        });
-      }
-      return items;
-    }
-
-    const items: OverviewSignal[] = [];
-    const summary = compactText(plainBlocks[0]?.body, 90);
-    const focus = compactText(plainBlocks[1]?.body ?? plainBlocks[0]?.body, 90);
-    const flow = compactText(plainBlocks[2]?.body ?? plainBlocks[1]?.body ?? plainBlocks[0]?.body, 90);
-
-    if (summary) {
-      items.push({
-        id: 'summary',
-        title: cleanAstroHeading(plainBlocks[0]?.title || 'Ana Tema'),
-        text: summary,
-        icon: 'sparkles-outline',
-        tone: 'accent',
-      });
-    }
-    if (focus) {
-      items.push({
-        id: 'focus',
-        title: cleanAstroHeading(plainBlocks[1]?.title || 'Denge Noktası'),
-        text: focus,
-        icon: 'albums-outline',
-        tone: 'warning',
-      });
-    }
-    if (flow) {
-      items.push({
-        id: 'flow',
-        title: cleanAstroHeading(plainBlocks[2]?.title || 'Hayata Yansıması'),
-        text: flow,
-        icon: 'navigate-outline',
-        tone: 'success',
-      });
-    }
-    return items;
-  }, [aiMode.useStructured, plainBlocks, planetHighlights, sections, structuredPayload]);
-
-  const digestCards = useMemo(() => displaySections.slice(0, 3).map((section, idx) => ({
-    id: section._id,
-    title: section.title,
-    text: section.preview,
-    icon: (['layers-outline', 'trail-sign-outline', 'flash-outline'][idx] ?? 'ellipse-outline') as keyof typeof Ionicons.glyphMap,
-  })), [displaySections]);
-
-  if (!aiMode.useStructured && plainBlocks.length === 0) {
-    return (
-      <StaggeredAiText
-        text={aiMode.plainSource || buildSafePlainText(text)}
-        style={fallbackTextStyle}
-      />
+    const clipped = cleaned.slice(0, 320).trim();
+    const sentenceEnd = Math.max(
+      clipped.lastIndexOf('. '),
+      clipped.lastIndexOf('! '),
+      clipped.lastIndexOf('? '),
     );
-  }
+    if (sentenceEnd >= 140) {
+      return `${clipped.slice(0, sentenceEnd + 1).trim()}…`;
+    }
+
+    const lastSpace = clipped.lastIndexOf(' ');
+    return `${clipped.slice(0, lastSpace > 180 ? lastSpace : 320).trim()}…`;
+  }, [body]);
 
   return (
-    <View style={styles.container}>
-      <View
+    <Reanimated.View entering={FadeInDown.delay(index * 70).duration(350)}>
+      <Pressable
+        onPress={() => setExpanded((prev) => !prev)}
         style={[
-          styles.heroCard,
+          secStyles.card,
           {
-            backgroundColor: colors.primaryTint,
-            borderColor: colors.border,
+            backgroundColor: colors.card,
+            borderColor: expanded ? colors.violet + '55' : colors.border,
+            shadowColor: expanded ? colors.violet : '#000',
           },
         ]}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
       >
-        <View style={styles.heroHeader}>
-          <View style={[styles.heroIconWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="sparkles" size={15} color={colors.violet} />
+        <View
+          style={[
+            secStyles.topGlow,
+            { backgroundColor: expanded ? colors.violet : colors.border },
+          ]}
+        />
+
+        {/* Premium bold headline */}
+        <View style={secStyles.headline}>
+          <View style={[secStyles.headlineIconWrap, { backgroundColor: colors.violetBg }]}>
+            <Ionicons name={icon} size={18} color={colors.violet} />
           </View>
-          <View style={styles.heroHeaderText}>
-            <Text style={[styles.heroTitle, { color: colors.text }]}>Kozmik Ana Tema</Text>
-            <Text style={[styles.heroEyebrow, { color: colors.subtext }]}>
-              Önce kısa resmi gör, sonra merak ettiğin başlığı aç.
+          <View style={secStyles.headlineTitleWrap}>
+            <Text style={[secStyles.headlineTitle, { color: colors.text }]} numberOfLines={2}>
+              {cleanAstroHeading(title)}
             </Text>
           </View>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={colors.textMuted}
+          />
         </View>
-        {heroLead ? (
-          <Text style={[styles.heroHeadline, { color: colors.text }]}>{heroLead}</Text>
-        ) : null}
-        {heroSupport ? (
-          <Text style={[styles.heroSubText, { color: colors.textSoft }]}>{heroSupport}</Text>
-        ) : null}
-        <View style={styles.signalGrid}>
-          {overviewSignals.map((signal) => (
-            <InsightSignalCard
-              key={signal.id}
-              title={signal.title}
-              text={signal.text}
-              icon={signal.icon}
-              tone={signal.tone}
-            />
-          ))}
-        </View>
-        <View style={styles.heroMetaRow}>
-          <MetaPill label={`${displaySections.length} başlık`} tone="accent" />
-          {planetHighlights.length > 0 ? <MetaPill label={`${planetHighlights.length} gezegen odağı`} tone="success" /> : null}
-        </View>
-      </View>
 
-      {digestCards.length > 0 ? (
-        <View
-          style={[
-            styles.digestSection,
-            {
-              backgroundColor: colors.surfaceAlt,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.groupTitle, { color: colors.text }]}>Nereden Başlamalı?</Text>
-          <Text style={[styles.groupHint, { color: colors.subtext }]}>
-            En çok işine yarayacak başlıkları kısa açıklamayla burada gör.
-          </Text>
-          <View style={styles.digestGrid}>
-            {digestCards.map((card) => (
-              <SectionDigestCard
-                key={card.id}
-                title={card.title}
-                text={card.text}
-                icon={card.icon}
-              />
-            ))}
+        {/* Preview when collapsed */}
+        {!expanded && previewText ? (
+          <View style={[secStyles.previewWrap, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
+            <Text style={[secStyles.previewText, { color: colors.subtext }]}>
+              {previewText}
+            </Text>
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      {displaySections.length > 0 && (
-        <View style={styles.group}>
-          <Text style={[styles.groupTitle, { color: colors.text }]}>Harita Yorumu</Text>
-          {displaySections.map((section, index) => (
-            <AccordionSection
-              key={section._id}
-              id={section._id}
-              title={inferTurkishAiTitle(section.body, section.title)}
-              subtitle={section.preview}
-              icon="sparkles-outline"
-              expanded={openSectionId === section._id}
-              onToggle={(id) => setOpenSectionId((prev) => (prev === id ? null : id))}
-              headerMeta={section.metaLabels.length > 0 ? (
-                <View style={styles.metaRow}>
-                  {section.metaLabels.map((label, labelIdx) => (
-                    <MetaPill
-                      key={`${section._id}-tag-${labelIdx}`}
-                      label={label}
-                      tone={labelIdx === 0 ? 'accent' : 'neutral'}
-                    />
-                  ))}
-                </View>
-              ) : null}
-              lazy
-              deferBodyMount
-            >
-              <View style={styles.nestedBody}>
-                <View
-                  style={[
-                    styles.summaryCard,
-                    {
-                      backgroundColor: colors.primaryTint,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View style={styles.summaryHeader}>
-                    <Ionicons name="sparkles-outline" size={14} color={colors.violet} />
-                    <Text style={[styles.summaryTitle, { color: colors.text }]}>Bu başlığın özeti</Text>
-                  </View>
-                  <Text style={[styles.summaryText, { color: colors.body }]}>{section.preview}</Text>
-                </View>
-                {(section.bulletPoints ?? []).length > 0 ? (
-                  <View style={styles.bulletGroup}>
-                    {section.bulletPoints?.map((bp, bpIdx) => (
-                      <BulletInfoBlock
-                        key={`${section.id ?? 'section'}-bp-${bpIdx}`}
-                        title={bp.title}
-                        detail={bp.detail}
-                      />
-                    ))}
-                  </View>
-                ) : null}
-                {cleanText(section.dailyLifeExample) ? (
+        {/* Expanded content */}
+        {expanded ? (
+          <Reanimated.View entering={FadeIn.duration(200)} style={secStyles.body}>
+            <View style={[secStyles.copyPanel, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
+              <ParagraphRenderer text={body} />
+            </View>
+
+            {hasBullets ? (
+              <View style={secStyles.bulletGroup}>
+                <Text style={[secStyles.bulletGroupTitle, { color: colors.text }]}>
+                  Öne Çıkan Noktalar
+                </Text>
+                {bulletPoints?.map((bp, bpIdx) => (
                   <View
-                    style={[
-                      styles.exampleBox,
-                      {
-                        backgroundColor: colors.surfaceAlt,
-                        borderColor: colors.borderLight,
-                      },
-                    ]}
+                    key={`bp-${bpIdx}`}
+                    style={[secStyles.bulletItem, { backgroundColor: colors.card, borderColor: colors.borderLight }]}
                   >
-                    <Text style={[styles.exampleLabel, { color: colors.violet }]}>Günlük Hayat Örneği</Text>
-                    <Text style={[styles.exampleText, { color: colors.textSoft }]}>
-                      {translateAstroTermsForUi(section.dailyLifeExample)}
-                    </Text>
+                    <View style={[secStyles.bulletDotWrap, { backgroundColor: colors.violetBg }]}>
+                      <View style={[secStyles.bulletDot, { backgroundColor: colors.violet }]} />
+                    </View>
+                    <View style={secStyles.bulletContent}>
+                      {bp.title ? (
+                        <Text style={[secStyles.bulletTitle, { color: colors.text }]}>
+                          {cleanAstroHeading(bp.title)}
+                        </Text>
+                      ) : null}
+                      {bp.detail ? (
+                        <ParagraphRenderer text={bp.detail} />
+                      ) : null}
+                    </View>
                   </View>
-                ) : null}
-                <View style={styles.detailBlock}>
-                  <Text style={[styles.detailLabel, { color: colors.subtext }]}>
-                    {index === 0 ? 'Derin yorum' : 'Detaylı okuma'}
-                  </Text>
-                  <ParagraphBlock text={section.body} />
-                </View>
+                ))}
               </View>
-            </AccordionSection>
-          ))}
-        </View>
-      )}
+            ) : null}
 
-      {aiMode.useStructured && planetHighlights.length > 0 && (
-        <View style={styles.group}>
-          <Text style={[styles.groupTitle, { color: colors.text }]}>Gezegensel Etkiler</Text>
-          {planetHighlights.map((planet, idx) => {
-            const id = planet._id;
-            const meta = PLANET_META[id] ?? { glyph: '✦', label: 'Gezegen' };
-            const cardTitle = cleanAstroHeading(translateAstroTermsForUi(planet._accordionTitle ?? cleanText(planet.title) ?? `${meta.label} Yerleşimi`));
-            const planetPreview = compactText(
-              planet.character ?? planet.intro ?? planet.depth ?? planet.dailyLifeExample,
-              100,
-            );
-            return (
-              <AccordionSection
-                key={`${id || 'planet'}-${idx}`}
-                id={`planet-${id || idx}`}
-                title={`${meta.glyph} ${cardTitle}`}
-                subtitle={planetPreview ?? `${meta.label} yerleşim analizi`}
-                icon="planet-outline"
-                expanded={openPlanetId === `planet-${id || idx}`}
-                onToggle={(itemId) => setOpenPlanetId((prev) => (prev === itemId ? null : itemId))}
-                headerMeta={(
-                  <View style={styles.metaRow}>
-                    {safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).length > 0 ? (
-                      <MetaPill
-                        label={`${safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).length} vurgu`}
-                        tone="accent"
-                      />
-                    ) : null}
-                    {cleanText(planet.dailyLifeExample) ? <MetaPill label="günlük yansıma" tone="neutral" /> : null}
-                  </View>
-                )}
-                lazy
-                deferBodyMount
-              >
-                <View style={styles.nestedBody}>
-                  <View style={styles.planetHeader}>
-                    <View style={[styles.planetGlyphWrap, { backgroundColor: colors.violetBg }]}>
-                      <Text style={[styles.planetGlyph, { color: colors.violet }]}>{meta.glyph}</Text>
-                    </View>
-                    <View style={{ flex: 1, gap: 1 }}>
-                      <Text style={[styles.planetTitle, { color: colors.text }]}>{cardTitle}</Text>
-                      <Text style={[styles.planetSub, { color: colors.muted }]}>{meta.label}</Text>
-                    </View>
-                  </View>
-
-                  {planetPreview ? (
-                    <View
-                      style={[
-                        styles.summaryCard,
-                        {
-                          backgroundColor: colors.primaryTint,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                    >
-                      <View style={styles.summaryHeader}>
-                        <Ionicons name="planet-outline" size={14} color={colors.violet} />
-                        <Text style={[styles.summaryTitle, { color: colors.text }]}>Kısa etkisi</Text>
-                      </View>
-                      <Text style={[styles.summaryText, { color: colors.body }]}>{planetPreview}</Text>
-                    </View>
-                  ) : null}
-
-                  {safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).length > 0 ? (
-                    <View style={styles.bulletGroup}>
-                      {safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines).map((line, lineIdx) => (
-                        <BulletInfoBlock
-                          key={`${id}-line-${lineIdx}`}
-                          title={inferTurkishAiTitle(line.text, line.title)}
-                          detail={translateAstroTermsForUi(line.text)}
-                        />
-                      ))}
-                    </View>
-                  ) : (
-                    <>
-                      <MiniInfoBlock title="Karakter Yansıması" text={cleanText(planet.character) ?? cleanText(planet.intro)} />
-                      <MiniInfoBlock title="Kişisel Etki Alanı" text={cleanText(planet.depth)} />
-                    </>
-                  )}
-                  <MiniInfoBlock title="Genel Bakış" text={safeArray(planet.analysisLines).length ? null : cleanText(planet.intro)} />
-                  <MiniInfoBlock title="Derinlemesine Analiz" text={safeArray(planet.analysisLines).length ? null : cleanText(planet.depth)} />
-
-                  {cleanText(planet.dailyLifeExample) ? (
-                    <View
-                      style={[
-                        styles.planetExample,
-                        { backgroundColor: colors.primaryTint, borderColor: colors.border },
-                      ]}
-                    >
-                      <Text style={[styles.exampleLabel, { color: colors.violet }]}>Pratik Yansıması</Text>
-                      <Text style={[styles.exampleText, { color: colors.textSoft }]}>
-                        {translateAstroTermsForUi(planet.dailyLifeExample)}
-                      </Text>
-                    </View>
-                  ) : null}
+            {hasExample ? (
+              <View style={[secStyles.exampleBox, { backgroundColor: colors.primaryTint, borderColor: colors.violet + '18' }]}>
+                <View style={secStyles.exampleHeader}>
+                  <Ionicons name="bulb-outline" size={14} color={colors.violet} />
+                  <Text style={[secStyles.exampleLabel, { color: colors.violet }]}>
+                    Günlük Hayat Örneği
+                  </Text>
                 </View>
-              </AccordionSection>
-            );
-          })}
-        </View>
-      )}
-
-      {structuredPayload?.closing ? (
-        <View
-          style={[
-            styles.closingCard,
-            {
-              backgroundColor: colors.surfaceAlt,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.closingTitle, { color: colors.text }]}>Yanında Kalsın</Text>
-          <Text style={[styles.closingText, { color: colors.body }]}>
-            {compactText(structuredPayload.closing, 190) ?? structuredPayload.closing}
-          </Text>
-        </View>
-      ) : null}
-    </View>
+                <ParagraphRenderer text={translateAstroTermsForUi(dailyLifeExample)} />
+              </View>
+            ) : null}
+          </Reanimated.View>
+        ) : null}
+      </Pressable>
+    </Reanimated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: 12,
-  },
-  heroCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 14,
-    gap: 12,
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  heroIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroHeaderText: {
-    flex: 1,
-    gap: 2,
-  },
-  heroTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  heroEyebrow: {
-    fontSize: 11.5,
-    lineHeight: 16,
-  },
-  heroHeadline: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '700',
-  },
-  heroSubText: {
-    fontSize: 12.5,
-    lineHeight: 19,
-  },
-  signalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  signalCard: {
-    minWidth: 148,
-    flexGrow: 1,
-    flexBasis: 0,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 10,
-    gap: 8,
-  },
-  signalIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signalTitle: {
-    fontSize: 11.5,
-    fontWeight: '800',
-  },
-  signalText: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  heroMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  metaPill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  metaPillText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-  },
-  digestSection: {
+const secStyles = StyleSheet.create({
+  card: {
     borderRadius: 20,
     borderWidth: 1,
-    padding: 14,
-    gap: 10,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  group: {
-    gap: 10,
+  topGlow: {
+    height: 3,
+    width: '100%',
   },
-  groupTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  groupHint: {
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: -4,
-  },
-  digestGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  digestCard: {
-    minWidth: 148,
-    flexGrow: 1,
-    flexBasis: 0,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 10,
-    gap: 8,
-  },
-  digestHeader: {
+  headline: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 10,
   },
-  digestIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
+  headlineIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  digestTitle: {
+  headlineTitleWrap: {
     flex: 1,
-    fontSize: 12,
-    fontWeight: '800',
+    minWidth: 0,
+    gap: 1,
   },
-  digestText: {
-    fontSize: 12,
-    lineHeight: 18,
+  headlineTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.3,
   },
-  nestedBody: {
+  previewWrap: {
+    marginHorizontal: 18,
+    marginBottom: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  previewText: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  body: {
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    gap: 16,
+  },
+  copyPanel: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  bulletGroup: {
     gap: 10,
   },
-  paragraphGroup: {
-    gap: 8,
+  bulletGroupTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
-  sectionCard: {
+  bulletItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     borderRadius: 16,
     borderWidth: 1,
     padding: 12,
-    gap: 10,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
+    gap: 12,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionIndexDot: {
+  bulletDotWrap: {
     width: 22,
     height: 22,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
   },
-  sectionIndexText: {
-    fontSize: 11,
-    fontWeight: '800',
+  bulletDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
   },
-  sectionTitle: {
+  bulletContent: {
     flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  sectionBody: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  summaryCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 11,
-    gap: 6,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  summaryTitle: {
-    fontSize: 11.5,
-    fontWeight: '800',
-  },
-  summaryText: {
-    fontSize: 12.5,
-    lineHeight: 18,
-  },
-  detailBlock: {
     gap: 8,
   },
-  detailLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+  bulletTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    lineHeight: 20,
+    marginBottom: 2,
   },
   exampleBox: {
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    padding: 10,
-    gap: 4,
-  },
-  exampleLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  exampleText: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  planetCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 12,
+    padding: 14,
     gap: 10,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
   },
-  planetHeader: {
+  exampleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
   },
-  planetGlyphWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+  exampleLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: -0.1,
+  },
+});
+
+function PlanetCard({
+  planet,
+  index,
+}: {
+  planet: NatalAiPlanetHighlight & { _id: string };
+  index: number;
+}) {
+  const { colors } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const meta = PLANET_META[planet._id] ?? { glyph: '✦', label: 'Gezegen', icon: 'planet-outline' as keyof typeof Ionicons.glyphMap };
+
+  const cardTitle = cleanAstroHeading(translateAstroTermsForUi(
+    cleanText(planet.title) ?? `${meta.label} Yerleşimi`,
+  ));
+
+  const composedBody = useMemo(() => {
+    return [
+      cleanText(planet.intro),
+      cleanText(planet.character),
+      cleanText(planet.depth),
+    ].filter(Boolean).join('\n\n');
+  }, [planet.intro, planet.character, planet.depth]);
+
+  const previewText = useMemo(() => {
+    const first = cleanText(planet.character) ?? cleanText(planet.intro) ?? cleanText(planet.depth);
+    if (!first) return null;
+    if (first.length <= 120) return first;
+    const clipped = first.slice(0, 120).trim();
+    const lastSpace = clipped.lastIndexOf(' ');
+    return `${clipped.slice(0, lastSpace > 70 ? lastSpace : 120).trim()}…`;
+  }, [planet]);
+
+  const lines = safeArray<{ title?: string; text?: string; icon?: string }>(planet.analysisLines)
+    .filter((l) => l.title || l.text);
+
+  return (
+    <Reanimated.View entering={FadeInDown.delay(index * 70).duration(350)}>
+      <Pressable
+        onPress={() => setExpanded((prev) => !prev)}
+        style={[
+          plStyles.card,
+          {
+            backgroundColor: colors.card,
+            borderColor: expanded ? colors.violet + '55' : colors.border,
+            shadowColor: expanded ? colors.violet : '#000',
+          },
+        ]}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+      >
+        {/* Premium bold headline */}
+        <View style={plStyles.headline}>
+          <View style={[plStyles.glyphWrap, { backgroundColor: colors.violetBg }]}>
+            <Text style={[plStyles.glyph, { color: colors.violet }]}>{meta.glyph}</Text>
+          </View>
+          <View style={plStyles.headlineTitleWrap}>
+            <Text style={[plStyles.headlineLabel, { color: colors.violet }]}>
+              {meta.label}
+            </Text>
+            <Text style={[plStyles.headlineTitle, { color: colors.text }]} numberOfLines={2}>
+              {cardTitle}
+            </Text>
+          </View>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={colors.textMuted}
+          />
+        </View>
+
+        {/* Preview when collapsed */}
+        {!expanded && previewText ? (
+          <View style={plStyles.previewWrap}>
+            <Text style={[plStyles.previewText, { color: colors.subtext }]} numberOfLines={3}>
+              {previewText}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Expanded content */}
+        {expanded ? (
+          <Reanimated.View entering={FadeIn.duration(200)} style={plStyles.body}>
+            <View style={[plStyles.divider, { backgroundColor: colors.border }]} />
+
+            {composedBody ? <ParagraphRenderer text={composedBody} /> : null}
+
+            {lines.length > 0 ? (
+              <View style={plStyles.linesGroup}>
+                {lines.map((line, lineIdx) => (
+                  <View
+                    key={`line-${lineIdx}`}
+                    style={[plStyles.lineItem, { borderColor: colors.borderLight }]}
+                  >
+                    <View style={[plStyles.lineIconWrap, { backgroundColor: colors.violetBg }]}>
+                      <Ionicons name={resolveLineIcon(line.icon)} size={14} color={colors.violet} />
+                    </View>
+                    <View style={plStyles.lineContent}>
+                      {line.title ? (
+                        <Text style={[plStyles.lineTitle, { color: colors.text }]}>
+                          {cleanAstroHeading(line.title)}
+                        </Text>
+                      ) : null}
+                      {line.text ? (
+                        <Text style={[plStyles.lineText, { color: colors.textSoft }]}>
+                          {translateAstroTermsForUi(line.text)}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {cleanText(planet.dailyLifeExample) ? (
+              <View style={[plStyles.exampleBox, { backgroundColor: colors.primaryTint, borderColor: colors.violet + '18' }]}>
+                <View style={plStyles.exampleHeader}>
+                  <Ionicons name="bulb-outline" size={14} color={colors.violet} />
+                  <Text style={[plStyles.exampleLabel, { color: colors.violet }]}>
+                    Pratik Yansıması
+                  </Text>
+                </View>
+                <Text style={[plStyles.exampleText, { color: colors.body }]}>
+                  {translateAstroTermsForUi(planet.dailyLifeExample)}
+                </Text>
+              </View>
+            ) : null}
+          </Reanimated.View>
+        ) : null}
+      </Pressable>
+    </Reanimated.View>
+  );
+}
+
+const plStyles = StyleSheet.create({
+  card: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  headline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  glyphWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  planetGlyph: {
-    fontSize: 18,
-    fontWeight: '700',
+  glyph: {
+    fontSize: 20,
+    fontWeight: '800',
   },
-  planetTitle: {
+  headlineTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  headlineLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  headlineTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  previewWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  previewText: {
     fontSize: 13,
-    fontWeight: '700',
+    lineHeight: 19,
   },
-  planetSub: {
-    fontSize: 11,
+  body: {
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    gap: 14,
   },
-  infoBlock: {
-    gap: 4,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginBottom: 2,
   },
-  infoBlockTitle: {
-    fontSize: 11,
+  linesGroup: {
+    gap: 10,
+  },
+  lineItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  lineIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  lineContent: {
+    flex: 1,
+    gap: 3,
+  },
+  lineTitle: {
+    fontSize: 13,
     fontWeight: '800',
   },
-  infoBlockText: {
-    fontSize: 12.5,
-    lineHeight: 18,
+  lineText: {
+    fontSize: 13,
+    lineHeight: 19,
   },
-  bulletGroup: {
+  exampleBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
     gap: 8,
-    marginTop: 2,
   },
-  bulletCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 10,
-    gap: 4,
-  },
-  bulletTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  bulletText: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  planetExample: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 10,
-    gap: 4,
-  },
-  closingCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 12,
+  exampleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
-  closingTitle: {
+  exampleLabel: {
     fontSize: 12,
     fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  exampleText: {
+    fontSize: 13.5,
+    lineHeight: 21,
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════
+
+export default function StructuredNatalAiInterpretation({ text, fallbackTextStyle }: Props) {
+  const { colors } = useTheme();
+  const payload = useMemo(() => parseStructuredPayload(text), [text]);
+
+  // Structured sections
+  const sections = useMemo(() => {
+    if (!payload?.sections) return [];
+    return payload.sections
+      .map((section, idx) => {
+        const body = cleanText(section.body);
+        if (!body) return null;
+        const title = inferTurkishAiTitle(body, cleanText(section.title) ?? section.id ?? `Bölüm ${idx + 1}`);
+        return { ...section, body, title, _id: String(section.id ?? `section-${idx + 1}`) };
+      })
+      .filter((section) => section && !shouldHideSectionTitle(section.title))
+      .filter(Boolean) as Array<NatalAiSection & { body: string; title: string; _id: string }>;
+  }, [payload]);
+
+  // Planet highlights
+  const planets = useMemo(() => {
+    if (!payload?.planetHighlights) return [];
+    return payload.planetHighlights
+      .slice(0, 10)
+      .map((planet, idx) => ({
+        ...planet,
+        _id: (planet.planetId ?? `planet-${idx + 1}`).toLowerCase(),
+      }));
+  }, [payload]);
+
+  const heroOpeningText = useMemo(() => {
+    const cleaned = sanitizeAiNarrativeText(payload?.opening ?? '').trim();
+    return cleaned.replace(/^\s*(?:g[iıİI]r[iıİI](?:ş|s)|opening|intro)\s*[.:,-]?\s*/iu, '').trim();
+  }, [payload?.opening]);
+
+  const heroSummaryText = useMemo(() => {
+    const cleaned = sanitizeAiNarrativeText(payload?.coreSummary ?? '').trim();
+    return cleaned.replace(/^\s*(?:g[iıİI]r[iıİI](?:ş|s)|opening|intro)\s*[.:,-]?\s*/iu, '').trim();
+  }, [payload?.coreSummary]);
+
+  const hasStructuredPayload = Boolean(
+    payload?.opening
+    || payload?.coreSummary
+    || payload?.closing
+    || sections.length > 0
+    || planets.length > 0,
+  );
+
+  // Plain text fallback
+  const plainBlocks = useMemo(() => {
+    if (payload) return [];
+    const safePlain = unwrapCodeFence(text);
+    return splitPlainAiTextToBlocks(safePlain).filter((block) => !shouldHideSectionTitle(block.title));
+  }, [text, payload]);
+
+  const isStructured = hasStructuredPayload;
+
+  // Complete fallback — unparseable text
+  if (!isStructured && plainBlocks.length === 0) {
+    return (
+      <StaggeredAiText
+        text={sanitizeAiNarrativeText(unwrapCodeFence(text))}
+        style={fallbackTextStyle}
+      />
+    );
+  }
+
+  // ─── Structured Render ───────────────────────────────────────────
+  if (isStructured) {
+    return (
+      <View style={mainStyles.container}>
+        {/* Opening / Core Summary Hero */}
+        {(payload?.opening || payload?.coreSummary) ? (
+          <Reanimated.View entering={FadeIn.duration(400)}>
+            <View style={[mainStyles.heroCard, { backgroundColor: colors.primaryTint, borderColor: colors.violet + '20' }]}>
+              <View style={mainStyles.heroHeader}>
+                <View style={[mainStyles.heroIcon, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Ionicons name="sparkles" size={16} color={colors.violet} />
+                </View>
+                <Text style={[mainStyles.heroTitle, { color: colors.text }]}>Guru Yorum</Text>
+              </View>
+              {heroOpeningText ? (
+                <View style={mainStyles.heroParagraphWrap}>
+                  <ParagraphRenderer text={heroOpeningText} />
+                </View>
+              ) : null}
+              {heroSummaryText && heroSummaryText !== heroOpeningText ? (
+                <View style={mainStyles.heroParagraphWrap}>
+                  <ParagraphRenderer text={heroSummaryText} />
+                </View>
+              ) : null}
+            </View>
+          </Reanimated.View>
+        ) : null}
+
+        {/* Sections */}
+        {sections.length > 0 ? (
+          <View style={mainStyles.group}>
+            {sections.map((section, idx) => (
+              <ExpandableSectionCard
+                key={section._id}
+                title={section.title}
+                icon={resolveSectionIcon(section.title)}
+                body={section.body}
+                bulletPoints={section.bulletPoints}
+                dailyLifeExample={section.dailyLifeExample}
+                index={idx}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Planet Highlights */}
+        {planets.length > 0 ? (
+          <View style={mainStyles.group}>
+            <View style={mainStyles.groupHeader}>
+              <View style={[mainStyles.groupIconWrap, { backgroundColor: colors.violetBg }]}>
+                <Ionicons name="planet-outline" size={16} color={colors.violet} />
+              </View>
+              <View style={mainStyles.groupTitleWrap}>
+                <Text style={[mainStyles.groupTitle, { color: colors.text }]}>Gezegensel Etkiler</Text>
+                <Text style={[mainStyles.groupHint, { color: colors.subtext }]}>
+                  Haritandaki gezegen yerleşimleri ve sana olan etkileri
+                </Text>
+              </View>
+            </View>
+            {planets.map((planet, idx) => (
+              <PlanetCard
+                key={`${planet._id}-${idx}`}
+                planet={planet}
+                index={idx}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Closing */}
+        {payload?.closing ? (
+          <Reanimated.View entering={FadeIn.delay(200).duration(400)}>
+            <View style={[mainStyles.closingCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+              <View style={mainStyles.closingHeader}>
+                <Ionicons name="heart-outline" size={15} color={colors.violet} />
+                <Text style={[mainStyles.closingTitle, { color: colors.text }]}>Seninle Kalsın</Text>
+              </View>
+              <ParagraphRenderer text={payload.closing} />
+            </View>
+          </Reanimated.View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // ─── Plain Text Blocks Render ────────────────────────────────────
+  return (
+    <View style={mainStyles.container}>
+      {plainBlocks.map((block, idx) => (
+        <ExpandableSectionCard
+          key={block.id}
+          title={block.title}
+          icon={resolveSectionIcon(block.title)}
+          body={block.body}
+          index={idx}
+        />
+      ))}
+    </View>
+  );
+}
+
+const mainStyles = StyleSheet.create({
+  container: {
+    gap: 18,
+  },
+  heroCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 18,
+    gap: 12,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 2,
+  },
+  heroIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  heroText: {
+    fontSize: 14.5,
+    lineHeight: 23,
+  },
+  heroSubText: {
+    fontSize: 13.5,
+    lineHeight: 21,
+  },
+  heroParagraphWrap: {
+    gap: 10,
+  },
+  group: {
+    gap: 12,
+  },
+  closingCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    gap: 10,
+  },
+  closingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  closingTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: -0.2,
   },
   closingText: {
-    fontSize: 12.5,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 22,
   },
 });

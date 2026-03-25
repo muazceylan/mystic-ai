@@ -87,6 +87,8 @@ management:
       enabled: true
     db:
       enabled: true
+    mail:
+      enabled: false
 
 # Logging
 logging:
@@ -138,6 +140,17 @@ scheduled:
 services:
   astrology:
     base-url: ${ASTROLOGY_SERVICE_URL:http://localhost:8083}
+  auth:
+    base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
+analytics:
+  ga4:
+    # Use a dedicated GA4 web stream for aggregate server-side exports.
+    enabled: ${GA4_EXPORT_ENABLED:false}
+    endpoint: ${GA4_EXPORT_ENDPOINT:https://www.google-analytics.com/mp/collect}
+    measurement-id: ${GA4_MEASUREMENT_ID:}
+    api-secret: ${GA4_API_SECRET:}
+    client-id: ${GA4_CLIENT_ID:mystic-admin-server}
 
 # Gateway Integration Note:
 # Add the following predicate to api-gateway routes configuration to expose admin API:

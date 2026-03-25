@@ -7,7 +7,8 @@ import { processReward } from '../api/monetization.service';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { getAdProvider } from '../providers/AdProviderAdapter';
 import { resolveRewardedUnitId } from '../providers/admobUnitIds';
-import { isAdMobInitialized } from '../providers/admobInit';
+import { initializeAdMob, isAdMobAvailable, isAdMobInitialized } from '../providers/admobInit';
+import { initializeAdProvider } from '../providers/initProvider';
 
 type UnlockStatus = 'idle' | 'loading_ad' | 'showing_ad' | 'processing_reward' | 'success' | 'failed';
 
@@ -80,10 +81,20 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
       return false;
     }
 
-    // ── Guard 6: SDK initialized ───────────────────────────────────
-    if (!isAdMobInitialized()) {
+    // ── Guard 6: native SDK available + initialized ───────────────
+    await initializeAdProvider(config.adsEnabled);
+
+    if (!isAdMobAvailable()) {
       setStatus('failed');
-      return emitIneligible('admob_not_initialized', moduleKey, actionKey, configVersion);
+      return emitIneligible('native_module_unavailable', moduleKey, actionKey, configVersion);
+    }
+
+    if (!isAdMobInitialized()) {
+      const initOk = await initializeAdMob();
+      if (!initOk) {
+        setStatus('failed');
+        return emitIneligible('admob_init_failed', moduleKey, actionKey, configVersion);
+      }
     }
 
     // ── All guards passed — proceed with ad flow ───────────────────

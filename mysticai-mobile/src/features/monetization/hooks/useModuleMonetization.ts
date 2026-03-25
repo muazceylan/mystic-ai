@@ -3,7 +3,7 @@ import { useMonetizationStore } from '../store/useMonetizationStore';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
 import { getAdBlockReason } from '../providers/admobUnitIds';
-import { isAdMobInitialized } from '../providers/admobInit';
+import { isAdMobAvailable } from '../providers/admobInit';
 import type { ModuleRule, ActionConfig } from '../types';
 
 interface ModuleMonetizationResult {
@@ -13,7 +13,7 @@ interface ModuleMonetizationResult {
   adsEnabled: boolean;
   guruEnabled: boolean;
   shouldShowAd: boolean;
-  /** True when the ad system is fully ready (config + unit ID + SDK). False if any pre-condition fails. */
+  /** True when the ad system can serve ads in the current runtime (config + unit ID + native availability). */
   isAdReady: boolean;
   /** If isAdReady is false, the reason why. Null when ready. */
   adBlockReason: string | null;
@@ -77,7 +77,7 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
         configLoaded,
         adsEnabledGlobal: Boolean(config?.enabled && config?.adsEnabled),
         adsEnabledForModule: adsEnabled,
-        sdkInitialized: isAdMobInitialized(),
+        sdkAvailable: isAdMobAvailable(),
       }),
     [configLoaded, config, adsEnabled],
   );

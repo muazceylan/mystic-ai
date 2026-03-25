@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -37,7 +38,28 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findByEmailContainingIgnoreCaseOrNameContainingIgnoreCase(
             String email, String name, Pageable pageable);
 
+    @Query("""
+            SELECT u
+            FROM User u
+            WHERE (:userType IS NULL OR u.userType = :userType)
+              AND (:idsEmpty = true OR u.id IN :ids)
+              AND (
+                :q = ''
+                OR LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%'))
+                OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :q, '%'))
+              )
+            """)
+    Page<User> adminSearch(
+            @Param("q") String q,
+            @Param("userType") UserType userType,
+            @Param("ids") List<Long> ids,
+            @Param("idsEmpty") boolean idsEmpty,
+            Pageable pageable
+    );
+
     long countByUserType(UserType userType);
+
+    long countByEmailVerifiedAtIsNotNull();
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.userType = :userType AND u.updatedAt < :cutoff")
     long countStaleGuests(@Param("userType") UserType userType, @Param("cutoff") LocalDateTime cutoff);

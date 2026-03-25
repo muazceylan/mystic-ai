@@ -43,12 +43,15 @@ export default function StaggeredAiText({ text, style }: Props) {
       {paragraphs.map((para, i) => {
         const anim = animValues.current[i];
         if (!anim) return null;
+        const headingMatch = para.trim().match(/^\*\*([^*]+)\*\*$/);
+        const displayText = headingMatch?.[1]?.trim() || para;
 
         return (
           <Animated.Text
             key={`${i}-${para.slice(0, 20)}`}
             style={[
               styles.paragraph,
+              headingMatch ? styles.heading : null,
               { color: colors.body },
               style,
               {
@@ -64,7 +67,7 @@ export default function StaggeredAiText({ text, style }: Props) {
               },
             ]}
           >
-            {para}
+            {displayText}
           </Animated.Text>
         );
       })}
@@ -75,4 +78,11 @@ export default function StaggeredAiText({ text, style }: Props) {
 const styles = StyleSheet.create({
   container: { gap: 12 },
   paragraph: { fontSize: 14, lineHeight: 22 },
+  heading: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+    marginBottom: 6,
+  },
 });

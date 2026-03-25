@@ -19,7 +19,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
-import { SafeScreen, TabHeader } from '../../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
@@ -228,14 +228,11 @@ export default function ProfileScreen() {
           showAvatar={false}
           rightActions={(
             <SpotlightTarget targetKey={PROFILE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <TouchableOpacity
-                style={S.helpBtn}
+              <SurfaceHeaderIconButton
+                iconName="help-circle-outline"
                 onPress={handlePressTutorialHelp}
-                accessibilityRole="button"
                 accessibilityLabel="Profil rehberini tekrar aç"
-              >
-                <Ionicons name="help-circle-outline" size={18} color={colors.text} />
-              </TouchableOpacity>
+              />
             </SpotlightTarget>
           )}
           {...useTabHeaderActions()}
@@ -540,16 +537,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     settingsItemBorder: { borderTopWidth: 1, borderTopColor: C.border },
     settingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    helpBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: C.border,
-      backgroundColor: C.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     iconContainer: {
       width: 34, height: 34, borderRadius: 17,
       backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center',

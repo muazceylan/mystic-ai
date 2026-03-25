@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
+import { MonetizationQuickBar } from '../../features/monetization';
 import { AppSurfaceHeader, SurfaceHeaderIconButton } from './AppSurfaceHeader';
 import { resolveSurfaceTitle } from './surfaceUtils';
 
@@ -14,9 +15,11 @@ import { resolveSurfaceTitle } from './surfaceUtils';
  */
 export function HeaderRightIcons({ tintColor }: { tintColor?: string }) {
   const { t } = useTranslation();
+  const pathname = usePathname();
   const router = useRouter();
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const badgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
+  const shouldShowThemeButton = pathname === '/(tabs)/profile';
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -27,12 +30,14 @@ export function HeaderRightIcons({ tintColor }: { tintColor?: string }) {
         badgeText={badgeText}
         color={tintColor}
       />
-      <SurfaceHeaderIconButton
-        iconName="sunny-outline"
-        onPress={() => router.push('/theme-settings')}
-        accessibilityLabel={t('common.settings')}
-        color={tintColor}
-      />
+      {shouldShowThemeButton ? (
+        <SurfaceHeaderIconButton
+          iconName="sunny-outline"
+          onPress={() => router.push('/theme-settings')}
+          accessibilityLabel={t('common.settings')}
+          color={tintColor}
+        />
+      ) : null}
     </View>
   );
 }
@@ -57,6 +62,7 @@ interface TabHeaderProps {
   onOpenSettings?: () => void;
   onOpenNotifications?: () => void;
   showDefaultRightIcons?: boolean;
+  showMonetizationQuickBar?: boolean;
 }
 
 export function TabHeader({
@@ -71,6 +77,7 @@ export function TabHeader({
   onOpenSettings,
   onOpenNotifications,
   showDefaultRightIcons = true,
+  showMonetizationQuickBar = true,
 }: TabHeaderProps) {
   void showAvatar;
   void transparent;
@@ -86,21 +93,25 @@ export function TabHeader({
   const handleOpenNotifications = onOpenNotifications ?? (() => router.push('/notifications'));
   const resolvedTitle = resolveSurfaceTitle(pathname, title, t) ?? t('tabs.home');
   const shouldShowBackButton = showBackButton ?? pathname !== '/(tabs)/home';
+  const shouldShowThemeButton = pathname === '/(tabs)/profile';
 
   const defaultActions = showDefaultRightIcons ? (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
       {rightActions}
+      {showMonetizationQuickBar ? <MonetizationQuickBar /> : null}
       <SurfaceHeaderIconButton
         iconName="notifications-outline"
         onPress={handleOpenNotifications}
         accessibilityLabel={t('profile.menu.notifications')}
         badgeText={badgeText}
       />
-      <SurfaceHeaderIconButton
-        iconName="sunny-outline"
-        onPress={handleOpenSettings}
-        accessibilityLabel={t('common.settings')}
-      />
+      {shouldShowThemeButton ? (
+        <SurfaceHeaderIconButton
+          iconName="sunny-outline"
+          onPress={handleOpenSettings}
+          accessibilityLabel={t('common.settings')}
+        />
+      ) : null}
     </View>
   ) : rightActions;
 

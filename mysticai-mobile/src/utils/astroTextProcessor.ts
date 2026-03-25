@@ -31,8 +31,70 @@ function normalizeForMatch(text: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+function formatAiHeading(title: string): string {
+  const cleaned = cleanAstroHeading(translateAstroTermsForUi(title))
+    .replace(/^[.:,\s-]+|[.:,\s-]+$/g, '')
+    .trim();
+
+  return cleaned ? `\n\n**${cleaned}**\n\n` : '\n\n';
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function sanitizeAiNarrativeText(rawText: string): string {
+  let normalized = translateAstroTermsForUi(rawText ?? '');
+
+  normalized = normalized
+    .replace(/\b(?:natal_v\d+|scientific_warm)\b\s*[.:]*/gi, ' ')
+    .replace(/\b(?:giriş|giris|opening|intro)\b\s*[.:]\s*/gi, ' ')
+    .replace(/\btitle\s*[.:]\s*([^.:\n]{2,120}?)\s*[.:]\s*(?:detaylar|details?)\s*[.:]\s*/gi, (_match, title: string) => formatAiHeading(title))
+    .replace(/\btitle\s*[.:]\s*([^.:\n]{2,120}?)\s*[.:]\s*/gi, (_match, title: string) => formatAiHeading(title))
+    .replace(/\bid\s*[.:]\s*[a-z0-9_]+\s*[.:]*/gi, ' ')
+    .replace(/\b(?:body|detaylar|details?|description|content|text|label|heading|icon)\b\s*[.:]*/gi, ' ');
+
+  const headingRules: Array<{ pattern: RegExp; heading: string }> = [
+    { pattern: /\b(?:temel özet|temel ozet|coreSummary|core_summary|overview)\b\s*[.:]\s*/gi, heading: 'Temel Özet' },
+    { pattern: /\bkozmik portrenin özeti\b\s*[.:]\s*/gi, heading: 'Kozmik Portrenin Özeti' },
+    { pattern: /\b(?:günlük hayat örneği|gunluk hayat ornegi|dailyLifeExample|daily_life_example)\b\s*[.:]\s*/gi, heading: 'Günlük Hayat Örneği' },
+    { pattern: /\b(?:öne çıkan noktalar|one cikan noktalar|bulletPoints|bullet_points)\b\s*[.:]\s*/gi, heading: 'Öne Çıkan Noktalar' },
+  ];
+
+  for (const { pattern, heading } of headingRules) {
+    normalized = normalized.replace(pattern, formatAiHeading(heading));
+  }
+
+  const forcedInlineHeadings = [
+    'Temel Özet',
+    'Kozmik Portrenin Özeti',
+    'Günlük Hayat Örneği',
+    'Öne Çıkan Noktalar',
+  ];
+
+  for (const heading of forcedInlineHeadings) {
+    const escapedHeading = escapeRegex(heading);
+    normalized = normalized
+      .replace(new RegExp(`([.!?])\\s*${escapedHeading}\\s*[.:]?`, 'giu'), (_match, punct: string) => `${punct}${formatAiHeading(heading)}`)
+      .replace(new RegExp(`(^|\\n)\\s*${escapedHeading}\\s*[.:]?`, 'giu'), (_match, prefix: string) => `${prefix}${formatAiHeading(heading).trimStart()}`);
+  }
+
+  normalized = normalized
+    .replace(/\b(?:bölümler|bolumler|bölüm|bolum|sections?|sectionList|section_list|topics|planetHighlights?|planet_highlights?|planet_insights|planets)\b\s*[.:]*/gi, ' ')
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b(?=\s*[.:])/gi, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/([.:])\s*(\*\*[^*]+\*\*)/g, '$1\n\n$2')
+    .replace(/^[\s.:,;-]+|[\s.:,;-]+$/g, '')
+    .trim();
+
+  return normalized;
+}
+
 function normalizeAiTextForParagraphs(rawText: string): string {
-  const withoutMetaNoise = rawText
+  const withoutMetaNoise = sanitizeAiNarrativeText(rawText)
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => {
@@ -105,6 +167,29 @@ export function splitPlainAiTextToBlocks(rawText: string): AiAccordionBlock[] {
     .split(/\n{2,}|(?:\r?\n[-*•]\s+)/g)
     .map((part) => part.trim())
     .filter(Boolean)
+    .reduce<string[]>((acc, part) => {
+      const isHeadingOnly = /^\*\*[^*]+\*\*$/.test(part);
+      if (isHeadingOnly) {
+        const previous = acc[acc.length - 1];
+        if (!previous) {
+          acc.push(part);
+          return acc;
+        }
+
+        if (/^\*\*[^*]+\*\*$/.test(previous)) {
+          acc[acc.length - 1] = `${previous}\n\n${part}`;
+          return acc;
+        }
+      }
+
+      if (acc.length > 0 && /^\*\*[^*]+\*\*$/.test(acc[acc.length - 1])) {
+        acc[acc.length - 1] = `${acc[acc.length - 1]}\n\n${part}`;
+        return acc;
+      }
+
+      acc.push(part);
+      return acc;
+    }, [])
     .flatMap((part) => {
       if (part.length <= MAX_BLOCK_LEN) return [part];
       const pieces = part.split(SENTENCE_BOUNDARY_REGEX).reduce<string[]>((acc, sentence) => {

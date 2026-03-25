@@ -239,6 +239,60 @@ export interface DashboardSummary {
   recentNotifications: AdminNotification[];
 }
 
+export interface AppUserSummary {
+  id: number;
+  email: string;
+  name?: string | null;
+  userType: 'REGISTERED' | 'GUEST';
+  createdAt: string;
+  emailVerifiedAt?: string | null;
+}
+
+export interface AppUserStats {
+  totalUsers: number;
+  registeredUsers: number;
+  guestUsers: number;
+  verifiedUsers: number;
+}
+
+export interface ProductAnalyticsTopScreen {
+  screenKey: string;
+  routePath: string;
+  visits: number;
+  uniqueUsers: number;
+  lastSeenAt?: string | null;
+}
+
+export interface ProductAnalyticsOverview {
+  windowDays: number;
+  activeWithinDays: number;
+  trackedScreenViews: number;
+  screenViewsToday: number;
+  trackedUsers: number;
+  activeUsers: number;
+  latestTrackedAt?: string | null;
+  topScreens: ProductAnalyticsTopScreen[];
+}
+
+export interface ProductAnalyticsActiveUser {
+  userId: number;
+  screenViews: number;
+  screenLastSeenAt?: string | null;
+  pushLastSeenAt?: string | null;
+  lastActiveAt?: string | null;
+}
+
+export interface ProductAnalyticsGa4ExportResult {
+  enabled: boolean;
+  exported: boolean;
+  measurementId?: string | null;
+  targetUrl?: string | null;
+  eventCount: number;
+  exportedAt?: string | null;
+  eventNames: string[];
+  message: string;
+}
+
 // ── Guest Funnel ──────────────────────────────────────────
 
 export interface GuestStats {

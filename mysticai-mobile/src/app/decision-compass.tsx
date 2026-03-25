@@ -264,16 +264,12 @@ export default function DecisionCompassScreen() {
         <View pointerEvents="none" style={S.ambientBottom} />
         <View pointerEvents="none" style={S.ambientSoftBottom} />
 
-        <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-          <View>
-            <DecisionCompassHeader
-              onBack={goBack}
-              onOpenCalendar={() => router.push('/(tabs)/calendar')}
-              onOpenNotifications={() => router.push('/notifications')}
-              onOpenHelp={handlePressTutorialHelp}
-            />
-          </View>
-        </SpotlightTarget>
+        <DecisionCompassHeader
+          onBack={goBack}
+          onOpenCalendar={() => router.push('/(tabs)/calendar')}
+          onOpenNotifications={() => router.push('/notifications')}
+          onOpenHelp={handlePressTutorialHelp}
+        />
 
         <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.INPUT_AREA}>
           <View>

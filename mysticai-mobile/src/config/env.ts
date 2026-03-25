@@ -170,6 +170,10 @@ const analyticsProviderRaw = normalizeAnalyticsProvider(process.env.EXPO_PUBLIC_
 const analyticsProvider = analyticsProviderRaw === 'none' && analyticsApiKey ? 'amplitude' : analyticsProviderRaw;
 const analyticsEndpoint = (process.env.EXPO_PUBLIC_ANALYTICS_ENDPOINT ?? 'https://api2.amplitude.com/2/httpapi')
   .trim();
+const analyticsCollectionEnabledRaw = (process.env.EXPO_PUBLIC_ANALYTICS_COLLECTION_ENABLED ?? '').trim();
+const analyticsCollectionEnabledByDefault = analyticsCollectionEnabledRaw
+  ? asBool(analyticsCollectionEnabledRaw)
+  : true;
 const analyticsEnabled = analyticsProvider !== 'none' && Boolean(analyticsApiKey);
 const analyticsDebug = asBool(process.env.EXPO_PUBLIC_ANALYTICS_DEBUG) || __DEV__;
 
@@ -194,6 +198,7 @@ export const envConfig = {
     apiKey: analyticsApiKey,
     endpoint: analyticsEndpoint,
     enabled: analyticsEnabled,
+    collectionEnabledByDefault: analyticsCollectionEnabledByDefault,
     debug: analyticsDebug,
   },
   features: {

@@ -20,6 +20,8 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import {
   useModuleMonetization,
+  useRewardedUnlock,
+  useGuruUnlock,
   AdOfferCard,
   GuruUnlockModal,
   PurchaseCatalogSheet,
@@ -28,7 +30,7 @@ import {
 } from '../../features/monetization';
 import { useDreamStore } from '../../store/useDreamStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { ErrorStateCard, SafeScreen, TabHeader } from '../../components/ui';
+import { BottomSheet, Button, ErrorStateCard, SafeScreen, TabHeader, SurfaceHeaderIconButton } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
@@ -72,6 +74,33 @@ const DREAM_WARNING_KEYS = [
   'uyarılar',
   'cautions',
 ] as const;
+
+const DREAM_INTERPRET_ACTION_KEY = 'dream_interpret';
+const FALLBACK_DREAM_GURU_COST = 1;
+const MIN_RECORDING_DURATION_MS = 1200;
+const MIN_SPEECH_METERING_DBFS = -58;
+const RECORDING_METERING_INTERVAL_MS = 180;
+
+const baseRecordingOptions = Audio.RecordingOptionsPresets.HIGH_QUALITY;
+const SPEECH_RECORDING_OPTIONS = {
+  ...baseRecordingOptions,
+  android: {
+    ...baseRecordingOptions.android,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 64000,
+  },
+  ios: {
+    ...baseRecordingOptions.ios,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 64000,
+  },
+  web: {
+    ...baseRecordingOptions.web,
+    bitsPerSecond: 64000,
+  },
+};
 
 const stripMarkdownFence = (raw: string) => {
   let normalized = raw.trim();
@@ -258,6 +287,10 @@ export default function DreamsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const premiumPanelGradient: readonly [string, string, string] =
+    Platform.OS === 'android'
+      ? [colors.card, colors.primarySoftBg, colors.card]
+      : [colors.surfaceGlass, colors.primarySoftBg, colors.surface];
   const { user }        = useAuthStore();
   const {
     dreams, symbols, loading, submitting, transcribing, error,
@@ -296,11 +329,18 @@ export default function DreamsScreen() {
   const [showAdOffer, setShowAdOffer] = useState(false);
   const [showGuruModal, setShowGuruModal] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const [showDreamUnlockSheet, setShowDreamUnlockSheet] = useState(false);
+  const [showDreamGuruFallback, setShowDreamGuruFallback] = useState(false);
   const focusCountRef = useRef(0);
+  const { status: dreamAdUnlockStatus, startRewardedUnlock: startDreamRewardedUnlock, reset: resetDreamRewardedUnlock } =
+    useRewardedUnlock('dreams', DREAM_INTERPRET_ACTION_KEY);
+  const { status: dreamGuruUnlockStatus, spendGuru: spendDreamGuru, reset: resetDreamGuruUnlock } =
+    useGuruUnlock('dreams', DREAM_INTERPRET_ACTION_KEY);
 
   // ── Refs ──────────────────────────────────────────────────────────
   const recordingRef  = useRef<Audio.Recording | null>(null);
   const recordingUri  = useRef<string | null>(null);
+  const peakMeteringRef = useRef(-160);
   const durationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const journalAutoExpandedRef = useRef(false);
 
@@ -404,9 +444,22 @@ export default function DreamsScreen() {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) { Alert.alert(t('dreams.micPermissionTitle'), t('dreams.micPermissionRequired')); return; }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      peakMeteringRef.current = -160;
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        staysActiveInBackground: false,
+      });
       const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY);
+        SPEECH_RECORDING_OPTIONS);
+      recording.setProgressUpdateInterval(RECORDING_METERING_INTERVAL_MS);
+      recording.setOnRecordingStatusUpdate((status) => {
+        if (typeof status.metering === 'number') {
+          peakMeteringRef.current = Math.max(peakMeteringRef.current, status.metering);
+        }
+      });
       recordingRef.current = recording;
       recordingUri.current = null;
       setRecState('recording');
@@ -416,14 +469,42 @@ export default function DreamsScreen() {
   const stopRec = async () => {
     if (!recordingRef.current) return;
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
+      const activeRecording = recordingRef.current;
+      const finalStatus = await activeRecording.stopAndUnloadAsync();
+      activeRecording.setOnRecordingStatusUpdate(null);
+      const uri = activeRecording.getURI();
       recordingRef.current = null;
       recordingUri.current = uri;
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
+
+      if (!uri) {
+        setRecState('idle');
+        Alert.alert(t('dreams.analysisError'), t('dreams.transcriptionError'));
+        return;
+      }
+
+      if ((finalStatus.durationMillis ?? 0) < MIN_RECORDING_DURATION_MS) {
+        setRecState('idle');
+        recordingUri.current = null;
+        Alert.alert(t('dreams.voiceTooShortTitle'), t('dreams.voiceTooShortMessage'));
+        return;
+      }
+
+      if (peakMeteringRef.current <= MIN_SPEECH_METERING_DBFS) {
+        setRecState('idle');
+        recordingUri.current = null;
+        Alert.alert(t('dreams.voiceNotDetectedTitle'), t('dreams.voiceNotDetectedMessage'));
+        return;
+      }
+
       setRecState('transcribing');
 
       // Immediately transcribe
-      const text = await transcribeAudio(uri!);
+      const text = await transcribeAudio(uri);
       // Typewriter effect: set text in 10-char chunks
       setDreamText('');
       let i = 0;
@@ -436,6 +517,14 @@ export default function DreamsScreen() {
       }, speed);
       setRecState('done');
     } catch (e: any) {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+        });
+      } catch {
+        // Keep the transcription error as the primary feedback.
+      }
       setRecState('idle');
       Alert.alert(t('dreams.analysisError'), e.message ?? t('dreams.transcriptionError'));
     }
@@ -447,11 +536,21 @@ export default function DreamsScreen() {
     setDreamTitle('');
     setSelectedDate(new Date());
     setRecState('idle');
+    setShowDreamUnlockSheet(false);
     recordingUri.current = null;
   };
 
-  // ─── Save dream (core flow — always works, never monetization-gated) ──
-  const handleSave = async () => {
+  const openCompose = () => {
+    setTab('compose');
+  };
+
+  const closeCompose = () => {
+    resetCompose();
+    setTab('journal');
+  };
+
+  // ─── Save dream submission ───────────────────────────────────────
+  const submitDreamEntry = async () => {
     if (!dreamText.trim() || submitting) return;
     try {
       const title = dreamTitle.trim() || undefined;
@@ -461,6 +560,90 @@ export default function DreamsScreen() {
       setTab('journal');
       if (result.id) pollUntilComplete(result.id);
     } catch { Alert.alert(t('common.error'), t('dreams.saveError')); }
+  };
+
+  const closeDreamGuruFallback = () => {
+    setShowDreamGuruFallback(false);
+    resetDreamRewardedUnlock();
+    resetDreamGuruUnlock();
+  };
+
+  const closeDreamUnlockSheet = () => {
+    setShowDreamUnlockSheet(false);
+  };
+
+  const handleOpenDreamUnlockSheet = () => {
+    if (!dreamText.trim() || isDreamUnlockBusy) return;
+    setShowDreamUnlockSheet(true);
+  };
+
+  const handleUnlockWithRewardedVideo = async () => {
+    closeDreamUnlockSheet();
+    await handleSaveWithRewardedVideo();
+  };
+
+  const handleUnlockWithGuru = async () => {
+    closeDreamUnlockSheet();
+    await handleSaveWithGuru();
+  };
+
+  const handleSaveWithGuru = async () => {
+    if (!dreamText.trim() || isDreamUnlockBusy) return;
+
+    if (dreamInterpretGateUnavailable) {
+      Alert.alert(t('dreams.unlockUnavailableTitle'), t('dreams.unlockUnavailableBody'));
+      return;
+    }
+
+    MonetizationEvents.gateSeen('dreams', DREAM_INTERPRET_ACTION_KEY, 'guru_spend');
+
+    if (!monetization.canAffordAction(DREAM_INTERPRET_ACTION_KEY)) {
+      setShowDreamGuruFallback(true);
+      return;
+    }
+
+    const spent = await spendDreamGuru();
+    if (!spent) {
+      if (!monetization.canAffordAction(DREAM_INTERPRET_ACTION_KEY)) {
+        setShowDreamGuruFallback(true);
+        return;
+      }
+      Alert.alert(t('common.error'), t('dreams.unlockFlowError'));
+      return;
+    }
+
+    await submitDreamEntry();
+  };
+
+  const handleSaveWithRewardedVideo = async () => {
+    if (!dreamText.trim() || isDreamUnlockBusy) return;
+
+    if (dreamInterpretGateUnavailable) {
+      Alert.alert(t('dreams.unlockUnavailableTitle'), t('dreams.unlockUnavailableBody'));
+      return;
+    }
+
+    if (!monetization.adsEnabled || !monetization.isAdReady) {
+      Alert.alert(t('dreams.rewardedVideoUnavailableTitle'), t('dreams.rewardedVideoUnavailableBody'));
+      return;
+    }
+
+    MonetizationEvents.gateSeen('dreams', DREAM_INTERPRET_ACTION_KEY, 'ad');
+    const rewarded = await startDreamRewardedUnlock();
+
+    if (!rewarded) {
+      Alert.alert(t('common.error'), t('dreams.rewardedVideoFailed'));
+      return;
+    }
+
+    const spent = await spendDreamGuru();
+    if (!spent) {
+      setShowDreamGuruFallback(true);
+      return;
+    }
+
+    closeDreamGuruFallback();
+    await submitDreamEntry();
   };
 
   // ─── Delete dream ─────────────────────────────────────────────────
@@ -542,6 +725,10 @@ export default function DreamsScreen() {
   // Monetization gate for dream book generation (premium action)
   const handleBookGenerate = async () => {
     const bookAction = monetization.getAction('monthly_dream_story');
+    if (!bookAction) {
+      Alert.alert(t('dreams.unlockUnavailableTitle'), t('dreams.unlockUnavailableBody'));
+      return;
+    }
     if (bookAction && monetization.guruEnabled) {
       if (monetization.canAffordAction('monthly_dream_story')) {
         MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'guru_spend');
@@ -616,6 +803,15 @@ export default function DreamsScreen() {
   const completedDreamCount = dreams.filter(d => d.interpretationStatus === 'COMPLETED').length;
   const pendingDreamCount = dreams.filter(d => d.interpretationStatus === 'PENDING').length;
   const latestDream = dreams[0] ?? null;
+  const dreamInterpretAction = monetization.getAction(DREAM_INTERPRET_ACTION_KEY);
+  const dreamGuruCost = dreamInterpretAction?.guruCost ?? FALLBACK_DREAM_GURU_COST;
+  const dreamInterpretUsesMonetization = Boolean(dreamInterpretAction && monetization.guruEnabled);
+  const dreamInterpretGateUnavailable = !dreamInterpretUsesMonetization;
+  const isDreamUnlockBusy = submitting
+    || dreamAdUnlockStatus === 'loading_ad'
+    || dreamAdUnlockStatus === 'showing_ad'
+    || dreamAdUnlockStatus === 'processing_reward'
+    || dreamGuruUnlockStatus === 'processing';
 
   const renderOverviewMetric = (icon: IoniconName, value: string, label: string) => (
     <View key={`${icon}-${label}-${value}`} style={styles.overviewMetricCard}>
@@ -633,7 +829,7 @@ export default function DreamsScreen() {
     }
 
     let eyebrow = t('dreams.journal');
-    let title = 'Gecenin atlasin';
+    let title = 'Rüya günlüğüm';
     let subtitle = latestDream?.dreamDate ? fmtCardDate(latestDream.dreamDate) : t('dreams.subtitle');
     let icon: IoniconName = 'moon-outline';
     let excerptLabel = latestDream ? 'Son kayit' : 'Rüya akisi';
@@ -686,7 +882,7 @@ export default function DreamsScreen() {
     return (
       <View style={styles.overviewPanel}>
         <LinearGradient
-          colors={[colors.surfaceGlass, colors.primarySoftBg, colors.surface]}
+          colors={premiumPanelGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.overviewGradient}
@@ -906,46 +1102,6 @@ export default function DreamsScreen() {
       contentContainerStyle={styles.composeContent}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.composeIntro}>
-        <LinearGradient
-          colors={[colors.surfaceGlass, colors.primarySoftBg, colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.composeIntroGradient}
-        >
-          <View style={styles.composeIntroTopRow}>
-            <View style={styles.composeIntroCopy}>
-              <Text style={styles.composeIntroEyebrow}>Yeni kayit</Text>
-              <Text style={styles.composeIntroTitle}>Rüyan hala sicakken yakala</Text>
-              <Text style={styles.composeIntroSubtitle}>
-                Sesinle anlat ya da yaz. Günlügünde premium bir kart olarak islenip yorumuyla birlikte saklanacak.
-              </Text>
-            </View>
-
-            <View style={styles.composeIntroIcon}>
-              <Ionicons name="mic" size={24} color={colors.goldDark} />
-            </View>
-          </View>
-
-          <View style={styles.composeIntroStats}>
-            <View style={styles.composeIntroStat}>
-              <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-              <Text style={styles.composeIntroStatText}>{fmtDate(selectedDate)}</Text>
-            </View>
-            <View style={styles.composeIntroStat}>
-              <Ionicons
-                name={recState === 'idle' ? 'sparkles' : recState === 'recording' ? 'mic' : 'hourglass-outline'}
-                size={14}
-                color={colors.primary}
-              />
-              <Text style={styles.composeIntroStatText}>
-                {recState === 'idle' ? 'Ses veya yazi' : recState === 'recording' ? 'Kayit sürüyor' : 'Isleniyor'}
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
-
       {/* ── Date picker ── */}
       <View style={styles.datePicker}>
         <TouchableOpacity
@@ -1065,32 +1221,32 @@ export default function DreamsScreen() {
         </View>
       )}
 
-      {/* Action buttons */}
+      {/* Unlock actions */}
       {(recState === 'idle' || recState === 'done') && (
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={resetCompose}
-            accessibilityLabel={t('dreams.cancel')}
-            accessibilityRole="button"
-          >
-            <Ionicons name="close-circle-outline" size={18} color={colors.subtext} />
-            <Text style={styles.cancelBtnText}>{t('dreams.cancel')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.saveBtn, (!dreamText.trim() || submitting) && styles.saveBtnOff]}
-            onPress={handleSave}
-            disabled={!dreamText.trim() || submitting}
-            accessibilityLabel={t('dreams.saveAndInterpret')}
-            accessibilityRole="button"
-          >
-            {submitting
-              ? <ActivityIndicator size="small" color={colors.white} />
-              : <><Ionicons name="sparkles" size={17} color={colors.white} />
-                 <Text style={styles.saveBtnText}>{t('dreams.save')}</Text></>
-            }
-          </TouchableOpacity>
-        </View>
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.cancelBtn, styles.cancelBtnFull]}
+              onPress={resetCompose}
+              accessibilityLabel={t('dreams.cancel')}
+              accessibilityRole="button"
+            >
+              <Ionicons name="close-circle-outline" size={18} color={colors.subtext} />
+              <Text style={styles.cancelBtnText}>{t('dreams.cancel')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.saveBtn, (!dreamText.trim() || isDreamUnlockBusy) && styles.saveBtnOff]}
+              onPress={handleOpenDreamUnlockSheet}
+              disabled={!dreamText.trim() || isDreamUnlockBusy}
+              accessibilityLabel={t('dreams.saveAndInterpret')}
+              accessibilityRole="button"
+            >
+              {isDreamUnlockBusy
+                ? <ActivityIndicator size="small" color={colors.white} />
+                : <Ionicons name="sparkles" size={18} color={colors.white} />}
+              <Text style={styles.saveBtnText}>{t('dreams.saveAndInterpret')}</Text>
+            </TouchableOpacity>
+          </View>
       )}
     </Animated.ScrollView>
   );
@@ -1238,35 +1394,62 @@ export default function DreamsScreen() {
         title={t('tabs.dream')}
         subtitle={t('dreams.subtitle')}
         rightActions={
-          <View style={styles.headerActionRow}>
-            {monetization.guruEnabled && <GuruBalanceBadge />}
-            <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <TouchableOpacity
-                style={styles.helpBtn}
-                onPress={handlePressTutorialHelp}
-                accessibilityLabel="Rüya rehberini tekrar aç"
-                accessibilityRole="button"
-              >
-                <Ionicons name="help-circle-outline" size={19} color={colors.text} />
-              </TouchableOpacity>
-            </SpotlightTarget>
-            <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.COMPOSE_ENTRY}>
-              <TouchableOpacity
-                style={[styles.addBtn, tab === 'compose' && styles.addBtnClose]}
-                onPress={() => {
-                  if (tab === 'compose') { resetCompose(); setTab('journal'); }
-                  else setTab('compose');
-                }}
-                accessibilityLabel={tab === 'compose' ? t('dreams.closeCompose') : t('dreams.addNewDream')}
-                accessibilityRole="button"
-              >
-                <Ionicons name={tab === 'compose' ? 'close' : 'add'} size={22} color={colors.white} />
-              </TouchableOpacity>
-            </SpotlightTarget>
-          </View>
+          <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+            <SurfaceHeaderIconButton
+              iconName="help-circle-outline"
+              onPress={handlePressTutorialHelp}
+              accessibilityLabel="Rüya rehberini tekrar aç"
+            />
+          </SpotlightTarget>
         }
         {...useTabHeaderActions()}
       />
+
+      <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.COMPOSE_ENTRY}>
+        <View style={styles.composeEntryWrap}>
+          <TouchableOpacity
+            style={[styles.composeEntryButton, tab === 'compose' && styles.composeEntryButtonClose]}
+            onPress={tab === 'compose' ? closeCompose : openCompose}
+            activeOpacity={0.9}
+            accessibilityLabel={tab === 'compose' ? t('dreams.closeCompose') : t('dreams.addNewDream')}
+            accessibilityRole="button"
+          >
+            {tab === 'compose' ? (
+              <View style={[styles.composeEntrySurface, styles.composeEntrySurfaceClose]}>
+                <View style={styles.composeEntryCopy}>
+                  <Text style={styles.composeEntryEyebrow}>{t('dreams.closeCompose')}</Text>
+                  <Text style={styles.composeEntryTitleClose}>{t('dreams.journal')}</Text>
+                  <Text style={styles.composeEntrySubtitleClose}>
+                    {t('dreams.closeComposeHint')}
+                  </Text>
+                </View>
+                <View style={[styles.composeEntryIconShell, styles.composeEntryIconShellClose]}>
+                  <Ionicons name="close" size={20} color={colors.textDark} />
+                </View>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={[colors.primaryDark, colors.primary, colors.violet]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.composeEntrySurface}
+              >
+                <View style={styles.composeEntryGlow} pointerEvents="none" />
+                <View style={styles.composeEntryCopy}>
+                  <Text style={styles.composeEntryEyebrowLight}>{t('dreams.newDreamEyebrow')}</Text>
+                  <Text style={styles.composeEntryTitle}>{t('dreams.addNewDream')}</Text>
+                  <Text style={styles.composeEntrySubtitle}>
+                    {t('dreams.addNewDreamHint')}
+                  </Text>
+                </View>
+                <View style={styles.composeEntryIconShell}>
+                  <Ionicons name="sparkles" size={22} color={colors.goldDark} />
+                </View>
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+        </View>
+      </SpotlightTarget>
 
       {/* Tab switcher */}
       {tab !== 'compose' && (
@@ -1376,11 +1559,11 @@ export default function DreamsScreen() {
               <View style={styles.journalBody}>
                 <View style={styles.emptyBox}>
                   <Text style={styles.emptyEmoji}>🌙</Text>
-                  <Text style={styles.emptyTitle}>Henüz rüya kaydın yok</Text>
-                  <Text style={styles.emptySub}>İlk rüyanı kaydetmek için + butonuna dokun</Text>
+                  <Text style={styles.emptyTitle}>{t('dreams.noDreams')}</Text>
+                  <Text style={styles.emptySub}>{t('dreams.noDreamsHint')}</Text>
                   <TouchableOpacity
                     style={styles.emptyBtn}
-                    onPress={() => setTab('compose')}
+                    onPress={openCompose}
                     accessibilityLabel={t('dreams.addFirstDream')}
                     accessibilityRole="button"
                   >
@@ -1399,6 +1582,126 @@ export default function DreamsScreen() {
         </SpotlightTarget>
       )}
     </LinearGradient>
+
+      <BottomSheet
+        visible={showDreamUnlockSheet}
+        onClose={closeDreamUnlockSheet}
+        title={t('dreams.unlockTitle')}
+      >
+        <View style={styles.dreamUnlockSheet}>
+          {dreamInterpretUsesMonetization ? (
+            <View style={styles.dreamUnlockSheetBalanceRow}>
+              <GuruBalanceBadge size="sm" />
+            </View>
+          ) : null}
+
+          {dreamInterpretGateUnavailable ? (
+            <Text style={styles.unlockUnavailableText}>{t('dreams.unlockOptionsUnavailableHint')}</Text>
+          ) : null}
+
+          <View style={styles.dreamUnlockSheetOptions}>
+            <TouchableOpacity
+              style={[
+                styles.unlockOptionCard,
+                styles.unlockSheetOption,
+                (!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable) && styles.saveBtnOff,
+              ]}
+              onPress={() => {
+                void handleUnlockWithRewardedVideo();
+              }}
+              disabled={!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable}
+              accessibilityLabel={t('dreams.watchVideoUnlock')}
+              accessibilityRole="button"
+            >
+              <View style={[styles.unlockOptionIconWrap, styles.unlockSheetOptionIconWrap]}>
+                {(dreamAdUnlockStatus === 'loading_ad'
+                  || dreamAdUnlockStatus === 'showing_ad'
+                  || dreamAdUnlockStatus === 'processing_reward')
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <Ionicons name="play-circle" size={22} color={colors.primary} />}
+              </View>
+              <View style={styles.unlockSheetOptionCopy}>
+                <Text style={styles.unlockOptionTitle}>{t('dreams.watchVideoUnlock')}</Text>
+                <Text style={styles.unlockOptionSubtitle}>{t('dreams.watchVideoUnlockHint')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.unlockOptionCard,
+                styles.unlockOptionCardPrimary,
+                styles.unlockSheetOption,
+                (!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable) && styles.saveBtnOff,
+              ]}
+              onPress={() => {
+                void handleUnlockWithGuru();
+              }}
+              disabled={!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable}
+              accessibilityLabel={t('dreams.useGuruUnlock', { count: dreamGuruCost })}
+              accessibilityRole="button"
+            >
+              <View style={[styles.unlockOptionIconWrap, styles.unlockOptionIconWrapPrimary, styles.unlockSheetOptionIconWrap]}>
+                {dreamGuruUnlockStatus === 'processing'
+                  ? <ActivityIndicator size="small" color={colors.white} />
+                  : <Ionicons name="sparkles" size={20} color={colors.white} />}
+              </View>
+              <View style={styles.unlockSheetOptionCopy}>
+                <Text style={styles.unlockOptionTitlePrimary}>
+                  {t('dreams.useGuruUnlock', { count: dreamGuruCost })}
+                </Text>
+                <Text style={styles.unlockOptionSubtitlePrimary}>{t('dreams.useGuruUnlockHint')}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <Button
+            title={t('common.close')}
+            onPress={closeDreamUnlockSheet}
+            variant="ghost"
+            size="sm"
+            disabled={isDreamUnlockBusy}
+          />
+        </View>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={showDreamGuruFallback}
+        onClose={closeDreamGuruFallback}
+        title={t('dreams.insufficientGuruTitle')}
+      >
+        <View style={styles.guruFallbackSheet}>
+          <Text style={styles.guruFallbackBody}>
+            {t('dreams.insufficientGuruBody', {
+              cost: dreamGuruCost,
+              balance: monetization.walletBalance,
+            })}
+          </Text>
+
+          <View style={styles.guruFallbackBadgeRow}>
+            <GuruBalanceBadge />
+          </View>
+
+          <Button
+            title={t('dreams.watchVideoEarnGuru')}
+            onPress={() => {
+              void handleSaveWithRewardedVideo();
+            }}
+            loading={dreamAdUnlockStatus === 'loading_ad'
+              || dreamAdUnlockStatus === 'showing_ad'
+              || dreamAdUnlockStatus === 'processing_reward'}
+            disabled={isDreamUnlockBusy}
+            size="lg"
+          />
+
+          <Button
+            title={t('dreams.cancel')}
+            onPress={closeDreamGuruFallback}
+            variant="ghost"
+            size="sm"
+            disabled={isDreamUnlockBusy}
+          />
+        </View>
+      </BottomSheet>
 
       {/* Monetization: AdOfferCard for dream book generation */}
       {showAdOffer && monetization.adsEnabled && (
@@ -1448,6 +1751,15 @@ export default function DreamsScreen() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   const isDark = C.statusBar === 'light';
+  const isAndroid = Platform.OS === 'android';
+  const panelBg = isAndroid ? C.card : C.surfaceGlass;
+  const panelBorder = isAndroid ? C.borderLight : C.surfaceGlassBorder;
+  const insetBg = isAndroid ? (isDark ? C.surfaceAlt : C.surface) : (isDark ? C.surfaceAlt : 'rgba(255,255,255,0.56)');
+  const softInsetBg = isAndroid ? (isDark ? C.surfaceAlt : C.primarySoftBg) : (isDark ? C.surfaceAlt : 'rgba(255,255,255,0.52)');
+  const elevatedInsetBg = isAndroid ? (isDark ? C.surfaceAlt : C.card) : (isDark ? C.surfaceAlt : 'rgba(255,255,255,0.74)');
+  const shellBg = isAndroid ? (isDark ? C.surfaceAlt : C.surface) : 'rgba(255,255,255,0.5)';
+  const haloBg = isAndroid ? (isDark ? C.surfaceAlt : C.primaryTint) : 'rgba(255,255,255,0.24)';
+  const activeTabBg = isAndroid ? (isDark ? C.surfaceAlt : C.surface) : (isDark ? C.surfaceAlt : 'rgba(255,255,255,0.86)');
 
   return StyleSheet.create({
     container: { flex: 1, position: 'relative' },
@@ -1490,36 +1802,106 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       opacity: isDark ? 0.15 : 0.5,
     },
 
-    headerActionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    helpBtn: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      backgroundColor: C.surfaceGlass,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: C.shadow,
-      shadowOpacity: isDark ? 0.16 : 0.08,
-      shadowOffset: { width: 0, height: 10 },
-      shadowRadius: 18,
-      elevation: 5,
+    composeEntryWrap: {
+      paddingHorizontal: 20,
+      marginTop: 6,
+      marginBottom: 10,
     },
-    addBtn: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
-      backgroundColor: C.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
+    composeEntryButton: {
+      borderRadius: 26,
+      overflow: 'hidden',
       shadowColor: C.primary,
-      shadowOpacity: 0.35,
-      shadowOffset: { width: 0, height: 12 },
-      shadowRadius: 18,
-      elevation: 8,
+      shadowOpacity: isDark ? 0.2 : 0.18,
+      shadowOffset: { width: 0, height: 14 },
+      shadowRadius: 24,
+      elevation: 7,
     },
-    addBtnClose: { backgroundColor: C.overlayDark },
+    composeEntryButtonClose: {
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.14 : 0.08,
+      elevation: 4,
+    },
+    composeEntrySurface: {
+      borderRadius: 26,
+      paddingHorizontal: 18,
+      paddingVertical: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+      overflow: 'hidden',
+    },
+    composeEntrySurfaceClose: {
+      backgroundColor: panelBg,
+      borderWidth: 1,
+      borderColor: panelBorder,
+    },
+    composeEntryGlow: {
+      position: 'absolute',
+      top: -34,
+      right: -16,
+      width: 128,
+      height: 128,
+      borderRadius: 64,
+      backgroundColor: 'rgba(255,255,255,0.14)',
+    },
+    composeEntryCopy: {
+      flex: 1,
+      gap: 6,
+    },
+    composeEntryEyebrow: {
+      fontSize: 11,
+      color: C.primary,
+      fontWeight: '700',
+      letterSpacing: 0.9,
+      textTransform: 'uppercase',
+    },
+    composeEntryEyebrowLight: {
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.74)',
+      fontWeight: '700',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    composeEntryTitle: {
+      fontSize: 23,
+      lineHeight: 27,
+      color: C.white,
+      fontWeight: '800',
+      letterSpacing: -0.5,
+    },
+    composeEntryTitleClose: {
+      fontSize: 19,
+      lineHeight: 24,
+      color: C.textDark,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+    },
+    composeEntrySubtitle: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: 'rgba(255,255,255,0.84)',
+      maxWidth: '92%',
+    },
+    composeEntrySubtitleClose: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: C.subtext,
+      maxWidth: '92%',
+    },
+    composeEntryIconShell: {
+      width: 58,
+      height: 58,
+      borderRadius: 19,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    composeEntryIconShellClose: {
+      backgroundColor: C.primaryTint,
+      borderColor: panelBorder,
+    },
 
     overviewPanel: { paddingHorizontal: 20, marginTop: 8, marginBottom: 12 },
     overviewGradient: {
@@ -1528,8 +1910,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingHorizontal: 18,
       paddingVertical: 18,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      backgroundColor: C.surfaceGlass,
+      borderColor: panelBorder,
+      backgroundColor: panelBg,
       shadowColor: C.shadow,
       shadowOpacity: isDark ? 0.2 : 0.1,
       shadowOffset: { width: 0, height: 16 },
@@ -1565,7 +1947,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingVertical: 6,
       backgroundColor: C.primaryTint,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
     },
     overviewBadgeText: {
       fontSize: 11,
@@ -1593,7 +1975,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 29,
       borderWidth: 1,
       borderColor: 'rgba(212,175,55,0.28)',
-      backgroundColor: 'rgba(255,255,255,0.5)',
+      backgroundColor: shellBg,
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
@@ -1618,9 +2000,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 18,
       paddingHorizontal: 12,
       paddingVertical: 12,
-      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.55)',
+      backgroundColor: insetBg,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       gap: 6,
     },
     overviewMetricIcon: {
@@ -1648,7 +2030,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 20,
       paddingHorizontal: 14,
       paddingVertical: 14,
-      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.58)',
+      backgroundColor: insetBg,
       borderWidth: 1,
       borderColor: C.borderLight,
       gap: 6,
@@ -1683,9 +2065,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingHorizontal: 16,
       paddingVertical: 14,
       borderRadius: 22,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       shadowColor: C.shadow,
       shadowOpacity: isDark ? 0.14 : 0.06,
       shadowOffset: { width: 0, height: 10 },
@@ -1719,7 +2101,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingVertical: 7,
       marginRight: 8,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
     },
     chipText: { fontSize: 12, color: C.textSoft, fontWeight: '600' },
     chipBubble: {
@@ -1731,82 +2113,15 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     chipCount: { fontSize: 10, color: C.white, fontWeight: '800' },
 
-    composeContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 52 },
-    composeIntro: { marginBottom: 16 },
-    composeIntroGradient: {
-      borderRadius: 26,
-      paddingHorizontal: 18,
-      paddingVertical: 18,
-      borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      backgroundColor: C.surfaceGlass,
-      shadowColor: C.shadow,
-      shadowOpacity: isDark ? 0.18 : 0.08,
-      shadowOffset: { width: 0, height: 16 },
-      shadowRadius: 28,
-      elevation: 6,
-      gap: 16,
-    },
-    composeIntroTopRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 14,
-    },
-    composeIntroCopy: { flex: 1, gap: 8 },
-    composeIntroEyebrow: {
-      fontSize: 11,
-      color: C.primary,
-      fontWeight: '700',
-      letterSpacing: 0.9,
-      textTransform: 'uppercase',
-    },
-    composeIntroTitle: {
-      fontSize: 24,
-      lineHeight: 28,
-      color: C.textDark,
-      fontWeight: '800',
-      letterSpacing: -0.6,
-    },
-    composeIntroSubtitle: {
-      fontSize: 13,
-      lineHeight: 20,
-      color: C.subtext,
-    },
-    composeIntroIcon: {
-      width: 54,
-      height: 54,
-      borderRadius: 27,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(212,175,55,0.14)',
-      borderWidth: 1,
-      borderColor: 'rgba(212,175,55,0.28)',
-    },
-    composeIntroStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    composeIntroStat: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 999,
-      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.52)',
-      borderWidth: 1,
-      borderColor: C.borderLight,
-    },
-    composeIntroStatText: {
-      fontSize: 12,
-      color: C.textSoft,
-      fontWeight: '600',
-    },
+    composeContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 52 },
 
     datePicker: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 22,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       marginBottom: 18,
       paddingVertical: 14,
       shadowColor: C.shadow,
@@ -1825,10 +2140,10 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 18,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       paddingHorizontal: 16,
       paddingVertical: 13,
       marginBottom: 14,
@@ -1844,7 +2159,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 49,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(255,255,255,0.24)',
+      backgroundColor: haloBg,
       shadowColor: C.primary,
       shadowOffset: { width: 0, height: 0 },
       shadowRadius: 20,
@@ -1854,11 +2169,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     micCore: { width: 86, height: 86, borderRadius: 43, alignItems: 'center', justifyContent: 'center' },
 
     liveWords: {
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 18,
       padding: 14,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       marginBottom: 12,
       minHeight: 58,
       width: '100%',
@@ -1885,10 +2200,10 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     divText: { color: C.dim, fontSize: 12, fontWeight: '600', letterSpacing: 0.4 },
 
     textBox: {
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 22,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       padding: 16,
       marginBottom: 16,
       minHeight: 154,
@@ -1901,6 +2216,91 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     textInput: { color: C.text, fontSize: 15, lineHeight: 24, minHeight: 108, maxHeight: 220 },
     charCount: { textAlign: 'right', color: C.dim, fontSize: 11, marginTop: 8, fontWeight: '600' },
 
+    unlockUnavailableText: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: C.orange,
+      fontWeight: '600',
+    },
+    unlockOptionCard: {
+      flex: 1,
+      borderRadius: 18,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      backgroundColor: elevatedInsetBg,
+      borderWidth: 1,
+      borderColor: panelBorder,
+      minHeight: 112,
+    },
+    unlockOptionCardPrimary: {
+      backgroundColor: C.primary,
+      borderColor: C.primary,
+      shadowColor: C.primary,
+      shadowOpacity: 0.22,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 18,
+      elevation: 4,
+    },
+    unlockOptionIconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      backgroundColor: isDark ? C.surface : C.primarySoftBg,
+    },
+    unlockOptionIconWrapPrimary: {
+      backgroundColor: 'rgba(255,255,255,0.18)',
+    },
+    unlockOptionTitle: {
+      fontSize: 14,
+      lineHeight: 18,
+      fontWeight: '800',
+      color: C.textDark,
+    },
+    unlockOptionTitlePrimary: {
+      fontSize: 14,
+      lineHeight: 18,
+      fontWeight: '800',
+      color: C.white,
+    },
+    unlockOptionSubtitle: {
+      marginTop: 6,
+      fontSize: 12,
+      lineHeight: 17,
+      color: C.subtext,
+    },
+    unlockOptionSubtitlePrimary: {
+      marginTop: 6,
+      fontSize: 12,
+      lineHeight: 17,
+      color: 'rgba(255,255,255,0.82)',
+    },
+    dreamUnlockSheet: {
+      paddingBottom: 8,
+      gap: 12,
+    },
+    dreamUnlockSheetBalanceRow: {
+      alignItems: 'flex-start',
+    },
+    dreamUnlockSheetOptions: {
+      gap: 10,
+    },
+    unlockSheetOption: {
+      flex: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      minHeight: 0,
+      paddingVertical: 13,
+    },
+    unlockSheetOptionCopy: {
+      flex: 1,
+    },
+    unlockSheetOptionIconWrap: {
+      marginBottom: 0,
+    },
     actionRow: { flexDirection: 'row', gap: 10 },
     cancelBtn: {
       flex: 1,
@@ -1908,11 +2308,14 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 18,
       paddingVertical: 15,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
+    },
+    cancelBtnFull: {
+      flex: 1,
     },
     cancelBtnText: { color: C.subtext, fontWeight: '700', fontSize: 14 },
     saveBtn: {
@@ -1932,6 +2335,18 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     saveBtnOff: { opacity: 0.42 },
     saveBtnText: { color: C.white, fontWeight: '800', fontSize: 15 },
+    guruFallbackSheet: {
+      paddingBottom: 8,
+      gap: 14,
+    },
+    guruFallbackBody: {
+      fontSize: 14,
+      lineHeight: 21,
+      color: C.subtext,
+    },
+    guruFallbackBadgeRow: {
+      alignItems: 'flex-start',
+    },
 
     journalContent: { paddingTop: 2, paddingBottom: 34 },
     journalBody: { paddingHorizontal: 20 },
@@ -1941,9 +2356,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingVertical: 30,
       paddingHorizontal: 24,
       borderRadius: 24,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       gap: 10,
     },
     centerText: { color: C.subtext, fontSize: 13, fontWeight: '600' },
@@ -1953,9 +2368,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingVertical: 34,
       paddingHorizontal: 28,
       borderRadius: 24,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
     },
     emptyEmoji: { fontSize: 58, marginBottom: 16 },
     emptyTitle: { fontSize: 21, fontWeight: '800', color: C.textDark, marginBottom: 8, textAlign: 'center' },
@@ -1977,11 +2392,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       marginHorizontal: 20,
       marginBottom: 10,
       marginTop: 6,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 18,
       padding: 4,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       shadowColor: C.shadow,
       shadowOpacity: isDark ? 0.16 : 0.05,
       shadowOffset: { width: 0, height: 10 },
@@ -1998,9 +2413,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 14,
     },
     tabBtnActive: {
-      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.86)',
+      backgroundColor: activeTabBg,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       shadowColor: C.primary,
       shadowOpacity: 0.18,
       shadowOffset: { width: 0, height: 6 },
@@ -2021,22 +2436,22 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       gap: 18,
       marginHorizontal: 20,
       marginBottom: 16,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 20,
       paddingVertical: 12,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
     },
     monthArrow: { padding: 8 },
     monthArrowDisabled: { opacity: 0.3 },
     monthLabel: { fontSize: 17, fontWeight: '800', color: C.textDark, minWidth: 140, textAlign: 'center' },
     storyCard: {
       marginHorizontal: 20,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 26,
       padding: 18,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       shadowColor: C.shadow,
       shadowOpacity: isDark ? 0.2 : 0.09,
       shadowOffset: { width: 0, height: 16 },
@@ -2105,21 +2520,21 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       gap: 8,
       marginHorizontal: 20,
       marginTop: 14,
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 18,
       padding: 14,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
     },
     infoText: { flex: 1, fontSize: 12, color: C.subtext, lineHeight: 18 },
 
     card: {
-      backgroundColor: C.surfaceGlass,
+      backgroundColor: panelBg,
       borderRadius: 24,
       padding: 16,
       marginBottom: 14,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       shadowColor: C.shadow,
       shadowOpacity: isDark ? 0.18 : 0.06,
       shadowOffset: { width: 0, height: 12 },
@@ -2143,7 +2558,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 999,
       backgroundColor: C.primaryTint,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
       alignSelf: 'flex-start',
     },
     cardStateBadge: {
@@ -2161,7 +2576,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     cardStateBadgeReady: {
       backgroundColor: C.primaryTint,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
     },
     cardStateText: { fontSize: 11, fontWeight: '700' },
     cardActions: { alignItems: 'center', gap: 10, paddingTop: 2 },
@@ -2172,7 +2587,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 18,
       paddingHorizontal: 14,
       paddingVertical: 14,
-      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.56)',
+      backgroundColor: insetBg,
       borderWidth: 1,
       borderColor: C.borderLight,
     },
@@ -2184,7 +2599,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       paddingHorizontal: 10,
       paddingVertical: 5,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: panelBorder,
     },
     badgeText: { fontSize: 11, color: C.primary, fontWeight: '700' },
     insightRow: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
@@ -2237,7 +2652,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       gap: 8,
       borderRadius: 18,
       padding: 14,
-      backgroundColor: isDark ? C.surfaceAlt : 'rgba(255,255,255,0.54)',
+      backgroundColor: insetBg,
       borderWidth: 1,
       borderColor: C.borderLight,
     },

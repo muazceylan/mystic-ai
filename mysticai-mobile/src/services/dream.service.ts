@@ -84,6 +84,32 @@ export interface SymbolMeaning {
   personal: string;
 }
 
+const DEFAULT_AUDIO_EXTENSION = '.m4a';
+
+const AUDIO_MIME_BY_EXTENSION: Record<string, string> = {
+  '.m4a': 'audio/mp4',
+  '.mp4': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.3gp': 'audio/3gpp',
+  '.wav': 'audio/wav',
+  '.mp3': 'audio/mpeg',
+  '.caf': 'audio/x-caf',
+  '.webm': 'audio/webm',
+  '.ogg': 'audio/ogg',
+};
+
+const getAudioUploadMeta = (audioUri: string, requestedFilename?: string) => {
+  const normalizedUri = audioUri.split('?')[0] ?? audioUri;
+  const uriFilename = normalizedUri.split('/').pop() ?? '';
+  const uriMatch = uriFilename.match(/(\.[a-z0-9]+)$/i);
+  const requestedMatch = requestedFilename?.match(/(\.[a-z0-9]+)$/i);
+  const extension = (requestedMatch?.[1] ?? uriMatch?.[1] ?? DEFAULT_AUDIO_EXTENSION).toLowerCase();
+  const filename = requestedFilename ?? (uriFilename && uriMatch ? uriFilename : `recording${extension}`);
+  const mimeType = AUDIO_MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
+
+  return { filename, mimeType };
+};
+
 export const dreamService = {
   submitDream: async (request: DreamSubmitRequest): Promise<DreamEntryResponse> => {
     // Longer timeout: backend calls AI orchestrator synchronously for symbol extraction
@@ -92,9 +118,10 @@ export const dreamService = {
   },
 
   /** Transcribe audio → returns text only, does NOT create a dream entry. */
-  transcribeAudio: async (audioUri: string, filename = 'recording.m4a'): Promise<string> => {
+  transcribeAudio: async (audioUri: string, filename?: string): Promise<string> => {
+    const { filename: resolvedFilename, mimeType } = getAudioUploadMeta(audioUri, filename);
     const formData = new FormData();
-    formData.append('audio', { uri: audioUri, name: filename, type: 'audio/m4a' } as any);
+    formData.append('audio', { uri: audioUri, name: resolvedFilename, type: mimeType } as any);
     const res = await api.post<{ text: string }>('/api/v1/dreams/transcribe', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 30000,
@@ -106,11 +133,12 @@ export const dreamService = {
   submitDreamAudio: async (
     userId: number,
     audioUri: string,
-    filename = 'recording.m4a'
+    filename?: string
   ): Promise<DreamEntryResponse> => {
+    const { filename: resolvedFilename, mimeType } = getAudioUploadMeta(audioUri, filename);
     const formData = new FormData();
     formData.append('userId', String(userId));
-    formData.append('audio', { uri: audioUri, name: filename, type: 'audio/m4a' } as any);
+    formData.append('audio', { uri: audioUri, name: resolvedFilename, type: mimeType } as any);
     const res = await api.post<DreamEntryResponse>('/api/v1/dreams/audio', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 45000,

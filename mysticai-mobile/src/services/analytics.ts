@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 import { envConfig } from '../config/env';
+import api from './api';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -24,10 +26,11 @@ const EVENT_NAME_PATTERN = /^[a-z0-9_]+$/;
 
 const analyticsConfig = envConfig.analytics;
 const isAmplitude = analyticsConfig.provider === 'amplitude';
+const amplitudeEnabled = isAmplitude && Boolean(analyticsConfig.apiKey);
 const debugMode = analyticsConfig.debug;
 
 /** Mutable flag — starts from env config, can be toggled by consent / settings. */
-let collectionEnabled = analyticsConfig.enabled;
+let collectionEnabled = analyticsConfig.collectionEnabledByDefault;
 
 // ── Amplitude state ─────────────────────────────────────────────────
 
@@ -37,6 +40,9 @@ let flushInFlight = false;
 let deviceId = `mystic-device-${Date.now().toString(36)}-${Math.round(Math.random() * 1_000_000).toString(36)}`;
 let sessionId = Date.now();
 const queue: QueuedEvent[] = [];
+let analyticsUserId: string | null = null;
+let analyticsUserProperties: Record<string, string | null> = {};
+let debugBootstrapSent = false;
 
 // ── Firebase Analytics (lazy, null-safe) ────────────────────────────
 //
@@ -66,6 +72,49 @@ type FirebaseAnalyticsModule = {
 
 let _firebase: FirebaseAnalyticsModule | null = null;
 let _firebaseResolved = false;
+let didWarnFirebaseUnavailable = false;
+
+const FIREBASE_APP_NATIVE_MODULE = 'RNFBAppModule';
+const FIREBASE_ANALYTICS_NATIVE_MODULE = 'RNFBAnalyticsModule';
+
+function warnFirebaseUnavailable(reason: string, error?: unknown): void {
+  if (!__DEV__ || didWarnFirebaseUnavailable) return;
+  didWarnFirebaseUnavailable = true;
+
+  const detail =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : 'unknown error';
+
+  console.warn(
+    `[analytics] Firebase Analytics unavailable during ${reason}. ` +
+      'Expo Go or a stale native build will trigger this fallback. ' +
+      'Rebuild the native app with expo run:* or EAS before expecting RNFirebase analytics.',
+    detail,
+  );
+}
+
+function hasFirebaseNativeModules(): boolean {
+  if (Platform.OS === 'web') {
+    return false;
+  }
+
+  if (Constants.executionEnvironment === 'storeClient') {
+    return false;
+  }
+
+  const modules = NativeModules as Record<string, unknown>;
+  const appModule =
+    TurboModuleRegistry.get<unknown>(FIREBASE_APP_NATIVE_MODULE)
+    ?? modules[FIREBASE_APP_NATIVE_MODULE];
+  const analyticsModule =
+    TurboModuleRegistry.get<unknown>(FIREBASE_ANALYTICS_NATIVE_MODULE)
+    ?? modules[FIREBASE_ANALYTICS_NATIVE_MODULE];
+
+  return Boolean(appModule && analyticsModule);
+}
 
 function getFirebase(): FirebaseAnalyticsModule | null {
   if (_firebaseResolved) return _firebase;
@@ -73,6 +122,12 @@ function getFirebase(): FirebaseAnalyticsModule | null {
 
   if (Platform.OS === 'web') {
     debugLog('Firebase Analytics skipped on web');
+    return null;
+  }
+
+  if (!hasFirebaseNativeModules()) {
+    debugLog('Firebase Analytics skipped because native modules are unavailable');
+    warnFirebaseUnavailable('availability check', `${FIREBASE_APP_NATIVE_MODULE}/${FIREBASE_ANALYTICS_NATIVE_MODULE} missing`);
     return null;
   }
 
@@ -84,6 +139,7 @@ function getFirebase(): FirebaseAnalyticsModule | null {
     debugLog('Firebase Analytics initialized');
   } catch (e) {
     debugLog('Firebase Analytics not available (expected in Expo Go)', e);
+    warnFirebaseUnavailable('module require', e);
   }
 
   return _firebase;
@@ -141,6 +197,29 @@ function debugLog(message: string, payload?: unknown) {
     return;
   }
   console.info(`[analytics] ${message}`, payload);
+}
+
+function hasFirebaseProvider(): boolean {
+  return getFirebase() !== null;
+}
+
+function hasActiveAnalyticsProvider(): boolean {
+  return amplitudeEnabled || hasFirebaseProvider();
+}
+
+function mirrorScreenView(screenName: string, screenClass?: string): void {
+  if (!collectionEnabled || !envConfig.isApiConfigured) {
+    return;
+  }
+
+  void api.post('/api/v1/analytics/screen-views', {
+    screenKey: screenName,
+    routePath: screenClass ?? screenName,
+    platform: Platform.OS,
+    sessionId: String(sessionId),
+  }).catch((error) => {
+    debugLog('Internal screen tracking failed', error);
+  });
 }
 
 function validateEventName(name: string): boolean {
@@ -204,7 +283,7 @@ function enqueue(event: QueuedEvent) {
 }
 
 async function flushQueue(): Promise<void> {
-  if (!collectionEnabled || !isAmplitude || flushInFlight || queue.length === 0) {
+  if (!collectionEnabled || !amplitudeEnabled || flushInFlight || queue.length === 0) {
     return;
   }
 
@@ -221,6 +300,8 @@ async function flushQueue(): Promise<void> {
     events: batched.map((event) => ({
       event_type: event.name,
       event_properties: event.params,
+      user_id: analyticsUserId ?? undefined,
+      user_properties: analyticsUserProperties,
       time: event.timestampMs,
       session_id: sessionId,
       device_id: deviceId,
@@ -274,16 +355,18 @@ export function trackEvent(name: string, params?: AnalyticsParams): void {
 
   debugLog(`${name}`, normalizedParams);
 
-  if (!collectionEnabled) {
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) {
     return;
   }
 
   // Amplitude (queue-based)
-  void (async () => {
-    await ensureInitialized();
-    enqueue(event);
-    await flushQueue();
-  })();
+  if (amplitudeEnabled) {
+    void (async () => {
+      await ensureInitialized();
+      enqueue(event);
+      await flushQueue();
+    })();
+  }
 
   // Firebase GA4 (direct — Firebase handles its own batching)
   firebaseSafe((fa) => fa.logEvent(name, normalizedParams));
@@ -304,19 +387,23 @@ export function logScreen(screenName: string, screenClass?: string): void {
 
   if (!collectionEnabled) return;
 
-  // Firebase GA4 native screen_view (uses recommended logScreenView API)
-  firebaseSafe((fa) =>
-    fa.logScreenView({
+  if (hasActiveAnalyticsProvider()) {
+    // Firebase GA4 native screen_view (uses recommended logScreenView API)
+    firebaseSafe((fa) =>
+      fa.logScreenView({
+        screen_name: screenName,
+        screen_class: screenClass ?? screenName,
+      }),
+    );
+
+    // Also send as Amplitude event for parity
+    trackEvent('screen_view', {
       screen_name: screenName,
       screen_class: screenClass ?? screenName,
-    }),
-  );
+    });
+  }
 
-  // Also send as Amplitude event for parity
-  trackEvent('screen_view', {
-    screen_name: screenName,
-    screen_class: screenClass ?? screenName,
-  });
+  mirrorScreenView(screenName, screenClass);
 }
 
 // ── Public API: GA4 recommended events ──────────────────────────────
@@ -331,7 +418,7 @@ export function logScreen(screenName: string, screenClass?: string): void {
  */
 export function logLogin(method: string): void {
   debugLog(`login: ${method}`);
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logLogin({ method }));
   trackEvent('login', { method });
 }
@@ -342,7 +429,7 @@ export function logLogin(method: string): void {
  */
 export function logSignUp(method: string): void {
   debugLog(`sign_up: ${method}`);
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logSignUp({ method }));
   trackEvent('sign_up', { method });
 }
@@ -352,7 +439,7 @@ export function logSignUp(method: string): void {
  */
 export function logSearch(searchTerm: string): void {
   debugLog(`search: ${searchTerm}`);
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logSearch({ search_term: searchTerm.slice(0, 100) }));
   trackEvent('search', { search_term: searchTerm.slice(0, 100) });
 }
@@ -362,7 +449,7 @@ export function logSearch(searchTerm: string): void {
  */
 export function logShare(contentType: string, itemId?: string, method?: string): void {
   debugLog(`share: ${contentType}`);
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logShare({ content_type: contentType, item_id: itemId, method }));
   trackEvent('share', { content_type: contentType, item_id: itemId, method });
 }
@@ -372,7 +459,7 @@ export function logShare(contentType: string, itemId?: string, method?: string):
  */
 export function logSelectContent(contentType: string, itemId: string): void {
   debugLog(`select_content: ${contentType}/${itemId}`);
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logSelectContent({ content_type: contentType, item_id: itemId }));
   trackEvent('select_content', { content_type: contentType, item_id: itemId });
 }
@@ -382,7 +469,7 @@ export function logSelectContent(contentType: string, itemId: string): void {
  */
 export function logTutorialBegin(): void {
   debugLog('tutorial_begin');
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logTutorialBegin());
 }
 
@@ -391,7 +478,7 @@ export function logTutorialBegin(): void {
  */
 export function logTutorialComplete(): void {
   debugLog('tutorial_complete');
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logTutorialComplete());
 }
 
@@ -400,7 +487,7 @@ export function logTutorialComplete(): void {
  */
 export function logBeginCheckout(value?: number, currency?: string): void {
   debugLog(`begin_checkout: ${value} ${currency}`);
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) => fa.logBeginCheckout({ value, currency }));
   trackEvent('begin_checkout', { value, currency });
 }
@@ -414,7 +501,7 @@ export function logPurchase(
   transactionId?: string,
 ): void {
   debugLog(`purchase: ${value} ${currency} ${transactionId}`);
-  if (!collectionEnabled) return;
+  if (!collectionEnabled || !hasActiveAnalyticsProvider()) return;
   firebaseSafe((fa) =>
     fa.logPurchase({ value, currency, transaction_id: transactionId }),
   );
@@ -429,6 +516,7 @@ export function logPurchase(
  * Never pass email or PII — use the internal numeric/UUID user ID.
  */
 export function setAnalyticsUserId(userId: string | null): void {
+  analyticsUserId = userId;
   debugLog(`setUserId: ${userId ?? '(null)'}`);
   firebaseSafe((fa) => fa.setUserId(userId));
 }
@@ -440,6 +528,10 @@ export function setAnalyticsUserId(userId: string | null): void {
 export function setAnalyticsUserProperties(
   properties: Record<string, string | null>,
 ): void {
+  analyticsUserProperties = {
+    ...analyticsUserProperties,
+    ...properties,
+  };
   debugLog('setUserProperties', properties);
   firebaseSafe((fa) => fa.setUserProperties(properties));
 }
@@ -477,6 +569,28 @@ export function setAnalyticsConsent(
  */
 export function resetAnalyticsIdentity(): void {
   debugLog('resetAnalyticsIdentity');
+  analyticsUserProperties = {};
   setAnalyticsUserId(null);
   firebaseSafe((fa) => fa.resetAnalyticsData());
+}
+
+export function getAnalyticsDebugState(): {
+  collectionEnabled: boolean;
+  amplitudeEnabled: boolean;
+  firebaseEnabled: boolean;
+} {
+  return {
+    collectionEnabled,
+    amplitudeEnabled,
+    firebaseEnabled: hasFirebaseProvider(),
+  };
+}
+
+export function emitAnalyticsDebugBootstrap(params?: AnalyticsParams): void {
+  if (!__DEV__ || debugBootstrapSent) {
+    return;
+  }
+
+  debugBootstrapSent = true;
+  trackEvent('analytics_debug_bootstrap', params);
 }

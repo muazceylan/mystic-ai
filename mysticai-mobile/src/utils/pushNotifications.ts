@@ -7,6 +7,7 @@ import {
 } from './notificationAnalytics';
 
 let Notifications: typeof import('expo-notifications') | null = null;
+let notificationHandlerInstalled = false;
 
 async function getNotificationsModule() {
   if (Platform.OS === 'web') return null;
@@ -14,6 +15,28 @@ async function getNotificationsModule() {
     Notifications = await import('expo-notifications');
   }
   return Notifications;
+}
+
+export async function ensureNotificationHandlerInstalled(): Promise<void> {
+  if (Platform.OS === 'web' || notificationHandlerInstalled) return;
+
+  try {
+    const mod = await getNotificationsModule();
+    if (!mod) return;
+
+    mod.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+    notificationHandlerInstalled = true;
+  } catch {
+    // Ignore handler setup failures and let callers continue gracefully.
+  }
 }
 
 /**
@@ -73,16 +96,7 @@ export async function setupNotificationResponseHandler(
     const mod = await getNotificationsModule();
     if (!mod) return null;
 
-    // Foreground: show banner + play sound + update badge
-    mod.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
-    });
+    await ensureNotificationHandlerInstalled();
 
     // Foreground: notification received — refresh unread count
     const receivedSub = mod.addNotificationReceivedListener(() => {

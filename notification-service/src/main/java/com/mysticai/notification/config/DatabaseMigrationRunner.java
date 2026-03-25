@@ -20,6 +20,7 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        createProductAnalyticsTablesIfNeeded();
         dropCheckConstraintIfExists("audit_logs", "action_type");
         dropCheckConstraintIfExists("audit_logs", "entity_type");
         // Notification enums evolve frequently (e.g. new NotificationType values).
@@ -41,6 +42,28 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
         dropCheckConstraintIfExists("guru_ledger", "source_type");
         dropCheckConstraintIfExists("guru_product_catalog", "product_type");
         dropCheckConstraintIfExists("guru_product_catalog", "rollout_status");
+    }
+
+    private void createProductAnalyticsTablesIfNeeded() {
+        try {
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS app_screen_views (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_id BIGINT,
+                        screen_key VARCHAR(120) NOT NULL,
+                        route_path VARCHAR(255),
+                        platform VARCHAR(20),
+                        session_id VARCHAR(120),
+                        seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """);
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_app_screen_views_seen_at ON app_screen_views (seen_at DESC)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_app_screen_views_user_seen_at ON app_screen_views (user_id, seen_at DESC)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_app_screen_views_screen_key ON app_screen_views (screen_key)");
+        } catch (Exception e) {
+            log.warn("Could not initialize app_screen_views table: {}", e.getMessage());
+        }
     }
 
     private void dropCheckConstraintIfExists(String table, String column) {

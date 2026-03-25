@@ -2,10 +2,11 @@
 
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi, guestApi } from '@/lib/api';
-import { DashboardSummary, GuestStats } from '@/types';
+import Link from 'next/link';
+import { dashboardApi, guestApi, productAnalyticsApi, usersApi } from '@/lib/api';
+import { AppUserStats, DashboardSummary, GuestStats, ProductAnalyticsOverview } from '@/types';
 import { formatDate, timeAgo, statusColor } from '@/lib/utils';
-import { Bell, Map, CheckCircle, AlertCircle, Calendar, TrendingUp, Layers, Navigation, Users, Wrench, Sun, CalendarDays, BookOpen, Star, Zap, Activity, Home, Compass, CreditCard, Image, UserX, ArrowRight, Percent, Ghost } from 'lucide-react';
+import { Bell, Map, CheckCircle, AlertCircle, Calendar, TrendingUp, Layers, Navigation, Users, Wrench, Sun, CalendarDays, BookOpen, Star, Zap, Activity, Home, Compass, CreditCard, Image, UserX, ArrowRight, Percent, Ghost, Eye, MousePointerClick, MailCheck, BarChart3 } from 'lucide-react';
 
 function StatCard({ label, value, icon: Icon, color }: {
   label: string; value: number; icon: React.ElementType; color: string;
@@ -33,6 +34,22 @@ export default function DashboardPage() {
   const { data: guestStats } = useQuery<GuestStats>({
     queryKey: ['guest-stats'],
     queryFn: () => guestApi.stats().then((r) => r.data),
+    refetchInterval: 60_000,
+  });
+
+  const { data: productOverview } = useQuery<ProductAnalyticsOverview>({
+    queryKey: ['dashboard-product-analytics'],
+    queryFn: () => productAnalyticsApi.overview({
+      windowDays: 30,
+      activeWithinDays: 7,
+      topScreensLimit: 4,
+    }).then((r) => r.data),
+    refetchInterval: 60_000,
+  });
+
+  const { data: appUserStats } = useQuery<AppUserStats>({
+    queryKey: ['dashboard-app-user-stats'],
+    queryFn: () => usersApi.stats().then((r) => r.data),
     refetchInterval: 60_000,
   });
 
@@ -145,6 +162,111 @@ export default function DashboardPage() {
               <p className="text-2xl font-bold text-white">
                 {guestStats ? `${guestStats.conversionRatePct.toFixed(1)}%` : '—'}
               </p>
+            </div>
+          </div>
+
+          {/* Stat cards — Users & Product Analytics */}
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-xs text-gray-500 uppercase font-semibold">Kullanıcılar & Ürün Kullanımı</p>
+            <Link
+              href="/product-analytics"
+              className="text-xs font-medium text-purple-300 transition-colors hover:text-purple-200"
+            >
+              Tüm içgörüleri aç →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <StatCard
+              label="Toplam Kullanıcı"
+              value={appUserStats?.totalUsers ?? 0}
+              icon={Users}
+              color="bg-violet-900/50 text-violet-300"
+            />
+            <StatCard
+              label="Aktif Kullanıcı (7g)"
+              value={productOverview?.activeUsers ?? 0}
+              icon={Activity}
+              color="bg-emerald-900/50 text-emerald-300"
+            />
+            <StatCard
+              label="Ekran Görüntüleme (30g)"
+              value={productOverview?.trackedScreenViews ?? 0}
+              icon={Eye}
+              color="bg-sky-900/50 text-sky-300"
+            />
+            <StatCard
+              label="Doğrulanmış Email"
+              value={appUserStats?.verifiedUsers ?? 0}
+              icon={MailCheck}
+              color="bg-amber-900/50 text-amber-300"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl">
+              <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-white text-sm">En Çok Ziyaret Edilen Sayfalar</h2>
+                  <p className="text-xs text-gray-500 mt-1">Son 30 gündeki screen view verisi</p>
+                </div>
+                <div className="px-2.5 py-1 rounded-full bg-purple-900/40 text-purple-300 text-xs">
+                  {productOverview?.trackedUsers ?? 0} kullanıcı
+                </div>
+              </div>
+              {productOverview?.topScreens?.length ? (
+                <ul className="divide-y divide-gray-800">
+                  {productOverview.topScreens.map((screen) => (
+                    <li key={screen.screenKey} className="px-5 py-3 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-900/30 text-purple-300 flex items-center justify-center shrink-0">
+                        <MousePointerClick className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-white font-medium truncate">{screen.screenKey}</p>
+                        <p className="text-xs text-gray-500 truncate">{screen.routePath}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm text-white font-semibold">{screen.visits}</p>
+                        <p className="text-[11px] text-gray-500 uppercase">view</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 text-sm p-5">Henüz ürün kullanım verisi birikmedi.</p>
+              )}
+            </div>
+
+            <div className="bg-gray-900 border border-gray-800 rounded-xl">
+              <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-white text-sm">Kullanıcı Özeti</h2>
+                  <p className="text-xs text-gray-500 mt-1">Hızlı okunur büyüme ve kalite sinyalleri</p>
+                </div>
+                <BarChart3 className="w-4 h-4 text-cyan-300" />
+              </div>
+              <div className="p-5 grid grid-cols-2 gap-4">
+                <div className="rounded-xl border border-gray-800 bg-gray-950 px-4 py-3">
+                  <p className="text-xs uppercase text-gray-500">Kayıtlı</p>
+                  <p className="mt-2 text-xl font-bold text-white">{appUserStats?.registeredUsers ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-gray-800 bg-gray-950 px-4 py-3">
+                  <p className="text-xs uppercase text-gray-500">Misafir</p>
+                  <p className="mt-2 text-xl font-bold text-white">{appUserStats?.guestUsers ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-gray-800 bg-gray-950 px-4 py-3">
+                  <p className="text-xs uppercase text-gray-500">Bugünkü View</p>
+                  <p className="mt-2 text-xl font-bold text-white">{productOverview?.screenViewsToday ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-gray-800 bg-gray-950 px-4 py-3">
+                  <p className="text-xs uppercase text-gray-500">Son Track</p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {productOverview?.latestTrackedAt ? timeAgo(productOverview.latestTrackedAt) : 'Veri yok'}
+                  </p>
+                  {productOverview?.latestTrackedAt && (
+                    <p className="text-[11px] text-gray-500 mt-1">{formatDate(productOverview.latestTrackedAt)}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

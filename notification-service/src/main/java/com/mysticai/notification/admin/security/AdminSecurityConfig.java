@@ -43,6 +43,9 @@ public class AdminSecurityConfig {
                         // Dashboard: all admin roles
                         .requestMatchers("/api/admin/v1/dashboard/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN", "NOTIFICATION_MANAGER")
+                        // Product analytics: SUPER_ADMIN + PRODUCT_ADMIN
+                        .requestMatchers("/api/admin/v1/product-analytics/**")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
                         // Auth me
                         .requestMatchers("/api/admin/v1/auth/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN", "NOTIFICATION_MANAGER")
@@ -79,6 +82,8 @@ public class AdminSecurityConfig {
                         .requestMatchers("/api/v1/app-config").permitAll()
                         // Public tutorial config endpoint — no auth required
                         .requestMatchers("/api/v1/tutorial-configs", "/api/v1/tutorial-configs/**").permitAll()
+                        // Public lightweight analytics ingestion for screen tracking
+                        .requestMatchers("/api/v1/analytics/**").permitAll()
                         // User-facing notification endpoints are protected by gateway trust filter
                         .requestMatchers("/api/v1/notifications/**").permitAll()
                         .anyRequest().denyAll()

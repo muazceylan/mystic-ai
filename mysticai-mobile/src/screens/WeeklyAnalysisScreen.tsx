@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -21,8 +22,10 @@ import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useHomeBrief } from '../hooks/useHomeQueries';
+import { queryKeys } from '../lib/queryKeys';
 import { TYPOGRAPHY, SPACING, RADIUS } from '../constants/tokens';
 import type { HomeBrief } from '../services/oracle.service';
+import type { HomeDashboardResponse, HomeDashboardWeeklyHighlightItem } from '../services/home-dashboard.service';
 
 const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
@@ -58,9 +61,16 @@ function getWeekRange(): { label: string; startDate: string; endDate: string } {
   };
 }
 
-function buildCards(homeBrief: HomeBrief | null, t: (key: string) => string): SwotCardData[] {
+function buildCards(
+  homeBrief: HomeBrief | null,
+  t: (key: string) => string,
+  weeklyHighlights?: HomeDashboardWeeklyHighlightItem[] | null,
+): SwotCardData[] {
   const byKey = new Map(
     (homeBrief?.weeklyCards ?? []).map((c) => [c.key, c]),
+  );
+  const weeklyByKey = new Map(
+    (weeklyHighlights ?? []).map((item) => [item.key, item]),
   );
 
   const items: Array<{
@@ -78,10 +88,11 @@ function buildCards(homeBrief: HomeBrief | null, t: (key: string) => string): Sw
 
   return items.map((item) => {
     const card = byKey.get(item.id);
+    const weeklyFallback = weeklyByKey.get(item.id);
     return {
       ...item,
-      headline: card?.headline ?? t('home.areaActiveThisWeek'),
-      subtext: card?.subtext ?? '',
+      headline: card?.headline ?? weeklyFallback?.title ?? t('home.areaActiveThisWeek'),
+      subtext: card?.subtext ?? weeklyFallback?.desc ?? '',
       quickTip: card?.quickTip ?? '',
     };
   });
@@ -89,11 +100,16 @@ function buildCards(homeBrief: HomeBrief | null, t: (key: string) => string): Sw
 
 export default function WeeklyAnalysisScreen() {
   const { colors, isDark } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
   const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
-  const S = makeStyles(colors, isDark);
+  const S = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
+  const resolvedLocale = useMemo<'tr' | 'en'>(
+    () => ((i18n.resolvedLanguage ?? i18n.language ?? user?.preferredLanguage ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
+    [i18n.language, i18n.resolvedLanguage, user?.preferredLanguage],
+  );
 
   // Must match home.tsx dailySecretParams exactly to share react-query cache
   const homeBriefParams = useMemo(() => {
@@ -108,12 +124,28 @@ export default function WeeklyAnalysisScreen() {
 
   const { data: homeBrief, isLoading, isError, refetch, isRefetching } = useHomeBrief(homeBriefParams);
 
+  const cachedDashboard = useMemo(() => {
+    const dashboardUserId = user?.id ?? 'guest';
+    const dashboardSign = user?.zodiacSign ?? '';
+    return (
+      queryClient.getQueryData<HomeDashboardResponse>(queryKeys.homeDashboard(dashboardUserId, dashboardSign, resolvedLocale))
+      ?? queryClient.getQueryData<HomeDashboardResponse>(queryKeys.homeDashboardFast(dashboardUserId, resolvedLocale))
+      ?? null
+    );
+  }, [queryClient, resolvedLocale, user?.id, user?.zodiacSign]);
+
   const weekRange = useMemo(() => getWeekRange(), []);
-  const cards = useMemo(() => buildCards(homeBrief ?? null, t), [homeBrief, t]);
+  const weekLabel = cachedDashboard?.weeklyHighlights?.rangeText?.trim() || weekRange.label;
+  const cachedWeeklyHighlights = cachedDashboard?.weeklyHighlights?.items ?? null;
+  const cards = useMemo(
+    () => buildCards(homeBrief ?? null, t, cachedWeeklyHighlights),
+    [cachedWeeklyHighlights, homeBrief, t],
+  );
+  const shouldShowFullError = isError && !homeBrief && !(cachedWeeklyHighlights?.length);
 
   return (
     <SafeScreen>
-      <TabHeader title={t('home.weeklyAnalysis')} subtitle={weekRange.label} />
+      <TabHeader title={t('home.weeklyAnalysis')} subtitle={weekLabel} />
 
       <ScrollView
         contentContainerStyle={S.scrollContent}
@@ -145,12 +177,14 @@ export default function WeeklyAnalysisScreen() {
           </Text>
         </Animated.View>
 
-        {isLoading ? (
-          <View style={S.loadingWrap}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={S.loadingText}>{t('home.swotLoading')}</Text>
+        {isLoading && !homeBrief ? (
+          <View style={S.inlineLoadingWrap}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={S.inlineLoadingText}>{t('home.swotLoading')}</Text>
           </View>
-        ) : isError ? (
+        ) : null}
+
+        {shouldShowFullError ? (
           <View style={S.errorWrap}>
             <Ionicons name="cloud-offline-outline" size={40} color={colors.muted} />
             <Text style={S.errorText}>{t('home.swotError')}</Text>
@@ -166,7 +200,6 @@ export default function WeeklyAnalysisScreen() {
                 entering={FadeInDown.delay(index * 100).duration(450)}
               >
                 <View style={S.card}>
-                  {/* Card header */}
                   <View style={S.cardHeader}>
                     <View style={[S.cardIconWrap, { backgroundColor: card.accentBg }]}>
                       <Ionicons name={card.icon} size={18} color={card.accent} />
@@ -176,15 +209,12 @@ export default function WeeklyAnalysisScreen() {
                     </Text>
                   </View>
 
-                  {/* Headline */}
                   <Text style={S.cardHeadline}>{card.headline}</Text>
 
-                  {/* Subtext */}
                   {card.subtext ? (
                     <Text style={S.cardSubtext}>{card.subtext}</Text>
                   ) : null}
 
-                  {/* Quick tip */}
                   {card.quickTip ? (
                     <View style={[S.tipRow, { borderLeftColor: card.accent + '55' }]}>
                       <Ionicons name="bulb-outline" size={14} color={card.accent} style={{ marginTop: 1 }} />
@@ -282,6 +312,17 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       gap: SPACING.md,
     },
     loadingText: {
+      ...TYPOGRAPHY.Caption,
+      color: C.subtext,
+    },
+    inlineLoadingWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+      paddingBottom: SPACING.lg,
+    },
+    inlineLoadingText: {
       ...TYPOGRAPHY.Caption,
       color: C.subtext,
     },

@@ -88,7 +88,7 @@ import NatalChartHeroCard, {
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { AccordionSection, SafeScreen, TabHeader, TabSwipeGesture } from '../../components/ui';
+import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import {
   BIRTH_CHART_TUTORIAL_TARGET_KEYS,
@@ -1751,7 +1751,7 @@ export default function NatalChartTab() {
     router.push('/night-sky-poster-preview' as any);
   };
 
-  const openNatalVisualsPreview = () => {
+  const openNatalVisualsPreview = (presetKey: 'wheel' | 'matrix' | 'balance' = 'wheel') => {
     if (!chart) return;
     setNatalVisualsDraft({
       name: activeProfileName || chart.name || 'Astro Soul',
@@ -1759,6 +1759,7 @@ export default function NatalChartTab() {
       birthTime: chart.birthTime ?? null,
       birthLocation: chart.birthLocation,
       risingSign: chart.risingSign,
+      presetKey,
       planets: chart.planets ?? [],
       houses: chart.houses ?? [],
       aspects: chart.aspects ?? [],
@@ -1950,7 +1951,7 @@ export default function NatalChartTab() {
               <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.DETAIL_ACTION}>
                 <Pressable
                   style={styles.posterBtn}
-                  onPress={openNatalVisualsPreview}
+                  onPress={() => openNatalVisualsPreview('wheel')}
                   accessibilityLabel="Doğum haritasını tam ekran aç ve indir"
                   accessibilityRole="button"
                 >
@@ -1990,7 +1991,7 @@ export default function NatalChartTab() {
             <View style={styles.posterModuleActions}>
               <Pressable
                 style={styles.posterBtn}
-                onPress={openNatalVisualsPreview}
+                onPress={() => openNatalVisualsPreview('matrix')}
                 accessibilityLabel="Gezegen etkileşim tablosunu tam ekran aç ve indir"
                 accessibilityRole="button"
               >
@@ -2464,14 +2465,12 @@ export default function NatalChartTab() {
           transparent
           rightActions={(
             <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <Pressable
-                style={styles.headerHelpButton}
+              <SurfaceHeaderIconButton
+                iconName="help-circle-outline"
                 onPress={handlePressTutorialHelp}
-                accessibilityRole="button"
                 accessibilityLabel="Harita rehberini tekrar aç"
-              >
-                <Ionicons name="help-circle-outline" size={18} color={colors.violet} />
-              </Pressable>
+                color={colors.violet}
+              />
             </SpotlightTarget>
           )}
           {...tabHeaderActions}
@@ -3190,16 +3189,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   fixedHeroContainer: {
     backgroundColor: C.bg,
     gap: 8,
-  },
-  headerHelpButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.border,
   },
   heroToggleCard: {
     borderRadius: 18,

@@ -281,8 +281,8 @@ export default function BirthNightSkyPoster(props: Props) {
 
   const sky = useMemo(() => {
     const rand = mulberry32(seed);
-    const center = { x: 180, y: 255 };
-    const radius = 150;
+    const center = { x: 170, y: 208 };
+    const radius = 152;
 
     const proceduralStars: SkyStarDot[] = [];
     while (proceduralStars.length < variantVisual.starCount) {
@@ -506,7 +506,17 @@ export default function BirthNightSkyPoster(props: Props) {
         </View>
 
         <View style={styles.skyStage}>
-          <Svg width={340} height={360} viewBox="0 0 340 360">
+          <View
+            pointerEvents="none"
+            style={[
+              styles.skyStageGlow,
+              {
+                backgroundColor: variant === 'gold_edition' ? 'rgba(248,213,126,0.04)' : 'rgba(255,255,255,0.02)',
+                borderColor: variantVisual.gridStroke,
+              },
+            ]}
+          />
+          <Svg width={352} height={388} viewBox="0 0 340 380">
             <Circle cx={sky.center.x} cy={sky.center.y} r={sky.radius + 18} fill="rgba(255,255,255,0.015)" />
             <Circle cx={sky.center.x} cy={sky.center.y} r={sky.radius} fill="rgba(255,255,255,0.01)" stroke={variantVisual.gridStroke} strokeWidth={1} />
             <Circle cx={sky.center.x} cy={sky.center.y} r={sky.radius * 0.66} fill="transparent" stroke={variantVisual.gridStroke} strokeWidth={1} opacity={0.65} />
@@ -562,22 +572,32 @@ export default function BirthNightSkyPoster(props: Props) {
                   stroke={variantVisual.labelStroke}
                   strokeWidth={0.8}
                 />
-                <Circle cx={planet.x} cy={planet.y} r={4.6} fill={planet.color} />
+                <Circle cx={planet.x} cy={planet.y} r={12.5} fill={planet.color} fillOpacity={0.16} />
+                <Circle cx={planet.x} cy={planet.y} r={5.4} fill={planet.color} />
                 <Circle
                   cx={planet.x}
                   cy={planet.y}
-                  r={9.5}
+                  r={11.5}
                   fill="transparent"
                   stroke={planet.color}
-                  strokeOpacity={variantVisual.planetRingOpacity}
-                  strokeWidth={1}
+                  strokeOpacity={Math.min(0.82, variantVisual.planetRingOpacity + 0.18)}
+                  strokeWidth={1.15}
+                />
+                <Circle
+                  cx={planet.labelX}
+                  cy={planet.labelY}
+                  r={11.25}
+                  fill="rgba(3,5,9,0.9)"
+                  stroke={planet.color}
+                  strokeOpacity={0.22}
+                  strokeWidth={0.9}
                 />
                 <SvgText
                   x={planet.labelX}
-                  y={planet.labelY + 4}
+                  y={planet.labelY + 5}
                   fill={planet.color}
-                  fontSize={12}
-                  fontWeight="700"
+                  fontSize={14}
+                  fontWeight="800"
                   textAnchor="middle"
                 >
                   {planet.glyph}
@@ -666,53 +686,71 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.03)',
-    bottom: 120,
-    left: -60,
+    top: 256,
+    left: -56,
   },
   topMeta: {
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
+    marginBottom: 2,
   },
   eyebrow: {
     color: 'rgba(248,213,126,0.92)',
-    letterSpacing: 2.8,
-    fontSize: 9.5,
+    letterSpacing: 3.2,
+    fontSize: 9,
     fontWeight: '700',
     textAlign: 'center',
   },
   name: {
     color: '#F8FAFC',
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 30,
+    lineHeight: 37,
     fontWeight: Platform.OS === 'ios' ? '700' : '600',
     fontFamily: displaySerif,
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 4,
+    maxWidth: 304,
   },
   metaLine: {
     color: 'rgba(226,232,240,0.9)',
-    fontSize: 11,
-    letterSpacing: 0.3,
+    fontSize: 11.5,
+    letterSpacing: 0.35,
+    marginTop: 2,
   },
   metaLineSmall: {
     color: 'rgba(226,232,240,0.65)',
-    fontSize: 9.5,
+    fontSize: 10,
     textAlign: 'center',
   },
   skyStage: {
-    marginTop: 12,
+    marginTop: -8,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  skyStageGlow: {
+    position: 'absolute',
+    width: 312,
+    height: 312,
+    borderRadius: 999,
+    top: 26,
+    borderWidth: 1,
+    opacity: 0.9,
   },
   phaseCard: {
-    marginTop: 6,
-    borderRadius: 14,
+    marginTop: -8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(248,213,126,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 8,
+    borderColor: 'rgba(248,213,126,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 5,
   },
   phaseHeader: {
     flexDirection: 'row',
@@ -721,13 +759,13 @@ const styles = StyleSheet.create({
   },
   phaseTitle: {
     color: '#F8FAFC',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.7,
   },
   phaseValue: {
     color: 'rgba(248,213,126,0.9)',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '600',
   },
   phaseRow: {
@@ -741,25 +779,30 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   phaseEmojiWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#F8D57E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
   },
   phaseEmojiWrapActive: {
-    borderColor: 'rgba(248,213,126,0.55)',
-    backgroundColor: 'rgba(248,213,126,0.08)',
+    borderColor: 'rgba(248,213,126,0.72)',
+    backgroundColor: 'rgba(248,213,126,0.14)',
   },
   phaseEmoji: {
-    fontSize: 18,
+    fontSize: 23,
   },
   phaseLabel: {
     color: 'rgba(226,232,240,0.75)',
-    fontSize: 8.5,
+    fontSize: 9,
     textAlign: 'center',
   },
   phaseLabelActive: {
@@ -768,7 +811,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 'auto',
-    gap: 10,
+    gap: 11,
   },
   footerDivider: {
     height: StyleSheet.hairlineWidth,
@@ -786,14 +829,14 @@ const styles = StyleSheet.create({
   },
   slogan: {
     color: 'rgba(226,232,240,0.85)',
-    fontSize: 11,
-    letterSpacing: 0.3,
+    fontSize: 11.2,
+    letterSpacing: 0.35,
   },
   footerBrand: {
     color: 'rgba(248,213,126,0.92)',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '800',
-    letterSpacing: 2.5,
+    letterSpacing: 3.1,
   },
   qrShell: {
     borderRadius: 10,

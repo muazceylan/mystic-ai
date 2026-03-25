@@ -42,6 +42,7 @@ export { GuruBalanceBadge } from './components/GuruBalanceBadge';
 export { AdOfferCard } from './components/AdOfferCard';
 export { GuruUnlockModal } from './components/GuruUnlockModal';
 export { PurchaseCatalogSheet } from './components/PurchaseCatalogSheet';
+export { MonetizationQuickBar } from './components/MonetizationQuickBar';
 
 // Analytics
 export { trackMonetizationEvent, MonetizationEvents } from './analytics/monetizationAnalytics';

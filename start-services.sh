@@ -263,7 +263,7 @@ main() {
   start_service "numerology" "$LOG_DIR/numerology.log" "java -jar numerology-service/target/numerology-service-*.jar"
   start_service "dream" "$LOG_DIR/dream.log" "java -jar dream-service/target/dream-service-*.jar"
   start_service "oracle" "$LOG_DIR/oracle.log" "java -jar oracle-service/target/oracle-service-*.jar"
-  start_service "notification" "$LOG_DIR/notification.log" "java -jar notification-service/target/notification-service-*.jar"
+  start_service "notification" "$LOG_DIR/notification.log" "java -jar notification-service/target/notification-service-*.jar --spring.profiles.active=local"
   start_service "vision" "$LOG_DIR/vision.log" "java -jar vision-service/target/vision-service-*.jar"
   start_service "spiritual" "$LOG_DIR/spiritual.log" "java -jar spiritual-service/target/spiritual-service-*.jar --spring.profiles.active=local"
 

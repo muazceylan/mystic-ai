@@ -61,6 +61,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/v1/auth/quick-start",
             "/actuator/health",
             "/actuator/info",
+            "/api/v1/analytics/",
             // Monetization config is public (fail-safe: app needs config before login)
             "/api/v1/monetization/config",
             "/api/v1/monetization/modules/"

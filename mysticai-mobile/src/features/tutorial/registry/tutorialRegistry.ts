@@ -62,6 +62,30 @@ const GLOBAL_ONBOARDING_RULES: TutorialDisplayRule[] = [
 
 const NOW = '2026-03-09T00:00:00.000Z';
 
+function createMonetizationTarget(screenKey: string, targetKey: string) {
+  return {
+    targetKey,
+    screenKey,
+    shape: 'rounded_rect' as const,
+    padding: 8,
+    cornerRadius: 18,
+  };
+}
+
+function createMonetizationStep(order: number, targetKey: string) {
+  return {
+    stepId: 'monetization-entry',
+    order,
+    title: 'Guru ve Free',
+    body: 'Sağ üstteki Guru ikonundan paketleri açabilir, FREE ikonundan ödüllü video izleyerek Guru kazanabilirsin. Guru destekli yorum ve kilit açma akışlarında bu bakiye kullanılır.',
+    targetKey,
+    iconKey: 'play-circle-outline',
+    presentationType: 'spotlight_card' as const,
+    isActive: true,
+    analyticsKey: 'monetization_entry',
+  };
+}
+
 export const localTutorialRegistry: TutorialDefinition[] = [
   {
     tutorialId: TUTORIAL_IDS.GLOBAL_ONBOARDING,
@@ -153,7 +177,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.HOME_FOUNDATION,
     name: 'Home Foundation Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.HOME,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 900,
@@ -192,9 +216,10 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: HOME_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.HOME,
         shape: 'rounded_rect',
-        padding: 10,
-        cornerRadius: 20,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(TUTORIAL_SCREEN_KEYS.HOME, HOME_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     steps: [
       {
@@ -241,6 +266,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'module_guides',
       },
+      createMonetizationStep(5, HOME_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -249,7 +275,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.DAILY_TRANSITS_FOUNDATION,
     name: 'Daily Transits Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 700,
@@ -288,9 +314,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS,
+        DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -337,6 +367,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'help_reopen',
       },
+      createMonetizationStep(5, DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -345,7 +376,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.COSMIC_PLANNER_INTRO,
     name: 'Cosmic Planner Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 680,
@@ -391,9 +422,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER,
+        COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -440,6 +475,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'reminder_action',
       },
+      createMonetizationStep(5, COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -448,7 +484,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.DECISION_COMPASS_INTRO,
     name: 'Decision Compass Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.DECISION_COMPASS,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 660,
@@ -494,9 +530,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.DECISION_COMPASS,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.DECISION_COMPASS,
+        DECISION_COMPASS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -543,6 +583,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'reevaluate_entry',
       },
+      createMonetizationStep(5, DECISION_COMPASS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -551,7 +592,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.COMPATIBILITY_FOUNDATION,
     name: 'Compatibility Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.COMPATIBILITY,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 640,
@@ -597,9 +638,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: COMPATIBILITY_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.COMPATIBILITY,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.COMPATIBILITY,
+        COMPATIBILITY_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -646,6 +691,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'save_and_share',
       },
+      createMonetizationStep(5, COMPATIBILITY_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -654,7 +700,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.BIRTH_CHART_INTRO,
     name: 'Birth Chart Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.BIRTH_CHART,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 630,
@@ -707,9 +753,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: BIRTH_CHART_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.BIRTH_CHART,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.BIRTH_CHART,
+        BIRTH_CHART_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -767,6 +817,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'detail_actions',
       },
+      createMonetizationStep(6, BIRTH_CHART_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -775,7 +826,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.DREAMS_FOUNDATION,
     name: 'Dreams Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.DREAMS,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 620,
@@ -814,9 +865,10 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: DREAMS_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.DREAMS,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(TUTORIAL_SCREEN_KEYS.DREAMS, DREAMS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     steps: [
       {
@@ -863,6 +915,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'help_entry',
       },
+      createMonetizationStep(5, DREAMS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -871,7 +924,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.NUMEROLOGY_FOUNDATION,
     name: 'Numerology Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.NUMEROLOGY,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 610,
@@ -910,9 +963,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: NUMEROLOGY_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.NUMEROLOGY,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.NUMEROLOGY,
+        NUMEROLOGY_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -959,6 +1016,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'help_entry',
       },
+      createMonetizationStep(5, NUMEROLOGY_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -967,7 +1025,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.NAME_ANALYSIS_FOUNDATION,
     name: 'Name Analysis Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.NAME_ANALYSIS,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 600,
@@ -1006,9 +1064,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.NAME_ANALYSIS,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.NAME_ANALYSIS,
+        NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -1055,6 +1117,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'help_entry',
       },
+      createMonetizationStep(5, NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -1063,7 +1126,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.SPIRITUAL_PRACTICE_FOUNDATION,
     name: 'Spiritual Practice Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.SPIRITUAL_PRACTICE,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 590,
@@ -1102,9 +1165,13 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.SPIRITUAL_PRACTICE,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(
+        TUTORIAL_SCREEN_KEYS.SPIRITUAL_PRACTICE,
+        SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
+      ),
     ],
     steps: [
       {
@@ -1151,6 +1218,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'help_entry',
       },
+      createMonetizationStep(5, SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,
@@ -1159,7 +1227,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     tutorialId: TUTORIAL_IDS.PROFILE_FOUNDATION,
     name: 'Profile Tutorial',
     screenKey: TUTORIAL_SCREEN_KEYS.PROFILE,
-    version: 1,
+    version: 2,
     isActive: true,
     platform: 'ALL',
     priority: 580,
@@ -1198,9 +1266,10 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         targetKey: PROFILE_TUTORIAL_TARGET_KEYS.HELP_ENTRY,
         screenKey: TUTORIAL_SCREEN_KEYS.PROFILE,
         shape: 'rounded_rect',
-        padding: 8,
-        cornerRadius: 18,
+        padding: 6,
+        cornerRadius: 28,
       },
+      createMonetizationTarget(TUTORIAL_SCREEN_KEYS.PROFILE, PROFILE_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     steps: [
       {
@@ -1247,6 +1316,7 @@ export const localTutorialRegistry: TutorialDefinition[] = [
         isActive: true,
         analyticsKey: 'help_entry',
       },
+      createMonetizationStep(5, PROFILE_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY),
     ],
     createdAt: NOW,
     updatedAt: NOW,

@@ -109,7 +109,7 @@ public class MonetizationBootstrapService implements ApplicationRunner {
         log.info("[MonetizationBootstrap] Created module rule '{}/v{}'", moduleKey, PILOT_CONFIG_VERSION);
     }
 
-    // ─── Actions (3 pilot actions) ──────────────────────────────────
+    // ─── Actions (pilot actions) ────────────────────────────────────
 
     private void seedActions() {
         seedAction("advanced_analysis", "numerology", "Detaylı Numeroloji Analizi",
@@ -123,6 +123,10 @@ public class MonetizationBootstrapService implements ApplicationRunner {
         seedAction("monthly_dream_story", "dreams", "Aylık Rüya Hikayesi",
                 "Aylık rüya özetinizi ve analiz hikayenizi oluşturun",
                 MonetizationAction.UnlockType.AD_OR_GURU, 3);
+
+        seedAction("dream_interpret", "dreams", "Rüya Yorumu",
+                "Rüya girişiniz için yapay zeka yorumunu başlatın",
+                MonetizationAction.UnlockType.AD_OR_GURU, 1);
     }
 
     private void seedAction(String actionKey, String moduleKey, String displayName,

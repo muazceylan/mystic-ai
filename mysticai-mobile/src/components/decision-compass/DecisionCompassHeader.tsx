@@ -1,5 +1,8 @@
 import React from 'react';
 import { AppSurfaceHeader, SurfaceHeaderIconButton } from '../ui';
+import { MonetizationQuickBar } from '../../features/monetization';
+import { SpotlightTarget } from '../../features/tutorial/components/SpotlightTarget';
+import { DECISION_COMPASS_TUTORIAL_TARGET_KEYS } from '../../features/tutorial/domain/tutorial.constants';
 import { useNotificationStore } from '../../store/useNotificationStore';
 
 interface DecisionCompassHeaderProps {
@@ -28,13 +31,16 @@ export function DecisionCompassHeader({
       rightActions={(
         <>
           <SurfaceHeaderIconButton iconName="calendar-outline" onPress={onOpenCalendar} accessibilityLabel="Takvim" />
+          <MonetizationQuickBar />
           <SurfaceHeaderIconButton
             iconName="notifications-outline"
             onPress={onOpenNotifications}
             accessibilityLabel="Bildirimler"
             badgeText={badgeText}
           />
-          <SurfaceHeaderIconButton iconName="help-circle-outline" onPress={onOpenHelp} accessibilityLabel="Yardım" />
+          <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+            <SurfaceHeaderIconButton iconName="help-circle-outline" onPress={onOpenHelp} accessibilityLabel="Yardım" />
+          </SpotlightTarget>
         </>
       )}
     />

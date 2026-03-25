@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image, Coins, ScrollText, Wand2, ShoppingBag, Wallet, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image, Coins, ScrollText, Wand2, ShoppingBag, Wallet, FlaskConical, BarChart3 } from 'lucide-react';
 import { cn, roleColor } from '@/lib/utils';
 import { getUser, removeToken, canViewAudit, canManageRoutes, canManageNotifications, canManageNameSources, isSuperAdmin } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, always: true },
+  { href: '/product-analytics', label: 'User Insights', icon: BarChart3, check: canViewAudit },
   { href: '/notifications', label: 'Notifications', icon: Bell, check: canManageNotifications },
   { href: '/notification-catalog', label: 'Notification Catalog', icon: Library, check: canManageNotifications },
   { href: '/notification-triggers', label: 'Trigger Monitor', icon: Zap, check: canManageNotifications },

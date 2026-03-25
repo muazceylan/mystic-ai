@@ -1,9 +1,7 @@
 import { Platform } from 'react-native';
-import mobileAds, {
-  MaxAdContentRating,
-  type RequestConfiguration,
-} from 'react-native-google-mobile-ads';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
+import type { RequestConfiguration } from './googleMobileAdsRuntime.shared';
+import { getGoogleMobileAdsModule } from './googleMobileAdsRuntime';
 
 let initPromise: Promise<boolean> | null = null;
 let initSuccess = false;
@@ -20,14 +18,7 @@ export function isAdMobInitialized(): boolean {
  * Returns false in Expo Go or web where native code is absent.
  */
 export function isAdMobAvailable(): boolean {
-  if (Platform.OS === 'web') return false;
-  try {
-    // mobileAds() returns the AdMob module instance; if native module is
-    // missing (Expo Go), accessing it will throw.
-    return typeof mobileAds === 'function';
-  } catch {
-    return false;
-  }
+  return getGoogleMobileAdsModule('availability check') !== null;
 }
 
 /**
@@ -59,9 +50,14 @@ async function doInit(testDeviceIds?: string[]): Promise<boolean> {
   }
 
   try {
+    const googleMobileAds = getGoogleMobileAdsModule('SDK initialization');
+    if (!googleMobileAds) {
+      return false;
+    }
+
     // Set request configuration before initializing
     const requestConfig: RequestConfiguration = {
-      maxAdContentRating: MaxAdContentRating.PG,
+      maxAdContentRating: googleMobileAds.MaxAdContentRating.PG,
       tagForChildDirectedTreatment: false,
       tagForUnderAgeOfConsent: false,
     };
@@ -70,8 +66,8 @@ async function doInit(testDeviceIds?: string[]): Promise<boolean> {
       requestConfig.testDeviceIdentifiers = testDeviceIds;
     }
 
-    await mobileAds().setRequestConfiguration(requestConfig);
-    const adapterStatuses = await mobileAds().initialize();
+    await googleMobileAds.default().setRequestConfiguration(requestConfig);
+    const adapterStatuses = await googleMobileAds.default().initialize();
 
     initSuccess = true;
 

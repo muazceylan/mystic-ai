@@ -200,7 +200,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     headerActions: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
     headerIconBtn: {
       width: spacing.chevronHitArea,

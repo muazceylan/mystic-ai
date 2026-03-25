@@ -1,6 +1,12 @@
 import axios from 'axios';
 import type {
+  AppUserStats,
+  AppUserSummary,
   IngestStatus,
+  Page,
+  ProductAnalyticsActiveUser,
+  ProductAnalyticsGa4ExportResult,
+  ProductAnalyticsOverview,
   TutorialConfig,
   TutorialContractOptions,
   TutorialConfigSummary,
@@ -64,6 +70,15 @@ export const authApi = {
 // ── Dashboard ─────────────────────────────────────────────
 export const dashboardApi = {
   summary: () => api.get('/api/admin/v1/dashboard/summary'),
+};
+
+export const productAnalyticsApi = {
+  overview: (params?: Record<string, unknown>) =>
+    api.get<ProductAnalyticsOverview>('/api/admin/v1/product-analytics/overview', { params }),
+  activeUsers: (params?: Record<string, unknown>) =>
+    api.get<Page<ProductAnalyticsActiveUser>>('/api/admin/v1/product-analytics/active-users', { params }),
+  exportGa4: (params?: Record<string, unknown>) =>
+    api.post<ProductAnalyticsGa4ExportResult>('/api/admin/v1/product-analytics/ga4/export', null, { params }),
 };
 
 // ── Guest Funnel ───────────────────────────────────────────
@@ -337,18 +352,18 @@ export const nameEnrichmentApi = {
 
 // ── Users (from auth-service via Next.js rewrite) ─────────
 export const usersApi = {
+  list: (params?: Record<string, unknown>) =>
+    axios.get<Page<AppUserSummary>>('/api/auth/admin/users', { params }),
+  stats: () =>
+    axios.get<AppUserStats>('/api/auth/admin/users/stats'),
   search: (q: string, page = 0, size = 30) =>
-    axios.get<{ content: UserSummary[]; totalElements: number }>(
+    axios.get<Page<AppUserSummary>>(
       `/api/auth/admin/users`,
       { params: { q, page, size } }
     ),
 };
 
-export interface UserSummary {
-  id: number;
-  email: string;
-  name: string;
-}
+export type UserSummary = AppUserSummary;
 
 // ── Monetization ──────────────────────────────────────────
 

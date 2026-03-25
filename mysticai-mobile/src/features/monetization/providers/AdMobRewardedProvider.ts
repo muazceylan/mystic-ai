@@ -1,13 +1,10 @@
 import { Platform } from 'react-native';
-import {
-  RewardedAd,
-  RewardedAdEventType,
-  AdEventType,
-} from 'react-native-google-mobile-ads';
 import type { AdProviderAdapter, AdResult } from './AdProviderAdapter';
-import { initializeAdMob, isAdMobInitialized, isAdMobAvailable } from './admobInit';
+import { initializeAdMob, isAdMobInitialized } from './admobInit';
 import { resolveRewardedUnitId, maskUnitId } from './admobUnitIds';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
+import { getGoogleMobileAdsModule } from './googleMobileAdsRuntime';
+import type { RewardedAdLike } from './googleMobileAdsRuntime.shared';
 
 const AD_LOAD_TIMEOUT_MS = 15_000;
 
@@ -17,7 +14,7 @@ const AD_LOAD_TIMEOUT_MS = 15_000;
  * with the existing monetization foundation.
  */
 export class AdMobRewardedProvider implements AdProviderAdapter {
-  private rewardedAd: RewardedAd | null = null;
+  private rewardedAd: RewardedAdLike | null = null;
   private loaded = false;
   private showing = false;
 
@@ -85,9 +82,22 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
       }, AD_LOAD_TIMEOUT_MS);
 
       try {
-        const ad = RewardedAd.createForAdRequest(unitId);
+        const googleMobileAds = getGoogleMobileAdsModule('rewarded ad load');
+        if (!googleMobileAds) {
+          clearTimeout(timeoutId);
+          trackMonetizationEvent('rewarded_ad_load_failed', {
+            reason: 'native_module_unavailable',
+            ad_provider: 'admob',
+            ad_unit_mode: resolved.mode,
+            platform: Platform.OS,
+          });
+          resolve(false);
+          return;
+        }
 
-        const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        const ad = googleMobileAds.RewardedAd.createForAdRequest(unitId);
+
+        const unsubLoaded = ad.addAdEventListener(googleMobileAds.RewardedAdEventType.LOADED, () => {
           clearTimeout(timeoutId);
           this.loaded = true;
           this.rewardedAd = ad;
@@ -103,7 +113,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
           resolve(true);
         });
 
-        const unsubError = ad.addAdEventListener(AdEventType.ERROR, (error) => {
+        const unsubError = ad.addAdEventListener(googleMobileAds.AdEventType.ERROR, (error) => {
           clearTimeout(timeoutId);
           const reason = error?.message ?? 'unknown_load_error';
 
@@ -160,8 +170,17 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
       let rewardType = '';
       let rewardAmount = 0;
 
+      const googleMobileAds = getGoogleMobileAdsModule('rewarded ad show');
+      if (!googleMobileAds) {
+        this.showing = false;
+        this.loaded = false;
+        this.rewardedAd = null;
+        resolve({ completed: false, error: 'native_module_unavailable' });
+        return;
+      }
+
       const unsubEarned = ad.addAdEventListener(
-        RewardedAdEventType.EARNED_REWARD,
+        googleMobileAds.RewardedAdEventType.EARNED_REWARD,
         (reward) => {
           rewarded = true;
           rewardType = reward.type ?? 'guru';
@@ -173,7 +192,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
         },
       );
 
-      const unsubOpened = ad.addAdEventListener(AdEventType.OPENED, () => {
+      const unsubOpened = ad.addAdEventListener(googleMobileAds.AdEventType.OPENED, () => {
         trackMonetizationEvent('rewarded_ad_opened', {
           ad_provider: 'admob',
           ad_unit_mode: resolved?.mode ?? 'unknown',
@@ -181,7 +200,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
         });
       });
 
-      const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
+      const unsubClosed = ad.addAdEventListener(googleMobileAds.AdEventType.CLOSED, () => {
         unsubAll();
         this.showing = false;
         this.loaded = false;
@@ -204,7 +223,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
         }
       });
 
-      const unsubError = ad.addAdEventListener(AdEventType.ERROR, (error) => {
+      const unsubError = ad.addAdEventListener(googleMobileAds.AdEventType.ERROR, (error) => {
         unsubAll();
         this.showing = false;
         this.loaded = false;

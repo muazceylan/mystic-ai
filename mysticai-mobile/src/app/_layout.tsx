@@ -45,9 +45,12 @@ import {
   setAnalyticsUserId,
   setAnalyticsUserProperties,
   resetAnalyticsIdentity,
+  getAnalyticsDebugState,
+  emitAnalyticsDebugBootstrap,
 } from '../services/analytics';
 import { resolveScreenName } from '../services/analyticsScreenNames';
 import {
+  ensureNotificationHandlerInstalled,
   registerPushTokenIfNeeded,
   setupNotificationResponseHandler,
   setupNotificationChannel,
@@ -235,6 +238,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
       <TutorialBootstrap />
       <GuestSessionBootstrap />
       <ScreenTracker />
+      <AnalyticsDebugBootstrap />
       <AnalyticsIdentityBootstrap />
       <Stack
         screenOptions={{
@@ -290,6 +294,8 @@ function NotificationBootstrap() {
       resetNotifications();
       return;
     }
+
+    void ensureNotificationHandlerInstalled();
 
     // Push altyapısını ve unread count'u home render'ını bloklamayacak şekilde
     // geçiş animasyonları tamamlandıktan sonra başlat.
@@ -487,6 +493,30 @@ function AnalyticsIdentityBootstrap() {
       resetAnalyticsIdentity();
     }
   }, [isHydrated, isAuthenticated, user?.id]);
+
+  return null;
+}
+
+function AnalyticsDebugBootstrap() {
+  const pathname = usePathname();
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    if (!__DEV__ || !pathname || !isHydrated) {
+      return;
+    }
+
+    const debugState = getAnalyticsDebugState();
+    emitAnalyticsDebugBootstrap({
+      entry_path: pathname,
+      collection_enabled: debugState.collectionEnabled,
+      firebase_enabled: debugState.firebaseEnabled,
+      amplitude_enabled: debugState.amplitudeEnabled,
+      auth_state: isAuthenticated ? 'authenticated' : 'anonymous',
+      platform: Platform.OS,
+    });
+  }, [pathname, isHydrated, isAuthenticated]);
 
   return null;
 }

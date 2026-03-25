@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
-import { TestIds } from 'react-native-google-mobile-ads';
 import { envConfig } from '../../../config/env';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
+import { getRewardedTestAdUnitId } from './googleMobileAdsRuntime';
 
 export type AdUnitMode = 'test' | 'production';
 
@@ -23,7 +23,7 @@ interface ResolvedAdUnit {
 export function resolveRewardedUnitId(): ResolvedAdUnit | null {
   // Dev / internal test build → safe to use Google test units
   if (envConfig.admob.useTestIds) {
-    return { unitId: TestIds.REWARDED, mode: 'test' };
+    return { unitId: getRewardedTestAdUnitId(), mode: 'test' };
   }
 
   // Production build → ONLY use real env-provided unit IDs
@@ -77,7 +77,7 @@ export function getAdBlockReason(
     configLoaded: boolean;
     adsEnabledGlobal: boolean;
     adsEnabledForModule: boolean;
-    sdkInitialized: boolean;
+    sdkAvailable: boolean;
   },
 ): string | null {
   if (!opts.configLoaded) return 'config_not_loaded';
@@ -87,7 +87,7 @@ export function getAdBlockReason(
   const resolved = resolveRewardedUnitId();
   if (!resolved) return 'missing_ad_unit_id';
 
-  if (!opts.sdkInitialized) return 'admob_not_initialized';
+  if (!opts.sdkAvailable) return 'native_module_unavailable';
 
   return null;
 }

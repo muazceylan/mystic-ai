@@ -32,6 +32,12 @@ spring:
           predicates:
             - Path=/api/v1/tutorial-configs,/api/v1/tutorial-configs/**
 
+        # Product analytics ingestion — public endpoint on notification-service
+        - id: product-analytics
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/analytics/**
+
         # Monetization — public config/wallet/reward endpoints on notification-service
         - id: monetization
           uri: lb://notification-service

@@ -1,223 +1,272 @@
-import { useState, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
-import WheelPicker from '../../components/WheelPicker';
+import CalendarPicker from '../../components/CalendarPicker';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { getZodiacSign } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 
-const MONTHS_TR = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
-const MONTHS_EN = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const FALLBACK_BIRTH_DATE = new Date(1995, 0, 1);
+const MINIMUM_BIRTH_DATE = new Date(1920, 0, 1);
 
-function getDaysInMonth(month: number, year: number): number {
-  return new Date(year, month, 0).getDate();
+function calculateAge(date: Date): number {
+  const now = new Date();
+  let years = now.getFullYear() - date.getFullYear();
+  const monthDelta = now.getMonth() - date.getMonth();
+
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < date.getDate())) {
+    years -= 1;
+  }
+
+  return Math.max(0, years);
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+function formatBirthDate(date: Date, months: string[], isTurkish: boolean) {
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+
+  if (isTurkish) {
+    return `${day} ${month} ${year}`;
+  }
+
+  return `${month} ${day}, ${year}`;
+}
+
+function makeStyles(
+  C: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+) {
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: C.bg,
-      paddingHorizontal: 24,
     },
-    content: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+    scrollContent: {
+      paddingHorizontal: 12,
+      paddingTop: 6,
+      paddingBottom: 112,
+      gap: 6,
     },
-    title: {
-      fontSize: 24,
-      fontWeight: '700',
-      color: C.text,
-      marginBottom: 6,
-      textAlign: 'center',
-    },
-    subtitle: {
-      fontSize: 14,
-      color: C.subtext,
-      textAlign: 'center',
-      marginBottom: 28,
-      lineHeight: 20,
-    },
-    pickerCard: {
-      width: '100%',
-      borderRadius: 20,
+    selectionCard: {
+      borderRadius: 26,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      paddingBottom: 12,
       backgroundColor: C.surface,
       borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.16 : 0.06,
+      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 24,
+      elevation: 4,
+    },
+    selectionAccent: {
+      height: 3,
+      width: 68,
+      borderRadius: 999,
+      marginBottom: 8,
+    },
+    selectionLabel: {
+      color: C.primary,
+      fontSize: 11,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      fontFamily: 'MysticInter-SemiBold',
+    },
+    selectionDate: {
+      marginTop: 4,
+      color: C.text,
+      fontSize: 22,
+      lineHeight: 28,
+      fontFamily: 'MysticInter-SemiBold',
+    },
+    selectionHint: {
+      marginTop: 4,
+      color: C.subtext,
+      fontSize: 11,
+      lineHeight: 16,
+      fontFamily: 'MysticInter-Regular',
+    },
+    statRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 8,
+    },
+    statPill: {
+      flex: 1,
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      backgroundColor: isDark ? C.surfaceAlt : C.primarySoftBg,
+      borderWidth: 1,
       borderColor: C.border,
-      overflow: 'hidden',
-      paddingVertical: 4,
     },
-    pickerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 8,
+    statLabel: {
+      color: C.subtext,
+      fontSize: 9,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      fontFamily: 'MysticInter-SemiBold',
     },
-    selectedDateRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      marginTop: 16,
-      paddingVertical: 10,
+    statValue: {
+      marginTop: 3,
+      color: C.text,
+      fontSize: 14,
+      lineHeight: 17,
+      fontFamily: 'MysticInter-SemiBold',
     },
-    selectedDateText: {
-      fontSize: 15,
-      color: C.primary,
-      fontWeight: '600',
-    },
-    zodiacBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      backgroundColor: C.primarySoftBg,
+    calendarCard: {
+      borderRadius: 28,
       paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingTop: 10,
+      paddingBottom: 8,
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      shadowColor: C.shadow,
+      shadowOpacity: isDark ? 0.16 : 0.06,
+      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 24,
+      elevation: 4,
     },
-    zodiacText: {
-      fontSize: 13,
-      color: C.primary,
-      fontWeight: '600',
+    calendarSurface: {
+      borderRadius: 18,
+      backgroundColor: C.surface,
     },
     footer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
       flexDirection: 'row',
       gap: 12,
-      paddingBottom: 32,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      paddingBottom: 16,
+      backgroundColor: isDark ? 'rgba(2, 6, 23, 0.9)' : 'rgba(248, 250, 252, 0.98)',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: C.border,
     },
     outlineButton: {
       flex: 1,
       borderWidth: 1,
-      borderColor: C.primary,
+      borderColor: C.surfaceGlassBorder,
       borderRadius: 999,
-      paddingVertical: 14,
+      paddingVertical: 12,
       alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: C.surface,
     },
     outlineText: {
-      color: C.primary,
+      color: C.text,
       fontSize: 15,
-      fontWeight: '600',
+      fontFamily: 'MysticInter-SemiBold',
     },
     primaryButton: {
-      flex: 1,
+      flex: 1.12,
       borderRadius: 999,
-      paddingVertical: 14,
+      overflow: 'hidden',
+    },
+    primaryFill: {
+      paddingVertical: 12,
       alignItems: 'center',
-      backgroundColor: C.primary,
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
     },
     primaryText: {
       color: C.white,
       fontSize: 15,
-      fontWeight: '600',
+      fontFamily: 'MysticInter-SemiBold',
     },
   });
 }
 
 export default function BirthDateScreen() {
   const { t, i18n } = useTranslation();
-  const { colors } = useTheme();
-  const store = useOnboardingStore();
+  const { colors, activeTheme } = useTheme();
+  const initialBirthDate = useOnboardingStore((s) => s.birthDate);
+  const setBirthDate = useOnboardingStore((s) => s.setBirthDate);
+  const setZodiacSign = useOnboardingStore((s) => s.setZodiacSign);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const s = makeStyles(colors);
 
-  const now = new Date();
-  const initial = store.birthDate || new Date(1995, 0, 1);
-  const [day, setDay] = useState(initial.getDate());
-  const [month, setMonth] = useState(initial.getMonth() + 1);
-  const [year, setYear] = useState(initial.getFullYear());
+  const [selectedDate, setSelectedDate] = useState<Date>(initialBirthDate ?? FALLBACK_BIRTH_DATE);
 
-  const months = i18n.language === 'tr' ? MONTHS_TR : MONTHS_EN;
-  const maxDay = getDaysInMonth(month, year);
-
-  useEffect(() => {
-    if (day > maxDay) setDay(maxDay);
-  }, [month, year, maxDay, day]);
-
-  const safeDay = Math.min(day, maxDay);
-
-  useEffect(() => {
-    const date = new Date(year, month - 1, safeDay);
-    store.setBirthDate(date);
-    store.setZodiacSign(getZodiacSign(month, safeDay));
-  }, [safeDay, month, year]);
-
-  const dayItems = useMemo(
-    () => Array.from({ length: maxDay }, (_, i) => ({ value: i + 1, label: String(i + 1) })),
-    [maxDay],
+  const isDark = activeTheme === 'dark';
+  const isTurkish = i18n.language.toLocaleLowerCase().startsWith('tr');
+  const s = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
+  const months = useMemo(() => t('calendar.months').split(','), [t, i18n.language]);
+  const maximumBirthDate = useMemo(() => new Date(), []);
+  const zodiac = useMemo(
+    () => getZodiacSign(selectedDate.getMonth() + 1, selectedDate.getDate()),
+    [selectedDate],
   );
-  const monthItems = useMemo(
-    () => months.map((m, i) => ({ value: i + 1, label: m })),
-    [months],
+  const age = useMemo(() => calculateAge(selectedDate), [selectedDate]);
+  const formattedDate = useMemo(
+    () => formatBirthDate(selectedDate, months, isTurkish),
+    [selectedDate, months, isTurkish],
   );
-  const yearItems = useMemo(
-    () =>
-      Array.from({ length: now.getFullYear() - 1920 + 1 }, (_, i) => ({
-        value: 1920 + i,
-        label: String(1920 + i),
-      })),
-    [],
+  const accentGradient = useMemo<[string, string]>(
+    () => [colors.primary, colors.primary700],
+    [colors.primary, colors.primary700],
   );
 
-  const zodiac = getZodiacSign(month, safeDay);
-  const formattedDate = `${safeDay} ${months[month - 1]} ${year}`;
+  const handleContinue = () => {
+    setBirthDate(selectedDate);
+    setZodiacSign(zodiac);
+    router.push('/(auth)/birth-time');
+  };
 
   return (
     <SafeScreen>
       <View style={s.container}>
         <OnboardingBackground />
 
-        <View style={s.content}>
-          <Text style={s.title}>{t('auth.birthDateTitle')}</Text>
-          <Text style={s.subtitle}>{t('auth.birthDateSubtitle')}</Text>
+        <ScrollView
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View entering={FadeIn.duration(320)} style={s.selectionCard}>
+            <LinearGradient colors={accentGradient} style={s.selectionAccent} />
+            <Text style={s.selectionLabel}>{t('auth.birthDateSelectionLabel')}</Text>
+            <Text style={s.selectionDate}>{formattedDate}</Text>
+            <Text style={s.selectionHint}>{t('auth.birthDateHeroHint')}</Text>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={s.pickerCard}>
-            <View style={s.pickerRow}>
-              <WheelPicker
-                items={dayItems}
-                selectedValue={day}
-                onValueChange={(v) => setDay(v as number)}
-                width={70}
-              />
-              <WheelPicker
-                items={monthItems}
-                selectedValue={month}
-                onValueChange={(v) => setMonth(v as number)}
-                width={130}
-              />
-              <WheelPicker
-                items={yearItems}
-                selectedValue={year}
-                onValueChange={(v) => setYear(v as number)}
-                width={90}
-              />
+            <View style={s.statRow}>
+              <View style={s.statPill}>
+                <Text style={s.statLabel}>{t('auth.birthDateAgeLabel')}</Text>
+                <Text style={s.statValue}>{t('auth.birthDateAgeValue', { age })}</Text>
+              </View>
+
+              <View style={s.statPill}>
+                <Text style={s.statLabel}>{t('auth.birthDateSunSignLabel')}</Text>
+                <Text style={s.statValue}>{zodiac}</Text>
+              </View>
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeIn.duration(400).delay(300)} style={s.selectedDateRow}>
-            <Ionicons name="calendar" size={16} color={colors.primary} />
-            <Text style={s.selectedDateText}>{formattedDate}</Text>
-            {zodiac && (
-              <View style={s.zodiacBadge}>
-                <Text style={s.zodiacText}>{zodiac}</Text>
-              </View>
-            )}
+          <Animated.View entering={FadeIn.duration(360).delay(60)} style={s.calendarCard}>
+            <View style={s.calendarSurface}>
+              <CalendarPicker
+                selectedDate={selectedDate}
+                onSelect={setSelectedDate}
+                maximumDate={maximumBirthDate}
+                minimumDate={MINIMUM_BIRTH_DATE}
+              />
+            </View>
           </Animated.View>
-        </View>
+        </ScrollView>
 
         <View style={s.footer}>
           <TouchableOpacity
@@ -226,8 +275,6 @@ export default function BirthDateScreen() {
               if (router.canGoBack()) {
                 router.back();
               } else {
-                // Guest user arrived here via router.replace — log out so the
-                // route guard doesn't redirect back to birth-date.
                 if (isGuestUser(user)) logout();
                 router.replace('/(auth)/welcome');
               }
@@ -237,13 +284,18 @@ export default function BirthDateScreen() {
           >
             <Text style={s.outlineText}>{t('common.back')}</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={s.primaryButton}
             accessibilityLabel={t('common.continue')}
             accessibilityRole="button"
-            onPress={() => router.push('/(auth)/birth-time')}
+            onPress={handleContinue}
+            activeOpacity={0.92}
           >
-            <Text style={s.primaryText}>{t('common.continue')}</Text>
+            <LinearGradient colors={accentGradient} style={s.primaryFill}>
+              <Text style={s.primaryText}>{t('common.continue')}</Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.white} />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>

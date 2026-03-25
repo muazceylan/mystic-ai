@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "699117630000",
+    "project_id": "astro-guru-57921",
+    "storage_bucket": "astro-guru-57921.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:699117630000:android:b26c416e346c5cd9a4b3f5",
+        "android_client_info": {
+          "package_name": "com.mysticai.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyIkmYQ4Y0OPtTQaTbdR35FQ-R-8sA0qE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

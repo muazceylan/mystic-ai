@@ -24,52 +24,66 @@ export default function WheelPicker({
   const flatListRef = useRef<FlatList>(null);
   const isScrollingRef = useRef(false);
   const lastHapticIndex = useRef(-1);
+  const currentIndexRef = useRef(0);
+  const selectedValueRef = useRef(selectedValue);
+  const onValueChangeRef = useRef(onValueChange);
   const [ready, setReady] = useState(false);
 
   const selectedIndex = items.findIndex((item) => item.value === selectedValue);
 
-  const selectIndex = useCallback(
-    (index: number, animated = true) => {
-      const clamped = Math.max(0, Math.min(index, items.length - 1));
-      const nextItem = items[clamped];
-      if (!nextItem) return;
+  useEffect(() => {
+    selectedValueRef.current = selectedValue;
+  }, [selectedValue]);
 
-      flatListRef.current?.scrollToOffset({
-        offset: clamped * ITEM_HEIGHT,
-        animated,
-      });
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange;
+  }, [onValueChange]);
 
-      if (nextItem.value !== selectedValue) {
-        onValueChange(nextItem.value);
-      }
-    },
-    [items, onValueChange, selectedValue],
-  );
+  const scrollToIndex = useCallback((index: number, animated = true) => {
+    const clamped = Math.max(0, Math.min(index, items.length - 1));
+    currentIndexRef.current = clamped;
+    flatListRef.current?.scrollToOffset({
+      offset: clamped * ITEM_HEIGHT,
+      animated,
+    });
+  }, [items.length]);
+
+  const commitIndex = useCallback((index: number, animated = true) => {
+    const clamped = Math.max(0, Math.min(index, items.length - 1));
+    const nextItem = items[clamped];
+    if (!nextItem) return;
+
+    scrollToIndex(clamped, animated);
+
+    if (nextItem.value !== selectedValueRef.current) {
+      onValueChangeRef.current(nextItem.value);
+    }
+  }, [items, scrollToIndex]);
 
   // Initial scroll — wait for layout then scroll
   const handleLayout = useCallback(() => {
     if (!ready && selectedIndex >= 0) {
-      selectIndex(selectedIndex, false);
+      currentIndexRef.current = selectedIndex;
+      scrollToIndex(selectedIndex, false);
       setReady(true);
     }
-  }, [ready, selectedIndex, selectIndex]);
+  }, [ready, selectedIndex, scrollToIndex]);
 
   // Subsequent value changes from parent
   useEffect(() => {
-    if (ready && selectedIndex >= 0 && !isScrollingRef.current) {
-      selectIndex(selectedIndex, true);
-    }
-  }, [selectedIndex, ready, selectIndex]);
+    if (!ready || selectedIndex < 0 || isScrollingRef.current) return;
+    if (currentIndexRef.current === selectedIndex) return;
+    scrollToIndex(selectedIndex, true);
+  }, [selectedIndex, ready, scrollToIndex]);
 
   const handleScroll = useCallback(
     (e: any) => {
+      if (Platform.OS !== 'ios') return;
       const y = e.nativeEvent.contentOffset.y;
       const index = Math.round(y / ITEM_HEIGHT);
       if (index !== lastHapticIndex.current && index >= 0 && index < items.length) {
         lastHapticIndex.current = index;
-        if (Platform.OS === 'ios') {
-          Haptics.selectionAsync();
-        }
+        Haptics.selectionAsync();
       }
     },
     [items.length],
@@ -85,7 +99,7 @@ export default function WheelPicker({
     const isSelected = index === selectedIndex;
     return (
       <Pressable
-        onPress={() => selectIndex(index)}
+        onPress={() => commitIndex(index)}
         style={({ pressed }) => [
           styles.item,
           { height: ITEM_HEIGHT },
@@ -113,7 +127,7 @@ export default function WheelPicker({
             const deltaY = Number(e?.deltaY ?? 0);
             if (!deltaY) return;
             e?.preventDefault?.();
-            selectIndex(selectedIndex + (deltaY > 0 ? 1 : -1));
+            commitIndex(selectedIndex + (deltaY > 0 ? 1 : -1));
           },
         } as const)
       : {};
@@ -148,12 +162,16 @@ export default function WheelPicker({
           if (Platform.OS !== 'web') return;
           isScrollingRef.current = false;
           const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
-          selectIndex(index, true);
+          commitIndex(index, true);
         }}
         onMomentumScrollEnd={(e) => {
           isScrollingRef.current = false;
           const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
-          selectIndex(index, true);
+          currentIndexRef.current = index;
+          const nextItem = items[index];
+          if (nextItem && nextItem.value !== selectedValueRef.current) {
+            onValueChangeRef.current(nextItem.value);
+          }
         }}
         contentContainerStyle={{
           paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),

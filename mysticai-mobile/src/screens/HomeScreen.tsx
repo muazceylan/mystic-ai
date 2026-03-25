@@ -26,6 +26,7 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../features/tutorial';
+import { MonetizationQuickBar } from '../features/monetization';
 import {
   AppSurfaceHeader,
   SafeScreen,
@@ -37,7 +38,6 @@ import { useTheme, type ThemeColors } from '../context/ThemeContext';
 const HOME_VARIANT = 'premium_v3';
 const NIGHT_SKY_ROUTE = '/night-sky';
 const NOTIFICATIONS_ROUTE = '/notifications';
-const SETTINGS_ROUTE = '/theme-settings';
 const TRANSITS_ROUTE_FALLBACK = '/transits-today';
 const WEEKLY_ANALYSIS_ROUTE_FALLBACK = '/(tabs)/weekly-analysis';
 const HOME_MAX_FONT_SCALE = 1.15;
@@ -489,10 +489,6 @@ export default function HomeScreen() {
     pushRoute(NOTIFICATIONS_ROUTE);
   }, [pushRoute]);
 
-  const handlePressSettings = useCallback(() => {
-    pushRoute(SETTINGS_ROUTE);
-  }, [pushRoute]);
-
   const handlePressTutorialHelp = useCallback(() => {
     void reopenTutorialById(TUTORIAL_IDS.HOME_FOUNDATION, 'home');
   }, [reopenTutorialById]);
@@ -630,16 +626,12 @@ export default function HomeScreen() {
                   accessibilityLabel={t('homeSurface.header.helpAccessibility')}
                 />
               </SpotlightTarget>
+              <MonetizationQuickBar />
               <SurfaceHeaderIconButton
                 iconName="notifications-outline"
                 onPress={handlePressNotifications}
                 accessibilityLabel={notificationA11y}
                 badgeText={notificationCount > 0 ? notificationBadgeText : null}
-              />
-              <SurfaceHeaderIconButton
-                iconName="sunny-outline"
-                onPress={handlePressSettings}
-                accessibilityLabel={t('homeSurface.header.settingsAccessibility')}
               />
             </>
           )}

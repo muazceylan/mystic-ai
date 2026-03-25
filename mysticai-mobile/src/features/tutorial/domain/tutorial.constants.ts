@@ -49,6 +49,7 @@ export const HOME_TUTORIAL_TARGET_KEYS = {
   HERO_ENERGY: 'home.hero_energy',
   QUICK_ACTIONS: 'home.quick_actions',
   PERSONAL_WIDGET: 'home.personal_widget',
+  MONETIZATION_ENTRY: 'home.monetization_entry',
   HELP_ENTRY: 'home.help_entry',
 } as const;
 
@@ -56,6 +57,7 @@ export const DAILY_TRANSITS_TUTORIAL_TARGET_KEYS = {
   HERO_SUMMARY: 'daily_transits.hero_summary',
   TRANSIT_CARDS: 'daily_transits.transit_cards',
   IMPACT_ZONES: 'daily_transits.impact_zones',
+  MONETIZATION_ENTRY: 'daily_transits.monetization_entry',
   HELP_ENTRY: 'daily_transits.help_entry',
 } as const;
 
@@ -64,6 +66,7 @@ export const COSMIC_PLANNER_TUTORIAL_TARGET_KEYS = {
   CATEGORY_DOCK: 'cosmic_planner.category_dock',
   DAILY_RECOMMENDATIONS: 'cosmic_planner.daily_recommendations',
   REMINDER_ACTION: 'cosmic_planner.reminder_action',
+  MONETIZATION_ENTRY: 'cosmic_planner.monetization_entry',
   HELP_ENTRY: 'cosmic_planner.help_entry',
 } as const;
 
@@ -72,6 +75,7 @@ export const DECISION_COMPASS_TUTORIAL_TARGET_KEYS = {
   INPUT_AREA: 'decision_compass.input_area',
   RESULT_AREA: 'decision_compass.result_area',
   REEVALUATE_ENTRY: 'decision_compass.reevaluate_entry',
+  MONETIZATION_ENTRY: 'decision_compass.monetization_entry',
   HELP_ENTRY: 'decision_compass.help_entry',
 } as const;
 
@@ -80,6 +84,7 @@ export const COMPATIBILITY_TUTORIAL_TARGET_KEYS = {
   SECTION_TABS: 'compatibility.section_tabs',
   SCORE_AREA: 'compatibility.score_area',
   SAVE_SHARE_ENTRY: 'compatibility.save_share_entry',
+  MONETIZATION_ENTRY: 'compatibility.monetization_entry',
   HELP_ENTRY: 'compatibility.help_entry',
 } as const;
 
@@ -89,6 +94,7 @@ export const BIRTH_CHART_TUTORIAL_TARGET_KEYS = {
   TECHNICAL_DETAILS: 'birth_chart.technical_details',
   INSIGHT_PANEL: 'birth_chart.insight_panel',
   DETAIL_ACTION: 'birth_chart.detail_action',
+  MONETIZATION_ENTRY: 'birth_chart.monetization_entry',
   HELP_ENTRY: 'birth_chart.help_entry',
 } as const;
 
@@ -96,6 +102,7 @@ export const DREAMS_TUTORIAL_TARGET_KEYS = {
   COMPOSE_ENTRY: 'dreams.compose_entry',
   INTERPRETATION_RESULT: 'dreams.interpretation_result',
   HISTORY_ENTRY: 'dreams.history_entry',
+  MONETIZATION_ENTRY: 'dreams.monetization_entry',
   HELP_ENTRY: 'dreams.help_entry',
 } as const;
 
@@ -103,6 +110,7 @@ export const NUMEROLOGY_TUTORIAL_TARGET_KEYS = {
   INPUT_AREA: 'numerology.input_area',
   RESULT_CARD: 'numerology.result_card',
   DETAIL_SECTION: 'numerology.detail_section',
+  MONETIZATION_ENTRY: 'numerology.monetization_entry',
   HELP_ENTRY: 'numerology.help_entry',
 } as const;
 
@@ -110,6 +118,7 @@ export const NAME_ANALYSIS_TUTORIAL_TARGET_KEYS = {
   NAME_INPUT: 'name_analysis.name_input',
   MEANING_PANEL: 'name_analysis.meaning_panel',
   SAVE_SHARE_ENTRY: 'name_analysis.save_share_entry',
+  MONETIZATION_ENTRY: 'name_analysis.monetization_entry',
   HELP_ENTRY: 'name_analysis.help_entry',
 } as const;
 
@@ -117,6 +126,7 @@ export const SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS = {
   DAILY_RECOMMENDATION: 'spiritual_practice.daily_recommendation',
   PRACTICE_COUNTER: 'spiritual_practice.practice_counter',
   JOURNAL_ENTRY: 'spiritual_practice.journal_entry',
+  MONETIZATION_ENTRY: 'spiritual_practice.monetization_entry',
   HELP_ENTRY: 'spiritual_practice.help_entry',
 } as const;
 
@@ -124,6 +134,7 @@ export const PROFILE_TUTORIAL_TARGET_KEYS = {
   PERSONAL_INFO: 'profile.personal_info',
   PREFERENCES: 'profile.preferences',
   TUTORIAL_CENTER_ENTRY: 'profile.tutorial_center_entry',
+  MONETIZATION_ENTRY: 'profile.monetization_entry',
   HELP_ENTRY: 'profile.help_entry',
 } as const;
 

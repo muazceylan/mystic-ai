@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SafeScreen, TabHeader } from '../../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW, ACCESSIBILITY } from '../../constants/tokens';
@@ -143,14 +143,11 @@ export default function SpiritualHomeScreen() {
         title="Ruhsal Pratikler"
         rightActions={(
           <SpotlightTarget targetKey={SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <Pressable
+            <SurfaceHeaderIconButton
+              iconName="help-circle-outline"
               onPress={handlePressTutorialHelp}
-              style={({ pressed }) => [s.helpBtn, pressed && { opacity: 0.72 }]}
-              accessibilityRole="button"
               accessibilityLabel="Ruhsal pratikler rehberini tekrar aç"
-            >
-              <Ionicons name="help-circle-outline" size={18} color={colors.text} />
-            </Pressable>
+            />
           </SpotlightTarget>
         )}
         {...useTabHeaderActions()}
@@ -450,16 +447,6 @@ function createStyles(C: ThemeColors, isDark: boolean) {
       ...TYPOGRAPHY.CaptionXS,
       color: C.subtext,
       textAlign: 'center',
-    },
-    helpBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: RADIUS.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.09)' : C.border,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : C.surface,
     },
   });
 }
