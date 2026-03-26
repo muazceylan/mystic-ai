@@ -4,7 +4,11 @@ import type { HousePlacement, PlanetPosition } from '../services/astrology.servi
 export interface NightSkyPosterDraft {
   userId?: number;
   chartId?: number;
-  name: string;
+  name?: string | null;
+  fullName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  isGuest?: boolean;
   birthDate: string;
   birthTime: string | null;
   birthLocation: string;

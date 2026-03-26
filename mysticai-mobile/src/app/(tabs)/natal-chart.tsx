@@ -44,7 +44,7 @@ import {
   ScaleDecorator,
   type RenderItemParams as DraggableRenderItemParams,
 } from 'react-native-draggable-flatlist';
-import { useAuthStore } from '../../store/useAuthStore';
+import { isGuestUser, useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import {
   useCompanionStore,
@@ -86,6 +86,7 @@ import NatalChartHeroCard, {
   type HeroMetricTarget,
 } from '../../components/Astrology/NatalChartHeroCard';
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
+import { posterTokens } from '../../features/nightSkyPoster/poster.tokens';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture } from '../../components/ui';
@@ -1680,6 +1681,28 @@ export default function NatalChartTab() {
   const moonInfo = getZodiacInfo(chart?.moonSign);
   const risingInfo = getZodiacInfo(chart?.risingSign);
   const activeProfileName = getProfileName(resolvedActiveProfile);
+  const activePosterFullName = (() => {
+    if (resolvedActiveProfile) {
+      if (isSavedPersonProfile(resolvedActiveProfile)) {
+        return resolvedActiveProfile.name?.trim() || null;
+      }
+      return (
+        resolvedActiveProfile.name?.trim()
+        || [resolvedActiveProfile.firstName, resolvedActiveProfile.lastName].filter(Boolean).join(' ').trim()
+        || null
+      );
+    }
+    return chart?.name?.trim() || null;
+  })();
+  const activePosterFirstName = resolvedActiveProfile && !isSavedPersonProfile(resolvedActiveProfile)
+    ? resolvedActiveProfile.firstName ?? null
+    : null;
+  const activePosterLastName = resolvedActiveProfile && !isSavedPersonProfile(resolvedActiveProfile)
+    ? resolvedActiveProfile.lastName ?? null
+    : null;
+  const activePosterIsGuest = resolvedActiveProfile && !isSavedPersonProfile(resolvedActiveProfile)
+    ? isGuestUser(resolvedActiveProfile as any)
+    : isGuestUser(user);
   const selectedComparisonPairKey = comparisonPair
     ? canonicalPairKey(comparisonPair.map((p) => profileKey(p, user?.id)))
     : null;
@@ -1736,7 +1759,11 @@ export default function NatalChartTab() {
     setNightSkyPosterDraft({
       userId: user?.id,
       chartId: chart.id,
-      name: activeProfileName || chart.name || 'Astro Soul',
+      name: chart.name ?? activeProfileName ?? null,
+      fullName: activePosterFullName,
+      firstName: activePosterFirstName,
+      lastName: activePosterLastName,
+      isGuest: activePosterIsGuest,
       birthDate: String(chart.birthDate),
       birthTime: chart.birthTime ?? null,
       birthLocation: chart.birthLocation,
@@ -1823,7 +1850,11 @@ export default function NatalChartTab() {
                 <View style={styles.posterPreviewViewport}>
                   <View style={styles.posterPreviewScaled}>
                     <BirthNightSkyPoster
-                      name={activeProfileName || chart.name || 'Astro Soul'}
+                      name={chart.name ?? activeProfileName ?? null}
+                      fullName={activePosterFullName}
+                      firstName={activePosterFirstName}
+                      lastName={activePosterLastName}
+                      isGuest={activePosterIsGuest}
                       birthDate={String(chart.birthDate)}
                       birthTime={chart.birthTime ?? null}
                       birthLocation={chart.birthLocation}
@@ -4155,7 +4186,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   posterPreviewViewport: {
     width: 300,
-    height: 534,
+    height: Math.round((300 * posterTokens.frame.height) / posterTokens.frame.width),
     borderRadius: 22,
     overflow: 'hidden',
     borderWidth: 1,
@@ -4170,9 +4201,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     elevation: 6,
   },
   posterPreviewScaled: {
-    width: 360,
-    height: 640,
-    transform: [{ scale: 0.834 }],
+    width: posterTokens.frame.width,
+    height: posterTokens.frame.height,
+    transform: [{ scale: 300 / posterTokens.frame.width }],
   },
   posterModuleActions: {
     marginTop: 2,

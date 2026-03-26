@@ -24,7 +24,7 @@ import {
 } from '../../services/astrology.service';
 
 type ParsedSharePayload = {
-  name: string;
+  name?: string | null;
   birthDate: string;
   birthTime: string | null;
   birthLocation: string;
@@ -56,7 +56,7 @@ function parsePayload(payload: Record<string, unknown> | null | undefined): Pars
   if (!birthDate) return null;
 
   return {
-    name: asString(payload.name) ?? 'Astro Soul',
+    name: asString(payload.name) ?? null,
     birthDate,
     birthTime: asString(payload.birthTime) ?? null,
     birthLocation,
@@ -236,6 +236,8 @@ export default function NightSkyPosterPublicShareScreen() {
             <View style={[styles.posterShell, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <BirthNightSkyPoster
                 name={parsedPayload.name}
+                fullName={parsedPayload.name}
+                isGuest={/^guest[_-]/i.test(parsedPayload.name ?? '')}
                 birthDate={parsedPayload.birthDate}
                 birthTime={parsedPayload.birthTime}
                 birthLocation={parsedPayload.birthLocation}
@@ -402,4 +404,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
