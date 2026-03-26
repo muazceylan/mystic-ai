@@ -1,6 +1,6 @@
 # GÖREV: Astro Guru - React Native (Expo) Frontend Kurulumu
 
-Mevcut Flutter projesini iptal edip, yerine **React Native (Expo)** kullanarak yeniden başlıyoruz. Astro Guru ekosistemi (11 Java Mikroservisi) ile konuşacak, modern, performanslı ve "Mistik Karanlık Tema"ya sahip bir mobil uygulama iskeleti oluşturmanı istiyorum.
+**React Native (Expo)** kullanarak Astro Guru ekosistemi (11 Java Mikroservisi) ile konuşacak, modern, performanslı ve "Mistik Karanlık Tema"ya sahip bir mobil uygulama iskeleti oluşturuyoruz.
 
 ## 1. Teknoloji Yığını (Tech Stack)
 En güncel ve hatasız kurulum için şu yığını kullanacağız:

@@ -191,6 +191,7 @@ Ornekler:
 - Yeni admin endpoint gerekiyorsa `mystic-admin/src/lib/api.ts` icine typed client ekle; sayfa icinde daginik `fetch` cagrilari yapma.
 - Yeni mobil network entegrasyonu gerekiyorsa `mysticai-mobile/src/services/*` katmanina ekle; ekranda direkt `axios` olusturma.
 - Yeni route/deeplink davranisi gerekiyorsa `notificationDeepLink.ts`, route registry ve navigation config zincirini koru; sadece UI tarafinda if/else ile cozmeye calisma.
+- Yeni modul kilit/premium mantigi gerekiyorsa `src/features/monetization/*` hooklerini ve `useModuleMonetization` uzerinden ilerle; ekran icinde lokal `isPremium` boolean'i ile ad-hoc gate olusturma.
 
 ### 2.4 Yeni Abstraction Acmadan Once Kontrol Et
 
@@ -199,6 +200,8 @@ Mobil:
 - `src/components/ui`
 - `src/components/<feature>`
 - `src/features`
+- `src/features/monetization/*` (Guru token, reklam, kilit acma)
+- `src/features/tutorial/*` (tutorial engine, registry, analytics)
 - `src/services`
 - `src/store`
 - `src/spiritual/*`
@@ -910,6 +913,36 @@ Bu bolum AI agent'in dogru owner secmesi icin en degerli alanlardan biridir.
   - Yeni AI provider entegrasyonu dogrudan domain servisine girmemeli; once orchestrator pattern'ini inceleyin
   - Mock fallback'i production default'una cevirmeyin
 
+### 6.13 Monetization
+
+- Amac:
+  - Guru token ekonomisi: kazanma (reklam), harcama (kilit acma), satin alma
+  - Modül ve aksiyon bazli erisim kontrolü
+  - Sunucu gudumlü reklam ve token konfigürasyonu
+- Mobil yuzeyler:
+  - `src/features/monetization/` (tam altyapi)
+  - `src/app/premium.tsx`
+  - Her modulde `useModuleMonetization(moduleKey)` hook'u ile eligibility kontrolü
+- Ana veri:
+  - `MonetizationConfig` — startup'ta cekilen sunucu konfigürasyonu
+  - `ModuleRule[]` — modul bazli reklam stratejisi, Guru maliyeti, onizleme derinligi, kap kurallari
+  - `GuruProduct[]` — satin alinabilir Guru token paketleri (iOS/Android urun ID'leri dahil)
+  - `GuruWallet` — kullanici cuzdani (bakiye, islem gecmisi)
+- Reklam saglayici: Google AdMob (rewarded video); platform + ortam bazli birimler `admobUnitIds.ts` icinde
+- Analytics: `src/features/monetization/analytics/monetizationAnalytics.ts`
+- Backend owner: wallet/ledger ve config endpoint'leri `monetization.service.ts` uzerinden; henuz ayri bir Java servisi yok
+- Ozel dikkat:
+  - `MonetizationConfig` store'da persist edilir; startup ve foreground resume'da yenilenir
+  - Modul erisim kontrolü icin her zaman `useModuleMonetization(key)` → `EligibilityResult` kullan
+  - `src/utils/featureGate.ts` ek flag yonetimi icin mevcuttur; bunu monetization hook'unun yerine gecirmeyin
+  - In-app purchase akisi (iOS/Android urun ID'leri `GuruProduct` icinde tanimli) henuz placeholder/TODO seviyesinde; bu eksik akis etrafinda satin alma kilidini kalicilastirmayin
+  - Rewarded reklam tamamlaninca Guru kazanilir; `useRewardedUnlock` bunu yonetir
+  - Guru harcama: `useGuruUnlock` → wallet'tan düser → icerik kilidi acilir
+- Existing foundation:
+  - `useMonetizationStore`, `useGuruWalletStore`
+  - `useModuleMonetization`, `useRewardedUnlock`, `useGuruUnlock`
+  - `AdOfferCard`, `GuruUnlockModal`, `PurchaseCatalogSheet`, `MonetizationQuickBar`, `GuruBalanceBadge`
+
 ## 7. File Reading Strategy For AI
 
 ### 7.1 Genel Kural
@@ -1594,6 +1627,7 @@ Feature-specific source of truth:
 - `docs/analytics/numerology-events.md`
 - `docs/analytics/numerology-amplitude-dashboard-template.md`
 - `src/features/tutorial/analytics/*`
+- `src/features/monetization/analytics/monetizationAnalytics.ts` (Guru token, reklam, satin alma event'leri)
 
 ### 13.2 Event Naming Pattern
 
@@ -2005,6 +2039,9 @@ En az su boyutlarda dusun:
 - Notification route key / module visibility zincirini bypass etmek
 - `mystic-common` icine gereksiz domain logic tasimak
 - Security shortcut'larini production standardi gibi kabul etmek
+- `useModuleMonetization` yerine ekran icinde lokal `isPremium` boolean ile monetization gate'i bypass etmek
+- In-app purchase akisi henuz tamamlanmamisken satin alma kilidini kalici hale getirmek
+- Guru token bakiyesini store'dan okumak yerine her ekranda ayri fetch yapmak
 
 ## 21. Practical Task Recipes
 
@@ -2091,6 +2128,17 @@ Avoid:
 2. Registry ve remote config etkisini tamamla
 3. Analytics key'leri ekle
 4. `docs/tutorial-qa-checklist.md` ile QA dusun
+
+### 21.11 Monetization Entegrasyonu Yaparken
+
+1. `src/features/monetization/types.ts` ve `index.ts`'yi oku — mevcut tip ve hook setini anla
+2. `useModuleMonetization(moduleKey)` kullan — `EligibilityResult` ile kili ve erisim kontrolu yap
+3. Reklam akisi gerekiyorsa `useRewardedUnlock`; Guru token harcama gerekiyorsa `useGuruUnlock` kullan
+4. Yeni modul icin `MonetizationConfig` tarafinda `ModuleRule` taniminin sunucu konfigürasyonuna eklendigini dogrula
+5. `AdOfferCard`, `GuruUnlockModal` veya `PurchaseCatalogSheet`'i sayfaya bagla; yeni reklam/kilit UI'i sifirdan yazma
+6. `monetizationAnalytics.ts` icindeki `trackMonetizationEvent` ile ilgili event'leri ekle
+7. In-app purchase icin `GuruProduct` listesi ve iOS/Android urun ID'leri hazir mi kontrol et; tamamlanmamissa sadece reklam ve Guru unlock akisiyla ilerle
+8. QA: reklam tamamlama → bakiye artisi, Guru harcama → bakiye dusumu, kap asisiminda offer gosterilmemesi senaryolarini test et
 
 ## 22. Quick Start For Future AI Sessions
 

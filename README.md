@@ -136,6 +136,34 @@ cd mysticai-mobile && npm install && npm run start
 - 📢 **Smart Notifications** — Engagement-scored, preference-aware push + in-app
 - 🖥️ **CMS** — Admin-controlled home sections, explore cards, banners, horoscopes
 - 🛡️ **Admin Panel** — Full CMS, notification management, route registry, audit logs
+- 💰 **Monetization** — Guru token economy, rewarded ads (AdMob), in-app purchase catalog
+
+### Monetization
+
+The mobile app includes a full monetization layer under `mysticai-mobile/src/features/monetization/`.
+
+**Guru Token Economy**
+- Users earn **Guru** tokens by watching rewarded ads (Google AdMob) or purchasing packages.
+- Tokens are spent to unlock premium content on a per-module, per-action basis.
+- Wallet, ledger, and purchase history are persisted server-side.
+
+**Server-Driven Configuration**
+- `MonetizationConfig` is fetched at startup and controls all ad + token behaviour.
+- Per-module `ModuleRule` entries define: ad strategy, Guru cost, preview depth, daily/weekly caps, frequency mode.
+- `products[]` list drives the in-app purchase catalog (iOS/Android product IDs per package).
+
+**Key Components**
+
+| Component / Hook | Purpose |
+|-----------------|---------|
+| `useModuleMonetization(key)` | Returns `EligibilityResult` for a given module |
+| `useRewardedUnlock` | Triggers AdMob rewarded flow → awards Guru on completion |
+| `useGuruUnlock` | Deducts Guru balance → unlocks content |
+| `AdOfferCard` | Ad offer UI presented before locked content |
+| `GuruUnlockModal` | Token-spend confirmation modal |
+| `PurchaseCatalogSheet` | In-app purchase product list |
+| `MonetizationQuickBar` | Quick access bar showing balance + offer shortcut |
+| `GuruBalanceBadge` | Header badge showing current token balance |
 
 ### Environment Variables
 
@@ -323,6 +351,34 @@ cd mysticai-mobile && npm install && npm run start
 - 📢 **Akıllı Bildirimler** — Etkileşim puanlı, tercih duyarlı push ve in-app bildirimler
 - 🖥️ **CMS** — Admin kontrollü ana ekran bölümleri, keşif kartları, banner'lar, burç içerikleri
 - 🛡️ **Admin Paneli** — Tam CMS, bildirim yönetimi, route kaydı, audit logları
+- 💰 **Monetizasyon** — Guru token ekonomisi, ödüllü reklamlar (AdMob), uygulama içi satın alma kataloğu
+
+### Monetizasyon
+
+Mobil uygulama `mysticai-mobile/src/features/monetization/` altında tam bir monetizasyon altyapısı içerir.
+
+**Guru Token Ekonomisi**
+- Kullanıcılar **Guru** token'ı ödüllü reklam izleyerek veya satın alma yaparak kazanır.
+- Token'lar modül ve aksiyon bazlı olarak premium içeriklerin kilidini açmak için harcanır.
+- Cüzdan, işlem geçmişi ve satın almalar sunucu tarafında saklanır.
+
+**Sunucu Güdümlü Konfigürasyon**
+- `MonetizationConfig` uygulama açılışında çekilir; tüm reklam ve token davranışını kontrol eder.
+- Modül bazlı `ModuleRule` kayıtları: reklam stratejisi, Guru maliyeti, önizleme derinliği, günlük/haftalık kap.
+- `products[]` listesi uygulama içi satın alma kataloğunu (iOS/Android ürün ID'leri) yönetir.
+
+**Temel Bileşenler**
+
+| Bileşen / Hook | Amaç |
+|----------------|------|
+| `useModuleMonetization(key)` | Modül için `EligibilityResult` döner |
+| `useRewardedUnlock` | AdMob rewarded akışını başlatır → tamamlandığında Guru kazandırır |
+| `useGuruUnlock` | Guru bakiyesinden düşerek içerik kilidini açar |
+| `AdOfferCard` | Kilitli içerik öncesi gösterilen reklam teklif kartı |
+| `GuruUnlockModal` | Token harcama onay modal'ı |
+| `PurchaseCatalogSheet` | Uygulama içi satın alma ürün listesi |
+| `MonetizationQuickBar` | Bakiye + teklif kısayolu çubuğu |
+| `GuruBalanceBadge` | Güncel token bakiyesini gösteren header rozeti |
 
 ### Ortam Değişkenleri
 
