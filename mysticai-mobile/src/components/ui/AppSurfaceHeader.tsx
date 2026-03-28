@@ -15,8 +15,11 @@ interface AppSurfaceHeaderProps {
   avatarUri?: string | null;
   showBackButton?: boolean;
   onBack?: () => void;
+  leftActions?: React.ReactNode;
   rightActions?: React.ReactNode;
   tintColor?: string;
+  allowTitleAutoShrink?: boolean;
+  titleMinimumScale?: number;
 }
 
 interface SurfaceHeaderIconButtonProps {
@@ -65,17 +68,101 @@ export function AppSurfaceHeader({
   avatarUri,
   showBackButton = false,
   onBack,
+  leftActions,
   rightActions,
   tintColor,
+  allowTitleAutoShrink = false,
+  titleMinimumScale = 0.9,
 }: AppSurfaceHeaderProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
+  const [contentWidth, setContentWidth] = React.useState(0);
+  const [leadingWidth, setLeadingWidth] = React.useState(0);
+  const [rightActionsWidth, setRightActionsWidth] = React.useState(0);
+  const [titleWidth, setTitleWidth] = React.useState(0);
   const textColor = tintColor ?? colors.text;
   const subtextColor = tintColor ? `${tintColor}B3` : colors.subtext;
   const headerGradient = isDark
     ? (['rgba(24,22,40,0.97)', 'rgba(14,14,24,0.90)'] as const)
     : (['rgba(247,241,255,0.95)', 'rgba(255,255,255,0.86)'] as const);
+  const hasLeadingNode = Boolean(leftActions || (variant !== 'home' && showBackButton && onBack));
+  const inlineLeadingGap = variant === 'page' ? spacing.xs : spacing.sm;
+  const inlineOuterGap = rightActions ? spacing.md : 0;
+  const inlineTitleAvailableWidth = Math.max(
+    0,
+    contentWidth
+      - rightActionsWidth
+      - inlineOuterGap
+      - leadingWidth
+      - (hasLeadingNode ? inlineLeadingGap : 0)
+      - (variant === 'page' ? spacing.xxs : 0),
+  );
+  const shrinkThresholdWidth = allowTitleAutoShrink ? titleWidth * titleMinimumScale : titleWidth;
+  const usesStackedPageLayout = variant === 'page'
+    && contentWidth > 0
+    && titleWidth > 0
+    && inlineTitleAvailableWidth > 0
+    && shrinkThresholdWidth > inlineTitleAvailableWidth;
+  const leadingNode = leftActions ? leftActions : variant === 'home' ? (
+    avatarUri ? (
+      <Image
+        source={{ uri: avatarUri }}
+        style={styles.avatar}
+        accessibilityIgnoresInvertColors
+      />
+    ) : null
+  ) : showBackButton && onBack ? (
+    <SurfaceHeaderIconButton
+      iconName="chevron-back"
+      onPress={onBack}
+      accessibilityLabel={t('common.back')}
+      color={textColor}
+    />
+  ) : null;
+
+  React.useEffect(() => {
+    if (!hasLeadingNode) {
+      setLeadingWidth(0);
+    }
+  }, [hasLeadingNode]);
+
+  React.useEffect(() => {
+    if (!rightActions) {
+      setRightActionsWidth(0);
+    }
+  }, [rightActions]);
+
+  const titleNode = title ? (
+    <Text
+      maxFontSizeMultiplier={MAX_FONT_SCALE}
+      numberOfLines={usesStackedPageLayout ? 2 : 1}
+      adjustsFontSizeToFit={!usesStackedPageLayout && variant === 'page' && allowTitleAutoShrink}
+      minimumFontScale={!usesStackedPageLayout && variant === 'page' && allowTitleAutoShrink ? titleMinimumScale : 1}
+      ellipsizeMode="tail"
+      style={[
+        styles.title,
+        variant === 'home' ? styles.homeTitle : styles.pageTitle,
+        usesStackedPageLayout && styles.stackedPageTitle,
+        { color: textColor },
+      ]}
+    >
+      {title}
+    </Text>
+  ) : null;
+  const subtitleNode = subtitle ? (
+    <Text
+      maxFontSizeMultiplier={MAX_FONT_SCALE}
+      numberOfLines={usesStackedPageLayout ? 2 : 1}
+      style={[
+        styles.subtitle,
+        usesStackedPageLayout && styles.stackedSubtitle,
+        { color: subtextColor },
+      ]}
+    >
+      {subtitle}
+    </Text>
+  ) : null;
 
   return (
     <LinearGradient
@@ -83,56 +170,109 @@ export function AppSurfaceHeader({
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.headerShell}
+      onLayout={(event) => {
+        const nextWidth = Math.max(0, event.nativeEvent.layout.width - spacing.cardPadding * 2);
+        if (Math.abs(nextWidth - contentWidth) > 1) {
+          setContentWidth(nextWidth);
+        }
+      }}
     >
-      <View style={styles.headerRow}>
-        <View style={styles.leftCluster}>
-          {variant === 'home' ? (
-            avatarUri ? (
-              <Image
-                source={{ uri: avatarUri }}
-                style={styles.avatar}
-                accessibilityIgnoresInvertColors
-              />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={spacing.lg + spacing.xs} color={colors.primary} />
-              </View>
-            )
-          ) : showBackButton && onBack ? (
-            <SurfaceHeaderIconButton
-              iconName="chevron-back"
-              onPress={onBack}
-              accessibilityLabel={t('common.back')}
-              color={textColor}
-            />
-          ) : null}
-
-          <View style={styles.titleWrap}>
-            <Text
-              maxFontSizeMultiplier={MAX_FONT_SCALE}
-              numberOfLines={1}
-              style={[
-                styles.title,
-                variant === 'home' ? styles.homeTitle : styles.pageTitle,
-                { color: textColor },
-              ]}
-            >
-              {title}
-            </Text>
-            {subtitle ? (
-              <Text
-                maxFontSizeMultiplier={MAX_FONT_SCALE}
-                numberOfLines={1}
-                style={[styles.subtitle, { color: subtextColor }]}
+      {usesStackedPageLayout ? (
+        <View style={styles.stackedShell}>
+          <View style={styles.headerTopRow}>
+            {leadingNode ? (
+              <View
+                style={styles.topLeftActions}
+                onLayout={(event) => {
+                  const nextWidth = event.nativeEvent.layout.width;
+                  if (Math.abs(nextWidth - leadingWidth) > 1) {
+                    setLeadingWidth(nextWidth);
+                  }
+                }}
               >
-                {subtitle}
-              </Text>
+                {leadingNode}
+              </View>
+            ) : (
+              <View style={styles.topLeftSpacer} />
+            )}
+            {rightActions ? (
+              <View
+                style={styles.headerActions}
+                onLayout={(event) => {
+                  const nextWidth = event.nativeEvent.layout.width;
+                  if (Math.abs(nextWidth - rightActionsWidth) > 1) {
+                    setRightActionsWidth(nextWidth);
+                  }
+                }}
+              >
+                {rightActions}
+              </View>
             ) : null}
           </View>
-        </View>
 
-        {rightActions ? <View style={styles.headerActions}>{rightActions}</View> : null}
-      </View>
+          {title || subtitle ? (
+            <View style={[styles.titleWrap, styles.stackedTitleWrap]}>
+              {titleNode}
+              {subtitleNode}
+            </View>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.headerRow}>
+          <View style={[styles.leftCluster, variant === 'page' && styles.pageLeftCluster]}>
+            {leadingNode ? (
+              <View
+                onLayout={(event) => {
+                  const nextWidth = event.nativeEvent.layout.width;
+                  if (Math.abs(nextWidth - leadingWidth) > 1) {
+                    setLeadingWidth(nextWidth);
+                  }
+                }}
+              >
+                {leadingNode}
+              </View>
+            ) : null}
+
+            {title || subtitle ? (
+              <View style={[styles.titleWrap, variant === 'page' && styles.pageTitleWrap]}>
+                {titleNode}
+                {subtitleNode}
+              </View>
+            ) : null}
+          </View>
+
+          {rightActions ? (
+            <View
+              style={styles.headerActions}
+              onLayout={(event) => {
+                const nextWidth = event.nativeEvent.layout.width;
+                if (Math.abs(nextWidth - rightActionsWidth) > 1) {
+                  setRightActionsWidth(nextWidth);
+                }
+              }}
+            >
+              {rightActions}
+            </View>
+          ) : null}
+        </View>
+      )}
+
+      {variant === 'page' && title ? (
+        <View pointerEvents="none" style={styles.measureLayer}>
+          <Text
+            numberOfLines={1}
+            onLayout={(event) => {
+              const nextWidth = event.nativeEvent.layout.width;
+              if (Math.abs(nextWidth - titleWidth) > 1) {
+                setTitleWidth(nextWidth);
+              }
+            }}
+            style={[styles.title, styles.pageTitle, styles.measureText]}
+          >
+            {title}
+          </Text>
+        </View>
+      ) : null}
     </LinearGradient>
   );
 }
@@ -153,6 +293,28 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       justifyContent: 'space-between',
       gap: spacing.md,
     },
+    stackedShell: {
+      gap: spacing.sm,
+    },
+    headerTopRow: {
+      minHeight: spacing.chevronHitArea,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    topLeftActions: {
+      minWidth: spacing.chevronHitArea,
+      minHeight: spacing.chevronHitArea,
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      flexShrink: 0,
+    },
+    topLeftSpacer: {
+      width: 0,
+      height: spacing.chevronHitArea,
+      flexShrink: 1,
+    },
     leftCluster: {
       flex: 1,
       flexDirection: 'row',
@@ -160,9 +322,20 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       gap: spacing.sm,
       minWidth: 0,
     },
+    pageLeftCluster: {
+      gap: spacing.xs,
+    },
     titleWrap: {
       flex: 1,
       minWidth: 0,
+    },
+    pageTitleWrap: {
+      paddingRight: spacing.xxs,
+    },
+    stackedTitleWrap: {
+      flex: 0,
+      paddingRight: 0,
+      gap: 2,
     },
     title: {
       flexShrink: 1,
@@ -177,9 +350,29 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontSize: 18,
       lineHeight: 24,
     },
+    stackedPageTitle: {
+      flexShrink: 0,
+      fontSize: 19,
+      lineHeight: 24,
+      letterSpacing: -0.3,
+    },
     subtitle: {
       ...typography.Caption,
       marginTop: 2,
+    },
+    stackedSubtitle: {
+      marginTop: 0,
+    },
+    measureLayer: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      opacity: 0,
+      pointerEvents: 'none',
+    },
+    measureText: {
+      alignSelf: 'flex-start',
+      flexShrink: 0,
     },
     avatar: {
       width: spacing.xxl * 2,
@@ -201,6 +394,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+      flexShrink: 0,
     },
     headerIconBtn: {
       width: spacing.chevronHitArea,

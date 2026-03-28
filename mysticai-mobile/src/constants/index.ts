@@ -277,20 +277,6 @@ export function getZodiacSign(month: number, day: number): string {
   return '';
 }
 
-// Focus points for life intentions
-export const FOCUS_POINTS = [
-  { id: 'career', title: 'Kariyer', emoji: '💼', description: 'İş ve meslek' },
-  { id: 'love', title: 'Aşk', emoji: '💕', description: 'Romantik ilişkiler' },
-  { id: 'money', title: 'Para', emoji: '💰', description: 'Finansal bolluk' },
-  { id: 'health', title: 'Sağlık', emoji: '❤️', description: 'Fiziksel wellness' },
-  { id: 'family', title: 'Aile', emoji: '👨‍👩‍👧', description: 'Aile ilişkileri' },
-  { id: 'spiritual', title: 'Ruhani', emoji: '✨', description: 'Maneviyat' },
-  { id: 'beauty', title: 'Güzellik', emoji: '💅', description: 'Güzellik & Bakım' },
-  { id: 'finance', title: 'Finans', emoji: '📈', description: 'Finans & Yatırım' },
-  { id: 'social', title: 'Sosyal', emoji: '🤝', description: 'Sosyal yaşam' },
-  { id: 'home', title: 'Ev', emoji: '🏠', description: 'Ev İşleri' },
-];
-
 // Gender options
 export const GENDER_OPTIONS = [
   { id: 'female', title: 'Kadın', emoji: '👩' },

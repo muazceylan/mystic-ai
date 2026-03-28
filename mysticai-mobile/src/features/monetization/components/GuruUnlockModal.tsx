@@ -4,6 +4,8 @@ import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/tokens';
 import { BottomSheet } from '../../../components/ui/BottomSheet';
 import { Button } from '../../../components/ui/Button';
+import { BrandBadge } from '../../../components/ui/BrandLogo';
+import { PREMIUM_ICONS } from '../../../constants/icons';
 import { useGuruUnlock } from '../hooks/useGuruUnlock';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useMonetizationStore } from '../store/useMonetizationStore';
@@ -74,6 +76,10 @@ export function GuruUnlockModal({
   return (
     <BottomSheet visible={visible} onClose={handleClose} title="Guru ile Aç">
       <View style={s.content}>
+        <View style={s.brandRow}>
+          <BrandBadge variant="icon-transparent" size={28} />
+        </View>
+
         <View style={s.infoRow}>
           <Text
             style={s.label}
@@ -133,6 +139,7 @@ export function GuruUnlockModal({
                   title="Reklam İzle"
                   onPress={onShowAdOffer}
                   variant="outline"
+                  leftIcon={PREMIUM_ICONS.ad}
                   size="sm"
                 />
               )}
@@ -141,6 +148,7 @@ export function GuruUnlockModal({
                   title="Guru Satın Al"
                   onPress={onShowPurchase}
                   variant="outline"
+                  leftIcon={PREMIUM_ICONS.purchase}
                   size="sm"
                 />
               )}
@@ -177,6 +185,7 @@ export function GuruUnlockModal({
             onPress={handleSpend}
             loading={isProcessing}
             disabled={isProcessing || !canAfford}
+            leftIcon={PREMIUM_ICONS.unlocked}
             size="lg"
             style={s.spendButton}
           />
@@ -197,6 +206,10 @@ function createStyles(C: ThemeColors) {
   return StyleSheet.create({
     content: {
       paddingBottom: SPACING.lg,
+    },
+    brandRow: {
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
     },
     infoRow: {
       flexDirection: 'row',

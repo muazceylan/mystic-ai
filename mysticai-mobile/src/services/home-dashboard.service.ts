@@ -773,7 +773,6 @@ export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardPar
       name: user?.firstName || user?.name,
       birthDate: user?.birthDate,
       maritalStatus: user?.maritalStatus,
-      focusPoint: user?.focusPoint,
       locale: resolvedLocale,
     }),
     fetchSkyPulse(resolvedLocale),

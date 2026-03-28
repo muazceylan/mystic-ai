@@ -7,14 +7,12 @@ import { useNotificationStore } from '../../store/useNotificationStore';
 
 interface DecisionCompassHeaderProps {
   onBack: () => void;
-  onOpenCalendar: () => void;
   onOpenNotifications: () => void;
   onOpenHelp: () => void;
 }
 
 export function DecisionCompassHeader({
   onBack,
-  onOpenCalendar,
   onOpenNotifications,
   onOpenHelp,
 }: DecisionCompassHeaderProps) {
@@ -26,11 +24,12 @@ export function DecisionCompassHeader({
       title="Karar Pusulası"
       subtitle="Günün öncelik alanları ve skorlar"
       variant="page"
+      allowTitleAutoShrink
+      titleMinimumScale={0.88}
       showBackButton
       onBack={onBack}
       rightActions={(
         <>
-          <SurfaceHeaderIconButton iconName="calendar-outline" onPress={onOpenCalendar} accessibilityLabel="Takvim" />
           <MonetizationQuickBar />
           <SurfaceHeaderIconButton
             iconName="notifications-outline"

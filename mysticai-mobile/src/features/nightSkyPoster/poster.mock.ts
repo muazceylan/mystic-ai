@@ -41,6 +41,7 @@ export const nightSkyPosterMock: NightSkyPosterModel = {
     { id: 'seg-3', points: [{ x: 0.32, y: 0.68 }, { x: 0.45, y: 0.74 }, { x: 0.59, y: 0.66 }], opacity: 0.22 },
   ],
   highlightedBodyIds: ['sun', 'moon', 'mars'],
+  variant: 'gold_edition',
   posterTone: 'gold',
   stars: [
     { x: 0.22, y: 0.24, opacity: 0.78, size: 0.95 },

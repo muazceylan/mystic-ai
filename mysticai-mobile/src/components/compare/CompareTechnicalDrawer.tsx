@@ -1,5 +1,7 @@
 import React from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { X } from 'lucide-react-native';
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
@@ -9,6 +11,7 @@ import {
   formatExplainabilityGeneratedAt,
   normalizeDataQualityLabel,
 } from '../../services/compare.presentation';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 interface CompareTechnicalDrawerProps {
   visible: boolean;
@@ -23,6 +26,10 @@ export default function CompareTechnicalDrawer({
   warningText,
   onClose,
 }: CompareTechnicalDrawerProps) {
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose,
+  });
   const safeVersion = explainability?.calculationVersion?.trim() || 'compare-v3.0.0';
   const safeDataQuality = normalizeDataQualityLabel(explainability?.dataQuality);
   const safeProfile = explainability?.moduleScoringProfile?.trim() || 'compare-v3';
@@ -35,15 +42,20 @@ export default function CompareTechnicalDrawer({
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        <View style={styles.sheet}>
-          <View style={styles.head}>
-            <AccessibleText style={styles.title} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Hesaplama Özeti
-            </AccessibleText>
-            <Pressable onPress={onClose} style={styles.closeBtn} accessibilityRole="button">
-              <X size={16} color="#4F4666" />
-            </Pressable>
-          </View>
+        <Animated.View style={[styles.sheet, animatedStyle]}>
+          <GestureDetector gesture={gesture}>
+            <View>
+              <View style={styles.handle} />
+              <View style={styles.head}>
+                <AccessibleText style={styles.title} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
+                  Hesaplama Özeti
+                </AccessibleText>
+                <Pressable onPress={onClose} style={styles.closeBtn} accessibilityRole="button">
+                  <X size={16} color="#4F4666" />
+                </Pressable>
+              </View>
+            </View>
+          </GestureDetector>
 
           <AccessibleText style={styles.item} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
             Sürüm: {safeVersion}
@@ -76,7 +88,7 @@ export default function CompareTechnicalDrawer({
               {safeMissingBirthTimeImpact}
             </AccessibleText>
           ) : null}
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -97,6 +109,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 7,
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: '#D5CCE5',
+    marginBottom: 10,
   },
   head: {
     flexDirection: 'row',

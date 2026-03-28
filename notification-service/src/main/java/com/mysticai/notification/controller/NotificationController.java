@@ -7,6 +7,7 @@ import com.mysticai.notification.service.NotificationGenerationService;
 import com.mysticai.notification.service.NotificationPreferenceService;
 import com.mysticai.notification.service.PushService;
 import com.mysticai.notification.service.WebSocketNotificationService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,8 @@ import java.util.UUID;
 @Slf4j
 public class NotificationController {
 
+    private static final String INTERNAL_SERVICE_HEADER = "X-Internal-Service-Key";
+
     private final WebSocketNotificationService notificationService;
     private final NotificationPreferenceService preferenceService;
     private final PushService pushService;
@@ -39,6 +42,9 @@ public class NotificationController {
 
     @Value("${ENV:prod}")
     private String deploymentEnv;
+
+    @Value("${internal.gateway.key}")
+    private String internalGatewayKey;
 
     // ─── Notification List ───
 
@@ -52,9 +58,22 @@ public class NotificationController {
         Page<NotificationResponse> notifications;
         if (category != null && !category.isBlank()) {
             try {
-                Notification.NotificationCategory cat =
-                        Notification.NotificationCategory.valueOf(category.toUpperCase());
-                notifications = notificationService.getUserNotificationsByCategory(userId, cat, page, size);
+                List<Notification.NotificationCategory> categories = Arrays.stream(category.split(","))
+                        .map(String::trim)
+                        .filter(value -> !value.isBlank())
+                        .map(String::toUpperCase)
+                        .map(Notification.NotificationCategory::valueOf)
+                        .toList();
+
+                if (categories.size() == 1) {
+                    notifications = notificationService.getUserNotificationsByCategory(
+                            userId, categories.get(0), page, size);
+                } else if (!categories.isEmpty()) {
+                    notifications = notificationService.getUserNotificationsByCategories(
+                            userId, categories, page, size);
+                } else {
+                    notifications = notificationService.getUserNotificationsPaged(userId, page, size);
+                }
             } catch (IllegalArgumentException e) {
                 notifications = notificationService.getUserNotificationsPaged(userId, page, size);
             }
@@ -244,6 +263,17 @@ public class NotificationController {
         }
     }
 
+    @PostMapping("/internal/direct")
+    public ResponseEntity<NotificationResponse> sendDirectNotification(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(INTERNAL_SERVICE_HEADER) String serviceKey,
+            @Valid @RequestBody InternalDirectNotificationRequest request
+    ) {
+        ensureInternalServiceKey(serviceKey);
+        Notification notification = generationService.sendDirectNotification(userId, request);
+        return ResponseEntity.ok(NotificationResponse.from(notification));
+    }
+
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Notification Service is running");
@@ -262,6 +292,12 @@ public class NotificationController {
                     HttpStatus.FORBIDDEN,
                     "Notification testing endpoints are disabled"
             );
+        }
+    }
+
+    private void ensureInternalServiceKey(String serviceKey) {
+        if (serviceKey == null || !serviceKey.equals(internalGatewayKey)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid internal service key");
         }
     }
 

@@ -18,7 +18,6 @@ export interface OnboardingRegisterPayload {
   timezone?: string;
   gender?: string;
   maritalStatus?: string;
-  focusPoint?: string;
   zodiacSign?: string;
 }
 
@@ -55,7 +54,6 @@ export interface UpdateProfilePayload {
   timezone?: string;
   gender?: string;
   maritalStatus?: string;
-  focusPoint?: string;
   zodiacSign?: string;
   preferredLanguage?: string;
 }
@@ -129,9 +127,8 @@ export const uploadProfileAvatar = (
     type: resolvedMimeType,
   } as any);
 
-  return api.post<AuthUser>(`${AUTH_BASE}/profile/avatar`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // Do NOT set Content-Type manually — React Native XHR must auto-set it with the correct boundary
+  return api.post<AuthUser>(`${AUTH_BASE}/profile/avatar`, formData);
 };
 
 export const removeProfileAvatar = () =>
@@ -204,3 +201,10 @@ export interface VerifyEmailOtpPayload {
  */
 export const verifyEmailOtp = (payload: VerifyEmailOtpPayload) =>
   api.post<LoginResponse>(`${AUTH_BASE}/verify-email-otp`, payload);
+
+// ─── Account Deletion ─────────────────────────────────────────────────────────
+
+/** Permanently deletes the authenticated user's account (soft delete on server).
+ *  Pass password only if the account has a local password (hasPassword=true). */
+export const deleteAccount = (password?: string) =>
+  api.delete<void>(`${AUTH_BASE}/account`, password ? { data: { password } } : undefined);

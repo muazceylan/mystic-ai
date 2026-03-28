@@ -22,7 +22,6 @@ public record UserDTO(
         String timezone,
         String gender,
         String maritalStatus,
-        String focusPoint,
         String zodiacSign,
         String avatarUri,
         String avatarUrl,
@@ -63,7 +62,6 @@ public record UserDTO(
         private String timezone;
         private String gender;
         private String maritalStatus;
-        private String focusPoint;
         private String zodiacSign;
         private String avatarUri;
         private String avatarUrl;
@@ -95,7 +93,6 @@ public record UserDTO(
         public UserDTOBuilder timezone(String timezone) { this.timezone = timezone; return this; }
         public UserDTOBuilder gender(String gender) { this.gender = gender; return this; }
         public UserDTOBuilder maritalStatus(String maritalStatus) { this.maritalStatus = maritalStatus; return this; }
-        public UserDTOBuilder focusPoint(String focusPoint) { this.focusPoint = focusPoint; return this; }
         public UserDTOBuilder zodiacSign(String zodiacSign) { this.zodiacSign = zodiacSign; return this; }
         public UserDTOBuilder avatarUri(String avatarUri) { this.avatarUri = avatarUri; return this; }
         public UserDTOBuilder avatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; return this; }
@@ -114,7 +111,7 @@ public record UserDTO(
             return new UserDTO(id, username, email, accountStatus, emailVerifiedAt, firstName, lastName, name,
                     birthDate, birthTime, birthLocation,
                     birthCountry, birthCity, birthTimeUnknown, timezone, gender, maritalStatus,
-                    focusPoint, zodiacSign, avatarUri, avatarUrl, preferredLanguage,
+                    zodiacSign, avatarUri, avatarUrl, preferredLanguage,
                     roles, enabled, createdAt, updatedAt, hasPassword, provider,
                     userType, isAnonymous, isAccountLinked);
         }

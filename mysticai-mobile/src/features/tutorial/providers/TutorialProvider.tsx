@@ -98,6 +98,7 @@ function isSameLayout(left: TutorialTargetLayout, right: TutorialTargetLayout): 
 
 export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const userId = useAuthStore((state) => state.user?.id);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const scopeKey = useMemo(() => (userId ? `user:${userId}` : 'guest'), [userId]);
 
   const isHydrated = useTutorialProgressStore((state) => state.isHydrated);
@@ -208,7 +209,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
 
   const requestTutorialForScreen = useCallback(
     async (screenKey: string, reason: TutorialStartReason): Promise<boolean> => {
-      if (!isHydrated || activeSessionRef.current || startLockRef.current) {
+      if (!isHydrated || !isAuthenticated || activeSessionRef.current || startLockRef.current) {
         return false;
       }
 
@@ -251,6 +252,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
     [
       getProgress,
       hasVisitedScreen,
+      isAuthenticated,
       isFirstAppOpenHandled,
       isHydrated,
       markFirstAppOpenHandled,

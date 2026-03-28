@@ -1,5 +1,53 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands Reference
+
+### Infrastructure
+```bash
+make infra                    # Start PostgreSQL, RabbitMQ, Redis, MailHog
+make infra-down               # Stop all infrastructure
+make status                   # Show all service ports and status
+```
+
+### Backend (Maven multi-module, Java 21)
+```bash
+mvn clean install -DskipTests           # Build all services
+mvn clean install                       # Build + run all tests
+mvn test                                # Run all tests from root
+cd auth-service && mvn test             # Run tests for a single service
+cd auth-service && mvn test -Dtest=EmailVerificationWorkerUnitTest   # Run single test class
+./start-services.sh                     # Start all backend services locally
+```
+
+### Mobile (mysticai-mobile — Expo + React Native)
+```bash
+npm install
+npm run start          # Start Expo dev server (port 8090)
+npm run web            # Web target
+npx tsc --noEmit       # TypeScript type check (no dedicated script)
+```
+
+### Admin Panel (mystic-admin — Next.js)
+```bash
+pnpm install
+pnpm dev               # Dev server (default port, verify: may be 3000 or 3001)
+pnpm build             # Production build
+pnpm lint              # ESLint
+pnpm generate:route-manifest    # Generate mobile route manifest
+pnpm sync:routes:dry-run        # Preview route sync changes
+pnpm sync:routes:apply          # Apply route sync (requires ADMIN_API_TOKEN env)
+```
+
+### Health Checks
+```bash
+curl -sS http://localhost:8080/actuator/health
+curl -sS "http://localhost:8080/api/v1/auth/check-email?email=startup-check@mystic.ai"
+```
+
+---
+
 Bu dosya, `mystic-ai` reposunda calisan AI coding agent'lar icin ilk okunacak operasyon rehberidir. Bu repo tek bir uygulama degil; React Native mobil istemci, Next.js admin paneli, Spring Boot microservice grubu, gateway, service registry, AI orchestration, CMS/config/navigation temeli ve operasyon dokumanlarindan olusan bir monorepodur. Bu nedenle "hemen kod yaz" refleksi bu repoda yanlis yere mudahale etme riski tasir.
 
 Kod yazmadan once bu dosyayi, sonra ilgili bounded context'i okuyun. Tum repoyu bastan sona taramak yerine dogru giris noktasini secmek bu projede kalite, hiz ve tutarlilik farkini belirler.

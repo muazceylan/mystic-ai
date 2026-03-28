@@ -49,12 +49,12 @@ class EmailVerificationWorkerUnitTest {
         ReflectionTestUtils.setField(worker, "fromAddress", "no-reply@mysticai.local");
 
         when(publicUrlProperties.apiPublicUrl()).thenReturn("http://localhost:8080");
-        when(templateRenderer.render(any())).thenReturn("<html>test</html>");
+        when(templateRenderer.render(any(), any())).thenReturn("<html>test</html>");
     }
 
     @Test
     void consume_retriesOnFailureBeforeMaxRetry() {
-        EmailVerificationMessage message = new EmailVerificationMessage(1L, "user@example.com", "token", "corr-1");
+        EmailVerificationMessage message = new EmailVerificationMessage(1L, "user@example.com", "token", "corr-1", "tr");
         when(mailSender.createMimeMessage()).thenThrow(new RuntimeException("smtp-down"));
 
         worker.consume(message, 1);
@@ -69,7 +69,7 @@ class EmailVerificationWorkerUnitTest {
 
     @Test
     void consume_sendsToDlqAfterMaxRetry() {
-        EmailVerificationMessage message = new EmailVerificationMessage(1L, "user@example.com", "token", "corr-2");
+        EmailVerificationMessage message = new EmailVerificationMessage(1L, "user@example.com", "token", "corr-2", "tr");
         when(mailSender.createMimeMessage()).thenThrow(new RuntimeException("smtp-down"));
 
         worker.consume(message, 3);

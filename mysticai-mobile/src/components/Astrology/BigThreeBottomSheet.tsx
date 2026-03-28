@@ -10,12 +10,15 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
+import Reanimated from 'react-native-reanimated';
 import Svg, { Circle, G, Line, Polygon, Text as SvgText } from 'react-native-svg';
 import { getZodiacInfo } from '../../constants/zodiac';
 import { SIGN_GLOSSARY } from '../../constants/astrology-glossary';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -273,6 +276,10 @@ export default function BigThreeBottomSheet({ visible, role, sign, onClose }: Pr
   const s = useMemo(() => createStyles(colors), [colors]);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose,
+  });
 
   useEffect(() => {
     if (visible) {
@@ -302,29 +309,34 @@ export default function BigThreeBottomSheet({ visible, role, sign, onClose }: Pr
         </TouchableWithoutFeedback>
 
         <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
-          <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-            <View style={s.handleBar} />
+          <Reanimated.View style={animatedStyle}>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+              <GestureDetector gesture={gesture}>
+                <View>
+                  <View style={s.handleBar} />
 
-            <View style={s.hero}>
-              <View style={[s.heroBadge, { backgroundColor: colors.violetBg }]}>
-                <Text style={[s.heroBadgeText, { color: colors.violet }]}>{meta.icon} {meta.label}</Text>
-              </View>
-              <Text style={s.heroTitle}>
-                {meta.label}in {built.signInfo.symbol} {built.signInfo.name}
-              </Text>
-              <Text style={s.heroDesc}>{meta.hook}</Text>
-            </View>
+                  <View style={s.hero}>
+                    <View style={[s.heroBadge, { backgroundColor: colors.violetBg }]}>
+                      <Text style={[s.heroBadgeText, { color: colors.violet }]}>{meta.icon} {meta.label}</Text>
+                    </View>
+                    <Text style={s.heroTitle}>
+                      {meta.label}in {built.signInfo.symbol} {built.signInfo.name}
+                    </Text>
+                    <Text style={s.heroDesc}>{meta.hook}</Text>
+                  </View>
+                </View>
+              </GestureDetector>
 
-            <View style={s.pillRow}>
-              <View style={[s.pill, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-                <Ionicons name="water-outline" size={12} color={colors.violet} />
-                <Text style={s.pillText}>Element: {built.element}</Text>
+              <View style={s.pillRow}>
+                <View style={[s.pill, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                  <Ionicons name="water-outline" size={12} color={colors.violet} />
+                  <Text style={s.pillText}>Element: {built.element}</Text>
+                </View>
+                <View style={[s.pill, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                  <Ionicons name="git-branch-outline" size={12} color={colors.violet} />
+                  <Text style={s.pillText}>Nitelik: {built.modality}</Text>
+                </View>
               </View>
-              <View style={[s.pill, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-                <Ionicons name="git-branch-outline" size={12} color={colors.violet} />
-                <Text style={s.pillText}>Nitelik: {built.modality}</Text>
-              </View>
-            </View>
 
             <View style={[s.radarCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
               <View style={s.radarHeader}>
@@ -382,10 +394,11 @@ export default function BigThreeBottomSheet({ visible, role, sign, onClose }: Pr
               </View>
             </View>
 
-            <Pressable style={[s.closeBtn, { backgroundColor: colors.violet }]} onPress={onClose}>
-              <Text style={s.closeBtnText}>Kapat</Text>
-            </Pressable>
-          </ScrollView>
+              <Pressable style={[s.closeBtn, { backgroundColor: colors.violet }]} onPress={onClose}>
+                <Text style={s.closeBtnText}>Kapat</Text>
+              </Pressable>
+            </ScrollView>
+          </Reanimated.View>
         </Animated.View>
       </View>
     </Modal>

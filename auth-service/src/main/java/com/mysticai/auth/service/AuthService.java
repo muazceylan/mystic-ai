@@ -34,6 +34,7 @@ import com.mysticai.auth.repository.token.PasswordResetTokenRepository;
 import com.mysticai.auth.security.JwtTokenProvider;
 import com.mysticai.auth.security.SocialTokenVerifier;
 import com.mysticai.auth.security.SocialTokenVerifier.SocialUserInfo;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -142,7 +143,6 @@ public class AuthService {
                 .timezone(request.timezone())
                 .gender(request.gender())
                 .maritalStatus(request.maritalStatus())
-                .focusPoint(request.focusPoint())
                 .zodiacSign(request.zodiacSign())
                 .roles(Set.of("USER"))
                 .enabled(true)
@@ -457,7 +457,6 @@ public class AuthService {
         if (request.timezone() != null) user.setTimezone(request.timezone());
         if (request.gender() != null) user.setGender(request.gender());
         if (request.maritalStatus() != null) user.setMaritalStatus(request.maritalStatus());
-        if (request.focusPoint() != null) user.setFocusPoint(request.focusPoint());
         if (request.zodiacSign() != null) user.setZodiacSign(request.zodiacSign());
         if (request.preferredLanguage() != null) user.setPreferredLanguage(request.preferredLanguage());
 
@@ -583,7 +582,7 @@ public class AuthService {
     public LoginResponse createQuickSession() {
         LocalDateTime now = LocalDateTime.now(clock);
 
-        String guestSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        String guestSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String username = "guest_" + guestSuffix;
         String email = username + "@anon.mystic-ai.internal";
 
@@ -734,7 +733,7 @@ public class AuthService {
                 .createdAt(now)
                 .build());
 
-        sendOtpEmail(normalizedEmail, rawCode);
+        sendOtpEmail(normalizedEmail, rawCode, guestUser.getPreferredLanguage());
         log.info("Link-account OTP sent: userId={}", userId);
         return new OkResponse(true);
     }
@@ -829,20 +828,33 @@ public class AuthService {
         return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(saved));
     }
 
-    private void sendOtpEmail(String toEmail, String code) {
+    private void sendOtpEmail(String toEmail, String code, String locale) {
+        boolean isEn = "en".equalsIgnoreCase(locale);
+        String subject = isEn ? "Astro Guru — Verification Code" : "Astro Guru — Doğrulama Kodu";
+        String heading = isEn ? "Your Verification Code" : "Doğrulama Kodun";
+        String body = isEn
+                ? "Use the 6-digit code below to link your account. The code is valid for <strong>10 minutes</strong>."
+                : "Hesabını bağlamak için aşağıdaki 6 haneli kodu kullan. Kod <strong>10 dakika</strong> geçerlidir.";
+        String privacy = isEn ? "Never share this code with anyone." : "Bu kodu kimseyle paylaşma.";
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
-            helper.setFrom(fromAddress);
+            helper.setFrom(new InternetAddress(fromAddress, "Astro Guru"));
             helper.setTo(toEmail);
-            helper.setSubject("Mystic AI — Doğrulama Kodu");
+            helper.setSubject(subject);
             helper.setText(
-                "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px'>"
-                + "<h2 style='color:#9D4EDD'>Doğrulama Kodun</h2>"
-                + "<p>Hesabını bağlamak için aşağıdaki 6 haneli kodu kullan. Kod <strong>10 dakika</strong> geçerlidir.</p>"
+                "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#ffffff'>"
+                + "<div style='text-align:center;margin-bottom:28px'>"
+                + "<div style='display:inline-block;width:64px;height:64px;background:linear-gradient(135deg,#9D4EDD,#C77DFF);border-radius:16px;line-height:64px;font-size:32px'>✨</div>"
+                + "<div style='color:#9D4EDD;font-size:20px;font-weight:700;margin-top:10px'>Astro Guru</div>"
+                + "</div>"
+                + "<h2 style='color:#1a1a2e;font-size:20px;margin-bottom:8px'>" + heading + "</h2>"
+                + "<p style='color:#555;line-height:1.6'>" + body + "</p>"
                 + "<div style='font-size:36px;font-weight:700;letter-spacing:8px;color:#9D4EDD;padding:24px;text-align:center;"
                 + "background:#F9F0FF;border-radius:12px;margin:24px 0'>" + code + "</div>"
-                + "<p style='color:#888;font-size:13px'>Bu kodu kimseyle paylaşma.</p>"
+                + "<p style='color:#999;font-size:13px'>" + privacy + "</p>"
+                + "<hr style='border:none;border-top:1px solid #eee;margin:24px 0'/>"
+                + "<p style='color:#bbb;font-size:11px;text-align:center'>© Astro Guru</p>"
                 + "</div>", true);
             mailSender.send(mimeMessage);
         } catch (Exception e) {
@@ -869,8 +881,7 @@ public class AuthService {
         return user.getBirthDate() == null
                 || isBlank(user.getBirthCountry())
                 || isBlank(user.getBirthCity())
-                || isBlank(user.getGender())
-                || isBlank(user.getFocusPoint());
+                || isBlank(user.getGender());
     }
 
     private boolean isBlank(String value) {
@@ -915,23 +926,36 @@ public class AuthService {
                 .build();
 
         verificationTokenRepository.save(verificationToken);
-        sendVerificationOtpEmail(user.getEmail(), rawCode);
+        sendVerificationOtpEmail(user.getEmail(), rawCode, user.getPreferredLanguage());
     }
 
-    private void sendVerificationOtpEmail(String toEmail, String code) {
+    private void sendVerificationOtpEmail(String toEmail, String code, String locale) {
+        boolean isEn = "en".equalsIgnoreCase(locale);
+        String subject = isEn ? "Astro Guru — Email Verification Code" : "Astro Guru — E-posta Doğrulama Kodu";
+        String heading = isEn ? "Your Email Verification Code" : "E-posta Doğrulama Kodun";
+        String body = isEn
+                ? "Use the 6-digit code below to verify your account. The code is valid for <strong>10 minutes</strong>."
+                : "Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan. Kod <strong>10 dakika</strong> geçerlidir.";
+        String privacy = isEn ? "Never share this code with anyone." : "Bu kodu kimseyle paylaşma.";
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
-            helper.setFrom(fromAddress);
+            helper.setFrom(new InternetAddress(fromAddress, "Astro Guru"));
             helper.setTo(toEmail);
-            helper.setSubject("Mystic AI — E-posta Doğrulama Kodu");
+            helper.setSubject(subject);
             helper.setText(
-                "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px'>"
-                + "<h2 style='color:#9D4EDD'>E-posta Doğrulama Kodun</h2>"
-                + "<p>Hesabını doğrulamak için aşağıdaki 6 haneli kodu kullan. Kod <strong>10 dakika</strong> geçerlidir.</p>"
+                "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#ffffff'>"
+                + "<div style='text-align:center;margin-bottom:28px'>"
+                + "<div style='display:inline-block;width:64px;height:64px;background:linear-gradient(135deg,#9D4EDD,#C77DFF);border-radius:16px;line-height:64px;font-size:32px'>✨</div>"
+                + "<div style='color:#9D4EDD;font-size:20px;font-weight:700;margin-top:10px'>Astro Guru</div>"
+                + "</div>"
+                + "<h2 style='color:#1a1a2e;font-size:20px;margin-bottom:8px'>" + heading + "</h2>"
+                + "<p style='color:#555;line-height:1.6'>" + body + "</p>"
                 + "<div style='font-size:36px;font-weight:700;letter-spacing:8px;color:#9D4EDD;padding:24px;text-align:center;"
                 + "background:#F9F0FF;border-radius:12px;margin:24px 0'>" + code + "</div>"
-                + "<p style='color:#888;font-size:13px'>Bu kodu kimseyle paylaşma.</p>"
+                + "<p style='color:#999;font-size:13px'>" + privacy + "</p>"
+                + "<hr style='border:none;border-top:1px solid #eee;margin:24px 0'/>"
+                + "<p style='color:#bbb;font-size:11px;text-align:center'>© Astro Guru</p>"
                 + "</div>", true);
             mailSender.send(mimeMessage);
         } catch (Exception e) {
@@ -959,7 +983,8 @@ public class AuthService {
                 user.getId(),
                 user.getEmail(),
                 rawToken,
-                UUID.randomUUID().toString()
+                UUID.randomUUID().toString(),
+                user.getPreferredLanguage() != null ? user.getPreferredLanguage() : "tr"
         );
         passwordResetEmailPublisher.publish(message);
     }
@@ -1051,6 +1076,35 @@ public class AuthService {
                 + version;
     }
 
+    @Transactional
+    public void deleteAccount(Long userId, String password) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (Boolean.TRUE.equals(user.getHasLocalPassword())) {
+            if (password == null || password.isBlank() || !passwordEncoder.matches(password, user.getPassword())) {
+                throw new WrongPasswordException();
+            }
+        }
+
+        user.setAccountStatus(AccountStatus.DELETED);
+        user.setEnabled(false);
+
+        // Anonymize email and username to free them for potential re-registration
+        if (user.getEmail() != null && !user.getEmail().startsWith("deleted_")) {
+            user.setEmail("deleted_" + userId + "_" + user.getEmail());
+        }
+        if (user.getUsername() != null && !user.getUsername().startsWith("deleted_")) {
+            user.setUsername("deleted_" + userId + "_" + user.getUsername());
+        }
+
+        userRepository.save(user);
+
+        try { linkAccountOtpRepository.deleteAllByUserId(userId); } catch (Exception ignored) {}
+
+        log.info("Account permanently deleted (soft) for userId={}", userId);
+    }
+
     private UserDTO toUserDTO(User user) {
         String avatarUrl = buildAvatarUrl(user);
         return UserDTO.builder()
@@ -1071,7 +1125,6 @@ public class AuthService {
                 .timezone(user.getTimezone())
                 .gender(user.getGender())
                 .maritalStatus(user.getMaritalStatus())
-                .focusPoint(user.getFocusPoint())
                 .zodiacSign(user.getZodiacSign())
                 .avatarUri(avatarUrl)
                 .avatarUrl(avatarUrl)

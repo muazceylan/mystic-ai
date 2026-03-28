@@ -34,25 +34,25 @@ function PosterMetaRow({ birthDateTimeLabel, locationLabel, coordinatesLabel }: 
 const styles = StyleSheet.create({
   root: {
     alignItems: 'center',
-    gap: 1,
+    gap: 4,
   },
   dateTime: {
-    color: 'rgba(230,220,195,0.8)',
-    fontSize: 12,
-    letterSpacing: 0.5,
+    color: 'rgba(239,229,206,0.9)',
+    fontSize: 18.5,
+    letterSpacing: 0.6,
     textAlign: 'center',
   },
   location: {
-    color: 'rgba(220,210,190,0.6)',
-    fontSize: 11.5,
+    color: 'rgba(231,220,198,0.82)',
+    fontSize: 14.5,
     textAlign: 'center',
-    letterSpacing: 0.3,
-    maxWidth: 260,
+    letterSpacing: 0.35,
+    maxWidth: 288,
   },
   coordinates: {
-    color: 'rgba(200,180,130,0.45)',
-    fontSize: 10.5,
-    letterSpacing: 0.6,
+    color: 'rgba(220,204,170,0.72)',
+    fontSize: 13.6,
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
 });

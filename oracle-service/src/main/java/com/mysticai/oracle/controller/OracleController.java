@@ -37,12 +37,11 @@ public class OracleController {
             @RequestHeader(value = "X-Username", required = false) String username,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String birthDate,
-            @RequestParam(required = false) String maritalStatus,
-            @RequestParam(required = false) String focusPoint) {
+            @RequestParam(required = false) String maritalStatus) {
 
         log.info("Daily secret requested for user: {} ({})", userId, username);
 
-        return oracleService.getDailySecret(userId, name, birthDate, maritalStatus, focusPoint)
+        return oracleService.getDailySecret(userId, name, birthDate, maritalStatus)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
@@ -53,12 +52,11 @@ public class OracleController {
             @RequestHeader(value = "X-Username", required = false) String username,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String birthDate,
-            @RequestParam(required = false) String maritalStatus,
-            @RequestParam(required = false) String focusPoint) {
+            @RequestParam(required = false) String maritalStatus) {
 
         log.info("Home brief requested for user: {} ({})", userId, username);
 
-        return oracleService.getHomeBrief(userId, username, name, birthDate, maritalStatus, focusPoint)
+        return oracleService.getHomeBrief(userId, username, name, birthDate, maritalStatus)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }

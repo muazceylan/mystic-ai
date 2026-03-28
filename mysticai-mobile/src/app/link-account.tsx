@@ -22,6 +22,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../context/ThemeContext';
 import { SafeScreen } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
+import { useOnboardingStore } from '../store/useOnboardingStore';
 import { linkAccountWithSocial, linkAccountWithEmail, verifyLinkAccountOtp } from '../services/auth';
 import { trackEvent } from '../services/analytics';
 
@@ -125,9 +126,10 @@ export default function LinkAccountScreen() {
   const styles = makeStyles(colors);
   const storeLogin = useAuthStore((s) => s.login);
   const queryClient = useQueryClient();
+  const savedFirstName = useOnboardingStore((s) => s.firstName);
 
-  // Form state
-  const [firstName, setFirstName] = useState('');
+  // Form state — pre-populate firstName from guest-name screen if available
+  const [firstName, setFirstName] = useState(savedFirstName || '');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -55,7 +55,7 @@ public class NotificationPreference {
 
     @Column(name = "product_updates_enabled")
     @Builder.Default
-    private boolean productUpdatesEnabled = false;
+    private boolean productUpdatesEnabled = true;
 
     @Column(name = "frequency_level")
     @Enumerated(EnumType.STRING)

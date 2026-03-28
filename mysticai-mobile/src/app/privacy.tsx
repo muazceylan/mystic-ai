@@ -43,6 +43,7 @@ export default function PrivacyScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const contactEmail = t('privacy.contactEmail');
   const sections = [
     { titleKey: 'privacy.section1Title', bodyKey: 'privacy.section1Body' },
     { titleKey: 'privacy.section2Title', bodyKey: 'privacy.section2Body' },
@@ -54,7 +55,7 @@ export default function PrivacyScreen() {
   return (
     <SafeScreen>
       <View style={styles.container}>
-        <TabHeader title={t('privacy.title')} />
+        <TabHeader title={t('privacy.title')} showDefaultRightIcons={false} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.topBadge}>
@@ -73,12 +74,12 @@ export default function PrivacyScreen() {
 
           <TouchableOpacity
             style={styles.linkBtn}
-            onPress={() => Linking.openURL('mailto:destek@mystic.ai')}
-            accessibilityLabel="E-posta ile iletişim"
+            onPress={() => Linking.openURL(`mailto:${contactEmail}`)}
+            accessibilityLabel={t('privacy.contactAccessibility')}
             accessibilityRole="link"
           >
             <Ionicons name="mail-outline" size={16} color={colors.primary} />
-            <Text style={styles.linkBtnText}>destek@mystic.ai</Text>
+            <Text style={styles.linkBtnText}>{contactEmail}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>

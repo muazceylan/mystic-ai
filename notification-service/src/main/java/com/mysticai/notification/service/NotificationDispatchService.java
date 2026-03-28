@@ -22,7 +22,9 @@ import java.time.ZoneId;
 @Slf4j
 public class NotificationDispatchService {
 
-    private static final int MAX_DAILY_PUSH = 2;
+    private static final int MAX_DAILY_PUSH_LOW = 1;
+    private static final int MAX_DAILY_PUSH_BALANCED = 2;
+    private static final int MAX_DAILY_PUSH_FREQUENT = 4;
 
     private final NotificationRepository notificationRepository;
 
@@ -63,21 +65,22 @@ public class NotificationDispatchService {
             return DispatchDecision.IN_APP_ONLY;
         }
 
-        // 4. Push enabled gate
+        // 4. Preferred time slot gate — keep in-app record, skip off-slot push
+        if (!isWithinPreferredTimeSlot(pref, type)) {
+            log.debug("[DISPATCH] IN_APP_ONLY type={} userId={} reason=preferred_time_slot", type, userId);
+            return DispatchDecision.IN_APP_ONLY;
+        }
+
+        // 5. Push enabled gate
         if (!pref.isPushEnabled()) {
             return DispatchDecision.IN_APP_ONLY;
         }
 
-        // 5. Daily push limit gate
+        // 6. Daily push limit gate
         long pushesToday = notificationRepository.countPushSentSince(userId, LocalDate.now().atStartOfDay());
-        if (pushesToday >= MAX_DAILY_PUSH) {
+        int dailyPushLimit = resolveDailyPushLimit(pref);
+        if (pushesToday >= dailyPushLimit) {
             log.debug("[DISPATCH] IN_APP_ONLY type={} userId={} reason=daily_limit pushesToday={}", type, userId, pushesToday);
-            return DispatchDecision.IN_APP_ONLY;
-        }
-
-        // 6. Frequency level gate: LOW users max 1 push/day
-        if (pref.getFrequencyLevel() == NotificationPreference.FrequencyLevel.LOW && pushesToday >= 1) {
-            log.debug("[DISPATCH] IN_APP_ONLY type={} userId={} reason=frequency_low", type, userId);
             return DispatchDecision.IN_APP_ONLY;
         }
 
@@ -103,6 +106,44 @@ public class NotificationDispatchService {
             case PRODUCT_UPDATE -> pref.isProductUpdatesEnabled();
             // System / behavioral types always pass preference gate
             case AI_ANALYSIS_COMPLETE, COMPATIBILITY_UPDATE, RE_ENGAGEMENT -> true;
+        };
+    }
+
+    private int resolveDailyPushLimit(NotificationPreference pref) {
+        if (pref == null || pref.getFrequencyLevel() == null) {
+            return MAX_DAILY_PUSH_BALANCED;
+        }
+        return switch (pref.getFrequencyLevel()) {
+            case LOW -> MAX_DAILY_PUSH_LOW;
+            case FREQUENT -> MAX_DAILY_PUSH_FREQUENT;
+            case BALANCED -> MAX_DAILY_PUSH_BALANCED;
+        };
+    }
+
+    private boolean isWithinPreferredTimeSlot(NotificationPreference pref, NotificationType type) {
+        if (pref == null || pref.getPreferredTimeSlot() == null) {
+            return true;
+        }
+
+        NotificationPreference.TimeSlot preferredSlot = pref.getPreferredTimeSlot();
+        NotificationPreference.TimeSlot typeSlot = resolveTypeTimeSlot(type);
+
+        if (typeSlot == null) {
+            return true;
+        }
+
+        return preferredSlot == typeSlot;
+    }
+
+    private NotificationPreference.TimeSlot resolveTypeTimeSlot(NotificationType type) {
+        return switch (type) {
+            case DAILY_SUMMARY, DREAM_REMINDER, PRAYER_REMINDER, PLANNER_REMINDER, WEEKLY_SUMMARY ->
+                    NotificationPreference.TimeSlot.MORNING;
+            case ENERGY_UPDATE, MINI_INSIGHT, NUMEROLOGY_CHECKIN, RE_ENGAGEMENT ->
+                    NotificationPreference.TimeSlot.NOON;
+            case MEDITATION_REMINDER, EVENING_CHECKIN, PRODUCT_UPDATE ->
+                    NotificationPreference.TimeSlot.EVENING;
+            case AI_ANALYSIS_COMPLETE, COMPATIBILITY_UPDATE -> null;
         };
     }
 

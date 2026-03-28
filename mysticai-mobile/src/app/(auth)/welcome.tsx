@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   ScrollView,
+  Image,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,15 +21,24 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
+import { AuthLegalNotice } from '../../components/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
+import { usePendingGuestStore } from '../../store/usePendingGuestStore';
 import { socialLogin, login as loginApi, quickStart as quickStartApi } from '../../services/auth';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { trackEvent } from '../../services/analytics';
 import { needsOnboarding } from '../../utils/authOnboarding';
 
+
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
+const HERO_PREMIUM_ICON = require('../../../assets/brand/logo/astro-guru-logo-small-optimized.png');
+const HERO_DISPLAY_FONT = Platform.select({
+  ios: 'Georgia',
+  android: 'serif',
+  default: 'Georgia',
+});
 
 function firstParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) {
@@ -68,32 +78,100 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     container: {
       flex: 1,
       backgroundColor: C.bg,
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
     },
     scrollContent: {
       flexGrow: 1,
-      paddingTop: 56,
-      paddingBottom: 100,
+      paddingTop: 14,
+      paddingBottom: 16,
+      gap: 10,
     },
-    titleArea: {
+    heroSection: {
       alignItems: 'center',
-      marginBottom: 28,
+      gap: 10,
+      paddingTop: 6,
+      paddingBottom: 4,
+    },
+    heroMarkWrap: {
+      width: 78,
+      height: 78,
+      shadowColor: C.primary700,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 6,
+    },
+    heroMarkFrame: {
+      flex: 1,
+      borderRadius: 25,
+      padding: 1.5,
+    },
+    heroMarkCore: {
+      flex: 1,
+      borderRadius: 24,
+      backgroundColor: 'rgba(255,255,255,0.88)',
+      borderWidth: 1,
+      borderColor: 'rgba(187,147,255,0.26)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    heroMarkGlow: {
+      position: 'absolute',
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      backgroundColor: 'rgba(181,107,255,0.08)',
+    },
+    heroMarkViewport: {
+      width: 56,
+      height: 56,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    heroMarkImage: {
+      width: 62,
+      height: 62,
+      resizeMode: 'cover',
+      transform: [{ scale: 1.04 }],
+    },
+    heroTextWrap: {
+      alignItems: 'center',
+      gap: 2,
+      maxWidth: 260,
     },
     heading: {
-      fontSize: 28,
-      fontWeight: '700',
+      fontFamily: HERO_DISPLAY_FONT,
+      fontSize: 30,
+      lineHeight: 34,
+      fontWeight: Platform.OS === 'ios' ? '700' : '600',
       color: C.text,
-      marginBottom: 8,
+      letterSpacing: -0.8,
     },
     subheading: {
-      fontSize: 16,
+      fontFamily: 'MysticInter-Regular',
+      fontSize: 13,
+      lineHeight: 19,
+      letterSpacing: 0.1,
       color: C.subtext,
       textAlign: 'center',
     },
+    card: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: C.surfaceGlassBorder,
+      backgroundColor: C.surface,
+      padding: 10,
+      gap: 6,
+    },
     form: {
       width: '100%',
-      gap: 14,
-      marginBottom: 24,
+      gap: 6,
+    },
+    fieldGroup: {
+      gap: 4,
     },
     inputContainer: {
       backgroundColor: C.inputBg,
@@ -102,10 +180,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderRadius: 14,
       flexDirection: 'row',
       alignItems: 'center',
+      minHeight: 48,
     },
     input: {
       flex: 1,
-      paddingVertical: 14,
+      paddingVertical: 12,
       paddingHorizontal: 16,
       fontSize: 16,
       color: C.text,
@@ -116,12 +195,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     forgotRow: {
       alignItems: 'flex-end',
-      marginTop: -4,
-      marginBottom: 2,
+      marginTop: -2,
     },
     forgotLink: {
       color: C.primary,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '600',
     },
     errorText: {
@@ -130,33 +208,49 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       textAlign: 'center',
     },
     loginButton: {
-      backgroundColor: C.primary,
-      borderRadius: 28,
-      paddingVertical: 16,
-      alignItems: 'center',
-      marginTop: 6,
+      borderRadius: 16,
+      overflow: 'hidden',
+      marginTop: 2,
     },
     loginButtonDisabled: {
-      backgroundColor: C.disabled,
+      opacity: 0.55,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    loginGradient: {
+      minHeight: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 18,
     },
     loginButtonText: {
       fontSize: 16,
       fontWeight: '700',
       color: C.white,
+      letterSpacing: 0.2,
+    },
+    loginButtonRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
     loginButtonTextDisabled: {
-      color: C.disabledText,
+      color: C.white,
     },
     socialSection: {
       width: '100%',
-      gap: 14,
+      gap: 6,
+    },
+    legalNotice: {
+      marginTop: 2,
     },
     socialButton: {
       backgroundColor: C.surface,
       borderWidth: 1,
       borderColor: C.border,
       borderRadius: 14,
-      paddingVertical: 14,
+      minHeight: 48,
+      paddingVertical: 10,
       alignItems: 'center',
       justifyContent: 'center',
       flexDirection: 'row',
@@ -178,27 +272,44 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       color: C.white,
     },
     quickStartButton: {
-      marginTop: 10,
-      borderRadius: 14,
+      borderRadius: 16,
       overflow: 'hidden',
     },
     quickStartGradient: {
-      paddingVertical: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
+      minHeight: 62,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
       flexDirection: 'row',
-      gap: 8,
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
     },
-    quickStartText: {
-      fontSize: 16,
+    quickStartContent: {
+      flex: 1,
+      gap: 2,
+    },
+    quickStartTitle: {
+      fontSize: 14,
       fontWeight: '700',
       color: C.white,
-      letterSpacing: 0.3,
+    },
+    quickStartHint: {
+      fontSize: 11,
+      lineHeight: 14,
+      color: 'rgba(255,255,255,0.82)',
+    },
+    quickStartArrow: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.16)',
     },
     divider: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginVertical: 20,
+      marginVertical: 0,
     },
     dividerLine: {
       flex: 1,
@@ -206,9 +317,12 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       backgroundColor: C.border,
     },
     dividerText: {
-      marginHorizontal: 12,
-      fontSize: 13,
+      marginHorizontal: 10,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.6,
       color: C.subtext,
+      textTransform: 'uppercase',
     },
     loadingOverlay: {
       position: 'absolute',
@@ -221,22 +335,18 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
     },
     footer: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingBottom: 48,
-      paddingHorizontal: 24,
+      paddingTop: 0,
+      paddingBottom: 2,
     },
     footerText: {
-      fontSize: 14,
+      fontSize: 13,
       color: C.subtext,
     },
     footerLink: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '600',
       color: C.primary,
     },
@@ -260,6 +370,7 @@ export default function WelcomeScreen() {
   const pendingEmail = useAuthStore((s) => s.pendingEmail);
   const setPendingEmail = useAuthStore((s) => s.setPendingEmail);
   const onboarding = useOnboardingStore();
+  const setPendingGuest = usePendingGuestStore((s) => s.set);
   const params = useLocalSearchParams<{ email?: string | string[] }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -302,14 +413,11 @@ export default function WelcomeScreen() {
       const shouldStartOnboarding = isNewUser || needsOnboarding(user);
 
       if (shouldStartOnboarding) {
-        // Pre-fill onboarding with data from social provider
         if (user.firstName) onboarding.setFirstName(user.firstName);
         if (user.lastName) onboarding.setLastName(user.lastName);
         if (user.email) onboarding.setEmail(user.email);
       }
 
-      // Route changes are owned by the root auth guard. Triggering replace here
-      // as well causes duplicate navigation on Android during fast auth flows.
       storeLogin(accessToken, refreshToken, user);
       authTransitionRef.current = true;
     } catch (error: any) {
@@ -462,7 +570,9 @@ export default function WelcomeScreen() {
       const res = await quickStartApi();
       const { accessToken, refreshToken, user } = res.data;
       trackEvent('quick_session_created', { user_type: 'GUEST', auth_provider: 'ANONYMOUS' });
-      storeLogin(accessToken, refreshToken, user);
+      // Save session temporarily — guest-name screen will complete the login
+      setPendingGuest({ accessToken, refreshToken: refreshToken ?? null, user });
+      router.push('/(auth)/guest-name');
       authTransitionRef.current = true;
     } catch (error: any) {
       authTransitionRef.current = false;
@@ -502,85 +612,135 @@ export default function WelcomeScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.titleArea}>
-            <Text style={styles.heading}>{t('auth.welcomeTitle')}</Text>
-            <Text style={styles.subheading}>{t('auth.welcomeSubtitle')}</Text>
+          <View style={styles.heroSection}>
+            <View style={styles.heroMarkWrap}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.98)', 'rgba(230,218,255,0.92)', 'rgba(186,141,255,0.55)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroMarkFrame}
+              >
+                <View style={styles.heroMarkCore}>
+                  <View style={styles.heroMarkGlow} />
+                  <View style={styles.heroMarkViewport}>
+                    <Image
+                      source={HERO_PREMIUM_ICON}
+                      style={styles.heroMarkImage}
+                      accessibilityLabel="Astro Guru"
+                      accessibilityRole="image"
+                    />
+                  </View>
+                </View>
+              </LinearGradient>
+            </View>
+            <View style={styles.heroTextWrap}>
+              <Text style={styles.heading}>{t('auth.welcomeTitle')}</Text>
+              <Text style={styles.subheading}>{t('auth.welcomeSubtitle')}</Text>
+            </View>
           </View>
 
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder={t('auth.email')}
-                placeholderTextColor={colors.subtext}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
-            </View>
+          <View style={styles.card}>
+            <View style={styles.form}>
+              <View style={styles.fieldGroup}>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('auth.email')}
+                    placeholderTextColor={colors.subtext}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                </View>
+              </View>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder={t('auth.password')}
-                placeholderTextColor={colors.subtext}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-                accessibilityLabel={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-                accessibilityRole="button"
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color={colors.subtext}
-                />
-              </TouchableOpacity>
-            </View>
+              <View style={styles.fieldGroup}>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('auth.password')}
+                    placeholderTextColor={colors.subtext}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                    accessibilityLabel={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                    accessibilityRole="button"
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.subtext}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-            <View style={styles.forgotRow}>
-              <TouchableOpacity
-                onPress={handleForgotPassword}
-                disabled={loading}
-                accessibilityLabel={t('auth.forgotPassword')}
-                accessibilityRole="button"
-              >
-                <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-
-            <TouchableOpacity
-              style={[styles.loginButton, (!isFormValid || loading) && styles.loginButtonDisabled]}
-              disabled={!isFormValid || loading}
-              onPress={handleEmailLogin}
-              accessibilityLabel={t('auth.loginTitle')}
-              accessibilityRole="button"
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text
-                  style={[
-                    styles.loginButtonText,
-                    (!isFormValid || loading) && styles.loginButtonTextDisabled,
-                  ]}
+              <View style={styles.forgotRow}>
+                <TouchableOpacity
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                  accessibilityLabel={t('auth.forgotPassword')}
+                  accessibilityRole="button"
                 >
-                  {t('auth.loginTitle')}
-                </Text>
-              )}
-            </TouchableOpacity>
+                  <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+              <TouchableOpacity
+                style={[styles.loginButton, (!isFormValid || loading) && styles.loginButtonDisabled]}
+                disabled={!isFormValid || loading}
+                onPress={handleEmailLogin}
+                accessibilityLabel={t('auth.loginTitle')}
+                accessibilityRole="button"
+              >
+                <LinearGradient
+                  colors={['#B56BFF', '#8E4DFF', '#6A31D8']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0.9 }}
+                  style={styles.loginGradient}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={colors.white} />
+                  ) : (
+                    <View style={styles.loginButtonRow}>
+                      <Text
+                        style={[
+                          styles.loginButtonText,
+                          (!isFormValid || loading) && styles.loginButtonTextDisabled,
+                        ]}
+                      >
+                        {t('auth.loginTitle')}
+                      </Text>
+                      <Ionicons name="arrow-forward" size={18} color={colors.white} />
+                    </View>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <View style={styles.footer} pointerEvents={loading ? 'none' : 'auto'}>
+                <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
+                <TouchableOpacity
+                  onPress={handleRegister}
+                  disabled={loading}
+                  accessibilityLabel={t('auth.signUp')}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.footerLink}>{t('auth.signUp')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
 
           <View style={styles.divider}>
@@ -589,56 +749,66 @@ export default function WelcomeScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          <View style={styles.socialSection}>
-            {Platform.OS === 'ios' && (
+          <View style={styles.card}>
+            <View style={styles.socialSection}>
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={handleAppleLogin}
+                  disabled={loading || quickStartLoading}
+                  accessibilityLabel={t('auth.loginWithApple')}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="logo-apple" size={22} color={colors.white} style={styles.icon} />
+                  <Text style={[styles.socialText, styles.appleText]}>{t('auth.loginWithApple')}</Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
-                style={[styles.socialButton, styles.appleButton]}
-                onPress={handleAppleLogin}
+                style={styles.socialButton}
+                onPress={handleGoogleLogin}
                 disabled={loading || quickStartLoading}
-                accessibilityLabel={t('auth.loginWithApple')}
+                accessibilityLabel={t('auth.loginWithGoogle')}
                 accessibilityRole="button"
               >
-                <Ionicons name="logo-apple" size={22} color={colors.white} style={styles.icon} />
-                <Text style={[styles.socialText, styles.appleText]}>{t('auth.loginWithApple')}</Text>
+                <Ionicons name="logo-google" size={22} color={colors.googleRed} style={styles.icon} />
+                <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
               </TouchableOpacity>
-            )}
 
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={handleGoogleLogin}
-              disabled={loading || quickStartLoading}
-              accessibilityLabel={t('auth.loginWithGoogle')}
-              accessibilityRole="button"
-            >
-              <Ionicons name="logo-google" size={22} color={colors.googleRed} style={styles.icon} />
-              <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickStartButton}
-              onPress={handleQuickStart}
-              disabled={loading || quickStartLoading}
-              accessibilityLabel={t('quickStart.accessibilityLabel')}
-              accessibilityRole="button"
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#9D4EDD', '#7C3AED']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.quickStartGradient}
+              <TouchableOpacity
+                style={styles.quickStartButton}
+                onPress={handleQuickStart}
+                disabled={loading || quickStartLoading}
+                accessibilityLabel={t('quickStart.accessibilityLabel')}
+                accessibilityRole="button"
+                activeOpacity={0.88}
               >
-                {quickStartLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="flash" size={17} color="#fff" />
-                    <Text style={styles.quickStartText}>{t('quickStart.button')}</Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={['#A15AF7', '#7C3AED', '#4F46E5']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.quickStartGradient}
+                >
+                  {quickStartLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <View style={styles.quickStartContent}>
+                        <Text style={styles.quickStartTitle}>{t('auth.quickStartTitle')}</Text>
+                        <Text style={styles.quickStartHint}>{t('auth.quickStartHint')}</Text>
+                      </View>
+
+                      <View style={styles.quickStartArrow}>
+                        <Ionicons name="arrow-forward" size={18} color="#fff" />
+                      </View>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
+
+          <AuthLegalNotice variant="inline" style={styles.legalNotice} />
         </ScrollView>
 
       {(loading || quickStartLoading) && (
@@ -646,18 +816,6 @@ export default function WelcomeScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
-
-      <View style={styles.footer} pointerEvents={(loading || quickStartLoading) ? 'none' : 'auto'}>
-        <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
-        <TouchableOpacity
-          onPress={handleRegister}
-          disabled={loading || quickStartLoading}
-          accessibilityLabel={t('auth.signUp')}
-          accessibilityRole="button"
-        >
-          <Text style={styles.footerLink}>{t('auth.signUp')}</Text>
-        </TouchableOpacity>
-      </View>
       </KeyboardAvoidingView>
     </SafeScreen>
   );

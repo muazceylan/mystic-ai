@@ -34,6 +34,8 @@ function msUntilEndOfWeek(): number {
 export type {
   DailySecret,
   HomeBrief,
+} from '../services/oracle.service';
+export type {
   SkyPulseResponse,
   WeeklySwotResponse,
   NatalChartResponse,
@@ -45,7 +47,6 @@ interface DailySecretParams {
   name?: string;
   birthDate?: string;
   maritalStatus?: string;
-  focusPoint?: string;
 }
 
 interface DailyLifeGuideParams {
@@ -62,7 +63,6 @@ export function useDailySecret(params: DailySecretParams | null) {
       name: params?.name,
       birthDate: params?.birthDate,
       maritalStatus: params?.maritalStatus,
-      focusPoint: params?.focusPoint,
     }),
     queryFn: async () => {
       const res = await fetchDailySecret(params ?? undefined);
@@ -79,7 +79,6 @@ export function useHomeBrief(params: DailySecretParams | null) {
       name: params?.name,
       birthDate: params?.birthDate,
       maritalStatus: params?.maritalStatus,
-      focusPoint: params?.focusPoint,
     }),
     queryFn: async () => {
       const res = await fetchHomeBrief(params ?? undefined);

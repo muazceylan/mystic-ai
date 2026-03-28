@@ -1,8 +1,6 @@
 import type { ThemeColors } from '../../context/ThemeContext';
 import {
   RETRO_CAUTION_KEYS,
-  ACTION_MAP_FOCUS_KEYS,
-  SECRET_PATTERN_FOCUS_KEYS,
 } from './homeConstants';
 import type { SwotPoint } from '../../services/astrology.service';
 
@@ -24,18 +22,6 @@ export function hashSeed(seed: string): number {
   return seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
 }
 
-export function normalizeFocus(rawFocus: string | null | undefined): string {
-  const focus = (rawFocus ?? '').toLowerCase().trim();
-  if (!focus) return 'genel';
-  if (focus.includes('ask')) return 'ask';
-  if (focus.includes('para')) return 'para';
-  if (focus.includes('kariyer')) return 'kariyer';
-  if (focus.includes('aile')) return 'aile';
-  if (focus.includes('arkadas')) return 'arkadaslik';
-  if (focus.includes('ticaret')) return 'ticaret';
-  return 'genel';
-}
-
 function resolveRelationshipTone(maritalStatus: string | null | undefined, t: TranslateFn): string {
   const status = (maritalStatus ?? '').toLowerCase();
   if (status.includes('evli')) return t('home.relationTone.married');
@@ -47,28 +33,20 @@ function resolveRelationshipTone(maritalStatus: string | null | undefined, t: Tr
 export function buildCuriousSecret(
   name: string,
   daySeed: number,
-  focusKey: string,
   maritalStatus: string,
   t: TranslateFn,
   secretSeed?: string | null
 ): string {
   const seedBase = `${name}-${daySeed}-${secretSeed ?? ''}`;
   const score = hashSeed(seedBase);
-  const focus = SECRET_PATTERN_FOCUS_KEYS.includes(focusKey as any) ? focusKey : 'genel';
   const idx = score % 2;
-  const pattern = t(`home.secretPatterns.${focus}.${idx}`);
+  const pattern = t(`home.secretPatterns.genel.${idx}`);
   return `${name}, ${resolveRelationshipTone(maritalStatus, t)} ${pattern}`;
 }
 
-export function buildDailyComment(base: string, focusKey: string, maritalStatus: string, t: TranslateFn): string {
-  const focus = ACTION_MAP_FOCUS_KEYS.includes(focusKey as any) ? focusKey : 'genel';
-  const lead = t(`home.focusLead.${focus}`);
+export function buildDailyComment(base: string, maritalStatus: string, t: TranslateFn): string {
+  const lead = t('home.focusLead.genel');
   return `${lead} ${resolveRelationshipTone(maritalStatus, t)}, ${base.toLowerCase()}`;
-}
-
-export function getFocusLabel(focusKey: string, t: TranslateFn): string {
-  const focus = ACTION_MAP_FOCUS_KEYS.includes(focusKey as any) ? focusKey : 'genel';
-  return t(`home.focusLabel.${focus}`);
 }
 
 export function normalizeAiCopy(value: string | null | undefined): string {
@@ -118,18 +96,16 @@ export type TransitDigest = {
   actionItems: string[];
 };
 
-function getActionItems(t: TranslateFn, focusKey: string, energyType: 'lucky' | 'mixed' | 'caution'): string[] {
-  const focus = ACTION_MAP_FOCUS_KEYS.includes(focusKey as any) ? focusKey : 'genel';
+function getActionItems(t: TranslateFn, energyType: 'lucky' | 'mixed' | 'caution'): string[] {
   return [
-    t(`home.actionMap.${focus}.${energyType}.0`),
-    t(`home.actionMap.${focus}.${energyType}.1`),
+    t(`home.actionMap.genel.${energyType}.0`),
+    t(`home.actionMap.genel.${energyType}.1`),
   ];
 }
 
 export function buildTransitDigest(
   skyPulse: { moonPhase?: string; retrogradePlanets?: string[]; moonSignTurkish?: string } | null,
   natalChart: { sunSign?: string; risingSign?: string } | null,
-  focusKey: string,
   aiInsightLines: string[],
   dailyVibeText: string,
   t: TranslateFn
@@ -180,7 +156,7 @@ export function buildTransitDigest(
     cautionItems.push(t('home.fullMoonCaution'));
   }
 
-  const actionItems = getActionItems(t, focusKey, energyType);
+  const actionItems = getActionItems(t, energyType);
 
   const headlineSource = aiInsightLines[0] || dailyVibeText;
   const dynamicTitle = identityTag
@@ -196,8 +172,8 @@ export function buildTransitDigest(
   };
 }
 
-export function getDailyVibeFallback(daySeed: number, focusKey: string, maritalStatus: string, t: TranslateFn): string {
+export function getDailyVibeFallback(daySeed: number, maritalStatus: string, t: TranslateFn): string {
   const idx = (daySeed % 4).toString() as '0' | '1' | '2' | '3';
   const fallback = t(`home.dailyVibeFallback.${idx}`);
-  return buildDailyComment(fallback, focusKey, maritalStatus, t);
+  return buildDailyComment(fallback, maritalStatus, t);
 }

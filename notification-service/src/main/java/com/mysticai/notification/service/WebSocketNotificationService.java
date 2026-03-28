@@ -74,6 +74,13 @@ public class WebSocketNotificationService {
         return notifications.map(NotificationResponse::from);
     }
 
+    public Page<NotificationResponse> getUserNotificationsByCategories(
+            Long userId, List<Notification.NotificationCategory> categories, int page, int size) {
+        Page<Notification> notifications = notificationRepository.findActiveByUserIdAndCategoryIn(
+                userId, categories, LocalDateTime.now(), PageRequest.of(page, size));
+        return notifications.map(NotificationResponse::from);
+    }
+
     public List<Notification> getUserNotifications(Long userId) {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }

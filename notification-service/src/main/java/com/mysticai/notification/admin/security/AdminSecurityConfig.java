@@ -65,6 +65,15 @@ public class AdminSecurityConfig {
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
                         .requestMatchers("/api/admin/v1/prayers/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
+                        // CMS home/explore/banner management: SUPER_ADMIN + PRODUCT_ADMIN
+                        .requestMatchers("/api/admin/v1/home-sections/**")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
+                        .requestMatchers("/api/admin/v1/explore-categories/**")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
+                        .requestMatchers("/api/admin/v1/explore-cards/**")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
+                        .requestMatchers("/api/admin/v1/banners/**")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
                         // Tutorial config management: SUPER_ADMIN + PRODUCT_ADMIN
                         .requestMatchers("/api/admin/v1/tutorial-configs/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")

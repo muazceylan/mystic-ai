@@ -19,7 +19,6 @@ const SCREEN_MAP: Record<string, string> = {
   '/(auth)/birth-city': 'onboarding_birth_city',
   '/(auth)/gender': 'onboarding_gender',
   '/(auth)/marital-status': 'onboarding_marital_status',
-  '/(auth)/focus-point': 'onboarding_focus_point',
   '/(auth)/notification-permission': 'onboarding_notification_permission',
   '/(auth)/natal-chart': 'onboarding_natal_chart',
   '/(auth)/oauth2': 'auth_oauth2',
@@ -44,6 +43,7 @@ const SCREEN_MAP: Record<string, string> = {
   // Stack screens
   '/numerology': 'numerology_home',
   '/profile': 'profile_home',
+  '/edit-marital-status': 'profile_edit_marital_status',
   '/notifications': 'notifications_center',
   '/link-account': 'link_account',
   '/tutorial-center': 'tutorial_center',

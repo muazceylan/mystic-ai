@@ -13,7 +13,6 @@ const ONBOARDING_STEPS = [
   'birth-city',
   'gender',
   'marital-status',
-  'focus-point',
   'notification-permission',
   'natal-chart',
 ];
@@ -53,6 +52,7 @@ export default function AuthLayout() {
         }}
       >
         <Stack.Screen name="welcome" />
+        <Stack.Screen name="guest-name" options={{ gestureEnabled: false }} />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="verify-email-pending" />
@@ -64,7 +64,6 @@ export default function AuthLayout() {
         <Stack.Screen name="birth-city" />
         <Stack.Screen name="gender" />
         <Stack.Screen name="marital-status" />
-        <Stack.Screen name="focus-point" />
         <Stack.Screen name="notification-permission" />
         <Stack.Screen name="natal-chart" />
       </Stack>

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getCosmicSubcategoryIcon } from '../constants/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -89,30 +90,7 @@ function withHexAlpha(color: string | undefined, alphaHex: string, fallback: str
   return fallback;
 }
 
-function iconForCosmicSubcategory(categoryKey: string | undefined, subCategoryKey: string): keyof typeof Ionicons.glyphMap {
-  const sub = (subCategoryKey ?? '').toLowerCase();
-  const cat = (categoryKey ?? '').toLowerCase();
-
-  if (sub.includes('retro')) return 'play-back-outline';
-  if (sub.includes('aspect') || sub.includes('aci')) return 'git-network-outline';
-  if (sub.includes('cycle') || sub.includes('dongu')) return 'sync-outline';
-  if (sub.includes('moon') || sub.includes('ay')) return 'moon-outline';
-  if (sub.includes('finance') || sub.includes('debt')) return 'wallet-outline';
-  if (sub.includes('official') || sub.includes('law')) return 'document-text-outline';
-  if (sub.includes('career') || sub.includes('job') || sub.includes('entrepreneurship')) return 'briefcase-outline';
-  if (sub.includes('beauty') || sub.includes('skin') || sub.includes('nail')) return 'sparkles-outline';
-  if (sub.includes('health') || sub.includes('treatment') || sub.includes('checkup')) return 'medkit-outline';
-  if (sub.includes('sport') || sub.includes('activity')) return 'fitness-outline';
-  if (sub.includes('social') || sub.includes('party')) return 'people-outline';
-  if (sub.includes('home') || sub.includes('repair') || sub.includes('housework')) return 'home-outline';
-  if (sub.includes('spiritual') || sub.includes('ritual') || sub.includes('meditation')) return 'leaf-outline';
-
-  return cat.includes('transit')
-    ? 'planet-outline'
-    : cat.includes('moon')
-      ? 'moon-outline'
-      : 'ellipse-outline';
-}
+// iconForCosmicSubcategory has been merged into getCosmicSubcategoryIcon in src/constants/icons.ts
 
 function relativeDateLabelTr(input: string): string {
   const today = todayIsoDate();
@@ -415,7 +393,7 @@ export default function DecisionCompassDetailScreen() {
                                 ]}
                               >
                                 <Ionicons
-                                  name={iconForCosmicSubcategory(categoryKey, sub.subCategoryKey)}
+                                  name={getCosmicSubcategoryIcon(categoryKey, sub.subCategoryKey)}
                                   size={14}
                                   color={subColor}
                                 />

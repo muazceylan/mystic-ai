@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,22 +8,27 @@ import {
   RefreshControl,
   Image,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import * as Haptics from '../../utils/haptics';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
+import { SETTINGS_ICONS } from '../../constants/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
-import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader, BrandBadge, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
 import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
-import { removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
+import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
 import {
@@ -41,15 +46,16 @@ interface UserStats {
 }
 
 const SETTINGS_ITEMS = [
-  { id: 'name_info',     titleKey: 'profile.menu.nameInfo',     icon: 'person-outline',        route: '/edit-profile-name' },
-  { id: 'birth_info',    titleKey: 'profile.menu.birthInfo',    icon: 'calendar-outline',      route: '/edit-birth-info' },
-  { id: 'notifications', titleKey: 'profile.menu.notifications', icon: 'notifications-outline', route: '/notifications' },
-  { id: 'theme',         titleKey: 'profile.menu.theme',         icon: 'moon-outline',          route: '/theme-settings' },
-  { id: 'language',      titleKey: 'profile.menu.language',      icon: 'globe-outline',         route: '/language-settings' },
-  { id: 'security',      titleKey: 'profile.menu.security',      icon: 'shield-checkmark-outline', route: '/security' },
-  { id: 'privacy',       titleKey: 'profile.menu.privacy',       icon: 'lock-closed-outline',   route: '/privacy' },
-  { id: 'tutorial_center', titleKey: 'Rehber Merkezi', icon: 'albums-outline', route: '/tutorial-center' },
-  { id: 'help',          titleKey: 'profile.menu.help',          icon: 'help-circle-outline',   route: '/help' },
+  { id: 'name_info',        titleKey: 'profile.menu.nameInfo',        icon: SETTINGS_ICONS.name,           route: '/edit-profile-name', tone: 'mystic' },
+  { id: 'birth_info',       titleKey: 'profile.menu.birthInfo',       icon: SETTINGS_ICONS.birthInfo,      route: '/edit-birth-info', tone: 'cosmic' },
+  { id: 'marital_status',   titleKey: 'profile.menu.maritalStatus',   icon: SETTINGS_ICONS.maritalStatus,  route: '/edit-marital-status', tone: 'rose' },
+  { id: 'notifications',    titleKey: 'profile.menu.notifications',   icon: SETTINGS_ICONS.notifications,  route: '/notifications', tone: 'rose' },
+  { id: 'theme',            titleKey: 'profile.menu.theme',           icon: SETTINGS_ICONS.theme,          route: '/theme-settings', tone: 'lunar' },
+  { id: 'language',         titleKey: 'profile.menu.language',        icon: SETTINGS_ICONS.language,       route: '/language-settings', tone: 'insight' },
+  { id: 'security',         titleKey: 'profile.menu.security',        icon: SETTINGS_ICONS.security,       route: '/security', tone: 'sacred' },
+  { id: 'privacy',          titleKey: 'profile.menu.privacy',         icon: SETTINGS_ICONS.privacy,        route: '/privacy', tone: 'oracle' },
+  { id: 'tutorial_center',  titleKey: 'surfaceTitles.tutorialCenter', icon: SETTINGS_ICONS.tutorialCenter, route: '/tutorial-center', tone: 'cosmic' },
+  { id: 'help',             titleKey: 'profile.menu.help',            icon: SETTINGS_ICONS.help,           route: '/help', tone: 'rose' },
 ] as const;
 
 function StatSkeleton({ colors }: { colors: { surfaceAlt: string } }) {
@@ -73,7 +79,7 @@ function isPremium(roles?: string[]): boolean {
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 80;
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
@@ -85,6 +91,10 @@ export default function ProfileScreen() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectingAvatar, setSelectingAvatar] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const isGuest = isGuestUser(user);
   const initials = isGuest
@@ -133,6 +143,29 @@ export default function ProfileScreen() {
   const handleSettingPress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route as any);
+  };
+
+  const requiresPassword = Boolean(user?.hasPassword);
+
+  const handleDeleteAccountConfirm = async () => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount(requiresPassword ? deletePassword : undefined);
+      trackEvent('account_deleted', { user_type: isGuest ? 'GUEST' : 'REGISTERED' });
+      setShowDeleteModal(false);
+      logout();
+      router.replace('/(auth)/welcome');
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) {
+        setDeleteError(t('profile.deleteAccount.wrongPassword'));
+      } else {
+        setDeleteError(t('profile.deleteAccount.error'));
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handlePressTutorialHelp = useCallback(() => {
@@ -314,6 +347,7 @@ export default function ProfileScreen() {
               <Text style={S.zodiacText}>{zodiac}</Text>
             </View>
           ) : null}
+          <BrandBadge variant="icon-transparent" size={20} style={S.profileBrandBadge} />
           </View>
         </SpotlightTarget>
 
@@ -396,16 +430,21 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={[S.settingsItem, index > 0 && S.settingsItemBorder]}
                 onPress={() => handleSettingPress(item.route)}
-                accessibilityLabel={item.id === 'tutorial_center' ? 'Rehber Merkezi' : t(item.titleKey as any)}
+                accessibilityLabel={t(item.titleKey as any)}
                 accessibilityRole="button"
                 activeOpacity={0.7}
               >
                 <View style={S.settingsRow}>
-                  <View style={S.iconContainer}>
-                    <Ionicons name={item.icon as any} size={18} color={colors.primary} />
-                  </View>
+                  <PremiumIconBadge
+                    icon={item.icon as any}
+                    tone={item.tone as PremiumIconTone}
+                    size={36}
+                    iconSize={16}
+                    glowSize={48}
+                    style={S.iconContainer}
+                  />
                   <Text style={S.settingsTitle}>
-                    {item.id === 'tutorial_center' ? 'Rehber Merkezi' : t(item.titleKey as any)}
+                    {t(item.titleKey as any)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
@@ -427,9 +466,85 @@ export default function ProfileScreen() {
           <Text style={S.logoutText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
 
+        {/* ── Delete Account ── */}
+        <TouchableOpacity
+          style={S.deleteAccountButton}
+          onPress={() => { setDeletePassword(''); setDeleteError(null); setShowDeleteModal(true); }}
+          activeOpacity={0.8}
+          accessibilityLabel={t('profile.deleteAccount.button')}
+          accessibilityRole="button"
+        >
+          <Ionicons name="trash-outline" size={16} color={colors.subtext} />
+          <Text style={S.deleteAccountText}>{t('profile.deleteAccount.button')}</Text>
+        </TouchableOpacity>
+
         <Text style={S.versionText}>{t('profile.version')}</Text>
         </ScrollView>
       </View>
+
+      {/* ── Delete Account Modal ── */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { if (!deleteLoading) setShowDeleteModal(false); }}
+      >
+        <KeyboardAvoidingView
+          style={S.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={S.modalCard}>
+            <View style={S.modalIconRow}>
+              <View style={S.modalIconShell}>
+                <Ionicons name="warning-outline" size={28} color={colors.danger} />
+              </View>
+            </View>
+            <Text style={S.modalTitle}>{t('profile.deleteAccount.modalTitle')}</Text>
+            <Text style={S.modalWarning}>{t('profile.deleteAccount.modalWarning')}</Text>
+
+            {requiresPassword && (
+              <>
+                <Text style={S.modalPasswordLabel}>{t('profile.deleteAccount.passwordLabel')}</Text>
+                <View style={[S.modalInput, deleteError ? S.modalInputError : undefined]}>
+                  <TextInput
+                    style={S.modalInputText}
+                    placeholder={t('profile.deleteAccount.passwordPlaceholder')}
+                    placeholderTextColor={colors.subtext}
+                    secureTextEntry
+                    value={deletePassword}
+                    onChangeText={(v) => { setDeletePassword(v); setDeleteError(null); }}
+                    autoCapitalize="none"
+                    editable={!deleteLoading}
+                  />
+                </View>
+              </>
+            )}
+
+            {deleteError ? <Text style={S.modalError}>{deleteError}</Text> : null}
+
+            <TouchableOpacity
+              style={[S.modalConfirmBtn, (deleteLoading || (requiresPassword && !deletePassword)) && S.modalBtnDisabled]}
+              onPress={handleDeleteAccountConfirm}
+              disabled={deleteLoading || (requiresPassword && deletePassword.length === 0)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+            >
+              <Text style={S.modalConfirmText}>{t('profile.deleteAccount.confirm')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[S.modalCancelBtn, deleteLoading && S.modalBtnDisabled]}
+              onPress={() => setShowDeleteModal(false)}
+              disabled={deleteLoading}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+            >
+              <Text style={S.modalCancelText}>{t('profile.deleteAccount.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       </SafeScreen>
     </TabSwipeGesture>
   );
@@ -442,6 +557,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     scrollContent: { paddingHorizontal: 24, paddingTop: 28 },
     // Header
     profileHeader: { alignItems: 'center', marginBottom: 20 },
+    profileBrandBadge: { marginTop: 10, opacity: 0.45 },
     avatarButton: {
       minHeight: 44,
       minWidth: 44,
@@ -538,8 +654,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     settingsItemBorder: { borderTopWidth: 1, borderTopColor: C.border },
     settingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     iconContainer: {
-      width: 34, height: 34, borderRadius: 17,
-      backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center',
+      marginLeft: -4,
+      marginVertical: -4,
     },
     settingsTitle: { color: C.text, fontSize: 14, fontWeight: '500' },
     // Premium
@@ -595,9 +711,51 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     logoutButton: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
       paddingVertical: 14, borderRadius: 12, borderWidth: 1,
-      borderColor: C.border, backgroundColor: C.surface, marginBottom: 12,
+      borderColor: C.border, backgroundColor: C.surface, marginBottom: 10,
     },
     logoutText: { color: C.danger, fontSize: 14, fontWeight: '600' },
+    deleteAccountButton: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      paddingVertical: 12, marginBottom: 16,
+    },
+    deleteAccountText: { color: C.subtext, fontSize: 13, fontWeight: '500' },
     versionText: { color: C.subtext, fontSize: 11, textAlign: 'center', marginTop: 4 },
+    // Delete modal
+    modalOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
+      justifyContent: 'center', alignItems: 'center', padding: 24,
+    },
+    modalCard: {
+      width: '100%', backgroundColor: C.surface,
+      borderRadius: 20, padding: 24,
+      borderWidth: 1, borderColor: C.border,
+    },
+    modalIconRow: { alignItems: 'center', marginBottom: 16 },
+    modalIconShell: {
+      width: 56, height: 56, borderRadius: 28,
+      backgroundColor: 'rgba(239,68,68,0.10)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    modalTitle: { fontSize: 18, fontWeight: '700', color: C.text, textAlign: 'center', marginBottom: 10 },
+    modalWarning: { fontSize: 14, color: C.subtext, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+    modalPasswordLabel: { fontSize: 13, color: C.text, fontWeight: '600', marginBottom: 8 },
+    modalInput: {
+      backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border,
+      borderRadius: 12, marginBottom: 12,
+    },
+    modalInputError: { borderColor: C.danger },
+    modalInputText: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 15, color: C.text },
+    modalError: { fontSize: 13, color: C.danger, marginBottom: 12, textAlign: 'center' },
+    modalConfirmBtn: {
+      backgroundColor: C.danger, borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center', marginBottom: 10,
+    },
+    modalConfirmText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    modalCancelBtn: {
+      backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: C.border,
+      paddingVertical: 14, alignItems: 'center',
+    },
+    modalCancelText: { color: C.text, fontSize: 15, fontWeight: '500' },
+    modalBtnDisabled: { opacity: 0.5 },
   });
 }

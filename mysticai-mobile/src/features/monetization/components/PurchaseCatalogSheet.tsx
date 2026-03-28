@@ -15,6 +15,8 @@ import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/tokens';
 import { BottomSheet } from '../../../components/ui/BottomSheet';
 import { Button } from '../../../components/ui/Button';
+import { BrandBadge } from '../../../components/ui/BrandLogo';
+import { PREMIUM_ICONS } from '../../../constants/icons';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { processPurchase } from '../api/monetization.service';
@@ -87,6 +89,10 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
 
   const renderHeader = () => (
     <View style={s.heroCard}>
+      <View style={s.heroBrandRow}>
+        <BrandBadge variant="icon-transparent" size={36} />
+      </View>
+
       <View style={s.heroBadge}>
         <Ionicons name="sparkles" size={14} color={colors.primary} />
         <Text
@@ -207,6 +213,7 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
             onPress={() => {
               void handlePurchase(item);
             }}
+            leftIcon={PREMIUM_ICONS.purchase}
             size="md"
             style={s.purchaseButton}
             loading={isProcessing}
@@ -278,6 +285,10 @@ function createStyles(C: ThemeColors) {
       borderWidth: 1,
       borderColor: C.borderLight,
       gap: SPACING.md,
+    },
+    heroBrandRow: {
+      alignItems: 'center',
+      marginBottom: -SPACING.sm,
     },
     heroTopRow: {
       flexDirection: 'row',

@@ -10,8 +10,10 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
+import Reanimated from 'react-native-reanimated';
 import type {
   HousePlacement,
   NatalHouseComboInsight,
@@ -20,6 +22,7 @@ import type {
 import { getZodiacInfo, PLANET_TURKISH } from '../../constants/zodiac';
 import { HOUSE_GLOSSARY } from '../../constants/astrology-glossary';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -72,6 +75,10 @@ export default function HouseBottomSheet({ visible, house, planetsInHouse, insig
   const s = useMemo(() => createStyles(colors), [colors]);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose,
+  });
 
   useEffect(() => {
     if (visible) {
@@ -106,43 +113,49 @@ export default function HouseBottomSheet({ visible, house, planetsInHouse, insig
         </TouchableWithoutFeedback>
 
         <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
-          <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-            <View style={s.handleBar} />
+          <Reanimated.View style={animatedStyle}>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+              <GestureDetector gesture={gesture}>
+                <View>
+                  <View style={s.handleBar} />
 
-            <View style={s.header}>
-              <View style={[s.houseBadge, { backgroundColor: colors.violetBg }]}>
-                <Text style={[s.houseBadgeText, { color: colors.violet }]}>{house.houseNumber}. Ev</Text>
+                  <View style={s.header}>
+                    <View style={[s.houseBadge, { backgroundColor: colors.violetBg }]}>
+                      <Text style={[s.houseBadgeText, { color: colors.violet }]}>{house.houseNumber}. Ev</Text>
+                    </View>
+                    <Text style={s.headerTitle}>
+                      {house.houseNumber}. Ev • {lines.signInfo.symbol} {lines.signInfo.name}
+                    </Text>
+                    <Text style={s.headerSub}>{introLine}</Text>
+                    <Text style={s.headerMeta}>{Math.floor(house.degree)}° • Yönetici: {house.ruler}</Text>
+                  </View>
+                </View>
+              </GestureDetector>
+
+              <View style={s.lineList}>
+                <LineItem icon="sparkles-outline" title="Karakter Analizi" text={characterLine} colors={colors} />
+                <LineItem icon="rocket-outline" title="Seni Nasıl Etkiler?" text={effectLine} colors={colors} />
+                <LineItem icon="warning-outline" title="Dikkat Etmen Gerekenler" text={cautionLine} colors={colors} />
+                <LineItem icon="star-outline" title="Öne Çıkan Özellikler" text={strengthsLine} colors={colors} />
               </View>
-              <Text style={s.headerTitle}>
-                {house.houseNumber}. Ev • {lines.signInfo.symbol} {lines.signInfo.name}
-              </Text>
-              <Text style={s.headerSub}>{introLine}</Text>
-              <Text style={s.headerMeta}>{Math.floor(house.degree)}° • Yönetici: {house.ruler}</Text>
-            </View>
 
-            <View style={s.lineList}>
-              <LineItem icon="sparkles-outline" title="Karakter Analizi" text={characterLine} colors={colors} />
-              <LineItem icon="rocket-outline" title="Seni Nasıl Etkiler?" text={effectLine} colors={colors} />
-              <LineItem icon="warning-outline" title="Dikkat Etmen Gerekenler" text={cautionLine} colors={colors} />
-              <LineItem icon="star-outline" title="Öne Çıkan Özellikler" text={strengthsLine} colors={colors} />
-            </View>
-
-            <View style={[s.comboBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
-              <Text style={s.comboTitle}>Gezegen + Ev + Burç Kombinasyonu</Text>
-              <Text style={s.comboText}>{comboSummary}</Text>
-            </View>
-
-            {lines.info && (
-              <View style={[s.glossaryBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-                <Text style={s.glossaryTitle}>{lines.info.term}</Text>
-                <Text style={s.glossaryText}>{lines.info.longDesc}</Text>
+              <View style={[s.comboBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
+                <Text style={s.comboTitle}>Gezegen + Ev + Burç Kombinasyonu</Text>
+                <Text style={s.comboText}>{comboSummary}</Text>
               </View>
-            )}
 
-            <Pressable style={[s.closeBtn, { backgroundColor: colors.violet }]} onPress={onClose}>
-              <Text style={s.closeBtnText}>Kapat</Text>
-            </Pressable>
-          </ScrollView>
+              {lines.info && (
+                <View style={[s.glossaryBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+                  <Text style={s.glossaryTitle}>{lines.info.term}</Text>
+                  <Text style={s.glossaryText}>{lines.info.longDesc}</Text>
+                </View>
+              )}
+
+              <Pressable style={[s.closeBtn, { backgroundColor: colors.violet }]} onPress={onClose}>
+                <Text style={s.closeBtnText}>Kapat</Text>
+              </Pressable>
+            </ScrollView>
+          </Reanimated.View>
         </Animated.View>
       </View>
     </Modal>

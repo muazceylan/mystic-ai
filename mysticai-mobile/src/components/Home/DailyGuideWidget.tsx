@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from '../../utils/haptics';
 import {
@@ -47,6 +48,7 @@ import { COSMIC_GROUP_ACCENT_COLORS } from '../../constants/CosmicConstants';
 import type { DailyLifeGuideActivity, DailyLifeGuideResponse } from '../../services/astrology.service';
 import type { CosmicSummaryCard } from '../../services/cosmic.service';
 import { useDecisionCompassStore } from '../../store/useDecisionCompassStore';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 interface DailyGuideWidgetProps {
   data: DailyLifeGuideResponse | null;
@@ -651,6 +653,10 @@ function GuideDetailModal({ activity, onClose }: GuideDetailModalProps) {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   const S = makeModalStyles(isDark);
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: !!activity,
+    onClose,
+  });
   if (!activity) return null;
 
   const Icon = iconForActivity(activity);
@@ -662,17 +668,21 @@ function GuideDetailModal({ activity, onClose }: GuideDetailModalProps) {
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={S.backdropRoot}>
         <Pressable style={S.backdrop} onPress={onClose} />
-        <View style={S.sheet}>
-          <View style={S.handle} />
-          <View style={S.sheetHeader}>
-            <View style={S.sheetTitleWrap}>
-              <Text style={S.sheetKicker}>{t('home.dailyGuide.analysisTitle')}</Text>
-              <Text style={S.sheetTitle}>{activity.activityLabel}</Text>
+        <Animated.View style={[S.sheet, animatedStyle]}>
+          <GestureDetector gesture={gesture}>
+            <View>
+              <View style={S.handle} />
+              <View style={S.sheetHeader}>
+                <View style={S.sheetTitleWrap}>
+                  <Text style={S.sheetKicker}>{t('home.dailyGuide.analysisTitle')}</Text>
+                  <Text style={S.sheetTitle}>{activity.activityLabel}</Text>
+                </View>
+                <Pressable onPress={onClose} style={S.closeBtn}>
+                  <X size={18} color="#334155" />
+                </Pressable>
+              </View>
             </View>
-            <Pressable onPress={onClose} style={S.closeBtn}>
-              <X size={18} color="#334155" />
-            </Pressable>
-          </View>
+          </GestureDetector>
 
           <View style={S.heroCard}>
             <View style={S.heroRow}>
@@ -721,7 +731,7 @@ function GuideDetailModal({ activity, onClose }: GuideDetailModalProps) {
               </View>
             ) : null}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

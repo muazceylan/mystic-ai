@@ -3,7 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
-const mysticLogo = require('../../../assets/brand/logo/astro-guru-icon-transparent-128.png');
+const mysticLogo = require('../../../assets/brand/logo/astro-guru-icon-transparent-1024.png');
 
 type CosmicShareCardProps = {
   personAName: string;

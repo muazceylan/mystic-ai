@@ -80,6 +80,9 @@ export default function BirthCountryScreen() {
 
   const handleSelect = (country: typeof COUNTRIES[0]) => {
     store.setBirthCountry(country.code);
+    store.setBirthCity('');
+    store.setBirthCityManual('');
+    store.setBirthDistrict('');
     router.push('/(auth)/birth-city');
   };
 

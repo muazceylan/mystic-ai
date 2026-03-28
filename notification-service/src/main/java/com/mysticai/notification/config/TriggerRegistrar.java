@@ -206,6 +206,21 @@ public class TriggerRegistrar {
                 .build(),
 
             NotificationDefinition.builder()
+                .definitionKey("product_update")
+                .displayName("Modül Hatırlatması")
+                .description("Haftada iki kez kullanıcılara modülleri hatırlatan ve öne çıkan ürün deneyimlerini duyuran sistem bildirimi.")
+                .category("SYSTEM")
+                .channelType(NotificationDefinition.ChannelType.BOTH)
+                .cadenceType(NotificationDefinition.CadenceType.SCHEDULED)
+                .sourceType(NotificationDefinition.SourceType.STATIC_BACKEND)
+                .triggerType(NotificationDefinition.TriggerType.CRON)
+                .defaultRouteKey("notifications")
+                .isActive(true).isEditable(false).isVisibleInAdmin(true).isSystemCritical(false)
+                .ownerModule("notifications")
+                .codeReference("NotificationScheduler#generateProductUpdates")
+                .build(),
+
+            NotificationDefinition.builder()
                 .definitionKey("ai_analysis_complete")
                 .displayName("AI Analiz Tamamlandı")
                 .description("AI orkestratör bir analizi tamamladığında tetiklenen olay tabanlı bildirim.")
@@ -423,6 +438,18 @@ public class TriggerRegistrar {
                 .isActive(true).isPausable(true).isSystemCritical(false)
                 .ownerModule("notifications")
                 .codeReference("NotificationScheduler#generateReEngagement")
+                .build(),
+
+            NotificationTrigger.builder()
+                .triggerKey("product_update_job")
+                .definitionKey("product_update")
+                .displayName("Modül Hatırlatma İşi")
+                .description("Çarşamba ve Cumartesi 18:30'da öne çıkan modülleri hatırlatan sistem bildirimlerini üretir.")
+                .cadenceType(NotificationTrigger.CadenceType.WEEKLY)
+                .cronExpression("0 30 18 * * WED,SAT")
+                .isActive(true).isPausable(true).isSystemCritical(false)
+                .ownerModule("notifications")
+                .codeReference("NotificationScheduler#generateProductUpdates")
                 .build(),
 
             NotificationTrigger.builder()

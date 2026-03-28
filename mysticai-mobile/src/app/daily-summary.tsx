@@ -52,7 +52,6 @@ export default function DailySummaryScreen() {
   const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
-  const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
 
   const dailySecretParams = useMemo(
     () =>
@@ -61,10 +60,9 @@ export default function DailySummaryScreen() {
             name: user.name ?? (`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || undefined),
             birthDate: user.birthDate ?? undefined,
             maritalStatus: user.maritalStatus ?? onboardingMaritalStatus ?? undefined,
-            focusPoint: user.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? undefined,
           }
         : null,
-    [user, onboardingMaritalStatus, onboardingFocusPoints],
+    [user, onboardingMaritalStatus],
   );
 
   const homeBriefQuery = useHomeBrief(dailySecretParams);
@@ -83,7 +81,6 @@ export default function DailySummaryScreen() {
   const homeBrief = homeBriefQuery.data;
   const skyPulse = skyPulseQuery.data;
   const cosmicSummary = cosmicSummaryQuery.data;
-  const focusPoint = user?.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? 'Kariyer';
   const score = cosmicSummary?.dailyGuide?.overallScore ?? null;
   const themeLine = homeBrief?.transitHeadline || skyPulse?.dailyVibe || 'Değişim rüzgarları';
   const suggestionLine = homeBrief?.actionMessage || homeBrief?.transitSummary || 'Cesaretle hareket et';
@@ -210,7 +207,6 @@ export default function DailySummaryScreen() {
                 </>
               ) : (
                 <>
-                  <View style={[S.chip, S.chipFocus]}><Text style={S.chipText}>Odak: {focusPoint}</Text></View>
                   <View style={[S.chip, S.chipEmotion]}><Text style={S.chipText}>Duygu: {emotionLabel}</Text></View>
                   <View style={[S.chip, S.chipRisk]}><Text style={S.chipText}>Risk: {riskLabel(impactScore)}</Text></View>
                 </>

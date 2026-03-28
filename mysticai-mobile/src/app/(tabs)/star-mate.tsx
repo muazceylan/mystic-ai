@@ -39,6 +39,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, TabHeader } from '../../components/ui';
+import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { TYPOGRAPHY } from '../../constants/tokens';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -963,64 +964,74 @@ function MiniSynastryModal({
 }) {
   if (!profile) return null;
   const [gradA, gradB] = scoreGradient(profile.compatibilityScore, colors);
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose,
+  });
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
-        <Pressable
-          onPress={() => {}}
-          style={{
-            maxHeight: '78%',
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            backgroundColor: colors.bg,
-            paddingHorizontal: 18,
-            paddingTop: 14,
-            paddingBottom: 18,
-          }}
-        >
-          <View style={{ alignItems: 'center' }}>
-            <View style={{ width: 42, height: 4, borderRadius: 999, backgroundColor: colors.border, marginBottom: 12 }} />
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flex: 1, paddingRight: 10 }}>
-              <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>Mini Synastry Raporu</Text>
-              <Text style={{ color: colors.subtext, marginTop: 4 }}>{`${profile.displayName} ile neden %${profile.compatibilityScore}?`}</Text>
-            </View>
-            <Pressable onPress={onClose} style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-              <Ionicons name="close" size={18} color={colors.text} />
-            </Pressable>
-          </View>
-
-          <LinearGradient colors={[gradA, gradB]} style={{ marginTop: 14, borderRadius: 16, padding: 14 }}>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{scoreChipText(profile.compatibilityScore, profile)}</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.94)', marginTop: 6, lineHeight: 18 }}>{profile.miniSynastryReport.summary}</Text>
-          </LinearGradient>
-
-          <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 14 }}>
-            <InsightBlock title="Neden bu skor?" body={profile.miniSynastryReport.whyScore} colors={colors} />
-            <InsightBlock title="Romantik kıvılcım" body={profile.miniSynastryReport.sparkNote} colors={colors} tone="good" />
-            <InsightBlock title="Iletisimde dikkat" body={profile.miniSynastryReport.cautionNote} colors={colors} tone="warn" />
-            <InsightBlock title="AI yorum" body={profile.miniSynastryReport.aiInsight} colors={colors} />
-
-            <Text style={{ color: colors.text, fontWeight: '800', marginTop: 8, marginBottom: 8, fontSize: 14 }}>Aspekt Ozetleri</Text>
-            {profile.miniSynastryReport.aspects.map((asp) => (
-              <View
-                key={asp.id}
-                style={{
-                  backgroundColor: asp.tone === 'HARMONY' ? colors.successBg : colors.warningBg,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: asp.tone === 'HARMONY' ? colors.greenBg : colors.orangeBg,
-                  padding: 12,
-                  marginBottom: 8,
-                }}
-              >
-                <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13 }}>{asp.label}</Text>
-                <Text style={{ color: colors.subtext, fontSize: 12, lineHeight: 17, marginTop: 4 }}>{asp.note}</Text>
+        <Pressable onPress={() => {}}>
+          <Reanimated.View
+            style={[
+              {
+                maxHeight: '78%',
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                backgroundColor: colors.bg,
+                paddingHorizontal: 18,
+                paddingTop: 14,
+                paddingBottom: 18,
+              },
+              animatedStyle,
+            ]}
+          >
+            <GestureDetector gesture={gesture}>
+              <View style={{ alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 42, height: 4, borderRadius: 999, backgroundColor: colors.border }} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>Mini Synastry Raporu</Text>
+                    <Text style={{ color: colors.subtext, marginTop: 4 }}>{`${profile.displayName} ile neden %${profile.compatibilityScore}?`}</Text>
+                  </View>
+                  <Pressable onPress={onClose} style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+                    <Ionicons name="close" size={18} color={colors.text} />
+                  </Pressable>
+                </View>
               </View>
-            ))}
-          </ScrollView>
+            </GestureDetector>
+
+            <LinearGradient colors={[gradA, gradB]} style={{ marginTop: 14, borderRadius: 16, padding: 14 }}>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{scoreChipText(profile.compatibilityScore, profile)}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.94)', marginTop: 6, lineHeight: 18 }}>{profile.miniSynastryReport.summary}</Text>
+            </LinearGradient>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 14 }}>
+              <InsightBlock title="Neden bu skor?" body={profile.miniSynastryReport.whyScore} colors={colors} />
+              <InsightBlock title="Romantik kıvılcım" body={profile.miniSynastryReport.sparkNote} colors={colors} tone="good" />
+              <InsightBlock title="Iletisimde dikkat" body={profile.miniSynastryReport.cautionNote} colors={colors} tone="warn" />
+              <InsightBlock title="AI yorum" body={profile.miniSynastryReport.aiInsight} colors={colors} />
+
+              <Text style={{ color: colors.text, fontWeight: '800', marginTop: 8, marginBottom: 8, fontSize: 14 }}>Aspekt Ozetleri</Text>
+              {profile.miniSynastryReport.aspects.map((asp) => (
+                <View
+                  key={asp.id}
+                  style={{
+                    backgroundColor: asp.tone === 'HARMONY' ? colors.successBg : colors.warningBg,
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: asp.tone === 'HARMONY' ? colors.greenBg : colors.orangeBg,
+                    padding: 12,
+                    marginBottom: 8,
+                  }}
+                >
+                  <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13 }}>{asp.label}</Text>
+                  <Text style={{ color: colors.subtext, fontSize: 12, lineHeight: 17, marginTop: 4 }}>{asp.note}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </Reanimated.View>
         </Pressable>
       </Pressable>
     </Modal>

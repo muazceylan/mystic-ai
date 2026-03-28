@@ -31,6 +31,7 @@ import {
 import { useDreamStore } from '../../store/useDreamStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { BottomSheet, Button, ErrorStateCard, SafeScreen, TabHeader, SurfaceHeaderIconButton } from '../../components/ui';
+import { PREMIUM_ICONS, ACTION_ICONS } from '../../constants/icons';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
@@ -1690,6 +1691,7 @@ export default function DreamsScreen() {
               || dreamAdUnlockStatus === 'showing_ad'
               || dreamAdUnlockStatus === 'processing_reward'}
             disabled={isDreamUnlockBusy}
+            leftIcon={PREMIUM_ICONS.ad}
             size="lg"
           />
 

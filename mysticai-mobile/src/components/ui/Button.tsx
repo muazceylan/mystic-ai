@@ -7,8 +7,10 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import type { IoniconName } from '../../constants/icons';
 
 interface ButtonProps {
   title: string;
@@ -22,7 +24,15 @@ interface ButtonProps {
   accessibilityLabel?: string;
   /** Screen reader için ek açıklama */
   accessibilityHint?: string;
+  /** Optional icon rendered to the left of the button text */
+  leftIcon?: IoniconName;
 }
+
+const ICON_SIZE_MAP: Record<'sm' | 'md' | 'lg', number> = {
+  sm: 14,
+  md: 16,
+  lg: 18,
+};
 
 export function Button({
   title,
@@ -35,10 +45,22 @@ export function Button({
   textStyle,
   accessibilityLabel,
   accessibilityHint,
+  leftIcon,
 }: ButtonProps) {
   const { colors } = useTheme();
   const s = createStyles(colors);
   const isDisabled = disabled || loading;
+
+  // Resolve the text color for the current variant/disabled state
+  let iconColor = colors.white;
+  if (isDisabled) {
+    iconColor = colors.disabledText;
+  } else if (variant === 'outline') {
+    iconColor = colors.text;
+  } else if (variant === 'ghost') {
+    iconColor = colors.primary;
+  }
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -46,6 +68,7 @@ export function Button({
       style={[
         s.base,
         s[size],
+        leftIcon && s.withIcon,
         variant === 'primary' && s.primary,
         variant === 'outline' && s.outline,
         variant === 'ghost' && s.ghost,
@@ -62,20 +85,29 @@ export function Button({
           color={variant === 'primary' ? colors.white : colors.primary}
         />
       ) : (
-        <Text
-          style={[
-            s.text,
-            s[`text_${size}`],
-            variant === 'primary' && s.textPrimary,
-            variant === 'outline' && s.textOutline,
-            variant === 'ghost' && s.textGhost,
-            isDisabled && s.textDisabled,
-            textStyle,
-          ]}
-          maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-        >
-          {title}
-        </Text>
+        <>
+          {leftIcon ? (
+            <Ionicons
+              name={leftIcon}
+              size={ICON_SIZE_MAP[size]}
+              color={iconColor}
+            />
+          ) : null}
+          <Text
+            style={[
+              s.text,
+              s[`text_${size}`],
+              variant === 'primary' && s.textPrimary,
+              variant === 'outline' && s.textOutline,
+              variant === 'ghost' && s.textGhost,
+              isDisabled && s.textDisabled,
+              textStyle,
+            ]}
+            maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+          >
+            {title}
+          </Text>
+        </>
       )}
     </TouchableOpacity>
   );
@@ -90,6 +122,10 @@ function createStyles(C: ThemeColors) {
       alignItems: 'center',
       borderRadius: RADIUS.lg,
       paddingHorizontal: SPACING.xl,
+    },
+    withIcon: {
+      flexDirection: 'row',
+      gap: SPACING.xsSm,
     },
     sm: { minHeight: 36, paddingHorizontal: SPACING.lg },
     md: {},

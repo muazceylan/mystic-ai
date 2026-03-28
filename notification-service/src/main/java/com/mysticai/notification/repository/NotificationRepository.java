@@ -33,6 +33,15 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
                                                      @Param("now") LocalDateTime now,
                                                      Pageable pageable);
 
+    @Query("SELECT n FROM Notification n WHERE n.userId = :userId " +
+           "AND n.category IN :categories " +
+           "AND (n.expiresAt IS NULL OR n.expiresAt > :now) " +
+           "ORDER BY n.createdAt DESC")
+    Page<Notification> findActiveByUserIdAndCategoryIn(@Param("userId") Long userId,
+                                                       @Param("categories") List<Notification.NotificationCategory> categories,
+                                                       @Param("now") LocalDateTime now,
+                                                       Pageable pageable);
+
     List<Notification> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, Notification.NotificationStatus status);
 
     Optional<Notification> findByIdAndUserId(UUID id, Long userId);
@@ -63,6 +72,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     void deleteExpiredNotifications(@Param("now") LocalDateTime now);
 
     List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    @Query("SELECT DISTINCT n.userId FROM Notification n")
+    List<Long> findDistinctUserIds();
 
     @Modifying
     @Query("UPDATE Notification n SET n.seenAt = CURRENT_TIMESTAMP " +

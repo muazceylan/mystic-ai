@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { useContext } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +12,7 @@ import { OracleStatusChip } from '../components/Home/OracleStatusChip';
 import { QuickActionGrid } from '../components/Home/QuickActionGrid';
 import { SkyHeroCard } from '../components/Home/SkyHeroCard';
 import { WeeklyHighlightsCompact } from '../components/Home/WeeklyHighlightsCompact';
+import { HomePremiumIconBadge } from '../components/Home/HomePremiumIconBadge';
 import type { IconName, QuickAction, WeeklyItem } from '../components/Home/types';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { trackEvent } from '../services/analytics';
@@ -34,6 +36,7 @@ import {
 } from '../components/ui';
 import { radius, shadowSubtle, spacing, typography } from '../theme';
 import { useTheme, type ThemeColors } from '../context/ThemeContext';
+import { MODULE_ICONS, ACTION_ICONS } from '../constants/icons';
 
 const HOME_VARIANT = 'premium_v3';
 const NIGHT_SKY_ROUTE = '/night-sky';
@@ -50,27 +53,27 @@ const HIDDEN_HOME_SECTION_KEYS = new Set([
 
 const QUICK_ACTION_VISUALS: Record<string, { iconName: IconName; iconColor: string; iconBg: string }> = {
   decisioncompass: {
-    iconName: 'compass',
+    iconName: MODULE_ICONS.decision_compass,
     iconColor: '#D4873B',
     iconBg: '#F6E0CD',
   },
   planner: {
-    iconName: 'calendar',
+    iconName: MODULE_ICONS.planner,
     iconColor: '#6E53E7',
     iconBg: '#E7DDFF',
   },
   spiritual: {
-    iconName: 'moon',
+    iconName: MODULE_ICONS.spiritual,
     iconColor: '#A763EE',
     iconBg: '#EFE0FF',
   },
   dream: {
-    iconName: 'sparkles',
+    iconName: MODULE_ICONS.dreams,
     iconColor: '#C14DDD',
     iconBg: '#F6E1FF',
   },
   compatibility: {
-    iconName: 'heart',
+    iconName: MODULE_ICONS.compatibility,
     iconColor: '#C4549A',
     iconBg: '#F9E5F4',
   },
@@ -79,8 +82,8 @@ const QUICK_ACTION_VISUALS: Record<string, { iconName: IconName; iconColor: stri
 const WEEKLY_ICON_MAP: Record<string, IconName> = {
   strength: 'flash-outline',
   opportunity: 'sunny-outline',
-  threat: 'alert-circle-outline',
-  weakness: 'warning-outline',
+  threat: ACTION_ICONS.error,
+  weakness: ACTION_ICONS.warning,
 };
 
 const SIGN_SLUG_MAP: Record<string, string> = {
@@ -271,7 +274,7 @@ export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const router = useRouter();
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 80;
   const user = useAuthStore((state) => state.user);
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.HOME);
@@ -614,18 +617,20 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AppSurfaceHeader
-          title={displayName}
+          title=""
           variant="home"
-          avatarUri={avatarUrl}
+          avatarUri={null}
+          leftActions={(
+            <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
+              <SurfaceHeaderIconButton
+                iconName="help-circle-outline"
+                onPress={handlePressTutorialHelp}
+                accessibilityLabel={t('homeSurface.header.helpAccessibility')}
+              />
+            </SpotlightTarget>
+          )}
           rightActions={(
             <>
-              <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-                <SurfaceHeaderIconButton
-                  iconName="help-circle-outline"
-                  onPress={handlePressTutorialHelp}
-                  accessibilityLabel={t('homeSurface.header.helpAccessibility')}
-                />
-              </SpotlightTarget>
               <MonetizationQuickBar />
               <SurfaceHeaderIconButton
                 iconName="notifications-outline"
@@ -673,9 +678,7 @@ export default function HomeScreen() {
               style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
             >
               <View style={styles.featureCardTop}>
-                <View style={[styles.featureIconShell, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="keypad" size={22} color="#B45309" />
-                </View>
+                <HomePremiumIconBadge iconName="keypad" contextKey="numerology" />
                 <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
               </View>
               <View style={styles.featureCardBottom}>
@@ -694,9 +697,7 @@ export default function HomeScreen() {
               style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
             >
               <View style={styles.featureCardTop}>
-                <View style={[styles.featureIconShell, { backgroundColor: '#F9E5F4' }]}>
-                  <Ionicons name="heart-half" size={22} color="#C4549A" />
-                </View>
+                <HomePremiumIconBadge iconName="heart-half" contextKey="compatibility" />
                 <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
               </View>
               <View style={styles.featureCardBottom}>
@@ -844,15 +845,6 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
-    },
-    featureIconShell: {
-      width: spacing.iconWrap,
-      height: spacing.iconWrap,
-      borderRadius: radius.icon,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: C.surface,
     },
     featureCardBottom: {
       paddingRight: spacing.xs,

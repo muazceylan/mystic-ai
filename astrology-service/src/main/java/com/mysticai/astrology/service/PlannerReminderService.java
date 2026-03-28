@@ -8,7 +8,6 @@ import com.mysticai.astrology.dto.reminder.ReminderUpdateRequest;
 import com.mysticai.astrology.entity.PlannerReminder;
 import com.mysticai.astrology.entity.ReminderStatus;
 import com.mysticai.astrology.entity.ReminderType;
-import com.mysticai.astrology.repository.DreamPushTokenRepository;
 import com.mysticai.astrology.repository.PlannerReminderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +26,7 @@ import java.util.*;
 public class PlannerReminderService {
 
     private final PlannerReminderRepository plannerReminderRepository;
-    private final DreamPushTokenRepository dreamPushTokenRepository;
-    private final PushNotificationService pushNotificationService;
+    private final NotificationBridgeService notificationBridgeService;
     private final ObjectMapper objectMapper;
 
     private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Istanbul");
@@ -59,7 +57,7 @@ public class PlannerReminderService {
             return toResponse(existing.get());
         }
 
-        MessageBundle message = buildMessage(request.type(), reminderDate, time);
+        MessageBundle message = buildMessage(request.type(), reminderDate, time, request.payload());
         PlannerReminder reminder = PlannerReminder.builder()
                 .userId(userId)
                 .reminderDate(reminderDate)
@@ -151,7 +149,12 @@ public class PlannerReminderService {
             }
         }
 
-        MessageBundle message = buildMessage(reminder.getType(), reminder.getReminderDate(), reminder.getLocalTime());
+        MessageBundle message = buildMessage(
+                reminder.getType(),
+                reminder.getReminderDate(),
+                reminder.getLocalTime(),
+                readPayload(reminder.getPayloadJson())
+        );
         reminder.setMessageTitle(message.title());
         reminder.setMessageBody(message.body());
 
@@ -188,14 +191,7 @@ public class PlannerReminderService {
             int nextAttempt = reminder.getAttemptCount() + 1;
             reminder.setAttemptCount(nextAttempt);
             try {
-                boolean hasDevice = !dreamPushTokenRepository.findAllByUserId(reminder.getUserId()).isEmpty();
-                if (!hasDevice) {
-                    markSendFailure(reminder, nextAttempt, "Kullanıcı cihaz bildirimi bulunamadı.");
-                    plannerReminderRepository.save(reminder);
-                    continue;
-                }
-
-                pushNotificationService.sendToUser(reminder.getUserId(), reminder.getMessageTitle(), reminder.getMessageBody());
+                notificationBridgeService.sendPlannerReminder(reminder);
                 reminder.setStatus(ReminderStatus.SENT);
                 reminder.setSentAt(LocalDateTime.now(ZoneOffset.UTC));
                 reminder.setLastError(null);
@@ -270,20 +266,22 @@ public class PlannerReminderService {
         return date.atTime(localTime).atZone(zone).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
     }
 
-    private MessageBundle buildMessage(ReminderType type, LocalDate date, String time) {
-        String dateText = date.format(DateTimeFormatter.ofPattern("dd MMM", Locale.forLanguageTag("tr")));
+    private MessageBundle buildMessage(ReminderType type, LocalDate date, String time, Map<String, Object> payload) {
+        String categoryLabel = extractString(payload, "categoryLabel", "Gunun plani");
+        String hook = plannerHook(extractString(payload, "plannerCategoryId", ""));
+
         return switch (type) {
             case DO -> new MessageBundle(
-                    "Kozmik Planlayıcı • Bugün Yap",
-                    dateText + " " + time + " için planlanan adım zamanı geldi."
+                    "Guru Planlayici • " + categoryLabel + " zamani",
+                    hook + " " + time + " itibariyla " + categoryLabel + " alaninda hamleni yap."
             );
             case AVOID -> new MessageBundle(
-                    "Kozmik Planlayıcı • Dikkat",
-                    dateText + " " + time + " için dikkat uyarın var. Kararlarını aceleye getirme."
+                    "Guru Planlayici • " + categoryLabel + " uyarisi",
+                    hook + " " + time + " sonrasi " + categoryLabel + " alaninda acele etme; temkinli ilerle."
             );
             case WINDOW_START -> new MessageBundle(
-                    "Kozmik Planlayıcı • Güçlü Pencere",
-                    dateText + " " + time + " itibarıyla güçlü zaman penceresi başlıyor."
+                    "Guru Planlayici • " + categoryLabel + " penceresi",
+                    hook + " " + time + " itibariyla " + categoryLabel + " icin guclu bir pencere aciliyor."
             );
         };
     }
@@ -351,6 +349,35 @@ public class PlannerReminderService {
         reminder.setNextAttemptUtc(LocalDateTime.now(ZoneOffset.UTC).plusMinutes(retryInMinutes));
         log.warn("event=reminder_retry_scheduled reminderId={} userId={} attempt={} retryInMinutes={} reason={}",
                 reminder.getId(), reminder.getUserId(), nextAttempt, retryInMinutes, reminder.getLastError());
+    }
+
+    private String extractString(Map<String, Object> payload, String key, String fallback) {
+        if (payload == null || key == null) return fallback;
+        Object value = payload.get(key);
+        if (value instanceof String text && !text.isBlank()) {
+            return text.trim();
+        }
+        return fallback;
+    }
+
+    private String plannerHook(String plannerCategoryId) {
+        return switch ((plannerCategoryId == null ? "" : plannerCategoryId).trim()) {
+            case "transit" -> "Gokyuzu akisi senin tarafinda.";
+            case "moon" -> "Ay ritmi sezgini yukseltiyor.";
+            case "date" -> "Flort enerjisi isiniyor.";
+            case "marriage" -> "Uzun vadeli baglar bugun hassas.";
+            case "partnerHarmony" -> "Iliskide uyum kurmak kolaylasiyor.";
+            case "family" -> "Ev ve aile temasi one cikiyor.";
+            case "jointFinance" -> "Ortak para basliklari dikkat istiyor.";
+            case "beauty" -> "Bakim ve gorunum enerjisi parliyor.";
+            case "health" -> "Bedenin bugun daha fazla ozen istiyor.";
+            case "activity" -> "Tempo ve hareket alani aciliyor.";
+            case "official" -> "Resmi islerde detaylar onem kazaniyor.";
+            case "spiritual" -> "Ruhsal alan daha acik ve akista.";
+            case "color" -> "Renk frekansin bugun seni destekliyor.";
+            case "recommendations" -> "Gunun en iyi secimleri netlesiyor.";
+            default -> "Gokyuzu ritmi seni cagiriyor.";
+        };
     }
 
     private record MessageBundle(String title, String body) {}

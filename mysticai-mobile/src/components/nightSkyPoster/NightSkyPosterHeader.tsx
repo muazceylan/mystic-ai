@@ -40,20 +40,23 @@ function NightSkyPosterHeader({ model }: Props) {
 
 const styles = StyleSheet.create({
   root: {
-    gap: 3,
+    gap: 7,
     alignItems: 'center',
   },
   rootCompact: {
-    gap: 2,
+    gap: 5,
   },
   eyebrow: {
-    color: 'rgba(215,190,120,0.85)',
-    fontSize: 10.5,
+    color: 'rgba(230,213,180,0.92)',
+    fontSize: 13.2,
     fontWeight: '600',
-    letterSpacing: 3.5,
+    letterSpacing: 4.8,
     textTransform: 'uppercase',
     textAlign: 'center',
     fontFamily: displaySerif,
+    textShadowColor: 'rgba(255,240,205,0.16)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 9,
   },
 });
 

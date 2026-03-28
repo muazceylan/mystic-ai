@@ -42,14 +42,14 @@ public class OracleService {
     private static final String ORACLE_PROMPT_VERSION = "oracle-home-v2";
 
     /**
-     * Main entry point. Checks Redis cache first (key = oracle:daily:{userId}:{date}).
+     * Main entry point. Checks Redis cache first (key = oracle:daily:{userId}:{date}:{maritalStatus}).
      * Returns cached result if today's record exists; otherwise fetches, computes, and caches.
      */
     public Mono<OracleResponse> getDailySecret(Long userId, String name, String birthDate,
-                                               String maritalStatus, String focusPoint) {
-        String cacheKey = ORACLE_CACHE_PREFIX + userId + ":" + LocalDate.now();
+                                               String maritalStatus) {
+        String cacheKey = buildDailyCacheKey(userId, maritalStatus);
         return checkDailyCache(cacheKey)
-                .switchIfEmpty(computeDailySecret(userId, name, birthDate, maritalStatus, focusPoint, cacheKey));
+                .switchIfEmpty(computeDailySecret(userId, name, birthDate, maritalStatus, cacheKey));
     }
 
     private static final Duration HOME_BRIEF_TIMEOUT = Duration.ofSeconds(18);
@@ -59,10 +59,9 @@ public class OracleService {
             String username,
             String name,
             String birthDate,
-            String maritalStatus,
-            String focusPoint) {
+            String maritalStatus) {
 
-        Mono<OracleResponse> oracleMono = getDailySecret(userId, name, birthDate, maritalStatus, focusPoint);
+        Mono<OracleResponse> oracleMono = getDailySecret(userId, name, birthDate, maritalStatus);
         Mono<List<HomeBriefResponse.WeeklyCard>> weeklyCardsMono = fetchWeeklyCards(userId);
 
         return Mono.zip(oracleMono, weeklyCardsMono)
@@ -81,13 +80,13 @@ public class OracleService {
                             96);
                     String actionMessage = normalizeHomeAction(
                             firstNonBlank(oracle.message(), "Küçük ama net bir adım at."),
-                            focusPoint);
+                            maritalStatus);
                     String transitSummary = normalizeHomeSummary(
                             firstNonBlank(oracle.transitSummary(), oracle.numerologyInsight(), "Dengeyi korudukça hızlanacaksın."),
                             actionMessage,
                             transitHeadline,
                             dailyEnergy,
-                            focusPoint);
+                            maritalStatus);
 
                     return new HomeBriefResponse(
                             "Merhaba " + displayName + ", bugün haritanda neler var bakalım.",
@@ -107,6 +106,18 @@ public class OracleService {
                             oracle.generatedAt()
                     );
                 });
+    }
+
+    private String buildDailyCacheKey(Long userId, String maritalStatus) {
+        return ORACLE_CACHE_PREFIX + userId + ":" + LocalDate.now() + ":" + normalizeMaritalStatusCacheToken(maritalStatus);
+    }
+
+    private String normalizeMaritalStatusCacheToken(String maritalStatus) {
+        String normalized = firstNonBlank(maritalStatus)
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "");
+        return normalized.isBlank() ? "unspecified" : normalized;
     }
 
     // ─── Cache helpers ────────────────────────────────────────────────────────────
@@ -143,7 +154,7 @@ public class OracleService {
     // ─── Core computation ─────────────────────────────────────────────────────────
 
     private Mono<OracleResponse> computeDailySecret(Long userId, String name, String birthDate,
-                                                     String maritalStatus, String focusPoint,
+                                                     String maritalStatus,
                                                      String cacheKey) {
         log.info("Computing daily secret for user: {}", userId);
 
@@ -167,7 +178,7 @@ public class OracleService {
                     String promptVariant = choosePromptVariant(userId);
                     // Build the AI request with all user context
                     AiSynthesisRequest aiRequest = buildAiRequest(
-                            synthesis, name, birthDate, maritalStatus, focusPoint,
+                            synthesis, name, birthDate, maritalStatus,
                             ORACLE_PROMPT_VERSION, promptVariant);
 
                     // Call AI Orchestrator, retry with opposite prompt variant on weak output,
@@ -333,11 +344,11 @@ public class OracleService {
         return toSingleSentence(source, fallback, maxLength);
     }
 
-    private String normalizeHomeAction(String action, String focusPoint) {
+    private String normalizeHomeAction(String action, String maritalStatus) {
         String cleaned = normalizeHomeCopy(action, "Küçük ama net bir adım at.", 110);
         String lower = cleaned.toLowerCase(Locale.ROOT);
         if (lower.contains("harekete geç")) {
-            return actionFallbackByFocus(focusPoint);
+            return actionFallbackByMaritalStatus(maritalStatus);
         }
         return cleaned;
     }
@@ -347,7 +358,7 @@ public class OracleService {
             String actionMessage,
             String headline,
             String dailyEnergy,
-            String focusPoint) {
+            String maritalStatus) {
         String cleaned = normalizeHomeCopy(summary, "Dengeyi korudukça hızlanacaksın.", 120);
         String lower = cleaned.toLowerCase(Locale.ROOT);
 
@@ -360,7 +371,7 @@ public class OracleService {
             if (!alt.isBlank() && !isWeakNarrative(alt)) {
                 return toSingleSentence(alt, "Bugün tek bir öncelik seçip onu tamamla.", 120);
             }
-            return actionFallbackByFocus(focusPoint);
+            return actionFallbackByMaritalStatus(maritalStatus);
         }
         return cleaned;
     }
@@ -376,19 +387,19 @@ public class OracleService {
                 || normalized.contains("kozmik enerji");
     }
 
-    private String actionFallbackByFocus(String focusPoint) {
-        String focus = firstNonBlank(focusPoint).toLowerCase(Locale.ROOT);
-        if (focus.contains("kariyer")) {
-            return "İş tarafında tek bir görevi bitirmeye odaklanman bugün görünür sonuç verir.";
+    private String actionFallbackByMaritalStatus(String maritalStatus) {
+        String status = firstNonBlank(maritalStatus).toLowerCase(Locale.ROOT);
+        if (status.contains("evli") || status.contains("married")
+                || status.contains("ilişki") || status.contains("iliski")
+                || status.contains("relationship")) {
+            return "İlişkilerde net bir cümleyle beklentini paylaşman bugün dengeyi korur.";
         }
-        if (focus.contains("aile") || focus.contains("ev")) {
-            return "Ev ve aile düzeninde tek bir eksik işi tamamlaman günün akışını rahatlatır.";
+        if (status.contains("bekar") || status.contains("bekâr") || status.contains("single")) {
+            return "Kendin için seçtiğin tek bir önceliği tamamlaman bugün özgüvenini yükseltir.";
         }
-        if (focus.contains("para")) {
-            return "Maddi konularda küçük bir plan güncellemesi yapmak bugün gereksiz stresi azaltır.";
-        }
-        if (focus.contains("ilişki") || focus.contains("ask")) {
-            return "İlişkilerde net bir cümleyle beklentini söylemen bugün yanlış anlaşılmayı azaltır.";
+        if (status.contains("boş") || status.contains("bos")
+                || status.contains("divorc") || status.contains("widow") || status.contains("dul")) {
+            return "Kendi ritmini koruyup tek bir kişisel önceliği tamamlaman bugün güç toplatır.";
         }
         return "Bugün tek bir öncelik seçip onu tamamlaman günün geri kalanını netleştirir.";
     }
@@ -526,7 +537,7 @@ public class OracleService {
 
     private AiSynthesisRequest buildAiRequest(GrandSynthesisRequest synthesis,
                                                String name, String birthDate,
-                                               String maritalStatus, String focusPoint,
+                                               String maritalStatus,
                                                String promptVersion, String promptVariant) {
         NumerologyData num = synthesis.numerology();
         NatalChartData chart = synthesis.natalChart();
@@ -536,7 +547,6 @@ public class OracleService {
                 name,
                 birthDate,
                 maritalStatus,
-                focusPoint,
                 num != null ? num.lifePathNumber() : null,
                 num != null ? num.destinyNumber() : null,
                 num != null ? num.soulUrgeNumber() : null,
@@ -559,7 +569,6 @@ public class OracleService {
                 req.name(),
                 req.birthDate(),
                 req.maritalStatus(),
-                req.focusPoint(),
                 req.lifePathNumber(),
                 req.destinyNumber(),
                 req.soulUrgeNumber(),
@@ -965,7 +974,7 @@ public class OracleService {
     // ─── Inner record mirroring OracleInterpretationRequest ──────────────────────
 
     private record AiSynthesisRequest(
-            String name, String birthDate, String maritalStatus, String focusPoint,
+            String name, String birthDate, String maritalStatus,
             Integer lifePathNumber, Integer destinyNumber, Integer soulUrgeNumber,
             String sunSign, String moonSign, String risingSign,
             String moonPhase, String moonSignToday, List<String> retrogradePlanets,

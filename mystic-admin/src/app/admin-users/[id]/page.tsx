@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { ArrowLeft, KeyRound } from 'lucide-react';
+import { ArrowLeft, KeyRound, UserCheck, UserX } from 'lucide-react';
 import Link from 'next/link';
 import { useState, use, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -51,6 +51,18 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     onError: () => toast.error('Şifre sıfırlama başarısız.'),
   });
 
+  const activateMut = useMutation({
+    mutationFn: () => adminUsersApi.activate(Number(id)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-user', id] }); qc.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('Kullanıcı aktif edildi.'); },
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Aktif etme başarısız.'),
+  });
+
+  const deactivateMut = useMutation({
+    mutationFn: () => adminUsersApi.deactivate(Number(id)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-user', id] }); qc.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('Kullanıcı pasif edildi.'); },
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Pasif etme başarısız.'),
+  });
+
   return (
     <AdminLayout>
       <div className="flex items-center gap-3 mb-6">
@@ -60,6 +72,15 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         <h1 className="text-2xl font-bold text-white">Admin Kullanıcı Detay</h1>
         {user && (
           <div className="ml-auto flex gap-2">
+            {user.isActive ? (
+              <Button variant="danger" size="sm" onClick={() => deactivateMut.mutate()} disabled={deactivateMut.isPending}>
+                <UserX className="w-3 h-3" /> {deactivateMut.isPending ? 'İşleniyor...' : 'Pasif Et'}
+              </Button>
+            ) : (
+              <Button variant="primary" size="sm" onClick={() => activateMut.mutate()} disabled={activateMut.isPending}>
+                <UserCheck className="w-3 h-3" /> {activateMut.isPending ? 'İşleniyor...' : 'Aktif Et'}
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={() => setResetModal(true)}>
               <KeyRound className="w-3 h-3" /> Şifre Sıfırla
             </Button>

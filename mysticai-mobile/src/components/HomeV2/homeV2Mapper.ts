@@ -318,7 +318,6 @@ function buildHeroSubtitle(params: {
 export function buildHomeV2Model(params: BuildHomeV2ModelParams): HomeV2Model {
   const {
     user,
-    onboardingFocusPoints,
     homeBrief,
     skyPulse,
     birthMoonProjection,
@@ -344,7 +343,6 @@ export function buildHomeV2Model(params: BuildHomeV2ModelParams): HomeV2Model {
     66,
   );
 
-  const selectedFocus = (user?.focusPoint?.split(',')[0] ?? onboardingFocusPoints?.[0] ?? '').trim() || 'Kariyer';
   const impactScore = homeBrief?.meta?.impactScore ?? null;
 
   const themeText = trimLine(homeBrief?.transitHeadline || skyPulse?.dailyVibe, 'Değişim rüzgarları', 42);
@@ -372,7 +370,6 @@ export function buildHomeV2Model(params: BuildHomeV2ModelParams): HomeV2Model {
       themeText,
       suggestionText,
       chips: [
-        { label: 'Odak', value: trimLine(selectedFocus, 'Kariyer', 14), tone: 'focus' },
         { label: 'Duygu', value: inferEmotionLabel(homeBrief?.transitSummary), tone: 'emotion' },
         { label: 'Risk', value: inferRiskLabel(impactScore), tone: 'risk' },
       ],

@@ -22,9 +22,6 @@ export interface OnboardingData {
   gender: string;
   maritalStatus: string;
 
-  // Intentions
-  focusPoints: string[];
-
   // Calculated
   zodiacSign: string;
 }
@@ -48,8 +45,6 @@ interface OnboardingStore extends OnboardingData {
 
   setGender: (gender: string) => void;
   setMaritalStatus: (status: string) => void;
-  toggleFocusPoint: (id: string) => void;
-  setFocusPoints: (points: string[]) => void;
   setZodiacSign: (sign: string) => void;
 
   // Validation
@@ -58,7 +53,20 @@ interface OnboardingStore extends OnboardingData {
   isFormValid: () => boolean;
 
   // Data export
-  getRegisterData: () => Partial<OnboardingData & { focusPoint: string }>;
+  getRegisterData: () => {
+    firstName: string;
+    lastName: string;
+    email: string;
+    birthDate: Date | null;
+    birthTime: string | null;
+    birthTimeUnknown: boolean;
+    birthCountry: string;
+    birthCity: string;
+    timezone: string;
+    gender: string;
+    maritalStatus: string;
+    zodiacSign: string;
+  };
 
   // Reset
   reset: () => void;
@@ -82,7 +90,6 @@ const initialState: OnboardingData = {
 
   gender: '',
   maritalStatus: '',
-  focusPoints: [],
   zodiacSign: '',
 };
 
@@ -106,14 +113,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
 
   setGender: (gender) => set({ gender }),
   setMaritalStatus: (maritalStatus) => set({ maritalStatus }),
-  toggleFocusPoint: (id) => set((state) => {
-    const current = state.focusPoints;
-    if (current.includes(id)) {
-      return { focusPoints: current.filter((p) => p !== id) };
-    }
-    return { focusPoints: [...current, id] };
-  }),
-  setFocusPoints: (focusPoints) => set({ focusPoints }),
   setZodiacSign: (zodiacSign) => set({ zodiacSign }),
 
   isEmailValid: () => {
@@ -137,8 +136,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       state.birthDate !== null &&
       state.birthCountry.length > 0 &&
       (state.birthCity.length > 0 || state.birthCityManual.length > 0) &&
-      state.gender.length > 0 &&
-      state.focusPoints.length > 0
+      state.gender.length > 0
     );
   },
 
@@ -156,7 +154,6 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       timezone: state.timezone,
       gender: state.gender,
       maritalStatus: state.maritalStatus,
-      focusPoint: state.focusPoints.join(','),
       zodiacSign: state.zodiacSign,
     };
   },

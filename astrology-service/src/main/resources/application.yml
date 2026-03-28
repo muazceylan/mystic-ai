@@ -76,6 +76,9 @@ groq:
 ai-orchestrator:
   url: ${AI_ORCHESTRATOR_URL:http://localhost:8084}
 
+notification-service:
+  url: ${NOTIFICATION_SERVICE_URL:http://localhost:8088}
+
 api-ninjas:
   api-key: ${API_NINJAS_KEY:}
 

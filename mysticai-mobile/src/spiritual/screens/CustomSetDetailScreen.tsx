@@ -15,6 +15,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +30,7 @@ import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { ProgressRing } from '../components/ProgressRing';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import type { CustomSetItem, SpiritualItemType } from '../types';
+import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 
 type AddTab = 'esma' | 'dua' | 'sure';
 
@@ -72,6 +75,16 @@ export default function CustomSetDetailScreen() {
   const [addItemCounts, setAddItemCounts] = useState<Record<string, number>>({});
   /** Which item's count picker is expanded: "esma-3" or null */
   const [expandedCountPicker, setExpandedCountPicker] = useState<string | null>(null);
+  /** Custom count text input in the add modal count picker row */
+  const [customCountText, setCustomCountText] = useState('');
+  /** Which item's target is being edited inline: "esma-3" or null */
+  const [editingTargetKey, setEditingTargetKey] = useState<string | null>(null);
+  const [editingTargetValue, setEditingTargetValue] = useState('');
+  const closeAddModal = useCallback(() => setShowAddModal(false), []);
+  const { animatedStyle: addModalAnimatedStyle, gesture: addModalGesture } = useBottomSheetDragGesture({
+    enabled: showAddModal,
+    onClose: closeAddModal,
+  });
 
   /* ─── Accent ─── */
   const accent = isDark ? '#A78BFA' : '#7C3AED';
@@ -321,26 +334,38 @@ export default function CustomSetDetailScreen() {
               <Text style={S.itemSub} numberOfLines={1}>{resolved.sub}</Text>
             ) : null}
             {(!prog || prog.completed === 0) && (
-              <Pressable
-                onPress={() => {
-                  Alert.prompt(
-                    'Zikir Adedi',
-                    `${resolved.name} için hedef adet:`,
-                    (val) => {
-                      const num = parseInt(val, 10);
-                      if (num > 0) updateItemTarget(set.id, item.itemType, item.itemId, num);
-                    },
-                    'plain-text',
-                    String(resolved.target),
-                    'number-pad',
-                  );
-                }}
-                hitSlop={6}
-              >
-                <Text style={[S.itemTarget, { color: typeColor }]}>
-                  {resolved.target}x
-                </Text>
-              </Pressable>
+              editingTargetKey === itemKey(item) ? (
+                <TextInput
+                  style={[S.itemTarget, S.itemTargetInput, { color: typeColor, borderBottomColor: typeColor }]}
+                  value={editingTargetValue}
+                  onChangeText={(t) => setEditingTargetValue(t.replace(/[^0-9]/g, ''))}
+                  onBlur={() => {
+                    const num = parseInt(editingTargetValue, 10);
+                    if (num > 0) updateItemTarget(set.id, item.itemType, item.itemId, num);
+                    setEditingTargetKey(null);
+                  }}
+                  onSubmitEditing={() => {
+                    const num = parseInt(editingTargetValue, 10);
+                    if (num > 0) updateItemTarget(set.id, item.itemType, item.itemId, num);
+                    setEditingTargetKey(null);
+                  }}
+                  keyboardType="number-pad"
+                  autoFocus
+                  selectTextOnFocus
+                />
+              ) : (
+                <Pressable
+                  onPress={() => {
+                    setEditingTargetKey(itemKey(item));
+                    setEditingTargetValue(String(resolved.target));
+                  }}
+                  hitSlop={6}
+                >
+                  <Text style={[S.itemTarget, { color: typeColor }]}>
+                    {resolved.target}x
+                  </Text>
+                </Pressable>
+              )
             )}
           </View>
         </View>
@@ -486,7 +511,7 @@ export default function CustomSetDetailScreen() {
             { borderColor: accent },
             pressed && { opacity: 0.8 },
           ]}
-          onPress={() => { setAddSearch(''); setAddItemCounts({}); setExpandedCountPicker(null); setShowAddModal(true); }}
+          onPress={() => { setAddSearch(''); setAddItemCounts({}); setExpandedCountPicker(null); setCustomCountText(''); setShowAddModal(true); }}
         >
           <Ionicons name="add-circle-outline" size={18} color={accent} />
           <Text style={[S.addBtnText, { color: accent }]}>Öğe Ekle</Text>
@@ -519,21 +544,25 @@ export default function CustomSetDetailScreen() {
       </View>
 
       {/* ─── Add Item Modal ─── */}
-      <Modal visible={showAddModal} animationType="slide" transparent>
+      <Modal visible={showAddModal} animationType="slide" transparent onRequestClose={closeAddModal}>
         <View style={S.modalOverlay}>
           <SafeAreaView style={S.modalSafe}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={S.modalContent}
-            >
+            <Animated.View style={[S.modalContent, addModalAnimatedStyle]}>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              >
               {/* Modal header */}
-              <View style={S.modalHandle} />
-              <View style={S.modalHeader}>
-                <Text style={S.modalTitle}>Öğe Ekle</Text>
-                <Pressable onPress={() => setShowAddModal(false)} hitSlop={10}>
-                  <Ionicons name="close" size={22} color={colors.text} />
-                </Pressable>
-              </View>
+                <GestureDetector gesture={addModalGesture}>
+                  <View>
+                    <View style={S.modalHandle} />
+                    <View style={S.modalHeader}>
+                      <Text style={S.modalTitle}>Öğe Ekle</Text>
+                      <Pressable onPress={closeAddModal} hitSlop={10}>
+                        <Ionicons name="close" size={22} color={colors.text} />
+                      </Pressable>
+                    </View>
+                  </View>
+                </GestureDetector>
 
               {/* Tab chips */}
               <View style={S.chipRow}>
@@ -563,24 +592,24 @@ export default function CustomSetDetailScreen() {
               </View>
 
               {/* Search */}
-              <View style={S.searchRow}>
-                <Ionicons name="search" size={16} color={colors.muted} />
-                <TextInput
-                  style={[S.searchInput, { color: colors.text }]}
-                  placeholder="Ara..."
-                  placeholderTextColor={colors.muted}
-                  value={addSearch}
-                  onChangeText={setAddSearch}
-                />
-                {addSearch.length > 0 && (
-                  <Pressable onPress={() => setAddSearch('')} hitSlop={8}>
-                    <Ionicons name="close-circle" size={18} color={colors.muted} />
-                  </Pressable>
-                )}
-              </View>
+                <View style={S.searchRow}>
+                  <Ionicons name="search" size={16} color={colors.muted} />
+                  <TextInput
+                    style={[S.searchInput, { color: colors.text }]}
+                    placeholder="Ara..."
+                    placeholderTextColor={colors.muted}
+                    value={addSearch}
+                    onChangeText={setAddSearch}
+                  />
+                  {addSearch.length > 0 && (
+                    <Pressable onPress={() => setAddSearch('')} hitSlop={8}>
+                      <Ionicons name="close-circle" size={18} color={colors.muted} />
+                    </Pressable>
+                  )}
+                </View>
 
               {/* Results */}
-              <FlatList
+                <FlatList
                 data={addFilteredItems as any[]}
                 keyExtractor={(item) => item.id.toString()}
                 keyboardShouldPersistTaps="handled"
@@ -610,7 +639,7 @@ export default function CustomSetDetailScreen() {
                         {/* Count badge */}
                         {!alreadyIn && (
                           <Pressable
-                            onPress={() => setExpandedCountPicker(isPickerOpen ? null : pickerKey)}
+                            onPress={() => { setExpandedCountPicker(isPickerOpen ? null : pickerKey); setCustomCountText(''); }}
                             style={[
                               S.countBadge,
                               {
@@ -676,29 +705,20 @@ export default function CustomSetDetailScreen() {
                               </Text>
                             </Pressable>
                           ))}
-                          <Pressable
-                            style={[S.countChip, { borderColor: colors.border }]}
-                            onPress={() => {
-                              if (Platform.OS === 'ios') {
-                                Alert.prompt(
-                                  'Özel Adet',
-                                  'Zikir adedini girin:',
-                                  (val) => {
-                                    const num = parseInt(val, 10);
-                                    if (num > 0) setAddItemCount(addTab, addItem_.id, num);
-                                  },
-                                  'plain-text',
-                                  String(selectedCount),
-                                  'number-pad',
-                                );
-                              } else {
-                                // Android: Alert.prompt not available, use simple Alert
-                                Alert.alert('Özel Adet', 'iOS dışı platformlarda sayı girmek için öğeyi ekleyip ardından hedefi düzenleyebilirsiniz.');
-                              }
+                          <TextInput
+                            style={[S.countChip, S.countChipInput, { borderColor: colors.border, color: colors.text }]}
+                            value={customCountText}
+                            onChangeText={(t) => {
+                              const clean = t.replace(/[^0-9]/g, '');
+                              setCustomCountText(clean);
+                              const num = parseInt(clean, 10);
+                              if (num > 0) setAddItemCount(addTab, addItem_.id, num);
                             }}
-                          >
-                            <Ionicons name="create-outline" size={12} color={colors.subtext} />
-                          </Pressable>
+                            keyboardType="number-pad"
+                            placeholder="?"
+                            placeholderTextColor={colors.subtext}
+                            maxLength={5}
+                          />
                         </View>
                       )}
                     </View>
@@ -707,8 +727,9 @@ export default function CustomSetDetailScreen() {
                 ListEmptyComponent={
                   <Text style={S.modalEmpty}>Sonuç bulunamadı</Text>
                 }
-              />
-            </KeyboardAvoidingView>
+                />
+              </KeyboardAvoidingView>
+            </Animated.View>
           </SafeAreaView>
         </View>
       </Modal>
@@ -916,6 +937,19 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     },
     itemTarget: {
       ...TYPOGRAPHY.CaptionBold,
+    },
+    itemTargetInput: {
+      borderBottomWidth: 1,
+      minWidth: 36,
+      paddingHorizontal: 2,
+      paddingVertical: 0,
+      textAlign: 'center',
+    },
+    countChipInput: {
+      minWidth: 44,
+      textAlign: 'center',
+      fontSize: 12,
+      fontWeight: '600' as const,
     },
     itemProgressText: {
       ...TYPOGRAPHY.CaptionBold,

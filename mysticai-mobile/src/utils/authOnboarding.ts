@@ -1,6 +1,6 @@
 import type { UserProfile } from '../store/useAuthStore';
 
-type OnboardingFields = Pick<UserProfile, 'birthDate' | 'birthCountry' | 'birthCity' | 'gender' | 'focusPoint' | 'userType' | 'isAnonymous'>;
+type OnboardingFields = Pick<UserProfile, 'birthDate' | 'birthCountry' | 'birthCity' | 'gender' | 'userType' | 'isAnonymous'>;
 
 function isBlank(value: string | null | undefined): boolean {
   return !value || value.trim().length === 0;
@@ -20,7 +20,6 @@ export function needsOnboarding(user: OnboardingFields | null | undefined): bool
     isBlank(user.birthDate) ||
     isBlank(user.birthCountry) ||
     isBlank(user.birthCity) ||
-    isBlank(user.gender) ||
-    isBlank(user.focusPoint)
+    isBlank(user.gender)
   );
 }

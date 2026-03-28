@@ -9,10 +9,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../components/ui';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import {
   TUTORIAL_IDS,
   TUTORIAL_SCREEN_KEYS,
@@ -37,6 +36,21 @@ const CORE_SCREEN_KEYS = new Set<string>([
   TUTORIAL_SCREEN_KEYS.COMPATIBILITY,
 ]);
 
+const SCREEN_LABEL_KEYS: Partial<Record<string, string>> = {
+  [TUTORIAL_SCREEN_KEYS.GLOBAL_ONBOARDING]: 'tutorialCenter.screens.globalOnboarding',
+  [TUTORIAL_SCREEN_KEYS.HOME]: 'tutorialCenter.screens.home',
+  [TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS]: 'tutorialCenter.screens.dailyTransits',
+  [TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER]: 'tutorialCenter.screens.cosmicPlanner',
+  [TUTORIAL_SCREEN_KEYS.DECISION_COMPASS]: 'tutorialCenter.screens.decisionCompass',
+  [TUTORIAL_SCREEN_KEYS.COMPATIBILITY]: 'tutorialCenter.screens.compatibility',
+  [TUTORIAL_SCREEN_KEYS.BIRTH_CHART]: 'tutorialCenter.screens.birthChart',
+  [TUTORIAL_SCREEN_KEYS.DREAMS]: 'tutorialCenter.screens.dreams',
+  [TUTORIAL_SCREEN_KEYS.NUMEROLOGY]: 'tutorialCenter.screens.numerology',
+  [TUTORIAL_SCREEN_KEYS.NAME_ANALYSIS]: 'tutorialCenter.screens.nameAnalysis',
+  [TUTORIAL_SCREEN_KEYS.SPIRITUAL_PRACTICE]: 'tutorialCenter.screens.spiritualPractice',
+  [TUTORIAL_SCREEN_KEYS.PROFILE]: 'tutorialCenter.screens.profile',
+};
+
 function mapStatus(item: { status?: string | null; dontShowAgain?: boolean | null }): TutorialManagementStatus {
   if (item.dontShowAgain) {
     return 'dismissed';
@@ -53,21 +67,26 @@ function mapStatus(item: { status?: string | null; dontShowAgain?: boolean | nul
   return 'not_started';
 }
 
-function formatStatusLabel(status: TutorialManagementStatus): string {
-  if (status === 'completed') return 'Tamamlandı';
-  if (status === 'skipped') return 'Geçildi';
-  if (status === 'dismissed') return 'Bir daha gösterme';
-  return 'Başlamadı';
+function formatStatusLabel(status: TutorialManagementStatus, t: (key: string) => string): string {
+  if (status === 'completed') return t('tutorialCenter.status.completed');
+  if (status === 'skipped') return t('tutorialCenter.status.skipped');
+  if (status === 'dismissed') return t('tutorialCenter.status.dismissed');
+  return t('tutorialCenter.status.notStarted');
 }
 
-function formatScreenName(screenKey: string): string {
+function formatScreenName(screenKey: string, t: (key: string) => string): string {
+  const translationKey = SCREEN_LABEL_KEYS[screenKey];
+  if (translationKey) {
+    return t(translationKey);
+  }
+
   return screenKey
     .split('_')
     .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
     .join(' ');
 }
 
-function formatLastSeen(value: string | null): string {
+function formatLastSeen(value: string | null, locale: string): string {
   if (!value) {
     return '—';
   }
@@ -77,7 +96,7 @@ function formatLastSeen(value: string | null): string {
     return '—';
   }
 
-  return date.toLocaleString('tr-TR');
+  return date.toLocaleString(locale.startsWith('tr') ? 'tr-TR' : 'en-US');
 }
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
@@ -260,6 +279,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
 
 export default function TutorialCenterScreen() {
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const {
@@ -317,12 +337,12 @@ export default function TutorialCenterScreen() {
 
   const handleResetAll = useCallback(() => {
     Alert.alert(
-      'Tüm rehberleri sıfırla',
-      'Tüm tutorial ilerlemeleri temizlenecek. Devam etmek istiyor musun?',
+      t('tutorialCenter.alerts.resetAllTitle'),
+      t('tutorialCenter.alerts.resetAllBody'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('tutorialCenter.alerts.cancel'), style: 'cancel' },
         {
-          text: 'Sıfırla',
+          text: t('tutorialCenter.alerts.confirm'),
           style: 'destructive',
           onPress: () => {
             resetAllTutorials('tutorial_center');
@@ -331,7 +351,7 @@ export default function TutorialCenterScreen() {
         },
       ],
     );
-  }, [loadItems, resetAllTutorials]);
+  }, [loadItems, resetAllTutorials, t]);
 
   const renderItem = useCallback((item: TutorialManagementItem) => {
     const { tutorial, status, lastSeenAt, dontShowAgain } = item;
@@ -341,7 +361,7 @@ export default function TutorialCenterScreen() {
         <View style={styles.rowTop}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{tutorial.name}</Text>
-            <Text style={styles.subtitle}>{formatScreenName(tutorial.screenKey)}</Text>
+            <Text style={styles.subtitle}>{formatScreenName(tutorial.screenKey, t)}</Text>
           </View>
           <View
             style={[
@@ -371,14 +391,14 @@ export default function TutorialCenterScreen() {
                 },
               ]}
             >
-              {formatStatusLabel(status)}
+              {formatStatusLabel(status, t)}
             </Text>
           </View>
         </View>
 
         <View style={styles.metaRow}>
-          <Text style={styles.metaText}>Versiyon: v{tutorial.version}</Text>
-          <Text style={styles.metaText}>Son görülme: {formatLastSeen(lastSeenAt)}</Text>
+          <Text style={styles.metaText}>{t('tutorialCenter.metaVersion', { version: tutorial.version })}</Text>
+          <Text style={styles.metaText}>{t('tutorialCenter.metaLastSeen', { value: formatLastSeen(lastSeenAt, i18n.language) })}</Text>
         </View>
 
         <View style={styles.actionRow}>
@@ -388,20 +408,20 @@ export default function TutorialCenterScreen() {
               void reopenTutorialById(tutorial.tutorialId, 'tutorial_center');
             }}
             accessibilityRole="button"
-            accessibilityLabel={`${tutorial.name} rehberini tekrar aç`}
+            accessibilityLabel={t('tutorialCenter.actions.reopenAccessibility', { name: tutorial.name })}
           >
-            <Text style={styles.actionBtnText}>Tekrar Aç</Text>
+            <Text style={styles.actionBtnText}>{t('tutorialCenter.actions.reopen')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => {
               Alert.alert(
-                'İlerlemeyi sıfırla',
-                `${tutorial.name} için rehber ilerlemesi sıfırlansın mı?`,
+                t('tutorialCenter.alerts.resetSingleTitle'),
+                t('tutorialCenter.alerts.resetSingleBody', { name: tutorial.name }),
                 [
-                  { text: 'Vazgeç', style: 'cancel' },
+                  { text: t('tutorialCenter.alerts.cancel'), style: 'cancel' },
                   {
-                    text: 'Sıfırla',
+                    text: t('tutorialCenter.alerts.confirm'),
                     style: 'destructive',
                     onPress: () => {
                       void resetTutorialById(tutorial.tutorialId, 'tutorial_center').then(() => loadItems());
@@ -411,16 +431,16 @@ export default function TutorialCenterScreen() {
               );
             }}
             accessibilityRole="button"
-            accessibilityLabel={`${tutorial.name} ilerlemesini sıfırla`}
+            accessibilityLabel={t('tutorialCenter.actions.resetAccessibility', { name: tutorial.name })}
           >
-            <Text style={styles.actionBtnText}>İlerlemesini Sıfırla</Text>
+            <Text style={styles.actionBtnText}>{t('tutorialCenter.actions.resetProgress')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.toggleRow}>
           <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={styles.toggleTitle}>Bir daha otomatik gösterme</Text>
-            <Text style={styles.toggleSub}>Açıkken ilk kullanımda otomatik tetiklenmez.</Text>
+            <Text style={styles.toggleTitle}>{t('tutorialCenter.toggleTitle')}</Text>
+            <Text style={styles.toggleSub}>{t('tutorialCenter.toggleSub')}</Text>
           </View>
           <Switch
             value={dontShowAgain}
@@ -434,18 +454,18 @@ export default function TutorialCenterScreen() {
         </View>
       </View>
     );
-  }, [colors.border, loadItems, reopenTutorialById, resetTutorialById, setDontShowAgain, styles]);
+  }, [colors.border, i18n.language, loadItems, reopenTutorialById, resetTutorialById, setDontShowAgain, styles, t]);
 
   return (
     <SafeScreen>
       <View style={styles.container}>
         <TabHeader
-          title="Rehber Merkezi"
+          title={t('surfaceTitles.tutorialCenter')}
           rightActions={(
             <SurfaceHeaderIconButton
               iconName="refresh-outline"
               onPress={handleRefresh}
-              accessibilityLabel="Rehberi yenile"
+              accessibilityLabel={t('tutorialCenter.refreshAccessibility')}
             />
           )}
         />
@@ -457,9 +477,9 @@ export default function TutorialCenterScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
         >
           <View style={styles.heroCard}>
-            <Text style={styles.heroTitle}>Tüm Rehberleri Buradan Yönet</Text>
+            <Text style={styles.heroTitle}>{t('tutorialCenter.heroTitle')}</Text>
             <Text style={styles.heroBody}>
-              Tutorial durumlarını görebilir, tekrar açabilir, tek tek veya toplu şekilde sıfırlayabilirsin.
+              {t('tutorialCenter.heroBody')}
             </Text>
             <View style={styles.heroRow}>
               <TouchableOpacity
@@ -468,25 +488,25 @@ export default function TutorialCenterScreen() {
                   void reopenTutorialById(TUTORIAL_IDS.GLOBAL_ONBOARDING, 'tutorial_center');
                 }}
               >
-                <Text style={styles.primaryBtnText}>Global Onboarding’i Gör</Text>
+                <Text style={styles.primaryBtnText}>{t('tutorialCenter.heroPrimaryAction')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.subtleBtn} onPress={handleResetAll}>
-                <Text style={styles.subtleBtnText}>Tümünü Sıfırla</Text>
+                <Text style={styles.subtleBtnText}>{t('tutorialCenter.heroSecondaryAction')}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Genel</Text>
+          <Text style={styles.sectionTitle}>{t('tutorialCenter.sections.general')}</Text>
           {sections.general.map(renderItem)}
 
-          <Text style={styles.sectionTitle}>Ana Modüller</Text>
+          <Text style={styles.sectionTitle}>{t('tutorialCenter.sections.core')}</Text>
           {sections.core.map(renderItem)}
 
-          <Text style={styles.sectionTitle}>Diğer Modüller</Text>
+          <Text style={styles.sectionTitle}>{t('tutorialCenter.sections.secondary')}</Text>
           {sections.secondary.map(renderItem)}
 
           {!loading && items.length === 0 ? (
-            <Text style={styles.emptyText}>Henüz yönetilecek rehber bulunamadı.</Text>
+            <Text style={styles.emptyText}>{t('tutorialCenter.empty')}</Text>
           ) : null}
         </ScrollView>
       </View>

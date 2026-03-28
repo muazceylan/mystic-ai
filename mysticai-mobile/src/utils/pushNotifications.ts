@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { handlePushNotificationOpen } from './notificationDeepLink';
 import {
@@ -6,25 +7,17 @@ import {
   NotificationEvent,
 } from './notificationAnalytics';
 
-let Notifications: typeof import('expo-notifications') | null = null;
 let notificationHandlerInstalled = false;
 
-async function getNotificationsModule() {
-  if (Platform.OS === 'web') return null;
-  if (!Notifications) {
-    Notifications = await import('expo-notifications');
-  }
-  return Notifications;
-}
+export const DEFAULT_NOTIFICATION_CHANNEL_ID = 'mysticai-notifications';
+export const LEGACY_DREAM_NOTIFICATION_CHANNEL_ID = 'dream-notifications';
+export const EXPO_PUSH_PROJECT_ID = 'ae6fd7e4-2d11-45f8-828c-d916782b852f';
 
 export async function ensureNotificationHandlerInstalled(): Promise<void> {
   if (Platform.OS === 'web' || notificationHandlerInstalled) return;
 
   try {
-    const mod = await getNotificationsModule();
-    if (!mod) return;
-
-    mod.setNotificationHandler({
+    Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
         shouldPlaySound: true,
@@ -47,15 +40,12 @@ export async function registerPushTokenIfNeeded(): Promise<string | null> {
   if (Platform.OS === 'web') return null;
 
   try {
-    const mod = await getNotificationsModule();
-    if (!mod) return null;
-
-    const { status: existingStatus } = await mod.getPermissionsAsync();
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
     console.log('[PUSH] permission status:', existingStatus, 'platform:', Platform.OS);
 
     if (existingStatus === 'undetermined') {
       trackNotificationEvent(NotificationEvent.PERMISSION_PROMPT_SHOWN);
-      const { status } = await mod.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync();
       console.log('[PUSH] after request:', status);
       if (status === 'granted') {
         trackNotificationEvent(NotificationEvent.PERMISSION_GRANTED);
@@ -68,8 +58,8 @@ export async function registerPushTokenIfNeeded(): Promise<string | null> {
       return null;
     }
 
-    const tokenData = await mod.getExpoPushTokenAsync({
-      projectId: 'ae6fd7e4-2d11-45f8-828c-d916782b852f',
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: EXPO_PUSH_PROJECT_ID,
     });
     const token = tokenData.data;
     console.log('[PUSH] token obtained:', token);
@@ -93,26 +83,23 @@ export async function setupNotificationResponseHandler(
   if (Platform.OS === 'web') return null;
 
   try {
-    const mod = await getNotificationsModule();
-    if (!mod) return null;
-
     await ensureNotificationHandlerInstalled();
 
     // Foreground: notification received — refresh unread count
-    const receivedSub = mod.addNotificationReceivedListener(() => {
+    const receivedSub = Notifications.addNotificationReceivedListener(() => {
       trackNotificationEvent(NotificationEvent.PUSH_RECEIVED);
       useNotificationStore.getState().fetchUnreadCount().catch(() => {});
     });
 
     // Background / foreground tap — route through central resolver
-    const responseSub = mod.addNotificationResponseReceivedListener((response) => {
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
       setTimeout(() => {
         handlePushNotificationOpen(response, isAuthenticated).catch(() => {});
       }, 300);
     });
 
     // Cold start: app was opened by tapping a push notification
-    const lastResponse = await mod.getLastNotificationResponseAsync();
+    const lastResponse = await Notifications.getLastNotificationResponseAsync();
     if (lastResponse) {
       setTimeout(() => {
         handlePushNotificationOpen(lastResponse, isAuthenticated).catch(() => {});
@@ -135,12 +122,16 @@ export async function setupNotificationChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   try {
-    const mod = await getNotificationsModule();
-    if (!mod) return;
-
-    await mod.setNotificationChannelAsync('mysticai-notifications', {
+    await Notifications.setNotificationChannelAsync(DEFAULT_NOTIFICATION_CHANNEL_ID, {
       name: 'Astro Guru',
-      importance: mod.AndroidImportance.HIGH,
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#9D4EDD',
+      sound: 'default',
+    });
+    await Notifications.setNotificationChannelAsync(LEGACY_DREAM_NOTIFICATION_CHANNEL_ID, {
+      name: 'Astro Guru Reminders',
+      importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#9D4EDD',
       sound: 'default',

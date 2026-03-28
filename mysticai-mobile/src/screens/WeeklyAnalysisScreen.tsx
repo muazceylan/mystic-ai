@@ -104,7 +104,6 @@ export default function WeeklyAnalysisScreen() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
-  const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
   const S = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const resolvedLocale = useMemo<'tr' | 'en'>(
     () => ((i18n.resolvedLanguage ?? i18n.language ?? user?.preferredLanguage ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
@@ -118,9 +117,8 @@ export default function WeeklyAnalysisScreen() {
       name: user.name ?? (`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || undefined),
       birthDate: user.birthDate ?? undefined,
       maritalStatus: user.maritalStatus ?? onboardingMaritalStatus ?? undefined,
-      focusPoint: user.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? undefined,
     };
-  }, [user, onboardingMaritalStatus, onboardingFocusPoints]);
+  }, [user, onboardingMaritalStatus]);
 
   const { data: homeBrief, isLoading, isError, refetch, isRefetching } = useHomeBrief(homeBriefParams);
 

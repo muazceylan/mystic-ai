@@ -4,6 +4,7 @@ import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/tokens';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
+import { PREMIUM_ICONS } from '../../../constants/icons';
 import { useRewardedUnlock } from '../hooks/useRewardedUnlock';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
@@ -115,6 +116,7 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
           onPress={handleWatchAd}
           loading={isProcessing}
           disabled={isProcessing}
+          leftIcon={PREMIUM_ICONS.ad}
           size="md"
           style={s.watchButton}
         />

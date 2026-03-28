@@ -21,9 +21,15 @@ function OrbitRings({ center, radius }: Props) {
           cy={center}
           r={radius * fraction}
           fill="transparent"
-          stroke={index >= 3 ? 'rgba(200,175,110,0.1)' : 'rgba(255,255,255,0.07)'}
-          strokeWidth={index >= 3 ? 0.5 : 0.35}
-          opacity={0.7}
+          stroke={
+            index === 0
+              ? 'rgba(255,248,228,0.18)'
+              : index >= 3
+                ? 'rgba(214,189,123,0.18)'
+                : 'rgba(244,238,224,0.1)'
+          }
+          strokeWidth={index >= 3 ? 0.65 : index === 0 ? 0.7 : 0.45}
+          opacity={index === 0 ? 0.95 : 0.8}
         />
       ))}
     </>

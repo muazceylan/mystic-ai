@@ -1,5 +1,6 @@
 package com.mysticai.notification.service;
 
+import com.mysticai.notification.dto.InternalDirectNotificationRequest;
 import com.mysticai.notification.entity.Notification;
 import com.mysticai.notification.entity.Notification.*;
 import com.mysticai.notification.entity.NotificationPreference;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -147,6 +149,67 @@ public class NotificationGenerationService {
         return saved;
     }
 
+    @Transactional
+    public Notification sendDirectNotification(Long userId, InternalDirectNotificationRequest request) {
+        if (request.dedupKey() != null && !request.dedupKey().isBlank()) {
+            Optional<Notification> existing = notificationRepository.findByDedupKey(request.dedupKey().trim());
+            if (existing.isPresent()) {
+                return existing.get();
+            }
+        }
+
+        NotificationPreference pref = preferenceRepository.findById(userId)
+                .orElse(NotificationPreference.builder().userId(userId).build());
+
+        DeliveryChannel requestedChannel = parseEnum(
+                request.deliveryChannel(),
+                DeliveryChannel.class,
+                DeliveryChannel.BOTH
+        );
+        DeliveryChannel finalChannel = pref.isPushEnabled()
+                ? requestedChannel
+                : DeliveryChannel.IN_APP;
+
+        Notification notification = Notification.builder()
+                .userId(userId)
+                .type(parseEnum(request.type(), NotificationType.class, NotificationType.PLANNER_REMINDER))
+                .category(parseEnum(request.category(), NotificationCategory.class, NotificationCategory.REMINDER))
+                .priority(parseEnum(request.priority(), Priority.class, Priority.NORMAL))
+                .title(request.title().trim())
+                .body(request.body().trim())
+                .deeplink(blankToNull(request.deeplink()))
+                .deliveryChannel(finalChannel)
+                .sourceModule(blankToNull(request.sourceModule()))
+                .templateKey(blankToNull(request.templateKey()))
+                .variantKey(blankToNull(request.variantKey()))
+                .metadata(blankToNull(request.metadata()))
+                .dedupKey(blankToNull(request.dedupKey()))
+                .expiresAt(LocalDateTime.now().plusHours(resolveExpiryHours(request.expiresInHours())))
+                .build();
+
+        Notification saved = notificationRepository.save(notification);
+
+        if (finalChannel != DeliveryChannel.IN_APP) {
+            boolean pushOk = pushService.sendPush(userId, saved);
+            if (pushOk) {
+                saved.setPushSent(true);
+                saved.setDelivered(true);
+                saved.setDeliveredAt(LocalDateTime.now());
+                saved = notificationRepository.save(saved);
+            }
+        }
+
+        try {
+            wsService.sendNotificationToUser(userId, saved);
+        } catch (Exception e) {
+            log.debug("Direct notification websocket send failed for user {}", userId);
+        }
+
+        log.info("Direct notification generated: type={}, user={}, dedupKey={}",
+                saved.getType(), userId, saved.getDedupKey());
+        return saved;
+    }
+
     private NotificationCategory categorizeType(NotificationType type) {
         return switch (type) {
             case DAILY_SUMMARY, MINI_INSIGHT, NUMEROLOGY_CHECKIN -> NotificationCategory.DAILY;
@@ -201,6 +264,28 @@ public class NotificationGenerationService {
             case ASTROLOGY -> new RouteTarget("daily_transits", "/(tabs)/calendar");
             case TAROT, ORACLE -> new RouteTarget("daily_transits", "/daily-summary?entry_point=push_ai_analysis");
         };
+    }
+
+    private int resolveExpiryHours(Integer expiresInHours) {
+        if (expiresInHours == null || expiresInHours <= 0) {
+            return 24;
+        }
+        return Math.min(expiresInHours, 24 * 14);
+    }
+
+    private String blankToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private <E extends Enum<E>> E parseEnum(String raw, Class<E> enumType, E fallback) {
+        if (raw == null || raw.isBlank()) return fallback;
+        try {
+            return Enum.valueOf(enumType, raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return fallback;
+        }
     }
 
     private record RouteTarget(String moduleKey, String deeplink) {}

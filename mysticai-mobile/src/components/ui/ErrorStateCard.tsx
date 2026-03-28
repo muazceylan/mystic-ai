@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, ACCESSIBILITY, RADIUS } from '../../constants/tokens';
+import { STATE_ICONS, ACTION_ICONS } from '../../constants/icons';
 
 interface ErrorStateCardProps {
   /** Kısa açıklama — kullanıcıya ne olduğunu anlatır */
@@ -44,7 +45,7 @@ export function ErrorStateCard({
   return (
     <View style={[s.container, isCompact && s.containerCompact, style]}>
       <Ionicons
-        name="cloud-offline-outline"
+        name={STATE_ICONS.error}
         size={iconSize}
         color={colors.error}
         style={s.icon}
@@ -63,7 +64,7 @@ export function ErrorStateCard({
         accessibilityHint={t('accessibility.retryHint')}
         activeOpacity={0.8}
       >
-        <Ionicons name="refresh" size={isCompact ? 14 : 16} color={colors.white} />
+        <Ionicons name={ACTION_ICONS.refresh} size={isCompact ? 14 : 16} color={colors.white} />
         <Text
           style={[s.retryText, isCompact && s.retryTextCompact]}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}

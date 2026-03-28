@@ -10,7 +10,9 @@ import {
   TouchableWithoutFeedback,
   ScrollView,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from '../../utils/haptics';
+import Reanimated from 'react-native-reanimated';
 import { PlanetaryAspect } from '../../services/astrology.service';
 import { PLANET_TURKISH } from '../../constants/zodiac';
 import { PLANET_GLOSSARY } from '../../constants/astrology-glossary';
@@ -21,6 +23,7 @@ import {
 } from '../../constants/aspect-glossary';
 import { formatAspectAngleHuman, labelAspectType, translateAstroTermsForUi } from '../../constants/astroLabelMap';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -49,6 +52,10 @@ export default function AspectBottomSheet({
   const s = createStyles(colors);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose,
+  });
 
   useEffect(() => {
     if (visible) {
@@ -110,68 +117,74 @@ export default function AspectBottomSheet({
         <Animated.View
           style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}
         >
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={s.scrollContent}
-          >
-            <View style={s.handleBar} />
-            <View style={s.header}>
-              <View style={s.symbolRow}>
-                <Text style={[s.planetSymbol, { color: accentColor }]}>{p1Sym}</Text>
-                <Text style={[s.aspectSymbol, { color: accentColor }]}>{aspSym}</Text>
-                <Text style={[s.planetSymbol, { color: accentColor }]}>{p2Sym}</Text>
-              </View>
-              <Text style={s.typeTitle}>{labelAspectType(aspect.type, true)}</Text>
-              <Text style={s.angleText}>
-                {formatAspectAngleHuman(aspect)}
-              </Text>
-            </View>
-
-            <View style={s.section}>
-              <Text style={[s.sectionLabel, { color: accentColor }]}>Bu Aci Ne Anlama Geliyor?</Text>
-              <Text style={s.sectionText}>{translateAstroTermsForUi(glossary.longDesc)}</Text>
-            </View>
-
-            <View style={[s.summaryBox, { backgroundColor: accentColor + '12', borderColor: accentColor + '25' }]}>
-              <Text style={[s.summaryTitle, { color: accentColor }]}>Kozmik Dinamik (Özet)</Text>
-              <Text style={s.summaryText}>
-                {p1Name} ile {p2Name} arasında {labelAspectType(aspect.type).toLowerCase()} çalışıyor; bu da ilişkili konuda {harmonious ? 'akış ve destek' : 'gerilim üzerinden büyüme'} teması yaratır.
-              </Text>
-            </View>
-
-            {p1Glossary && (
-              <View style={s.section}>
-                <Text style={[s.sectionLabel, { color: accentColor }]}>
-                  {p1Sym} {p1Name}
-                </Text>
-                <Text style={s.sectionText}>{translateAstroTermsForUi(p1Glossary.longDesc)}</Text>
-              </View>
-            )}
-
-            {p2Glossary && (
-              <View style={s.section}>
-                <Text style={[s.sectionLabel, { color: accentColor }]}>
-                  {p2Sym} {p2Name}
-                </Text>
-                <Text style={s.sectionText}>{translateAstroTermsForUi(p2Glossary.longDesc)}</Text>
-              </View>
-            )}
-
-            <View style={[s.hookSection, { backgroundColor: accentColor + '0F' }]}>
-              <Text style={[s.hookLabel, { color: accentColor }]}>Sana Ozel</Text>
-              <Text style={s.hookText}>{translateAstroTermsForUi(hookText)}</Text>
-            </View>
-
-            <TouchableOpacity
-              style={[s.closeButton, { backgroundColor: accentColor }]}
-              onPress={onClose}
-              accessibilityLabel="Kapat"
-              accessibilityRole="button"
+          <Reanimated.View style={animatedStyle}>
+            <ScrollView
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={s.scrollContent}
             >
-              <Text style={s.closeButtonText}>Kapat</Text>
-            </TouchableOpacity>
-          </ScrollView>
+              <GestureDetector gesture={gesture}>
+                <View>
+                  <View style={s.handleBar} />
+                  <View style={s.header}>
+                    <View style={s.symbolRow}>
+                      <Text style={[s.planetSymbol, { color: accentColor }]}>{p1Sym}</Text>
+                      <Text style={[s.aspectSymbol, { color: accentColor }]}>{aspSym}</Text>
+                      <Text style={[s.planetSymbol, { color: accentColor }]}>{p2Sym}</Text>
+                    </View>
+                    <Text style={s.typeTitle}>{labelAspectType(aspect.type, true)}</Text>
+                    <Text style={s.angleText}>
+                      {formatAspectAngleHuman(aspect)}
+                    </Text>
+                  </View>
+                </View>
+              </GestureDetector>
+
+              <View style={s.section}>
+                <Text style={[s.sectionLabel, { color: accentColor }]}>Bu Aci Ne Anlama Geliyor?</Text>
+                <Text style={s.sectionText}>{translateAstroTermsForUi(glossary.longDesc)}</Text>
+              </View>
+
+              <View style={[s.summaryBox, { backgroundColor: accentColor + '12', borderColor: accentColor + '25' }]}>
+                <Text style={[s.summaryTitle, { color: accentColor }]}>Kozmik Dinamik (Özet)</Text>
+                <Text style={s.summaryText}>
+                  {p1Name} ile {p2Name} arasında {labelAspectType(aspect.type).toLowerCase()} çalışıyor; bu da ilişkili konuda {harmonious ? 'akış ve destek' : 'gerilim üzerinden büyüme'} teması yaratır.
+                </Text>
+              </View>
+
+              {p1Glossary && (
+                <View style={s.section}>
+                  <Text style={[s.sectionLabel, { color: accentColor }]}>
+                    {p1Sym} {p1Name}
+                  </Text>
+                  <Text style={s.sectionText}>{translateAstroTermsForUi(p1Glossary.longDesc)}</Text>
+                </View>
+              )}
+
+              {p2Glossary && (
+                <View style={s.section}>
+                  <Text style={[s.sectionLabel, { color: accentColor }]}>
+                    {p2Sym} {p2Name}
+                  </Text>
+                  <Text style={s.sectionText}>{translateAstroTermsForUi(p2Glossary.longDesc)}</Text>
+                </View>
+              )}
+
+              <View style={[s.hookSection, { backgroundColor: accentColor + '0F' }]}>
+                <Text style={[s.hookLabel, { color: accentColor }]}>Sana Ozel</Text>
+                <Text style={s.hookText}>{translateAstroTermsForUi(hookText)}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[s.closeButton, { backgroundColor: accentColor }]}
+                onPress={onClose}
+                accessibilityLabel="Kapat"
+                accessibilityRole="button"
+              >
+                <Text style={s.closeButtonText}>Kapat</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Reanimated.View>
         </Animated.View>
       </View>
     </Modal>

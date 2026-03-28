@@ -1,7 +1,9 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import type { IoniconName } from '../../constants/icons';
 
 interface ChipProps {
   label: string;
@@ -9,6 +11,7 @@ interface ChipProps {
   selected?: boolean;
   variant?: 'default' | 'primary' | 'success';
   size?: 'sm' | 'md';
+  leftIcon?: IoniconName;
 }
 
 export function Chip({
@@ -17,6 +20,7 @@ export function Chip({
   selected = false,
   variant = 'default',
   size = 'md',
+  leftIcon,
 }: ChipProps) {
   const { colors } = useTheme();
   const s = createStyles(colors);
@@ -41,6 +45,8 @@ export function Chip({
     ? colors.success
     : colors.text;
 
+  const iconSize = size === 'sm' ? 12 : 14;
+
   return (
     <Pressable
       onPress={onPress}
@@ -48,6 +54,7 @@ export function Chip({
       style={({ pressed }) => [
         s.chip,
         size === 'sm' && s.chipSm,
+        leftIcon != null && s.chipWithIcon,
         { backgroundColor: bgColor, borderColor: selected ? bgColor : colors.border },
         pressed && s.pressed,
       ]}
@@ -55,6 +62,9 @@ export function Chip({
       accessibilityLabel={label}
       accessibilityState={{ selected }}
     >
+      {leftIcon != null && (
+        <Ionicons name={leftIcon} size={iconSize} color={textColor} />
+      )}
       <Text
         style={[
           s.label,
@@ -84,6 +94,10 @@ function createStyles(C: ThemeColors) {
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.xs,
       minHeight: 28,
+    },
+    chipWithIcon: {
+      flexDirection: 'row',
+      gap: 5,
     },
     pressed: {
       opacity: 0.7,

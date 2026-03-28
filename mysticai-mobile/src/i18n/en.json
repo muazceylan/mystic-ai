@@ -52,6 +52,7 @@
     "menu": {
       "nameInfo": "Name Details",
       "birthInfo": "Birth Information",
+      "maritalStatus": "Relationship Status",
       "notifications": "Notifications",
       "theme": "Theme",
       "language": "Language",
@@ -67,6 +68,17 @@
       "pickerError": "Photo could not be selected. Please try again.",
       "uploadError": "Photo upload failed. Please try again.",
       "removeError": "Photo could not be removed. Please try again."
+    },
+    "deleteAccount": {
+      "button": "Permanently Delete Account",
+      "modalTitle": "Delete Account",
+      "modalWarning": "This action cannot be undone. All your data will be permanently deleted and you will no longer be able to access your account.",
+      "passwordLabel": "Enter your password to confirm",
+      "passwordPlaceholder": "Password",
+      "confirm": "Yes, Delete My Account",
+      "cancel": "Cancel",
+      "wrongPassword": "Incorrect password. Please try again.",
+      "error": "Account could not be deleted. Please try again."
     }
   },
   "birthInfo": {
@@ -101,6 +113,13 @@
     "lastNamePlaceholder": "Enter your last name",
     "firstNameRequired": "First name is required.",
     "saveError": "Name details could not be saved. Please try again."
+  },
+  "relationshipStatus": {
+    "title": "Relationship Status",
+    "hint": "This helps personalize your daily guidance, Guru planner, and relationship-oriented content tone.",
+    "required": "Please select your relationship status.",
+    "saveSuccess": "Your relationship status has been updated.",
+    "saveError": "Relationship status could not be updated. Please try again."
   },
   "theme": {
     "title": "Theme",
@@ -190,12 +209,24 @@
     "numerology": "Numerology",
     "premium": "Premium",
     "privacy": "Privacy",
+    "terms": "Terms of Use",
     "security": "Security",
     "themeSettings": "Theme Settings",
     "tutorialCenter": "Guide Center",
     "linkAccount": "Link Account"
   },
   "zodiac": {
+    "aries": "Aries",
+    "taurus": "Taurus",
+    "gemini": "Gemini",
+    "cancer": "Cancer",
+    "leo": "Leo",
+    "virgo": "Virgo",
+    "libra": "Libra",
+    "scorpio": "Scorpio",
+    "sagittarius": "Sagittarius",
+    "capricorn": "Capricorn",
+    "aquarius": "Aquarius",
     "pisces": "Pisces"
   },
   "homeSurface": {
@@ -1095,6 +1126,17 @@
   "auth": {
     "welcomeTitle": "Welcome",
     "welcomeSubtitle": "Ready to meet your stars?",
+    "welcomeEyebrow": "Private Cosmic Access",
+    "welcomeSignal": "Personalized and secure",
+    "welcomeBlurb": "Unlock your chart, dream archive, and daily guidance in one polished space designed around you.",
+    "welcomeFeatureCharts": "Private chart vault",
+    "welcomeFeatureDaily": "Daily guidance",
+    "welcomeFeatureSync": "Cross-device sync",
+    "memberAccessEyebrow": "Member access",
+    "altAccessEyebrow": "Faster entry",
+    "altAccessSubtitle": "Continue with a trusted account or explore as a guest.",
+    "quickStartTitle": "Explore instantly",
+    "quickStartHint": "Start as guest now, link later.",
     "loginWithApple": "Sign in with Apple",
     "loginWithGoogle": "Sign in with Google",
     "loginWithEmail": "Sign in with Email",
@@ -1145,9 +1187,6 @@
     "minute": "Minute",
     "birthLocationTitle": "Your Place of Birth?",
     "birthLocationSubtitle": "You can select your country, city and district.",
-    "focusPointTitle": "Your Focus Point?",
-    "focusPointSubtitle": "What do you think is your focus in life?",
-    "focusPointHint": "You can select up to 3",
     "genderTitle": "Your Gender",
     "genderSubtitle": "You cannot change this later",
     "maritalTitle": "Marital Status",
@@ -1203,6 +1242,13 @@
       "conflictResend": "Resend verification email",
       "conflictChangeEmail": "Change email"
     },
+    "legal": {
+      "description": "By continuing, you agree to our Terms of Use and Privacy Policy.",
+      "termsLink": "Terms of Use",
+      "privacyLink": "Privacy Policy",
+      "termsLinkA11y": "Open the Terms of Use",
+      "privacyLinkA11y": "Open the Privacy Policy"
+    },
     "verifyPending": {
       "title": "Verify your email",
       "subtitle": "We sent a 6-digit verification code to your email address. Enter the code to activate your account.",
@@ -1234,28 +1280,6 @@
       "resendError": "Could not request a new verification email right now.",
       "goToLogin": "Go to login"
     }
-  },
-  "focusPoints": {
-    "career": "Career",
-    "careerDesc": "Work and profession",
-    "love": "Love",
-    "loveDesc": "Romantic relationships",
-    "money": "Money",
-    "moneyDesc": "Financial abundance",
-    "health": "Health",
-    "healthDesc": "Physical wellness",
-    "family": "Family",
-    "familyDesc": "Family relations",
-    "spiritual": "Spiritual",
-    "spiritualDesc": "Spirituality",
-    "beauty": "Beauty",
-    "beautyDesc": "Beauty & Care",
-    "finance": "Finance",
-    "financeDesc": "Finance & Investment",
-    "social": "Social",
-    "socialDesc": "Social life",
-    "home": "Home",
-    "homeDesc": "Home & Living"
   },
   "gender": {
     "female": "Female",
@@ -1358,12 +1382,29 @@
     "reminderUnsupportedBody": "Local reminders are only supported on mobile devices.",
     "reminderPastTimeTitle": "Invalid reminder time",
     "reminderPastTimeBody": "Choose a future date and time for this reminder.",
-    "reminderNotificationTitleDo": "Guru Planner • {{category}}",
-    "reminderNotificationTitleAvoid": "Guru Planner • Caution",
-    "reminderNotificationTitleWindow": "Guru Planner • Strong Window",
-    "reminderNotificationBodyDo": "Your {{category}} window starts at {{time}}. Open daily recommendations now.",
-    "reminderNotificationBodyAvoid": "Move carefully in {{category}} from {{time}} onward. Review your avoid list.",
-    "reminderNotificationBodyWindow": "A strong {{category}} window opens at {{time}}. Return to the planner for details.",
+    "reminderNotificationTitleDo": "Guru Planner • {{category}} time",
+    "reminderNotificationTitleAvoid": "Guru Planner • {{category}} caution",
+    "reminderNotificationTitleWindow": "Guru Planner • {{category}} window",
+    "reminderNotificationBodyDo": "{{hook}} Make your move in {{category}} at {{time}}.",
+    "reminderNotificationBodyAvoid": "{{hook}} Slow down in {{category}} after {{time}} and move with care.",
+    "reminderNotificationBodyWindow": "{{hook}} A strong {{category}} window opens at {{time}}. Jump back into the planner for details.",
+    "reminderNotificationHooks": {
+      "default": "The sky is nudging you.",
+      "transit": "The cosmic current is on your side.",
+      "moon": "Moon energy is sharpening your intuition.",
+      "date": "Romance energy is warming up.",
+      "marriage": "Long-term bonds feel extra sensitive today.",
+      "partnerHarmony": "Relationship balance is easier to build now.",
+      "family": "Home and family energy is moving to the front.",
+      "jointFinance": "Shared money topics need extra care.",
+      "beauty": "Beauty and self-care energy is glowing.",
+      "health": "Your body is asking for more attention today.",
+      "activity": "Momentum is opening a lane for action.",
+      "official": "Official matters reward detail right now.",
+      "spiritual": "Your spiritual channel feels more open.",
+      "color": "Color frequency is working in your favor today.",
+      "recommendations": "Today's smartest moves are becoming clear."
+    },
     "GuruPotential": "Guru Potential",
     "dosTitle": "Do Today",
     "dontsTitle": "Avoid Today",
@@ -1463,6 +1504,7 @@
     "retry": "Try again",
     "refreshChart": "Refresh my chart",
     "checkAgain": "Check again",
+    "profileSwitcherTitle": "Guru Chart Profiles",
     "bigThree": "Big Three",
     "conjunction": "Conjunction",
     "opposition": "Opposition",
@@ -1504,6 +1546,47 @@
     "birthNightSubtitle": "Your personal night map",
     "birthNightCta": "Open Poster Studio",
     "birthNightOpenPoster": "Create your birth night sky poster"
+  },
+  "nightSkyPosterPreview": {
+    "headerSubtitle": "Open your personal sky and prepare a shareable poster.",
+    "styleTitle": "Visual style",
+    "styleSubtitle": "Switching styles regenerates the share poster.",
+    "syncing": "Syncing…",
+    "variants": {
+      "minimal": {
+        "label": "Minimal",
+        "sub": "Clean / quiet"
+      },
+      "constellation": {
+        "label": "Constellation",
+        "sub": "Denser sky lines"
+      },
+      "gold": {
+        "label": "Gold Edition",
+        "sub": "Warm gilded glow"
+      }
+    },
+    "loaderTitle": "Preparing poster…",
+    "loaderSubtitle": "A 9:16 high-resolution image is being rendered.",
+    "errorTitle": "Poster could not be created",
+    "projectionMeta": "{{timezone}} • Swiss Ephemeris horizontal coords",
+    "fallbackMeta": "Local fallback composition",
+    "share": "Share",
+    "instagram": "Instagram Story",
+    "gallery": "Gallery",
+    "pdf": "Share PDF",
+    "refresh": "Refresh poster",
+    "illumination": "Illumination",
+    "successShare": "Share sheet opened",
+    "successSystemShare": "System share opened",
+    "successInstagram": "Instagram Story started",
+    "successSave": "Card saved to gallery",
+    "successPdf": "PDF prepared",
+    "emptyLoadingTitle": "Loading chart…",
+    "emptyLoadingSubtitle": "Your birth chart is being prepared. Please wait.",
+    "emptyTitle": "Night sky data could not be found",
+    "emptySubtitle": "Create your birth chart first from the My Chart screen.",
+    "missingChartMessage": "Your birth chart could not be found. Please create it first from the My Chart screen."
   },
   "notificationPermission": {
     "title": "Enable Notifications",
@@ -1564,7 +1647,7 @@
     "faq4q": "How can I cancel Premium?",
     "faq4a": "iOS: Settings → Apple ID → Subscriptions → Astro Guru. Android: Play Store → Account → Subscriptions → Astro Guru.",
     "faq5q": "How can I delete my data?",
-    "faq5a": "Send an email to support@mystic.ai with the subject \"Account Deletion Request\" for account and all data deletion."
+    "faq5a": "Send an email to support@astroguru.app with the subject \"Account Deletion Request\" for account and all data deletion."
   },
   "privacy": {
     "title": "Privacy Policy",
@@ -1577,9 +1660,28 @@
     "section3Title": "Third-Party Sharing",
     "section3Body": "Your data is not sold to third parties. Only anonymous content is sent to the model used for generating AI interpretations.",
     "section4Title": "Your Data Control",
-    "section4Body": "You can delete your account and all data at any time. Contact support@mystic.ai for data access and deletion requests.",
+    "section4Body": "You can delete your account and all data at any time. Contact support@astroguru.app for data access and deletion requests.",
     "section5Title": "Cookies and Tracking",
-    "section5Body": "The mobile app uses only anonymous session data for analytics. No advertising tracking cookies are used."
+    "section5Body": "The mobile app uses only anonymous session data for analytics. No advertising tracking cookies are used.",
+    "contactEmail": "support@astroguru.app",
+    "contactAccessibility": "Contact support by email"
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "useResponsibly": "Use Astro Guru responsibly",
+    "lastUpdate": "Last updated: February 2026",
+    "section1Title": "Service Scope",
+    "section1Body": "Astro Guru provides astrology, numerology, dream, and spiritual guidance content for informational and entertainment purposes. It does not replace medical, legal, financial, or professional advice.",
+    "section2Title": "Accounts and Security",
+    "section2Body": "You are responsible for keeping your login credentials secure and for the activity performed through your account. Please use accurate information during registration and keep your profile up to date.",
+    "section3Title": "Premium Features and Billing",
+    "section3Body": "If premium plans, subscriptions, or consumable purchases are offered, pricing is shown before confirmation and billing is handled by Apple App Store or Google Play according to their store terms.",
+    "section4Title": "Acceptable Use",
+    "section4Body": "Do not misuse the app, attempt unauthorized access, interfere with other users, or upload unlawful, harmful, or abusive content. Accounts may be limited or suspended to protect the service and community.",
+    "section5Title": "Updates and Contact",
+    "section5Body": "These terms may be updated as the product evolves. Continued use after an update means you accept the revised terms. Contact us for questions about the service or your account.",
+    "contactEmail": "support@astroguru.app",
+    "contactAccessibility": "Contact support by email"
   },
   "notifications": {
     "title": "Notifications",
@@ -1621,6 +1723,57 @@
     "retryAnalysisAccessibility": "Retry analysis",
     "analysisStartErrorTitle": "Analysis Error",
     "analysisStartErrorMessage": "The synastry analysis could not be started."
+  },
+  "tutorialCenter": {
+    "refreshAccessibility": "Refresh guide center",
+    "heroTitle": "Manage All Guides From Here",
+    "heroBody": "You can review tutorial states, reopen them, and reset progress one by one or all at once.",
+    "heroPrimaryAction": "Open Global Onboarding",
+    "heroSecondaryAction": "Reset All",
+    "sections": {
+      "general": "General",
+      "core": "Core Modules",
+      "secondary": "Other Modules"
+    },
+    "status": {
+      "completed": "Completed",
+      "skipped": "Skipped",
+      "dismissed": "Do Not Show Again",
+      "notStarted": "Not Started"
+    },
+    "metaVersion": "Version: v{{version}}",
+    "metaLastSeen": "Last seen: {{value}}",
+    "actions": {
+      "reopen": "Reopen",
+      "resetProgress": "Reset Progress",
+      "reopenAccessibility": "Reopen guide for {{name}}",
+      "resetAccessibility": "Reset progress for {{name}}"
+    },
+    "toggleTitle": "Do not auto-show again",
+    "toggleSub": "When enabled, it will not trigger automatically on first use.",
+    "empty": "There are no guides to manage yet.",
+    "alerts": {
+      "resetAllTitle": "Reset all guides",
+      "resetAllBody": "All tutorial progress will be cleared. Do you want to continue?",
+      "resetSingleTitle": "Reset progress",
+      "resetSingleBody": "Reset guide progress for {{name}}?",
+      "cancel": "Cancel",
+      "confirm": "Reset"
+    },
+    "screens": {
+      "globalOnboarding": "Global Onboarding",
+      "home": "Home",
+      "dailyTransits": "Daily Transits",
+      "cosmicPlanner": "Cosmic Planner",
+      "decisionCompass": "Decision Compass",
+      "compatibility": "Compatibility",
+      "birthChart": "Birth Chart",
+      "dreams": "Dreams",
+      "numerology": "Numerology",
+      "nameAnalysis": "Name Analysis",
+      "spiritualPractice": "Spiritual Practice",
+      "profile": "Profile"
+    }
   },
   "editBirthInfo": {
     "title": "Birth Information",
@@ -1784,6 +1937,14 @@
     "daysAgo": "{{count}}d ago",
     "emptyTitle": "No notifications yet",
     "emptyBody": "Guru updates and reminders will appear here.",
+    "emptyDailyTitle": "Your daily flow is getting ready",
+    "emptyDailyBody": "Daily summaries and intraday energy updates will appear here.",
+    "emptyReminderTitle": "Reminders will show up here",
+    "emptyReminderBody": "Dream, planner, prayer, and meditation reminders land in this section.",
+    "emptyWeeklyTitle": "No weekly summary yet",
+    "emptyWeeklyBody": "Your weekly analysis accumulates here on Mondays.",
+    "emptySystemTitle": "System updates are quiet right now",
+    "emptySystemBody": "Module nudges, product updates, and important result alerts appear here.",
     "errorTitle": "Failed to load",
     "errorBody": "There was a problem loading notifications.",
     "retry": "Try again"
@@ -1793,7 +1954,7 @@
     "hint": "Manage the notifications and preferences you'd like to receive.",
     "sectionMain": "Main Notifications",
     "sectionReminders": "Reminders",
-    "sectionOther": "Other",
+    "sectionOther": "System & Device",
     "sectionFrequency": "Notification Frequency",
     "sectionTimeSlot": "Preferred Time",
     "sectionQuietHours": "Quiet Hours",
@@ -1820,11 +1981,16 @@
     "freqLow": "Low",
     "freqBalanced": "Balanced",
     "freqFrequent": "More Often",
+    "freqLowDesc": "Receive at most 1 push per day. A calmer flow with only the essentials.",
+    "freqBalancedDesc": "Receive at most 2 pushes per day. Daily, weekly, and key system updates stay balanced.",
+    "freqFrequentDesc": "Receive at most 4 pushes per day. Intraday energy and module nudges become more visible.",
     "slotMorning": "Morning",
     "slotNoon": "Noon",
     "slotEvening": "Evening",
     "quietStart": "Quiet hours start",
     "quietEnd": "Quiet hours end",
+    "pushPermissionDenied": "Device notification permission is not enabled. Turn it on in system settings to use push notifications.",
+    "saveError": "Could not save notification settings. Please try again.",
     "systemSettings": "Device notification settings",
     "footnote": "System notifications can also be managed from device settings."
   },
@@ -1833,6 +1999,13 @@
     "accessibilityLabel": "Sign in quickly without registering",
     "loading": "Starting session...",
     "error": "Could not start session. Please try again."
+  },
+  "guestName": {
+    "heading": "What Should We Call You?",
+    "sub": "Enter a name or continue anonymously. You can always change it later.",
+    "placeholder": "Your name (optional)",
+    "continue": "Continue",
+    "skip": "Skip, continue anonymously"
   },
   "guestBanner": {
     "title": "Temporary Session",

@@ -13,7 +13,6 @@ public record OracleInterpretationRequest(
         String name,
         String birthDate,
         String maritalStatus,
-        String focusPoint,
 
         // Numerology
         Integer lifePathNumber,

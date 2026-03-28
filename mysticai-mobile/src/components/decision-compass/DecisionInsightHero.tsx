@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import type { DecisionHeroModel } from './model';
+import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
 import { getCompassTokens } from './tokens';
 
 interface DecisionInsightHeroProps {
@@ -36,7 +37,7 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
             <View pointerEvents="none" style={S.topSectionMist} />
 
             <View style={S.kickerRow}>
-              <Ionicons name="sparkles" size={16} color={isDark ? '#E9DDFD' : '#8A61E8'} />
+              <DecisionCompassPremiumBadge iconName="sparkles" tone="hero" size="xs" />
               <Text style={S.kicker}>GÜNÜN İÇGÖRÜSÜ</Text>
             </View>
             <Text style={S.headline}>{hero.headline}</Text>
@@ -58,6 +59,7 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
           end={{ x: 1, y: 1 }}
           style={[S.actionModule, compactActions && S.actionModuleCompact]}
         >
+          <View pointerEvents="none" style={S.actionModuleGlow} />
           <View style={S.actionColumn}>
             <View style={S.actionHeader}>
               <Text style={S.actionTitle}>Bugün yap</Text>
@@ -65,9 +67,7 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
             </View>
             {hero.doItems.slice(0, 3).map((item, index) => (
               <View key={`do-${index}`} style={S.actionRow}>
-                <View style={S.actionDot}>
-                  <Ionicons name="checkmark" size={12} color={colors.primary} />
-                </View>
+                <DecisionCompassPremiumBadge iconName="checkmark" tone="supportive" size="xs" />
                 <Text style={S.actionText}>{item}</Text>
               </View>
             ))}
@@ -82,9 +82,7 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
             </View>
             {hero.avoidItems.slice(0, 2).map((item, index) => (
               <View key={`avoid-${index}`} style={S.actionRow}>
-                <View style={S.warnDot}>
-                  <Ionicons name="ellipse-outline" size={11} color="#B05B86" />
-                </View>
+                <DecisionCompassPremiumBadge iconName="warning-outline" tone="caution" size="xs" />
                 <Text style={S.actionText}>{item}</Text>
               </View>
             ))}
@@ -222,6 +220,17 @@ function styles(
       paddingVertical: 11,
       flexDirection: 'row',
       gap: 10,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    actionModuleGlow: {
+      position: 'absolute',
+      top: 1,
+      left: 10,
+      right: 10,
+      height: 16,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.44)',
     },
     actionModuleCompact: {
       flexDirection: 'column',
@@ -260,26 +269,6 @@ function styles(
       alignItems: 'flex-start',
       gap: 8,
       minWidth: 0,
-    },
-    actionDot: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(240,231,255,0.92)',
-      borderWidth: 1,
-      borderColor: T.border.soft,
-    },
-    warnDot: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(255,239,247,0.94)',
-      borderWidth: 1,
-      borderColor: 'rgba(234,192,216,0.72)',
     },
     actionText: {
       flex: 1,

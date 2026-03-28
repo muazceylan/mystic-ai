@@ -45,7 +45,8 @@ function LunarPhaseBadge({ model, label }: Props) {
     <View style={styles.root}>
       {/* moon icon */}
       <View style={styles.moonWrap}>
-        <Svg width={24} height={24} viewBox="0 0 24 24">
+        <View style={styles.moonHalo} />
+        <Svg width={34} height={34} viewBox="0 0 24 24">
           <Defs>
             <ClipPath id="phase-badge-clip">
               <Circle cx={12} cy={12} r={9} />
@@ -76,31 +77,44 @@ const styles = StyleSheet.create({
   root: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   moonWrap: {
-    width: 24,
-    height: 24,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(214,189,123,0.24)',
+    backgroundColor: 'rgba(12,15,28,0.92)',
+    overflow: 'hidden',
+  },
+  moonHalo: {
+    position: 'absolute',
+    width: 52,
+    height: 52,
+    borderRadius: 999,
+    backgroundColor: 'rgba(232,200,117,0.08)',
   },
   phaseText: {
-    color: 'rgba(220,210,190,0.7)',
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 0.3,
+    color: 'rgba(234,223,196,0.92)',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    fontFamily: displaySerif,
   },
   separator: {
-    color: 'rgba(200,175,110,0.5)',
-    fontSize: 12,
+    color: 'rgba(214,189,123,0.72)',
+    fontSize: 15,
     fontWeight: '300',
   },
   illumination: {
-    color: 'rgba(215,190,120,0.85)',
-    fontSize: 12,
+    color: 'rgba(232,204,135,0.96)',
+    fontSize: 17,
     fontWeight: '700',
     fontFamily: displaySerif,
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
 });
 

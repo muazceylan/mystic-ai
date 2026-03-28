@@ -23,23 +23,19 @@ import {
   notifEventPayload,
   NotificationEvent,
 } from '../utils/notificationAnalytics';
+import {
+  NOTIFICATION_CATEGORY_ICONS,
+  STATE_ICONS,
+  ACTION_ICONS,
+} from '../constants/icons';
 
 const CATEGORY_FILTERS = [
   { key: null, labelKey: 'notifCenter.filterAll' },
-  { key: 'DAILY', labelKey: 'notifCenter.filterDaily' },
+  { key: 'DAILY,INTRADAY', labelKey: 'notifCenter.filterDaily' },
   { key: 'REMINDER', labelKey: 'notifCenter.filterReminders' },
   { key: 'WEEKLY', labelKey: 'notifCenter.filterWeekly' },
-  { key: 'SYSTEM', labelKey: 'notifCenter.filterSystem' },
+  { key: 'SYSTEM,BEHAVIORAL', labelKey: 'notifCenter.filterSystem' },
 ] as const;
-
-const CATEGORY_ICONS: Record<string, string> = {
-  DAILY: 'sunny-outline',
-  INTRADAY: 'time-outline',
-  WEEKLY: 'calendar-outline',
-  REMINDER: 'alarm-outline',
-  BEHAVIORAL: 'pulse-outline',
-  SYSTEM: 'information-circle-outline',
-};
 
 const CATEGORY_COLOR_KEY: Record<string, keyof ThemeColors> = {
   DAILY: 'warning',
@@ -50,7 +46,10 @@ const CATEGORY_COLOR_KEY: Record<string, keyof ThemeColors> = {
   SYSTEM: 'subtext',
 };
 
-function getRelativeTime(dateStr: string, t: (k: string) => string): string {
+function getRelativeTime(
+  dateStr: string,
+  t: (k: string, options?: Record<string, unknown>) => string
+): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -66,7 +65,10 @@ function getRelativeTime(dateStr: string, t: (k: string) => string): string {
   return date.toLocaleDateString();
 }
 
-function getDateGroup(dateStr: string, t: (k: string) => string): string {
+function getDateGroup(
+  dateStr: string,
+  t: (k: string, options?: Record<string, unknown>) => string
+): string {
   const date = new Date(dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -87,7 +89,7 @@ interface NotificationSection {
 
 function groupNotifications(
   items: NotificationItem[],
-  t: (k: string) => string
+  t: (k: string, options?: Record<string, unknown>) => string
 ): NotificationSection[] {
   const sectionMap = new Map<string, NotificationItem[]>();
 
@@ -110,13 +112,13 @@ function NotificationRow({
 }: {
   item: NotificationItem;
   colors: ThemeColors;
-  t: (k: string) => string;
+  t: (k: string, options?: Record<string, unknown>) => string;
   onPress: () => void;
 }) {
   const isUnread = item.status === 'UNREAD';
   // unseen = hasn't appeared in notification center yet (stronger highlight)
   const isUnseen = isUnread && !item.seenAt;
-  const iconName = CATEGORY_ICONS[item.category] ?? 'notifications-outline';
+  const iconName = NOTIFICATION_CATEGORY_ICONS[item.category] ?? ACTION_ICONS.notify;
   const iconColorKey = CATEGORY_COLOR_KEY[item.category] ?? 'primary';
   const iconColor = colors[iconColorKey] as string;
 
@@ -186,17 +188,57 @@ function LoadingSkeleton({ colors }: { colors: ThemeColors }) {
   );
 }
 
-function EmptyState({ colors, t }: { colors: ThemeColors; t: (k: string) => string }) {
+function getEmptyCopy(activeCategory: string | null) {
+  switch (activeCategory) {
+    case 'DAILY,INTRADAY':
+      return {
+        titleKey: 'notifCenter.emptyDailyTitle',
+        bodyKey: 'notifCenter.emptyDailyBody',
+      };
+    case 'REMINDER':
+      return {
+        titleKey: 'notifCenter.emptyReminderTitle',
+        bodyKey: 'notifCenter.emptyReminderBody',
+      };
+    case 'WEEKLY':
+      return {
+        titleKey: 'notifCenter.emptyWeeklyTitle',
+        bodyKey: 'notifCenter.emptyWeeklyBody',
+      };
+    case 'SYSTEM,BEHAVIORAL':
+      return {
+        titleKey: 'notifCenter.emptySystemTitle',
+        bodyKey: 'notifCenter.emptySystemBody',
+      };
+    default:
+      return {
+        titleKey: 'notifCenter.emptyTitle',
+        bodyKey: 'notifCenter.emptyBody',
+      };
+  }
+}
+
+function EmptyState({
+  colors,
+  t,
+  activeCategory,
+}: {
+  colors: ThemeColors;
+  t: (k: string, options?: Record<string, unknown>) => string;
+  activeCategory: string | null;
+}) {
+  const copy = getEmptyCopy(activeCategory);
+
   return (
     <View style={styles.emptyContainer}>
       <View style={[styles.emptyIcon, { backgroundColor: colors.primarySoftBg }]}>
-        <Ionicons name="notifications-off-outline" size={32} color={colors.primary} />
+        <Ionicons name={STATE_ICONS.noNotifications} size={32} color={colors.primary} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        {t('notifCenter.emptyTitle')}
+        {t(copy.titleKey)}
       </Text>
       <Text style={[styles.emptyBody, { color: colors.subtext }]}>
-        {t('notifCenter.emptyBody')}
+        {t(copy.bodyKey)}
       </Text>
     </View>
   );
@@ -208,13 +250,13 @@ function ErrorState({
   onRetry,
 }: {
   colors: ThemeColors;
-  t: (k: string) => string;
+  t: (k: string, options?: Record<string, unknown>) => string;
   onRetry: () => void;
 }) {
   return (
     <View style={styles.emptyContainer}>
       <View style={[styles.emptyIcon, { backgroundColor: colors.warningBg }]}>
-        <Ionicons name="warning-outline" size={32} color={colors.warning} />
+        <Ionicons name={ACTION_ICONS.warning} size={32} color={colors.warning} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
         {t('notifCenter.errorTitle')}
@@ -400,7 +442,7 @@ export default function NotificationsScreen() {
         ) : error ? (
           <ErrorState colors={colors} t={t} onRetry={() => fetchNotifications(true)} />
         ) : notifications.length === 0 ? (
-          <EmptyState colors={colors} t={t} />
+          <EmptyState colors={colors} t={t} activeCategory={activeCategory} />
         ) : (
           <SectionList
             sections={sections}
@@ -426,7 +468,7 @@ export default function NotificationsScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('notifCenter.settings')}
           >
-            <Ionicons name="settings-outline" size={15} color={colors.text} />
+            <Ionicons name={ACTION_ICONS.settings} size={15} color={colors.text} />
             <Text style={[styles.settingsBtnText, { color: colors.text }]}>
               {t('notifCenter.settings')}
             </Text>

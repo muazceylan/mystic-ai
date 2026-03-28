@@ -46,6 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -310,6 +311,15 @@ public class AuthController {
     public ResponseEntity<UserDTO> removeAvatar(@RequestHeader("X-User-Id") Long userId) {
         UserDTO updated = authService.removeAvatar(userId);
         return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/account")
+    public ResponseEntity<Void> deleteAccount(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody(required = false) Map<String, String> body) {
+        String password = body != null ? body.get("password") : null;
+        authService.deleteAccount(userId, password);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/profile/avatar/{userId}")

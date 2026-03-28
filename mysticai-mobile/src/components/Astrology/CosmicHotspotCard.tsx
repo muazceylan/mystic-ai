@@ -94,9 +94,15 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
     >
       {/* Planet symbols row */}
       <View style={s.symbolRow}>
-        <Text style={[s.planetSymbol, { color: glowColor }]}>{p1Sym}</Text>
-        <Text style={[s.aspectSymbol, { color: glowColor }]}>{aspSym}</Text>
-        <Text style={[s.planetSymbol, { color: glowColor }]}>{p2Sym}</Text>
+        <View style={s.symbolBadge}>
+          <Text style={[s.planetSymbol, { color: glowColor }]}>{p1Sym}</Text>
+        </View>
+        <View style={[s.symbolBadge, s.aspectBadge, { borderColor: `${glowColor}44` }]}>
+          <Text style={[s.aspectSymbol, { color: glowColor }]}>{aspSym}</Text>
+        </View>
+        <View style={s.symbolBadge}>
+          <Text style={[s.planetSymbol, { color: glowColor }]}>{p2Sym}</Text>
+        </View>
       </View>
 
       {/* Names and angle */}
@@ -134,10 +140,24 @@ function createStyles(C: ThemeColors) {
     symbolRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
     },
-    planetSymbol: { fontSize: 28, fontWeight: '600' },
-    aspectSymbol: { fontSize: 18, fontWeight: '400' },
+    symbolBadge: {
+      minWidth: 38,
+      height: 38,
+      paddingHorizontal: 8,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.surfaceAlt,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    aspectBadge: {
+      backgroundColor: C.primarySoftBg,
+    },
+    planetSymbol: { fontSize: 24, fontWeight: '700' },
+    aspectSymbol: { fontSize: 16, fontWeight: '700' },
     namesText: {
       fontSize: 13,
       fontWeight: '700',

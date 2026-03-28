@@ -80,9 +80,6 @@ public class User {
     @Column(name = "marital_status", length = 30)
     private String maritalStatus;
 
-    @Column(name = "focus_point", length = 200)
-    private String focusPoint;
-
     @Column(name = "zodiac_sign", length = 50)
     private String zodiacSign;
 

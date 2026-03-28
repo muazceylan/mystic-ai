@@ -38,6 +38,7 @@ const SURFACE_TITLE_MAP: Array<[string, string]> = [
   ['/numerology', 'surfaceTitles.numerology'],
   ['/premium', 'surfaceTitles.premium'],
   ['/privacy', 'surfaceTitles.privacy'],
+  ['/terms', 'surfaceTitles.terms'],
   ['/security', 'surfaceTitles.security'],
   ['/theme-settings', 'surfaceTitles.themeSettings'],
   ['/tutorial-center', 'surfaceTitles.tutorialCenter'],

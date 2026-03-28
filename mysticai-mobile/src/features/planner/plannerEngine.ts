@@ -405,7 +405,6 @@ const RELATIONSHIP_PINNED_CATEGORIES: Partial<Record<RelationshipMode, PlannerCa
 function resolveRelationshipMode(user: UserProfile | null): RelationshipMode {
   const marital = normalizeText(user?.maritalStatus);
   const stage = normalizeText(user?.relationshipStage);
-  const focus = normalizeText(user?.focusPoint);
 
   if (/(nisan|nişan|engaged|fiance|fiancé)/.test(marital) || /(engaged|fiance|fiancé|nisan|nişanlı)/.test(stage)) {
     return 'engaged';
@@ -424,10 +423,6 @@ function resolveRelationshipMode(user: UserProfile | null): RelationshipMode {
   if (/(dating|flort|flört|seeing|talking)/.test(stage)) return 'dating';
   if (/(not.?looking|kapali|kapalı|yalniz|yalnız|self)/.test(stage)) return 'single_not_looking';
   if (/(open|date|dating|flort|flört|ask|aşk|love|iliski|ilişki)/.test(stage)) return 'single_open';
-
-  if (/(ask|aşk|love|iliski|ilişki|romance|dating|flort|flört)/.test(focus)) {
-    return 'single_open';
-  }
   return 'single_not_looking';
 }
 
@@ -445,7 +440,7 @@ export function extractInterestTags(user: UserProfile | null): Set<PlannerTag> {
     tags.add('family');
     tags.add('social');
   }
-  const raw = `${user?.focusPoint ?? ''},${user?.maritalStatus ?? ''},${user?.relationshipStage ?? ''},${user?.gender ?? ''},${user?.hasChildren ?? ''}`
+  const raw = `${user?.maritalStatus ?? ''},${user?.relationshipStage ?? ''},${user?.gender ?? ''},${user?.hasChildren ?? ''}`
     .toLowerCase();
 
   if (/(para|finans|money|yatirim|investment|borsa|trade|ticaret)/.test(raw)) {

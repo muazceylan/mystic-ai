@@ -9,6 +9,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
@@ -18,6 +19,7 @@ import { ErrorStateCard } from './ui';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../constants/colors';
+import { useBottomSheetDragGesture } from './ui/useBottomSheetDragGesture';
 
 const HOUSE_COLORS: Record<string, string> = {
   '1. Ev': COLORS.house1, '2. Ev': COLORS.house2, '3. Ev': COLORS.house3,
@@ -49,6 +51,11 @@ export default function DreamDictionary({ userId }: Props) {
   const [selectedSymbol, setSelectedSymbol] = useState<SymbolInsight | null>(null);
   const [meaning, setMeaning] = useState<SymbolMeaning | null>(null);
   const [meaningLoading, setMeaningLoading] = useState(false);
+  const closeSymbolModal = useCallback(() => setSelectedSymbol(null), []);
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: !!selectedSymbol,
+    onClose: closeSymbolModal,
+  });
 
   useEffect(() => {
     fetchAnalytics(userId);
@@ -182,15 +189,17 @@ export default function DreamDictionary({ userId }: Props) {
         visible={!!selectedSymbol}
         animationType="slide"
         transparent
-        onRequestClose={() => setSelectedSymbol(null)}
+        onRequestClose={closeSymbolModal}
       >
         <View style={s.modalOverlay}>
-          <View style={s.modalSheet}>
-            <View style={s.modalHandle} />
+          <Animated.View style={[s.modalSheet, animatedStyle]}>
+            <GestureDetector gesture={gesture}>
+              <View style={s.modalHandle} />
+            </GestureDetector>
 
             <TouchableOpacity
               style={s.modalClose}
-              onPress={() => setSelectedSymbol(null)}
+              onPress={closeSymbolModal}
               accessibilityLabel={t('dreamDictionary.closeModal')}
               accessibilityRole="button"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -254,7 +263,7 @@ export default function DreamDictionary({ userId }: Props) {
                 ) : null}
               </ScrollView>
             )}
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>

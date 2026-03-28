@@ -52,6 +52,7 @@
     "menu": {
       "nameInfo": "İsim Bilgileri",
       "birthInfo": "Doğum Bilgileri",
+      "maritalStatus": "Medeni Hal",
       "notifications": "Bildirimler",
       "theme": "Tema",
       "language": "Dil",
@@ -67,6 +68,17 @@
       "pickerError": "Fotoğraf seçilemedi. Lütfen tekrar deneyin.",
       "uploadError": "Fotoğraf yüklenemedi. Lütfen tekrar deneyin.",
       "removeError": "Fotoğraf kaldırılamadı. Lütfen tekrar deneyin."
+    },
+    "deleteAccount": {
+      "button": "Hesabı Kalıcı Olarak Sil",
+      "modalTitle": "Hesabı Sil",
+      "modalWarning": "Bu işlem geri alınamaz. Tüm verileriniz kalıcı olarak silinecek ve hesabınıza bir daha erişemeyeceksiniz.",
+      "passwordLabel": "Şifrenizi onaylamak için girin",
+      "passwordPlaceholder": "Şifre",
+      "confirm": "Evet, Hesabımı Sil",
+      "cancel": "Vazgeç",
+      "wrongPassword": "Şifre hatalı. Lütfen tekrar deneyin.",
+      "error": "Hesap silinemedi. Lütfen tekrar deneyin."
     }
   },
   "birthInfo": {
@@ -101,6 +113,13 @@
     "lastNamePlaceholder": "Soyadını yaz",
     "firstNameRequired": "Ad alanı zorunludur.",
     "saveError": "İsim bilgileri kaydedilemedi. Lütfen tekrar deneyin."
+  },
+  "relationshipStatus": {
+    "title": "Medeni Hal",
+    "hint": "Bu bilgi günlük yorum, Guru planlayıcı ve ilişki temalı içeriğin tonunu kişiselleştirir.",
+    "required": "Lütfen medeni halinizi seçin.",
+    "saveSuccess": "Medeni haliniz güncellendi.",
+    "saveError": "Medeni hal güncellenemedi. Lütfen tekrar deneyin."
   },
   "theme": {
     "title": "Tema",
@@ -190,12 +209,24 @@
     "numerology": "Numeroloji",
     "premium": "Premium",
     "privacy": "Gizlilik",
+    "terms": "Kullanım Koşulları",
     "security": "Güvenlik",
     "themeSettings": "Tema Ayarı",
     "tutorialCenter": "Rehber Merkezi",
     "linkAccount": "Hesabı Bağla"
   },
   "zodiac": {
+    "aries": "Koç",
+    "taurus": "Boğa",
+    "gemini": "İkizler",
+    "cancer": "Yengeç",
+    "leo": "Aslan",
+    "virgo": "Başak",
+    "libra": "Terazi",
+    "scorpio": "Akrep",
+    "sagittarius": "Yay",
+    "capricorn": "Oğlak",
+    "aquarius": "Kova",
     "pisces": "Balık"
   },
   "homeSurface": {
@@ -1094,6 +1125,17 @@
   "auth": {
     "welcomeTitle": "Hoş Geldiniz",
     "welcomeSubtitle": "Yıldızlarınızla tanışmaya hazır mısınız?",
+    "welcomeEyebrow": "Kişisel Kozmik Erişim",
+    "welcomeSignal": "Kişisel ve güvenli",
+    "welcomeBlurb": "Haritanı, rüya arşivini ve günlük rehberliğini sana özel tasarlanmış tek bir özenli alanda buluştur.",
+    "welcomeFeatureCharts": "Özel harita alanı",
+    "welcomeFeatureDaily": "Günlük rehberlik",
+    "welcomeFeatureSync": "Cihazlar arası senkron",
+    "memberAccessEyebrow": "Üye girişi",
+    "altAccessEyebrow": "Daha hızlı giriş",
+    "altAccessSubtitle": "Güvenilir hesabınla devam et ya da misafir olarak keşfet.",
+    "quickStartTitle": "Hemen keşfet",
+    "quickStartHint": "Misafir olarak şimdi başla, sonra bağla.",
     "loginWithApple": "Apple ile Giriş Yap",
     "loginWithGoogle": "Google ile Giriş Yap",
     "loginWithEmail": "E-posta ile Giriş Yap",
@@ -1144,9 +1186,6 @@
     "minute": "Dakika",
     "birthLocationTitle": "Doğum Yeriniz?",
     "birthLocationSubtitle": "Doğduğunuz ülke, il ve ilçeyi seçebilirsiniz.",
-    "focusPointTitle": "Odak Noktan?",
-    "focusPointSubtitle": "Bu hayatta odak noktanın hangisi olduğunu düşünüyorsun?",
-    "focusPointHint": "En fazla 3 seçim yapabilirsiniz",
     "genderTitle": "Cinsiyetin",
     "genderSubtitle": "Cinsiyetinizi sonra değiştiremezsiniz",
     "maritalTitle": "Medeni Haliniz",
@@ -1202,6 +1241,13 @@
       "conflictResend": "Doğrulama mailini tekrar gönder",
       "conflictChangeEmail": "Emaili değiştir"
     },
+    "legal": {
+      "description": "Devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.",
+      "termsLink": "Kullanım Koşulları",
+      "privacyLink": "Gizlilik Politikası",
+      "termsLinkA11y": "Kullanım Koşulları'nı aç",
+      "privacyLinkA11y": "Gizlilik Politikası'nı aç"
+    },
     "verifyPending": {
       "title": "Email adresini doğrula",
       "subtitle": "Email adresine 6 haneli doğrulama kodu gönderdik. Kodu gir ve hesabını aktifleştir.",
@@ -1233,28 +1279,6 @@
       "resendError": "Şu anda yeni doğrulama maili istenemedi.",
       "goToLogin": "Girişe git"
     }
-  },
-  "focusPoints": {
-    "career": "Kariyer",
-    "careerDesc": "İş ve meslek",
-    "love": "Aşk",
-    "loveDesc": "Romantik ilişkiler",
-    "money": "Para",
-    "moneyDesc": "Finansal bolluk",
-    "health": "Sağlık",
-    "healthDesc": "Fiziksel wellness",
-    "family": "Aile",
-    "familyDesc": "Aile ilişkileri",
-    "spiritual": "Ruhani",
-    "spiritualDesc": "Maneviyat",
-    "beauty": "Güzellik",
-    "beautyDesc": "Güzellik & Bakım",
-    "finance": "Finans",
-    "financeDesc": "Finans & Yatırım",
-    "social": "Sosyal",
-    "socialDesc": "Sosyal yaşam",
-    "home": "Ev",
-    "homeDesc": "Ev İşleri"
   },
   "gender": {
     "female": "Kadın",
@@ -1357,12 +1381,29 @@
     "reminderUnsupportedBody": "Yerel hatırlatıcı yalnızca mobil cihazlarda desteklenir.",
     "reminderPastTimeTitle": "Geçersiz hatırlatma saati",
     "reminderPastTimeBody": "Hatırlatıcı için gelecekte bir tarih ve saat seç.",
-    "reminderNotificationTitleDo": "Guru Planlayıcı • {{category}}",
-    "reminderNotificationTitleAvoid": "Guru Planlayıcı • Dikkat",
-    "reminderNotificationTitleWindow": "Guru Planlayıcı • Güçlü Pencere",
-    "reminderNotificationBodyDo": "{{time}} itibarıyla {{category}} için önerilen pencere başladı. Günlük önerileri aç.",
-    "reminderNotificationBodyAvoid": "{{time}} itibarıyla {{category}} alanında temkinli ilerle. Bugün kaçın listesini kontrol et.",
-    "reminderNotificationBodyWindow": "{{time}} itibarıyla {{category}} için güçlü pencere açılıyor. Detayları görmek için planlayıcıya dön.",
+    "reminderNotificationTitleDo": "Guru Planlayıcı • {{category}} zamanı",
+    "reminderNotificationTitleAvoid": "Guru Planlayıcı • {{category}} uyarısı",
+    "reminderNotificationTitleWindow": "Guru Planlayıcı • {{category}} penceresi",
+    "reminderNotificationBodyDo": "{{hook}} {{time}} itibarıyla {{category}} alanında hamleni yap.",
+    "reminderNotificationBodyAvoid": "{{hook}} {{time}} sonrası {{category}} alanında acele etme; temkinli ilerle.",
+    "reminderNotificationBodyWindow": "{{hook}} {{time}} itibarıyla {{category}} için güçlü bir pencere açılıyor. Detayları görmek için planlayıcıya dön.",
+    "reminderNotificationHooks": {
+      "default": "Gökyüzü ritmi seni çağırıyor.",
+      "transit": "Gökyüzü akışı senin tarafında.",
+      "moon": "Ay ritmi sezgini yükseltiyor.",
+      "date": "Flört enerjisi ısınıyor.",
+      "marriage": "Uzun vadeli bağlar bugün hassas.",
+      "partnerHarmony": "İlişkide uyum kurmak kolaylaşıyor.",
+      "family": "Ev ve aile teması öne çıkıyor.",
+      "jointFinance": "Ortak para başlıkları dikkat istiyor.",
+      "beauty": "Bakım ve görünüm enerjisi parlıyor.",
+      "health": "Bedenin bugün daha fazla özen istiyor.",
+      "activity": "Tempo ve hareket alanı açılıyor.",
+      "official": "Resmi işlerde detaylar önem kazanıyor.",
+      "spiritual": "Ruhsal alan daha açık ve akışta.",
+      "color": "Renk frekansın bugün seni destekliyor.",
+      "recommendations": "Günün en iyi seçimleri netleşiyor."
+    },
     "cosmicPotential": "Guru Potansiyel",
     "dosTitle": "Bugün Yap",
     "dontsTitle": "Bugün Kaçın",
@@ -1462,6 +1503,7 @@
     "retry": "Tekrar dene",
     "refreshChart": "Haritamı yenile",
     "checkAgain": "Tekrar kontrol et",
+    "profileSwitcherTitle": "Guru Harita Profilleri",
     "bigThree": "Büyük Üçlü",
     "conjunction": "Kavuşum",
     "opposition": "Karşıt",
@@ -1503,6 +1545,47 @@
     "birthNightSubtitle": "Kişisel gece haritan",
     "birthNightCta": "Poster Atölyesini Aç",
     "birthNightOpenPoster": "Doğduğun gece posterini oluştur"
+  },
+  "nightSkyPosterPreview": {
+    "headerSubtitle": "Kişisel gökyüzünü aç, paylaşılabilir posterini hazırla.",
+    "styleTitle": "Görünüm stili",
+    "styleSubtitle": "Stil değişince paylaşım posteri yeniden hazırlanır.",
+    "syncing": "Senkronize ediliyor…",
+    "variants": {
+      "minimal": {
+        "label": "Minimal",
+        "sub": "Sade / dingin"
+      },
+      "constellation": {
+        "label": "Takımyıldız",
+        "sub": "Çizgiler belirgin"
+      },
+      "gold": {
+        "label": "Altın Sürüm",
+        "sub": "Sıcak altın ışıltı"
+      }
+    },
+    "loaderTitle": "Poster hazırlanıyor…",
+    "loaderSubtitle": "9:16 yüksek çözünürlüklü görsel hazırlanıyor.",
+    "errorTitle": "Poster oluşturulamadı",
+    "projectionMeta": "{{timezone}} • Swiss Ephemeris horizontal coords",
+    "fallbackMeta": "Lokal fallback kompozisyon",
+    "share": "Paylaş",
+    "instagram": "Instagram Story",
+    "gallery": "Galeri",
+    "pdf": "PDF paylaş",
+    "refresh": "Posteri yenile",
+    "illumination": "Aydınlık",
+    "successShare": "Paylaşım ekranı açıldı",
+    "successSystemShare": "Sistem paylaşımı açıldı",
+    "successInstagram": "Instagram Story başlatıldı",
+    "successSave": "Kart galeriye kaydedildi",
+    "successPdf": "PDF hazırlandı",
+    "emptyLoadingTitle": "Harita yükleniyor…",
+    "emptyLoadingSubtitle": "Doğum haritanız hazırlanıyor, lütfen bekleyin.",
+    "emptyTitle": "Gece gökyüzü verisi bulunamadı",
+    "emptySubtitle": "Önce Haritam ekranından doğum haritanızı oluşturun.",
+    "missingChartMessage": "Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun."
   },
   "notificationPermission": {
     "title": "Bildirimleri Aç",
@@ -1563,7 +1646,7 @@
     "faq4q": "Premium'u nasıl iptal edebilirim?",
     "faq4a": "iOS: Ayarlar → Apple ID → Abonelikler → Astro Guru. Android: Play Store → Hesap → Abonelikler → Astro Guru.",
     "faq5q": "Verilerimi nasıl silebilirim?",
-    "faq5a": "Hesap ve tüm veriler için destek@mystic.ai adresine \"Hesap Silme Talebi\" konusuyla e-posta gönderin."
+    "faq5a": "Hesap ve tüm veriler için support@astroguru.app adresine \"Hesap Silme Talebi\" konusuyla e-posta gönderin."
   },
   "privacy": {
     "title": "Gizlilik Politikası",
@@ -1576,9 +1659,28 @@
     "section3Title": "Üçüncü Taraf Paylaşımı",
     "section3Body": "Verileriniz üçüncü taraflara satılmaz. AI yorumları üretmek amacıyla kullanılan modele yalnızca anonim içerik gönderilir.",
     "section4Title": "Verilerinizin Kontrolü",
-    "section4Body": "Hesabınızı ve tüm verilerinizi istediğiniz zaman silebilirsiniz. Veri erişim ve silme talepleri için destek@mystic.ai adresine yazabilirsiniz.",
+    "section4Body": "Hesabınızı ve tüm verilerinizi istediğiniz zaman silebilirsiniz. Veri erişim ve silme talepleri için support@astroguru.app adresine yazabilirsiniz.",
     "section5Title": "Çerezler ve İzleme",
-    "section5Body": "Mobil uygulama, analitik amaçlı yalnızca anonim oturum verisi kullanır. Herhangi bir reklam izleme çerezi kullanılmaz."
+    "section5Body": "Mobil uygulama, analitik amaçlı yalnızca anonim oturum verisi kullanır. Herhangi bir reklam izleme çerezi kullanılmaz.",
+    "contactEmail": "support@astroguru.app",
+    "contactAccessibility": "Destek için e-posta gönder"
+  },
+  "terms": {
+    "title": "Kullanım Koşulları",
+    "useResponsibly": "Astro Guru'yu sorumlu şekilde kullanın",
+    "lastUpdate": "Son güncelleme: Şubat 2026",
+    "section1Title": "Hizmetin Kapsamı",
+    "section1Body": "Astro Guru; astroloji, numeroloji, rüya ve spiritüel rehberlik içeriklerini bilgilendirme ve eğlence amacıyla sunar. Tıbbi, hukuki, finansal veya profesyonel danışmanlığın yerine geçmez.",
+    "section2Title": "Hesap ve Güvenlik",
+    "section2Body": "Giriş bilgilerinizi güvenli tutmak ve hesabınız üzerinden gerçekleşen işlemlerden sorumlu olmak size aittir. Kayıt sırasında doğru bilgi vermeniz ve profilinizi güncel tutmanız beklenir.",
+    "section3Title": "Premium Özellikler ve Ödeme",
+    "section3Body": "Premium planlar, abonelikler veya tekil satın alımlar sunulursa ücretler onay öncesinde gösterilir ve ödeme ile yenileme işlemleri Apple App Store veya Google Play mağaza koşullarına göre yürütülür.",
+    "section4Title": "Kabul Edilebilir Kullanım",
+    "section4Body": "Uygulamayı kötüye kullanmayın, yetkisiz erişim denemesinde bulunmayın, diğer kullanıcılara zarar vermeyin ve hukuka aykırı, zararlı veya istismar edici içerik yüklemeyin. Hizmeti ve topluluğu korumak için hesaplar sınırlandırılabilir veya askıya alınabilir.",
+    "section5Title": "Güncellemeler ve İletişim",
+    "section5Body": "Bu koşullar ürün geliştikçe güncellenebilir. Güncelleme sonrasında uygulamayı kullanmaya devam etmeniz revize edilmiş koşulları kabul ettiğiniz anlamına gelir. Hizmet veya hesabınızla ilgili sorular için bizimle iletişime geçebilirsiniz.",
+    "contactEmail": "support@astroguru.app",
+    "contactAccessibility": "Destek için e-posta gönder"
   },
   "notifications": {
     "title": "Bildirimler",
@@ -1620,6 +1722,57 @@
     "retryAnalysisAccessibility": "Analizi tekrar dene",
     "analysisStartErrorTitle": "Analiz Hatası",
     "analysisStartErrorMessage": "Sinastri analizi başlatılamadı."
+  },
+  "tutorialCenter": {
+    "refreshAccessibility": "Rehber merkezini yenile",
+    "heroTitle": "Tüm Rehberleri Buradan Yönet",
+    "heroBody": "Tutorial durumlarını görebilir, tekrar açabilir, tek tek veya toplu şekilde sıfırlayabilirsin.",
+    "heroPrimaryAction": "Global Onboarding'i Gör",
+    "heroSecondaryAction": "Tümünü Sıfırla",
+    "sections": {
+      "general": "Genel",
+      "core": "Ana Modüller",
+      "secondary": "Diğer Modüller"
+    },
+    "status": {
+      "completed": "Tamamlandı",
+      "skipped": "Geçildi",
+      "dismissed": "Bir Daha Gösterme",
+      "notStarted": "Başlamadı"
+    },
+    "metaVersion": "Versiyon: v{{version}}",
+    "metaLastSeen": "Son görülme: {{value}}",
+    "actions": {
+      "reopen": "Tekrar Aç",
+      "resetProgress": "İlerlemesini Sıfırla",
+      "reopenAccessibility": "{{name}} rehberini tekrar aç",
+      "resetAccessibility": "{{name}} ilerlemesini sıfırla"
+    },
+    "toggleTitle": "Bir daha otomatik gösterme",
+    "toggleSub": "Açıkken ilk kullanımda otomatik tetiklenmez.",
+    "empty": "Henüz yönetilecek rehber bulunamadı.",
+    "alerts": {
+      "resetAllTitle": "Tüm rehberleri sıfırla",
+      "resetAllBody": "Tüm tutorial ilerlemeleri temizlenecek. Devam etmek istiyor musun?",
+      "resetSingleTitle": "İlerlemeyi sıfırla",
+      "resetSingleBody": "{{name}} için rehber ilerlemesi sıfırlansın mı?",
+      "cancel": "Vazgeç",
+      "confirm": "Sıfırla"
+    },
+    "screens": {
+      "globalOnboarding": "Genel Onboarding",
+      "home": "Ana Sayfa",
+      "dailyTransits": "Günlük Transitler",
+      "cosmicPlanner": "Kozmik Planlayıcı",
+      "decisionCompass": "Karar Pusulası",
+      "compatibility": "Uyumluluk",
+      "birthChart": "Doğum Haritası",
+      "dreams": "Rüyalar",
+      "numerology": "Numeroloji",
+      "nameAnalysis": "İsim Analizi",
+      "spiritualPractice": "Ruhsal Pratik",
+      "profile": "Profil"
+    }
   },
   "editBirthInfo": {
     "title": "Doğum Bilgileri",
@@ -1783,6 +1936,14 @@
     "daysAgo": "{{count}} gün önce",
     "emptyTitle": "Henüz bildirim yok",
     "emptyBody": "Guru güncellemeler ve hatırlatmalar burada görünecek.",
+    "emptyDailyTitle": "Günlük akışın hazırlanıyor",
+    "emptyDailyBody": "Günlük özetler ve gün içi enerji bildirimleri burada görünecek.",
+    "emptyReminderTitle": "Hatırlatmalar burada görünecek",
+    "emptyReminderBody": "Açtığınız rüya, planlayıcı, dua ve meditasyon hatırlatmaları bu alana düşer.",
+    "emptyWeeklyTitle": "Haftalık özet henüz yok",
+    "emptyWeeklyBody": "Haftalık analizler pazartesi günleri burada birikir.",
+    "emptySystemTitle": "Sistem akışı sakin görünüyor",
+    "emptySystemBody": "Modül önerileri, ürün güncellemeleri ve önemli sonuç bildirimleri burada görünür.",
     "errorTitle": "Yüklenemedi",
     "errorBody": "Bildirimler yüklenirken bir sorun oluştu.",
     "retry": "Tekrar dene"
@@ -1792,7 +1953,7 @@
     "hint": "Almak istediğiniz bildirimleri ve tercihlerinizi yönetin.",
     "sectionMain": "Ana Bildirimler",
     "sectionReminders": "Hatırlatmalar",
-    "sectionOther": "Diğer",
+    "sectionOther": "Sistem ve Cihaz",
     "sectionFrequency": "Bildirim Yoğunluğu",
     "sectionTimeSlot": "Tercih Edilen Saat",
     "sectionQuietHours": "Sessiz Saatler",
@@ -1819,11 +1980,16 @@
     "freqLow": "Az",
     "freqBalanced": "Dengeli",
     "freqFrequent": "Daha Sık",
+    "freqLowDesc": "Günde en fazla 1 push gönderilir. Daha sakin, temel hatırlatma akışı korunur.",
+    "freqBalancedDesc": "Günde en fazla 2 push gönderilir. Günlük, haftalık ve önemli sistem akışı dengeli kalır.",
+    "freqFrequentDesc": "Günde en fazla 4 push gönderilir. Gün içi enerji ve modül hatırlatmaları daha görünür olur.",
     "slotMorning": "Sabah",
     "slotNoon": "Öğle",
     "slotEvening": "Akşam",
     "quietStart": "Sessiz saat başlangıcı",
     "quietEnd": "Sessiz saat bitişi",
+    "pushPermissionDenied": "Push bildirimleri için cihaz izni verilmedi. Ayarı açmak için cihaz bildirim iznini etkinleştirin.",
+    "saveError": "Bildirim ayarları kaydedilemedi. Lütfen tekrar deneyin.",
     "systemSettings": "Cihaz bildirim ayarları",
     "footnote": "Sistem bildirimleri cihaz ayarlarından da yönetilebilir."
   },
@@ -1832,6 +1998,13 @@
     "accessibilityLabel": "Kayıt olmadan hızlıca giriş yap",
     "loading": "Oturum açılıyor...",
     "error": "Oturum başlatılamadı. Lütfen tekrar deneyin."
+  },
+  "guestName": {
+    "heading": "İsminiz?",
+    "sub": "İstersen bir isim gir, istersen anonim devam et. Her zaman değiştirebilirsin.",
+    "placeholder": "Adın (isteğe bağlı)",
+    "continue": "Devam Et",
+    "skip": "Atla, anonim devam et"
   },
   "guestBanner": {
     "title": "Geçici Oturum",

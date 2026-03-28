@@ -9,9 +9,10 @@ type Props = {
   model: NightSkyPosterModel;
   title: string;
   subtitle: string;
+  illuminationLabel: string;
 };
 
-function LunarPhasesSection({ model, title, subtitle }: Props) {
+function LunarPhasesSection({ model, title, subtitle, illuminationLabel }: Props) {
   const { colors } = useTheme();
 
   const selectedPhase = useMemo(
@@ -30,7 +31,7 @@ function LunarPhasesSection({ model, title, subtitle }: Props) {
           <Text style={[styles.subtitle, { color: colors.subtext }]}>{subtitle}</Text>
         </View>
         <View style={styles.illuminationWrap}>
-          <Text style={[styles.illuminationLabel, { color: colors.subtext }]}>Aydınlık</Text>
+          <Text style={[styles.illuminationLabel, { color: colors.subtext }]}>{illuminationLabel}</Text>
           <Text style={[styles.illuminationValue, { color: colors.violet }]}>
             %{model.moonIlluminationPercent}
           </Text>

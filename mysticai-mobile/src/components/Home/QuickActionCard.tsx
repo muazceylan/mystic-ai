@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { radius, shadowSubtle, spacing, typography } from '../../theme';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
+import { HomePremiumIconBadge } from './HomePremiumIconBadge';
 import type { QuickAction } from './types';
 
 interface QuickActionCardProps {
@@ -11,7 +12,6 @@ interface QuickActionCardProps {
   onPress: (action: QuickAction) => void;
 }
 
-const ICON_SIZE = spacing.lg + spacing.xxs;
 const CHEVRON_SIZE = spacing.md + spacing.xs;
 const HOME_MAX_FONT_SCALE = 1.15;
 
@@ -41,9 +41,11 @@ export function QuickActionCard({ action, width, onPress }: QuickActionCardProps
       ]}
     >
       <View style={styles.topRow}>
-        <View style={[styles.iconShell, { backgroundColor: action.iconBg }, isDisabled && styles.disabledIconShell]}>
-          <Ionicons name={action.iconName} size={ICON_SIZE} color={action.iconColor} />
-        </View>
+        <HomePremiumIconBadge
+          iconName={action.iconName}
+          contextKey={action.id}
+          disabled={isDisabled}
+        />
         <View style={styles.trailing}>
           {statusLabel ? (
             <View style={styles.statusPill}>
@@ -91,18 +93,6 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       marginBottom: spacing.xs,
-    },
-    iconShell: {
-      width: spacing.iconWrap,
-      height: spacing.iconWrap,
-      borderRadius: radius.icon,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: C.surface,
-    },
-    disabledIconShell: {
-      backgroundColor: isDark ? 'rgba(57,54,74,0.84)' : '#ECE8F9',
     },
     trailing: {
       flexDirection: 'row',

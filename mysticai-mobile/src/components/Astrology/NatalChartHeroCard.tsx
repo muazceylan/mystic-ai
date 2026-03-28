@@ -49,10 +49,12 @@ function MetaChip({
 function MetricChip({
   label,
   value,
+  icon,
   onPress,
 }: {
   label: string;
   value: string | number;
+  icon: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
 }) {
   const { colors } = useTheme();
@@ -68,6 +70,28 @@ function MetricChip({
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={onPress ? `${value} ${label} detayını aç` : undefined}
     >
+      <View style={styles.metricChipTopRow}>
+        <View
+          style={[
+            styles.metricIconShell,
+            { borderColor: colors.border, backgroundColor: colors.surfaceAlt },
+          ]}
+        >
+          <View style={[styles.metricIconBubble, { backgroundColor: colors.violetBg }]}>
+            <Ionicons name={icon} size={12} color={colors.violet} />
+          </View>
+        </View>
+        {onPress ? (
+          <View
+            style={[
+              styles.metricChevronBadge,
+              { borderColor: colors.border, backgroundColor: colors.primarySoftBg },
+            ]}
+          >
+            <Ionicons name="chevron-forward" size={11} color={colors.violet} />
+          </View>
+        ) : null}
+      </View>
       <Text style={[styles.metricValue, { color: colors.text }]}>{value}</Text>
       <Text style={[styles.metricLabel, { color: colors.textMuted }]}>{label}</Text>
     </Pressable>
@@ -100,8 +124,16 @@ function SignatureRow({
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={onPress ? `${label} detayını aç` : undefined}
     >
-      <View style={[styles.signatureIconBubble, { backgroundColor: colors.violetBg }]}>
-        <Text style={[styles.signatureIcon, { color: colors.violet }]}>{icon}</Text>
+      <View
+        style={[
+          styles.signatureIconShell,
+          { backgroundColor: colors.surfaceAlt, borderColor: colors.border },
+        ]}
+      >
+        <View style={[styles.signatureIconGlow, { backgroundColor: colors.primarySoft }]} />
+        <View style={[styles.signatureIconBubble, { backgroundColor: colors.violetBg }]}>
+          <Text style={[styles.signatureIcon, { color: colors.violet }]}>{icon}</Text>
+        </View>
       </View>
       <View style={styles.signatureTextCol}>
         <Text style={[styles.signatureLabel, { color: colors.textMuted }]}>{label}</Text>
@@ -109,7 +141,7 @@ function SignatureRow({
           {signText}
         </Text>
       </View>
-      <View style={[styles.elementPill, { borderColor: colors.border, backgroundColor: colors.card }]}>
+      <View style={[styles.elementPill, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>
         <Text style={[styles.elementPillText, { color: colors.textMuted }]}>{element}</Text>
       </View>
       {onPress ? <Ionicons name="chevron-forward" size={14} color={colors.muted} /> : null}
@@ -183,12 +215,17 @@ export default function NatalChartHeroCard({
             </Text>
           </View>
 
-          <View style={[styles.headerBadge, { borderColor: colors.border, backgroundColor: colors.card }]}>
+          <View style={[styles.headerBadge, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>
             <Text style={[styles.headerBadgeText, { color: colors.violet }]}>ÖZET</Text>
           </View>
 
           {onToggleExpanded ? (
-            <View style={[styles.headerChevronBadge, { backgroundColor: colors.violetBg }]}>
+            <View
+              style={[
+                styles.headerChevronBadge,
+                { backgroundColor: colors.surfaceAlt, borderColor: colors.border },
+              ]}
+            >
               <Ionicons
                 name={expanded ? 'chevron-up' : 'chevron-down'}
                 size={16}
@@ -243,16 +280,19 @@ export default function NatalChartHeroCard({
             <MetricChip
               label="Gezegen"
               value={planetCount}
+              icon="planet-outline"
               onPress={onMetricPress ? () => onMetricPress('planet_positions') : undefined}
             />
             <MetricChip
               label="Ev"
               value={houseCount}
+              icon="home-outline"
               onPress={onMetricPress ? () => onMetricPress('house_positions') : undefined}
             />
             <MetricChip
               label="Açı"
               value={aspectCount}
+              icon="git-network-outline"
               onPress={onMetricPress ? () => onMetricPress('aspect_list') : undefined}
             />
           </View>
@@ -350,6 +390,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   body: {
     padding: 10,
@@ -402,6 +443,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  signatureIconShell: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  signatureIconGlow: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    opacity: 0.9,
+  },
   signatureIconBubble: {
     width: 28,
     height: 28,
@@ -450,6 +507,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 1,
   },
+  metricChipTopRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  metricIconShell: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricIconBubble: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricChevronBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   metricValue: {
     fontSize: 14,
     fontWeight: '800',
@@ -473,4 +560,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-

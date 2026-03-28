@@ -88,13 +88,13 @@ const ONBOARDING_AUTH_ROUTES = new Set([
   'birth-city',
   'gender',
   'marital-status',
-  'focus-point',
   'notification-permission',
   'natal-chart',
 ]);
 
 const AUTH_ROUTES = new Set([
   'welcome',
+  'guest-name',
   'forgot-password',
   'signup',
   'verify-email-pending',
@@ -102,6 +102,11 @@ const AUTH_ROUTES = new Set([
   'email-register',
   'oauth2',
   ...ONBOARDING_AUTH_ROUTES,
+]);
+
+const PUBLIC_INFO_ROUTES = new Set([
+  'privacy',
+  'terms',
 ]);
 
 /**
@@ -194,11 +199,12 @@ function useProtectedRoute(i18nReady: boolean) {
 
     const currentRoute = topLevelRoute(pathname);
     const inAuthRoute = AUTH_ROUTES.has(currentRoute);
+    const inPublicInfoRoute = PUBLIC_INFO_ROUTES.has(currentRoute);
     const inOnboardingFlow = ONBOARDING_AUTH_ROUTES.has(currentRoute);
     const onboardingRequired = needsOnboarding(user);
 
     if (!isAuthenticated) {
-      if (!inAuthRoute) {
+      if (!inAuthRoute && !inPublicInfoRoute) {
         router.replace('/(auth)/welcome');
       }
       return;

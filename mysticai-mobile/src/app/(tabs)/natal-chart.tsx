@@ -19,6 +19,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import * as Haptics from '../../utils/haptics';
 import DateTimePicker, {
@@ -90,6 +91,7 @@ import { posterTokens } from '../../features/nightSkyPoster/poster.tokens';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture } from '../../components/ui';
+import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import {
   BIRTH_CHART_TUTORIAL_TARGET_KEYS,
@@ -839,6 +841,10 @@ export default function NatalChartTab() {
     setLocationPickerTarget(null);
     setLocationPickerQuery('');
   };
+  const { animatedStyle: companionModalAnimatedStyle, gesture: companionModalGesture } = useBottomSheetDragGesture({
+    enabled: companionModalVisible,
+    onClose: closeCompanionModal,
+  });
 
   const applyPickerValue = (target: PickerTarget, nextDate: Date) => {
     setCompanionForm((prev) => {
@@ -1528,26 +1534,17 @@ export default function NatalChartTab() {
     if (y > 24) {
       setHeroInfoExpanded((prev) => (prev ? false : prev));
     }
-    if (y > 72) {
-      setProfileSwitcherVisible((prev) => (prev ? false : prev));
-    } else if (y < 12) {
-      setProfileSwitcherVisible((prev) => (prev ? true : prev));
-    }
   }, []);
 
   const handleNatalScrollEndDrag = useCallback((event: any) => {
     const y = event?.nativeEvent?.contentOffset?.y ?? lastKnownScrollYRef.current;
-    if (y < 12) {
-      setProfileSwitcherVisible(true);
-    }
+    setProfileSwitcherVisible(true);
     queueAccordionAutoFocus(y, 140);
   }, [queueAccordionAutoFocus]);
 
   const handleNatalMomentumScrollEnd = useCallback((event: any) => {
     const y = event?.nativeEvent?.contentOffset?.y ?? lastKnownScrollYRef.current;
-    if (y < 12) {
-      setProfileSwitcherVisible(true);
-    }
+    setProfileSwitcherVisible(true);
     queueAccordionAutoFocus(y, 24);
   }, [queueAccordionAutoFocus]);
 
@@ -1828,6 +1825,19 @@ export default function NatalChartTab() {
     isActive: boolean,
   ) => {
     const headerRight = renderSectionDragHandle(drag, isActive, key);
+    const accordionIconTone = ({
+      night_poster: 'lunar',
+      big_three: 'cosmic',
+      hotspots: 'rose',
+      natal_chart_visual: 'insight',
+      aspect_matrix_table: 'cosmic',
+      cosmic_position_details: 'insight',
+      cosmic_balance: 'sacred',
+      planet_positions: 'mystic',
+      aspect_list: 'cosmic',
+      house_positions: 'lunar',
+      ai_interpretation: 'oracle',
+    } as const)[key];
 
     switch (key) {
       case 'night_poster':
@@ -1838,6 +1848,8 @@ export default function NatalChartTab() {
             title={t('natalChart.birthNightTitle', 'Doğduğun Gece Gökyüzü')}
             subtitle={t('natalChart.birthNightSubtitle', 'Kişisel gece haritan')}
             icon="moon-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'night_poster'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -1891,6 +1903,8 @@ export default function NatalChartTab() {
             title="Big Three (Güneş • Ay • Yükselen)"
             subtitle="İkonlara dokunarak karakter, etki ve dikkat noktalarını aç"
             icon="planet-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'big_three'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -1909,7 +1923,11 @@ export default function NatalChartTab() {
                   accessibilityRole="button"
                   accessibilityLabel={`${item.label} detayını aç`}
                 >
-                  <Text style={styles.trinityIcon}>{item.icon}</Text>
+                  <View style={styles.trinityIconShell}>
+                    <View style={styles.trinityIconCore}>
+                      <Text style={styles.trinityIcon}>{item.icon}</Text>
+                    </View>
+                  </View>
                   <Text style={styles.trinitySign}>{item.info.symbol} {item.info.name}</Text>
                   <Text style={styles.trinityLabel}>{item.label}</Text>
                   <Text style={styles.trinityHint}>Detayı Aç</Text>
@@ -1927,6 +1945,8 @@ export default function NatalChartTab() {
             title={t('natalChart.cosmicHotspots')}
             subtitle="En güçlü çalışan açılar • dokunup psikolojik dinamiği aç"
             icon="flash-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'hotspots'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -1962,6 +1982,8 @@ export default function NatalChartTab() {
             title="Dairesel Doğum Haritası"
             subtitle="Ev çizgileri ve gezegen yerleşimleri • görsel önizleme"
             icon="analytics-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'natal_chart_visual'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -2003,6 +2025,8 @@ export default function NatalChartTab() {
             title="Gezegen Etkileşim Tablosu"
             subtitle="Açı matrisi • gezegenler arası etkileşimlerin üçgen görünümü"
             icon="git-network-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'aspect_matrix_table'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -2042,6 +2066,8 @@ export default function NatalChartTab() {
             title="Kozmik Konum Detayları"
             subtitle="Gezegen, burç, derece/dakika ve ev konumu teknik listesi"
             icon="list-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'cosmic_position_details'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -2068,6 +2094,8 @@ export default function NatalChartTab() {
             title="Kozmik Denge"
             subtitle="Haritandaki elementel ve modal enerji dağılımı"
             icon="pie-chart-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'cosmic_balance'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -2095,6 +2123,8 @@ export default function NatalChartTab() {
               title={t('natalChart.planetaryPositions')}
               subtitle="Her satıra dokunarak karakter + etki + dikkat alanlarını aç"
               icon="sparkles-outline"
+              iconStyle="premium"
+              iconTone={accordionIconTone}
               expanded={openAccordionKey === 'planet_positions'}
               onToggle={toggleAccordion}
               onLayout={registerAccordionLayout}
@@ -2113,8 +2143,10 @@ export default function NatalChartTab() {
                       accessibilityLabel={t('natalChart.openPlanetDetails', { name: trName })}
                       accessibilityRole="button"
                     >
-                      <View style={styles.planetIconWrap}>
-                        <Text style={styles.planetIcon}>{sym}</Text>
+                      <View style={styles.planetIconShell}>
+                        <View style={styles.planetIconWrap}>
+                          <Text style={styles.planetIcon}>{sym}</Text>
+                        </View>
                       </View>
                       <View style={styles.planetInfo}>
                         <Text style={styles.planetName}>{trName}</Text>
@@ -2148,6 +2180,8 @@ export default function NatalChartTab() {
             title={t('natalChart.planetaryAspects')}
             subtitle="Ham derece yerine anlamlı açı özeti ve orb yakınlığı gösterilir"
             icon="git-network-outline"
+            iconStyle="premium"
+            iconTone={accordionIconTone}
             expanded={openAccordionKey === 'aspect_list'}
             onToggle={toggleAccordion}
             onLayout={registerAccordionLayout}
@@ -2167,9 +2201,23 @@ export default function NatalChartTab() {
                       accessibilityRole="button"
                     >
                       <View style={styles.aspectTag}>
-                        <Text style={styles.aspectPlanets}>
-                          {p1Sym} {info.symbol} {p2Sym}
-                        </Text>
+                        <View style={styles.aspectSymbolRow}>
+                          <View style={styles.aspectSymbolBadge}>
+                            <Text style={styles.aspectPlanets}>{p1Sym}</Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.aspectSymbolBadge,
+                              styles.aspectSymbolBadgeAccent,
+                              { borderColor: `${info.color}33` },
+                            ]}
+                          >
+                            <Text style={[styles.aspectSymbolAccent, { color: info.color }]}>{info.symbol}</Text>
+                          </View>
+                          <View style={styles.aspectSymbolBadge}>
+                            <Text style={styles.aspectPlanets}>{p2Sym}</Text>
+                          </View>
+                        </View>
                         <Text style={[styles.aspectLabel, { color: info.color }]}>
                           {labelAspectType(asp.type)}
                         </Text>
@@ -2192,6 +2240,8 @@ export default function NatalChartTab() {
               title={t('natalChart.housePositions')}
               subtitle="Evlere dokunarak basit açıklama + derin yorum kartını aç"
               icon="home-outline"
+              iconStyle="premium"
+              iconTone={accordionIconTone}
               expanded={openAccordionKey === 'house_positions'}
               onToggle={toggleAccordion}
               onLayout={registerAccordionLayout}
@@ -2238,6 +2288,8 @@ export default function NatalChartTab() {
               title="Harita Yorumu"
               subtitle="Doğum haritanın uzman astrolojik analizi"
               icon="sparkles-outline"
+              iconStyle="premium"
+              iconTone={accordionIconTone}
               expanded={openAccordionKey === 'ai_interpretation'}
               onToggle={toggleAccordion}
               onLayout={registerAccordionLayout}
@@ -2322,7 +2374,7 @@ export default function NatalChartTab() {
     <View style={styles.profileSwitcherCard}>
       <View style={styles.profileSwitcherHeader}>
         <View style={styles.profileSwitcherHeaderTextCol}>
-          <Text style={styles.profileSwitcherTitle}>Kozmik Harita Profilleri</Text>
+          <Text style={styles.profileSwitcherTitle}>{t('natalChart.profileSwitcherTitle')}</Text>
           <Text style={styles.profileSwitcherSub}>
             {profileMode === 'compare'
               ? 'Karşılaştırma için iki profil seçin'
@@ -2338,7 +2390,9 @@ export default function NatalChartTab() {
           accessibilityRole="button"
           accessibilityLabel="Karşılaştırma modunu aç veya kapat"
         >
-          <Scale size={15} color={profileMode === 'compare' ? '#5B4ACB' : colors.muted} />
+          <View style={[styles.modeChipIconWrap, profileMode === 'compare' && styles.modeChipIconWrapActive]}>
+            <Scale size={13} color={profileMode === 'compare' ? colors.primary : colors.muted} />
+          </View>
           <Text style={[
             styles.modeChipText,
             profileMode === 'compare' && styles.modeChipTextActive,
@@ -2450,7 +2504,9 @@ export default function NatalChartTab() {
           accessibilityLabel="Kişi ekle"
         >
           <View style={styles.addAvatarCircle}>
-            <Plus size={18} color="#5B4ACB" />
+            <View style={styles.addAvatarCircleInner}>
+              <Plus size={16} color={colors.primary} />
+            </View>
           </View>
           <Text style={styles.profilePillLabel}>Kişi Ekle</Text>
         </Pressable>
@@ -2459,7 +2515,7 @@ export default function NatalChartTab() {
   );
 
   const MainVerticalScroll: any = ENABLE_SECTION_DND ? NestableScrollContainer : ScrollView;
-  const stickyHeaderIndices = chart ? [2] : [];
+  const stickyHeaderIndices = chart ? [1, 2] : [1];
 
   return (
     <TabSwipeGesture tab="natal-chart">
@@ -2548,7 +2604,11 @@ export default function NatalChartTab() {
           <View style={styles.compareCard}>
             <View style={styles.compareHeader}>
               <View style={styles.compareHeaderLeft}>
-                <Users size={16} color="#3B82F6" />
+                <View style={styles.compareHeaderIconWrap}>
+                  <View style={styles.compareHeaderIconCore}>
+                    <Users size={15} color={colors.primary} />
+                  </View>
+                </View>
                 <Text style={styles.compareTitle}>Sinastri Atölyesi</Text>
               </View>
               {selectedForComparison.length > 0 ? (
@@ -2734,21 +2794,25 @@ export default function NatalChartTab() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.modalSheetWrapper}
           >
-            <View style={styles.modalSheet}>
-              <View style={styles.modalSheetHandle} />
-              <View style={styles.modalHeaderRow}>
-                <View>
-                  <Text style={styles.modalTitle}>
-                    {editingCompanion ? 'Kişiyi Düzenle' : 'Kişi Ekle'}
-                  </Text>
-                  <Text style={styles.modalSubtitle}>
-                    Kaydettiğiniz anda yüksek hassasiyetli harita hesaplaması yapılır.
-                  </Text>
+            <Reanimated.View style={[styles.modalSheet, companionModalAnimatedStyle]}>
+              <GestureDetector gesture={companionModalGesture}>
+                <View style={styles.modalDragZone}>
+                  <View style={styles.modalSheetHandle} />
+                  <View style={styles.modalHeaderRow}>
+                    <View>
+                      <Text style={styles.modalTitle}>
+                        {editingCompanion ? 'Kişiyi Düzenle' : 'Kişi Ekle'}
+                      </Text>
+                      <Text style={styles.modalSubtitle}>
+                        Kaydettiğiniz anda yüksek hassasiyetli harita hesaplaması yapılır.
+                      </Text>
+                    </View>
+                    <Pressable style={styles.modalIconBtn} onPress={closeCompanionModal}>
+                      <X size={18} color={colors.muted} />
+                    </Pressable>
+                  </View>
                 </View>
-                <Pressable style={styles.modalIconBtn} onPress={closeCompanionModal}>
-                  <X size={18} color={colors.muted} />
-                </Pressable>
-              </View>
+              </GestureDetector>
 
               <ScrollView
                 ref={companionFormScrollRef}
@@ -3142,7 +3206,7 @@ export default function NatalChartTab() {
                   </Text>
                 </Pressable>
               </View>
-            </View>
+            </Reanimated.View>
           </KeyboardAvoidingView>
         </View>
       </Modal>
@@ -3200,9 +3264,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     backgroundColor: C.bg,
   },
   fixedTopStack: {
+    backgroundColor: C.bg,
     paddingTop: 2,
     paddingBottom: 8,
     gap: 10,
+    zIndex: 4,
   },
   fixedTopStackHidden: {
     height: 0,
@@ -3302,13 +3368,13 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
 
   // ── Multi-profile / comparison header ────────────────────────────
   profileSwitcherCard: {
-    backgroundColor: '#FCFCFE',
+    backgroundColor: C.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E8EBF3',
+    borderColor: C.border,
     padding: 14,
     gap: 12,
-    shadowColor: '#0F172A',
+    shadowColor: C.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
     shadowRadius: 14,
@@ -3327,11 +3393,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   profileSwitcherTitle: {
     fontSize: 15.5,
     fontWeight: '800',
-    color: '#0F172A',
+    color: C.text,
   },
   profileSwitcherSub: {
     fontSize: 11.5,
-    color: '#64748B',
+    color: C.subtext,
     marginTop: 2,
     lineHeight: 16,
   },
@@ -3343,45 +3409,59 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   profileMetaTag: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E6EAF2',
-    backgroundColor: '#F8FAFC',
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   profileMetaTagActive: {
-    borderColor: '#D9D3FF',
-    backgroundColor: '#F3F0FF',
+    borderColor: C.primaryLight,
+    backgroundColor: C.primarySoftBg,
   },
   profileMetaTagText: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#64748B',
+    color: C.subtext,
   },
   profileMetaTagTextActive: {
-    color: '#5B4ACB',
+    color: C.primary,
   },
   modeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
     paddingVertical: 7,
     paddingHorizontal: 11,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: C.border,
+    backgroundColor: C.surface,
+  },
+  modeChipIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
+  },
+  modeChipIconWrapActive: {
+    borderColor: C.primaryLight,
+    backgroundColor: C.primarySoftBg,
   },
   modeChipActive: {
-    borderColor: '#CFC5FF',
-    backgroundColor: '#F2EEFF',
+    borderColor: C.primaryLight,
+    backgroundColor: C.primarySoftBg,
   },
   modeChipText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#475569',
+    color: C.textSoft,
   },
   modeChipTextActive: {
-    color: '#5B4ACB',
+    color: C.primary,
   },
   profileScrollerRow: {
     flexDirection: 'row',
@@ -3406,16 +3486,16 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F4F7FF',
+    backgroundColor: C.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#DDE4F2',
+    borderColor: C.border,
   },
   avatarCircleActive: {
-    backgroundColor: '#F1EEFF',
-    borderColor: '#CDC6FF',
+    backgroundColor: C.primarySoftBg,
+    borderColor: C.primaryLight,
   },
   avatarCircleCompare: {
-    borderColor: '#E3A008',
+    borderColor: C.amber,
     borderWidth: 1.5,
   },
   compareOrderBadge: {
@@ -3425,9 +3505,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#5B4ACB',
+    backgroundColor: C.primary,
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -3445,33 +3525,43 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#D9D3FF',
-    backgroundColor: '#F6F3FF',
+    borderColor: C.primaryLight,
+    backgroundColor: C.primarySoftBg,
     borderStyle: 'dashed',
+  },
+  addAvatarCircleInner: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.primaryLight,
   },
   avatarInitials: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E3A8A',
+    color: C.accent,
   },
   avatarInitialsActive: {
-    color: '#4338CA',
+    color: C.primary,
   },
   profilePillLabel: {
     fontSize: 11,
-    color: '#334155',
+    color: C.text,
     fontWeight: '700',
     textAlign: 'center',
     width: '100%',
   },
   compareCard: {
-    backgroundColor: '#FCFDFF',
+    backgroundColor: C.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E8EDF6',
+    borderColor: C.border,
     padding: 14,
     gap: 12,
-    shadowColor: '#0F172A',
+    shadowColor: C.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.04,
     shadowRadius: 14,
@@ -3485,12 +3575,30 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   compareHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  compareHeaderIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surfaceAlt,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  compareHeaderIconCore: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.primarySoftBg,
   },
   compareTitle: {
     fontSize: 14.5,
     fontWeight: '800',
-    color: '#0F172A',
+    color: C.text,
   },
   compareClearBtn: {
     flexDirection: 'row',
@@ -3499,19 +3607,19 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   compareClearText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: C.subtext,
   },
   compareHint: {
     fontSize: 11.5,
     lineHeight: 17,
-    color: '#66758A',
+    color: C.subtext,
   },
   dualChartRow: {
     flexDirection: 'row',
@@ -3519,21 +3627,21 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   dualChartPanel: {
     flex: 1,
-    backgroundColor: '#F7F9FD',
+    backgroundColor: C.surfaceAlt,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E5EAF3',
+    borderColor: C.border,
     padding: 11,
     gap: 6,
   },
   dualChartName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: C.text,
   },
   dualChartMeta: {
     fontSize: 10,
-    color: '#7C3AED',
+    color: C.primary,
     fontWeight: '700',
   },
   dualChartSigns: {
@@ -3542,7 +3650,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   dualChartSignLine: {
     fontSize: 11,
-    color: '#334155',
+    color: C.textSoft,
     fontWeight: '500',
   },
   compareActionsRow: {
@@ -3570,13 +3678,13 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   compareLimitText: {
     fontSize: 11,
-    color: '#92400E',
-    backgroundColor: '#FFFBEB',
+    color: C.warningDark,
+    backgroundColor: C.warningBg,
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: C.amberLight,
   },
   // ── Companion form modal ─────────────────────────────────────────
   modalBackdrop: {
@@ -3601,6 +3709,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     borderColor: '#E5E7EB',
     maxHeight: '86%',
     gap: 12,
+  },
+  modalDragZone: {
+    gap: 8,
   },
   modalSheetHandle: {
     alignSelf: 'center',
@@ -4217,31 +4328,56 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   trinityBubble: {
     flex: 1,
-    backgroundColor: C.violetBg,
+    backgroundColor: C.card,
     borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 8,
     alignItems: 'center',
     gap: 4,
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: C.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   trinityBubblePressed: {
     opacity: 0.9,
     transform: [{ scale: 0.985 }],
   },
+  trinityIconShell: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surfaceAlt,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  trinityIconCore: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.primarySoftBg,
+  },
   trinityIcon: {
     fontSize: 22,
-    color: C.violetText,
+    color: C.violet,
   },
   trinitySign: {
     fontSize: 13,
     fontWeight: '700',
-    color: C.violetText,
+    color: C.text,
     textAlign: 'center',
   },
   trinityLabel: {
     fontSize: 11,
-    color: C.muted,
-    fontWeight: '500',
+    color: C.textMuted,
+    fontWeight: '600',
   },
   trinityHint: {
     marginTop: 2,
@@ -4270,6 +4406,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     alignItems: 'center',
     backgroundColor: C.card,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.border,
     padding: 14,
     gap: 12,
     shadowColor: C.shadow,
@@ -4278,16 +4416,26 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     shadowRadius: 4,
     elevation: 1,
   },
+  planetIconShell: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surfaceAlt,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
   planetIconWrap: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 12,
-    backgroundColor: C.violetBg,
+    backgroundColor: C.primarySoftBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   planetIcon: {
-    fontSize: 20,
+    fontSize: 19,
     color: C.violet,
   },
   planetInfo: {
@@ -4312,7 +4460,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: C.violetBg,
+    backgroundColor: C.surfaceAlt,
+    borderWidth: 1,
+    borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -4342,10 +4492,12 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   aspectTag: {
     backgroundColor: C.card,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
     paddingVertical: 8,
     paddingHorizontal: 10,
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
     shadowColor: C.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
@@ -4353,11 +4505,34 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     elevation: 1,
     minWidth: 82,
   },
+  aspectSymbolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  aspectSymbolBadge: {
+    minWidth: 26,
+    height: 26,
+    paddingHorizontal: 6,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surfaceAlt,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  aspectSymbolBadgeAccent: {
+    backgroundColor: C.primarySoftBg,
+  },
   aspectPlanets: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: C.text,
-    letterSpacing: 1,
+    letterSpacing: 0.6,
+  },
+  aspectSymbolAccent: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   aspectLabel: {
     fontSize: 10,

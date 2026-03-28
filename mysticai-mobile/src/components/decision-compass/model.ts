@@ -3,7 +3,14 @@ import type { DailyLifeGuideActivity } from '../../services/astrology.service';
 import type { CosmicCategoryDetail, CosmicDetailSubcategory } from '../../services/cosmic.service';
 
 export type CompassStatus = 'STRONG' | 'SUPPORTIVE' | 'BALANCED' | 'CAUTION' | 'HOLD';
-export type CompassFilter = 'BEST' | 'CAUTION' | 'ALL';
+export type CompassFilter = 'ALL' | CompassStatus;
+export type AllCategoriesFilter = CompassFilter;
+
+export interface CompassFilterOption<TFilter extends string> {
+  key: TFilter;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
 
 export interface DecisionCategoryModel {
   id: string;
@@ -51,6 +58,14 @@ function isTransitText(haystack: string): boolean {
   return normalized.includes('transit') || normalized.includes('retrog') || normalized.includes('göky') || normalized.includes('goky');
 }
 
+const STATUS_FILTER_OPTIONS: Array<CompassFilterOption<CompassStatus>> = [
+  { key: 'STRONG', label: 'Güçlü fırsat', icon: 'sparkles-outline' },
+  { key: 'SUPPORTIVE', label: 'Destekleyici', icon: 'checkmark-circle-outline' },
+  { key: 'BALANCED', label: 'Dengeli', icon: 'ellipse-outline' },
+  { key: 'CAUTION', label: 'Dikkat', icon: 'alert-circle-outline' },
+  { key: 'HOLD', label: 'Beklet', icon: 'pause-circle-outline' },
+];
+
 function deriveIcon(haystack: string): keyof typeof Ionicons.glyphMap {
   if (haystack.includes('ay') || haystack.includes('moon')) return 'moon-outline';
   if (haystack.includes('transit') || haystack.includes('gecis')) return 'planet-outline';
@@ -64,6 +79,50 @@ function deriveIcon(haystack: string): keyof typeof Ionicons.glyphMap {
   if (haystack.includes('ev') || haystack.includes('düzen') || haystack.includes('home')) return 'home-outline';
   if (haystack.includes('resmi') || haystack.includes('official')) return 'document-text-outline';
   return 'sparkles-outline';
+}
+
+export function isTransitCategory(category: DecisionCategoryModel): boolean {
+  const key = (category.cosmicCategoryKey ?? category.id).toLocaleLowerCase('tr-TR');
+  if (key.includes('transit')) return true;
+  return `${category.id} ${category.title} ${category.subLabel}`.toLocaleLowerCase('tr-TR').includes('transit');
+}
+
+export function isMoonCategory(category: DecisionCategoryModel): boolean {
+  const key = (category.cosmicCategoryKey ?? category.id).toLocaleLowerCase('tr-TR');
+  if (key === 'moon' || key.includes('moon')) return true;
+  const haystack = `${category.id} ${category.title} ${category.subLabel}`.toLocaleLowerCase('tr-TR');
+  return /\bay\b/.test(haystack) || haystack.includes('moon');
+}
+
+export function matchesCompassFilter(category: DecisionCategoryModel, filter: CompassFilter): boolean {
+  if (filter === 'ALL') return true;
+  return category.status === filter;
+}
+
+export function matchesAllCategoriesFilter(category: DecisionCategoryModel, filter: AllCategoriesFilter): boolean {
+  return matchesCompassFilter(category, filter);
+}
+
+export function buildDecisionCompassFilterOptions(
+  categories: DecisionCategoryModel[],
+): Array<CompassFilterOption<CompassFilter>> {
+  return [
+    { key: 'ALL', label: 'Tümü', icon: 'apps-outline' },
+    ...STATUS_FILTER_OPTIONS.filter((option) =>
+      categories.some((category) => matchesCompassFilter(category, option.key)),
+    ),
+  ];
+}
+
+export function buildAllCategoriesFilterOptions(
+  categories: DecisionCategoryModel[],
+): Array<CompassFilterOption<AllCategoriesFilter>> {
+  return [
+    { key: 'ALL', label: 'Tümü', icon: 'apps-outline' },
+    ...STATUS_FILTER_OPTIONS.filter((option) =>
+      categories.some((category) => matchesCompassFilter(category, option.key)),
+    ),
+  ];
 }
 
 function subLabelFromCosmic(detail: CosmicCategoryDetail | undefined): string | null {
@@ -372,9 +431,9 @@ export function buildHeroModel(categories: DecisionCategoryModel[]): DecisionHer
     : ['Aynı anda çok konu açma', 'Kararları gereksiz dağıtma'];
 
   return {
-    headline: `Bugün güçlü pencere: ${top.title} tarafında önemli adımı öne al.`,
+    headline: `Bugün güçlü pencere: ${top.title} alanında senin için fırsatlar var`,
     explanation: strong.length >= 2
-      ? `${strong.map((c) => c.title).join(' ve ')} alanlarında destek yüksek, dağınık alanlarda tempo düşebilir.`
+      ? `${strong.map((c) => c.title).join(' ve ')} alanlarında destek yüksek.`
       : `${top.title} alanında destek yüksek, kararları sade tutmak avantaj sağlar.`,
     doItems,
     avoidItems: avoidItems.slice(0, 3),

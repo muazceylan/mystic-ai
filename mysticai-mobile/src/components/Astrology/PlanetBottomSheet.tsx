@@ -10,7 +10,9 @@ import {
   TouchableWithoutFeedback,
   ScrollView,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import Reanimated from 'react-native-reanimated';
 import { NatalPlanetComboInsight, PlanetPosition } from '../../services/astrology.service';
 import { getZodiacInfo, PLANET_TURKISH, PLANET_DESCRIPTIONS } from '../../constants/zodiac';
 import {
@@ -20,6 +22,7 @@ import {
   CONCEPT_GLOSSARY,
 } from '../../constants/astrology-glossary';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -89,6 +92,10 @@ export default function PlanetBottomSheet({
   const s = createStyles(colors);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose,
+  });
 
   useEffect(() => {
     if (visible) {
@@ -152,91 +159,97 @@ export default function PlanetBottomSheet({
         <Animated.View
           style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}
         >
-          <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
-            <View style={s.handleBar} />
-            <View style={s.header}>
-              <View style={s.headerLeft}>
-                <Text style={s.planetEmoji}>{signInfo.symbol}</Text>
+          <Reanimated.View style={animatedStyle}>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
+              <GestureDetector gesture={gesture}>
                 <View>
-                  <Text style={s.planetTitle}>{planetName} Konumu Analizi</Text>
-                  <Text style={s.planetSubtitle}>
-                    {signInfo.name} • {Math.floor(planet.degree)}°{planet.minutes}'{planet.seconds}" • {planet.house}. Ev
+                  <View style={s.handleBar} />
+                  <View style={s.header}>
+                    <View style={s.headerLeft}>
+                      <Text style={s.planetEmoji}>{signInfo.symbol}</Text>
+                      <View>
+                        <Text style={s.planetTitle}>{planetName} Konumu Analizi</Text>
+                        <Text style={s.planetSubtitle}>
+                          {signInfo.name} • {Math.floor(planet.degree)}°{planet.minutes}'{planet.seconds}" • {planet.house}. Ev
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={s.badges}>
+                      <View style={s.houseBadge}>
+                        <Text style={s.houseBadgeText}>Ev {planet.house}</Text>
+                      </View>
+                      {planet.retrograde && (
+                        <View style={s.retroBadge}>
+                          <Text style={s.retroBadgeText}>Rx</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  <Text style={s.personalizedText}>{personalizedText}</Text>
+                </View>
+              </GestureDetector>
+
+              <LineInfo title="✨ Karakter Analizi" text={insight?.characterLine || linePack.character} accent={colors.violet} />
+              <LineInfo title="🚀 Seni Nasıl Etkiler?" text={insight?.effectLine || linePack.effect} accent={colors.blue} />
+              <LineInfo title="⚠️ Dikkat Etmen Gerekenler" text={insight?.cautionLine || linePack.caution} accent={colors.warning} />
+              <LineInfo
+                title="🌟 Öne Çıkan Özellikler"
+                text={insightStrengths || linePack.strengths || 'Bu yerleşim, doğru kullanıldığında güçlü bir iç kaynak ve ifade alanı açar.'}
+                accent={colors.goldDark}
+              />
+
+              {houseGlossary && (
+                <View style={[s.beginnerBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
+                  <Text style={s.beginnerTitle}>Ev Temasını Basitçe Anlatalım</Text>
+                  <Text style={s.beginnerText}>
+                    {planet.house}. Ev: {houseGlossary.shortDesc}. Yani bu gezegenin enerjisi sende en çok bu hayat alanında görünür olur.
                   </Text>
                 </View>
-              </View>
-              <View style={s.badges}>
-                <View style={s.houseBadge}>
-                  <Text style={s.houseBadgeText}>Ev {planet.house}</Text>
+              )}
+
+              {planetDesc && (
+                <View style={s.section}>
+                  <Text style={s.sectionLabel}>Yönetim Alanı</Text>
+                  <Text style={s.sectionText}>{planetDesc.governs}</Text>
                 </View>
-                {planet.retrograde && (
-                  <View style={s.retroBadge}>
-                    <Text style={s.retroBadgeText}>Rx</Text>
-                  </View>
-                )}
-              </View>
-            </View>
+              )}
 
-            <Text style={s.personalizedText}>{personalizedText}</Text>
+              {signGlossary && (
+                <View style={s.section}>
+                  <Text style={s.sectionLabel}>
+                    {signInfo.symbol} {signGlossary.term} Burcu
+                  </Text>
+                  <Text style={s.sectionText}>{signGlossary.longDesc}</Text>
+                </View>
+              )}
 
-            <LineInfo title="✨ Karakter Analizi" text={insight?.characterLine || linePack.character} accent={colors.violet} />
-            <LineInfo title="🚀 Seni Nasıl Etkiler?" text={insight?.effectLine || linePack.effect} accent={colors.blue} />
-            <LineInfo title="⚠️ Dikkat Etmen Gerekenler" text={insight?.cautionLine || linePack.caution} accent={colors.warning} />
-            <LineInfo
-              title="🌟 Öne Çıkan Özellikler"
-              text={insightStrengths || linePack.strengths || 'Bu yerleşim, doğru kullanıldığında güçlü bir iç kaynak ve ifade alanı açar.'}
-              accent={colors.goldDark}
-            />
+              {houseGlossary && (
+                <View style={s.section}>
+                  <Text style={s.sectionLabel}>{houseGlossary.term}</Text>
+                  <Text style={s.sectionText}>{houseGlossary.longDesc}</Text>
+                </View>
+              )}
 
-            {houseGlossary && (
-              <View style={[s.beginnerBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
-                <Text style={s.beginnerTitle}>Ev Temasını Basitçe Anlatalım</Text>
-                <Text style={s.beginnerText}>
-                  {planet.house}. Ev: {houseGlossary.shortDesc}. Yani bu gezegenin enerjisi sende en çok bu hayat alanında görünür olur.
-                </Text>
-              </View>
-            )}
+              {planet.retrograde && (
+                <View style={s.retroSection}>
+                  <Ionicons name="arrow-undo" size={14} color={colors.amber} />
+                  <Text style={s.retroExplanation}>
+                    {CONCEPT_GLOSSARY.retrograde.longDesc}
+                  </Text>
+                </View>
+              )}
 
-            {planetDesc && (
-              <View style={s.section}>
-                <Text style={s.sectionLabel}>Yönetim Alanı</Text>
-                <Text style={s.sectionText}>{planetDesc.governs}</Text>
-              </View>
-            )}
-
-            {signGlossary && (
-              <View style={s.section}>
-                <Text style={s.sectionLabel}>
-                  {signInfo.symbol} {signGlossary.term} Burcu
-                </Text>
-                <Text style={s.sectionText}>{signGlossary.longDesc}</Text>
-              </View>
-            )}
-
-            {houseGlossary && (
-              <View style={s.section}>
-                <Text style={s.sectionLabel}>{houseGlossary.term}</Text>
-                <Text style={s.sectionText}>{houseGlossary.longDesc}</Text>
-              </View>
-            )}
-
-            {planet.retrograde && (
-              <View style={s.retroSection}>
-                <Ionicons name="arrow-undo" size={14} color={colors.amber} />
-                <Text style={s.retroExplanation}>
-                  {CONCEPT_GLOSSARY.retrograde.longDesc}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={s.closeButton}
-              onPress={onClose}
-              accessibilityLabel="Kapat"
-              accessibilityRole="button"
-            >
-              <Text style={s.closeButtonText}>Kapat</Text>
-            </TouchableOpacity>
-          </ScrollView>
+              <TouchableOpacity
+                style={s.closeButton}
+                onPress={onClose}
+                accessibilityLabel="Kapat"
+                accessibilityRole="button"
+              >
+                <Text style={s.closeButtonText}>Kapat</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Reanimated.View>
         </Animated.View>
       </View>
     </Modal>

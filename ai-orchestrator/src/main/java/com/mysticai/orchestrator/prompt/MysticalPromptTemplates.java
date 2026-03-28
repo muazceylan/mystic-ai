@@ -462,7 +462,6 @@ public class MysticalPromptTemplates {
      * The AI must respond with a strict JSON object — no markdown, no commentary.
      */
     public String getOracleDailySecretPrompt(OracleInterpretationRequest req) {
-        String focusLabel = focusLabel(req.focusPoint());
         String maritalTone = maritalTone(req.maritalStatus());
         String retroText = (req.retrogradePlanets() == null || req.retrogradePlanets().isEmpty())
                 ? "Yok — gökyüzü bugün temiz, gezegenler ileri gidiyor"
@@ -482,7 +481,6 @@ public class MysticalPromptTemplates {
             - İsim: %s
             - Doğum Tarihi: %s
             - Medeni Durum: %s (%s)
-            - Bugünkü Odak Alanı: %s (%s)
 
             NUMEROLOJİ:
             - Yaşam Yolu Sayısı: %s
@@ -531,7 +529,7 @@ public class MysticalPromptTemplates {
               "astrologyInsight": "Bugüne etkisi, 1-2 cümle",
               "numerologyInsight": "Sayıların bugünkü katkısı, 1-2 cümle",
               "dreamInsight": "Rüya bağlantısı varsa 1 cümle, yoksa null",
-              "message": "%s alanında bugün yapılacak en net hamle, 1 cümle",
+              "message": "Bugün yapılacak en net hamle, 1 cümle",
               "promptVersion": "%s",
               "promptVariant": "%s",
               "readabilityScore": 0,
@@ -541,7 +539,6 @@ public class MysticalPromptTemplates {
                 nvl(req.name(), "Kullanıcı"),
                 nvl(req.birthDate(), "Bilinmiyor"),
                 nvl(req.maritalStatus(), "Belirtilmemiş"), maritalTone,
-                nvl(req.focusPoint(), "Genel"), focusLabel,
                 nvl(req.lifePathNumber()),
                 nvl(req.destinyNumber()),
                 nvl(req.soulUrgeNumber()),
@@ -555,36 +552,24 @@ public class MysticalPromptTemplates {
                 promptVersion,
                 promptVariant,
                 maritalTone,
-                focusLabel
-                ,
                 promptVersion,
                 promptVariant
         );
     }
 
-    private String focusLabel(String focusPoint) {
-        if (focusPoint == null) return "yaşam";
-        String f = focusPoint.toLowerCase();
-        if (f.contains("love") || f.contains("ask") || f.contains("aşk")) return "aşk ve ilişki";
-        if (f.contains("money") || f.contains("para")) return "para ve finans";
-        if (f.contains("career") || f.contains("kariyer")) return "kariyer";
-        if (f.contains("family") || f.contains("aile")) return "aile";
-        if (f.contains("health") || f.contains("sağlık") || f.contains("saglik")) return "sağlık ve wellness";
-        if (f.contains("spiritual") || f.contains("ruhani")) return "maneviyat ve ruhani gelişim";
-        if (f.contains("beauty")) return "güzellik ve bakım";
-        if (f.contains("finance")) return "finans ve yatırım";
-        if (f.contains("social") || f.contains("arkadas") || f.contains("arkadaş")) return "sosyal yaşam ve ilişkiler";
-        if (f.contains("home") || f.contains("ev")) return "ev ve yaşam düzeni";
-        if (f.contains("ticaret")) return "iş ve ticaret";
-        return "genel yaşam";
-    }
-
     private String maritalTone(String status) {
         if (status == null) return "nötr bir bakış açısıyla hitap et";
         String s = status.toLowerCase();
-        if (s.contains("evli")) return "eş/partner dinamiğini yoruma dahil et";
-        if (s.contains("bekar") || s.contains("bekâr")) return "bireysel özgürlük ve yeni bağlantı potansiyelini vurgula";
-        if (s.contains("iliski") || s.contains("ilişki")) return "mevcut ilişkideki dinamikleri ve dengeyi göz önünde tut";
+        if (s.contains("evli") || s.contains("married")) return "eş/partner dinamiğini yoruma dahil et";
+        if (s.contains("bekar") || s.contains("bekâr") || s.contains("single")) {
+            return "bireysel özgürlük ve yeni bağlantı potansiyelini vurgula";
+        }
+        if (s.contains("iliski") || s.contains("ilişki") || s.contains("relationship")) {
+            return "mevcut ilişkideki dinamikleri ve dengeyi göz önünde tut";
+        }
+        if (s.contains("divorc") || s.contains("boş") || s.contains("bos") || s.contains("widow") || s.contains("dul")) {
+            return "kişisel dengeyi ve yeniden kurulan iç ritmi göz önünde tut";
+        }
         return "nötr bir bakış açısıyla hitap et";
     }
 

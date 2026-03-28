@@ -78,14 +78,19 @@ public class PasswordResetEmailWorker {
     private void sendPasswordResetEmail(PasswordResetEmailMessage message) throws Exception {
         String token = URLEncoder.encode(message.rawToken(), StandardCharsets.UTF_8);
         String resetLink = publicUrlProperties.apiPublicUrl() + "/api/v1/auth/reset-password?token=" + token;
-        String html = templateRenderer.render(resetLink);
+        String locale = message.locale() != null ? message.locale() : "tr";
+        String html = templateRenderer.render(resetLink, locale);
+
+        String subject = "en".equalsIgnoreCase(locale)
+                ? "Astro Guru — Reset Your Password"
+                : "Astro Guru — Şifreni Sıfırla";
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
 
-        helper.setFrom(fromAddress);
+        helper.setFrom(new jakarta.mail.internet.InternetAddress(fromAddress, "Astro Guru"));
         helper.setTo(message.email());
-        helper.setSubject("Reset your Mystic AI password");
+        helper.setSubject(subject);
         helper.setText(html, true);
 
         mailSender.send(mimeMessage);

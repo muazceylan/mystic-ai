@@ -20,9 +20,6 @@ export interface OnboardingData {
   gender: string;
   maritalStatus: string;
   
-  // Intentions
-  focusPoint: string;
-  
   // Calculated
   zodiacSign: string;
 }
@@ -44,13 +41,6 @@ export interface ZodiacSign {
   startDay: number;
   endMonth: number;
   endDay: number;
-}
-
-export interface FocusPoint {
-  id: string;
-  title: string;
-  emoji: string;
-  description: string;
 }
 
 export interface GenderOption {
@@ -78,7 +68,6 @@ export interface RegisterRequest {
   timezone: string;
   gender: string;
   maritalStatus?: string;
-  focusPoint: string;
   zodiacSign: string;
 }
 
@@ -98,7 +87,6 @@ export interface User {
   birthCity: string;
   gender: string;
   zodiacSign: string;
-  focusPoint: string;
   createdAt: string;
 }
 

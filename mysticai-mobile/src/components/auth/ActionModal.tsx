@@ -1,8 +1,11 @@
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { useTheme } from '../../context/ThemeContext';
 import { PrimaryButton } from './PrimaryButton';
 import { SecondaryButton } from './SecondaryButton';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 type ActionVariant = 'primary' | 'secondary';
 
@@ -32,6 +35,10 @@ export function ActionModal({
 }: ActionModalProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose: onRequestClose,
+  });
 
   return (
     <Modal
@@ -43,9 +50,14 @@ export function ActionModal({
     >
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onRequestClose} />
-        <View style={styles.sheet}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+        <Animated.View style={[styles.sheet, animatedStyle]}>
+          <GestureDetector gesture={gesture}>
+            <View>
+              <View style={styles.handle} />
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.description}>{description}</Text>
+            </View>
+          </GestureDetector>
 
           <View style={styles.actions}>
             {actions.map((action) =>
@@ -70,7 +82,7 @@ export function ActionModal({
               )
             )}
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -96,6 +108,14 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       shadowRadius: 16,
       shadowOffset: { width: 0, height: -4 },
       elevation: 8,
+    },
+    handle: {
+      alignSelf: 'center',
+      width: 40,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: C.border,
+      marginBottom: 12,
     },
     title: {
       color: C.text,

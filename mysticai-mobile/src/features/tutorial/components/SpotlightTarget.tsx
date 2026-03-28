@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   type LayoutChangeEvent,
+  Platform,
+  StatusBar,
   type StyleProp,
   useWindowDimensions,
   View,
@@ -35,9 +37,15 @@ export function SpotlightTarget({ targetKey, children, style, disabled = false }
         return;
       }
 
+      // On Android, measureInWindow returns y relative to the activity window
+      // (starting below the status bar), but the Modal with statusBarTranslucent
+      // starts from the top of the physical screen. Add status bar height to align.
+      const statusBarOffset =
+        Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
+
       registerTargetLayout(targetKey, {
         x,
-        y,
+        y: y + statusBarOffset,
         width,
         height,
       });

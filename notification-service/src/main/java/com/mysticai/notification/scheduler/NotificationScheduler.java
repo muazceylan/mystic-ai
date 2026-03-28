@@ -3,8 +3,8 @@ package com.mysticai.notification.scheduler;
 import com.mysticai.notification.admin.service.NotificationTriggerService;
 import com.mysticai.notification.entity.Notification.NotificationType;
 import com.mysticai.notification.entity.NotificationTrigger;
-import com.mysticai.notification.entity.PushToken;
 import com.mysticai.notification.repository.NotificationRepository;
+import com.mysticai.notification.repository.NotificationPreferenceRepository;
 import com.mysticai.notification.repository.PushTokenRepository;
 import com.mysticai.notification.service.NotificationGenerationService;
 import com.mysticai.notification.service.UserEngagementScorerService;
@@ -15,7 +15,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 @Component
@@ -26,6 +28,7 @@ public class NotificationScheduler {
     private final NotificationGenerationService generationService;
     private final UserEngagementScorerService engagementScorer;
     private final PushTokenRepository pushTokenRepository;
+    private final NotificationPreferenceRepository preferenceRepository;
     private final NotificationRepository notificationRepository;
     private final NotificationTriggerService triggerService;
 
@@ -174,6 +177,16 @@ public class NotificationScheduler {
         triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, eligible, eligible + " eligible of " + userIds.size());
     }
 
+    /** Product/module nudge - Wednesday & Saturday at 18:30 */
+    @Scheduled(cron = "0 30 18 * * WED,SAT")
+    public void generateProductUpdates() {
+        final String key = "product_update_job";
+        if (skipIfDisabled(key)) return;
+        log.info("Running product update generation");
+        int count = generateForAll(NotificationType.PRODUCT_UPDATE);
+        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
+    }
+
     /** Cleanup expired notifications - every day at 03:00 */
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
@@ -207,9 +220,15 @@ public class NotificationScheduler {
     }
 
     private List<Long> getDistinctActiveUserIds() {
-        return pushTokenRepository.findAllByActiveTrue().stream()
-                .map(PushToken::getUserId)
+        return Stream.of(
+                    pushTokenRepository.findDistinctActiveUserIds(),
+                    preferenceRepository.findDistinctUserIds(),
+                    notificationRepository.findDistinctUserIds()
+                )
+                .flatMap(List::stream)
+                .filter(Objects::nonNull)
                 .distinct()
+                .sorted()
                 .collect(Collectors.toList());
     }
 }

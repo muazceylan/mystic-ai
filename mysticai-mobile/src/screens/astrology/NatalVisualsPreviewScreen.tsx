@@ -392,8 +392,18 @@ export default function NatalVisualsPreviewScreen() {
 
   const handleExportPdf = useCallback(async () => {
     await runAction('pdf', 'PDF Hatası', async () => {
+      // expo-print WebView cannot load local file:// URIs — convert to base64 data URI first
+      let embedUri = imageUri!;
+      try {
+        const fs = require('expo-file-system');
+        const base64: string = await fs.readAsStringAsync(imageUri!, { encoding: 'base64' });
+        embedUri = `data:image/png;base64,${base64}`;
+      } catch {
+        // fall back to raw URI
+      }
+
       const html = buildVisualsPdfHtml(
-        imageUri!,
+        embedUri,
         `${preset.label} • ${draft?.name ?? 'Profil'}`,
         { bare: isWheelPreset },
       );

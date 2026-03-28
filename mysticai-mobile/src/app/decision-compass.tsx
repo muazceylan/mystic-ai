@@ -39,8 +39,10 @@ import { FeaturedCategoryRow } from '../components/decision-compass/FeaturedCate
 import { CategoryMiniGrid } from '../components/decision-compass/CategoryMiniGrid';
 import { CategoryDetailBottomSheet } from '../components/decision-compass/CategoryDetailBottomSheet';
 import {
+  buildDecisionCompassFilterOptions,
   buildCategoryModels,
   buildHeroModel,
+  matchesCompassFilter,
   type CompassFilter,
   type DecisionCategoryModel,
 } from '../components/decision-compass/model';
@@ -52,14 +54,6 @@ function formatDateShortTr(input?: string | null) {
   const d = new Date(input);
   if (Number.isNaN(d.getTime())) return 'Bugün';
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-}
-
-function matchesFilter(category: DecisionCategoryModel, filter: CompassFilter): boolean {
-  if (filter === 'ALL') return true;
-  if (filter === 'CAUTION') {
-    return category.status === 'CAUTION' || category.status === 'HOLD';
-  }
-  return category.status === 'STRONG' || category.status === 'SUPPORTIVE' || category.status === 'BALANCED';
 }
 
 export default function DecisionCompassScreen() {
@@ -76,7 +70,6 @@ export default function DecisionCompassScreen() {
   const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
   const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
   const resetHiddenCategories = useDecisionCompassStore((s) => s.resetHiddenCategories);
-  const initFromFocusPoints = useDecisionCompassStore((s) => s.initFromFocusPoints);
 
   const goBack = useSmartBackNavigation({
     fallbackRoute: '/(tabs)/home',
@@ -141,23 +134,24 @@ export default function DecisionCompassScreen() {
     [dayDetailQuery.data?.categories, query.data?.dailyGuide?.activities],
   );
 
-  React.useEffect(() => {
-    if (categories.length > 0 && user?.focusPoint) {
-      initFromFocusPoints(user.focusPoint, categories.map((item) => item.id));
-    }
-  }, [categories, initFromFocusPoints, user?.focusPoint]);
-
   const visibleCategories = useMemo(
     () => categories.filter((item) => !hiddenCategoryKeys.includes(item.id)),
     [categories, hiddenCategoryKeys],
   );
 
-  const filteredCategories = useMemo(() => {
-    const matched = visibleCategories.filter((item) => matchesFilter(item, selectedFilter));
-    if (matched.length > 0 || selectedFilter === 'ALL') {
-      return matched;
+  const availableFilters = useMemo(
+    () => buildDecisionCompassFilterOptions(visibleCategories),
+    [visibleCategories],
+  );
+
+  React.useEffect(() => {
+    if (!availableFilters.some((option) => option.key === selectedFilter)) {
+      setSelectedFilter('ALL');
     }
-    return visibleCategories;
+  }, [availableFilters, selectedFilter]);
+
+  const filteredCategories = useMemo(() => {
+    return visibleCategories.filter((item) => matchesCompassFilter(item, selectedFilter));
   }, [selectedFilter, visibleCategories]);
 
   const featuredCategories = useMemo(
@@ -266,7 +260,6 @@ export default function DecisionCompassScreen() {
 
         <DecisionCompassHeader
           onBack={goBack}
-          onOpenCalendar={() => router.push('/(tabs)/calendar')}
           onOpenNotifications={() => router.push('/notifications')}
           onOpenHelp={handlePressTutorialHelp}
         />
@@ -278,6 +271,7 @@ export default function DecisionCompassScreen() {
                 <DecisionCompassFilters
                   dateLabel={dateLabel}
                   selectedFilter={selectedFilter}
+                  options={availableFilters}
                   onSelectFilter={setSelectedFilter}
                   onOpenCategories={() => {
                     setDetailSheetOpen(false);

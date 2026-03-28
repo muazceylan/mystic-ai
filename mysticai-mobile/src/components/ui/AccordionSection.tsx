@@ -1,21 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { InteractionManager, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import Reanimated, {
-  FadeIn,
-  FadeOut,
-  Layout,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { PremiumIconBadge, type PremiumIconTone } from './PremiumIconBadge';
 
 type Props = {
   id: string;
   title: string;
   subtitle?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  iconStyle?: 'default' | 'premium';
+  iconTone?: PremiumIconTone;
   expanded: boolean;
   onToggle: (id: string) => void;
   onLayout?: (id: string, y: number, height: number) => void;
@@ -32,6 +27,8 @@ function AccordionSection({
   title,
   subtitle,
   icon = 'chevron-down',
+  iconStyle = 'default',
+  iconTone = 'mystic',
   expanded,
   onToggle,
   onLayout,
@@ -44,17 +41,12 @@ function AccordionSection({
 }: Props) {
   const { colors } = useTheme();
   const [bodyReady, setBodyReady] = useState(!lazy);
-  const progress = useSharedValue(expanded ? 1 : 0);
 
   const handleLayout = (e: LayoutChangeEvent) => {
     if (!onLayout) return;
     const { y, height } = e.nativeEvent.layout;
     onLayout(id, y, height);
   };
-
-  useEffect(() => {
-    progress.value = withTiming(expanded ? 1 : 0, { duration: expanded ? 180 : 120 });
-  }, [expanded, progress]);
 
   useEffect(() => {
     if (!lazy || !expanded || bodyReady) return;
@@ -83,14 +75,20 @@ function AccordionSection({
     };
   }, [lazy, expanded, bodyReady, deferBodyMount]);
 
-  const animatedBodyStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * 6 }],
-  }));
+  const renderSectionIcon = () => {
+    if (iconStyle !== 'premium') {
+      return (
+        <View style={[styles.iconWrap, { backgroundColor: colors.violetBg }]}>
+          <Ionicons name={icon} size={15} color={colors.violet} />
+        </View>
+      );
+    }
+
+    return <PremiumIconBadge icon={icon} tone={iconTone} size={38} iconSize={17} glowSize={50} />;
+  };
 
   return (
-    <Reanimated.View
-      layout={Layout.springify().damping(18).stiffness(180)}
+    <View
       style={[
         styles.wrap,
         {
@@ -112,9 +110,7 @@ function AccordionSection({
         accessibilityLabel={`${title} bölümünü ${expanded ? 'daralt' : 'genişlet'}`}
       >
         <View style={styles.headerLeft}>
-          <View style={[styles.iconWrap, { backgroundColor: colors.violetBg }]}>
-            <Ionicons name={icon} size={15} color={colors.violet} />
-          </View>
+          {renderSectionIcon()}
           <View style={styles.headerTextCol}>
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
               {title}
@@ -138,11 +134,7 @@ function AccordionSection({
       </Pressable>
 
       {expanded ? (
-        <Reanimated.View
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(120)}
-          style={[styles.body, animatedBodyStyle]}
-        >
+        <View style={styles.body}>
           {lazy && !bodyReady ? (
             placeholder ?? (
               <View style={[styles.placeholder, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>
@@ -150,9 +142,9 @@ function AccordionSection({
               </View>
             )
           ) : children}
-        </Reanimated.View>
+        </View>
       ) : null}
-    </Reanimated.View>
+    </View>
   );
 }
 

@@ -210,19 +210,25 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     try {
       const prefs = await notificationService.updatePreferences(payload);
       set({ preferences: prefs });
-    } catch {}
+    } catch (error) {
+      throw error;
+    }
   },
 
   registerPushToken: async (token, platform) => {
     try {
       await notificationService.registerPushToken(token, platform);
-    } catch {}
+    } catch (error) {
+      throw error;
+    }
   },
 
   deactivatePushToken: async (token) => {
     try {
       await notificationService.deactivatePushToken(token);
-    } catch {}
+    } catch (error) {
+      throw error;
+    }
   },
 
   reset: () => {

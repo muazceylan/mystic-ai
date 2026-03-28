@@ -179,7 +179,6 @@ export default function NatalChartScreen() {
       timezone: onboarding.timezone,
       gender: onboarding.gender,
       maritalStatus: onboarding.maritalStatus,
-      focusPoint: onboarding.focusPoints.join(','),
       zodiacSign: onboarding.zodiacSign,
     };
   };
@@ -210,7 +209,6 @@ export default function NatalChartScreen() {
       timezone: onboarding.timezone || undefined,
       gender: onboarding.gender || undefined,
       maritalStatus: onboarding.maritalStatus || undefined,
-      focusPoint: onboarding.focusPoints.length > 0 ? onboarding.focusPoints.join(',') : undefined,
       zodiacSign: onboarding.zodiacSign || undefined,
     };
 

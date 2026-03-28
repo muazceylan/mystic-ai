@@ -4,6 +4,7 @@ public record EmailVerificationMessage(
         Long userId,
         String email,
         String rawToken,
-        String correlationId
+        String correlationId,
+        String locale
 ) {
 }

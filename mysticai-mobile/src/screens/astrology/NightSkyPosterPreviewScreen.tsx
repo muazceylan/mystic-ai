@@ -51,12 +51,6 @@ type VariantOption = { key: NightSkyPosterVariant; label: string; sub: string };
 const META_INSTAGRAM_STORY_APP_ID =
   process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || process.env.EXPO_PUBLIC_META_APP_ID || undefined;
 
-const POSTER_VARIANTS: VariantOption[] = [
-  { key: 'minimal', label: 'Minimal', sub: 'Temiz / sakin' },
-  { key: 'constellation_heavy', label: 'Constellation', sub: 'Çizgiler yoğun' },
-  { key: 'gold_edition', label: 'Gold Edition', sub: 'Altın vurgu' },
-];
-
 function buildPosterPdfHtml(imageUri: string, name?: string | null) {
   const normalizedName = typeof name === 'string' ? name.trim() : '';
   const title = normalizedName
@@ -89,7 +83,7 @@ function buildPosterPdfHtml(imageUri: string, name?: string | null) {
 
 export default function NightSkyPosterPreviewScreen() {
   const { colors } = useTheme();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isEnglish = i18n.language?.startsWith('en');
   const draft = useNightSkyPosterStore((s) => s.draft);
   const setDraft = useNightSkyPosterStore((s) => s.setDraft);
@@ -100,6 +94,30 @@ export default function NightSkyPosterPreviewScreen() {
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const bootstrapAttemptedRef = useRef(false);
+  const missingChartMessage = t(
+    'nightSkyPosterPreview.missingChartMessage',
+    'Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun.',
+  );
+  const variantOptions = useMemo<VariantOption[]>(
+    () => [
+      {
+        key: 'minimal',
+        label: t('nightSkyPosterPreview.variants.minimal.label', 'Minimal'),
+        sub: t('nightSkyPosterPreview.variants.minimal.sub', 'Sade / dingin'),
+      },
+      {
+        key: 'constellation_heavy',
+        label: t('nightSkyPosterPreview.variants.constellation.label', 'Constellation'),
+        sub: t('nightSkyPosterPreview.variants.constellation.sub', 'Çizgiler belirgin'),
+      },
+      {
+        key: 'gold_edition',
+        label: t('nightSkyPosterPreview.variants.gold.label', 'Gold Edition'),
+        sub: t('nightSkyPosterPreview.variants.gold.sub', 'Altın vurgu'),
+      },
+    ],
+    [i18n.language, t],
+  );
 
   // Auto-build draft from natal chart store or API when draft is missing
   useEffect(() => {
@@ -136,7 +154,7 @@ export default function NightSkyPosterPreviewScreen() {
     // Fetch from API
     const userId = user?.id;
     if (!userId) {
-      setBootstrapError('Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun.');
+      setBootstrapError(missingChartMessage);
       return;
     }
 
@@ -146,10 +164,10 @@ export default function NightSkyPosterPreviewScreen() {
         buildDraftFromChart(res.data);
       })
       .catch(() => {
-        setBootstrapError('Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun.');
+        setBootstrapError(missingChartMessage);
       })
       .finally(() => setBootstrapLoading(false));
-  }, [draft, cachedChart, user, setDraft]);
+  }, [draft, cachedChart, user, setDraft, missingChartMessage]);
 
   const viewShotRef = useRef<ViewShot | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
@@ -253,7 +271,7 @@ export default function NightSkyPosterPreviewScreen() {
       const projectionPromise = fetchNightSkyProjection({
         userId: draft.userId,
         chartId: draft.chartId,
-        name: draft.name,
+        name: draft.name ?? undefined,
         birthDate: draft.birthDate,
         birthTime: draft.birthTime,
         birthLocation: draft.birthLocation,
@@ -265,7 +283,7 @@ export default function NightSkyPosterPreviewScreen() {
       const shareLinkPromise = createNightSkyPosterShareLink({
         userId: draft.userId,
         chartId: draft.chartId,
-        name: draft.name,
+        name: draft.name ?? undefined,
         birthDate: draft.birthDate,
         birthTime: draft.birthTime,
         birthLocation: draft.birthLocation,
@@ -387,7 +405,7 @@ export default function NightSkyPosterPreviewScreen() {
   const handleShare = async () => {
     await runShareAction('share', 'Paylaşım Hatası', async () => {
       await shareImage(imageUri!);
-      await notifySuccess('Paylaşım ekranı açıldı');
+      await notifySuccess(t('nightSkyPosterPreview.successShare', 'Paylaşım ekranı açıldı'));
     });
   };
 
@@ -398,21 +416,36 @@ export default function NightSkyPosterPreviewScreen() {
         appId: META_INSTAGRAM_STORY_APP_ID,
         fallbackToSystemShare: true,
       });
-      await notifySuccess(result.fallbackUsed ? 'Sistem paylaşımı açıldı' : 'Instagram Story başlatıldı');
+      await notifySuccess(
+        result.fallbackUsed
+          ? t('nightSkyPosterPreview.successSystemShare', 'Sistem paylaşımı açıldı')
+          : t('nightSkyPosterPreview.successInstagram', 'Instagram Story başlatıldı'),
+      );
     });
   };
 
   const handleSave = async () => {
     await runShareAction('save', 'Kaydetme Hatası', async () => {
       const result = await saveToGallery(imageUri!);
-      await notifySuccess(result.message ?? 'Kart galeriye kaydedildi');
+      await notifySuccess(result.message ?? t('nightSkyPosterPreview.successSave', 'Kart galeriye kaydedildi'));
     });
   };
 
   const handleExportPdf = async () => {
     await runShareAction('pdf', 'PDF Hatası', async () => {
       const pdfDisplayName = draft?.isGuest ? null : draft?.fullName ?? null;
-      const html = buildPosterPdfHtml(imageUri!, pdfDisplayName);
+
+      // expo-print WebView cannot load local file:// URIs — convert to base64 data URI first
+      let embedUri = imageUri!;
+      try {
+        const fs = require('expo-file-system');
+        const base64: string = await fs.readAsStringAsync(imageUri!, { encoding: 'base64' });
+        embedUri = `data:image/png;base64,${base64}`;
+      } catch {
+        // fall back to raw URI
+      }
+
+      const html = buildPosterPdfHtml(embedUri, pdfDisplayName);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
@@ -421,7 +454,7 @@ export default function NightSkyPosterPreviewScreen() {
           dialogTitle: 'Doğduğun Gece Gökyüzü (PDF)',
         });
       }
-      await notifySuccess('PDF hazırlandı');
+      await notifySuccess(t('nightSkyPosterPreview.successPdf', 'PDF hazırlandı'));
     });
   };
 
@@ -444,22 +477,24 @@ export default function NightSkyPosterPreviewScreen() {
           {bootstrapLoading ? (
             <>
               <ActivityIndicator size="large" color={colors.violet} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Harita yükleniyor…</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                {t('nightSkyPosterPreview.emptyLoadingTitle', 'Harita yükleniyor…')}
+              </Text>
               <Text style={[styles.emptySub, { color: colors.subtext }]}>
-                Doğum haritanız hazırlanıyor, lütfen bekleyin.
+                {t('nightSkyPosterPreview.emptyLoadingSubtitle', 'Doğum haritanız hazırlanıyor, lütfen bekleyin.')}
               </Text>
             </>
           ) : (
             <>
               <Ionicons name="moon-outline" size={28} color={colors.violet} />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                {bootstrapError ?? 'Gece gökyüzü verisi bulunamadı'}
+                {bootstrapError ?? t('nightSkyPosterPreview.emptyTitle', 'Gece gökyüzü verisi bulunamadı')}
               </Text>
               <Text style={[styles.emptySub, { color: colors.subtext }]}>
-                Önce Haritam ekranından doğum haritanızı oluşturun.
+                {t('nightSkyPosterPreview.emptySubtitle', 'Önce Haritam ekranından doğum haritanızı oluşturun.')}
               </Text>
               <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={goBack}>
-                <Text style={styles.primaryBtnText}>Geri Dön</Text>
+                <Text style={styles.primaryBtnText}>{t('common.back', 'Geri')}</Text>
               </Pressable>
             </>
           )}
@@ -504,8 +539,8 @@ export default function NightSkyPosterPreviewScreen() {
       </View>
 
       <AppHeader
-        title="Doğduğun Gece Gökyüzü"
-        subtitle="Kişisel gökyüzünü aç, paylaşılabilir kartını oluştur."
+        title={t('natalChart.birthNightTitle', 'Doğduğun Gece Gökyüzü')}
+        subtitle={t('nightSkyPosterPreview.headerSubtitle', 'Kişisel gökyüzünü aç, paylaşılabilir posterini hazırla.')}
         onBack={goBack}
       />
 
@@ -520,21 +555,25 @@ export default function NightSkyPosterPreviewScreen() {
         <View style={[styles.variantCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.variantHeader}>
             <View>
-              <Text style={[styles.variantTitle, { color: colors.text }]}>Görünüm stili</Text>
+              <Text style={[styles.variantTitle, { color: colors.text }]}>
+                {t('nightSkyPosterPreview.styleTitle', 'Görünüm stili')}
+              </Text>
               <Text style={[styles.variantSub, { color: colors.subtext }]}>
-                Stil değişince paylaşım kartı yeniden hazırlanır.
+                {t('nightSkyPosterPreview.styleSubtitle', 'Stil değişince paylaşım posteri yeniden hazırlanır.')}
               </Text>
             </View>
             {(projectionLoading || shareLinkLoading) ? (
               <View style={styles.variantSyncWrap}>
                 <ActivityIndicator size="small" color={colors.violet} />
-                <Text style={[styles.variantSyncText, { color: colors.subtext }]}>Senkronize ediliyor…</Text>
+                <Text style={[styles.variantSyncText, { color: colors.subtext }]}>
+                  {t('nightSkyPosterPreview.syncing', 'Senkronize ediliyor…')}
+                </Text>
               </View>
             ) : null}
           </View>
 
           <View style={styles.variantRow}>
-            {POSTER_VARIANTS.map((opt) => {
+            {variantOptions.map((opt) => {
               const active = variant === opt.key;
               return (
                 <Pressable
@@ -556,15 +595,6 @@ export default function NightSkyPosterPreviewScreen() {
             })}
           </View>
 
-          {projection ? (
-            <View style={[styles.backendBadge, { backgroundColor: colors.successBg, borderColor: colors.successLight }]}>
-              <Ionicons name="planet-outline" size={14} color={colors.success} />
-              <Text style={[styles.backendBadgeText, { color: colors.success }]}>
-                Gerçek zenith projection aktif • {projection.projectionModel}
-              </Text>
-            </View>
-          ) : null}
-
           {projectionError ? (
             <View style={[styles.backendBadge, { backgroundColor: colors.warningBg ?? colors.surfaceAlt, borderColor: colors.border }]}>
               <Ionicons name="warning-outline" size={14} color={colors.warning} />
@@ -585,29 +615,110 @@ export default function NightSkyPosterPreviewScreen() {
             <View style={styles.loaderWrap}>
               <View style={[styles.loaderGhost, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]} />
               <ActivityIndicator size="large" color={colors.violet} />
-              <Text style={[styles.loaderTitle, { color: colors.text }]}>Kart hazırlanıyor…</Text>
+              <Text style={[styles.loaderTitle, { color: colors.text }]}>
+                {t('nightSkyPosterPreview.loaderTitle', 'Poster hazırlanıyor…')}
+              </Text>
               <Text style={[styles.loaderSub, { color: colors.subtext }]}>
-                9:16 yüksek çözünürlüklü görsel hazırlanıyor.
+                {t('nightSkyPosterPreview.loaderSubtitle', '9:16 yüksek çözünürlüklü görsel hazırlanıyor.')}
               </Text>
             </View>
           ) : imageUri ? (
             <>
               <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
               <Text style={[styles.previewMeta, { color: colors.subtext }]}>
-                {draft.birthDate} • {draft.birthTime?.slice(0, 5) ?? 'Saat bilinmiyor'} •{' '}
-                {POSTER_VARIANTS.find((v) => v.key === variant)?.label ?? 'Minimal'}
+                {draft.birthDate} • {draft.birthTime?.slice(0, 5) ?? t('birthInfo.timeUnknown', 'Saat bilinmiyor')} •{' '}
+                {variantOptions.find((v) => v.key === variant)?.label ?? t('nightSkyPosterPreview.variants.minimal.label', 'Minimal')}
               </Text>
               <Text style={[styles.previewMeta, { color: colors.subtext }]}>
-                {projection ? `${projection.timezoneUsed} • Swiss Ephemeris horizontal coords` : 'Lokal fallback kompozisyon'}
+                {projection
+                  ? t('nightSkyPosterPreview.projectionMeta', '{{timezone}} • Swiss Ephemeris horizontal coords', {
+                      timezone: projection.timezoneUsed,
+                    })
+                  : t('nightSkyPosterPreview.fallbackMeta', 'Lokal fallback kompozisyon')}
               </Text>
+
+              <View style={styles.actionsBlock}>
+                <Pressable
+                  style={[styles.primaryBtn, { backgroundColor: colors.violet }, actionLoading && styles.btnDisabled]}
+                  onPress={handleShare}
+                  disabled={actionLoading != null}
+                >
+                  {actionLoading === 'share' ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <Ionicons name="share-social" size={16} color="#FFF" />
+                  )}
+                  <Text style={styles.primaryBtnText}>{t('nightSkyPosterPreview.share', 'Paylaş')}</Text>
+                </Pressable>
+
+                <View style={styles.secondaryRow}>
+                  <Pressable
+                    style={[styles.secondaryBtn, { backgroundColor: colors.surface, borderColor: colors.border }, actionLoading && styles.btnDisabled]}
+                    onPress={handleInstagram}
+                    disabled={actionLoading != null}
+                  >
+                    {actionLoading === 'instagram' ? (
+                      <ActivityIndicator size="small" color={colors.text} />
+                    ) : (
+                      <Ionicons name="logo-instagram" size={16} color={colors.text} />
+                    )}
+                    <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+                      {t('nightSkyPosterPreview.instagram', 'Instagram Story')}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.secondaryBtn, { backgroundColor: colors.surface, borderColor: colors.border }, actionLoading && styles.btnDisabled]}
+                    onPress={handleSave}
+                    disabled={actionLoading != null}
+                  >
+                    {actionLoading === 'save' ? (
+                      <ActivityIndicator size="small" color={colors.text} />
+                    ) : (
+                      <Ionicons name="download-outline" size={16} color={colors.text} />
+                    )}
+                    <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+                      {t('nightSkyPosterPreview.gallery', 'Galeri')}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <Pressable
+                  style={[styles.secondaryWideBtn, { backgroundColor: colors.surface, borderColor: colors.border }, actionLoading && styles.btnDisabled]}
+                  onPress={handleExportPdf}
+                  disabled={actionLoading != null}
+                >
+                  {actionLoading === 'pdf' ? (
+                    <ActivityIndicator size="small" color={colors.text} />
+                  ) : (
+                    <Ionicons name="document-text-outline" size={16} color={colors.text} />
+                  )}
+                  <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>
+                    {t('nightSkyPosterPreview.pdf', 'PDF paylaş')}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.secondaryWideBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={handleRegenerate}
+                  disabled={loading || actionLoading != null}
+                >
+                  <Ionicons name="refresh" size={16} color={colors.text} />
+                  <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>
+                    {t('nightSkyPosterPreview.refresh', 'Posteri yenile')}
+                  </Text>
+                </Pressable>
+              </View>
             </>
           ) : (
             <View style={styles.loaderWrap}>
               <Ionicons name="warning-outline" size={24} color={colors.warning} />
-              <Text style={[styles.loaderTitle, { color: colors.text }]}>Kart oluşturulamadı</Text>
+              <Text style={[styles.loaderTitle, { color: colors.text }]}>
+                {t('nightSkyPosterPreview.errorTitle', 'Poster oluşturulamadı')}
+              </Text>
               <Text style={[styles.loaderSub, { color: colors.subtext }]}>{error ?? 'Beklenmeyen hata.'}</Text>
               <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={handleRegenerate}>
-                <Text style={styles.primaryBtnText}>Tekrar Dene</Text>
+                <Text style={styles.primaryBtnText}>{t('common.retry', 'Tekrar Dene')}</Text>
               </Pressable>
             </View>
           )}
@@ -622,6 +733,7 @@ export default function NightSkyPosterPreviewScreen() {
                 ? 'The lunar phase at the moment you were born and all eight phases of the cycle.'
                 : 'Doğduğun andaki ay evresi ve döngünün sekiz fazı.'
             }
+            illuminationLabel={t('nightSkyPosterPreview.illumination', 'Aydınlık')}
           />
         ) : null}
 
@@ -637,74 +749,6 @@ export default function NightSkyPosterPreviewScreen() {
           />
         ) : null}
 
-        <View style={styles.actionsBlock}>
-          <Pressable
-            style={[styles.secondaryWideBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={handleRegenerate}
-            disabled={loading || actionLoading != null}
-          >
-            <Ionicons name="refresh" size={16} color={colors.text} />
-            <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>Kartı yenile</Text>
-          </Pressable>
-
-          {imageUri && !loading ? (
-            <>
-              <Pressable
-                style={[styles.primaryBtn, { backgroundColor: colors.violet }, actionLoading && styles.btnDisabled]}
-                onPress={handleShare}
-                disabled={actionLoading != null}
-              >
-                {actionLoading === 'share' ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Ionicons name="share-social" size={16} color="#FFF" />
-                )}
-                <Text style={styles.primaryBtnText}>Paylaş</Text>
-              </Pressable>
-
-              <View style={styles.secondaryRow}>
-                <Pressable
-                  style={[styles.secondaryBtn, { backgroundColor: colors.surface, borderColor: colors.border }, actionLoading && styles.btnDisabled]}
-                  onPress={handleInstagram}
-                  disabled={actionLoading != null}
-                >
-                  {actionLoading === 'instagram' ? (
-                    <ActivityIndicator size="small" color={colors.text} />
-                  ) : (
-                    <Ionicons name="logo-instagram" size={16} color={colors.text} />
-                  )}
-                  <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Instagram Story</Text>
-                </Pressable>
-
-                <Pressable
-                  style={[styles.secondaryBtn, { backgroundColor: colors.surface, borderColor: colors.border }, actionLoading && styles.btnDisabled]}
-                  onPress={handleSave}
-                  disabled={actionLoading != null}
-                >
-                  {actionLoading === 'save' ? (
-                    <ActivityIndicator size="small" color={colors.text} />
-                  ) : (
-                    <Ionicons name="download-outline" size={16} color={colors.text} />
-                  )}
-                  <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Galeri</Text>
-                </Pressable>
-              </View>
-
-              <Pressable
-                style={[styles.secondaryWideBtn, { backgroundColor: colors.surface, borderColor: colors.border }, actionLoading && styles.btnDisabled]}
-                onPress={handleExportPdf}
-                disabled={actionLoading != null}
-              >
-                {actionLoading === 'pdf' ? (
-                  <ActivityIndicator size="small" color={colors.text} />
-                ) : (
-                  <Ionicons name="document-text-outline" size={16} color={colors.text} />
-                )}
-                <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>PDF paylaş</Text>
-              </Pressable>
-            </>
-          ) : null}
-        </View>
       </ScrollView>
     </SafeScreen>
   );
@@ -862,7 +906,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
-  actionsBlock: { gap: 10 },
+  actionsBlock: {
+    width: '100%',
+    gap: 10,
+    marginTop: 14,
+  },
   primaryBtn: {
     minHeight: 46,
     borderRadius: 14,

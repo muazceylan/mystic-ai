@@ -12,20 +12,44 @@ const resources = {
   en: { translation: en },
 };
 
+function resolveDeviceLanguage(): 'tr' | 'en' {
+  try {
+    // Dynamic require so a missing native module doesn't crash at import time
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { getLocales } = require('expo-localization') as { getLocales: () => { languageTag: string }[] };
+    const tag = getLocales()[0]?.languageTag ?? '';
+    return tag.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  } catch {
+    // Fallback: read device locale via Intl if available
+    try {
+      const tag = Intl.DateTimeFormat().resolvedOptions().locale ?? '';
+      return tag.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+    } catch {
+      return 'en';
+    }
+  }
+}
+
 export async function initI18n() {
-  // Read persisted language preference
-  let lng = 'tr'; // default
+  let lng: 'tr' | 'en';
   try {
     const stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (stored === 'en' || stored === 'tr') lng = stored;
-  } catch { /* use default */ }
+    if (stored === 'en' || stored === 'tr') {
+      lng = stored;
+    } else {
+      // First launch — no stored preference: follow device locale
+      lng = resolveDeviceLanguage();
+    }
+  } catch {
+    lng = resolveDeviceLanguage();
+  }
 
   await i18n
     .use(initReactI18next)
     .init({
       resources,
       lng,
-      fallbackLng: 'tr',
+      fallbackLng: 'en',
       interpolation: { escapeValue: false },
       compatibilityJSON: 'v3',
     });

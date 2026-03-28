@@ -23,9 +23,9 @@ function CelestialBodyBadge({ body, size }: Props) {
   const isPrimary = body.markerLevel === 'primary';
 
   /* size hierarchy — reference shows Sun/Moon largest, inner planets medium, outers small */
-  const badgeRadius = isPrimary ? 13.5 : priority >= 2 ? 10.5 : 8.5;
-  const symbolSize = isPrimary ? 14 : priority >= 2 ? 11 : 9;
-  const glowRadius = isPrimary ? 20 : priority >= 2 ? 15 : 11;
+  const badgeRadius = isPrimary ? 15 : priority >= 2 ? 11.8 : 9.3;
+  const symbolSize = isPrimary ? 15 : priority >= 2 ? 11.8 : 9.4;
+  const glowRadius = isPrimary ? 23 : priority >= 2 ? 17 : 12.5;
   const anchorDotR = isPrimary ? 1.8 : priority >= 2 ? 1.3 : 1.0;
   const borderWidth = isPrimary ? 1.4 : priority >= 2 ? 1.1 : 0.85;
 
@@ -58,6 +58,15 @@ function CelestialBodyBadge({ body, size }: Props) {
         opacity={isPrimary ? 0.35 : priority >= 2 ? 0.22 : 0.15}
       />
 
+      <Circle
+        cx={badgeX}
+        cy={badgeY}
+        r={badgeRadius + 4.6}
+        fill="transparent"
+        stroke="rgba(244,226,180,0.16)"
+        strokeWidth={0.9}
+      />
+
       {/* main badge: dark fill + gold/tone border ring */}
       <Circle
         cx={badgeX}
@@ -72,11 +81,26 @@ function CelestialBodyBadge({ body, size }: Props) {
       <Circle
         cx={badgeX}
         cy={badgeY}
+        r={badgeRadius - 0.9}
+        fill="transparent"
+        stroke="rgba(255,248,228,0.08)"
+        strokeWidth={0.75}
+      />
+      <Circle
+        cx={badgeX}
+        cy={badgeY}
         r={badgeRadius - 2.2}
         fill="transparent"
         stroke={tone.border}
         strokeOpacity={0.12}
         strokeWidth={0.4}
+      />
+
+      <Circle
+        cx={badgeX - badgeRadius * 0.24}
+        cy={badgeY - badgeRadius * 0.28}
+        r={badgeRadius * 0.28}
+        fill="rgba(255,245,220,0.08)"
       />
 
       {/* symbol */}

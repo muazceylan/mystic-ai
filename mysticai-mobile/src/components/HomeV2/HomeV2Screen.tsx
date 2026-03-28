@@ -13,9 +13,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import type { HomeV2DecisionCompassItem, HomeV2Model, HomeV2QuickActionId, HomeV2StatusTone } from './homeV2.types';
 import { useDecisionCompassStore } from '../../store/useDecisionCompassStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
 interface HomeV2ScreenProps {
   model: HomeV2Model;
@@ -530,6 +533,11 @@ function DecisionCompassCard({
   const setCategoryVisibility = useDecisionCompassStore((state) => state.setCategoryVisibility);
   const resetHiddenCategories = useDecisionCompassStore((state) => state.resetHiddenCategories);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const closeSettings = React.useCallback(() => setSettingsOpen(false), []);
+  const { animatedStyle: compassSettingsAnimatedStyle, gesture: compassSettingsGesture } = useBottomSheetDragGesture({
+    enabled: settingsOpen,
+    onClose: closeSettings,
+  });
   const [expandedList, setExpandedList] = React.useState(false);
   const [expandedRowId, setExpandedRowId] = React.useState<string | null>(null);
   const filteredItems = React.useMemo(
@@ -784,20 +792,25 @@ function DecisionCompassCard({
         </View>
       ) : null}
 
-      <Modal visible={settingsOpen} transparent animationType="fade" onRequestClose={() => setSettingsOpen(false)}>
+      <Modal visible={settingsOpen} transparent animationType="fade" onRequestClose={closeSettings}>
         <View style={S.compassSettingsBackdropRoot}>
-          <Pressable style={S.compassSettingsBackdrop} onPress={() => setSettingsOpen(false)} />
-          <View style={S.compassSettingsSheet}>
-            <View style={S.compassSettingsHeader}>
-              <View style={S.compassSettingsHeaderTextWrap}>
-                <Text style={S.compassSettingsKicker}>KATEGORİ GÖRÜNÜRLÜĞÜ</Text>
-                <Text style={S.compassSettingsTitle}>Karar Pusulası Ayarları</Text>
-                <Text style={S.compassSettingsSubtitle}>Ana sayfa ve detay ekranlarında hangi kategorilerin görüneceğini seç.</Text>
+          <Pressable style={S.compassSettingsBackdrop} onPress={closeSettings} />
+          <Animated.View style={[S.compassSettingsSheet, compassSettingsAnimatedStyle]}>
+            <GestureDetector gesture={compassSettingsGesture}>
+              <View style={S.compassSettingsDragZone}>
+                <View style={S.compassSettingsHandle} />
+                <View style={S.compassSettingsHeader}>
+                  <View style={S.compassSettingsHeaderTextWrap}>
+                    <Text style={S.compassSettingsKicker}>KATEGORİ GÖRÜNÜRLÜĞÜ</Text>
+                    <Text style={S.compassSettingsTitle}>Karar Pusulası Ayarları</Text>
+                    <Text style={S.compassSettingsSubtitle}>Ana sayfa ve detay ekranlarında hangi kategorilerin görüneceğini seç.</Text>
+                  </View>
+                  <Pressable onPress={closeSettings} style={({ pressed }) => [S.compassSettingsCloseBtn, pressed && S.pressed]}>
+                    <Ionicons name="close" size={16} color={S.__palette.iconStrong} />
+                  </Pressable>
+                </View>
               </View>
-              <Pressable onPress={() => setSettingsOpen(false)} style={({ pressed }) => [S.compassSettingsCloseBtn, pressed && S.pressed]}>
-                <Ionicons name="close" size={16} color={S.__palette.iconStrong} />
-              </Pressable>
-            </View>
+            </GestureDetector>
 
             <ScrollView style={S.compassSettingsScroll} contentContainerStyle={S.compassSettingsScrollContent}>
               {categoryOptions.map((category) => {
@@ -832,7 +845,7 @@ function DecisionCompassCard({
                 <Text style={S.compassSettingsResetText}>Tümünü Göster</Text>
               </Pressable>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>
@@ -2108,6 +2121,16 @@ function makeStyles(P: Palette) {
       paddingBottom: Platform.OS === 'ios' ? 26 : 16,
       maxHeight: '72%',
       gap: 10,
+    },
+    compassSettingsDragZone: {
+      alignItems: 'center',
+      gap: 10,
+    },
+    compassSettingsHandle: {
+      width: 42,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(31,41,55,0.12)',
     },
     compassSettingsHeader: {
       flexDirection: 'row',

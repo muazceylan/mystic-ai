@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type {
   HousePlacement,
@@ -38,6 +38,7 @@ const displaySerif = Platform.select({
   android: 'serif',
   default: undefined,
 });
+const astroGuruIcon = require('../../../assets/brand/logo/astro-guru-icon-transparent-1024.png');
 
 export default function BirthNightSkyPoster(props: Props) {
   const { i18n } = useTranslation();
@@ -88,8 +89,8 @@ export default function BirthNightSkyPoster(props: Props) {
   ]);
 
   /* disc fills the available space — large as in reference */
-  const discSize = model.displayName ? 340 : 356;
-  const seedKey = `${props.birthDate}|${props.birthTime ?? 'unknown'}|${props.latitude}|${props.longitude}|${model.posterTone ?? 'moon'}`;
+  const discSize = model.displayName ? 346 : 362;
+  const seedKey = `${props.birthDate}|${props.birthTime ?? 'unknown'}|${props.latitude}|${props.longitude}|${props.variant ?? 'minimal'}|${model.posterTone ?? 'moon'}`;
 
   return (
     <View style={styles.frame} collapsable={false}>
@@ -110,12 +111,25 @@ export default function BirthNightSkyPoster(props: Props) {
 
           {/* footer: moon phase + divider + brand */}
           <View style={styles.footerZone}>
-            <LunarPhaseBadge
-              model={model}
-              label={isEnglish ? 'illumination' : 'aydınlık'}
-            />
-            <View style={styles.footerDivider} />
-            <Text style={styles.footerBrand}>ASTRO GURU</Text>
+            <View style={styles.footerPhaseRow}>
+              <View style={styles.footerDivider} />
+              <LunarPhaseBadge
+                model={model}
+                label={isEnglish ? 'illumination' : 'aydınlık'}
+              />
+              <View style={styles.footerDivider} />
+            </View>
+            <View style={styles.footerBrandRail}>
+              <View style={styles.footerBrandRailLine} />
+              <View style={styles.footerBrandRailDot} />
+              <View style={styles.footerBrandRailLine} />
+            </View>
+            <View style={styles.footerBrandWrap}>
+              <View style={styles.footerBrandIconWrap}>
+                <Image source={astroGuruIcon} style={styles.footerBrandIcon} resizeMode="contain" />
+              </View>
+              <Text style={styles.footerBrand}>ASTRO GURU</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -144,32 +158,83 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 18,
-    paddingBottom: 16,
+    paddingTop: 24,
+    paddingBottom: 18,
     paddingHorizontal: posterTokens.frame.paddingHorizontal,
   },
   discWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 10,
   },
   footerZone: {
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 8,
+  },
+  footerPhaseRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 6,
+    gap: 14,
   },
   footerDivider: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    marginHorizontal: 10,
-    backgroundColor: 'rgba(200,175,110,0.14)',
+    backgroundColor: 'rgba(214,189,123,0.28)',
+  },
+  footerBrandRail: {
+    width: '72%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  footerBrandRailLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(214,189,123,0.36)',
+  },
+  footerBrandRailDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+    backgroundColor: 'rgba(243,217,154,0.95)',
+    shadowColor: '#F0D07E',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  footerBrandWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  footerBrandIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    shadowColor: '#E8C560',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  footerBrandIcon: {
+    width: 92,
+    height: 92,
   },
   footerBrand: {
-    color: 'rgba(215,190,120,0.8)',
-    fontSize: 10,
+    color: 'rgba(232,212,167,0.92)',
+    fontSize: 14.5,
     fontWeight: '700',
-    letterSpacing: 4,
+    letterSpacing: 5.2,
     fontFamily: displaySerif,
+    textShadowColor: 'rgba(215,190,120,0.18)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
 });

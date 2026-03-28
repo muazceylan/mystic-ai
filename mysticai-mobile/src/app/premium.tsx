@@ -5,7 +5,8 @@ import * as Haptics from '../utils/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
-import { SafeScreen, TabHeader } from '../components/ui';
+import { SafeScreen, TabHeader, BrandLogo } from '../components/ui';
+import { PREMIUM_ICONS, ACTION_ICONS } from '../constants/icons';
 
 const FEATURE_KEYS = ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6', 'feature7'] as const;
 
@@ -91,6 +92,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     planPricePopular: { color: C.primary },
     planPeriod: { fontSize: 12, color: C.subtext },
     restoreBtn: { alignItems: 'center', paddingVertical: 16 },
+    restoreBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     restoreBtnText: { fontSize: 13, color: C.primary, fontWeight: '600' },
     legalText: {
       fontSize: 11,
@@ -133,7 +135,7 @@ export default function PremiumScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.hero}
           >
-            <Ionicons name="sparkles" size={36} color={colors.gold} />
+            <BrandLogo variant="icon-transparent" size={56} rounded={false} />
             <Text style={styles.heroTitle}>{t('premium.heroTitle')}</Text>
             <Text style={styles.heroSub}>{t('premium.heroSub')}</Text>
           </LinearGradient>
@@ -192,7 +194,10 @@ export default function PremiumScreen() {
           accessibilityLabel={t('premium.accessibilityRestore')}
           accessibilityRole="button"
         >
-          <Text style={styles.restoreBtnText}>{t('premium.restorePurchases')}</Text>
+          <View style={styles.restoreBtnInner}>
+            <Ionicons name={PREMIUM_ICONS.restore} size={14} color={colors.primary} />
+            <Text style={styles.restoreBtnText}>{t('premium.restorePurchases')}</Text>
+          </View>
         </TouchableOpacity>
 
         <Text style={styles.legalText}>

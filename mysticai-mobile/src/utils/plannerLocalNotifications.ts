@@ -1,7 +1,11 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import type { ReminderType } from '../services/reminder.service';
-import { ensureNotificationHandlerInstalled } from './pushNotifications';
+import {
+  DEFAULT_NOTIFICATION_CHANNEL_ID,
+  ensureNotificationHandlerInstalled,
+  setupNotificationChannel,
+} from './pushNotifications';
 
 type PlannerReminderPayload = {
   deeplink: string;
@@ -97,6 +101,7 @@ export async function schedulePlannerLocalNotification(
   }
 
   await ensureNotificationHandlerInstalled();
+  await setupNotificationChannel();
 
   const hasPermission = await ensureNotificationPermission();
   if (!hasPermission) {
@@ -104,7 +109,7 @@ export async function schedulePlannerLocalNotification(
   }
 
   const scheduledFor = buildPlannerReminderDate(input.date, input.time);
-  const androidChannelId = Platform.OS === 'android' ? 'mysticai-notifications' : undefined;
+  const androidChannelId = Platform.OS === 'android' ? DEFAULT_NOTIFICATION_CHANNEL_ID : undefined;
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: input.title,

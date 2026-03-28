@@ -3,11 +3,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
+import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
 import { statusColors } from './palette';
 import { statusLabel, type DecisionCategoryModel } from './model';
 import { getCompassTokens } from './tokens';
 import { StatusPill } from './StatusPill';
-import { SoftActionButton } from './SoftActionButton';
 
 interface CategoryMiniGridProps {
   categories: DecisionCategoryModel[];
@@ -58,12 +58,11 @@ export function CategoryMiniGrid({
                 end={{ x: 1, y: 1 }}
                 style={S.card}
               >
+                <View pointerEvents="none" style={[S.cardGlow, { backgroundColor: tint.soft }]} />
                 <View pointerEvents="none" style={S.cardHighlight} />
 
                 <View style={S.topRow}>
-                  <View style={S.iconBubble}>
-                    <Ionicons name={category.icon} size={15} color={colors.primary} />
-                  </View>
+                  <DecisionCompassPremiumBadge iconName={category.icon} status={category.status} size="sm" />
 
                   <View style={S.labelWrap}>
                     <Text style={S.cardTitle} numberOfLines={2}>{category.title}</Text>
@@ -89,16 +88,35 @@ export function CategoryMiniGrid({
       </ScrollView>
 
       {onPressShowAll ? (
-        <SoftActionButton
-          label="Tüm kategorileri gör"
-          onPress={onPressShowAll}
-          gradient={T.gradients.pillPrimary as [string, string]}
-          borderColor={isDark ? 'rgba(202,178,255,0.42)' : 'rgba(192,164,248,0.78)'}
-          textColor={colors.primary}
-          iconColor={colors.primary}
-          large
-          style={S.showAllBtn}
-        />
+        <Pressable onPress={onPressShowAll} style={({ pressed }) => [S.showAllShell, pressed && S.pressed]}>
+          <LinearGradient
+            colors={T.gradients.pillPrimary as [string, string]}
+            start={{ x: 0, y: 0.05 }}
+            end={{ x: 1, y: 1 }}
+            style={S.showAllBtn}
+          >
+            <View pointerEvents="none" style={S.showAllGlow} />
+            <View pointerEvents="none" style={S.showAllEdge} />
+
+            <View style={S.showAllContent}>
+              <DecisionCompassPremiumBadge iconName="apps-outline" tone="hero" size="sm" />
+
+              <View style={S.showAllTextWrap}>
+                <Text style={S.showAllMeta}>Tüm Liste</Text>
+                <Text style={S.showAllLabel}>Tüm kategorileri gör</Text>
+              </View>
+
+              <LinearGradient
+                colors={T.chip.selectedGradient as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={S.showAllArrowShell}
+              >
+                <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+              </LinearGradient>
+            </View>
+          </LinearGradient>
+        </Pressable>
       ) : null}
     </LinearGradient>
   );
@@ -176,6 +194,16 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       gap: 12,
       backgroundColor: T.surface.mini,
       position: 'relative',
+      overflow: 'hidden',
+    },
+    cardGlow: {
+      position: 'absolute',
+      top: -18,
+      left: -6,
+      width: 118,
+      height: 72,
+      borderRadius: 40,
+      opacity: 0.90,
     },
     cardHighlight: {
       position: 'absolute',
@@ -190,16 +218,6 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: 10,
-    },
-    iconBubble: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(196,168,255,0.28)' : 'rgba(216,200,255,0.66)',
-      backgroundColor: isDark ? 'rgba(196,168,255,0.14)' : 'rgba(242,234,255,0.94)',
     },
     labelWrap: {
       flex: 1,
@@ -261,10 +279,73 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
     pressed: {
       opacity: 0.86,
     },
-    showAllBtn: {
+    showAllShell: {
       alignSelf: 'stretch',
+      marginTop: 4,
+      borderRadius: 22,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(202,178,255,0.42)' : 'rgba(192,164,248,0.78)',
+      ...T.shadows.ambient,
+    },
+    showAllBtn: {
+      minHeight: 68,
       justifyContent: 'center',
-      marginTop: 2,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    showAllGlow: {
+      position: 'absolute',
+      top: -28,
+      right: -20,
+      width: 156,
+      height: 84,
+      borderRadius: 56,
+      backgroundColor: isDark ? 'rgba(222,204,255,0.14)' : 'rgba(255,255,255,0.78)',
+    },
+    showAllEdge: {
+      position: 'absolute',
+      top: 1,
+      left: 14,
+      right: 14,
+      height: 15,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.58)',
+    },
+    showAllContent: {
+      minHeight: 68,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    showAllTextWrap: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    showAllMeta: {
+      color: T.text.subtitle,
+      fontSize: 10.8,
+      fontWeight: '700',
+      letterSpacing: 0.25,
+      textTransform: 'uppercase',
+    },
+    showAllLabel: {
+      color: T.text.title,
+      fontSize: 15.8,
+      fontWeight: '900',
+      letterSpacing: -0.24,
+    },
+    showAllArrowShell: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(216,194,255,0.26)' : 'rgba(198,170,246,0.60)',
     },
   });
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS } from '../../constants/tokens';
+import { useBottomSheetDragGesture } from './useBottomSheetDragGesture';
 
 interface BottomSheetProps {
   visible: boolean;
@@ -34,6 +36,18 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
   const translateY = useSharedValue(height);
   const backdropOpacity = useSharedValue(0);
 
+  const handleClose = useCallback(() => {
+    translateY.value = withTiming(height, { duration: 250, easing: Easing.in(Easing.cubic) }, () => {
+      runOnJS(onClose)();
+    });
+    backdropOpacity.value = withTiming(0, { duration: 200 });
+  }, [backdropOpacity, height, onClose, translateY]);
+
+  const { dragOffset, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose: handleClose,
+  });
+
   useEffect(() => {
     if (visible) {
       translateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
@@ -45,19 +59,12 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
   }, [visible, height]);
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [{ translateY: translateY.value + dragOffset.value }],
   }));
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
-
-  const handleClose = () => {
-    translateY.value = withTiming(height, { duration: 250, easing: Easing.in(Easing.cubic) }, () => {
-      runOnJS(onClose)();
-    });
-    backdropOpacity.value = withTiming(0, { duration: 200 });
-  };
 
   return (
     <Modal
@@ -77,8 +84,12 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
         </Animated.View>
 
         <Animated.View style={[s.sheet, sheetStyle]}>
-          <View style={s.dragHandle} />
-          {title ? <Text style={s.title}>{title}</Text> : null}
+          <GestureDetector gesture={gesture}>
+            <View style={s.dragZone}>
+              <View style={s.dragHandle} />
+              {title ? <Text style={s.title}>{title}</Text> : null}
+            </View>
+          </GestureDetector>
           <View style={s.content}>{children}</View>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -103,13 +114,15 @@ function createStyles(C: ThemeColors) {
       maxHeight: '85%',
       paddingBottom: 34,
     },
+    dragZone: {
+      paddingTop: SPACING.sm,
+    },
     dragHandle: {
       width: 36,
       height: 4,
       borderRadius: 2,
       backgroundColor: C.border,
       alignSelf: 'center',
-      marginTop: SPACING.sm,
       marginBottom: SPACING.md,
     },
     title: {

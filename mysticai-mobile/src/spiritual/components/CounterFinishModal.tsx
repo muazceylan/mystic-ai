@@ -9,6 +9,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
+import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 interface Props {
   visible: boolean;
   itemName: string;
@@ -37,6 +40,10 @@ export const CounterFinishModal = memo(function CounterFinishModal({
   bgColor = '#0F2B1E',
 }: Props) {
   const [note, setNote] = useState('');
+  const { animatedStyle, gesture } = useBottomSheetDragGesture({
+    enabled: visible,
+    onClose: onDismiss,
+  });
 
   const handleSave = () => {
     onSave({ note: note.trim() || undefined });
@@ -58,15 +65,19 @@ export const CounterFinishModal = memo(function CounterFinishModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.overlay}
       >
-        <View style={[styles.sheet, { backgroundColor: surfaceColor }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={[styles.checkIcon]}>✅</Text>
-            <Text style={[styles.title, { color: textColor }]}>Tamamlandı!</Text>
-            <Pressable onPress={onDismiss} style={styles.closeBtn}>
-              <Text style={[styles.closeText, { color: textColor + '80' }]}>✕</Text>
-            </Pressable>
-          </View>
+        <Animated.View style={[styles.sheet, { backgroundColor: surfaceColor }, animatedStyle]}>
+          <GestureDetector gesture={gesture}>
+            <View>
+              <View style={styles.handle} />
+              <View style={styles.header}>
+                <Text style={[styles.checkIcon]}>✅</Text>
+                <Text style={[styles.title, { color: textColor }]}>Tamamlandı!</Text>
+                <Pressable onPress={onDismiss} style={styles.closeBtn}>
+                  <Text style={[styles.closeText, { color: textColor + '80' }]}>✕</Text>
+                </Pressable>
+              </View>
+            </View>
+          </GestureDetector>
 
           {/* Summary */}
           <View style={[styles.summaryRow, { backgroundColor: bgColor + 'CC', borderColor: accentColor + '33' }]}>
@@ -106,7 +117,7 @@ export const CounterFinishModal = memo(function CounterFinishModal({
           >
             <Text style={styles.saveBtnText}>Kaydet</Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -124,6 +135,14 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 36,
     gap: 14,
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF44',
+    marginBottom: 4,
   },
   header: {
     flexDirection: 'row',

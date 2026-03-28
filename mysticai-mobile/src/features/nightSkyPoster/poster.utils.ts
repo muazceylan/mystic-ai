@@ -458,6 +458,81 @@ function buildConstellationSegments(source: NightSkyPosterSource, seed: number) 
   };
 }
 
+function tuneConstellationPoint(
+  point: ConstellationPoint,
+  opacityScale: number,
+  sizeScale: number,
+  opacityRange: [number, number],
+  sizeRange: [number, number],
+): ConstellationPoint {
+  return {
+    ...point,
+    opacity:
+      typeof point.opacity === 'number'
+        ? clamp(point.opacity * opacityScale, opacityRange[0], opacityRange[1])
+        : point.opacity,
+    size:
+      typeof point.size === 'number'
+        ? clamp(point.size * sizeScale, sizeRange[0], sizeRange[1])
+        : point.size,
+  };
+}
+
+function applyVariantToConstellationScene(
+  scene: ReturnType<typeof buildConstellationSegments>,
+  variant: NightSkyPosterSource['variant'],
+) {
+  const activeVariant = variant ?? 'minimal';
+
+  if (activeVariant === 'constellation_heavy') {
+    return {
+      constellationLines: scene.constellationLines.map((segment) => ({
+        ...segment,
+        opacity: clamp((segment.opacity ?? 0.22) * 1.5, 0.18, 0.5),
+        points: segment.points.map((point) =>
+          tuneConstellationPoint(point, 1.18, 1.12, [0.3, 0.96], [0.45, 1.6]),
+        ),
+      })),
+      stars: scene.stars.map((star) => tuneConstellationPoint(star, 1.18, 1.1, [0.18, 0.98], [0.32, 1.55])),
+    };
+  }
+
+  if (activeVariant === 'gold_edition') {
+    return {
+      constellationLines: scene.constellationLines
+        .slice(
+          0,
+          Math.min(scene.constellationLines.length, Math.max(4, Math.ceil(scene.constellationLines.length * 0.75))),
+        )
+        .map((segment) => ({
+          ...segment,
+          opacity: clamp((segment.opacity ?? 0.22) * 1.08, 0.12, 0.34),
+          points: segment.points.map((point) =>
+            tuneConstellationPoint(point, 1.05, 1.04, [0.24, 0.9], [0.36, 1.45]),
+          ),
+        })),
+      stars: scene.stars
+        .slice(0, Math.min(scene.stars.length, Math.max(20, Math.ceil(scene.stars.length * 0.82))))
+        .map((star) => tuneConstellationPoint(star, 1.04, 1.03, [0.16, 0.94], [0.3, 1.45])),
+    };
+  }
+
+  return {
+    constellationLines: scene.constellationLines
+      .slice(0, Math.min(scene.constellationLines.length, Math.max(2, Math.ceil(scene.constellationLines.length * 0.42))))
+      .map((segment) => ({
+        ...segment,
+        opacity: clamp((segment.opacity ?? 0.2) * 0.58, 0.08, 0.18),
+        points: segment.points.map((point) =>
+          tuneConstellationPoint(point, 0.72, 0.9, [0.18, 0.62], [0.28, 1.12]),
+        ),
+      })),
+    stars: scene.stars
+      .slice(0, Math.min(scene.stars.length, Math.max(14, Math.ceil(scene.stars.length * 0.56))))
+      .map((star) => tuneConstellationPoint(star, 0.78, 0.88, [0.12, 0.62], [0.24, 1.12])),
+  };
+}
+
 export function hashSeed(input: string) {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i += 1) {
@@ -573,6 +648,7 @@ export function buildCelestialLegendItems(input: {
 
 export function buildNightSkyPosterModel(source: NightSkyPosterSource): NightSkyPosterModel {
   const locale = source.locale === 'en' ? 'en' : 'tr';
+  const variant = source.variant ?? 'minimal';
   const timeLabel = (source.projection?.birthTime || source.birthTime)?.slice(0, 5) ?? (locale === 'en' ? 'Time unknown' : 'Saat bilinmiyor');
   const moonData = source.projection?.moonPhase
     ? {
@@ -589,10 +665,10 @@ export function buildNightSkyPosterModel(source: NightSkyPosterSource): NightSky
 
   const lunarPhase = resolvePhaseKey(moonData.phaseFraction);
   const seed = hashSeed(
-    `${source.birthDate}|${source.birthTime ?? 'unknown'}|${source.latitude.toFixed(4)}|${source.longitude.toFixed(4)}|${source.variant ?? 'minimal'}`,
+    `${source.birthDate}|${source.birthTime ?? 'unknown'}|${source.latitude.toFixed(4)}|${source.longitude.toFixed(4)}|${variant}`,
   );
   const celestialBodies = buildCelestialBodies(source);
-  const constellationScene = buildConstellationSegments(source, seed);
+  const constellationScene = applyVariantToConstellationScene(buildConstellationSegments(source, seed), variant);
   const displayName = resolvePosterDisplayName({
     fullName: source.fullName,
     firstName: source.firstName,
@@ -600,7 +676,8 @@ export function buildNightSkyPosterModel(source: NightSkyPosterSource): NightSky
     isGuest: source.isGuest ?? looksGuestish(source.username ?? source.displayName ?? source.fullName),
   });
   const locationLabel = cleanLocationLabel(source.birthLocation);
-  const posterTone = VARIANT_TONE_MAP[source.variant ?? 'minimal'] ?? 'moon';
+  const posterTone = VARIANT_TONE_MAP[variant] ?? 'moon';
+  const highlightedBodyIds = celestialBodies.filter((body) => body.isHighlighted).map((body) => body.id);
 
   return {
     titleLabel: source.titleLabel,
@@ -614,7 +691,8 @@ export function buildNightSkyPosterModel(source: NightSkyPosterSource): NightSky
     lunarPhases: buildLunarPhaseItems(lunarPhase, locale),
     celestialBodies,
     constellationLines: constellationScene.constellationLines,
-    highlightedBodyIds: celestialBodies.filter((body) => body.isHighlighted).map((body) => body.id),
+    highlightedBodyIds: variant === 'minimal' ? highlightedBodyIds.slice(0, 1) : highlightedBodyIds,
+    variant,
     posterTone,
     stars: constellationScene.stars,
     shareUrl: source.shareUrl,

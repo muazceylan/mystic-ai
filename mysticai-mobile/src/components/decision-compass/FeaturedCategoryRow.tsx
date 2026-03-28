@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
+import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
 import { statusColors } from './palette';
 import { statusLabel, type DecisionCategoryModel } from './model';
 import { getCompassTokens } from './tokens';
@@ -53,6 +54,7 @@ export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCat
             >
               <LinearGradient colors={cardGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.card}>
                 <View pointerEvents="none" style={[S.cardGlow, { backgroundColor: glowColor }]} />
+                <View pointerEvents="none" style={S.cardEdge} />
 
                 <LinearGradient colors={artGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.artBand}>
                   <View pointerEvents="none" style={S.artCurveLarge} />
@@ -60,9 +62,7 @@ export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCat
                   <View pointerEvents="none" style={S.artBubble} />
                   <View pointerEvents="none" style={S.artShimmer} />
 
-                  <View style={S.iconWrap}>
-                    <Ionicons name={category.icon} size={16} color={colors.primary} />
-                  </View>
+                  <DecisionCompassPremiumBadge iconName={category.icon} status={category.status} size="sm" />
 
                   <ScoreRing
                     score={category.score}
@@ -123,6 +123,7 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       gap: 8,
       backgroundColor: T.colors.surface.featured,
       position: 'relative',
+      overflow: 'hidden',
     },
     cardGlow: {
       position: 'absolute',
@@ -132,6 +133,15 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       height: 104,
       borderRadius: 64,
       opacity: 0.90,
+    },
+    cardEdge: {
+      position: 'absolute',
+      top: 2,
+      left: 10,
+      right: 10,
+      height: 14,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.54)',
     },
     artBand: {
       minHeight: 88,
@@ -182,16 +192,6 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
       borderRadius: 14,
       backgroundColor: 'rgba(255,255,255,0.18)',
       transform: [{ rotate: '-16deg' }],
-    },
-    iconWrap: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.80)',
-      backgroundColor: 'rgba(255,255,255,0.66)',
     },
     content: {
       flex: 1,

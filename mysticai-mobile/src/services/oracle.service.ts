@@ -45,7 +45,6 @@ export const fetchDailySecret = (params?: {
   name?: string;
   birthDate?: string;
   maritalStatus?: string;
-  focusPoint?: string;
   locale?: string;
 }) =>
   // Oracle synthesis can hit AI orchestration on cache misses, so it needs a longer timeout
@@ -59,7 +58,6 @@ export const fetchHomeBrief = (params?: {
   name?: string;
   birthDate?: string;
   maritalStatus?: string;
-  focusPoint?: string;
   locale?: string;
 }) =>
   api.get<HomeBrief>(`${ORACLE_BASE}/home-brief`, {

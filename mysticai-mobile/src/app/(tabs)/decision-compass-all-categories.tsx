@@ -23,12 +23,16 @@ import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { AllCategoriesHeader } from '../../components/decision-compass/AllCategoriesHeader';
 import {
   AllCategoriesFilters,
-  type AllCategoriesFilter,
 } from '../../components/decision-compass/AllCategoriesFilters';
 import { AllCategoriesGrid } from '../../components/decision-compass/AllCategoriesGrid';
 import { CategoryDetailBottomSheet } from '../../components/decision-compass/CategoryDetailBottomSheet';
 import {
+  buildAllCategoriesFilterOptions,
   buildCategoryModels,
+  isMoonCategory,
+  isTransitCategory,
+  matchesAllCategoriesFilter,
+  type AllCategoriesFilter,
   type DecisionCategoryModel,
 } from '../../components/decision-compass/model';
 import { getCompassTokens } from '../../components/decision-compass/tokens';
@@ -38,27 +42,6 @@ function formatDateShortTr(input?: string | null) {
   const d = new Date(input);
   if (Number.isNaN(d.getTime())) return 'Bugün';
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-}
-
-function matchesFilter(category: DecisionCategoryModel, filter: AllCategoriesFilter): boolean {
-  if (filter === 'ALL' || filter === 'TODAY') return true;
-  if (filter === 'CAUTION') {
-    return category.status === 'CAUTION' || category.status === 'HOLD';
-  }
-  return category.status === 'STRONG' || category.status === 'SUPPORTIVE' || category.status === 'BALANCED';
-}
-
-function isTransitCategory(category: DecisionCategoryModel) {
-  const key = (category.cosmicCategoryKey ?? category.id).toLocaleLowerCase('tr-TR');
-  if (key.includes('transit')) return true;
-  return `${category.id} ${category.title} ${category.subLabel}`.toLocaleLowerCase('tr-TR').includes('transit');
-}
-
-function isMoonCategory(category: DecisionCategoryModel) {
-  const key = (category.cosmicCategoryKey ?? category.id).toLocaleLowerCase('tr-TR');
-  if (key === 'moon' || key.includes('moon')) return true;
-  const haystack = `${category.id} ${category.title} ${category.subLabel}`.toLocaleLowerCase('tr-TR');
-  return /\bay\b/.test(haystack) || haystack.includes('moon');
 }
 
 function splitCategories(categories: DecisionCategoryModel[]) {
@@ -105,7 +88,6 @@ export default function DecisionCompassAllCategoriesScreen() {
   });
 
   const [selectedFilter, setSelectedFilter] = useState<AllCategoriesFilter>('ALL');
-  const [showLegend, setShowLegend] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<DecisionCategoryModel | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
 
@@ -151,12 +133,19 @@ export default function DecisionCompassAllCategoriesScreen() {
     [dayDetailQuery.data?.categories, query.data?.dailyGuide?.activities],
   );
 
-  const filteredCategories = useMemo(() => {
-    const matched = categories.filter((item) => matchesFilter(item, selectedFilter));
-    if (matched.length > 0 || selectedFilter === 'ALL' || selectedFilter === 'TODAY') {
-      return matched;
+  const availableFilters = useMemo(
+    () => buildAllCategoriesFilterOptions(categories),
+    [categories],
+  );
+
+  React.useEffect(() => {
+    if (!availableFilters.some((option) => option.key === selectedFilter)) {
+      setSelectedFilter('ALL');
     }
-    return categories;
+  }, [availableFilters, selectedFilter]);
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter((item) => matchesAllCategoriesFilter(item, selectedFilter));
   }, [categories, selectedFilter]);
 
   const { featured, compact } = useMemo(
@@ -207,14 +196,12 @@ export default function DecisionCompassAllCategoriesScreen() {
 
         <AllCategoriesHeader
           onBack={goBack}
-          onOpenCalendar={() => router.push('/(tabs)/calendar')}
-          onToggleLegend={() => setShowLegend((prev) => !prev)}
         />
 
         <AllCategoriesFilters
           selectedFilter={selectedFilter}
+          options={availableFilters}
           onSelectFilter={setSelectedFilter}
-          showLegend={showLegend}
         />
 
         <ScrollView

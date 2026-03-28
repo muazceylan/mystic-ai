@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
+import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
 import { statusColors } from './palette';
 import { statusLabel, type DecisionCategoryModel } from './model';
 import { ScoreRing } from './ScoreRing';
@@ -111,16 +112,27 @@ function compactGradientForCategory(
   return T.gradients.miniCard as [string, string];
 }
 
-function DetailPill({ onPress }: { onPress: () => void }) {
+function DetailPill({
+  onPress,
+  compact = false,
+}: {
+  onPress: () => void;
+  compact?: boolean;
+}) {
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = gridStyles(colors, isDark, T);
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [S.detailPill, pressed && S.pressed]}>
-      <LinearGradient colors={T.gradients.pillPrimary as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.detailPillFill}>
-        <Text style={S.detailPillText}>Detay</Text>
-        <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+      <LinearGradient
+        colors={T.gradients.pillPrimary as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[S.detailPillFill, compact && S.detailPillFillCompact]}
+      >
+        <Text style={[S.detailPillText, compact && S.detailPillTextCompact]}>Detay</Text>
+        <Ionicons name="chevron-forward" size={compact ? 12 : 14} color={colors.primary} />
       </LinearGradient>
     </Pressable>
   );
@@ -142,11 +154,13 @@ function FeaturedAllCategoryCard({
   const S = gridStyles(colors, isDark, T);
   const tint = statusColors(category.status, isDark);
   const tone = toneForCategory(category, index, isDark, T);
+  const isTightLayout = width <= 180;
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [S.featuredShell, { width }, pressed && S.pressed]}>
       <LinearGradient colors={tone.cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.featuredCard}>
         <View pointerEvents="none" style={[S.featuredGlow, { backgroundColor: tone.glowColor }]} />
+        <View pointerEvents="none" style={S.featuredSheen} />
 
         <LinearGradient colors={tone.artGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.featuredArt}>
           <View pointerEvents="none" style={S.cloudLayerLarge} />
@@ -156,9 +170,7 @@ function FeaturedAllCategoryCard({
           <View pointerEvents="none" style={S.sparkleB} />
           <View pointerEvents="none" style={S.sparkleC} />
 
-          <View style={S.featuredIconBubble}>
-            <Ionicons name={category.icon} size={18} color={colors.primary} />
-          </View>
+          <DecisionCompassPremiumBadge iconName={category.icon} status={category.status} size="sm" />
 
           <View style={S.sceneIconWrap}>
             <Ionicons name={tone.sceneIcon} size={30} color="rgba(161,111,240,0.92)" />
@@ -177,9 +189,9 @@ function FeaturedAllCategoryCard({
           <Text style={S.featuredTitle} numberOfLines={2}>{category.title}</Text>
           <Text style={S.featuredMeta} numberOfLines={1}>{category.subLabel}</Text>
 
-          <View style={S.featuredFooter}>
+          <View style={[S.featuredFooter, isTightLayout && S.tightFooter]}>
             <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} compact />
-            <DetailPill onPress={onPress} />
+            <DetailPill onPress={onPress} compact={isTightLayout} />
           </View>
         </View>
       </LinearGradient>
@@ -201,17 +213,22 @@ function CompactAllCategoryCard({
   const S = gridStyles(colors, isDark, T);
   const tint = statusColors(category.status, isDark);
   const compactGradient = compactGradientForCategory(category, isDark, T);
+  const isTightLayout = width <= 180;
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [S.compactShell, { width }, pressed && S.pressed]}>
-      <LinearGradient colors={compactGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.compactCard}>
+      <LinearGradient
+        colors={compactGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[S.compactCard, isTightLayout && S.compactCardTight]}
+      >
+        <View pointerEvents="none" style={[S.compactAura, { backgroundColor: tint.soft }]} />
         <View pointerEvents="none" style={S.compactShine} />
         <View pointerEvents="none" style={S.compactCloud} />
 
         <View style={S.compactTop}>
-          <View style={S.compactIconBubble}>
-            <Ionicons name={category.icon} size={16} color={colors.primary} />
-          </View>
+          <DecisionCompassPremiumBadge iconName={category.icon} status={category.status} size="sm" />
 
           <LinearGradient colors={tint.pill} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={S.compactScorePill}>
             <Text style={[S.compactScoreText, { color: tint.text }]}>{Math.round(category.score)}%</Text>
@@ -223,9 +240,9 @@ function CompactAllCategoryCard({
           <Text style={S.compactMeta} numberOfLines={2}>{category.subLabel}</Text>
         </View>
 
-        <View style={S.compactFooter}>
+        <View style={[S.compactFooter, isTightLayout && S.tightFooter]}>
           <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} compact />
-          <DetailPill onPress={onPress} />
+          <DetailPill onPress={onPress} compact={isTightLayout} />
         </View>
       </LinearGradient>
     </Pressable>
@@ -311,6 +328,15 @@ function gridStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T
       borderRadius: 60,
       opacity: 0.94,
     },
+    featuredSheen: {
+      position: 'absolute',
+      top: 2,
+      left: 12,
+      right: 12,
+      height: 14,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.54)',
+    },
     featuredArt: {
       minHeight: 112,
       borderRadius: 20,
@@ -380,16 +406,6 @@ function gridStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T
       backgroundColor: 'rgba(255,255,255,0.66)',
       transform: [{ rotate: '45deg' }],
     },
-    featuredIconBubble: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.78)',
-      backgroundColor: 'rgba(255,255,255,0.68)',
-    },
     sceneIconWrap: {
       position: 'absolute',
       right: 22,
@@ -443,6 +459,18 @@ function gridStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T
       overflow: 'hidden',
       backgroundColor: T.surface.mini,
     },
+    compactCardTight: {
+      minHeight: 148,
+    },
+    compactAura: {
+      position: 'absolute',
+      top: -18,
+      left: -8,
+      width: 122,
+      height: 74,
+      borderRadius: 42,
+      opacity: 0.92,
+    },
     compactShine: {
       position: 'absolute',
       top: 2,
@@ -466,16 +494,6 @@ function gridStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 8,
-    },
-    compactIconBubble: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(196,168,255,0.28)' : 'rgba(216,200,255,0.66)',
-      backgroundColor: isDark ? 'rgba(196,168,255,0.14)' : 'rgba(246,238,255,0.96)',
     },
     compactScorePill: {
       minWidth: 56,
@@ -515,12 +533,18 @@ function gridStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T
       gap: 8,
       marginTop: 'auto',
     },
+    tightFooter: {
+      flexWrap: 'wrap',
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+    },
     detailPill: {
       borderRadius: 999,
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: isDark ? 'rgba(200,176,255,0.30)' : 'rgba(194,166,248,0.74)',
       ...T.shadows.soft,
+      flexShrink: 0,
     },
     detailPillFill: {
       minHeight: 38,
@@ -531,11 +555,19 @@ function gridStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T
       gap: 4,
       backgroundColor: T.surface.soft,
     },
+    detailPillFillCompact: {
+      minHeight: 34,
+      paddingHorizontal: 12,
+      gap: 3,
+    },
     detailPillText: {
       color: C.primary,
       fontSize: 13.8,
       fontWeight: '800',
       letterSpacing: -0.16,
+    },
+    detailPillTextCompact: {
+      fontSize: 12.8,
     },
     pressed: {
       opacity: 0.84,

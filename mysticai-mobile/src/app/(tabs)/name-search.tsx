@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -12,11 +12,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
+import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 import {
   EmptyState,
   NameCard,
@@ -162,9 +165,20 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       borderWidth: 1,
       borderBottomWidth: 0,
     },
+    modalDragZone: {
+      alignItems: 'center',
+      gap: 10,
+    },
+    modalHandle: {
+      width: 42,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: colors.border,
+    },
     modalTitle: {
       fontSize: 16,
       fontWeight: '800',
+      alignSelf: 'flex-start',
     },
     input: {
       borderWidth: 1,
@@ -223,6 +237,7 @@ export default function NameSearchScreen() {
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const closeFilters = useCallback(() => setShowFilters(false), []);
   const [filters, setFilters] = useState<SearchFilters>({
     gender: '',
     origin: '',
@@ -232,6 +247,10 @@ export default function NameSearchScreen() {
   });
 
   const favorites = useNameFavorites();
+  const { animatedStyle: filtersAnimatedStyle, gesture: filtersGesture } = useBottomSheetDragGesture({
+    enabled: showFilters,
+    onClose: closeFilters,
+  });
 
   const searchQuery = useQuery({
     queryKey: ['names', 'search', query, page, filters],
@@ -414,10 +433,15 @@ export default function NameSearchScreen() {
           )}
         </View>
 
-        <Modal visible={showFilters} transparent animationType="slide" onRequestClose={() => setShowFilters(false)}>
+        <Modal visible={showFilters} transparent animationType="slide" onRequestClose={closeFilters}>
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('nameAnalysis.search.filtersTitle')}</Text>
+            <Animated.View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, filtersAnimatedStyle]}>
+              <GestureDetector gesture={filtersGesture}>
+                <View style={styles.modalDragZone}>
+                  <View style={styles.modalHandle} />
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('nameAnalysis.search.filtersTitle')}</Text>
+                </View>
+              </GestureDetector>
 
               <Text style={[styles.groupTitle, { color: colors.subtext }]}>{t('nameAnalysis.search.gender')}</Text>
               <View style={styles.chipsWrap}>
@@ -497,7 +521,7 @@ export default function NameSearchScreen() {
                   <Text style={[styles.modalActionText, { color: colors.white }]}>{t('nameAnalysis.search.apply')}</Text>
                 </Pressable>
               </View>
-            </View>
+            </Animated.View>
           </View>
         </Modal>
       </View>

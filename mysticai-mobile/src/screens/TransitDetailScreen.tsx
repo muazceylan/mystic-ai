@@ -56,7 +56,6 @@ export default function TransitDetailScreen() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
-  const onboardingFocusPoints = useOnboardingStore((s) => s.focusPoints);
   const S = makeStyles(colors, isDark);
 
   const homeBriefParams = useMemo(() => {
@@ -65,9 +64,8 @@ export default function TransitDetailScreen() {
       name: user.name ?? (`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || undefined),
       birthDate: user.birthDate ?? undefined,
       maritalStatus: user.maritalStatus ?? onboardingMaritalStatus ?? undefined,
-      focusPoint: user.focusPoint?.split(',')[0] ?? onboardingFocusPoints[0] ?? undefined,
     };
-  }, [user, onboardingMaritalStatus, onboardingFocusPoints]);
+  }, [user, onboardingMaritalStatus]);
 
   const homeBriefQuery = useHomeBrief(homeBriefParams);
   const skyPulseQuery = useSkyPulse();

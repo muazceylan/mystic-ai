@@ -17,9 +17,10 @@ export default function HelpScreen() {
     { q: t('help.faq4q'), a: t('help.faq4a') },
     { q: t('help.faq5q'), a: t('help.faq5a') },
   ];
+  const supportEmail = 'support@astroguru.app';
 
   const QUICK_ACTIONS = [
-    { id: 'email', titleKey: 'help.supportEmail', icon: 'mail-outline', action: () => Linking.openURL('mailto:destek@mystic.ai') },
+    { id: 'email', titleKey: 'help.supportEmail', icon: 'mail-outline', action: () => Linking.openURL(`mailto:${supportEmail}`) },
     { id: 'feedback', titleKey: 'help.sendFeedback', icon: 'chatbubble-outline', action: () => Alert.alert(t('help.thanks'), t('help.feedbackComingSoon')) },
     { id: 'rate', titleKey: 'help.rateApp', icon: 'star-outline', action: () => Alert.alert(t('help.comingSoon'), t('help.appStoreComingSoon')) },
   ];
@@ -82,7 +83,7 @@ export default function HelpScreen() {
             ))}
           </View>
 
-          <Text style={styles.version}>{t('profile.version')} · destek@mystic.ai</Text>
+          <Text style={styles.version}>{t('profile.version')} · {supportEmail}</Text>
         </ScrollView>
       </View>
     </SafeScreen>

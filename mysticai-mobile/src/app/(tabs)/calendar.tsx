@@ -29,6 +29,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { getCosmicSubcategoryIcon } from '../../constants/icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -37,7 +38,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture } from '../../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
 import { COSMIC_DOCK_LABEL_OVERRIDE_KEYS, PLANNER_LOCAL_TO_COSMIC_CATEGORY } from '../../constants/CosmicConstants';
 import {
@@ -58,7 +59,10 @@ import {
   fetchCosmicCategoryDetails,
   fetchCosmicPlanner,
 } from '../../services/cosmic.service';
-import type { ReminderType } from '../../services/reminder.service';
+import {
+  createReminder,
+  type ReminderType,
+} from '../../services/reminder.service';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
@@ -84,6 +88,8 @@ import {
 } from '../../features/tutorial';
 import { MonetizationQuickBar } from '../../features/monetization';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
+import { buildPlannerReminderCopy } from '../../features/planner/plannerReminderCopy';
+import { registerPushTokenIfNeeded } from '../../utils/pushNotifications';
 import {
   buildPlannerReminderDate,
   schedulePlannerLocalNotification,
@@ -112,6 +118,47 @@ interface DaySummary {
 interface TrendPoint {
   label: string;
   score: number;
+}
+
+const PLANNER_CATEGORY_ICON_TONES: Record<PlannerCategoryId, PremiumIconTone> = {
+  transit: 'cosmic',
+  moon: 'lunar',
+  date: 'rose',
+  marriage: 'oracle',
+  partnerHarmony: 'rose',
+  family: 'sacred',
+  jointFinance: 'insight',
+  beauty: 'rose',
+  health: 'sacred',
+  activity: 'cosmic',
+  official: 'oracle',
+  spiritual: 'sacred',
+  color: 'mystic',
+  recommendations: 'oracle',
+};
+
+const COSMIC_CATEGORY_ICON_TONES: Record<string, PremiumIconTone> = {
+  transit: 'cosmic',
+  moon: 'lunar',
+  beauty: 'rose',
+  health: 'sacred',
+  finance: 'insight',
+  activity: 'cosmic',
+  official: 'oracle',
+  spiritual: 'sacred',
+  home: 'sacred',
+  social: 'rose',
+  color: 'mystic',
+  recommendations: 'oracle',
+};
+
+function getPlannerCategoryIconTone(categoryId: PlannerCategoryId): PremiumIconTone {
+  return PLANNER_CATEGORY_ICON_TONES[categoryId] ?? 'mystic';
+}
+
+function getCosmicCategoryIconTone(categoryKey?: string | null): PremiumIconTone {
+  if (!categoryKey) return 'mystic';
+  return COSMIC_CATEGORY_ICON_TONES[categoryKey] ?? 'mystic';
 }
 
 type CosmicLegendRow = CosmicLegendItem & { score?: number };
@@ -537,39 +584,7 @@ function buildPlannerInsightFromCosmicDetail(params: {
   };
 }
 
-function iconForCosmicSubcategory(categoryKey: string | null | undefined, subCategoryKey: string): keyof typeof Ionicons.glyphMap {
-  const sub = (subCategoryKey ?? '').toLowerCase();
-  const cat = (categoryKey ?? '').toLowerCase();
-
-  if (sub.includes('hair_cut')) return 'cut-outline';
-  if (sub.includes('skin') || sub.includes('aesthetic') || sub.includes('nail')) return 'sparkles-outline';
-  if (sub.includes('hair_reduction')) return 'flash-outline';
-  if (sub.includes('diet')) return 'leaf-outline';
-  if (sub.includes('treatment') || sub.includes('checkup')) return 'medkit-outline';
-  if (sub.includes('operation')) return 'warning-outline';
-  if (sub.includes('sport')) return 'fitness-outline';
-  if (sub.includes('vacation') || sub.includes('travel')) return 'airplane-outline';
-  if (sub.includes('culture_art')) return 'color-palette-outline';
-  if (sub.includes('party') || sub.includes('social')) return 'people-outline';
-  if (sub.includes('shopping') || sub.includes('big_purchase')) return 'cart-outline';
-  if (sub.includes('repair') || sub.includes('renovation')) return 'hammer-outline';
-  if (sub.includes('housework') || sub.includes('cleaning') || sub.includes('moving') || sub.includes('decoration') || sub.includes('plant')) return 'home-outline';
-  if (sub.includes('investment') || sub.includes('debt') || sub.includes('finance')) return 'wallet-outline';
-  if (sub.includes('law') || sub.includes('official_documents') || sub.includes('applications') || sub.includes('public_affairs')) return 'document-text-outline';
-  if (sub.includes('meeting') || sub.includes('thesis') || sub.includes('career_education')) return 'briefcase-outline';
-  if (sub.includes('new_job') || sub.includes('seniority') || sub.includes('entrepreneurship') || sub.includes('resignation')) return 'business-outline';
-  if (sub.includes('worship') || sub.includes('prayer') || sub.includes('ritual') || sub.includes('meditation') || sub.includes('inner_journey')) return 'sparkles-outline';
-  if (sub.includes('green') || sub.includes('pink') || sub.includes('yellow') || sub.includes('blue') || sub.includes('purple')) return 'color-fill-outline';
-  if (sub.includes('timing') || sub.includes('communication') || sub.includes('energy')) return 'bulb-outline';
-
-  return cat === 'transit'
-    ? 'planet-outline'
-    : cat === 'moon'
-      ? 'moon-outline'
-      : cat === 'color'
-        ? 'color-palette-outline'
-        : 'ellipse-outline';
-}
+// iconForCosmicSubcategory has been moved to src/constants/icons.ts as getCosmicSubcategoryIcon
 
 function TrendLineChart({ points, colors }: { points: TrendPoint[]; colors: ThemeColors }) {
   if (!points.length) return null;
@@ -755,7 +770,7 @@ export default function CalendarScreen() {
   const hiddenKey = useMemo(() => hiddenCategoryIds.slice().sort().join('|'), [hiddenCategoryIds]);
   const personalization = useMemo(
     () => buildPersonalizedCategories(user, new Set(hiddenCategoryIds)),
-    [user?.gender, user?.focusPoint, user?.maritalStatus, user?.relationshipStage, user?.hasChildren, hiddenKey],
+    [user?.gender, user?.maritalStatus, user?.relationshipStage, user?.hasChildren, hiddenKey],
   );
 
   const availableCategories = personalization.available;
@@ -1146,7 +1161,6 @@ export default function CalendarScreen() {
       chart.calculatedAt ?? chart.id ?? 'chart',
       user.gender ?? '',
       user.maritalStatus ?? '',
-      user.focusPoint ?? '',
       user.relationshipStage ?? '',
     ].join(':');
     if (lastFetchKeyRef.current === fetchKey) return;
@@ -1157,7 +1171,6 @@ export default function CalendarScreen() {
     user?.id,
     user?.gender,
     user?.maritalStatus,
-    user?.focusPoint,
     user?.relationshipStage,
     plannerLocale,
     fetchPlannerData,
@@ -1952,75 +1965,123 @@ export default function CalendarScreen() {
       return;
     }
 
-    const notificationTitle = selectedReminderType === 'DO'
-      ? t('calendar.reminderNotificationTitleDo', { category: selectedCategoryLabel })
-      : selectedReminderType === 'AVOID'
-        ? t('calendar.reminderNotificationTitleAvoid')
-        : t('calendar.reminderNotificationTitleWindow');
-    const notificationBody = selectedReminderType === 'DO'
-      ? t('calendar.reminderNotificationBodyDo', { category: selectedCategoryLabel, time })
-      : selectedReminderType === 'AVOID'
-        ? t('calendar.reminderNotificationBodyAvoid', { category: selectedCategoryLabel, time })
-        : t('calendar.reminderNotificationBodyWindow', { category: selectedCategoryLabel, time });
+    const { title: notificationTitle, body: notificationBody } = buildPlannerReminderCopy({
+      t,
+      categoryId: selectedCategory?.id,
+      categoryLabel: selectedCategoryLabel,
+      reminderType: selectedReminderType,
+      time,
+    });
     const deeplink = buildPlannerDeeplink(date, selectedCosmicCategoryKey, selectedCategory?.id ?? null);
+    const timezone = user?.timezone
+      || Intl.DateTimeFormat().resolvedOptions().timeZone
+      || 'Europe/Istanbul';
+    const reminderPayload = {
+      deeplink,
+      notificationId: `planner-${date}-${selectedReminderType}-${selectedCategory?.id ?? 'all'}-${time}`,
+      plannerDate: date,
+      categoryKey: selectedCosmicCategoryKey ?? undefined,
+      plannerCategoryId: selectedCategory?.id,
+      type: selectedReminderType,
+    } as const;
 
     setIsSavingReminder(true);
     try {
-      const result = await schedulePlannerLocalNotification({
-        date,
-        time,
-        title: notificationTitle,
-        body: notificationBody,
-        payload: {
-          deeplink,
-          notificationId: `planner-local-${date}-${time}-${selectedReminderType}-${selectedCategory?.id ?? 'none'}`,
-          plannerDate: date,
-          categoryKey: selectedCosmicCategoryKey ?? undefined,
-          plannerCategoryId: selectedCategory?.id,
-          type: selectedReminderType,
-        },
-      });
-      if (result.status === 'permission-denied') {
-        Alert.alert(
-          t('calendar.reminderPermissionTitle'),
-          t('calendar.reminderPermissionBody'),
-          [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-              text: t('common.settings'),
-              onPress: () => {
-                void Linking.openSettings().catch(() => undefined);
-              },
+      const pushToken = await registerPushTokenIfNeeded().catch(() => null);
+      let delivery: 'backend_push' | 'local_fallback' = 'backend_push';
+      let reminderId: number | string | undefined;
+      let reminderDateTime: string | undefined;
+
+      if (pushToken) {
+        try {
+          const reminder = await createReminder({
+            date,
+            time,
+            timezone,
+            type: selectedReminderType,
+            payload: {
+              deeplink,
+              plannerDate: date,
+              categoryKey: selectedCosmicCategoryKey ?? undefined,
+              plannerCategoryId: selectedCategory?.id,
+              categoryLabel: selectedCategoryLabel,
+              messageTitle: notificationTitle,
+              messageBody: notificationBody,
             },
-          ],
-        );
-        trackEvent('reminder_created', {
+          });
+          reminderId = reminder.id;
+          reminderDateTime = reminder.dateTimeUtc;
+        } catch {
+          const localReminder = await schedulePlannerLocalNotification({
+            date,
+            time,
+            title: notificationTitle,
+            body: notificationBody,
+            payload: reminderPayload,
+          });
+
+          if (localReminder.status === 'permission-denied') {
+            trackEvent('reminder_created', {
+              date,
+              type: selectedReminderType,
+              result: 'fail',
+              reason: 'permission_denied',
+              surface: 'cosmic_planner',
+            });
+            Alert.alert(
+              t('calendar.reminderPermissionTitle'),
+              t('calendar.reminderPermissionBody'),
+            );
+            return;
+          }
+
+          if (localReminder.status !== 'scheduled') {
+            throw new Error(t('calendar.reminderSaveErrorBody'));
+          }
+
+          delivery = 'local_fallback';
+          reminderId = localReminder.id;
+          reminderDateTime = localReminder.scheduledFor.toISOString();
+        }
+      } else {
+        const localReminder = await schedulePlannerLocalNotification({
           date,
-          type: selectedReminderType,
-          result: 'permission_denied',
-          surface: 'cosmic_planner',
+          time,
+          title: notificationTitle,
+          body: notificationBody,
+          payload: reminderPayload,
         });
-        return;
-      }
-      if (result.status === 'unsupported') {
-        Alert.alert(
-          t('calendar.reminderUnsupportedTitle'),
-          t('calendar.reminderUnsupportedBody'),
-        );
-        trackEvent('reminder_created', {
-          date,
-          type: selectedReminderType,
-          result: 'unsupported',
-          surface: 'cosmic_planner',
-        });
-        return;
+
+        if (localReminder.status === 'permission-denied') {
+          trackEvent('reminder_created', {
+            date,
+            type: selectedReminderType,
+            result: 'fail',
+            reason: 'permission_denied',
+            surface: 'cosmic_planner',
+          });
+          Alert.alert(
+            t('calendar.reminderPermissionTitle'),
+            t('calendar.reminderPermissionBody'),
+          );
+          return;
+        }
+
+        if (localReminder.status !== 'scheduled') {
+          throw new Error(t('calendar.reminderSaveErrorBody'));
+        }
+
+        delivery = 'local_fallback';
+        reminderId = localReminder.id;
+        reminderDateTime = localReminder.scheduledFor.toISOString();
       }
 
       trackEvent('reminder_created', {
-        reminderId: result.id,
-        dateTime: result.scheduledFor.toISOString(),
+        reminderId,
+        dateTime: reminderDateTime,
         type: selectedReminderType,
         result: 'success',
+        delivery,
         surface: 'cosmic_planner',
       });
       closeReminderView();
@@ -2053,6 +2114,7 @@ export default function CalendarScreen() {
     selectedCategoryLabel,
     selectedCosmicCategoryKey,
     closeReminderView,
+    user?.timezone,
     t,
     months,
   ]);
@@ -2093,7 +2155,15 @@ export default function CalendarScreen() {
           />
 
           <View style={styles.emptyContainer}>
-            <Ionicons name="planet-outline" size={64} color={colors.primary} />
+            <PremiumIconBadge
+              icon="planet-outline"
+              tone="insight"
+              size={56}
+              iconSize={26}
+              glowSize={72}
+              innerInset={8}
+              style={styles.emptyStateBadge}
+            />
             <Text style={styles.emptyTitle}>{t('calendar.errors.natalChartRequired')}</Text>
             <Text style={styles.emptyText}>{t('calendar.errors.natalChartRequiredDesc')}</Text>
 
@@ -2230,7 +2300,15 @@ export default function CalendarScreen() {
           <View style={styles.headerNavigatorStack}>
             {isBeyondBackendWindow && (
               <View style={styles.noticeChip}>
-                <Ionicons name="sparkles-outline" size={13} color={colors.subtext} />
+                <PremiumIconBadge
+                  icon="sparkles-outline"
+                  tone="mystic"
+                  size={26}
+                  iconSize={12}
+                  glowSize={34}
+                  innerInset={4}
+                  style={styles.noticeChipBadge}
+                />
                 <Text style={styles.noticeChipText}>{t('calendar.estimateNotice')}</Text>
               </View>
             )}
@@ -2253,7 +2331,15 @@ export default function CalendarScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={t('calendar.openMonthYearSelector')}
                   >
-                    <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+                    <PremiumIconBadge
+                      icon="calendar-outline"
+                      tone="insight"
+                      size={28}
+                      iconSize={13}
+                      glowSize={36}
+                      innerInset={4}
+                      style={styles.monthChipBadge}
+                    />
                     <Text style={styles.monthChipText}>
                       {months[viewDate.getMonth()]} {viewDate.getFullYear()}
                     </Text>
@@ -2473,7 +2559,15 @@ export default function CalendarScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={t('calendar.customizeCategories')}
                     >
-                      <Ionicons name="settings-outline" size={14} color={colors.primary} />
+                      <PremiumIconBadge
+                        icon="settings-outline"
+                        tone="oracle"
+                        size={28}
+                        iconSize={13}
+                        glowSize={36}
+                        innerInset={4}
+                        style={styles.customizeButtonBadge}
+                      />
                       <Text style={styles.customizeButtonText}>{t('calendar.customize')}</Text>
                     </TouchableOpacity>
                   </View>
@@ -2486,11 +2580,19 @@ export default function CalendarScreen() {
                         <TouchableOpacity
                           key={category.id}
                           style={[styles.categoryChip, isActive && styles.categoryChipActive]}
-                          onPress={() => onPressCategory(category.id)}
-                          accessibilityRole="button"
-                          accessibilityLabel={dockLabel}
-                        >
-                          <Ionicons name={category.icon as any} size={16} color={isActive ? colors.white : colors.subtext} />
+                        onPress={() => onPressCategory(category.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={dockLabel}
+                      >
+                          <PremiumIconBadge
+                            icon={category.icon as any}
+                            tone={getPlannerCategoryIconTone(category.id)}
+                            size={30}
+                            iconSize={14}
+                            glowSize={38}
+                            innerInset={4}
+                            style={styles.categoryChipBadge}
+                          />
                           <Text style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]}>
                             {dockLabel}
                           </Text>
@@ -2506,7 +2608,15 @@ export default function CalendarScreen() {
               <SpotlightTarget targetKey={COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.DAILY_RECOMMENDATIONS}>
                 <View style={styles.alertCard}>
                   <View style={styles.alertHeader}>
-                    <Ionicons name="notifications-outline" size={16} color={colors.primary} />
+                    <PremiumIconBadge
+                      icon="notifications-outline"
+                      tone="rose"
+                      size={30}
+                      iconSize={14}
+                      glowSize={38}
+                      innerInset={4}
+                      style={styles.alertHeaderBadge}
+                    />
                     <Text style={styles.alertTitle}>{t('calendar.actionAlertTitle')}</Text>
                   </View>
                   {actionAlert ? (
@@ -2643,13 +2753,15 @@ export default function CalendarScreen() {
                       style={[styles.settingRow, !isAvailable && styles.settingRowDisabled]}
                     >
                       <View style={styles.settingInfo}>
-                        <View style={styles.settingIconWrap}>
-                          <Ionicons
-                            name={isAvailable ? (category.icon as any) : 'lock-closed-outline'}
-                            size={15}
-                            color={isAvailable ? colors.primary : colors.subtext}
-                          />
-                        </View>
+                        <PremiumIconBadge
+                          icon={isAvailable ? (category.icon as any) : 'lock-closed-outline'}
+                          tone={isAvailable ? getPlannerCategoryIconTone(category.id) : 'oracle'}
+                          size={30}
+                          iconSize={14}
+                          glowSize={38}
+                          innerInset={4}
+                          style={styles.settingIconWrap}
+                        />
                         <View style={styles.settingTextWrap}>
                           <Text style={styles.settingTitle}>{label}</Text>
                           <Text style={styles.settingDesc}>
@@ -2771,9 +2883,15 @@ export default function CalendarScreen() {
                       style={styles.reminderHeroCard}
                     >
                       <View style={styles.reminderHeroHeader}>
-                        <View style={styles.reminderHeroIconWrap}>
-                          <Ionicons name="alarm-outline" size={18} color={colors.primary} />
-                        </View>
+                        <PremiumIconBadge
+                          icon="alarm-outline"
+                          tone="cosmic"
+                          size={36}
+                          iconSize={16}
+                          glowSize={46}
+                          innerInset={5}
+                          style={styles.reminderHeroIconWrap}
+                        />
                         <View style={styles.reminderHeroCopy}>
                           <Text style={styles.reminderHeroTitle}>{t('calendar.reminderSetupTitle')}</Text>
                           <Text style={styles.reminderHeroText}>{t('calendar.reminderModeLead')}</Text>
@@ -2963,7 +3081,15 @@ export default function CalendarScreen() {
 
                     <View style={styles.reminderInlineCard}>
                       <View style={styles.reminderInlineHeader}>
-                        <Ionicons name="alarm-outline" size={15} color={colors.primary} />
+                        <PremiumIconBadge
+                          icon="alarm-outline"
+                          tone="cosmic"
+                          size={28}
+                          iconSize={13}
+                          glowSize={36}
+                          innerInset={4}
+                          style={styles.reminderInlineBadge}
+                        />
                         <Text style={styles.reminderInlineTitle}>{t('calendar.reminderSetupTitle')}</Text>
                       </View>
                       <Text style={styles.reminderInlineText}>{t('calendar.reminderModeLead')}</Text>
@@ -3019,13 +3145,15 @@ export default function CalendarScreen() {
                                 <View style={styles.subAnalysisContent}>
                                   <View style={styles.subAnalysisTopRow}>
                                     <View style={styles.subAnalysisLeft}>
-                                      <View style={[styles.subAnalysisIconWrap, { backgroundColor: `${sub.colorHex}18`, borderColor: `${sub.colorHex}33` }]}>
-                                        <Ionicons
-                                          name={iconForCosmicSubcategory(selectedCosmicCategoryKey, sub.subCategoryKey)}
-                                          size={14}
-                                          color={sub.colorHex}
-                                        />
-                                      </View>
+                                      <PremiumIconBadge
+                                        icon={getCosmicSubcategoryIcon(selectedCosmicCategoryKey, sub.subCategoryKey)}
+                                        tone={getCosmicCategoryIconTone(selectedCosmicCategoryKey)}
+                                        size={30}
+                                        iconSize={14}
+                                        glowSize={38}
+                                        innerInset={4}
+                                        style={styles.subAnalysisIconWrap}
+                                      />
                                       <View style={styles.subAnalysisTextWrap}>
                                         <Text style={styles.subAnalysisName} numberOfLines={1}>{sub.label}</Text>
                                         <Text style={styles.subAnalysisInsight} numberOfLines={3}>
@@ -3261,6 +3389,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderWidth: 1,
       borderColor: isDark ? 'rgba(244,211,94,0.14)' : 'rgba(122,91,234,0.12)',
     },
+    noticeChipBadge: {
+      marginVertical: -4,
+      marginLeft: -2,
+    },
     noticeChipText: {
       color: C.subtext,
       fontSize: 11,
@@ -3297,6 +3429,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       backgroundColor: isDark ? 'rgba(17,27,49,0.82)' : 'rgba(248,245,255,0.86)',
       paddingVertical: 9,
       paddingHorizontal: 15,
+    },
+    monthChipBadge: {
+      marginVertical: -5,
+      marginLeft: -2,
     },
     monthChipText: {
       color: C.text,
@@ -3576,6 +3712,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderWidth: 1,
       borderColor: isDark ? 'rgba(244,211,94,0.14)' : 'rgba(122,91,234,0.12)',
     },
+    customizeButtonBadge: {
+      marginVertical: -4,
+      marginLeft: -3,
+    },
     customizeButtonText: {
       color: C.primary,
       fontSize: 12,
@@ -3599,13 +3739,13 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       paddingVertical: 9,
       paddingHorizontal: 14,
     },
+    categoryChipBadge: {
+      marginVertical: -4,
+      marginLeft: -2,
+    },
     categoryChipActive: {
-      backgroundColor: isDark ? 'rgba(122,91,234,0.9)' : C.primary,
-      borderColor: isDark ? 'rgba(244,211,94,0.28)' : C.primary,
-      shadowColor: C.primary,
-      shadowOpacity: 0.22,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 6 },
+      backgroundColor: isDark ? 'rgba(122,91,234,0.22)' : 'rgba(236,228,255,0.98)',
+      borderColor: isDark ? 'rgba(197,182,255,0.28)' : 'rgba(122,91,234,0.22)',
     },
     categoryChipText: {
       color: C.subtext,
@@ -3614,7 +3754,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontFamily: UI_FONT,
     },
     categoryChipTextActive: {
-      color: C.white,
+      color: isDark ? 'rgba(248,244,255,0.96)' : 'rgba(79,51,167,0.94)',
     },
     alertCard: {
       marginTop: 8,
@@ -3629,6 +3769,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
+    },
+    alertHeaderBadge: {
+      marginVertical: -4,
+      marginLeft: -2,
     },
     alertTitle: {
       color: C.text,
@@ -3853,12 +3997,8 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flex: 1,
     },
     settingIconWrap: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: C.primarySoft,
+      marginVertical: -4,
+      marginLeft: -2,
     },
     settingTextWrap: {
       flex: 1,
@@ -4107,14 +4247,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       gap: 12,
     },
     reminderHeroIconWrap: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.72)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(122,91,234,0.12)',
+      marginTop: -2,
     },
     reminderHeroCopy: {
       flex: 1,
@@ -4176,6 +4309,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
+    },
+    reminderInlineBadge: {
+      marginVertical: -4,
+      marginLeft: -2,
     },
     reminderInlineTitle: {
       color: C.text,
@@ -4327,13 +4464,8 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flex: 1,
     },
     subAnalysisIconWrap: {
-      width: 24,
-      height: 24,
-      borderRadius: 8,
-      borderWidth: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 1,
+      marginTop: -2,
+      marginLeft: -2,
     },
     subAnalysisTextWrap: {
       flex: 1,
@@ -4474,6 +4606,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       justifyContent: 'center',
       paddingHorizontal: 32,
       gap: 10,
+    },
+    emptyStateBadge: {
+      marginBottom: 8,
     },
     emptyTitle: {
       color: C.text,

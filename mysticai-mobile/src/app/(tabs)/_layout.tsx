@@ -5,6 +5,7 @@ import { Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY } from '../../constants/tokens';
+import { NAV_ICONS } from '../../constants/icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -65,8 +66,8 @@ export default function TabsLayout() {
     [i18n.language, i18n.resolvedLanguage],
   );
   const iosBottomInset = Math.max(insets.bottom, 0);
-  const iosTabBarHeight = 62 + iosBottomInset;
-  const iosTabBarPaddingBottom = Math.max(10, iosBottomInset);
+  const iosTabBarHeight = 54 + iosBottomInset;
+  const iosTabBarPaddingBottom = Math.max(4, iosBottomInset - 2);
 
   useEffect(() => {
     let active = true;
@@ -163,37 +164,27 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          position: Platform.OS === 'ios' ? 'absolute' : 'relative',
-          left: Platform.OS === 'ios' ? 12 : 0,
-          right: Platform.OS === 'ios' ? 12 : 0,
-          bottom: Platform.OS === 'ios' ? 10 : 0,
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? iosTabBarHeight : 72,
-          paddingBottom: Platform.OS === 'ios' ? iosTabBarPaddingBottom : 8,
-          paddingTop: Platform.OS === 'ios' ? 7 : 8,
-          borderRadius: Platform.OS === 'ios' ? 26 : 0,
-          overflow: Platform.OS === 'ios' ? 'hidden' : 'visible',
-          shadowColor: '#000',
-          shadowOpacity: Platform.OS === 'ios' ? (isDark ? 0.28 : 0.09) : 0.08,
-          shadowRadius: Platform.OS === 'ios' ? 28 : 8,
-          shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 14 : 3 },
-          elevation: Platform.OS === 'ios' ? 0 : 4,
+          height: Platform.OS === 'ios' ? iosTabBarHeight : 64 + iosBottomInset,
+          paddingBottom: Platform.OS === 'ios' ? iosTabBarPaddingBottom : Math.max(4, iosBottomInset),
+          paddingTop: 6,
+          borderRadius: 0,
+          overflow: 'hidden',
+          elevation: Platform.OS === 'android' ? 4 : 0,
         },
-        tabBarItemStyle: Platform.OS === 'ios'
-          ? { flex: 1, minWidth: 0, borderRadius: 16, marginHorizontal: 2, marginVertical: 2 }
-          : { flex: 1, minWidth: 0 },
-        tabBarActiveBackgroundColor: Platform.OS === 'ios'
-          ? (isDark ? 'rgba(180,148,255,0.16)' : 'rgba(122,91,234,0.10)')
-          : undefined,
+        tabBarItemStyle: { flex: 1, minWidth: 0 },
         tabBarBackground: () => (
           <View
             pointerEvents="none"
             style={{
               flex: 1,
-              borderRadius: Platform.OS === 'ios' ? 26 : 0,
               overflow: 'hidden',
-              borderTopWidth: Platform.OS === 'ios' ? 0 : 1,
+              borderTopWidth: 1,
               borderColor: colors.tabBarBorder,
               backgroundColor: 'transparent',
             }}
@@ -293,20 +284,6 @@ export default function TabsLayout() {
                 }}
               />
             ) : null}
-            <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-                borderRadius: Platform.OS === 'ios' ? 26 : 0,
-                borderWidth: 1,
-                borderColor: Platform.OS === 'ios'
-                  ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(226,214,250,0.68)')
-                  : colors.tabBarBorder,
-              }}
-            />
           </View>
         ),
         tabBarActiveTintColor: colors.tabBarActive,
@@ -323,7 +300,7 @@ export default function TabsLayout() {
           title: t('tabs.home'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'home' : 'home-outline'}
+              name={focused ? NAV_ICONS.home.active : NAV_ICONS.home.inactive}
               size={24}
               color={color}
             />
@@ -336,7 +313,7 @@ export default function TabsLayout() {
           title: t('tabs.discover'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'compass' : 'compass-outline'}
+              name={focused ? NAV_ICONS.discover.active : NAV_ICONS.discover.inactive}
               size={24}
               color={color}
             />
@@ -349,7 +326,7 @@ export default function TabsLayout() {
           title: t('tabs.calendar'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
+              name={focused ? NAV_ICONS.calendar.active : NAV_ICONS.calendar.inactive}
               size={24}
               color={color}
             />
@@ -362,7 +339,7 @@ export default function TabsLayout() {
           title: t('tabs.natalChart'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'planet' : 'planet-outline'}
+              name={focused ? NAV_ICONS.natalChart.active : NAV_ICONS.natalChart.inactive}
               size={24}
               color={color}
             />
@@ -375,7 +352,7 @@ export default function TabsLayout() {
           title: t('tabs.compatibility'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'heart' : 'heart-outline'}
+              name={focused ? NAV_ICONS.compatibility.active : NAV_ICONS.compatibility.inactive}
               size={24}
               color={color}
             />
@@ -389,7 +366,7 @@ export default function TabsLayout() {
           title: t('surfaceTitles.decisionCompass'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'compass' : 'compass-outline'}
+              name={focused ? NAV_ICONS.decisionCompass.active : NAV_ICONS.decisionCompass.inactive}
               size={24}
               color={color}
             />
@@ -445,7 +422,7 @@ export default function TabsLayout() {
           title: t('tabs.profile'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'person' : 'person-outline'}
+              name={focused ? NAV_ICONS.profile.active : NAV_ICONS.profile.inactive}
               size={24}
               color={color}
             />
@@ -458,7 +435,7 @@ export default function TabsLayout() {
           title: t('tabs.dream'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'moon' : 'moon-outline'}
+              name={focused ? NAV_ICONS.dreams.active : NAV_ICONS.dreams.inactive}
               size={24}
               color={color}
             />
@@ -472,7 +449,7 @@ export default function TabsLayout() {
           title: t('surfaceTitles.starMate'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'sparkles' : 'sparkles-outline'}
+              name={focused ? NAV_ICONS.starMate.active : NAV_ICONS.starMate.inactive}
               size={24}
               color={color}
             />
@@ -486,7 +463,7 @@ export default function TabsLayout() {
           title: t('tabs.horoscope'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'star' : 'star-outline'}
+              name={focused ? NAV_ICONS.horoscope.active : NAV_ICONS.horoscope.inactive}
               size={24}
               color={color}
             />

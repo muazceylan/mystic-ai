@@ -110,7 +110,7 @@ export default function NightSkyPosterPublicShareScreen() {
         }
 
         const projectionRes = await fetchNightSkyProjection({
-          name: payload.name,
+          name: payload.name ?? undefined,
           birthDate: payload.birthDate,
           birthTime: payload.birthTime,
           birthLocation: payload.birthLocation,

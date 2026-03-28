@@ -3,7 +3,6 @@ import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, G, Line, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import type { NightSkyPosterModel } from '../../features/nightSkyPoster/poster.types';
 import { posterTokens } from '../../features/nightSkyPoster/poster.tokens';
-import { getToneColors } from '../../features/nightSkyPoster/poster.utils';
 import CelestialBodyBadge from './CelestialBodyBadge';
 import ConstellationLayer from './ConstellationLayer';
 import OrbitRings from './OrbitRings';
@@ -22,7 +21,79 @@ type Props = {
 function NightSkyDisc({ model, size }: Props) {
   const center = size / 2;
   const radius = size / 2 - 4;
-  const tone = getToneColors(model.posterTone ?? 'moon');
+  const discTheme = useMemo(() => {
+    switch (model.variant) {
+      case 'constellation_heavy':
+        return {
+          discGlow: 'rgba(128,104,255,0.12)',
+          discFill: 'rgba(10,7,24,0.98)',
+          outerBorder: 'rgba(166,142,255,0.38)',
+          innerBorder: 'rgba(166,142,255,0.24)',
+          tickStroke: 'rgba(178,160,255,0.22)',
+          symbolHaloOuter: 'rgba(172,150,255,0.1)',
+          symbolHaloInner: 'rgba(190,172,255,0.08)',
+          symbolFill: 'rgba(241,234,255,0.9)',
+          discCoreInner: '#23183E',
+          discCoreMiddle: '#120B24',
+          discCoreOuter: '#080512',
+          centerGlowInner: '#B79BFF',
+          centerGlowMiddle: '#8C6EFF',
+          centerGlowOuter: '#6849D7',
+          centerGlowOpacities: [0.68, 0.42, 0.16, 0.04],
+          washInner: 'rgba(152,128,255,0.12)',
+          washMiddle: 'rgba(116,88,226,0.06)',
+          aspectStroke: 'rgba(182,162,255,0.22)',
+          centerDot: 'rgba(220,206,255,0.58)',
+          zodiacSize: 15.2,
+        };
+      case 'gold_edition':
+        return {
+          discGlow: 'rgba(200,170,100,0.1)',
+          discFill: 'rgba(8,7,11,0.98)',
+          outerBorder: 'rgba(214,188,122,0.42)',
+          innerBorder: 'rgba(214,188,122,0.3)',
+          tickStroke: 'rgba(214,188,122,0.24)',
+          symbolHaloOuter: 'rgba(215,190,120,0.08)',
+          symbolHaloInner: 'rgba(220,195,130,0.06)',
+          symbolFill: 'rgba(234,210,144,0.9)',
+          discCoreInner: '#261D10',
+          discCoreMiddle: '#14100A',
+          discCoreOuter: '#090705',
+          centerGlowInner: '#F7DE90',
+          centerGlowMiddle: '#E6C567',
+          centerGlowOuter: '#C99737',
+          centerGlowOpacities: [0.76, 0.5, 0.22, 0.06],
+          washInner: 'rgba(220,190,120,0.1)',
+          washMiddle: 'rgba(180,150,80,0.04)',
+          aspectStroke: 'rgba(220,195,130,0.22)',
+          centerDot: 'rgba(240,215,130,0.6)',
+          zodiacSize: 15.4,
+        };
+      default:
+        return {
+          discGlow: 'rgba(173,196,236,0.08)',
+          discFill: 'rgba(5,8,18,0.98)',
+          outerBorder: 'rgba(207,220,244,0.3)',
+          innerBorder: 'rgba(207,220,244,0.2)',
+          tickStroke: 'rgba(207,220,244,0.16)',
+          symbolHaloOuter: 'rgba(210,224,245,0.06)',
+          symbolHaloInner: 'rgba(216,228,248,0.05)',
+          symbolFill: 'rgba(231,238,248,0.86)',
+          discCoreInner: '#141E35',
+          discCoreMiddle: '#0D1526',
+          discCoreOuter: '#060B16',
+          centerGlowInner: '#E7EFFA',
+          centerGlowMiddle: '#B9CCE9',
+          centerGlowOuter: '#90A5CA',
+          centerGlowOpacities: [0.4, 0.24, 0.08, 0],
+          washInner: 'rgba(207,220,244,0.08)',
+          washMiddle: 'rgba(158,181,220,0.03)',
+          aspectStroke: 'rgba(210,224,245,0.14)',
+          centerDot: 'rgba(228,236,250,0.48)',
+          zodiacSize: 14.4,
+        };
+    }
+  }, [model.variant]);
 
   const highlightedBodies = useMemo(
     () => model.celestialBodies.filter((body) => model.highlightedBodyIds?.includes(body.id)).slice(0, 2),
@@ -75,27 +146,27 @@ function NightSkyDisc({ model, size }: Props) {
   return (
     <View style={[styles.root, { width: size, height: size }]}>
       {/* soft glow behind disc */}
-      <View style={[styles.discGlow, { backgroundColor: 'rgba(200,170,100,0.06)' }]} />
+      <View style={[styles.discGlow, { backgroundColor: discTheme.discGlow }]} />
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
           {/* disc interior: deep dark with subtle blue */}
           <RadialGradient id="discCore" cx="50%" cy="50%" r="54%">
-            <Stop offset="0%" stopColor="rgba(18,24,50,0.92)" />
-            <Stop offset="40%" stopColor="rgba(10,14,30,0.97)" />
-            <Stop offset="100%" stopColor="rgba(4,6,14,1)" />
+            <Stop offset="0%" stopColor={discTheme.discCoreInner} stopOpacity={0.94} />
+            <Stop offset="40%" stopColor={discTheme.discCoreMiddle} stopOpacity={0.98} />
+            <Stop offset="100%" stopColor={discTheme.discCoreOuter} stopOpacity={1} />
           </RadialGradient>
           {/* bright warm golden center glow — the hero element */}
           <RadialGradient id="centerSunGlow" cx="50%" cy="50%" r="28%">
-            <Stop offset="0%" stopColor="#F5D87A" stopOpacity="0.72" />
-            <Stop offset="18%" stopColor="#E8C560" stopOpacity="0.48" />
-            <Stop offset="40%" stopColor="#D4A840" stopOpacity="0.2" />
-            <Stop offset="65%" stopColor="#C09030" stopOpacity="0.06" />
+            <Stop offset="0%" stopColor={discTheme.centerGlowInner} stopOpacity={discTheme.centerGlowOpacities[0]} />
+            <Stop offset="18%" stopColor={discTheme.centerGlowMiddle} stopOpacity={discTheme.centerGlowOpacities[1]} />
+            <Stop offset="40%" stopColor={discTheme.centerGlowOuter} stopOpacity={discTheme.centerGlowOpacities[2]} />
+            <Stop offset="65%" stopColor={discTheme.centerGlowOuter} stopOpacity={discTheme.centerGlowOpacities[3]} />
             <Stop offset="100%" stopColor="#806020" stopOpacity="0" />
           </RadialGradient>
           {/* secondary warm wash */}
           <RadialGradient id="warmWash" cx="50%" cy="50%" r="45%">
-            <Stop offset="0%" stopColor="rgba(220,190,120,0.08)" />
-            <Stop offset="50%" stopColor="rgba(180,150,80,0.03)" />
+            <Stop offset="0%" stopColor={discTheme.washInner} />
+            <Stop offset="50%" stopColor={discTheme.washMiddle} />
             <Stop offset="100%" stopColor="rgba(0,0,0,0)" />
           </RadialGradient>
           <ClipPath id="discClip">
@@ -108,7 +179,7 @@ function NightSkyDisc({ model, size }: Props) {
           cx={center}
           cy={center}
           r={radius}
-          fill="rgba(4,6,14,0.98)"
+          fill={discTheme.discFill}
         />
 
         {/* outer disc border — visible gold ring */}
@@ -117,7 +188,7 @@ function NightSkyDisc({ model, size }: Props) {
           cy={center}
           r={radius}
           fill="transparent"
-          stroke="rgba(200,175,110,0.35)"
+          stroke={discTheme.outerBorder}
           strokeWidth={1.4}
         />
 
@@ -127,7 +198,7 @@ function NightSkyDisc({ model, size }: Props) {
           cy={center}
           r={radius * 0.855}
           fill="transparent"
-          stroke="rgba(200,175,110,0.28)"
+          stroke={discTheme.innerBorder}
           strokeWidth={1.0}
         />
 
@@ -139,7 +210,7 @@ function NightSkyDisc({ model, size }: Props) {
             y1={t.y1}
             x2={t.x2}
             y2={t.y2}
-            stroke="rgba(200,175,110,0.2)"
+            stroke={discTheme.tickStroke}
             strokeWidth={0.5}
           />
         ))}
@@ -152,20 +223,20 @@ function NightSkyDisc({ model, size }: Props) {
               cx={z.x}
               cy={z.y}
               r={12}
-              fill="rgba(215,190,120,0.07)"
+              fill={discTheme.symbolHaloOuter}
             />
             <Circle
               cx={z.x}
               cy={z.y}
               r={7}
-              fill="rgba(220,195,130,0.05)"
+              fill={discTheme.symbolHaloInner}
             />
             {/* symbol — large, bright, prominent */}
             <SvgText
               x={z.x}
               y={z.y + 5.5}
-              fill="rgba(225,200,130,0.88)"
-              fontSize={15}
+              fill={discTheme.symbolFill}
+              fontSize={discTheme.zodiacSize}
               fontWeight="800"
               textAnchor="middle"
             >
@@ -191,13 +262,13 @@ function NightSkyDisc({ model, size }: Props) {
 
           <OrbitRings center={center} radius={radius * 0.85} />
 
-          {aspectLine ? (
+          {aspectLine && model.variant !== 'minimal' ? (
             <Line
               x1={aspectLine.x1}
               y1={aspectLine.y1}
               x2={aspectLine.x2}
               y2={aspectLine.y2}
-              stroke="rgba(215,190,120,0.18)"
+              stroke={discTheme.aspectStroke}
               strokeWidth={0.7}
             />
           ) : null}
@@ -206,6 +277,7 @@ function NightSkyDisc({ model, size }: Props) {
             size={size}
             segments={model.constellationLines}
             stars={model.stars}
+            variant={model.variant}
           />
         </G>
 
@@ -219,7 +291,7 @@ function NightSkyDisc({ model, size }: Props) {
         ))}
 
         {/* center dot */}
-        <Circle cx={center} cy={center} r={2} fill="rgba(240,215,130,0.5)" />
+        <Circle cx={center} cy={center} r={2} fill={discTheme.centerDot} />
       </Svg>
     </View>
   );

@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { SafeScreen } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
-import { ActionModal, PrimaryButton, SecondaryButton, StatusBanner, TextField } from '../../components/auth';
+import { ActionModal, AuthLegalNotice, PrimaryButton, SecondaryButton, StatusBanner, TextField } from '../../components/auth';
 import { register, resendVerification } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { trackEvent } from '../../services/analytics';
@@ -45,7 +45,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
       marginBottom: 20,
     },
     backButton: {
@@ -57,22 +57,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       backgroundColor: C.surfaceGlass,
       borderWidth: 1,
       borderColor: C.surfaceGlassBorder,
-    },
-    brandBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      backgroundColor: C.primarySoftBg,
-      borderColor: C.surfaceGlassBorder,
-      borderWidth: 1,
-      borderRadius: 999,
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-    },
-    brandText: {
-      color: C.primary,
-      fontWeight: '700',
-      fontSize: 12,
     },
     hero: {
       marginBottom: 16,
@@ -111,6 +95,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     buttonRow: {
       marginTop: 8,
       gap: 10,
+    },
+    legalNotice: {
+      marginTop: 4,
     },
     footerRow: {
       flexDirection: 'row',
@@ -260,11 +247,6 @@ export default function SignupScreen() {
             >
               <Ionicons name="arrow-back" size={18} color={colors.text} />
             </TouchableOpacity>
-
-            <View style={styles.brandBadge}>
-              <Ionicons name="sparkles" size={12} color={colors.primary} />
-              <Text style={styles.brandText}>ASTRO GURU</Text>
-            </View>
           </View>
 
           <View style={styles.hero}>
@@ -313,6 +295,8 @@ export default function SignupScreen() {
                 onPress={() => router.replace({ pathname: '/(auth)/welcome', params: { email: normalizedEmail } })}
               />
             </View>
+
+            <AuthLegalNotice style={styles.legalNotice} />
           </View>
 
           <View style={styles.footerRow}>

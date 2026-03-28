@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   StyleSheet,
   StyleProp,
@@ -35,11 +34,10 @@ import { useRewardedUnlock } from '../hooks/useRewardedUnlock';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import type { MonetizationConfig } from '../types';
 import { PurchaseCatalogSheet } from './PurchaseCatalogSheet';
+import { BrandMark } from '../../../components/ui/BrandLogo';
 
 const MODULE_PRIORITY = ['dreams', 'compatibility', 'numerology'] as const;
 const FALLBACK_MODULE_KEY = 'dreams';
-const GURU_ICON = require('../../../../assets/brand/logo/astro-guru-icon-512.png');
-const GURU_REWARD_ICON = require('../../../../assets/brand/logo/astro-guru-icon-512.png');
 const TUTORIAL_TARGET_BY_PATH: Record<string, string> = {
   '/(tabs)/home': HOME_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
   '/(tabs)/daily-transits': DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.MONETIZATION_ENTRY,
@@ -135,7 +133,7 @@ export function MonetizationQuickBar({ style }: MonetizationQuickBarProps) {
         >
           <View style={styles.iconStack}>
             <View style={styles.guruOrb}>
-              <Image source={GURU_ICON} style={styles.guruOrbImage} resizeMode="cover" />
+              <BrandMark variant="icon" size={46} />
             </View>
 
             <View style={styles.balanceBadge}>
@@ -183,7 +181,7 @@ export function MonetizationQuickBar({ style }: MonetizationQuickBarProps) {
               <View style={styles.rewardBadge}>
                 <Text style={styles.rewardBadgeText}>+{rewardAmount}</Text>
                 <View style={styles.rewardBadgeIconShell}>
-                  <Image source={GURU_REWARD_ICON} style={styles.rewardBadgeIcon} resizeMode="cover" />
+                  <BrandMark variant="icon" size={14} />
                 </View>
               </View>
               <View style={styles.rewardBubbleTail} />
@@ -236,11 +234,6 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       justifyContent: 'center',
       overflow: 'hidden',
       backgroundColor: 'transparent',
-    },
-    guruOrbImage: {
-      width: '100%',
-      height: '100%',
-      borderRadius: 23,
     },
     balanceBadge: {
       position: 'absolute',
@@ -370,11 +363,6 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       borderColor: 'rgba(255,255,255,0.88)',
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    rewardBadgeIcon: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
     },
     disabled: {
       opacity: 0.52,

@@ -11,9 +11,10 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useForm, Controller } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
 import Link from 'next/link';
-import { use, useEffect } from 'react';
+import { use, useEffect, useState } from 'react';
 
 type FormData = Omit<MonetizationAction, 'id' | 'createdAt' | 'updatedAt' | 'createdByAdminId' | 'updatedByAdminId'>;
 
@@ -38,8 +39,19 @@ export default function MonetizationActionDetailPage({ params }: { params: Promi
     queryFn: () => monetizationActionsApi.get(Number(id)).then(r => r.data),
   });
 
+  const [deleteModal, setDeleteModal] = useState(false);
   const { register, handleSubmit, control, reset } = useForm<FormData>();
   useEffect(() => { if (action) reset(action); }, [action, reset]);
+
+  const deleteMut = useMutation({
+    mutationFn: () => monetizationActionsApi.delete(Number(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['monetization-actions'] });
+      toast.success('Aksiyon silindi.');
+      router.push('/monetization/actions');
+    },
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Silme başarısız.'),
+  });
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => monetizationActionsApi.update(Number(id), data),
@@ -56,7 +68,10 @@ export default function MonetizationActionDetailPage({ params }: { params: Promi
     <AdminLayout>
       <div className="flex items-center gap-3 mb-6">
         <Link href="/monetization/actions"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4" /></Button></Link>
-        <h1 className="text-2xl font-bold text-white">Aksiyon Düzenle</h1>
+        <h1 className="text-2xl font-bold text-white flex-1">Aksiyon Düzenle</h1>
+        <Button variant="danger" size="sm" onClick={() => setDeleteModal(true)}>
+          <Trash2 className="w-3 h-3" /> Sil
+        </Button>
       </div>
 
       <div className="max-w-2xl">
@@ -132,6 +147,16 @@ export default function MonetizationActionDetailPage({ params }: { params: Promi
           </div>
         </form>
       </div>
+
+      <Modal open={deleteModal} onClose={() => setDeleteModal(false)} title="Aksiyonu Sil">
+        <p className="text-gray-300 text-sm mb-6">Bu aksiyonu kalıcı olarak silmek istediğinize emin misiniz?</p>
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary" onClick={() => setDeleteModal(false)}>İptal</Button>
+          <Button variant="danger" disabled={deleteMut.isPending} onClick={() => deleteMut.mutate()}>
+            {deleteMut.isPending ? 'Siliniyor...' : 'Sil'}
+          </Button>
+        </div>
+      </Modal>
     </AdminLayout>
   );
 }

@@ -17,6 +17,7 @@ import { SafeScreen } from '../../components/ui/SafeScreen';
 import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
 import { TabHeader } from '../../components/ui/TabHeader';
 import { useTheme } from '../../context/ThemeContext';
+import { COLORS } from '../../constants/colors';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import { trackEvent } from '../../services/analytics';
 import {
@@ -28,6 +29,11 @@ import {
   type DiscoverModuleKey,
 } from '../../features/discover/catalog';
 import { fetchExploreCategories, fetchExploreCards, type ExploreCategory, type ExploreCard } from '../../services/exploreContent.service';
+import {
+  getDiscoverVisualForCmsCard,
+  getDiscoverVisualForModule,
+  type DiscoverVisual,
+} from '../../features/discover/discoverVisuals';
 
 const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 };
 const VISIBLE_CATEGORY_LIMIT = 5;
@@ -75,6 +81,7 @@ function ModuleCard({
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const isComingSoon = !module.route;
+  const visual = getDiscoverVisualForModule(module);
 
   return (
     <Pressable
@@ -101,8 +108,8 @@ function ModuleCard({
         <LinearGradient
           colors={
             isDark
-              ? ['rgba(167,139,250,0.16)', 'rgba(167,139,250,0.02)']
-              : ['rgba(167,139,250,0.22)', 'rgba(167,139,250,0.04)']
+              ? [visual.glowDark, 'rgba(8,10,24,0.02)']
+              : [visual.glowLight, 'rgba(255,255,255,0.02)']
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -110,9 +117,7 @@ function ModuleCard({
         />
       </View>
 
-      <View style={[styles.moduleIconShell, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}> 
-        <Ionicons name={isComingSoon ? 'lock-closed-outline' : module.icon} size={18} color={colors.primary} />
-      </View>
+      <PremiumModuleBadge visual={visual} isDark={isDark} locked={isComingSoon} />
 
       <Text numberOfLines={2} style={[styles.moduleTitle, { color: colors.text }]}>
         {module.title}
@@ -139,6 +144,7 @@ function TodayQuickCard({
 }) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const visual = getDiscoverVisualForModule(module);
 
   return (
     <Pressable
@@ -156,21 +162,124 @@ function TodayQuickCard({
       ]}
     >
       <LinearGradient
-        colors={
-          isDark
-            ? ['#2F2454', '#3A2D67']
-            : ['#B8A6EE', '#8B79D9']
-        }
+        colors={isDark ? visual.gradientDark : visual.gradientLight}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.todayCardTop}
       >
-        <Ionicons name={module.icon} size={22} color="#FFFFFF" />
+        <View style={styles.todayCardTopOverlay} />
+        <View style={styles.todayCardTopAura} />
+        <PremiumModuleBadge visual={visual} isDark={isDark} size="hero" />
       </LinearGradient>
       <Text numberOfLines={2} style={[styles.todayCardTitle, { color: colors.text }]}>
         {module.title}
       </Text>
     </Pressable>
+  );
+}
+
+function PremiumModuleBadge({
+  visual,
+  isDark,
+  size = 'regular',
+  locked = false,
+  featured = false,
+  premium = false,
+}: {
+  visual: DiscoverVisual;
+  isDark: boolean;
+  size?: 'regular' | 'hero';
+  locked?: boolean;
+  featured?: boolean;
+  premium?: boolean;
+}) {
+  const badgeSize = size === 'hero' ? 48 : 40;
+  const innerInset = size === 'hero' ? 6 : 5;
+  const iconSize = size === 'hero' ? 24 : 18;
+  const glowSize = badgeSize + 12;
+  const ornamentSize = size === 'hero' ? 18 : 16;
+  const iconCoreBackground = isDark ? 'rgba(2,6,23,0.84)' : 'rgba(94,66,187,0.94)';
+  const iconCoreBorder = isDark ? 'rgba(216,180,254,0.18)' : 'rgba(255,255,255,0.26)';
+  const ornamentIcon = locked ? 'lock-closed-outline' : featured ? 'star' : premium ? 'diamond' : null;
+  const ornamentColors = locked
+    ? ['#475569', '#0F172A']
+    : featured
+      ? [COLORS.primaryLight, COLORS.primary700]
+      : [COLORS.blue, COLORS.primary];
+
+  return (
+    <View style={[styles.premiumBadgeWrap, { width: glowSize, height: glowSize }]}>
+      <View
+        style={[
+          styles.premiumBadgeGlow,
+          {
+            width: glowSize,
+            height: glowSize,
+            borderRadius: glowSize / 2,
+            backgroundColor: isDark ? visual.glowDark : visual.glowLight,
+          },
+        ]}
+      />
+      <LinearGradient
+        colors={isDark ? visual.gradientDark : visual.gradientLight}
+        start={{ x: 0.15, y: 0.05 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[
+          styles.moduleIconShell,
+          {
+            width: badgeSize,
+            height: badgeSize,
+            borderRadius: badgeSize / 2,
+            borderColor: isDark ? visual.ringDark : visual.ringLight,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.moduleIconInner,
+            {
+              top: innerInset,
+              right: innerInset,
+              bottom: innerInset,
+              left: innerInset,
+              borderRadius: (badgeSize - innerInset * 2) / 2,
+              backgroundColor: iconCoreBackground,
+              borderColor: iconCoreBorder,
+            },
+          ]}
+        >
+          <Ionicons name={visual.icon} size={iconSize} color={isDark ? visual.iconDark : visual.iconLight} />
+        </View>
+        <View
+          style={[
+            styles.moduleIconSheen,
+            {
+              width: badgeSize * 0.44,
+              height: badgeSize * 0.2,
+              borderRadius: badgeSize * 0.15,
+            },
+          ]}
+        />
+      </LinearGradient>
+
+      {ornamentIcon ? (
+        <LinearGradient
+          colors={ornamentColors as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.moduleBadgeOrnament,
+            {
+              width: ornamentSize,
+              height: ornamentSize,
+              borderRadius: ornamentSize / 2,
+            },
+          ]}
+        >
+          <Ionicons name={ornamentIcon} size={ornamentSize * 0.58} color="#FFFFFF" />
+        </LinearGradient>
+      ) : null}
+    </View>
   );
 }
 
@@ -425,6 +534,7 @@ export default function DiscoverScreen() {
                         <View style={styles.gridRow}>
                           {visibleCards.map((card) => {
                             const route = card.routeKey || card.fallbackRouteKey;
+                            const visual = getDiscoverVisualForCmsCard(card);
                             return (
                               <View key={card.cardKey} style={styles.gridItemWrap}>
                                 <Pressable
@@ -442,20 +552,34 @@ export default function DiscoverScreen() {
                                     styles.moduleCard,
                                     {
                                       backgroundColor: colors.surface,
-                                      borderColor: card.isFeatured ? colors.primary : colors.border,
+                                      borderColor: card.isFeatured
+                                        ? (isDark ? visual.ringDark : visual.ringLight)
+                                        : colors.border,
                                       opacity: route ? 1 : 0.6,
                                     },
                                     styles.moduleCardCompact,
                                     pressed && route ? styles.pressed : undefined,
                                   ]}
                                 >
-                                  <View style={[styles.moduleIconShell, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-                                    <Ionicons
-                                      name={card.isFeatured ? 'star' : card.isPremium ? 'star-outline' : 'apps-outline'}
-                                      size={18}
-                                      color={card.isFeatured ? '#F6B800' : colors.primary}
+                                  <View style={styles.cardGlowWrap}>
+                                    <LinearGradient
+                                      colors={
+                                        isDark
+                                          ? [visual.glowDark, 'rgba(8,10,24,0.02)']
+                                          : [visual.glowLight, 'rgba(255,255,255,0.02)']
+                                      }
+                                      start={{ x: 0, y: 0 }}
+                                      end={{ x: 1, y: 1 }}
+                                      style={styles.cardGlow}
                                     />
                                   </View>
+                                  <PremiumModuleBadge
+                                    visual={visual}
+                                    isDark={isDark}
+                                    locked={!route}
+                                    featured={card.isFeatured}
+                                    premium={card.isPremium}
+                                  />
                                   <Text numberOfLines={2} style={[styles.moduleTitle, { color: colors.text }]}>
                                     {card.title}
                                   </Text>
@@ -638,9 +762,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   todayCardTop: {
-    height: 74,
+    height: 86,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  todayCardTopOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.22,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  todayCardTopAura: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    top: -42,
+    right: -18,
   },
   todayCardTitle: {
     ...TYPOGRAPHY.SmallBold,
@@ -662,11 +801,11 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     padding: SPACING.md,
-    minHeight: 118,
+    minHeight: 124,
     overflow: 'hidden',
   },
   moduleCardCompact: {
-    minHeight: 110,
+    minHeight: 116,
   },
   cardGlowWrap: {
     ...StyleSheet.absoluteFillObject,
@@ -676,13 +815,39 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   moduleIconShell: {
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  premiumBadgeWrap: {
+    marginBottom: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumBadgeGlow: {
+    position: 'absolute',
+    opacity: 0.92,
+  },
+  moduleIconInner: {
+    position: 'absolute',
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.sm,
+  },
+  moduleIconSheen: {
+    position: 'absolute',
+    top: 4,
+    left: 6,
+    backgroundColor: 'rgba(255,255,255,0.24)',
+  },
+  moduleBadgeOrnament: {
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.48)',
   },
   moduleTitle: {
     ...TYPOGRAPHY.SmallBold,

@@ -12,24 +12,26 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 public class VerificationMailTemplateRenderer {
 
-    private final Resource templateResource =
-            new org.springframework.core.io.ClassPathResource("templates/mail/email-verification.html");
-
     private final VerificationProperties verificationProperties;
 
-    public String render(String verificationLink) {
-        String template = loadTemplate();
+    public String render(String verificationLink, String locale) {
+        String template = loadTemplate(locale);
         return template
                 .replace("{{verificationLink}}", verificationLink)
                 .replace("{{expiresHours}}", String.valueOf(verificationProperties.tokenTtl().toHours()));
     }
 
-    private String loadTemplate() {
+    private String loadTemplate(String locale) {
+        String templateName = "en".equalsIgnoreCase(locale)
+                ? "templates/mail/email-verification-en.html"
+                : "templates/mail/email-verification.html";
+        org.springframework.core.io.Resource resource =
+                new org.springframework.core.io.ClassPathResource(templateName);
         try {
-            byte[] bytes = templateResource.getInputStream().readAllBytes();
+            byte[] bytes = resource.getInputStream().readAllBytes();
             return new String(bytes, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new IllegalStateException("Unable to load verification mail template", e);
+            throw new IllegalStateException("Unable to load verification mail template: " + templateName, e);
         }
     }
 }

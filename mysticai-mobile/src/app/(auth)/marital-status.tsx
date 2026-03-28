@@ -176,7 +176,7 @@ export default function MaritalStatusScreen() {
         <TouchableOpacity
           style={[styles.primaryButton, !store.maritalStatus && styles.primaryDisabled]}
           disabled={!store.maritalStatus}
-          onPress={() => router.push('/(auth)/focus-point')}
+          onPress={() => router.push('/(auth)/notification-permission')}
           accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
         >

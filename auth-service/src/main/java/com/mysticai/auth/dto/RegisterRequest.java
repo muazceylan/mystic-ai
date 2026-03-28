@@ -36,7 +36,6 @@ public record RegisterRequest(
         String timezone,
         String gender,
         String maritalStatus,
-        String focusPoint,
         String zodiacSign
 ) {
 }

@@ -81,6 +81,7 @@ export type NightSkyPosterModel = {
   celestialBodies: CelestialBody[];
   constellationLines: ConstellationSegment[];
   highlightedBodyIds?: string[];
+  variant?: NightSkyPosterVariant;
   posterTone?: PosterTone;
   stars?: ConstellationPoint[];
   shareUrl?: string;

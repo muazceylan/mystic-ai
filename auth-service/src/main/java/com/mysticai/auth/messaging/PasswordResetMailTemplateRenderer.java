@@ -12,24 +12,26 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 public class PasswordResetMailTemplateRenderer {
 
-    private final Resource templateResource =
-            new org.springframework.core.io.ClassPathResource("templates/mail/password-reset.html");
-
     private final PasswordResetProperties passwordResetProperties;
 
-    public String render(String resetLink) {
-        String template = loadTemplate();
+    public String render(String resetLink, String locale) {
+        String template = loadTemplate(locale);
         return template
                 .replace("{{resetLink}}", resetLink)
                 .replace("{{expiresMinutes}}", String.valueOf(passwordResetProperties.tokenTtl().toMinutes()));
     }
 
-    private String loadTemplate() {
+    private String loadTemplate(String locale) {
+        String templateName = "en".equalsIgnoreCase(locale)
+                ? "templates/mail/password-reset-en.html"
+                : "templates/mail/password-reset.html";
+        org.springframework.core.io.Resource resource =
+                new org.springframework.core.io.ClassPathResource(templateName);
         try {
-            byte[] bytes = templateResource.getInputStream().readAllBytes();
+            byte[] bytes = resource.getInputStream().readAllBytes();
             return new String(bytes, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new IllegalStateException("Unable to load password reset mail template", e);
+            throw new IllegalStateException("Unable to load password reset mail template: " + templateName, e);
         }
     }
 }

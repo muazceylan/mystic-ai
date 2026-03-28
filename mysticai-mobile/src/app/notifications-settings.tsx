@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
+  Alert,
   View,
   Text,
   Switch,
@@ -11,14 +12,14 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from '../utils/haptics';
 import { SafeScreen, TabHeader } from '../components/ui';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useNotificationStore } from '../store/useNotificationStore';
-import { useAuthStore } from '../store/useAuthStore';
+import { EXPO_PUSH_PROJECT_ID } from '../utils/pushNotifications';
 
 type ToggleKey =
   | 'dailyEnabled'
@@ -240,6 +241,26 @@ function makeStyles(C: ThemeColors) {
       padding: 12,
       borderRadius: 10,
     },
+    frequencyHintCard: {
+      marginTop: 10,
+      backgroundColor: C.primarySoftBg,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: C.border,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    frequencyHintTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: C.text,
+    },
+    frequencyHintBody: {
+      marginTop: 4,
+      fontSize: 12,
+      lineHeight: 18,
+      color: C.subtext,
+    },
     footnote: {
       fontSize: 12,
       color: C.subtext,
@@ -333,7 +354,6 @@ export default function NotificationsSettingsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const user = useAuthStore((s) => s.user);
 
   const {
     preferences,
@@ -349,6 +369,15 @@ export default function NotificationsSettingsScreen() {
   const [quietPickerHour, setQuietPickerHour] = useState(22);
   const [quietPickerMinute, setQuietPickerMinute] = useState(0);
 
+  const selectedFrequency = preferences?.frequencyLevel ?? 'BALANCED';
+  const selectedTimeSlot = preferences?.preferredTimeSlot ?? 'MORNING';
+  const frequencyHintKey =
+    selectedFrequency === 'LOW'
+      ? 'notifSettings.freqLowDesc'
+      : selectedFrequency === 'FREQUENT'
+      ? 'notifSettings.freqFrequentDesc'
+      : 'notifSettings.freqBalancedDesc';
+
   useEffect(() => {
     fetchPreferences();
   }, []);
@@ -356,45 +385,77 @@ export default function NotificationsSettingsScreen() {
   const handleToggle = useCallback(
     async (key: ToggleKey, value: boolean) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await updatePreferences({ [key]: value });
-
-      if (key === 'pushEnabled' && Platform.OS !== 'web') {
-        try {
-          const { default: Notifications } = await import('expo-notifications');
+      try {
+        if (key === 'pushEnabled' && Platform.OS !== 'web') {
           if (value) {
-            // Register push token when enabling push
-            const { status } = await Notifications.requestPermissionsAsync();
-            if (status === 'granted') {
-              const tokenData = await Notifications.getExpoPushTokenAsync();
-              await registerPushToken(tokenData.data, Platform.OS);
+            const currentPermission = await Notifications.getPermissionsAsync();
+            let finalStatus = currentPermission.status;
+
+            if (finalStatus !== 'granted') {
+              const requestedPermission = await Notifications.requestPermissionsAsync();
+              finalStatus = requestedPermission.status;
             }
-          } else {
-            // Deactivate push token when disabling push
-            const tokenData = await Notifications.getExpoPushTokenAsync();
-            await deactivatePushToken(tokenData.data);
+
+            if (finalStatus !== 'granted') {
+              Alert.alert(t('common.error'), t('notifSettings.pushPermissionDenied'));
+              await updatePreferences({ pushEnabled: false });
+              return;
+            }
+
+            await updatePreferences({ pushEnabled: true });
+            const tokenData = await Notifications.getExpoPushTokenAsync({
+              projectId: EXPO_PUSH_PROJECT_ID,
+            });
+            await registerPushToken(tokenData.data, Platform.OS);
+            return;
           }
-        } catch {
-          // silently fail
+
+          await updatePreferences({ pushEnabled: false });
+
+          try {
+            const tokenData = await Notifications.getExpoPushTokenAsync({
+              projectId: EXPO_PUSH_PROJECT_ID,
+            });
+            await deactivatePushToken(tokenData.data);
+          } catch {
+            // Push preference remains off even if token cleanup is delayed.
+          }
+          return;
         }
+
+        await updatePreferences({ [key]: value });
+      } catch {
+        Alert.alert(t('common.error'), t('notifSettings.saveError'));
+        fetchPreferences().catch(() => {});
       }
     },
-    [updatePreferences, registerPushToken, deactivatePushToken]
+    [updatePreferences, registerPushToken, deactivatePushToken, fetchPreferences, t]
   );
 
   const handleFrequency = useCallback(
-    (value: string) => {
+    async (value: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      updatePreferences({ frequencyLevel: value });
+      try {
+        await updatePreferences({ frequencyLevel: value });
+      } catch {
+        Alert.alert(t('common.error'), t('notifSettings.saveError'));
+        fetchPreferences().catch(() => {});
+      }
     },
-    [updatePreferences]
+    [updatePreferences, fetchPreferences, t]
   );
 
   const handleTimeSlot = useCallback(
-    (value: string) => {
+    async (value: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      updatePreferences({ preferredTimeSlot: value });
+      try {
+        await updatePreferences({ preferredTimeSlot: value });
+      } catch {
+        Alert.alert(t('common.error'), t('notifSettings.saveError'));
+        fetchPreferences().catch(() => {});
+      }
     },
-    [updatePreferences]
+    [updatePreferences, fetchPreferences, t]
   );
 
   const openSystemSettings = useCallback(() => {
@@ -476,7 +537,7 @@ export default function NotificationsSettingsScreen() {
           <Text style={styles.sectionTitle}>{t('notifSettings.sectionFrequency')}</Text>
           <View style={styles.optionGroup}>
             {FREQUENCY_OPTIONS.map((opt) => {
-              const selected = preferences?.frequencyLevel === opt.value;
+              const selected = selectedFrequency === opt.value;
               return (
                 <Pressable
                   key={opt.value}
@@ -490,12 +551,16 @@ export default function NotificationsSettingsScreen() {
               );
             })}
           </View>
+          <View style={styles.frequencyHintCard}>
+            <Text style={styles.frequencyHintTitle}>{t(`notifSettings.${selectedFrequency === 'LOW' ? 'freqLow' : selectedFrequency === 'FREQUENT' ? 'freqFrequent' : 'freqBalanced'}`)}</Text>
+            <Text style={styles.frequencyHintBody}>{t(frequencyHintKey)}</Text>
+          </View>
 
           {/* Preferred Time */}
           <Text style={styles.sectionTitle}>{t('notifSettings.sectionTimeSlot')}</Text>
           <View style={styles.optionGroup}>
             {TIME_SLOT_OPTIONS.map((opt) => {
-              const selected = preferences?.preferredTimeSlot === opt.value;
+              const selected = selectedTimeSlot === opt.value;
               return (
                 <Pressable
                   key={opt.value}
@@ -618,12 +683,17 @@ export default function NotificationsSettingsScreen() {
               </View>
               <Pressable
                 style={styles.modalSaveBtn}
-                onPress={() => {
+                onPress={async () => {
                   const timeStr = `${String(quietPickerHour).padStart(2, '0')}:${String(quietPickerMinute).padStart(2, '0')}`;
                   const key = quietPickerField === 'start' ? 'quietHoursStart' : 'quietHoursEnd';
-                  updatePreferences({ [key]: timeStr });
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setQuietPickerVisible(false);
+                  try {
+                    await updatePreferences({ [key]: timeStr });
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setQuietPickerVisible(false);
+                  } catch {
+                    Alert.alert(t('common.error'), t('notifSettings.saveError'));
+                    fetchPreferences().catch(() => {});
+                  }
                 }}
               >
                 <Text style={styles.modalSaveText}>{t('common.save')}</Text>

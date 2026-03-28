@@ -79,14 +79,19 @@ public class EmailVerificationWorker {
     private void sendVerificationEmail(EmailVerificationMessage message) throws Exception {
         String token = URLEncoder.encode(message.rawToken(), StandardCharsets.UTF_8);
         String verificationLink = publicUrlProperties.apiPublicUrl() + "/api/v1/auth/verify-email?token=" + token;
-        String html = templateRenderer.render(verificationLink);
+        String locale = message.locale() != null ? message.locale() : "tr";
+        String html = templateRenderer.render(verificationLink, locale);
+
+        String subject = "en".equalsIgnoreCase(locale)
+                ? "Astro Guru — Verify Your Email"
+                : "Astro Guru — E-postanı Doğrula";
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
 
-        helper.setFrom(fromAddress);
+        helper.setFrom(new jakarta.mail.internet.InternetAddress(fromAddress, "Astro Guru"));
         helper.setTo(message.email());
-        helper.setSubject("Verify your Mystic AI email");
+        helper.setSubject(subject);
         helper.setText(html, true);
 
         mailSender.send(mimeMessage);

@@ -39,7 +39,6 @@ export interface UserProfile {
   maritalStatus?: string;
   relationshipStage?: string;
   hasChildren?: boolean;
-  focusPoint?: string;
   zodiacSign?: string;
   preferredLanguage?: string;
   roles?: string[];
@@ -140,6 +139,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { useGuestPromptStore } = require('./useGuestPromptStore');
           useGuestPromptStore.getState().reset();
+        } catch {}
+        try {
+          const { useOnboardingStore } = require('./useOnboardingStore');
+          useOnboardingStore.getState().reset();
         } catch {}
         try {
           const { useMonetizationStore, clearMonetizationCache } = require('../features/monetization');
