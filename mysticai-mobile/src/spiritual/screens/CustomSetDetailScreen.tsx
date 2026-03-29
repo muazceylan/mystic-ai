@@ -2,6 +2,7 @@
  * CustomSetDetailScreen — Set detay, rutin takip, öğe yönetimi
  */
 import React, { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -47,6 +48,7 @@ const TYPE_META: Record<string, {
 
 export default function CustomSetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
@@ -513,8 +515,8 @@ export default function CustomSetDetailScreen() {
           ]}
           onPress={() => { setAddSearch(''); setAddItemCounts({}); setExpandedCountPicker(null); setCustomCountText(''); setShowAddModal(true); }}
         >
-          <Ionicons name="add-circle-outline" size={18} color={accent} />
-          <Text style={[S.addBtnText, { color: accent }]}>Öğe Ekle</Text>
+          <Ionicons name={totalCount > 0 ? 'pencil-outline' : 'add-circle-outline'} size={18} color={accent} />
+          <Text style={[S.addBtnText, { color: accent }]}>{totalCount > 0 ? 'Öğe Düzenle' : 'Öğe Ekle'}</Text>
         </Pressable>
 
         {totalCount > 0 && completedCount < totalCount && (
@@ -556,7 +558,7 @@ export default function CustomSetDetailScreen() {
                   <View>
                     <View style={S.modalHandle} />
                     <View style={S.modalHeader}>
-                      <Text style={S.modalTitle}>Öğe Ekle</Text>
+                      <Text style={S.modalTitle}>{totalCount > 0 ? 'Öğe Düzenle' : 'Öğe Ekle'}</Text>
                       <Pressable onPress={closeAddModal} hitSlop={10}>
                         <Ionicons name="close" size={22} color={colors.text} />
                       </Pressable>
@@ -596,7 +598,7 @@ export default function CustomSetDetailScreen() {
                   <Ionicons name="search" size={16} color={colors.muted} />
                   <TextInput
                     style={[S.searchInput, { color: colors.text }]}
-                    placeholder="Ara..."
+                    placeholder={t('spiritual.customSet.searchPlaceholder')}
                     placeholderTextColor={colors.muted}
                     value={addSearch}
                     onChangeText={setAddSearch}
@@ -607,6 +609,47 @@ export default function CustomSetDetailScreen() {
                     </Pressable>
                   )}
                 </View>
+
+              {/* Select All / Remove All */}
+              {(() => {
+                const filtered = addFilteredItems as any[];
+                if (filtered.length === 0) return null;
+                const unaddedCount = filtered.filter(
+                  (item) => !isItemInSet(set.id, addTab as SpiritualItemType, item.id),
+                ).length;
+                const allAdded = unaddedCount === 0;
+                return (
+                  <Pressable
+                    style={({ pressed }) => [
+                      S.selectAllBtn,
+                      { borderColor: accent + '44', backgroundColor: pressed ? accent + '18' : accent + '0C' },
+                    ]}
+                    onPress={() => {
+                      if (allAdded) {
+                        filtered.forEach((item) => {
+                          removeItem(set.id, addTab as SpiritualItemType, item.id);
+                        });
+                      } else {
+                        filtered.forEach((item) => {
+                          if (!isItemInSet(set.id, addTab as SpiritualItemType, item.id)) {
+                            addItem(set.id, addTab as SpiritualItemType, item.id, getDefaultCount(addTab, item.id));
+                          }
+                        });
+                      }
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    }}
+                  >
+                    <Ionicons
+                      name={allAdded ? 'trash-outline' : 'checkmark-done-outline'}
+                      size={15}
+                      color={allAdded ? colors.error ?? '#EF4444' : accent}
+                    />
+                    <Text style={[S.selectAllText, { color: allAdded ? colors.error ?? '#EF4444' : accent }]}>
+                      {allAdded ? `Hepsini Kaldır (${filtered.length})` : `Hepsini Ekle (${unaddedCount})`}
+                    </Text>
+                  </Pressable>
+                );
+              })()}
 
               {/* Results */}
                 <FlatList
@@ -661,13 +704,15 @@ export default function CustomSetDetailScreen() {
                         )}
                         <Pressable
                           onPress={() => {
-                            if (!alreadyIn) {
+                            if (alreadyIn) {
+                              removeItem(set.id, itemType, addItem_.id);
+                              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            } else {
                               addItem(set.id, itemType, addItem_.id, selectedCount);
                               setExpandedCountPicker(null);
                               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             }
                           }}
-                          disabled={alreadyIn}
                           hitSlop={8}
                         >
                           <Ionicons
@@ -715,7 +760,7 @@ export default function CustomSetDetailScreen() {
                               if (num > 0) setAddItemCount(addTab, addItem_.id, num);
                             }}
                             keyboardType="number-pad"
-                            placeholder="?"
+                            placeholder={t('spiritual.customSet.countPlaceholder')}
                             placeholderTextColor={colors.subtext}
                             maxLength={5}
                           />
@@ -1089,6 +1134,19 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       backgroundColor: isDark ? 'rgba(30,41,59,0.50)' : C.surface,
     },
     searchInput: { flex: 1, ...TYPOGRAPHY.Body },
+    selectAllBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      marginHorizontal: SPACING.lgXl,
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.xs,
+      paddingVertical: SPACING.smMd,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+    },
+    selectAllText: { ...TYPOGRAPHY.Caption, fontWeight: '700' },
 
     /* Modal list */
     modalListContent: {

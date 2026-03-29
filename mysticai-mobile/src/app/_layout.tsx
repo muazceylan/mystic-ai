@@ -82,6 +82,7 @@ if (typeof window !== 'undefined') {
 }
 
 const ONBOARDING_AUTH_ROUTES = new Set([
+  'guest-name',
   'birth-date',
   'birth-time',
   'birth-country',

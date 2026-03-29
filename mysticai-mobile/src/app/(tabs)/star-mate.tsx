@@ -37,11 +37,11 @@ import Reanimated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, TabHeader } from '../../components/ui';
 import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
-import { TYPOGRAPHY } from '../../constants/tokens';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useStarMateStore } from '../../store/useStarMateStore';
@@ -50,7 +50,6 @@ import {
   type StarMateActionType,
   type StarMateChatMessage,
   type StarMateDetailSet,
-  type StarMateDiscoveryFilters,
   type StarMateElement,
   type StarMateMatch,
   type StarMateMiniSynastryReport,
@@ -58,6 +57,8 @@ import {
   type StarMateProfileDraft,
   type StarMateShowMe,
 } from '../../services/starMate.service';
+
+type TFn = (key: string, opts?: Record<string, string>) => string;
 
 type SegmentKey = 'DISCOVER' | 'MATCHES' | 'PROFILE' | 'SETTINGS';
 
@@ -70,37 +71,6 @@ const DECK_CARD_WIDTH = SCREEN_WIDTH - 28;
 const DECK_CARD_HEIGHT = Math.min(620, SCREEN_HEIGHT * 0.66);
 const SWIPE_X_THRESHOLD = SCREEN_WIDTH * 0.28;
 const SWIPE_UP_THRESHOLD = 120;
-
-const SECTION_ITEMS: Array<{ key: SegmentKey; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
-  { key: 'DISCOVER', label: 'Kesfet', icon: 'sparkles-outline' },
-  { key: 'MATCHES', label: 'Eslesmeler', icon: 'chatbubbles-outline' },
-  { key: 'PROFILE', label: 'Profilim', icon: 'person-circle-outline' },
-  { key: 'SETTINGS', label: 'Filtreler', icon: 'options-outline' },
-];
-
-const MATCH_TAB_ITEMS: Array<{ key: MatchTabKey; label: string }> = [
-  { key: 'LIKES_YOU', label: 'Seni begeniyor' },
-  { key: 'MATCHES', label: 'Yeni eslesmeler' },
-];
-
-const PROFILE_MODE_ITEMS: Array<{ key: ProfileMode; label: string }> = [
-  { key: 'EDIT', label: 'Duzenle' },
-  { key: 'PREVIEW', label: 'On izleme' },
-];
-
-const SHOW_ME_OPTIONS: Array<{ value: StarMateShowMe; label: string }> = [
-  { value: 'WOMEN', label: 'Kadinlar' },
-  { value: 'MEN', label: 'Erkekler' },
-  { value: 'EVERYONE', label: 'Herkes' },
-];
-
-const ELEMENT_OPTIONS: Array<{ value: 'ANY' | StarMateElement; label: string; icon: string }> = [
-  { value: 'ANY', label: 'Tum', icon: '✨' },
-  { value: 'FIRE', label: 'Ates', icon: '🔥' },
-  { value: 'EARTH', label: 'Toprak', icon: '🌿' },
-  { value: 'AIR', label: 'Hava', icon: '💨' },
-  { value: 'WATER', label: 'Su', icon: '🌊' },
-];
 
 const INTEREST_TAG_OPTIONS = [
   'Seyahat',
@@ -121,23 +91,6 @@ const INTEREST_TAG_OPTIONS = [
   'Podcast',
 ];
 
-const EXERCISE_OPTIONS: Array<{ value: StarMateDetailSet['exercise']; label: string }> = [
-  { value: 'LOW', label: 'Az' },
-  { value: 'SOMETIMES', label: 'Bazen' },
-  { value: 'REGULAR', label: 'Duzenli' },
-];
-
-const DRINKING_OPTIONS: Array<{ value: StarMateDetailSet['drinking']; label: string }> = [
-  { value: 'NO', label: 'Icmem' },
-  { value: 'SOCIAL', label: 'Sosyal' },
-  { value: 'OCCASIONAL', label: 'Ara sira' },
-];
-
-const SMOKING_OPTIONS: Array<{ value: StarMateDetailSet['smoking']; label: string }> = [
-  { value: 'NO', label: 'Hayir' },
-  { value: 'SOCIAL', label: 'Sosyal' },
-  { value: 'YES', label: 'Evet' },
-];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -170,25 +123,25 @@ function scoreGradient(score: number, colors: ReturnType<typeof useTheme>['color
   return [colors.orange, '#FDBA74'];
 }
 
-function scoreChipText(score: number, profile: StarMateProfile): string {
-  return `${profile.sunSymbol} ${formatSignLabel(profile.sunSign)} / %${score} Uyum`;
+function scoreChipText(score: number, profile: StarMateProfile, t: TFn): string {
+  return `${profile.sunSymbol} ${formatSignLabel(profile.sunSign)} / ${t('starMate.compatFormat', { score: String(score) })}`;
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: TFn): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.max(1, Math.round(diffMs / (1000 * 60)));
-  if (mins < 60) return `${mins} dk`;
+  if (mins < 60) return t('starMate.timeMinutes', { n: String(mins) });
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours} sa`;
+  if (hours < 24) return t('starMate.timeHours', { n: String(hours) });
   const days = Math.round(hours / 24);
-  return `${days} g`;
+  return t('starMate.timeDays', { n: String(days) });
 }
 
 function getPrimaryPhoto(profile: StarMateProfile): string | null {
   return profile.photos[0]?.uri ?? null;
 }
 
-function draftToPreviewProfile(draft: StarMateProfileDraft): StarMateProfile {
+function draftToPreviewProfile(draft: StarMateProfileDraft, t: TFn): StarMateProfile {
   const photos = draft.photos
     .filter((uri): uri is string => !!uri)
     .map((uri, index) => ({ id: `preview-photo-${index}`, uri, order: index }));
@@ -196,22 +149,22 @@ function draftToPreviewProfile(draft: StarMateProfileDraft): StarMateProfile {
   const previewScore = clamp(Math.round(draft.previewCompatibilityScore), 50, 99);
 
   const miniSynastryReport: StarMateMiniSynastryReport = {
-    summary: `%${previewScore} uyum. Bu kart senin profilinin diger kisilere gorecegi kozmik etiketi simule eder.`,
-    whyScore: 'Sun-Moon ritmin ve iliski hedefi sinyallerin iyi hizalaniyor gibi gorunuyor.',
-    sparkNote: 'Profil dilin sicak ve net. Bu, yuksek uyumlu eslesmelerde donusumu arttirir.',
-    cautionNote: 'Biyografiye biraz daha ozgun bir detay eklemek yanlis pozitif eslesmeleri azaltir.',
-    aiInsight: 'Kartin guclu. Bir hobi + bir iliski niyeti + bir mizah satiri donusumde fark yaratir.',
+    summary: t('starMate.previewSummary', { score: String(previewScore) }),
+    whyScore: t('starMate.previewWhyScore'),
+    sparkNote: t('starMate.previewSparkNote'),
+    cautionNote: t('starMate.previewCautionNote'),
+    aiInsight: t('starMate.previewAiInsight'),
     aspects: [
-      { id: 'preview-1', label: 'Profil Enerjisi ✨', note: 'Net ve samimi bir ton yansiyor.', tone: 'HARMONY' },
-      { id: 'preview-2', label: 'Niyet Sinyali', note: 'Uzun vade arayanlarla filtre uyumu yuksek.', tone: 'HARMONY' },
-      { id: 'preview-3', label: 'Bio Derinligi', note: 'Tek bir ayirt edici detay eklenirse kalite artar.', tone: 'CHALLENGE' },
+      { id: 'preview-1', label: t('starMate.previewAspect1Label'), note: t('starMate.previewAspect1Note'), tone: 'HARMONY' },
+      { id: 'preview-2', label: t('starMate.previewAspect2Label'), note: t('starMate.previewAspect2Note'), tone: 'HARMONY' },
+      { id: 'preview-3', label: t('starMate.previewAspect3Label'), note: t('starMate.previewAspect3Note'), tone: 'CHALLENGE' },
     ],
   };
 
   return {
     id: 'preview-self',
     userId: null,
-    displayName: draft.displayName || 'Sen',
+    displayName: draft.displayName || t('starMate.youDefault'),
     age: draft.age,
     gender: 'WOMAN',
     locationLabel: draft.previewLocationLabel,
@@ -623,6 +576,8 @@ function ProfileCard({
   compact?: boolean;
   showInsightButton?: boolean;
 }) {
+  const { t } = useTranslation();
+  const tFn = t as TFn;
   const [gradA, gradB] = scoreGradient(profile.compatibilityScore, colors);
   const photoUri = getPrimaryPhoto(profile);
 
@@ -637,11 +592,11 @@ function ProfileCard({
           <StarParticleField visible={profile.compatibilityScore >= 85} colors={colors} />
           <View style={{ position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <LinearGradient colors={[gradA, gradB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, maxWidth: '78%' }}>
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>{scoreChipText(profile.compatibilityScore, profile)}</Text>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>{scoreChipText(profile.compatibilityScore, profile, tFn)}</Text>
             </LinearGradient>
             {profile.premiumSpotlight ? (
               <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 11 }}>Yuksek Eslesme</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 11 }}>{t('starMate.highMatch')}</Text>
               </View>
             ) : null}
           </View>
@@ -686,7 +641,7 @@ function ProfileCard({
         </ImageBackground>
       ) : (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: colors.subtext }}>Foto yok</Text>
+          <Text style={{ color: colors.subtext }}>{t('starMate.noPhoto')}</Text>
         </View>
       )}
     </View>
@@ -730,6 +685,7 @@ const ReanimatedSwipeDeck = React.forwardRef<SwipeDeckHandle, {
     },
     ref,
   ) {
+    const { t } = useTranslation();
     const topCard = deck[0] ?? null;
     const secondCard = deck[1] ?? null;
     const thirdCard = deck[2] ?? null;
@@ -933,15 +889,15 @@ const ReanimatedSwipeDeck = React.forwardRef<SwipeDeckHandle, {
               <ProfileCard profile={topCard} colors={colors} onPressInfo={onOpenInsight} />
 
               <Reanimated.View style={[styles.swipeBadge, { left: 14, borderColor: '#EF4444' }, nopeBadgeAnimatedStyle]}>
-                <Text style={[styles.swipeBadgeText, { color: '#EF4444' }]}>PAS</Text>
+                <Text style={[styles.swipeBadgeText, { color: '#EF4444' }]}>{t('starMate.swipeNope')}</Text>
               </Reanimated.View>
 
               <Reanimated.View style={[styles.swipeBadge, { right: 14, borderColor: '#22C55E' }, likeBadgeAnimatedStyle]}>
-                <Text style={[styles.swipeBadgeText, { color: '#22C55E' }]}>BEĞEN</Text>
+                <Text style={[styles.swipeBadgeText, { color: '#22C55E' }]}>{t('starMate.swipeLike')}</Text>
               </Reanimated.View>
 
               <Reanimated.View style={[styles.swipeBadge, { top: 52, alignSelf: 'center', borderColor: '#38BDF8' }, superBadgeAnimatedStyle]}>
-                <Text style={[styles.swipeBadgeText, { color: '#38BDF8' }]}>SUPER STAR</Text>
+                <Text style={[styles.swipeBadgeText, { color: '#38BDF8' }]}>{t('starMate.swipeSuperStar')}</Text>
               </Reanimated.View>
             </Reanimated.View>
           </GestureDetector>
@@ -963,6 +919,8 @@ function MiniSynastryModal({
   onClose: () => void;
 }) {
   if (!profile) return null;
+  const { t } = useTranslation();
+  const tFn = t as TFn;
   const [gradA, gradB] = scoreGradient(profile.compatibilityScore, colors);
   const { animatedStyle, gesture } = useBottomSheetDragGesture({
     enabled: visible,
@@ -992,8 +950,8 @@ function MiniSynastryModal({
                 <View style={{ width: 42, height: 4, borderRadius: 999, backgroundColor: colors.border }} />
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>Mini Synastry Raporu</Text>
-                    <Text style={{ color: colors.subtext, marginTop: 4 }}>{`${profile.displayName} ile neden %${profile.compatibilityScore}?`}</Text>
+                    <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>{t('starMate.miniSynastryTitle')}</Text>
+                    <Text style={{ color: colors.subtext, marginTop: 4 }}>{t('starMate.miniSynastrySubtitle', { name: profile.displayName, score: String(profile.compatibilityScore) })}</Text>
                   </View>
                   <Pressable onPress={onClose} style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
                     <Ionicons name="close" size={18} color={colors.text} />
@@ -1003,17 +961,17 @@ function MiniSynastryModal({
             </GestureDetector>
 
             <LinearGradient colors={[gradA, gradB]} style={{ marginTop: 14, borderRadius: 16, padding: 14 }}>
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{scoreChipText(profile.compatibilityScore, profile)}</Text>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{scoreChipText(profile.compatibilityScore, profile, tFn)}</Text>
               <Text style={{ color: 'rgba(255,255,255,0.94)', marginTop: 6, lineHeight: 18 }}>{profile.miniSynastryReport.summary}</Text>
             </LinearGradient>
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 14 }}>
-              <InsightBlock title="Neden bu skor?" body={profile.miniSynastryReport.whyScore} colors={colors} />
-              <InsightBlock title="Romantik kıvılcım" body={profile.miniSynastryReport.sparkNote} colors={colors} tone="good" />
-              <InsightBlock title="Iletisimde dikkat" body={profile.miniSynastryReport.cautionNote} colors={colors} tone="warn" />
-              <InsightBlock title="AI yorum" body={profile.miniSynastryReport.aiInsight} colors={colors} />
+              <InsightBlock title={t('starMate.insightWhyScore')} body={profile.miniSynastryReport.whyScore} colors={colors} />
+              <InsightBlock title={t('starMate.insightSparkNote')} body={profile.miniSynastryReport.sparkNote} colors={colors} tone="good" />
+              <InsightBlock title={t('starMate.insightCautionNote')} body={profile.miniSynastryReport.cautionNote} colors={colors} tone="warn" />
+              <InsightBlock title={t('starMate.insightAiInsight')} body={profile.miniSynastryReport.aiInsight} colors={colors} />
 
-              <Text style={{ color: colors.text, fontWeight: '800', marginTop: 8, marginBottom: 8, fontSize: 14 }}>Aspekt Ozetleri</Text>
+              <Text style={{ color: colors.text, fontWeight: '800', marginTop: 8, marginBottom: 8, fontSize: 14 }}>{t('starMate.aspectSummariesTitle')}</Text>
               {profile.miniSynastryReport.aspects.map((asp) => (
                 <View
                   key={asp.id}
@@ -1138,9 +1096,11 @@ function MatchCelebrationModal({
     transform: [{ translateX: rightAvatarX.value }, { scale: avatarScale.value }],
   }));
 
+  const { t } = useTranslation();
+
   if (!match) return null;
 
-  const viewerInitial = (viewerLabel ?? 'Sen').trim().charAt(0).toUpperCase() || 'S';
+  const viewerInitial = (viewerLabel ?? t('starMate.youDefault')).trim().charAt(0).toUpperCase() || 'S';
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -1204,23 +1164,23 @@ function MatchCelebrationModal({
                 elevation: 10,
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 29, fontWeight: '900' }}>It’s a Match!</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.86)', marginTop: 8, textAlign: 'center' }}>{`${match.displayName} ile karsilikli begeni olustu.`}</Text>
+              <Text style={{ color: '#fff', fontSize: 29, fontWeight: '900' }}>{t('starMate.matchTitle')}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.86)', marginTop: 8, textAlign: 'center' }}>{t('starMate.matchSubtitle', { name: match.displayName })}</Text>
               <View style={{ marginTop: 16, flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <View style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
                   <Text style={{ color: '#fff', fontWeight: '800' }}>{`${match.sunSymbol} ${match.sunSign}`}</Text>
                 </View>
                 <View style={{ backgroundColor: 'rgba(34,197,94,0.18)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
-                  <Text style={{ color: '#DCFCE7', fontWeight: '800' }}>{`%${match.compatibilityScore} Uyum`}</Text>
+                  <Text style={{ color: '#DCFCE7', fontWeight: '800' }}>{t('starMate.compatFormat', { score: String(match.compatibilityScore) })}</Text>
                 </View>
               </View>
               <Text style={{ color: 'rgba(255,255,255,0.8)', textAlign: 'center', marginTop: 12, lineHeight: 18 }}>{match.icebreaker}</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 18, width: '100%' }}>
                 <Pressable onPress={onClose} style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.10)', alignItems: 'center' }}>
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>Sonra</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700' }}>{t('starMate.matchLaterBtn')}</Text>
                 </Pressable>
                 <Pressable onPress={() => onOpenChat(match.id)} style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' }}>
-                  <Text style={{ color: '#fff', fontWeight: '800' }}>Mesaja Basla</Text>
+                  <Text style={{ color: '#fff', fontWeight: '800' }}>{t('starMate.matchChatBtn')}</Text>
                 </Pressable>
               </View>
             </LinearGradient>
@@ -1250,6 +1210,7 @@ function ChatModal({
   onClose: () => void;
   colors: ReturnType<typeof useTheme>['colors'];
 }) {
+  const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -1272,7 +1233,7 @@ function ChatModal({
             </Pressable>
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={{ color: colors.text, fontWeight: '800', fontSize: 16 }}>{match.displayName}</Text>
-              <Text style={{ color: colors.subtext, fontSize: 12 }}>{`${match.sunSymbol} ${match.sunSign} · %${match.compatibilityScore} Uyum`}</Text>
+              <Text style={{ color: colors.subtext, fontSize: 12 }}>{t('starMate.chatCompatFormat', { score: String(match.compatibilityScore), symbol: match.sunSymbol, sign: match.sunSign })}</Text>
             </View>
             <View style={{ backgroundColor: colors.primarySoft, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
               <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 11 }}>Cosmic Chat</Text>
@@ -1305,7 +1266,7 @@ function ChatModal({
                       {message.text}
                     </Text>
                   </View>
-                  <Text style={{ color: colors.subtext, fontSize: 10, marginTop: 4 }}>{relativeTime(message.sentAt)}</Text>
+                  <Text style={{ color: colors.subtext, fontSize: 10, marginTop: 4 }}>{relativeTime(message.sentAt, t as TFn)}</Text>
                 </View>
               );
             })}
@@ -1317,7 +1278,7 @@ function ChatModal({
                 ref={inputRef}
                 value={composer}
                 onChangeText={onChangeComposer}
-                placeholder="Mesaj yaz..."
+                placeholder={t('starMate.messagePlaceholder')}
                 placeholderTextColor={colors.subtext}
                 multiline
                 style={{
@@ -1355,6 +1316,7 @@ function ChatModal({
 }
 
 export default function StarMateTabScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
@@ -1405,6 +1367,57 @@ export default function StarMateTabScreen() {
   const saveProfileDraftLocal = useStarMateStore((s) => s.saveProfileDraftLocal);
   const unlockLikesPreview = useStarMateStore((s) => s.unlockLikesPreview);
 
+  const tFn = t as TFn;
+
+  const SECTION_ITEMS: Array<{ key: SegmentKey; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { key: 'DISCOVER', label: t('starMate.sectionDiscover'), icon: 'sparkles-outline' },
+    { key: 'MATCHES', label: t('starMate.sectionMatches'), icon: 'chatbubbles-outline' },
+    { key: 'PROFILE', label: t('starMate.sectionProfile'), icon: 'person-circle-outline' },
+    { key: 'SETTINGS', label: t('starMate.sectionSettings'), icon: 'options-outline' },
+  ];
+
+  const MATCH_TAB_ITEMS: Array<{ key: MatchTabKey; label: string }> = [
+    { key: 'LIKES_YOU', label: t('starMate.tabLikesYou') },
+    { key: 'MATCHES', label: t('starMate.tabMatches') },
+  ];
+
+  const PROFILE_MODE_ITEMS: Array<{ key: ProfileMode; label: string }> = [
+    { key: 'EDIT', label: t('starMate.modeEdit') },
+    { key: 'PREVIEW', label: t('starMate.modePreview') },
+  ];
+
+  const SHOW_ME_OPTIONS: Array<{ value: StarMateShowMe; label: string }> = [
+    { value: 'WOMEN', label: t('starMate.showWomen') },
+    { value: 'MEN', label: t('starMate.showMen') },
+    { value: 'EVERYONE', label: t('starMate.showEveryone') },
+  ];
+
+  const ELEMENT_OPTIONS: Array<{ value: 'ANY' | StarMateElement; label: string; icon: string }> = [
+    { value: 'ANY', label: t('starMate.elemAll'), icon: '✨' },
+    { value: 'FIRE', label: t('starMate.elemFire'), icon: '🔥' },
+    { value: 'EARTH', label: t('starMate.elemEarth'), icon: '🌿' },
+    { value: 'AIR', label: t('starMate.elemAir'), icon: '💨' },
+    { value: 'WATER', label: t('starMate.elemWater'), icon: '🌊' },
+  ];
+
+  const EXERCISE_OPTIONS: Array<{ value: StarMateDetailSet['exercise']; label: string }> = [
+    { value: 'LOW', label: t('starMate.exerciseLow') },
+    { value: 'SOMETIMES', label: t('starMate.exerciseSometimes') },
+    { value: 'REGULAR', label: t('starMate.exerciseRegular') },
+  ];
+
+  const DRINKING_OPTIONS: Array<{ value: StarMateDetailSet['drinking']; label: string }> = [
+    { value: 'NO', label: t('starMate.drinkingNo') },
+    { value: 'SOCIAL', label: t('starMate.drinkingSocial') },
+    { value: 'OCCASIONAL', label: t('starMate.drinkingOccasional') },
+  ];
+
+  const SMOKING_OPTIONS: Array<{ value: StarMateDetailSet['smoking']; label: string }> = [
+    { value: 'NO', label: t('starMate.smokingNo') },
+    { value: 'SOCIAL', label: t('starMate.smokingSocial') },
+    { value: 'YES', label: t('starMate.smokingYes') },
+  ];
+
   const [selectedPhotoSlot, setSelectedPhotoSlot] = useState<number | null>(null);
 
   const topCard = deck[0] ?? null;
@@ -1418,7 +1431,7 @@ export default function StarMateTabScreen() {
     [matches, activeChatMatchId],
   );
   const activeChatMessages = activeChatMatch ? chats[activeChatMatch.id]?.messages ?? [] : [];
-  const previewProfile = useMemo(() => draftToPreviewProfile(myProfileDraft), [myProfileDraft]);
+  const previewProfile = useMemo(() => draftToPreviewProfile(myProfileDraft, tFn), [myProfileDraft, tFn]);
 
   useEffect(() => {
     initialize({
@@ -1469,9 +1482,9 @@ export default function StarMateTabScreen() {
       : 0;
     const high = deck.filter((p) => p.compatibilityScore >= 80).length;
     return [
-      { label: 'Kuyruk', value: String(deck.length), icon: 'layers-outline' as const },
-      { label: 'Ort. Uyum', value: deck.length ? `%${avg}` : '-', icon: 'pulse-outline' as const },
-      { label: 'Yuksek', value: String(high), icon: 'star-outline' as const },
+      { label: t('starMate.metricQueue'), value: String(deck.length), icon: 'layers-outline' as const },
+      { label: t('starMate.metricAvgMatch'), value: deck.length ? t('starMate.compatFormat', { score: String(avg) }) : '-', icon: 'pulse-outline' as const },
+      { label: t('starMate.metricHigh'), value: String(high), icon: 'star-outline' as const },
     ];
   }, [deck]);
 
@@ -1554,9 +1567,9 @@ export default function StarMateTabScreen() {
         {!filters.discoveryEnabled ? (
           <View style={styles.disabledDiscoveryCard}>
             <Ionicons name="eye-off-outline" size={30} color={colors.primary} />
-            <Text style={styles.disabledTitle}>Kesfet kapali</Text>
+            <Text style={styles.disabledTitle}>{t('starMate.discoveryDisabledTitle')}</Text>
             <Text style={styles.disabledBody}>
-              Profilin stack icinden aninda gizlendi. Ayarlar sekmesinden tekrar etkinlestirebilirsin.
+              {t('starMate.discoveryDisabledBody')}
             </Text>
             <Pressable
               onPress={() => {
@@ -1565,7 +1578,7 @@ export default function StarMateTabScreen() {
               }}
               style={styles.primaryPillButton}
             >
-              <Text style={styles.primaryPillText}>Kesfeti Ac</Text>
+              <Text style={styles.primaryPillText}>{t('starMate.discoveryEnableBtn')}</Text>
             </Pressable>
           </View>
         ) : (
@@ -1584,16 +1597,16 @@ export default function StarMateTabScreen() {
               {deck.length === 0 ? (
                 <View style={styles.deckEmptyOverlay}>
                   <Ionicons name="sparkles-outline" size={34} color={colors.primary} />
-                  <Text style={styles.deckEmptyTitle}>Kuyruk bitti</Text>
+                  <Text style={styles.deckEmptyTitle}>{t('starMate.deckEmptyTitle')}</Text>
                   <Text style={styles.deckEmptyText}>
-                    Filtreleri genislet ya da minimum uyum eşiğini dusur. Arka planda yeni synastry kuyruğu hazırlanabilir.
+                    {t('starMate.deckEmptyBody')}
                   </Text>
                   <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                     <Pressable onPress={() => setSection('SETTINGS')} style={styles.secondaryPillButton}>
-                      <Text style={styles.secondaryPillText}>Filtreler</Text>
+                      <Text style={styles.secondaryPillText}>{t('starMate.deckFiltersBtn')}</Text>
                     </Pressable>
                     <Pressable onPress={() => updateFilters({ minCompatibilityScore: Math.max(50, filters.minCompatibilityScore - 10) })} style={styles.primaryPillButton}>
-                      <Text style={styles.primaryPillText}>Skoru Dusur</Text>
+                      <Text style={styles.primaryPillText}>{t('starMate.deckLowerScoreBtn')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1619,7 +1632,7 @@ export default function StarMateTabScreen() {
             <View style={styles.deckHintCard}>
               <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
               <Text style={styles.deckHintText}>
-                Karti saga/sola kaydirabilir veya yukari iterek Super Star kullanabilirsin. Bilgi (i) mini synastry raporunu acar.
+                {t('starMate.deckHintText')}
               </Text>
             </View>
           </View>
@@ -1633,7 +1646,7 @@ export default function StarMateTabScreen() {
       <Reanimated.View entering={FadeIn.duration(220)} style={{ paddingBottom: 20 }}>
         <View style={styles.panel}>
           <View style={styles.rowBetween}>
-            <Text style={styles.panelTitle}>Kesfet'i Etkinlestir</Text>
+            <Text style={styles.panelTitle}>{t('starMate.settingsEnableTitle')}</Text>
             <Switch
               value={filters.discoveryEnabled}
               onValueChange={(value) => {
@@ -1645,15 +1658,15 @@ export default function StarMateTabScreen() {
             />
           </View>
           <Text style={styles.panelDescription}>
-            Kapandiginda profilin aninda kart destesi dışından gizlenir. Mevcut eslesmeler ve sohbetler gorunmeye devam eder.
+            {t('starMate.settingsEnableDesc')}
           </Text>
         </View>
 
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Kesfetme Ayarlari</Text>
+          <Text style={styles.panelTitle}>{t('starMate.settingsDiscoverTitle')}</Text>
           <View style={styles.settingsCard}>
             <View style={styles.settingsRowBlock}>
-              <Text style={styles.settingsLabel}>Konum</Text>
+              <Text style={styles.settingsLabel}>{t('starMate.settingsLocationLabel')}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={styles.settingsValue}>{filters.locationLabel}</Text>
                 <Ionicons name="refresh" size={16} color={colors.subtext} />
@@ -1661,7 +1674,7 @@ export default function StarMateTabScreen() {
             </View>
 
             <MetricSlider
-              label="Mesafe Tercihi"
+              label={t('starMate.settingsDistanceLabel')}
               valueLabel={`${filters.maxDistanceKm} km`}
               value={filters.maxDistanceKm}
               min={5}
@@ -1671,7 +1684,7 @@ export default function StarMateTabScreen() {
               colors={colors}
             />
             <View style={styles.inlineToggleRow}>
-              <Text style={styles.inlineToggleText}>Sadece bu araliktaki kisileri goster</Text>
+              <Text style={styles.inlineToggleText}>{t('starMate.settingsStrictToggle')}</Text>
               <Switch
                 value={filters.distanceStrict}
                 onValueChange={(value) => updateFilters({ distanceStrict: value })}
@@ -1681,7 +1694,7 @@ export default function StarMateTabScreen() {
             </View>
 
             <RangeSlider
-              label="Yas Tercihi"
+              label={t('starMate.settingsAgeLabel')}
               min={18}
               max={60}
               low={filters.ageMin}
@@ -1690,7 +1703,7 @@ export default function StarMateTabScreen() {
               colors={colors}
             />
             <View style={styles.inlineToggleRow}>
-              <Text style={styles.inlineToggleText}>Sadece bu araliktaki kisileri goster</Text>
+              <Text style={styles.inlineToggleText}>{t('starMate.settingsStrictToggle')}</Text>
               <Switch
                 value={filters.ageStrict}
                 onValueChange={(value) => updateFilters({ ageStrict: value })}
@@ -1700,11 +1713,11 @@ export default function StarMateTabScreen() {
             </View>
 
             <View style={styles.divider} />
-            <Text style={styles.settingsLabel}>Aradigim Sey</Text>
+            <Text style={styles.settingsLabel}>{t('starMate.settingsLookingFor')}</Text>
             <ChoiceChips options={SHOW_ME_OPTIONS} value={filters.showMe} onChange={(value) => updateFilters({ showMe: value })} colors={colors} />
 
             <MetricSlider
-              label="Minimum Uyum"
+              label={t('starMate.settingsMinMatchLabel')}
               valueLabel={`>%${filters.minCompatibilityScore}`}
               value={filters.minCompatibilityScore}
               min={50}
@@ -1714,11 +1727,11 @@ export default function StarMateTabScreen() {
               colors={colors}
             />
 
-            <Text style={[styles.settingsLabel, { marginTop: 16 }]}>Element Filtre (Faz 2 Hazir)</Text>
+            <Text style={[styles.settingsLabel, { marginTop: 16 }]}>{t('starMate.settingsElementLabel')}</Text>
             <ChoiceChips options={ELEMENT_OPTIONS} value={filters.elementalPreference} onChange={(value) => updateFilters({ elementalPreference: value })} colors={colors} />
 
             <View style={styles.inlineToggleRow}>
-              <Text style={styles.inlineToggleText}>Bildirimler</Text>
+              <Text style={styles.inlineToggleText}>{t('starMate.settingsNotificationsLabel')}</Text>
               <Switch
                 value={filters.notificationsEnabled}
                 onValueChange={(value) => updateFilters({ notificationsEnabled: value })}
@@ -1730,19 +1743,19 @@ export default function StarMateTabScreen() {
         </View>
 
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Gizlilik ve Kuyruk Mimarisi</Text>
+          <Text style={styles.panelTitle}>{t('starMate.settingsPrivacyTitle')}</Text>
           <View style={styles.archCard}>
-            <Text style={styles.archTitle}>Synastry Queue Akisi</Text>
+            <Text style={styles.archTitle}>{t('starMate.settingsSynastryQueueTitle')}</Text>
             <Text style={styles.archBody}>
-              Uygulama acilisinda ve filtre degisimlerinde, geo + yas kriterlerine uyan adaylar icin synastry hesaplari arka planda kuyruğa alinmis kabul edilir. UI yalnizca pre-calculated adaylari gosterir.
+              {t('starMate.settingsSynastryQueueBody1')}
             </Text>
             <Text style={styles.archBody}>
-              Anlik `Kesfet` kapatma, discovery feed sorgularini ve kart gorunumunu client tarafinda hemen keser. Sunucu tarafinda `discoveryEnabled=false` durumu yazilmalidir.
+              {t('starMate.settingsSynastryQueueBody2')}
             </Text>
           </View>
           <Pressable style={styles.dangerRow}>
             <Ionicons name="trash-outline" size={18} color={colors.redBright} />
-            <Text style={styles.dangerText}>Ruh Esi Hesabimi Sil (placeholder)</Text>
+            <Text style={styles.dangerText}>{t('starMate.settingsDeleteAccount')}</Text>
           </Pressable>
         </View>
       </Reanimated.View>
@@ -1754,22 +1767,22 @@ export default function StarMateTabScreen() {
       <Reanimated.View entering={FadeIn.duration(220)} style={{ paddingBottom: 24 }}>
         <View style={styles.panel}>
           <View style={styles.rowBetween}>
-            <Text style={styles.panelTitle}>Bilgileri duzenle</Text>
+            <Text style={styles.panelTitle}>{t('starMate.profileEditTitle')}</Text>
             <Pressable onPress={onSaveProfile} style={styles.textActionBtn}>
-              <Text style={styles.textActionBtnText}>Kaydet</Text>
+              <Text style={styles.textActionBtnText}>{t('starMate.profileSaveBtn')}</Text>
             </Pressable>
           </View>
           <SegmentedControl items={PROFILE_MODE_ITEMS} value={profileTab} onChange={setProfileTab} colors={colors} />
           {profileEditHint ? <Text style={styles.helperText}>{profileEditHint}</Text> : null}
-          {lastSavedAt ? <Text style={styles.helperText}>{`Son kayit: ${relativeTime(lastSavedAt)} once`}</Text> : null}
+          {lastSavedAt ? <Text style={styles.helperText}>{t('starMate.profileLastSaved', { time: relativeTime(lastSavedAt, tFn) })}</Text> : null}
         </View>
 
         {profileTab === 'EDIT' ? (
           <>
             <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Fotograflar (3x3 grid)</Text>
+              <Text style={styles.panelTitle}>{t('starMate.profilePhotosTitle')}</Text>
               <Text style={styles.panelDescription}>
-                Slot'a dokun: foto ekle/degistir. Dolu bir slota dokunup sonra baska slota dokun: yer degistir (drag-drop fallback).
+                {t('starMate.profilePhotosDesc')}
               </Text>
               <View style={styles.photoGrid}>
                 {myProfileDraft.photos.map((uri, index) => {
@@ -1810,21 +1823,21 @@ export default function StarMateTabScreen() {
             </View>
 
             <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Kim bu {myProfileDraft.displayName}</Text>
+              <Text style={styles.panelTitle}>{t('starMate.profileBioTitle', { name: myProfileDraft.displayName })}</Text>
               <TextInput
                 value={myProfileDraft.bio}
                 onChangeText={(bio) => updateProfileDraft({ bio })}
                 multiline
-                placeholder="Hakkinda kisa ama karakterli bir paragraf..."
+                placeholder={t('starMate.bioPlaceholder')}
                 placeholderTextColor={colors.subtext}
                 style={styles.bioInput}
               />
-              <Text style={styles.panelDescription}>Sosyal medya kullanici adi / iletisim bilgisi paylasma.</Text>
+              <Text style={styles.panelDescription}>{t('starMate.profileBioDesc')}</Text>
             </View>
 
             <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Ilgi Alanlari</Text>
-              <Text style={styles.panelDescription}>Maksimum 10 etiket.</Text>
+              <Text style={styles.panelTitle}>{t('starMate.profileInterestsTitle')}</Text>
+              <Text style={styles.panelDescription}>{t('starMate.profileInterestsDesc')}</Text>
               <View style={styles.tagWrap}>
                 {INTEREST_TAG_OPTIONS.map((tag) => {
                   const active = myProfileDraft.tags.includes(tag);
@@ -1836,8 +1849,8 @@ export default function StarMateTabScreen() {
                 })}
               </View>
 
-              <Text style={[styles.settingsLabel, { marginTop: 14 }]}>Kozmik Oto-Etiketler</Text>
-              <Text style={styles.panelDescription}>Natal chart'a gore otomatik onerilir. Ac/kapat yapabilirsin.</Text>
+              <Text style={[styles.settingsLabel, { marginTop: 14 }]}>{t('starMate.profileCosmicAutoTagsTitle')}</Text>
+              <Text style={styles.panelDescription}>{t('starMate.profileCosmicAutoTagsDesc')}</Text>
               <View style={styles.tagWrap}>
                 {myProfileDraft.cosmicAutoTags.map((tag) => {
                   const active = myProfileDraft.cosmicAutoTags.includes(tag);
@@ -1855,27 +1868,27 @@ export default function StarMateTabScreen() {
             </View>
 
             <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Detaylar</Text>
+              <Text style={styles.panelTitle}>{t('starMate.profileDetailsTitle')}</Text>
               <View style={styles.detailRow}>
-                <Text style={styles.settingsLabel}>Boy</Text>
+                <Text style={styles.settingsLabel}>{t('starMate.profileHeightLabel')}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Pressable onPress={() => updateProfileDetails({ heightCm: Math.max(140, (myProfileDraft.details.heightCm ?? 170) - 1) })} style={styles.detailStepBtn}><Ionicons name="remove" size={14} color={colors.text} /></Pressable>
                   <Text style={styles.settingsValue}>{`${myProfileDraft.details.heightCm ?? '-'} cm`}</Text>
                   <Pressable onPress={() => updateProfileDetails({ heightCm: Math.min(210, (myProfileDraft.details.heightCm ?? 170) + 1) })} style={styles.detailStepBtn}><Ionicons name="add" size={14} color={colors.text} /></Pressable>
                 </View>
               </View>
-              <Text style={styles.settingsLabel}>Egzersiz</Text>
+              <Text style={styles.settingsLabel}>{t('starMate.profileExerciseLabel')}</Text>
               <ChoiceChips options={EXERCISE_OPTIONS.map((o) => ({ ...o }))} value={myProfileDraft.details.exercise} onChange={(value) => updateProfileDetails({ exercise: value })} colors={colors} />
-              <Text style={[styles.settingsLabel, { marginTop: 12 }]}>Icki</Text>
+              <Text style={[styles.settingsLabel, { marginTop: 12 }]}>{t('starMate.profileDrinkingLabel')}</Text>
               <ChoiceChips options={DRINKING_OPTIONS.map((o) => ({ ...o }))} value={myProfileDraft.details.drinking} onChange={(value) => updateProfileDetails({ drinking: value })} colors={colors} />
-              <Text style={[styles.settingsLabel, { marginTop: 12 }]}>Sigara</Text>
+              <Text style={[styles.settingsLabel, { marginTop: 12 }]}>{t('starMate.profileSmokingLabel')}</Text>
               <ChoiceChips options={SMOKING_OPTIONS.map((o) => ({ ...o }))} value={myProfileDraft.details.smoking} onChange={(value) => updateProfileDetails({ smoking: value })} colors={colors} />
             </View>
           </>
         ) : (
           <View style={styles.panel}>
-            <Text style={styles.panelTitle}>Kart On Izleme</Text>
-            <Text style={styles.panelDescription}>Diger kullanicilarin gorecegi kartın kozmik badge + etiket görünümü.</Text>
+            <Text style={styles.panelTitle}>{t('starMate.profilePreviewTitle')}</Text>
+            <Text style={styles.panelDescription}>{t('starMate.profilePreviewDesc')}</Text>
             <View style={{ height: DECK_CARD_HEIGHT * 0.88, marginTop: 10 }}>
               <ProfileCard profile={previewProfile} colors={colors} compact={false} showInsightButton={false} />
             </View>
@@ -1890,7 +1903,7 @@ export default function StarMateTabScreen() {
       <Reanimated.View entering={FadeIn.duration(220)} style={{ paddingBottom: 20 }}>
         <View style={styles.panel}>
           <View style={styles.rowBetween}>
-            <Text style={styles.panelTitle}>Baglantilar</Text>
+            <Text style={styles.panelTitle}>{t('starMate.matchesPanelTitle')}</Text>
             <Pressable
               onPress={() => {
                 unlockLikesPreview();
@@ -1898,7 +1911,7 @@ export default function StarMateTabScreen() {
               }}
               style={styles.textActionBtn}
             >
-              <Text style={styles.textActionBtnText}>{likesPreviewUnlocked ? 'Premium Acik' : 'Premium Ac'}</Text>
+              <Text style={styles.textActionBtnText}>{likesPreviewUnlocked ? t('starMate.matchesPremiumOpen') : t('starMate.matchesPremiumUnlock')}</Text>
             </Pressable>
           </View>
           <SegmentedControl items={MATCH_TAB_ITEMS} value={matchesTab} onChange={setMatchesTab} colors={colors} />
@@ -1906,7 +1919,7 @@ export default function StarMateTabScreen() {
 
         {matchesTab === 'LIKES_YOU' ? (
           <View style={styles.panel}>
-            <Text style={styles.panelTitle}>{`Seni begeniyor (${likesYou.length})`}</Text>
+            <Text style={styles.panelTitle}>{t('starMate.likesYouTitle', { count: String(likesYou.length) })}</Text>
             <View style={styles.likesGrid}>
               {likesYou.length ? (
                 likesYou.map((profile) => (
@@ -1915,8 +1928,8 @@ export default function StarMateTabScreen() {
                       {!likesPreviewUnlocked ? <View style={styles.likeTileBlurOverlay} /> : null}
                       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={[StyleSheet.absoluteFill, { borderRadius: 16 }]} />
                       <View style={styles.likeTileFooter}>
-                        <Text style={styles.likeTileTitle}>{likesPreviewUnlocked ? `${profile.displayName}, ${profile.age}` : 'Gizli Profil'}</Text>
-                        <Text style={styles.likeTileSubtitle}>{likesPreviewUnlocked ? `%${profile.compatibilityScore} Uyum` : 'Premium ile ac'}</Text>
+                        <Text style={styles.likeTileTitle}>{likesPreviewUnlocked ? `${profile.displayName}, ${profile.age}` : t('starMate.hiddenProfile')}</Text>
+                        <Text style={styles.likeTileSubtitle}>{likesPreviewUnlocked ? t('starMate.compatFormat', { score: String(profile.compatibilityScore) }) : t('starMate.unlockWithPremium')}</Text>
                       </View>
                       {!likesPreviewUnlocked ? (
                         <View style={styles.likeTileLockBubble}>
@@ -1929,8 +1942,8 @@ export default function StarMateTabScreen() {
               ) : (
                 <View style={styles.emptyStateCard}>
                   <Ionicons name="heart-outline" size={24} color={colors.primary} />
-                  <Text style={styles.emptyStateTitle}>Henuz begeni yok</Text>
-                  <Text style={styles.emptyStateBody}>Kesfet deck'inde aktif kaldikca seni begenenler burada gorunecek.</Text>
+                  <Text style={styles.emptyStateTitle}>{t('starMate.noLikesTitle')}</Text>
+                  <Text style={styles.emptyStateBody}>{t('starMate.noLikesBody')}</Text>
                 </View>
               )}
             </View>
@@ -1942,14 +1955,14 @@ export default function StarMateTabScreen() {
                 }}
                 style={[styles.primaryPillButton, { alignSelf: 'center', marginTop: 10 }]}
               >
-                <Text style={styles.primaryPillText}>Premium ile Profilleri Ac</Text>
+                <Text style={styles.primaryPillText}>{t('starMate.unlockProfilesBtn')}</Text>
               </Pressable>
             ) : null}
           </View>
         ) : (
           <>
             <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Yeni Eslesmeler</Text>
+              <Text style={styles.panelTitle}>{t('starMate.newMatchesTitle')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                 {matches.length ? (
                   matches.map((match) => (
@@ -1961,20 +1974,20 @@ export default function StarMateTabScreen() {
                       )}
                       <View style={{ marginTop: 6, alignItems: 'center' }}>
                         <Text style={styles.matchPillName} numberOfLines={1}>{match.displayName}</Text>
-                        <Text style={styles.matchPillScore}>{`%${match.compatibilityScore}`}</Text>
+                        <Text style={styles.matchPillScore}>{t('starMate.compatFormat', { score: String(match.compatibilityScore) })}</Text>
                       </View>
                     </Pressable>
                   ))
                 ) : (
                   <View style={styles.emptyStateCard}>
-                    <Text style={styles.emptyStateTitle}>Henuz eslesme yok</Text>
+                    <Text style={styles.emptyStateTitle}>{t('starMate.noMatchesTitle')}</Text>
                   </View>
                 )}
               </ScrollView>
             </View>
 
             <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Sohbetler</Text>
+              <Text style={styles.panelTitle}>{t('starMate.conversationsTitle')}</Text>
               {matches.length ? (
                 <View style={{ gap: 10 }}>
                   {matches.map((match) => (
@@ -1983,11 +1996,11 @@ export default function StarMateTabScreen() {
                       <View style={{ flex: 1 }}>
                         <View style={styles.rowBetween}>
                           <Text style={styles.chatName}>{match.displayName}</Text>
-                          <Text style={styles.chatMeta}>{relativeTime(match.lastMessageAt)}</Text>
+                          <Text style={styles.chatMeta}>{relativeTime(match.lastMessageAt, tFn)}</Text>
                         </View>
                         <Text style={styles.chatSubtitle} numberOfLines={1}>{match.lastMessage}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                          <View style={styles.chatScoreBadge}><Text style={styles.chatScoreText}>{`%${match.compatibilityScore}`}</Text></View>
+                          <View style={styles.chatScoreBadge}><Text style={styles.chatScoreText}>{t('starMate.compatFormat', { score: String(match.compatibilityScore) })}</Text></View>
                           {match.superLikeByMe ? (
                             <View style={[styles.chatScoreBadge, { backgroundColor: '#E0F2FE' }]}><Text style={[styles.chatScoreText, { color: '#0369A1' }]}>Super Star</Text></View>
                           ) : null}
@@ -2002,8 +2015,8 @@ export default function StarMateTabScreen() {
               ) : (
                 <View style={styles.emptyStateCard}>
                   <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
-                  <Text style={styles.emptyStateTitle}>Mesajlasma burada baslayacak</Text>
-                  <Text style={styles.emptyStateBody}>Mutual like olunca AI icebreaker ile sohbet acilir.</Text>
+                  <Text style={styles.emptyStateTitle}>{t('starMate.noChatTitle')}</Text>
+                  <Text style={styles.emptyStateBody}>{t('starMate.noChatBody')}</Text>
                 </View>
               )}
             </View>
@@ -2032,8 +2045,8 @@ export default function StarMateTabScreen() {
     <LinearGradient colors={isDark ? [colors.background, colors.bgGrad1, colors.background] : [colors.bgGrad1, colors.background, colors.bg]} style={{ flex: 1 }}>
       <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: 'transparent' }}>
         <TabHeader
-          title="Yildiz Esi"
-          subtitle="Kozmik uyumla kesfet"
+          title={t('starMate.headerTitle')}
+          subtitle={t('starMate.headerSubtitle')}
           transparent
           rightActions={
             <Pressable onPress={() => setSection('SETTINGS')} style={styles.headerIconBtn}>

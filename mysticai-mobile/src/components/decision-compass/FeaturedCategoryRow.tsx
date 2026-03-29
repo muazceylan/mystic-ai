@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
 import { statusColors } from './palette';
 import { statusLabel, type DecisionCategoryModel } from './model';
+import { useTranslation } from 'react-i18next';
 import { getCompassTokens } from './tokens';
 import { ScoreRing } from './ScoreRing';
 import { StatusPill } from './StatusPill';
@@ -24,6 +25,7 @@ function scoreRingTone(score: number, isDark: boolean): [string, string] {
 }
 
 export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCategoryRowProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = styles(colors, isDark, T);
@@ -75,7 +77,7 @@ export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCat
 
                 <View style={S.content}>
                   <Text style={S.cardTitle} numberOfLines={1}>{category.title}</Text>
-                  <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} />
+                  <StatusPill label={statusLabel(category.status, t)} textColor={tint.text} gradient={tint.pill} />
                   <Text style={S.summary} numberOfLines={2}>{category.shortSummary}</Text>
 
                   <Pressable onPress={() => onPressCategory(category)} style={({ pressed }) => [S.detailBtn, pressed && S.pressed]}>

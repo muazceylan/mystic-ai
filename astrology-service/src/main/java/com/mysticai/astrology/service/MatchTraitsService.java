@@ -1271,7 +1271,7 @@ public class MatchTraitsService {
             String userId = synastry.getUserId() == null ? null : synastry.getUserId().toString();
             Optional<NatalChart> chartOptional = userId == null
                     ? Optional.empty()
-                    : natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(userId);
+                    : natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc(userId);
 
             if (chartOptional.isEmpty()) {
                 return PartyData.empty();

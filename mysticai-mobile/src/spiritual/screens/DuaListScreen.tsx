@@ -18,6 +18,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
@@ -45,6 +46,7 @@ export default function DuaListScreen() {
   const { duaList } = useContentStore();
   const journal = useJournalStore();
   const { isDark } = useTheme();
+  const { t: tl, i18n } = useTranslation();
 
   const [tab, setTab] = useState<Tab>('selection');
   const [query, setQuery] = useState('');
@@ -72,20 +74,10 @@ export default function DuaListScreen() {
     return [...cats].sort();
   }, [duaOnly]);
 
-  const categoryLabel = (cat: string) => {
-    const labels: Record<string, string> = {
-      // Local JSON categories
-      SABAH: 'Sabah', AKSAM: 'Akşam', GECE: 'Gece', 'ZİKİR': 'Zikir',
-      KORUNMA: 'Korunma', SALAVAT: 'Salavat', BEREKET: 'Bereket',
-      HUZUR: 'Huzur', 'ŞİFA': 'Şifa', 'İLİM': 'İlim',
-      SABAH_AKSAM: 'Sabah/Akşam',
-      // CMS enum categories
-      MORNING: 'Sabah', EVENING: 'Akşam', GRATITUDE: 'Şükür',
-      PROTECTION: 'Korunma', HEALING: 'Şifa', FORGIVENESS: 'Tövbe',
-      GUIDANCE: 'Hidayet', ABUNDANCE: 'Bereket', GENERAL: 'Genel',
-    };
-    return labels[cat] ?? cat;
-  };
+  const categoryLabel = useCallback(
+    (cat: string) => tl(`spiritual.dua.categories.${cat}`, { defaultValue: cat }),
+    [tl],
+  );
 
   // Filter
   const filtered = useMemo(() => {
@@ -112,7 +104,7 @@ export default function DuaListScreen() {
     );
     return dailies.map((d) => {
       const dt = new Date(d.dateISO);
-      const label = dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+      const label = dt.toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
       return { label, value: d.total, dateISO: d.dateISO };
     });
   }, [journal]);
@@ -133,7 +125,7 @@ export default function DuaListScreen() {
       <SpiritualListItem
         order={index + 1}
         title={item.title}
-        subtitle={item.meaningTr}
+        subtitle={i18n.language === 'en' && item.meaningEn ? item.meaningEn : item.meaningTr}
         arabicText={arabicSnippet(item.arabic)}
         accentColor={ACCENT}
         textColor={TEXT}
@@ -144,7 +136,7 @@ export default function DuaListScreen() {
         }
       />
     ),
-    [ACCENT, TEXT, SUBTEXT, BORDER],
+    [ACCENT, TEXT, SUBTEXT, BORDER, i18n.language],
   );
 
   return (
@@ -154,14 +146,14 @@ export default function DuaListScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel="Geri">
+          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel={tl('common.back')}>
             <Ionicons name="chevron-back" size={24} color={TEXT} />
           </Pressable>
         <Text
           style={[styles.headerTitle, { color: TEXT }]}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
-          Dualar
+          {tl('spiritual.dua.title')}
         </Text>
         <HeaderRightIcons tintColor={TEXT} />
       </View>
@@ -177,7 +169,7 @@ export default function DuaListScreen() {
             accessibilityState={{ selected: tab === t }}
           >
             <Text style={[styles.tabText, { color: tab === t ? TAB_ACTIVE_TEXT : TEXT + 'AA' }]}>
-              {t === 'selection' ? 'Seçim' : 'İstatistikler'}
+              {t === 'selection' ? tl('spiritual.list.tabSelection') : tl('spiritual.list.tabStats')}
             </Text>
           </Pressable>
         ))}
@@ -190,14 +182,14 @@ export default function DuaListScreen() {
             <Ionicons name="search" size={16} color={SUBTEXT} />
             <TextInput
               style={[styles.searchInput, { color: TEXT }]}
-              placeholder="Dua ara..."
+              placeholder={tl('spiritual.dua.searchPlaceholder')}
               placeholderTextColor={TEXT + '44'}
               value={query}
               onChangeText={setQuery}
-              accessibilityLabel="Dua ara"
+              accessibilityLabel={tl('spiritual.dua.searchA11y')}
             />
             {query.length > 0 && (
-              <Pressable onPress={() => setQuery('')} accessibilityLabel="Aramayı temizle">
+              <Pressable onPress={() => setQuery('')} accessibilityLabel={tl('spiritual.list.searchClear')}>
                 <Ionicons name="close-circle" size={18} color={TEXT + '88'} />
               </Pressable>
             )}
@@ -218,7 +210,7 @@ export default function DuaListScreen() {
                 onPress={() => setSelectedCategory(undefined)}
               >
                 <Text style={[styles.catChipText, { color: !selectedCategory ? TAB_ACTIVE_TEXT : SUBTEXT }]}>
-                  Tümü
+                  {tl('spiritual.list.filterAll')}
                 </Text>
               </Pressable>
               {categories.map((cat) => {
@@ -249,7 +241,7 @@ export default function DuaListScreen() {
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
-              <Text style={[styles.empty, { color: SUBTEXT }]}>Sonuç bulunamadı.</Text>
+              <Text style={[styles.empty, { color: SUBTEXT }]}>{tl('spiritual.list.noResults')}</Text>
             }
           />
         </>
@@ -258,7 +250,7 @@ export default function DuaListScreen() {
           <View style={[styles.chartCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
             <View style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: ACCENT }]} />
-              <Text style={[styles.legendText, { color: SUBTEXT }]}>Dua Sayısı</Text>
+              <Text style={[styles.legendText, { color: SUBTEXT }]}>{tl('spiritual.dua.legendLabel')}</Text>
             </View>
             <SpiritualBarChart
               data={chartData}
@@ -273,20 +265,20 @@ export default function DuaListScreen() {
           <View style={[styles.metricRow, { backgroundColor: SURFACE, borderColor: BORDER }]}>
             <View style={styles.metricItem}>
               <Text style={[styles.metricValue, { color: ACCENT }]}>{streak}</Text>
-              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>Gün Serisi</Text>
+              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>{tl('spiritual.list.statsStreak')}</Text>
             </View>
             <View style={[styles.metricDivider, { backgroundColor: BORDER }]} />
             <View style={styles.metricItem}>
               <Text style={[styles.metricValue, { color: ACCENT }]}>
                 {chartData.reduce((sum, d) => sum + d.value, 0)}
               </Text>
-              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>7 Günlük Toplam</Text>
+              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>{tl('spiritual.list.stats7Day')}</Text>
             </View>
           </View>
 
           {topItems.length > 0 && (
             <View style={[styles.topCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
-              <Text style={[styles.topTitle, { color: TEXT }]}>En Çok Okunanlar</Text>
+              <Text style={[styles.topTitle, { color: TEXT }]}>{tl('spiritual.list.statsTopItems')}</Text>
               {topItems.map((item, i) => (
                 <View key={`${item.itemType}-${item.itemId}`} style={[styles.topRow, { borderColor: BORDER }]}>
                   <Text style={[styles.topRank, { color: ACCENT }]}>#{i + 1}</Text>
@@ -299,7 +291,7 @@ export default function DuaListScreen() {
 
           {topItems.length === 0 && (
             <Text style={[styles.empty, { color: SUBTEXT, textAlign: 'center', marginTop: 20 }]}>
-              Henüz kayıt yok. İlk duanı oku!
+              {tl('spiritual.dua.statsEmpty')}
             </Text>
           )}
         </ScrollView>

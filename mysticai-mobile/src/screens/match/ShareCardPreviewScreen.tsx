@@ -174,6 +174,16 @@ export default function ShareCardPreviewScreen() {
   const preview = useMemo(() => {
     if (!data) return null;
 
+    const resolvedOverallScore =
+      overallScore ??
+      data.overallScore;
+    const resolvedScoreBreakdown = meta.scoreBreakdown
+      ? {
+          ...meta.scoreBreakdown,
+          overall: resolvedOverallScore ?? meta.scoreBreakdown.overall ?? null,
+        }
+      : null;
+
     const leftName =
       data.people.left.name ||
       (Array.isArray(params.personAName) ? params.personAName[0] : params.personAName) ||
@@ -194,14 +204,14 @@ export default function ShareCardPreviewScreen() {
       user2Name: rightName,
       user1Sign: leftSign,
       user2Sign: rightSign,
-      compatibilityScore: data.overallScore,
+      compatibilityScore: resolvedOverallScore,
       relationshipType: relationshipTypeParam ?? meta.relationshipType ?? undefined,
       relationLabel: meta.relationLabel ?? relationLabelParam ?? undefined,
       aiSummary: data.summaryPlain.body,
       cardSummary: data.summaryPlain.body,
       aspectsCount: data.aspectsEvaluated,
       traitAxes: toTraitAxes(data.axes),
-      scoreBreakdown: meta.scoreBreakdown,
+      scoreBreakdown: resolvedScoreBreakdown,
       displayMetrics: meta.displayMetrics,
     };
   }, [
@@ -209,6 +219,8 @@ export default function ShareCardPreviewScreen() {
     meta.displayMetrics,
     meta.relationLabel,
     meta.relationshipType,
+    meta.scoreBreakdown,
+    overallScore,
     params.personAName,
     params.personASignLabel,
     params.personBName,

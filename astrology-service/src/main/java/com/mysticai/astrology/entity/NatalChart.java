@@ -41,6 +41,8 @@ public class NatalChart {
     @Column(name = "ai_interpretation", columnDefinition = "TEXT")
     private String aiInterpretation;
     private String interpretationStatus;
+    @Column(name = "requested_locale", length = 10)
+    private String requestedLocale;
     private LocalDateTime calculatedAt;
     @PrePersist
     protected void onCreate() {

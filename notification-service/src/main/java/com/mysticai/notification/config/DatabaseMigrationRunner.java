@@ -28,6 +28,7 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
         dropCheckConstraintIfExists("notifications", "type");
         dropCheckConstraintIfExists("notifications", "status");
         dropCheckConstraintIfExists("notifications", "category");
+        dropCheckConstraintIfExists("notifications", "analysis_type");
         dropCheckConstraintIfExists("notifications", "delivery_channel");
         dropCheckConstraintIfExists("notifications", "priority");
         // Monetization enum constraints — evolve as new strategies/types are added

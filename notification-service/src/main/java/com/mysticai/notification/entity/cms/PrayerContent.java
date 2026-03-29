@@ -47,6 +47,10 @@ public class PrayerContent {
     @Column(columnDefinition = "TEXT")
     private String meaning;
 
+    /** English translation of the meaning/meal — used for i18n on mobile */
+    @Column(columnDefinition = "TEXT")
+    private String meaningEn;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

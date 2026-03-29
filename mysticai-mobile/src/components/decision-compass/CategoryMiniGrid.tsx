@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
 import { statusColors } from './palette';
 import { statusLabel, type DecisionCategoryModel } from './model';
+import { useTranslation } from 'react-i18next';
 import { getCompassTokens } from './tokens';
 import { StatusPill } from './StatusPill';
 
@@ -20,6 +21,7 @@ export function CategoryMiniGrid({
   onPressCategory,
   onPressShowAll,
 }: CategoryMiniGridProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = styles(colors, isDark, T);
@@ -75,7 +77,7 @@ export function CategoryMiniGrid({
                 </View>
 
                 <View style={S.footerRow}>
-                  <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} compact />
+                  <StatusPill label={statusLabel(category.status, t)} textColor={tint.text} gradient={tint.pill} compact />
                   <View style={S.detailHint}>
                     <Text style={S.detailHintText}>Detay</Text>
                     <Ionicons name="chevron-forward" size={12} color={colors.primary} />

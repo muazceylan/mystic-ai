@@ -3,12 +3,14 @@ import { StyleSheet, View } from 'react-native';
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import type { CompareThemeSectionV3DTO } from '../../types/compare';
+import { useTranslation } from 'react-i18next';
 
 interface ThemeSectionListProps {
   sections: CompareThemeSectionV3DTO[];
 }
 
 export default function ThemeSectionList({ sections }: ThemeSectionListProps) {
+  const { t } = useTranslation();
   const safeSections = Array.isArray(sections)
     ? sections.filter(
         (section) =>
@@ -22,7 +24,7 @@ export default function ThemeSectionList({ sections }: ThemeSectionListProps) {
   return (
     <View style={styles.wrap}>
       <AccessibleText style={styles.sectionTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-        Tema Kartları
+        {t('compare.themeSectionListTitle')}
       </AccessibleText>
 
       {safeSections.map((section) => (
@@ -37,19 +39,19 @@ export default function ThemeSectionList({ sections }: ThemeSectionListProps) {
           </View>
 
           <AccessibleText style={styles.miniInsight} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            {section.miniInsight || 'Bu tema başlığında dengeyi koruyan bir akış görülüyor.'}
+            {section.miniInsight || t('compare.themeSectionHint')}
           </AccessibleText>
 
           {(section.cards ?? []).filter((card) => Boolean(card?.title?.trim())).map((card, index) => (
             <View key={`${section.theme}-card-${index}`} style={styles.innerCard}>
               <AccessibleText style={styles.innerTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-                {card.title || 'Tema Kartı'}
+                {card.title || t('compare.themeSectionA11y')}
               </AccessibleText>
               <AccessibleText style={styles.innerBody} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-                {card.description || 'Bu başlıkta davranış ritmini netleştirmek ilişki akışını destekler.'}
+                {card.description || t('compare.themeSectionAdjust')}
               </AccessibleText>
               <AccessibleText style={styles.innerHint} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-                Öneri: {card.actionHint || 'Kısa bir rutinle beklentiyi netleştirin.'}
+                {t('compare.themeSectionActionPrefix', { hint: card.actionHint || t('compare.themeSectionRoutine') })}
               </AccessibleText>
             </View>
           ))}

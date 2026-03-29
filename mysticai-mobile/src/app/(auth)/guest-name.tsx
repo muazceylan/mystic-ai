@@ -159,8 +159,13 @@ export default function GuestNameScreen() {
 
   const completeLogin = async (name: string) => {
     if (!session) {
-      // Fallback: session expired, go back to welcome
-      router.replace('/(auth)/welcome');
+      // Session already consumed — user navigated back from birth-date.
+      // Update name if provided, then continue forward.
+      if (name) {
+        setFirstName(name);
+        updateProfile({ firstName: name }).then((res) => setUser(res.data as any)).catch(() => {});
+      }
+      router.push('/(auth)/birth-date');
       return;
     }
 
@@ -181,6 +186,7 @@ export default function GuestNameScreen() {
 
     clearPending();
     trackEvent('guest_name_set', { has_name: name.length > 0 });
+    router.push('/(auth)/birth-date');
   };
 
   const handleContinue = () => {
@@ -213,7 +219,7 @@ export default function GuestNameScreen() {
                     <Image
                       source={HERO_PREMIUM_ICON}
                       style={styles.brandImage}
-                      accessibilityLabel="Astro Guru"
+                      accessibilityLabel={t('appBrand.logoA11y')}
                       accessibilityRole="image"
                     />
                   </View>

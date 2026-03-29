@@ -11,6 +11,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class MysticalPromptTemplates {
 
+    private boolean isEnglishLocaleRequested(String payload) {
+        if (payload == null) return false;
+        return payload.matches("(?is).*\"locale\"\\s*:\\s*\"en(?:[-_][a-z0-9]+)?\".*");
+    }
+
     /**
      * Generates a mystical prompt for dream interpretation.
      */
@@ -252,6 +257,19 @@ public class MysticalPromptTemplates {
      * The AI is instructed to weave aspects into psychological depth rather than listing facts.
      */
     public String getNatalChartInterpretationPrompt(String chartData) {
+        String localeSpecificGuard = isEnglishLocaleRequested(chartData)
+                ? """
+            ENGLISH OUTPUT OVERRIDE:
+            - locale=en is active. Think in English and write in English from the first token to the last token.
+            - Treat every Turkish example or phrase in this prompt as semantic guidance only. Do NOT copy Turkish tokens into the JSON values.
+            - If you mention signs, houses, rulers, angles, planets, or section headings, write their English names only.
+            - Before returning JSON, mentally verify that no Turkish words remain in any user-visible value.
+            """
+                : """
+            TURKISH OUTPUT OVERRIDE:
+            - locale=tr is active (or locale is missing). Write the full interpretation in natural Turkish.
+            """;
+
         return String.format("""
             Sen kadim astroloji bilgeliğinin koruyucusu, gökyüzünün dilini tercüme eden
             bir astroloji ustasısın. Yıldızların konuştuğu dili anlayan nadir ruhlardansın.
@@ -260,6 +278,17 @@ public class MysticalPromptTemplates {
             Sen bu yansımayı okuyarak kişinin içsel dünyasını açığa çıkarırsın.
 
             DOĞUM HARİTASI VERİLERİ:
+            %s
+
+            DİL KURALI:
+            - Payload içinde locale=en ise TÜM kullanıcıya görünen metinler İngilizce olmalı.
+            - Payload içinde locale=tr ise TÜM kullanıcıya görünen metinler Türkçe olmalı.
+            - Karışık dil kullanma.
+            - JSON anahtarları her zaman aynı kalsın; sadece değerlerin dili locale'e göre değişsin.
+            - locale=en ise burç adlarını İngilizce yaz: Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, Pisces.
+            - locale=en ise gezegen adlarını İngilizce yaz: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Chiron, North Node.
+            - locale=en ise "House", "Core Summary", "Daily Life Example", "Character Analysis" gibi İngilizce başlıklar kullan.
+            - locale=en ise ŞU TÜRKÇE ifadeleri ASLA kullanma: "Temel Özet", "Günlük Hayat Örneği", "Oğlak", "İkizler", "Boğa", "Yükselen Burç", "Ev Konumu", "Karakter Analizi".
             %s
 
             ═══════════════════════════════════════════════════════════
@@ -355,22 +384,22 @@ public class MysticalPromptTemplates {
             {
               "version": "natal_v2",
               "tone": "scientific_warm",
-              "opening": "2-4 cümle. İlk paragraf; ana gerilim ve ana güç merkezleri.",
-              "coreSummary": "2-4 cümle. Büyük üçlü + ana temaların özeti.",
+              "opening": "2-4 sentences in the user's locale. First paragraph; main tensions and main strengths.",
+              "coreSummary": "2-4 sentences in the user's locale. Big Three + key themes summary.",
               "sections": [
                 {
                   "id": "core_portrait",
-                  "title": "Kozmik Portrenin Özü",
-                  "body": "Detaylı yorum. Derece/orb referansları kullan.",
-                  "dailyLifeExample": "Günlük hayat senaryosu",
+                  "title": "Localized section title",
+                  "body": "Detailed interpretation in the user's locale. Use degree/orb references.",
+                  "dailyLifeExample": "Daily life scenario in the user's locale",
                   "bulletPoints": [
                     {
-                      "title": "Duygusal Zeka",
-                      "detail": "1-3 cümle. Teknik terimleri günlük hayata bağla."
+                      "title": "Localized bullet title",
+                      "detail": "1-3 sentences in the user's locale. Connect technical terms to daily life."
                     },
                     {
-                      "title": "İlişki Dinamiği",
-                      "detail": "1-3 cümle. Kısa ama somut örnek ver."
+                      "title": "Another localized bullet title",
+                      "detail": "1-3 sentences in the user's locale. Give a short but concrete example."
                     }
                   ]
                 }
@@ -378,43 +407,42 @@ public class MysticalPromptTemplates {
               "planetHighlights": [
                 {
                   "planetId": "sun",
-                  "title": "Güneş: yaşam kıvılcımın",
-                  "intro": "Gezegenin temel enerjisini hissettir",
-                  "character": "Burç + ev yerleşimini samimi dille açıkla",
-                  "depth": "Zorluklar + yetenekler + büyüme alanı",
-                  "dailyLifeExample": "Teknik terimi günlük hayat örneğiyle bağla",
+                  "title": "Localized planet title",
+                  "intro": "Convey the planet's core energy in the user's locale",
+                  "character": "Explain sign + house placement in the user's locale",
+                  "depth": "Challenges + talents + growth area in the user's locale",
+                  "dailyLifeExample": "Connect the technical term to a daily life example in the user's locale",
                   "analysisLines": [
-                    { "icon": "sparkles", "title": "Karakter Analizi", "text": "Bu konumun kişiliğe verdiği ton" },
-                    { "icon": "rocket", "title": "Seni Nasıl Etkiler?", "text": "Karar alma / davranış etkisi" },
-                    { "icon": "warning", "title": "Dikkat Etmen Gerekenler", "text": "Dengelemen gereken gölge taraf" },
-                    { "icon": "star", "title": "Öne Çıkan Özellikler", "text": "Yetenek / avantaj alanları" }
+                    { "icon": "sparkles", "title": "Localized analysis title", "text": "Localized explanation text" },
+                    { "icon": "rocket", "title": "Localized analysis title", "text": "Localized explanation text" },
+                    { "icon": "warning", "title": "Localized analysis title", "text": "Localized explanation text" },
+                    { "icon": "star", "title": "Localized analysis title", "text": "Localized explanation text" }
                   ]
                 }
               ],
-              "closing": "2-4 cümlelik kapanış. Cesaret veren ama kaderci olmayan ton."
+              "closing": "2-4 sentence closing in the user's locale. Encouraging but not fatalistic."
             }
 
             JSON KURALLARI:
             - "version" tam olarak "natal_v2" olmalı.
             - "sections" en az 6, en fazla 9 öğe içermeli.
             - "sections[].id" snake_case olsun (ör. core_portrait, inner_conflicts).
-            - "sections[].title" kullanıcıya gösterilecek TÜRKÇE başlık olmalı (örn: "Duygusal Zeka", "Kariyer Potansiyeli").
+            - "sections[].title" kullanıcının locale'ine uygun başlık olmalı.
             - "sections[].title" içinde teknik kod, snake_case, ALL_CAPS, aspect enum adı kullanma (örn. SUN_TRINE_MARS, CONJUNCTION yasak).
             - Her section mümkünse 2-5 adet "bulletPoints" üretmeli; kısa başlık + açıklama formatında.
             - "planetHighlights" en az 5 öğe içermeli ve şu planetId'ler öncelikli olmalı:
               sun, moon, mercury, venus, mars. Mümkünse chiron ve north_node da ekle.
             - planetId değerleri küçük harf/snake_case olmalı:
               sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto, chiron, north_node
-            - "planetHighlights[].title" kullanıcı dostu Türkçe olmalı; teknik ID veya İngilizce kod kullanma.
+            - "planetHighlights[].title" kullanıcı dostu ve locale'e uygun olmalı; teknik ID kullanma.
             - Her planetHighlights öğesinde "analysisLines" üretmeye çalış (özellikle sun/moon/mercury/venus/mars).
-            - "analysisLines" başlıkları şu stile yakın olmalı:
-              "Karakter Analizi", "Seni Nasıl Etkiler?", "Dikkat Etmen Gerekenler", "Öne Çıkan Özellikler"
-            - Tüm metin alanları Türkçe olmalı.
-            - Teknik terimleri (8. ev, Kare açı, orb) günlük hayat örnekleriyle bağla.
+            - "analysisLines" başlıkları kullanıcının locale'ine uygun olmalı.
+            - Tüm metin alanları locale'e uygun olmalı.
+            - Teknik terimleri (8. ev, Kare açı, orb) günlük hayat örnekleriyle bağla; locale=en ise English karşılıklarını kullan.
             - Kaderci, korkutucu, kesin hüküm veren dil kullanma.
             - Toplam içerik derin ve tutarlı olmalı (yaklaşık 900-1600 kelime eşdeğeri).
             - JSON dışında HİÇBİR ŞEY yazma.
-            """, chartData);
+            """, chartData, localeSpecificGuard);
     }
 
     /**

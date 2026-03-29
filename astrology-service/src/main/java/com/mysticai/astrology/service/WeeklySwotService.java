@@ -116,7 +116,7 @@ public class WeeklySwotService {
 
         // Fetch natal chart — return empty response if user has no chart yet
         Optional<NatalChart> chartOpt = natalChartRepository
-                .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString());
+                .findFirstByUserIdOrderByCalculatedAtDescIdDesc(userId.toString());
         if (chartOpt.isEmpty()) {
             log.debug("No natal chart found for user {}, returning empty weekly swot", userId);
             return emptySwot();

@@ -11,6 +11,7 @@ service_icon() {
   local service="$1"
   case "$service" in
     eureka) echo "📍" ;;
+    admin) echo "🧭" ;;
     auth) echo "🔐" ;;
     ai-orchestrator) echo "🤖" ;;
     astrology) echo "⭐" ;;
@@ -182,6 +183,7 @@ load_env() {
 stop_existing_processes() {
   log "Stopping existing Java processes for Mystic services..."
   pkill -f "service-registry" || true
+  pkill -f "mystic-admin.*next dev" || true
   pkill -f "auth-service" || true
   pkill -f "ai-orchestrator" || true
   pkill -f "astrology-service" || true
@@ -218,6 +220,7 @@ main() {
   require_command mvn
   require_command curl
   require_command lsof
+  require_command pnpm
   require_command sed
   require_command tee
   require_command pkill
@@ -280,7 +283,15 @@ main() {
     exit 1
   fi
 
+  log "🧭 Starting mystic-admin..."
+  start_service "admin" "$LOG_DIR/admin.log" "cd mystic-admin && pnpm dev"
+  if ! wait_for_port 3000 60 "mystic-admin"; then
+    dump_recent_logs "admin"
+    exit 1
+  fi
+
   log "✅ All services started successfully."
+  log "Admin Panel: http://localhost:3000"
   log "Eureka: http://localhost:8761"
   log "Gateway Swagger: http://localhost:8080/swagger-ui.html"
   log "MailHog: http://localhost:8025"

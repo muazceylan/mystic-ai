@@ -958,7 +958,7 @@ public class DailyTransitsService {
     }
 
     private NatalChart findLatestChart(Long userId) {
-        return natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(String.valueOf(userId)).orElse(null);
+        return natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc(String.valueOf(userId)).orElse(null);
     }
 
     private String buildCacheVersion(NatalChart chart, String profileVersion) {

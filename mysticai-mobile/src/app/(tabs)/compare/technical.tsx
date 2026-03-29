@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 
-import { AccessibleText, SafeScreen } from '../../../components/ui';
+import { AccessibleText, AppHeader, HeaderRightIcons, SafeScreen } from '../../../components/ui';
 import { ACCESSIBILITY } from '../../../constants/tokens';
 import type { RelationshipType, TechnicalAspectDTO } from '../../../types/compare';
 import { RELATIONSHIP_TYPE_LABELS } from '../../../types/compare';
@@ -23,9 +23,9 @@ import { getRelationshipPalette } from '../../../constants/compareDesignTokens';
 import { parseRelationshipTypeParam } from '../../../services/compare.service';
 import useComparison from '../../../hooks/useComparison';
 import RelationshipTypeChips from '../../../components/RelationshipTypeChips';
-import CompareHeader from '../../../components/compare/CompareHeader';
 import { trackEvent } from '../../../services/analytics';
-import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
+import { useTranslation } from 'react-i18next';
+import { useInnerHeaderSpacing } from '../../../hooks/useInnerHeaderSpacing';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -42,6 +42,7 @@ function parsePositiveInt(value: string | string[] | undefined): number | null {
 type TechnicalFilter = 'all' | 'supportive' | 'challenging';
 
 export default function TechnicalAnalysisScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     matchId?: string;
     type?: string;
@@ -142,98 +143,112 @@ export default function TechnicalAnalysisScreen() {
     } as never);
   };
 
-  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
+  const goBackToCompatibility = () => router.replace('/(tabs)/compatibility');
+  const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F7F5FB' }}>
-      <View style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <CompareHeader
-            title="Detaylı Analiz"
-            subtitle={`${RELATIONSHIP_TYPE_LABELS[relationshipType]} türü için teknik etkileşim listesi`}
-            onBack={goBackSafely}
-          />
-
+    <SafeScreen edges={['top', 'left', 'right']} style={styles.screen}>
+      <AppHeader
+        title={t('compare.technicalDetailedTitle')}
+        subtitle={t('compare.technicalDetailedSubtitle', { type: RELATIONSHIP_TYPE_LABELS[relationshipType] })}
+        onBack={goBackToCompatibility}
+        rightActions={<HeaderRightIcons />}
+      />
+      <View
+        style={[
+          styles.screenContent,
+          {
+            paddingTop: headerPaddingTop,
+            paddingBottom: headerPaddingBottom,
+            paddingHorizontal: headerHorizontalPadding,
+          },
+        ]}
+      >
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <RelationshipTypeChips value={relationshipType} onChange={onTypeSwitch} />
 
-        <View style={styles.tabRow}>
-          <Pressable onPress={goOverview} style={styles.passiveTab}>
-            <AccessibleText
-              style={styles.passiveTabText}
-              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-            >
-              Uyum Özeti
+          <View style={styles.tabRow}>
+            <Pressable onPress={goOverview} style={styles.passiveTab}>
+              <AccessibleText
+                style={styles.passiveTabText}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {t('compare.overviewTabLabel')}
+              </AccessibleText>
+            </Pressable>
+            <View style={styles.activeTab}>
+              <AccessibleText
+                style={styles.activeTabText}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {t('compare.detailedTabLabel')}
+              </AccessibleText>
+            </View>
+          </View>
+
+          <View style={[styles.counterCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+            <AccessibleText style={styles.counterLabel} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
+              {t('compare.technicalCounter')}
             </AccessibleText>
-          </Pressable>
-          <View style={styles.activeTab}>
-            <AccessibleText
-              style={styles.activeTabText}
-              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-            >
-              Detaylı Analiz
+            <AccessibleText style={[styles.counterValue, { color: palette.accent }]} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
+              {data?.technicalAspects.length ?? 0}
             </AccessibleText>
           </View>
-        </View>
 
-        <View style={[styles.counterCard, { borderColor: palette.border, backgroundColor: palette.surface }]}> 
-          <AccessibleText style={styles.counterLabel} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Değerlendirilen teknik etkileşim
-          </AccessibleText>
-          <AccessibleText style={[styles.counterValue, { color: palette.accent }]} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            {data?.technicalAspects.length ?? 0}
-          </AccessibleText>
-        </View>
-
-        <View style={styles.filterRow}>
-          <Pressable
-            onPress={() => setFilter('all')}
-            style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
-          >
-            <AccessibleText
-              style={[styles.filterText, filter === 'all' && styles.filterTextActive]}
-              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+          <View style={styles.filterRow}>
+            <Pressable
+              onPress={() => setFilter('all')}
+              style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
             >
-              Hepsi
-            </AccessibleText>
-          </Pressable>
+              <AccessibleText
+                style={[styles.filterText, filter === 'all' && styles.filterTextActive]}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {t('compare.filterAll')}
+              </AccessibleText>
+            </Pressable>
 
-          <Pressable
-            onPress={() => setFilter('supportive')}
-            style={[styles.filterChip, filter === 'supportive' && styles.supportiveChipActive]}
-          >
-            <CheckCircle2 size={14} color={filter === 'supportive' ? '#166534' : '#475569'} />
-            <AccessibleText
-              style={[
-                styles.filterText,
-                filter === 'supportive' && { color: '#166534' },
-              ]}
-              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+            <Pressable
+              onPress={() => setFilter('supportive')}
+              style={[styles.filterChip, filter === 'supportive' && styles.supportiveChipActive]}
             >
-              Destekleyici
-            </AccessibleText>
-          </Pressable>
+              <CheckCircle2 size={14} color={filter === 'supportive' ? '#166534' : '#475569'} />
+              <AccessibleText
+                style={[
+                  styles.filterText,
+                  filter === 'supportive' && { color: '#166534' },
+                ]}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {t('compare.filterSupportive')}
+              </AccessibleText>
+            </Pressable>
 
-          <Pressable
-            onPress={() => setFilter('challenging')}
-            style={[styles.filterChip, filter === 'challenging' && styles.challengingChipActive]}
-          >
-            <AlertTriangle size={14} color={filter === 'challenging' ? '#9F1239' : '#475569'} />
-            <AccessibleText
-              style={[
-                styles.filterText,
-                filter === 'challenging' && { color: '#9F1239' },
-              ]}
-              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+            <Pressable
+              onPress={() => setFilter('challenging')}
+              style={[styles.filterChip, filter === 'challenging' && styles.challengingChipActive]}
             >
-              Zorlayıcı
-            </AccessibleText>
-          </Pressable>
-        </View>
+              <AlertTriangle size={14} color={filter === 'challenging' ? '#9F1239' : '#475569'} />
+              <AccessibleText
+                style={[
+                  styles.filterText,
+                  filter === 'challenging' && { color: '#9F1239' },
+                ]}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {t('compare.filterChallenging')}
+              </AccessibleText>
+            </Pressable>
+          </View>
 
         {!matchId ? (
           <View style={styles.stateCard}>
             <AccessibleText style={styles.errorText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Detaylı analiz için geçerli bir eşleşme bulunamadı. Önce uyum testi oluşturun.
+              {t('compare.noMatchError')}
             </AccessibleText>
           </View>
         ) : null}
@@ -242,7 +257,7 @@ export default function TechnicalAnalysisScreen() {
           <View style={styles.stateCard}>
             <ActivityIndicator size="small" color={palette.accent} />
             <AccessibleText style={styles.stateText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Teknik etkileşimler yükleniyor…
+              {t('compare.technicalLoading')}
             </AccessibleText>
           </View>
         ) : null}
@@ -262,7 +277,7 @@ export default function TechnicalAnalysisScreen() {
                 style={[styles.retryText, { color: palette.accent }]}
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
               >
-                Tekrar dene
+                {t('compare.retryBtn')}
               </AccessibleText>
             </Pressable>
           </View>
@@ -283,7 +298,7 @@ export default function TechnicalAnalysisScreen() {
                 }}
                 style={styles.aspectHead}
                 accessibilityRole="button"
-                accessibilityLabel={`${aspect.aspectName} detayını ${expanded ? 'kapat' : 'aç'}`}
+                accessibilityLabel={t('compare.technicalAspectToggleA11y', { aspectName: aspect.aspectName, state: expanded ? t('compare.aspectClose') : t('compare.aspectOpen') })}
               >
                 <View style={styles.aspectTitleWrap}>
                   <AccessibleText
@@ -316,7 +331,7 @@ export default function TechnicalAnalysisScreen() {
                       style={[styles.aspectTypeText, supportive ? styles.supportiveText : styles.challengingText]}
                       maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                     >
-                      {supportive ? 'Destekleyici' : 'Zorlayıcı'}
+                      {supportive ? t('compare.supportiveLabel') : t('compare.challengingLabel')}
                     </AccessibleText>
                   </View>
                   <AccessibleText
@@ -342,7 +357,7 @@ export default function TechnicalAnalysisScreen() {
                   style={styles.astroKeyLabel}
                   maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                 >
-                  Astrolojik anahtar
+                  {t('compare.astroKeyLabel')}
                 </AccessibleText>
                 <AccessibleText
                   style={styles.astroKeyText}
@@ -359,7 +374,7 @@ export default function TechnicalAnalysisScreen() {
                       style={styles.detailTitle}
                       maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                     >
-                      Karşılaştırma Yorumu
+                      {t('compare.comparisonInsightTitle')}
                     </AccessibleText>
                     <AccessibleText
                       style={styles.detailText}
@@ -376,7 +391,7 @@ export default function TechnicalAnalysisScreen() {
                       style={styles.detailTitle}
                       maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                     >
-                      Günlük Hayatta
+                      {t('compare.dailyLifeTitle')}
                     </AccessibleText>
                     <AccessibleText
                       style={styles.detailText}
@@ -400,7 +415,7 @@ export default function TechnicalAnalysisScreen() {
                       style={styles.detailTitle}
                       maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                     >
-                      Kullanım Notu
+                      {t('compare.usageNoteTitle')}
                     </AccessibleText>
                     <AccessibleText
                       style={styles.detailText}
@@ -415,7 +430,7 @@ export default function TechnicalAnalysisScreen() {
                       style={styles.detailMeta}
                       maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                     >
-                      Gezegenler: {aspect.planets.join(' • ')}
+                      {t('compare.planetsLabel', { list: aspect.planets.join(' • ') })}
                     </AccessibleText>
                   ) : null}
 
@@ -424,7 +439,7 @@ export default function TechnicalAnalysisScreen() {
                       style={styles.detailMeta}
                       maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                     >
-                      Evler: {aspect.houses.join(' • ')}
+                      {t('compare.housesLabel', { list: aspect.houses.join(' • ') })}
                     </AccessibleText>
                   ) : null}
                 </View>
@@ -437,7 +452,7 @@ export default function TechnicalAnalysisScreen() {
           <View style={styles.emptyCard}>
             <Sparkles size={16} color="#6D28D9" />
             <AccessibleText style={styles.emptyText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Bu filtre için etkileşim bulunamadı.
+              {t('compare.filterNoResults')}
             </AccessibleText>
           </View>
         ) : null}
@@ -448,9 +463,18 @@ export default function TechnicalAnalysisScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
+  screen: {
+    flex: 1,
+    backgroundColor: '#F7F5FB',
+  },
+  screenContent: {
+    flex: 1,
+    gap: 12,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingBottom: 108,
     gap: 12,
   },

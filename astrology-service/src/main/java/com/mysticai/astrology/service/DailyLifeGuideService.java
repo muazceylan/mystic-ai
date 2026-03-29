@@ -122,7 +122,7 @@ public class DailyLifeGuideService {
             String userGender,
             String maritalStatus
     ) {
-        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(userId.toString())
+        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc(userId.toString())
                 .orElseThrow(() -> new IllegalArgumentException("Natal chart not found for user: " + userId));
 
         List<PlanetPosition> natalPlanets = parseJsonList(chart.getPlanetPositionsJson(), PlanetPosition.class);

@@ -29,5 +29,7 @@ public record NatalChartRequest(
 
         Double longitude,
 
-        String timezone
+        String timezone,
+
+        String locale
 ) {}

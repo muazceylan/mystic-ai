@@ -83,6 +83,7 @@ export interface NatalChartRequest {
   timezone?: string;
   latitude?: number;
   longitude?: number;
+  locale?: string;
 }
 
 export interface SkyPulseResponse {
@@ -273,8 +274,10 @@ const ASTROLOGY_BASE = '/api/v1/astrology';
 export const calculateNatalChart = (request: NatalChartRequest) =>
   api.post<NatalChartResponse>(`${ASTROLOGY_BASE}/calculate`, request);
 
-export const fetchLatestNatalChart = (userId: number) =>
-  api.get<NatalChartResponse>(`${ASTROLOGY_BASE}/natal-charts/user/${userId}/latest`);
+export const fetchLatestNatalChart = (userId: number, locale?: string) =>
+  api.get<NatalChartResponse>(`${ASTROLOGY_BASE}/natal-charts/user/${userId}/latest`, {
+    params: locale ? { locale } : undefined,
+  });
 
 export const fetchNatalChartById = (chartId: number) =>
   api.get<NatalChartResponse>(`${ASTROLOGY_BASE}/natal-chart/${chartId}`);

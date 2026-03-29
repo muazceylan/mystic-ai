@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import type { CompassFilter, CompassFilterOption } from './model';
 import { DecisionCompassFilterPill } from './DecisionCompassFilterPill';
+import { useTranslation } from 'react-i18next';
 
 function resolveFilterTone(
   filter: CompassFilter,
@@ -38,6 +39,7 @@ export function DecisionCompassFilters({
   onSelectFilter,
   onOpenCategories,
 }: DecisionCompassFiltersProps) {
+  const { t } = useTranslation();
   const S = styles();
 
   return (
@@ -49,7 +51,7 @@ export function DecisionCompassFilters({
     >
       <DecisionCompassFilterPill
         label={dateLabel}
-        meta="Takvim"
+        meta={t('decisionCompassScreen.filterCalendarMeta')}
         iconName="calendar-outline"
         tone="cosmic"
         variant="date"
@@ -71,8 +73,8 @@ export function DecisionCompassFilters({
       })}
 
       <DecisionCompassFilterPill
-        label="Kategoriler"
-        meta="Görünürlük"
+        label={t('decisionCompassScreen.filterCategoriesLabel')}
+        meta={t('decisionCompassScreen.filterVisibilityLabel')}
         iconName="options-outline"
         tone="cosmic"
         variant="action"

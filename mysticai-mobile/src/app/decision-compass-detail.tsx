@@ -54,14 +54,14 @@ function addDays(baseIso: string, delta: number): string {
   return toIsoDateLocal(d);
 }
 
-function formatDateLongTr(input: string): string {
+function formatDateLong(input: string, locale: string): string {
   const d = parseIsoDateLocal(input);
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function formatDateShortTr(input: string): string {
+function formatDateShort(input: string, locale: string): string {
   const d = parseIsoDateLocal(input);
-  return d.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 function sameIsoDate(a: string, b: string) {
@@ -92,12 +92,14 @@ function withHexAlpha(color: string | undefined, alphaHex: string, fallback: str
 
 // iconForCosmicSubcategory has been merged into getCosmicSubcategoryIcon in src/constants/icons.ts
 
-function relativeDateLabelTr(input: string): string {
+type TFn = (key: string, opts?: Record<string, string>) => string;
+
+function relativeDateLabel(input: string, locale: string, t: TFn): string {
   const today = todayIsoDate();
-  if (sameIsoDate(input, today)) return 'Bugün';
-  if (sameIsoDate(input, addDays(today, -1))) return 'Dün';
-  if (sameIsoDate(input, addDays(today, 1))) return 'Yarın';
-  return formatDateShortTr(input);
+  if (sameIsoDate(input, today)) return t('decisionCompassDetail.todayLabel');
+  if (sameIsoDate(input, addDays(today, -1))) return t('decisionCompassDetail.yesterdayLabel');
+  if (sameIsoDate(input, addDays(today, 1))) return t('decisionCompassDetail.tomorrowLabel');
+  return formatDateShort(input, locale);
 }
 
 export default function DecisionCompassDetailScreen() {
@@ -109,7 +111,8 @@ export default function DecisionCompassDetailScreen() {
     date?: string;
   }>();
   const { colors, isDark } = useTheme();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const tFn = t as TFn;
   const { width } = useWindowDimensions();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
@@ -119,7 +122,7 @@ export default function DecisionCompassDetailScreen() {
   const resetHiddenCategories = useDecisionCompassStore((s) => s.resetHiddenCategories);
 
   const categoryKey = typeof params.categoryKey === 'string' ? params.categoryKey : '';
-  const label = typeof params.label === 'string' ? params.label : 'Kategori';
+  const label = typeof params.label === 'string' ? params.label : t('decisionCompassDetail.labelFallback');
   const activityLabel = typeof params.activityLabel === 'string' ? params.activityLabel : '';
   const initialDate = typeof params.date === 'string' && params.date ? params.date : todayIsoDate();
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
@@ -163,7 +166,7 @@ export default function DecisionCompassDetailScreen() {
     () =>
       [-3, -2, -1, 0, 1, 2, 3].map((offset) => {
         const iso = addDays(selectedDate, offset);
-        return { iso, label: relativeDateLabelTr(iso) };
+        return { iso, label: relativeDateLabel(iso, i18n.language, tFn) };
       }),
     [selectedDate],
   );
@@ -182,13 +185,13 @@ export default function DecisionCompassDetailScreen() {
       <View style={S.container}>
         <AppHeader
           title={label}
-          subtitle={activityLabel || 'Gün bazlı cosmic detail'}
+          subtitle={activityLabel || t('decisionCompassDetail.subtitleFallback')}
           onBack={goBack}
           rightActions={(
             <SurfaceHeaderIconButton
               iconName="calendar-outline"
               onPress={() => router.push('/(tabs)/calendar')}
-              accessibilityLabel="Takvim"
+              accessibilityLabel={t('decisionCompassDetail.calendarA11y')}
             />
           )}
         />
@@ -210,14 +213,14 @@ export default function DecisionCompassDetailScreen() {
             <View style={S.heroTopGlow} />
             <View style={S.heroRow}>
               <View style={S.heroLeft}>
-                <Text style={S.heroLabel}>Kategori</Text>
+                <Text style={S.heroLabel}>{t('decisionCompassDetail.heroLabel')}</Text>
                 <Text style={S.heroTitle} numberOfLines={2}>{label}</Text>
-                <Text style={S.heroDate}>{formatDateLongTr(selectedDate)}</Text>
+                <Text style={S.heroDate}>{formatDateLong(selectedDate, i18n.language)}</Text>
               </View>
               {liveScoreText ? (
                 <View style={S.heroScorePill}>
                   <Text style={S.heroScoreValue}>{liveScoreText}</Text>
-                  <Text style={S.heroScoreSub}>Skor</Text>
+                  <Text style={S.heroScoreSub}>{t('decisionCompassDetail.heroScoreSub')}</Text>
                 </View>
               ) : null}
             </View>
@@ -233,13 +236,13 @@ export default function DecisionCompassDetailScreen() {
                 style={({ pressed }) => [S.dateCenterPill, pressed && S.pressed]}
               >
                 <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-                <Text style={S.dateCenterText}>{formatDateLongTr(selectedDate)}</Text>
+                <Text style={S.dateCenterText}>{formatDateLong(selectedDate, i18n.language)}</Text>
               </Pressable>
               <Pressable onPress={() => setSelectedDate((prev) => addDays(prev, 1))} style={({ pressed }) => [S.dateStepBtn, pressed && S.pressed]}>
                 <Ionicons name="chevron-forward" size={14} color={colors.subtext} />
               </Pressable>
               <Pressable onPress={() => setSelectedDate(todayIsoDate())} style={({ pressed }) => [S.dateTodayBtn, pressed && S.pressed]}>
-                <Text style={S.dateTodayText}>Bugün</Text>
+                <Text style={S.dateTodayText}>{t('decisionCompassDetail.todayBtn')}</Text>
               </Pressable>
             </View>
             <ScrollView
@@ -285,53 +288,53 @@ export default function DecisionCompassDetailScreen() {
               />
               <Text style={[S.dateHintText, isDateRefreshing && S.dateHintTextActive]}>
                 {isDateRefreshing
-                  ? `${formatDateLongTr(selectedDate)} için detaylar yenileniyor…`
-                  : 'Tarihi değiştirerek farklı günlerin önerilerini karşılaştırabilirsin.'}
+                  ? t('decisionCompassDetail.loadingDateHint', { date: formatDateLong(selectedDate, i18n.language) })
+                  : t('decisionCompassDetail.dateHint')}
               </Text>
             </View>
             {detail?.reasoning ? (
               <Text style={S.heroBody}>{detail.reasoning}</Text>
             ) : (
-              <Text style={S.heroBodyMuted}>Kategori detayları yükleniyor veya henüz hazır değil.</Text>
+              <Text style={S.heroBodyMuted}>{t('decisionCompassDetail.noDetailMsg')}</Text>
             )}
           </View>
 
           {isCategoryHidden ? (
             <View style={S.panel}>
-              <Text style={S.panelTitle}>Bu kategori gizli</Text>
+              <Text style={S.panelTitle}>{t('decisionCompassDetail.hiddenCategoryTitle')}</Text>
               <Text style={S.panelText}>
-                Kategori görünürlük ayarlarında bu alan kapatıldığı için detay içeriği gösterilmiyor.
+                {t('decisionCompassDetail.hiddenCategoryBody')}
               </Text>
               <View style={S.hiddenActionsRow}>
                 <Pressable
                   onPress={() => setCategoryVisibility(categoryKey, true)}
                   style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}
                 >
-                  <Text style={S.retryBtnText}>Kategoriyi Göster</Text>
+                  <Text style={S.retryBtnText}>{t('decisionCompassDetail.showCategoryBtn')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={resetHiddenCategories}
                   style={({ pressed }) => [S.hiddenGhostBtn, pressed && S.pressed]}
                 >
-                  <Text style={S.hiddenGhostBtnText}>Tümünü Göster</Text>
+                  <Text style={S.hiddenGhostBtnText}>{t('decisionCompassDetail.showAllBtn')}</Text>
                 </Pressable>
               </View>
             </View>
           ) : query.isLoading ? (
-            <View style={S.panel}><Text style={S.panelText}>Detaylar yükleniyor…</Text></View>
+            <View style={S.panel}><Text style={S.panelText}>{t('decisionCompassDetail.loadingPanel')}</Text></View>
           ) : query.isError ? (
             <View style={S.panel}>
-              <Text style={S.panelTitle}>Detay alınamadı</Text>
-              <Text style={S.panelText}>Ağ veya servis sorunu olabilir.</Text>
+              <Text style={S.panelTitle}>{t('decisionCompassDetail.errorTitle')}</Text>
+              <Text style={S.panelText}>{t('decisionCompassDetail.errorBody')}</Text>
               <Pressable onPress={() => { void query.refetch(); }} style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}>
-                <Text style={S.retryBtnText}>Tekrar Dene</Text>
+                <Text style={S.retryBtnText}>{t('decisionCompassDetail.retryBtn')}</Text>
               </Pressable>
             </View>
           ) : detail ? (
             <>
               <View style={S.panel}>
-                <Text style={S.panelTitle}>Yapılacaklar</Text>
-                {(detail.dos?.length ? detail.dos : ['Bugün bu alanda küçük ama net bir adım at.']).map((item, idx) => (
+                <Text style={S.panelTitle}>{t('decisionCompassDetail.dosTitle')}</Text>
+                {(detail.dos?.length ? detail.dos : [t('decisionCompassDetail.dosFallback')]).map((item, idx) => (
                   <View key={`do-${idx}`} style={S.bulletRow}>
                     <View style={[S.bulletDot, { backgroundColor: colors.success }]} />
                     <Text style={S.bulletText}>{item}</Text>
@@ -340,8 +343,8 @@ export default function DecisionCompassDetailScreen() {
               </View>
 
               <View style={S.panel}>
-                <Text style={S.panelTitle}>Kaçınılacaklar</Text>
-                {(detail.donts?.length ? detail.donts : ['Ani karar vermeden önce tabloyu tekrar gözden geçir.']).map((item, idx) => (
+                <Text style={S.panelTitle}>{t('decisionCompassDetail.dontsTitle')}</Text>
+                {(detail.donts?.length ? detail.donts : [t('decisionCompassDetail.dontsFallback')]).map((item, idx) => (
                   <View key={`dont-${idx}`} style={S.bulletRow}>
                     <View style={[S.bulletDot, { backgroundColor: isDark ? '#E5B6C6' : '#B45E79' }]} />
                     <Text style={S.bulletText}>{item}</Text>
@@ -351,7 +354,7 @@ export default function DecisionCompassDetailScreen() {
 
               {highlights.length ? (
                 <View style={S.panel}>
-                  <Text style={S.panelTitle}>Destekleyici Göstergeler</Text>
+                  <Text style={S.panelTitle}>{t('decisionCompassDetail.highlightsTitle')}</Text>
                   <View style={S.tagWrap}>
                     {highlights.map((item, idx) => (
                       <View key={`hl-${idx}`} style={S.tagPill}>
@@ -364,14 +367,14 @@ export default function DecisionCompassDetailScreen() {
 
               <View style={S.panel}>
                 <View style={S.panelHeaderRow}>
-                  <Text style={S.panelTitle}>Yıldız Kategorileri</Text>
-                  <Text style={S.panelMeta}>{detail.subcategories?.length ?? 0} kayıt</Text>
+                  <Text style={S.panelTitle}>{t('decisionCompassDetail.starCategoriesTitle')}</Text>
+                  <Text style={S.panelMeta}>{t('decisionCompassDetail.starCategoriesCount', { count: String(detail.subcategories?.length ?? 0) })}</Text>
                 </View>
                 <View style={S.subAnalysisList}>
                   {(detail.subcategories ?? []).slice(0, 8).map((sub, idx) => {
                     const subColor = sub.colorHex || colors.primary;
                     const score = clampPercent(sub.score);
-                    const insightText = sub.insight || sub.shortAdvice || 'Bugün bu alt başlık aktif.';
+                    const insightText = sub.insight || sub.shortAdvice || t('decisionCompassDetail.subcategoryFallbackInsight');
                     const technicalText = sub.technicalExplanation?.trim() || '';
 
                     return (

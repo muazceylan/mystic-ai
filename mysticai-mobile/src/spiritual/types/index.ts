@@ -43,6 +43,7 @@ export interface EsmaItem {
   nameTr: string;
   transliteration: string;
   meaningTr: string;
+  meaningEn?: string;
   shortBenefit: string;
   defaultTargetCount: number;
   tags: string[];
@@ -56,6 +57,7 @@ export interface DuaItem {
   arabic: string;
   transliteration: string;
   meaningTr: string;
+  meaningEn?: string;
   shortBenefit: string;
   defaultTargetCount: number;
   tags: string[];

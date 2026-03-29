@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
 import { statusColors } from './palette';
 import { statusLabel, type DecisionCategoryModel } from './model';
+import { useTranslation } from 'react-i18next';
 import { ScoreRing } from './ScoreRing';
 import { StatusPill } from './StatusPill';
 import { getCompassTokens } from './tokens';
@@ -119,6 +120,7 @@ function DetailPill({
   onPress: () => void;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = gridStyles(colors, isDark, T);
@@ -131,7 +133,7 @@ function DetailPill({
         end={{ x: 1, y: 1 }}
         style={[S.detailPillFill, compact && S.detailPillFillCompact]}
       >
-        <Text style={[S.detailPillText, compact && S.detailPillTextCompact]}>Detay</Text>
+        <Text style={[S.detailPillText, compact && S.detailPillTextCompact]}>{t('decisionCompassScreen.detailPillLabel')}</Text>
         <Ionicons name="chevron-forward" size={compact ? 12 : 14} color={colors.primary} />
       </LinearGradient>
     </Pressable>
@@ -149,6 +151,7 @@ function FeaturedAllCategoryCard({
   index: number;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = gridStyles(colors, isDark, T);
@@ -190,7 +193,7 @@ function FeaturedAllCategoryCard({
           <Text style={S.featuredMeta} numberOfLines={1}>{category.subLabel}</Text>
 
           <View style={[S.featuredFooter, isTightLayout && S.tightFooter]}>
-            <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} compact />
+            <StatusPill label={statusLabel(category.status, t)} textColor={tint.text} gradient={tint.pill} compact />
             <DetailPill onPress={onPress} compact={isTightLayout} />
           </View>
         </View>
@@ -208,6 +211,7 @@ function CompactAllCategoryCard({
   width: number;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = gridStyles(colors, isDark, T);
@@ -241,7 +245,7 @@ function CompactAllCategoryCard({
         </View>
 
         <View style={[S.compactFooter, isTightLayout && S.tightFooter]}>
-          <StatusPill label={statusLabel(category.status)} textColor={tint.text} gradient={tint.pill} compact />
+          <StatusPill label={statusLabel(category.status, t)} textColor={tint.text} gradient={tint.pill} compact />
           <DetailPill onPress={onPress} compact={isTightLayout} />
         </View>
       </LinearGradient>
@@ -255,13 +259,14 @@ export function AllCategoriesGrid({
   columnWidth,
   onPressCategory,
 }: AllCategoriesGridProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = gridStyles(colors, isDark, T);
 
   return (
     <View style={S.wrap}>
-      <Text style={S.sectionTitle}>Tüm Kategoriler</Text>
+      <Text style={S.sectionTitle}>{t('decisionCompassScreen.allCategoriesTitle')}</Text>
 
       <View style={S.grid}>
         {featuredCategories.map((category, index) => (

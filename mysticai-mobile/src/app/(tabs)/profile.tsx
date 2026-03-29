@@ -264,7 +264,7 @@ export default function ProfileScreen() {
               <SurfaceHeaderIconButton
                 iconName="help-circle-outline"
                 onPress={handlePressTutorialHelp}
-                accessibilityLabel="Profil rehberini tekrar aç"
+                accessibilityLabel={t('profile.tutorialHelpA11y')}
               />
             </SpotlightTarget>
           )}

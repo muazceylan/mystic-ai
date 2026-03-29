@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ export default function PrayerSetScreen() {
   const params = useLocalSearchParams<{ short?: string; category?: string }>();
   const shortMode = params.short === '1';
   const category = typeof params.category === 'string' ? params.category : undefined;
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
 
@@ -155,7 +157,7 @@ export default function PrayerSetScreen() {
         title="Devam Et"
         size="lg"
         onPress={() => router.push('/spiritual/prayers/flow')}
-        accessibilityLabel="Dua akışına devam et"
+        accessibilityLabel={t('spiritual.prayerFlow.continueA11y')}
       />
     </SafeScreen>
   );

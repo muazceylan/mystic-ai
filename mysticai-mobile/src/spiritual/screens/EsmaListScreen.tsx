@@ -17,6 +17,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
@@ -32,6 +33,7 @@ export default function EsmaListScreen() {
   const { esmaList } = useContentStore();
   const journal = useJournalStore();
   const { colors, isDark } = useTheme();
+  const { t: tl, i18n } = useTranslation();
 
   const [tab, setTab] = useState<Tab>('selection');
   const [query, setQuery] = useState('');
@@ -74,7 +76,7 @@ export default function EsmaListScreen() {
     );
     return dailies.map((d) => {
       const dt = new Date(d.dateISO);
-      const label = dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+      const label = dt.toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
       return { label, value: d.total, dateISO: d.dateISO };
     });
   }, [journal]);
@@ -96,7 +98,7 @@ export default function EsmaListScreen() {
       <SpiritualListItem
         order={item.order}
         title={item.nameTr}
-        subtitle={item.meaningTr}
+        subtitle={i18n.language === 'en' && item.meaningEn ? item.meaningEn : item.meaningTr}
         arabicText={item.nameAr}
         accentColor={ACCENT}
         textColor={TEXT}
@@ -107,7 +109,7 @@ export default function EsmaListScreen() {
         }
       />
     ),
-    [ACCENT, TEXT, SUBTEXT, BORDER],
+    [ACCENT, TEXT, SUBTEXT, BORDER, i18n.language],
   );
 
   return (
@@ -117,14 +119,14 @@ export default function EsmaListScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel="Geri">
+          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel={tl('common.back')}>
             <Ionicons name="chevron-back" size={24} color={TEXT} />
           </Pressable>
         <Text
           style={[styles.headerTitle, { color: TEXT }]}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
-          Esmaül Hüsna
+          {tl('spiritual.esma.title')}
         </Text>
         <HeaderRightIcons tintColor={TEXT} />
       </View>
@@ -148,7 +150,7 @@ export default function EsmaListScreen() {
                 { color: tab === t ? (isDark ? '#0D3B21' : '#fff') : TEXT + 'AA' },
               ]}
             >
-              {t === 'selection' ? 'Seçim' : 'İstatistikler'}
+              {t === 'selection' ? tl('spiritual.list.tabSelection') : tl('spiritual.list.tabStats')}
             </Text>
           </Pressable>
         ))}
@@ -161,14 +163,14 @@ export default function EsmaListScreen() {
             <Ionicons name="search" size={16} color={SUBTEXT} />
             <TextInput
               style={[styles.searchInput, { color: TEXT }]}
-              placeholder="Ara..."
+              placeholder={tl('spiritual.esma.searchPlaceholder')}
               placeholderTextColor={TEXT + '44'}
               value={query}
               onChangeText={setQuery}
-              accessibilityLabel="Esma ara"
+              accessibilityLabel={tl('spiritual.esma.searchA11y')}
             />
             {query.length > 0 && (
-              <Pressable onPress={() => setQuery('')} accessibilityLabel="Aramayı temizle">
+              <Pressable onPress={() => setQuery('')} accessibilityLabel={tl('spiritual.list.searchClear')}>
                 <Ionicons name="close-circle" size={18} color={TEXT + '88'} />
               </Pressable>
             )}
@@ -182,7 +184,7 @@ export default function EsmaListScreen() {
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
-              <Text style={[styles.empty, { color: SUBTEXT }]}>Sonuç bulunamadı.</Text>
+              <Text style={[styles.empty, { color: SUBTEXT }]}>{tl('spiritual.list.noResults')}</Text>
             }
           />
         </>
@@ -192,7 +194,7 @@ export default function EsmaListScreen() {
           <View style={[styles.chartCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
             <View style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: ACCENT }]} />
-              <Text style={[styles.legendText, { color: SUBTEXT }]}>Zikir Sayısı</Text>
+              <Text style={[styles.legendText, { color: SUBTEXT }]}>{tl('spiritual.esma.legendLabel')}</Text>
             </View>
             <SpiritualBarChart
               data={chartData}
@@ -208,21 +210,21 @@ export default function EsmaListScreen() {
           <View style={[styles.metricRow, { backgroundColor: SURFACE, borderColor: BORDER }]}>
             <View style={styles.metricItem}>
               <Text style={[styles.metricValue, { color: ACCENT }]}>{streak}</Text>
-              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>Gün Serisi</Text>
+              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>{tl('spiritual.list.statsStreak')}</Text>
             </View>
             <View style={[styles.metricDivider, { backgroundColor: BORDER }]} />
             <View style={styles.metricItem}>
               <Text style={[styles.metricValue, { color: ACCENT }]}>
                 {chartData.reduce((sum, d) => sum + d.value, 0)}
               </Text>
-              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>7 Günlük Toplam</Text>
+              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>{tl('spiritual.list.stats7Day')}</Text>
             </View>
           </View>
 
           {/* Top 3 */}
           {topItems.length > 0 && (
             <View style={[styles.topCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
-              <Text style={[styles.topTitle, { color: TEXT }]}>En Çok Okunanlar</Text>
+              <Text style={[styles.topTitle, { color: TEXT }]}>{tl('spiritual.list.statsTopItems')}</Text>
               {topItems.map((item, i) => (
                 <View key={`${item.itemType}-${item.itemId}`} style={[styles.topRow, { borderColor: BORDER }]}>
                   <Text style={[styles.topRank, { color: ACCENT }]}>#{i + 1}</Text>
@@ -237,7 +239,7 @@ export default function EsmaListScreen() {
 
           {topItems.length === 0 && (
             <Text style={[styles.empty, { color: SUBTEXT, textAlign: 'center', marginTop: 20 }]}>
-              Henüz kayıt yok. İlk zikrini tamamla!
+              {tl('spiritual.esma.statsEmpty')}
             </Text>
           )}
         </ScrollView>

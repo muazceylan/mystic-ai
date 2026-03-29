@@ -14,12 +14,14 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useContentStore } from '../store/useContentStore';
 
 export default function EsmaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const { getEsmaById } = useContentStore();
   const esma = getEsmaById(parseInt(id ?? '0', 10));
@@ -40,9 +42,9 @@ export default function EsmaDetailScreen() {
       <SafeScreen style={{ backgroundColor: GRAD[0] }}>
         <LinearGradient colors={GRAD} style={styles.container}>
           <View style={styles.center}>
-            <Text style={{ color: TEXT, fontSize: 15 }}>Esma bulunamadı.</Text>
+            <Text style={{ color: TEXT, fontSize: 15 }}>{t('spiritual.detail.notFound')}</Text>
             <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-              <Text style={{ color: ACCENT, fontWeight: '700' }}>← Geri Dön</Text>
+              <Text style={{ color: ACCENT, fontWeight: '700' }}>{t('spiritual.detail.goBack')}</Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -74,9 +76,6 @@ export default function EsmaDetailScreen() {
             <Ionicons name="chevron-back" size={24} color={TEXT} />
           </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={[styles.orderText, { color: ACCENT }]}>
-            {esma.order}. Esma
-          </Text>
           <Text style={[styles.headerTitle, { color: TEXT }]}>
             {esma.nameTr.toUpperCase()}
           </Text>
@@ -92,16 +91,9 @@ export default function EsmaDetailScreen() {
           <Text style={[styles.arabicText, { color: TEXT }]}>{esma.nameAr}</Text>
           <Text style={[styles.transliteration, { color: ACCENT }]}>{esma.transliteration}</Text>
           <View style={[styles.divider, { backgroundColor: BORDER }]} />
-          <Text style={[styles.meaning, { color: TEXT + 'CC' }]}>{esma.meaningTr}</Text>
-        </View>
-
-        {/* Fayda */}
-        <View style={[styles.benefitCard, { backgroundColor: ACCENT + '12', borderColor: ACCENT + '30' }]}>
-          <View style={styles.benefitHeader}>
-            <Ionicons name="sparkles-outline" size={14} color={ACCENT} />
-            <Text style={[styles.benefitLabel, { color: ACCENT }]}>Faydası</Text>
-          </View>
-          <Text style={[styles.benefitText, { color: TEXT + 'DD' }]}>{esma.shortBenefit}</Text>
+          <Text style={[styles.meaning, { color: TEXT + 'CC' }]}>
+            {i18n.language === 'en' && esma.meaningEn ? esma.meaningEn : esma.meaningTr}
+          </Text>
         </View>
 
         {/* Hedef Ayarı */}
@@ -109,7 +101,7 @@ export default function EsmaDetailScreen() {
           <View style={styles.targetHeaderRow}>
             <Ionicons name="repeat-outline" size={14} color={SUBTEXT} />
             <Text style={[styles.targetLabel, { color: SUBTEXT }]}>
-              Zikir Hedefi · Önerilen: {esma.defaultTargetCount}
+              {t('spiritual.detail.targetLabel', { count: esma.defaultTargetCount })}
             </Text>
           </View>
           <View style={styles.targetRow}>
@@ -184,7 +176,7 @@ export default function EsmaDetailScreen() {
           >
             <Ionicons name="sync-outline" size={18} color={isDark ? '#000' : '#fff'} />
             <Text style={[styles.primaryCtaText, { color: isDark ? '#000' : '#fff' }]}>
-              Zikre Başla ({target}×)
+              {t('spiritual.detail.startCounter', { count: target })}
             </Text>
           </Pressable>
 
@@ -196,12 +188,12 @@ export default function EsmaDetailScreen() {
             onPress={() => router.push('/spiritual/journal')}
           >
             <Ionicons name="journal-outline" size={16} color={ACCENT} />
-            <Text style={[styles.secondaryCtaText, { color: ACCENT }]}>Günlüğüm</Text>
+            <Text style={[styles.secondaryCtaText, { color: ACCENT }]}>{t('spiritual.detail.journal')}</Text>
           </Pressable>
         </View>
 
         <Text style={[styles.disclaimer, { color: SUBTEXT + '60' }]}>
-          Bu içerikler bilgilendirme amaçlıdır. Dini hüküm değildir.
+          {t('spiritual.detail.disclaimer')}
         </Text>
       </ScrollView>
       </LinearGradient>
@@ -221,7 +213,6 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1, alignItems: 'center', gap: 3 },
-  orderText: { fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   headerTitle: { fontSize: 18, fontWeight: '900', letterSpacing: 1.5 },
   content: { padding: 16, gap: 12, paddingBottom: 44 },
   mainCard: {
@@ -242,15 +233,6 @@ const styles = StyleSheet.create({
   transliteration: { fontSize: 16, fontWeight: '700', letterSpacing: 1, zIndex: 1 },
   divider: { width: '60%', height: 1, marginVertical: 4 },
   meaning: { fontSize: 14, textAlign: 'center', lineHeight: 22, zIndex: 1 },
-  benefitCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    gap: 6,
-  },
-  benefitHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  benefitLabel: { fontSize: 12, fontWeight: '700' },
-  benefitText: { fontSize: 14, lineHeight: 21 },
   targetCard: {
     borderRadius: 16,
     borderWidth: 1,

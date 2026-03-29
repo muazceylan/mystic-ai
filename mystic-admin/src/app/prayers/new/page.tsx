@@ -6,7 +6,7 @@ import { prayerApi } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Languages } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,7 @@ export default function NewPrayerPage() {
     arabicText: '',
     transliteration: '',
     meaning: '',
+    meaningEn: '',
     category: 'GENERAL',
     locale: 'tr',
     suggestedCount: '',
@@ -98,9 +99,27 @@ export default function NewPrayerPage() {
               value={form.transliteration} onChange={(e) => setForm({ ...form, transliteration: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Anlam / Türkçe Metin</label>
+            <label className="block text-xs text-gray-400 mb-1">Anlam / Türkçe Meal (TR)</label>
             <textarea className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm resize-none h-24"
               value={form.meaning} onChange={(e) => setForm({ ...form, meaning: e.target.value })} />
+          </div>
+
+          {/* Localization */}
+          <div className="border border-indigo-800/40 rounded-xl p-4 space-y-3 bg-indigo-950/20">
+            <div className="flex items-center gap-2">
+              <Languages className="w-4 h-4 text-indigo-400" />
+              <span className="text-sm font-semibold text-white">Lokalizasyon</span>
+              <span className="text-xs text-gray-500">— İngilizce çeviri (isteğe bağlı)</span>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">İngilizce Meal (EN)</label>
+              <textarea
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm resize-none h-24 focus:border-indigo-500 focus:outline-none transition-colors"
+                placeholder="Enter English meaning / translation..."
+                value={form.meaningEn}
+                onChange={(e) => setForm({ ...form, meaningEn: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

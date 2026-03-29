@@ -48,6 +48,7 @@ export interface CmsPrayer {
   arabicText?: string;
   transliteration?: string;
   meaning?: string;
+  meaningEn?: string;
   contentType?: 'DUA' | 'ESMA' | 'SURE';
   category: string;
   locale: string;

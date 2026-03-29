@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppSurfaceHeader } from '../ui';
+import { useTranslation } from 'react-i18next';
 
 interface AllCategoriesHeaderProps {
   onBack: () => void;
@@ -8,10 +9,11 @@ interface AllCategoriesHeaderProps {
 export function AllCategoriesHeader({
   onBack,
 }: AllCategoriesHeaderProps) {
+  const { t } = useTranslation();
   return (
     <AppSurfaceHeader
-      title="Tüm Kategoriler"
-      subtitle="Bugünün tüm alanları ve skorları"
+      title={t('decisionCompassScreen.allCategoriesTitle')}
+      subtitle={t('decisionCompassScreen.allCategoriesSubtitle')}
       variant="page"
       showBackButton
       onBack={onBack}

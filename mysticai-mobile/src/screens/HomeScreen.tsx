@@ -488,9 +488,13 @@ export default function HomeScreen() {
     [router],
   );
 
+  const notifNavigatingRef = useRef(false);
   const handlePressNotifications = useCallback(() => {
-    pushRoute(NOTIFICATIONS_ROUTE);
-  }, [pushRoute]);
+    if (notifNavigatingRef.current) return;
+    notifNavigatingRef.current = true;
+    router.navigate(NOTIFICATIONS_ROUTE as never);
+    setTimeout(() => { notifNavigatingRef.current = false; }, 600);
+  }, [router]);
 
   const handlePressTutorialHelp = useCallback(() => {
     void reopenTutorialById(TUTORIAL_IDS.HOME_FOUNDATION, 'home');

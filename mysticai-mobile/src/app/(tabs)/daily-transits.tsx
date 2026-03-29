@@ -29,6 +29,7 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
+import { useTranslation } from 'react-i18next';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 
 const SIX_HOURS = 1000 * 60 * 60 * 6;
@@ -39,7 +40,6 @@ const MAX_TRANSITS_PER_THEME = 2;
 const GROUP_STATE_STORAGE_PREFIX = 'dailyTransits:expandedThemes';
 const THEME_ORDER: string[] = ['Ruh Hali', 'Enerji', 'İletişim', 'Aşk', 'İş'];
 
-const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
 type TransitItem = DailyTransitsDTO['transits'][number];
 type TransitThemeGroup = { theme: string; items: TransitItem[] };
@@ -53,10 +53,10 @@ type HeroPersonalization = {
   dominantElement?: string;
 };
 
-function formatDateLabel(dateIso: string): string {
+function formatDateLabel(dateIso: string, locale: string): string {
   const date = new Date(dateIso);
   if (Number.isNaN(date.getTime())) return dateIso;
-  return `${date.getDate()} ${TR_MONTHS[date.getMonth()]}`;
+  return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
 }
 
 function hasTrailingEllipsis(text?: string): boolean {
@@ -561,6 +561,7 @@ function LoadingState() {
 }
 
 export default function DailyTransitsScreen() {
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
@@ -692,7 +693,7 @@ export default function DailyTransitsScreen() {
         destination: 'daily_transits',
         result: 'fail',
       });
-      Alert.alert('Geri bildirim gönderilemedi', error?.message ?? 'Lütfen tekrar dene.');
+      Alert.alert(t('dailyTransits.feedbackFailedTitle'), error?.message ?? t('dailyTransits.feedbackRetryMsg'));
     }
   };
 
@@ -763,15 +764,15 @@ export default function DailyTransitsScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
       <TabHeader
-        title={data?.title ?? 'Bugünün Gökyüzü Etkileri'}
-        subtitle={formatDateLabel(data?.date ?? date)}
+        title={data?.title ?? t('homeSurface.dailyTransits.title')}
+        subtitle={formatDateLabel(data?.date ?? date, i18n.language)}
         onBack={goBack}
         rightActions={(
           <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
             <SurfaceHeaderIconButton
               iconName="help-circle-outline"
               onPress={handlePressTutorialHelp}
-              accessibilityLabel="Tutorial rehberini tekrar aç"
+              accessibilityLabel={t('dailyTransits.tutorialHelpA11y')}
             />
           </SpotlightTarget>
         )}
@@ -782,22 +783,22 @@ export default function DailyTransitsScreen() {
 
         {dailyTransitsQuery.isError ? (
           <View style={[styles.statusCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF' }]}>
-            <Text style={[styles.statusTitle, { color: colors.text }]}>Veri yüklenemedi</Text>
-            <Text style={[styles.statusBody, { color: colors.subtext }]}>Bugünkü transit verisi alınırken bir sorun oluştu.</Text>
+            <Text style={[styles.statusTitle, { color: colors.text }]}>{t('dailyTransits.errorTitle')}</Text>
+            <Text style={[styles.statusBody, { color: colors.subtext }]}>{t('dailyTransits.errorBody')}</Text>
             <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
-              <Text style={styles.retryText}>Tekrar Dene</Text>
+              <Text style={styles.retryText}>{t('dailyTransits.retry')}</Text>
             </Pressable>
           </View>
         ) : null}
 
         {isEmpty || (data != null && !hasTransitCards) ? (
           <View style={[styles.statusCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF' }]}>
-            <Text style={[styles.statusTitle, { color: colors.text }]}>Bugün için veri hazırlanıyor</Text>
+            <Text style={[styles.statusTitle, { color: colors.text }]}>{t('dailyTransits.emptyTitle')}</Text>
             <Text style={[styles.statusBody, { color: colors.subtext }]}>
-              Günlük transitlerin birkaç dakika içinde burada görünecek.
+              {t('dailyTransits.emptyBody')}
             </Text>
             <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
-              <Text style={styles.retryText}>Yenile</Text>
+              <Text style={styles.retryText}>{t('dailyTransits.refresh')}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -825,7 +826,7 @@ export default function DailyTransitsScreen() {
                   ))}
                 </View>
               ) : (
-                <Text style={[styles.sectionBody, { color: colors.subtext }]}>Bugün için ek öneri hazırlanıyor.</Text>
+                <Text style={[styles.sectionBody, { color: colors.subtext }]}>{t('dailyTransits.preparingExtra')}</Text>
               )}
               <Pressable
                 style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
@@ -837,7 +838,7 @@ export default function DailyTransitsScreen() {
             </SectionCard>
 
             <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.IMPACT_ZONES}>
-              <SectionCard title="Dikkat Noktaları" icon="flash">
+              <SectionCard title={t('dailyTransits.cautionSectionTitle')} icon="flash">
                 {processedContent.focusItems.length > 0 ? (
                   <View style={styles.focusList}>
                     {processedContent.focusItems.map((point, index) => (
@@ -848,17 +849,17 @@ export default function DailyTransitsScreen() {
                     ))}
                   </View>
                 ) : (
-                  <Text style={[styles.sectionBody, { color: colors.subtext }]}>Bugün için ek öneri hazırlanıyor.</Text>
+                  <Text style={[styles.sectionBody, { color: colors.subtext }]}>{t('dailyTransits.preparingExtra')}</Text>
                 )}
               </SectionCard>
             </SpotlightTarget>
 
-            <SectionCard title="Retro" icon="repeat">
+            <SectionCard title={t('dailyTransits.retroSectionTitle')} icon="repeat">
               <RetroList items={data.retrogrades} />
             </SectionCard>
 
             <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.TRANSIT_CARDS}>
-              <SectionCard title="Transit Kartları" icon="planet">
+              <SectionCard title={t('dailyTransits.transitCardsSectionTitle')} icon="planet">
                 <View style={styles.transitGroupsWrap}>
                   {processedContent.groupedTransits.map((group) => {
                     const themeKey = normalizeSentence(group.theme);
@@ -878,11 +879,11 @@ export default function DailyTransitsScreen() {
                               style={styles.themeToggleBtn}
                               accessibilityRole="button"
                               accessibilityLabel={
-                                expanded ? `${group.theme} bölümünü daralt` : `${group.theme} bölümünü genişlet`
+                                expanded ? t('dailyTransits.collapseThemeA11y', { theme: group.theme }) : t('dailyTransits.expandThemeA11y', { theme: group.theme })
                               }
                             >
                               <Text style={[styles.themeToggleText, { color: colors.primary }]}>
-                                {expanded ? 'Daha Az Göster' : 'Tümünü Gör'}
+                                {expanded ? t('dailyTransits.showLess') : t('dailyTransits.showAll')}
                               </Text>
                               <Ionicons
                                 name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -915,7 +916,7 @@ export default function DailyTransitsScreen() {
                   })}
 
                   {processedContent.groupedTransits.length === 0 ? (
-                    <Text style={[styles.sectionBody, { color: colors.subtext }]}>Bugün için ek öneri hazırlanıyor.</Text>
+                    <Text style={[styles.sectionBody, { color: colors.subtext }]}>{t('dailyTransits.preparingExtra')}</Text>
                   ) : null}
                 </View>
               </SectionCard>

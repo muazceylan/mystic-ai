@@ -67,7 +67,7 @@ export default function HelpScreen() {
                 <TouchableOpacity
                   style={styles.faqHeader}
                   onPress={() => toggle(i)}
-                  accessibilityLabel={expanded === i ? `${item.q} kapat` : `${item.q} genişlet`}
+                  accessibilityLabel={expanded === i ? t('help.collapseA11y', { question: item.q }) : t('help.expandA11y', { question: item.q })}
                   accessibilityRole="button"
                   activeOpacity={0.7}
                 >

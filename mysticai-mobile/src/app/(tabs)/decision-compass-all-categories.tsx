@@ -37,11 +37,11 @@ import {
 } from '../../components/decision-compass/model';
 import { getCompassTokens } from '../../components/decision-compass/tokens';
 
-function formatDateShortTr(input?: string | null) {
-  if (!input) return 'Bugün';
+function formatDateShort(input: string | null | undefined, todayLabel: string, locale: string) {
+  if (!input) return todayLabel;
   const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return 'Bugün';
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  if (Number.isNaN(d.getTime())) return todayLabel;
+  return d.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
 }
 
 function splitCategories(categories: DecisionCategoryModel[]) {
@@ -77,7 +77,7 @@ function splitCategories(categories: DecisionCategoryModel[]) {
 export default function DecisionCompassAllCategoriesScreen() {
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -134,8 +134,8 @@ export default function DecisionCompassAllCategoriesScreen() {
   );
 
   const availableFilters = useMemo(
-    () => buildAllCategoriesFilterOptions(categories),
-    [categories],
+    () => buildAllCategoriesFilterOptions(categories, t),
+    [categories, t],
   );
 
   React.useEffect(() => {
@@ -162,7 +162,7 @@ export default function DecisionCompassAllCategoriesScreen() {
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(920, width - 24) : undefined;
   const gridAvailableWidth = Math.min(contentMaxWidth ?? (width - 40), 520);
   const columnWidth = Math.max(152, Math.floor((gridAvailableWidth - 14) / 2));
-  const dateLabel = formatDateShortTr(query.data?.date);
+  const dateLabel = formatDateShort(query.data?.date, t('decisionCompassScreen.todayLabel'), i18n.language);
 
   const openCategoryDetail = useCallback((category: DecisionCategoryModel) => {
     setSelectedCategory(category);

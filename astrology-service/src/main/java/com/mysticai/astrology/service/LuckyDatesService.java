@@ -44,7 +44,7 @@ public class LuckyDatesService {
         log.info("Calculating lucky dates for user: {}, category: {}", request.userId(), request.goalCategory());
 
         // Fetch user's latest natal chart
-        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(
+        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc(
                         request.userId().toString())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Natal chart not found for user: " + request.userId()));
@@ -130,7 +130,7 @@ public class LuckyDatesService {
         boolean includeActionDetails = request.responseMode() != PlannerResponseMode.GRID_ONLY;
         List<PlannerCategory> plannerCategories = resolvePlannerCategories(request);
 
-        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(
+        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc(
                         request.userId().toString())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Natal chart not found for user: " + request.userId()));

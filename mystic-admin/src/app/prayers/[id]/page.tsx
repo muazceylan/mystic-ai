@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import { ArrowLeft, Save, Globe, Star } from 'lucide-react';
+import { ArrowLeft, Save, Globe, Star, Languages } from 'lucide-react';
 import Link from 'next/link';
 import { useState, use, useEffect } from 'react';
 
@@ -30,6 +30,7 @@ export default function PrayerDetailPage({ params }: { params: Promise<{ id: str
     arabicText: '',
     transliteration: '',
     meaning: '',
+    meaningEn: '',
     category: 'GENERAL',
     suggestedCount: '',
     tags: '',
@@ -45,6 +46,7 @@ export default function PrayerDetailPage({ params }: { params: Promise<{ id: str
         arabicText: p.arabicText ?? '',
         transliteration: p.transliteration ?? '',
         meaning: p.meaning ?? '',
+        meaningEn: p.meaningEn ?? '',
         category: p.category,
         suggestedCount: p.suggestedCount?.toString() ?? '',
         tags: p.tags ?? '',
@@ -177,7 +179,7 @@ export default function PrayerDetailPage({ params }: { params: Promise<{ id: str
 
             {textArea('arabicText', 'Arapça Metin')}
             {textArea('transliteration', 'Transkripsiyon')}
-            {textArea('meaning', 'Anlam / Türkçe Metin')}
+            {textArea('meaning', 'Anlam / Türkçe Meal (TR)')}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -209,6 +211,38 @@ export default function PrayerDetailPage({ params }: { params: Promise<{ id: str
                   className="w-4 h-4 rounded" />
                 Aktif
               </label>
+            </div>
+          </div>
+
+          {/* Localization Section */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Languages className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-white font-semibold">Lokalizasyon</h3>
+              <span className="text-xs text-gray-500 ml-1">— İngilizce çeviri</span>
+            </div>
+
+            <div className="flex items-start gap-2 bg-indigo-950/40 border border-indigo-800/40 rounded-lg px-3 py-2 text-xs text-indigo-300">
+              <Globe className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>
+                Mobil uygulama dil ayarı İngilizce olduğunda aşağıdaki meal gösterilir.
+                Boş bırakılırsa Türkçe meal kullanılır.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">İngilizce Meal (EN)</label>
+              <textarea
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm resize-none h-28 focus:border-indigo-500 focus:outline-none transition-colors"
+                placeholder="Enter English meaning / translation..."
+                value={form.meaningEn}
+                onChange={(e) => setForm({ ...form, meaningEn: e.target.value })}
+              />
+              <p className="text-xs text-gray-600 mt-1">
+                {form.meaningEn.length > 0
+                  ? `${form.meaningEn.length} karakter`
+                  : 'Henüz İngilizce çeviri girilmedi'}
+              </p>
             </div>
           </div>
 

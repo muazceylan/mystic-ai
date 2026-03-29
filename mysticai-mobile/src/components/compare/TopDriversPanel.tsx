@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import type { CompareDriverDTO, CompareTopDriversDTO } from '../../types/compare';
+import { useTranslation } from 'react-i18next';
 
 interface TopDriversPanelProps {
   drivers: CompareTopDriversDTO;
@@ -27,10 +28,11 @@ function styleByType(type: DriverBlockProps['type']) {
 }
 
 function DriverBlock({ title, item, type, onExpand }: DriverBlockProps) {
+  const { t } = useTranslation();
   const palette = styleByType(type);
-  const safeTitle = item?.title?.trim() || 'Belirleyici Alan';
-  const safeWhy = item?.why?.trim() || 'Bu başlıkta etki oluşturan belirgin bir sinyal görülüyor.';
-  const safeHint = item?.hint?.trim() || 'Kısa ve düzenli rutinlerle bu başlıkta dengeyi koruyun.';
+  const safeTitle = item?.title?.trim() || t('compare.topDriversLabel');
+  const safeWhy = item?.why?.trim() || t('compare.topDriversHint');
+  const safeHint = item?.hint?.trim() || t('compare.topDriversChallenge');
   const safeImpact = Number.isFinite(item?.impact) ? item.impact : 0;
 
   return (
@@ -53,13 +55,14 @@ function DriverBlock({ title, item, type, onExpand }: DriverBlockProps) {
         {safeHint}
       </AccessibleText>
       <AccessibleText style={styles.impact} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-        Etki: {safeImpact}
+        {t('compare.topDriversImpact', { n: String(safeImpact) })}
       </AccessibleText>
     </Pressable>
   );
 }
 
 export default function TopDriversPanel({ drivers, onExpandDriver }: TopDriversPanelProps) {
+  const { t } = useTranslation();
   const supportive = drivers?.supportive?.[0];
   const challenging = drivers?.challenging?.[0];
   const growth = drivers?.growth?.[0];
@@ -69,17 +72,17 @@ export default function TopDriversPanel({ drivers, onExpandDriver }: TopDriversP
   return (
     <View style={styles.wrap}>
       <AccessibleText style={styles.sectionTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-        Skoru Etkileyen 3 Nokta
+        {t('compare.topDriversSectionTitle')}
       </AccessibleText>
 
       {supportive ? (
-        <DriverBlock title="En Büyük Güç" item={supportive} type="supportive" onExpand={onExpandDriver} />
+        <DriverBlock title={t('compare.topDriversStrength')} item={supportive} type="supportive" onExpand={onExpandDriver} />
       ) : null}
       {challenging ? (
-        <DriverBlock title="En Büyük Gerilim" item={challenging} type="challenging" onExpand={onExpandDriver} />
+        <DriverBlock title={t('compare.topDriversTension')} item={challenging} type="challenging" onExpand={onExpandDriver} />
       ) : null}
       {growth ? (
-        <DriverBlock title="En Çok Gelişecek Alan" item={growth} type="growth" onExpand={onExpandDriver} />
+        <DriverBlock title={t('compare.topDriversGrowth')} item={growth} type="growth" onExpand={onExpandDriver} />
       ) : null}
     </View>
   );

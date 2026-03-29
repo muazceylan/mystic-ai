@@ -80,6 +80,7 @@ public class PrayerContentService {
         if (updates.getArabicText() != null) existing.setArabicText(updates.getArabicText());
         if (updates.getTransliteration() != null) existing.setTransliteration(updates.getTransliteration());
         if (updates.getMeaning() != null) existing.setMeaning(updates.getMeaning());
+        if (updates.getMeaningEn() != null) existing.setMeaningEn(updates.getMeaningEn());
         if (updates.getCategory() != null) existing.setCategory(updates.getCategory());
         if (updates.getSuggestedCount() != null) existing.setSuggestedCount(updates.getSuggestedCount());
         if (updates.getTags() != null) existing.setTags(updates.getTags());

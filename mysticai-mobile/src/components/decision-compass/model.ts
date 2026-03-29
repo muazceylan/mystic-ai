@@ -58,13 +58,17 @@ function isTransitText(haystack: string): boolean {
   return normalized.includes('transit') || normalized.includes('retrog') || normalized.includes('göky') || normalized.includes('goky');
 }
 
-const STATUS_FILTER_OPTIONS: Array<CompassFilterOption<CompassStatus>> = [
-  { key: 'STRONG', label: 'Güçlü fırsat', icon: 'sparkles-outline' },
-  { key: 'SUPPORTIVE', label: 'Destekleyici', icon: 'checkmark-circle-outline' },
-  { key: 'BALANCED', label: 'Dengeli', icon: 'ellipse-outline' },
-  { key: 'CAUTION', label: 'Dikkat', icon: 'alert-circle-outline' },
-  { key: 'HOLD', label: 'Beklet', icon: 'pause-circle-outline' },
-];
+type TFn = (key: string) => string;
+
+function statusFilterOptions(t: TFn): Array<CompassFilterOption<CompassStatus>> {
+  return [
+    { key: 'STRONG', label: t('decisionCompassScreen.statusStrong'), icon: 'sparkles-outline' },
+    { key: 'SUPPORTIVE', label: t('decisionCompassScreen.statusSupportive'), icon: 'checkmark-circle-outline' },
+    { key: 'BALANCED', label: t('decisionCompassScreen.statusBalanced'), icon: 'ellipse-outline' },
+    { key: 'CAUTION', label: t('decisionCompassScreen.statusCaution'), icon: 'alert-circle-outline' },
+    { key: 'HOLD', label: t('decisionCompassScreen.statusHold'), icon: 'pause-circle-outline' },
+  ];
+}
 
 function deriveIcon(haystack: string): keyof typeof Ionicons.glyphMap {
   if (haystack.includes('ay') || haystack.includes('moon')) return 'moon-outline';
@@ -105,10 +109,19 @@ export function matchesAllCategoriesFilter(category: DecisionCategoryModel, filt
 
 export function buildDecisionCompassFilterOptions(
   categories: DecisionCategoryModel[],
+  t?: TFn,
 ): Array<CompassFilterOption<CompassFilter>> {
+  const allLabel = t ? t('decisionCompassScreen.filterAllLabel') : 'Tümü';
+  const options = t ? statusFilterOptions(t) : [
+    { key: 'STRONG' as CompassStatus, label: 'Güçlü fırsat', icon: 'sparkles-outline' as const },
+    { key: 'SUPPORTIVE' as CompassStatus, label: 'Destekleyici', icon: 'checkmark-circle-outline' as const },
+    { key: 'BALANCED' as CompassStatus, label: 'Dengeli', icon: 'ellipse-outline' as const },
+    { key: 'CAUTION' as CompassStatus, label: 'Dikkat', icon: 'alert-circle-outline' as const },
+    { key: 'HOLD' as CompassStatus, label: 'Beklet', icon: 'pause-circle-outline' as const },
+  ];
   return [
-    { key: 'ALL', label: 'Tümü', icon: 'apps-outline' },
-    ...STATUS_FILTER_OPTIONS.filter((option) =>
+    { key: 'ALL', label: allLabel, icon: 'apps-outline' },
+    ...options.filter((option) =>
       categories.some((category) => matchesCompassFilter(category, option.key)),
     ),
   ];
@@ -116,10 +129,19 @@ export function buildDecisionCompassFilterOptions(
 
 export function buildAllCategoriesFilterOptions(
   categories: DecisionCategoryModel[],
+  t?: TFn,
 ): Array<CompassFilterOption<AllCategoriesFilter>> {
+  const allLabel = t ? t('decisionCompassScreen.filterAllLabel') : 'Tümü';
+  const options = t ? statusFilterOptions(t) : [
+    { key: 'STRONG' as CompassStatus, label: 'Güçlü fırsat', icon: 'sparkles-outline' as const },
+    { key: 'SUPPORTIVE' as CompassStatus, label: 'Destekleyici', icon: 'checkmark-circle-outline' as const },
+    { key: 'BALANCED' as CompassStatus, label: 'Dengeli', icon: 'ellipse-outline' as const },
+    { key: 'CAUTION' as CompassStatus, label: 'Dikkat', icon: 'alert-circle-outline' as const },
+    { key: 'HOLD' as CompassStatus, label: 'Beklet', icon: 'pause-circle-outline' as const },
+  ];
   return [
-    { key: 'ALL', label: 'Tümü', icon: 'apps-outline' },
-    ...STATUS_FILTER_OPTIONS.filter((option) =>
+    { key: 'ALL', label: allLabel, icon: 'apps-outline' },
+    ...options.filter((option) =>
       categories.some((category) => matchesCompassFilter(category, option.key)),
     ),
   ];
@@ -290,20 +312,24 @@ export function scoreToStatus(score: number): CompassStatus {
   return 'HOLD';
 }
 
-export function statusLabel(status: CompassStatus): string {
+export function statusLabel(status: CompassStatus, t?: TFn): string {
+  if (t) {
+    switch (status) {
+      case 'STRONG': return t('decisionCompassScreen.statusStrong');
+      case 'SUPPORTIVE': return t('decisionCompassScreen.statusSupportive');
+      case 'BALANCED': return t('decisionCompassScreen.statusBalanced');
+      case 'CAUTION': return t('decisionCompassScreen.statusCaution');
+      case 'HOLD': return t('decisionCompassScreen.statusHold');
+      default: return t('decisionCompassScreen.statusBalanced');
+    }
+  }
   switch (status) {
-    case 'STRONG':
-      return 'Güçlü fırsat';
-    case 'SUPPORTIVE':
-      return 'Destekleyici';
-    case 'BALANCED':
-      return 'Dengeli';
-    case 'CAUTION':
-      return 'Dikkat';
-    case 'HOLD':
-      return 'Beklet';
-    default:
-      return 'Dengeli';
+    case 'STRONG': return 'Güçlü fırsat';
+    case 'SUPPORTIVE': return 'Destekleyici';
+    case 'BALANCED': return 'Dengeli';
+    case 'CAUTION': return 'Dikkat';
+    case 'HOLD': return 'Beklet';
+    default: return 'Dengeli';
   }
 }
 

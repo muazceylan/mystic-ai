@@ -785,7 +785,7 @@ public class SynastryService {
 
     private PartyContext buildUserParty(Long userId, String userGenderOverride) {
         NatalChart userChart = natalChartRepository
-                .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString())
+                .findFirstByUserIdOrderByCalculatedAtDescIdDesc(userId.toString())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Natal chart not found for userId=" + userId + ". Calculate your chart first."));
 
@@ -804,7 +804,7 @@ public class SynastryService {
 
     private PartyContext buildRealUserParty(Long userId, String fallbackName) {
         NatalChart chart = natalChartRepository
-                .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString())
+                .findFirstByUserIdOrderByCalculatedAtDescIdDesc(userId.toString())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Natal chart not found for userId=" + userId + ". Calculate chart first."));
 
@@ -874,7 +874,7 @@ public class SynastryService {
 
         if (type == PartyType.USER) {
             String name = natalChartRepository
-                    .findFirstByUserIdOrderByCalculatedAtDesc(synastry.getUserId().toString())
+                    .findFirstByUserIdOrderByCalculatedAtDescIdDesc(synastry.getUserId().toString())
                     .map(c -> c.getName() != null && !c.getName().isBlank() ? c.getName() : "Sen")
                     .orElse("Sen");
             return new PartySummary(null, PartyType.USER, name);

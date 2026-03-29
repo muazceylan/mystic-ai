@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Info, Share2, Sparkles } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { AccessibleText, SafeScreen } from '../../../components/ui';
+import { AccessibleText, AppHeader, HeaderRightIcons, SafeScreen } from '../../../components/ui';
 import { ACCESSIBILITY } from '../../../constants/tokens';
 import { getRelationshipPalette } from '../../../constants/compareDesignTokens';
 import type { CompareDriverDTO, CompareThemeSectionDTO, ComparisonCardDTO, Label, RelationshipType, ThemeGroup } from '../../../types/compare';
@@ -13,8 +13,8 @@ import { parseLocalizedSignLabel } from '../../../utils/matchAstroLabels';
 import { parseRelationshipTypeParam } from '../../../services/compare.service';
 import { trackEvent } from '../../../services/analytics';
 import useComparison from '../../../hooks/useComparison';
+import { useInnerHeaderSpacing } from '../../../hooks/useInnerHeaderSpacing';
 
-import CompareHeader from '../../../components/compare/CompareHeader';
 import CompareModuleTabs from '../../../components/compare/CompareModuleTabs';
 import CompareTechnicalDrawer from '../../../components/compare/CompareTechnicalDrawer';
 import LoadingSkeletonByModule from '../../../components/compare/LoadingSkeletonByModule';
@@ -22,7 +22,7 @@ import ThemeSectionHeader from '../../../components/ThemeSectionHeader';
 import PersonAvatar from '../../../components/match/PersonAvatar';
 import MatchCircularScore from '../../../components/match/MatchCircularScore';
 import ComparisonCard from '../../../components/ComparisonCard';
-import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
+import { useTranslation } from 'react-i18next';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -499,6 +499,7 @@ function derivePanelTraits(
   themeTitle: string,
   leftName: string,
   rightName: string,
+  tFn: (key: string, opts?: Record<string, string>) => string = (k) => k,
 ): { leftTrait: string; rightTrait: string } {
   const theme = normalizeSearch(themeTitle);
 
@@ -633,8 +634,8 @@ function derivePanelTraits(
       };
     }
     return {
-      leftTrait: `${leftName}: kırgınlık sonrası daha erken toparlanmak ister`,
-      rightTrait: `${rightName}: konuşmadan önce zamana ihtiyaç duyabilir`,
+      leftTrait: tFn('compare.conflictLeftTrait', { name: leftName }),
+      rightTrait: tFn('compare.conflictRightTrait', { name: rightName }),
     };
   }
 
@@ -829,6 +830,7 @@ function buildOverviewSections(
     challenging: Array<{ title: string; impact: number; why: string; hint: string }>;
     growth: Array<{ title: string; impact: number; why: string; hint: string }>;
   },
+  tFn: (key: string, opts?: Record<string, string>) => string = (k) => k,
 ): CompareThemeSectionDTO[] {
   const templates = relationPanelTemplates(relationshipType);
   const sources = buildOverviewSources(
@@ -844,7 +846,7 @@ function buildOverviewSections(
 
   templates.forEach((template, index) => {
     const selectedSource = selectOverviewSource(template, sources, usedSourceIds);
-    const traits = derivePanelTraits(relationshipType, template.title, leftName, rightName);
+    const traits = derivePanelTraits(relationshipType, template.title, leftName, rightName, tFn);
     const score = clampPercent(selectedSource?.score ?? 60, 60);
     const { leftValue, rightValue } = deriveValueSplit(score, `${leftName}:${rightName}:${template.id}`);
 
@@ -1042,6 +1044,7 @@ function buildExpertThemeAdvice(
 }
 
 export default function CompareOverviewScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     matchId?: string;
     type?: string;
@@ -1096,6 +1099,7 @@ export default function CompareOverviewScreen() {
       data.themeSections,
       data.metricCards,
       data.topDrivers,
+      t,
     );
   }, [data, leftName, rightName]);
 
@@ -1166,7 +1170,8 @@ export default function CompareOverviewScreen() {
     });
   }, [data, matchId]);
 
-  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
+  const goBackToCompatibility = () => router.replace('/(tabs)/compatibility');
+  const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
 
   const onSwitchType = (nextType: RelationshipType) => {
     trackEvent('compare_tab_switch', {
@@ -1225,10 +1230,27 @@ export default function CompareOverviewScreen() {
   const canRenderContent = useMemo(() => !loading && !!data, [loading, data]);
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F7F5FB' }}>
-      <View style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <CompareHeader title={moduleTitle(relationshipType)} onBack={goBackSafely} />
+    <SafeScreen edges={['top', 'left', 'right']} style={styles.screen}>
+      <AppHeader
+        title={moduleTitle(relationshipType)}
+        onBack={goBackToCompatibility}
+        rightActions={<HeaderRightIcons />}
+      />
+      <View
+        style={[
+          styles.screenContent,
+          {
+            paddingTop: headerPaddingTop,
+            paddingBottom: headerPaddingBottom,
+            paddingHorizontal: headerHorizontalPadding,
+          },
+        ]}
+      >
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <CompareModuleTabs value={relationshipType} onChange={onSwitchType} />
 
           {!matchId && hasTypeParam ? (
@@ -1504,8 +1526,18 @@ export default function CompareOverviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
+  screen: {
+    flex: 1,
+    backgroundColor: '#F7F5FB',
+  },
+  screenContent: {
+    flex: 1,
+    gap: 12,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingBottom: 112,
     gap: 12,
   },

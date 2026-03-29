@@ -73,7 +73,7 @@ public class MysticalAiService {
             }
 
             if (event.analysisType() == AiAnalysisEvent.AnalysisType.NATAL_CHART) {
-                response = normalizeNatalChartJson(response);
+                response = normalizeNatalChartJson(response, event.payload(), locale);
             }
             if (event.analysisType() == AiAnalysisEvent.AnalysisType.RELATIONSHIP_ANALYSIS) {
                 response = normalizeRelationshipAnalysisJson(response, event.payload());
@@ -723,43 +723,86 @@ public class MysticalAiService {
      * Ensures the mobile app receives a stable shape even if the model returns
      * partial, malformed, or legacy-like data.
      */
-    private String normalizeNatalChartJson(String response) {
+    private String normalizeNatalChartJson(String response, String payload, String locale) {
+        String resolvedLocale = isEnglishLocale(locale) ? "en" : "tr";
         try {
             JsonNode parsed = tryParseNatalJsonObject(response);
             if (parsed == null || !parsed.isObject()) {
-                logger.warn("Natal JSON normalization: response is not an object, building fallback envelope");
-                return buildFallbackNatalJson(response);
+                if (looksLikeNatalPayloadDump(response)) {
+                    throw new IllegalStateException("Natal AI output looks like a raw payload dump");
+                }
+                logger.warn("Natal JSON normalization: response is not an object, building deterministic fallback");
+                return buildFallbackNatalJson(response, payload, resolvedLocale);
+            }
+
+            if (looksLikeNatalPayloadDump(parsed.toString())) {
+                throw new IllegalStateException("Natal AI output looks like a raw payload dump");
             }
 
             ObjectNode root = (ObjectNode) parsed;
             ObjectNode out = objectMapper.createObjectNode();
             out.put("version", "natal_v2");
             out.put("tone", nonBlank(text(root, "tone")) ? text(root, "tone") : "scientific_warm");
-            out.put("opening", normalizeParagraph(text(root, "opening"),
-                    "Haritanın ana temasını okurken güçlü tarafların ve gelişim alanların birlikte görünür. Bu yorum, potansiyellerini daha net fark etmen için yapılandırıldı."));
-            out.put("coreSummary", normalizeParagraph(text(root, "coreSummary"),
-                    "Büyük üçlü ve ana açılar bir araya geldiğinde karakterinde hem sezgisel hem stratejik çalışan bir denge dikkat çeker."));
+            out.put("opening", normalizeNatalParagraph(text(root, "opening"),
+                    isEnglishLocale(resolvedLocale)
+                            ? "This interpretation highlights both your strengths and your growth edges so the chart can be used as a practical map."
+                            : "Haritanın ana temasını okurken güçlü tarafların ve gelişim alanların birlikte görünür. Bu yorum, potansiyellerini daha net fark etmen için yapılandırıldı.",
+                    resolvedLocale));
+            out.put("coreSummary", normalizeNatalParagraph(text(root, "coreSummary"),
+                    isEnglishLocale(resolvedLocale)
+                            ? "Your chart blends emotional instinct, long-range strategy, and a visible way of moving through life."
+                            : "Büyük üçlü ve ana açılar bir araya geldiğinde karakterinde hem sezgisel hem stratejik çalışan bir denge dikkat çeker.",
+                    resolvedLocale));
 
-            ArrayNode sections = normalizeNatalSections(root.path("sections"));
+            ArrayNode sections = normalizeNatalSections(root.path("sections"), resolvedLocale);
             if (sections.isEmpty()) {
-                sections.add(createFallbackSection());
+                sections.add(createFallbackSection(resolvedLocale));
             }
             out.set("sections", sections);
 
-            ArrayNode planetHighlights = normalizeNatalPlanetHighlights(root.path("planetHighlights"));
+            ArrayNode planetHighlights = normalizeNatalPlanetHighlights(root.path("planetHighlights"), resolvedLocale);
             out.set("planetHighlights", planetHighlights);
 
-            out.put("closing", normalizeParagraph(text(root, "closing"),
-                    "Bu harita bir kader hükmü değil, farkındalık haritasıdır. Güçlü taraflarını bilinçli kullandıkça zorlayıcı temaları da daha yaratıcı yönetebilirsin."));
+            out.put("closing", normalizeNatalParagraph(text(root, "closing"),
+                    isEnglishLocale(resolvedLocale)
+                            ? "This chart is not a fixed fate statement. It becomes more useful as you turn awareness into consistent choices."
+                            : "Bu harita bir kader hükmü değil, farkındalık haritasıdır. Güçlü taraflarını bilinçli kullandıkça zorlayıcı temaları da daha yaratıcı yönetebilirsin.",
+                    resolvedLocale));
+
+            if (!isUsableNatalOutput(out, resolvedLocale)) {
+                logger.warn("Natal JSON normalization produced unusable {} output, switching to deterministic fallback", resolvedLocale);
+                return buildFallbackNatalJson(response, payload, resolvedLocale);
+            }
 
             return objectMapper.writeValueAsString(out);
         } catch (Exception e) {
             logger.warn("Natal JSON normalization failed, returning fallback envelope: {}", e.getMessage());
-            return buildFallbackNatalJson(response);
+            return buildFallbackNatalJson(response, payload, resolvedLocale);
         }
     }
 
-    private String buildFallbackNatalJson(String rawResponse) {
+    private boolean looksLikeNatalPayloadDump(String text) {
+        if (!nonBlank(text)) {
+            return false;
+        }
+        String lower = text.toLowerCase(Locale.ROOT);
+        int hits = 0;
+        if (lower.contains("\"chartid\"") || lower.contains("chartid.")) hits++;
+        if (lower.contains("\"sunsign\"") || lower.contains("sunsign.")) hits++;
+        if (lower.contains("\"moonsign\"") || lower.contains("moonsign.")) hits++;
+        if (lower.contains("\"risingsign\"") || lower.contains("risingsign.")) hits++;
+        if (lower.contains("absolutelongitude")) hits++;
+        if (lower.contains("planets. planet.")) hits++;
+        if (lower.contains("retrograde. false. house.")) hits++;
+        return hits >= 2;
+    }
+
+    private String buildFallbackNatalJson(String rawResponse, String payload, String locale) {
+        String deterministic = buildDeterministicNatalJson(payload, locale);
+        if (nonBlank(deterministic)) {
+            return deterministic;
+        }
+
         try {
             String recoveredNarrative = recoverNarrativeFromRawResponse(rawResponse);
             List<String> recoveredParagraphs = splitNarrativeParagraphs(recoveredNarrative);
@@ -767,12 +810,18 @@ public class MysticalAiService {
             ObjectNode out = objectMapper.createObjectNode();
             out.put("version", "natal_v2");
             out.put("tone", "scientific_warm");
-            out.put("opening", normalizeParagraph(
+            out.put("opening", normalizeNatalParagraph(
                     recoveredParagraphs.size() > 0 ? recoveredParagraphs.get(0) : "",
-                    "Harita yorumunda beklenmeyen bir format geldiği için içerik sade bir akışla gösteriliyor."));
-            out.put("coreSummary", normalizeParagraph(
+                    isEnglishLocale(locale)
+                            ? "The AI response could not be used directly, so the chart is being shown through a stable interpretation format."
+                            : "Harita yorumunda beklenmeyen bir format geldiği için içerik sade bir akışla gösteriliyor.",
+                    locale));
+            out.put("coreSummary", normalizeNatalParagraph(
                     recoveredParagraphs.size() > 1 ? recoveredParagraphs.get(1) : "",
-                    "Temel yorum korunarak başlıklara ayrıştırıldı; detaylar yeniden üretimde daha zenginleşir."));
+                    isEnglishLocale(locale)
+                            ? "A stable chart reading was generated so the interpretation can stay available while the richer AI version improves."
+                            : "Temel yorum korunarak başlıklara ayrıştırıldı; detaylar yeniden üretimde daha zenginleşir.",
+                    locale));
 
             ArrayNode sections = objectMapper.createArrayNode();
             List<String> sectionSource = recoveredParagraphs.size() > 2
@@ -781,25 +830,29 @@ public class MysticalAiService {
             int sectionIndex = 0;
             for (String paragraph : sectionSource) {
                 if (sectionIndex >= 4) break;
-                String cleaned = normalizeParagraph(paragraph, "");
+                String cleaned = normalizeNatalParagraph(paragraph, "", locale);
                 if (!nonBlank(cleaned) || cleaned.length() < 24) continue;
-                sections.add(buildRecoveredSection(sectionIndex, cleaned));
+                sections.add(buildRecoveredSection(sectionIndex, cleaned, locale));
                 sectionIndex += 1;
             }
             if (sections.isEmpty()) {
-                sections.add(createFallbackSection());
+                sections.add(createFallbackSection(locale));
             }
             out.set("sections", sections);
 
             out.set("planetHighlights", objectMapper.createArrayNode());
-            String closingFallback = "Yorum bu aşamada sadeleştirilmiş yapıda sunuldu. Yeniden denediğinde daha detaylı bölüm kartları üretilecektir.";
+            String closingFallback = isEnglishLocale(locale)
+                    ? "A stable fallback interpretation is being shown for now. Richer section cards can be regenerated later."
+                    : "Yorum bu aşamada sadeleştirilmiş yapıda sunuldu. Yeniden denediğinde daha detaylı bölüm kartları üretilecektir.";
             String closing = recoveredParagraphs.size() > 2
                     ? recoveredParagraphs.get(recoveredParagraphs.size() - 1)
                     : closingFallback;
-            out.put("closing", normalizeParagraph(closing, closingFallback));
+            out.put("closing", normalizeNatalParagraph(closing, closingFallback, locale));
             return objectMapper.writeValueAsString(out);
         } catch (Exception e) {
-            return "{\"version\":\"natal_v2\",\"tone\":\"scientific_warm\",\"opening\":\"Yorum normalizasyonu başarısız oldu.\",\"coreSummary\":\"Ham çıktı korunamadı.\",\"sections\":[],\"planetHighlights\":[],\"closing\":\"Lütfen tekrar deneyin.\"}";
+            return isEnglishLocale(locale)
+                    ? "{\"version\":\"natal_v2\",\"tone\":\"scientific_warm\",\"opening\":\"Natal interpretation fallback could not be normalized.\",\"coreSummary\":\"The raw response could not be preserved.\",\"sections\":[],\"planetHighlights\":[],\"closing\":\"Please try again.\"}"
+                    : "{\"version\":\"natal_v2\",\"tone\":\"scientific_warm\",\"opening\":\"Yorum normalizasyonu başarısız oldu.\",\"coreSummary\":\"Ham çıktı korunamadı.\",\"sections\":[],\"planetHighlights\":[],\"closing\":\"Lütfen tekrar deneyin.\"}";
         }
     }
 
@@ -1011,19 +1064,31 @@ public class MysticalAiService {
         return out;
     }
 
-    private ObjectNode buildRecoveredSection(int index, String paragraph) {
+    private ObjectNode buildRecoveredSection(int index, String paragraph, String locale) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "recovered_section_" + (index + 1));
-        section.put("title", defaultRecoveredSectionTitle(index));
+        section.put("title", defaultRecoveredSectionTitle(index, locale));
         section.put("body", truncate(paragraph, 420));
-        section.put("dailyLifeExample", defaultRecoveredDailyExample(index));
+        section.put("dailyLifeExample", defaultRecoveredDailyExample(index, locale));
         ArrayNode bullets = objectMapper.createArrayNode();
-        bullets.add(bullet("Öne Çıkan Nokta", truncate(paragraph, 180)));
+        bullets.add(bullet(
+                isEnglishLocale(locale) ? "Key Point" : "Öne Çıkan Nokta",
+                truncate(paragraph, 180),
+                locale
+        ));
         section.set("bulletPoints", bullets);
         return section;
     }
 
-    private String defaultRecoveredSectionTitle(int index) {
+    private String defaultRecoveredSectionTitle(int index, String locale) {
+        if (isEnglishLocale(locale)) {
+            return switch (index) {
+                case 0 -> "Cosmic Main Theme";
+                case 1 -> "Emotional and Mental Flow";
+                case 2 -> "Relationships and Daily Life";
+                default -> "Growth Focus";
+            };
+        }
         return switch (index) {
             case 0 -> "Kozmik Ana Tema";
             case 1 -> "Duygusal ve Zihinsel Akış";
@@ -1032,7 +1097,15 @@ public class MysticalAiService {
         };
     }
 
-    private String defaultRecoveredDailyExample(int index) {
+    private String defaultRecoveredDailyExample(int index, String locale) {
+        if (isEnglishLocale(locale)) {
+            return switch (index) {
+                case 0 -> "You notice this theme most clearly when you pause before reacting and name what really matters.";
+                case 1 -> "When emotion and communication move at the same pace, your choices feel calmer and clearer.";
+                case 2 -> "Small but consistent actions in relationships make this pattern visible in everyday life.";
+                default -> "This section helps you simplify priorities before choosing the next step.";
+            };
+        }
         return switch (index) {
             case 0 -> "Günlük akışta bu tema, karar verirken hangi iç sesin öne çıktığını fark etmeni sağlar.";
             case 1 -> "İletişim ve duygu arasında denge kurduğunda daha net ve sakin ilerlersin.";
@@ -1041,7 +1114,7 @@ public class MysticalAiService {
         };
     }
 
-    private ArrayNode normalizeNatalSections(JsonNode sectionsNode) {
+    private ArrayNode normalizeNatalSections(JsonNode sectionsNode, String locale) {
         ArrayNode out = objectMapper.createArrayNode();
         if (sectionsNode == null || !sectionsNode.isArray()) return out;
 
@@ -1053,21 +1126,21 @@ public class MysticalAiService {
 
             String rawId = nonBlank(text(node, "id")) ? text(node, "id") : text(node, "title");
             String rawTitle = text(node, "title");
-            String body = normalizeParagraph(firstNonBlank(
+            String body = normalizeNatalParagraph(firstNonBlank(
                     text(node, "body"),
                     text(node, "text"),
                     text(node, "content"),
-                    text(node, "description")), "Bu bölüm için yorum özeti hazırlanamadı.");
-            String daily = normalizeParagraph(firstNonBlank(
+                    text(node, "description")), isEnglishLocale(locale) ? "A stable summary was generated for this part of the chart." : "Bu bölüm için yorum özeti hazırlanamadı.", locale);
+            String daily = normalizeNatalParagraph(firstNonBlank(
                     text(node, "dailyLifeExample"),
                     text(node, "daily_life_example"),
-                    text(node, "example")), "Günlük hayatta bu tema kararlarını ve ilişkilerini küçük ama etkili biçimde yönlendirebilir.");
+                    text(node, "example")), isEnglishLocale(locale) ? "In daily life this theme can shape how you choose, react, and relate." : "Günlük hayatta bu tema kararlarını ve ilişkilerini küçük ama etkili biçimde yönlendirebilir.", locale);
 
             section.put("id", normalizeSnakeCase(rawId, "section_" + (index + 1)));
-            section.put("title", normalizeUiTitle(rawTitle, "Bölüm " + (index + 1)));
+            section.put("title", normalizeNatalUiTitle(rawTitle, isEnglishLocale(locale) ? "Section " + (index + 1) : "Bölüm " + (index + 1), locale));
             section.put("body", body);
             section.put("dailyLifeExample", daily);
-            section.set("bulletPoints", normalizeBulletPoints(node.path("bulletPoints"), body, daily));
+            section.set("bulletPoints", normalizeNatalBulletPoints(node.path("bulletPoints"), body, daily, locale));
 
             out.add(section);
             index += 1;
@@ -1075,7 +1148,7 @@ public class MysticalAiService {
         return out;
     }
 
-    private ArrayNode normalizeNatalPlanetHighlights(JsonNode planetNode) {
+    private ArrayNode normalizeNatalPlanetHighlights(JsonNode planetNode, String locale) {
         ArrayNode out = objectMapper.createArrayNode();
         if (planetNode == null || !planetNode.isArray()) return out;
 
@@ -1090,30 +1163,42 @@ public class MysticalAiService {
                 continue;
             }
 
-            String intro = normalizeParagraph(text(node, "intro"),
-                    "Bu yerleşim karakterinin önemli bir temasını görünür kılar.");
-            String character = normalizeParagraph(text(node, "character"),
-                    "Burç ve ev yerleşimi bu gezegenin sende nasıl çalıştığını belirginleştirir.");
-            String depth = normalizeParagraph(text(node, "depth"),
-                    "Bu konum hem yetenek hem gelişim alanı barındırır; gölge tarafı fark etmek potansiyeli açar.");
-            String daily = normalizeParagraph(firstNonBlank(text(node, "dailyLifeExample"), text(node, "daily_life_example")),
-                    "Günlük kararlarında bu enerjiyi bilinçli kullandığında daha dengeli sonuç alırsın.");
+            String intro = normalizeNatalParagraph(text(node, "intro"),
+                    isEnglishLocale(locale)
+                            ? "This placement reveals one of the core energies running through your chart."
+                            : "Bu yerleşim karakterinin önemli bir temasını görünür kılar.",
+                    locale);
+            String character = normalizeNatalParagraph(text(node, "character"),
+                    isEnglishLocale(locale)
+                            ? "The sign and house placement show how this planet tends to operate in your personality."
+                            : "Burç ve ev yerleşimi bu gezegenin sende nasıl çalıştığını belirginleştirir.",
+                    locale);
+            String depth = normalizeNatalParagraph(text(node, "depth"),
+                    isEnglishLocale(locale)
+                            ? "This placement carries both a strength and a growth edge; stress reveals the lesson, awareness reveals the talent."
+                            : "Bu konum hem yetenek hem gelişim alanı barındırır; gölge tarafı fark etmek potansiyeli açar.",
+                    locale);
+            String daily = normalizeNatalParagraph(firstNonBlank(text(node, "dailyLifeExample"), text(node, "daily_life_example")),
+                    isEnglishLocale(locale)
+                            ? "You notice this energy in daily choices, timing, and the way you handle pressure."
+                            : "Günlük kararlarında bu enerjiyi bilinçli kullandığında daha dengeli sonuç alırsın.",
+                    locale);
 
             ObjectNode outNode = objectMapper.createObjectNode();
             outNode.put("planetId", planetId);
-            outNode.put("title", normalizeUiTitle(text(node, "title"), defaultPlanetTitle(planetId)));
+            outNode.put("title", normalizeNatalUiTitle(text(node, "title"), defaultNatalPlanetTitle(planetId, locale), locale));
             outNode.put("intro", intro);
             outNode.put("character", character);
             outNode.put("depth", depth);
             outNode.put("dailyLifeExample", daily);
-            outNode.set("analysisLines", normalizeAnalysisLines(node.path("analysisLines"), character, intro, depth, daily));
+            outNode.set("analysisLines", normalizeNatalAnalysisLines(node.path("analysisLines"), character, intro, depth, daily, locale));
             out.add(outNode);
             count += 1;
         }
         return out;
     }
 
-    private ArrayNode normalizeBulletPoints(JsonNode bulletNode, String body, String daily) {
+    private ArrayNode normalizeNatalBulletPoints(JsonNode bulletNode, String body, String daily, String locale) {
         ArrayNode out = objectMapper.createArrayNode();
         if (bulletNode != null && bulletNode.isArray()) {
             for (JsonNode bp : bulletNode) {
@@ -1121,11 +1206,19 @@ public class MysticalAiService {
                 if (bp == null || bp.isNull()) continue;
                 ObjectNode item = objectMapper.createObjectNode();
                 if (bp.isTextual()) {
-                    item.put("title", "Ana Nokta");
-                    item.put("detail", truncate(normalizeParagraph(bp.asText(), ""), 180));
+                    item.put("title", normalizeNatalUiTitle(
+                            isEnglishLocale(locale) ? "Key Point" : "Ana Nokta",
+                            isEnglishLocale(locale) ? "Key Point" : "Ana Nokta",
+                            locale
+                    ));
+                    item.put("detail", truncate(normalizeNatalParagraph(bp.asText(), "", locale), 180));
                 } else if (bp.isObject()) {
-                    String title = normalizeUiTitle(firstNonBlank(text(bp, "title"), text(bp, "label"), text(bp, "name")), "Ana Nokta");
-                    String detail = truncate(normalizeParagraph(firstNonBlank(text(bp, "detail"), text(bp, "text"), text(bp, "body")), ""), 200);
+                    String title = normalizeNatalUiTitle(
+                            firstNonBlank(text(bp, "title"), text(bp, "label"), text(bp, "name")),
+                            isEnglishLocale(locale) ? "Key Point" : "Ana Nokta",
+                            locale
+                    );
+                    String detail = truncate(normalizeNatalParagraph(firstNonBlank(text(bp, "detail"), text(bp, "text"), text(bp, "body")), "", locale), 200);
                     if (!nonBlank(detail)) continue;
                     item.put("title", title);
                     item.put("detail", detail);
@@ -1137,64 +1230,159 @@ public class MysticalAiService {
         }
 
         if (out.isEmpty()) {
-            out.add(bullet("Ana Tema", truncate(body, 180)));
-            out.add(bullet("Günlük Hayata Yansıması", truncate(daily, 180)));
+            out.add(bullet(isEnglishLocale(locale) ? "Main Theme" : "Ana Tema", truncate(body, 180), locale));
+            out.add(bullet(isEnglishLocale(locale) ? "Daily Reflection" : "Günlük Hayata Yansıması", truncate(daily, 180), locale));
         }
         return out;
     }
 
-    private ArrayNode normalizeAnalysisLines(JsonNode linesNode, String character, String intro, String depth, String daily) {
+    private ArrayNode normalizeNatalAnalysisLines(JsonNode linesNode, String character, String intro, String depth, String daily, String locale) {
         ArrayNode out = objectMapper.createArrayNode();
         if (linesNode != null && linesNode.isArray()) {
             for (JsonNode line : linesNode) {
                 if (out.size() >= 6) break;
                 if (line == null || !line.isObject()) continue;
-                String text = normalizeParagraph(firstNonBlank(text(line, "text"), text(line, "detail"), text(line, "body")), "");
+                String text = normalizeNatalParagraph(firstNonBlank(text(line, "text"), text(line, "detail"), text(line, "body")), "", locale);
                 if (!nonBlank(text)) continue;
                 ObjectNode item = objectMapper.createObjectNode();
                 item.put("icon", normalizeLineIcon(text(line, "icon")));
-                item.put("title", normalizeUiTitle(text(line, "title"), "Analiz"));
+                item.put("title", normalizeNatalUiTitle(text(line, "title"), isEnglishLocale(locale) ? "Analysis" : "Analiz", locale));
                 item.put("text", truncate(text, 220));
                 out.add(item);
             }
         }
 
         if (out.isEmpty()) {
-            out.add(analysisLine("sparkles", "Karakter Analizi", truncate(character, 220)));
-            out.add(analysisLine("rocket", "Seni Nasıl Etkiler?", truncate(firstNonBlank(intro, daily), 220)));
-            out.add(analysisLine("warning", "Dikkat Etmen Gerekenler", truncate(depth, 220)));
-            out.add(analysisLine("star", "Öne Çıkan Özellikler", truncate(daily, 220)));
+            out.add(analysisLine("sparkles", isEnglishLocale(locale) ? "Character Analysis" : "Karakter Analizi", truncate(character, 220), locale));
+            out.add(analysisLine("rocket", isEnglishLocale(locale) ? "How It Affects You" : "Seni Nasıl Etkiler?", truncate(firstNonBlank(intro, daily), 220), locale));
+            out.add(analysisLine("warning", isEnglishLocale(locale) ? "Watch Out For" : "Dikkat Etmen Gerekenler", truncate(depth, 220), locale));
+            out.add(analysisLine("star", isEnglishLocale(locale) ? "Key Strengths" : "Öne Çıkan Özellikler", truncate(daily, 220), locale));
         }
 
         return out;
     }
 
-    private ObjectNode createFallbackSection() {
+    private ObjectNode createFallbackSection(String locale) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "core_portrait");
-        section.put("title", "Kozmik Portrenin Özü");
-        section.put("body", "Haritanın ana temaları sade bir akışla toparlandı ve okunabilir bölüm yapısına yerleştirildi.");
-        section.put("dailyLifeExample", "Günlük hayatta bu tema, kararlarını alırken hangi iç güdünün öne çıktığını daha iyi fark etmene yardım eder.");
+        if (isEnglishLocale(locale)) {
+            section.put("title", "Cosmic Portrait Essence");
+            section.put("body", "The main themes of the chart were reorganized into a stable reading structure so the interpretation stays available.");
+            section.put("dailyLifeExample", "In daily life this helps you notice which inner drive is leading your choices before you react automatically.");
+        } else {
+            section.put("title", "Kozmik Portrenin Özü");
+            section.put("body", "Haritanın ana temaları sade bir akışla toparlandı ve okunabilir bölüm yapısına yerleştirildi.");
+            section.put("dailyLifeExample", "Günlük hayatta bu tema, kararlarını alırken hangi iç güdünün öne çıktığını daha iyi fark etmene yardım eder.");
+        }
         ArrayNode bullets = objectMapper.createArrayNode();
-        bullets.add(bullet("Yorum Akışı", "İçerik, başlık ve kısa açıklamalar halinde daha net okunacak biçime getirildi."));
-        bullets.add(bullet("Sonraki Üretim", "Yeniden üretimde daha detaylı bölüm kartları ve gezegen satırları oluşacaktır."));
+        bullets.add(bullet(
+                isEnglishLocale(locale) ? "Reading Flow" : "Yorum Akışı",
+                isEnglishLocale(locale)
+                        ? "The content was rebuilt into clearer titles and short explanations."
+                        : "İçerik, başlık ve kısa açıklamalar halinde daha net okunacak biçime getirildi.",
+                locale
+        ));
+        bullets.add(bullet(
+                isEnglishLocale(locale) ? "Next Pass" : "Sonraki Üretim",
+                isEnglishLocale(locale)
+                        ? "A richer AI pass can still regenerate more detailed planet cards later."
+                        : "Yeniden üretimde daha detaylı bölüm kartları ve gezegen satırları oluşacaktır.",
+                locale
+        ));
         section.set("bulletPoints", bullets);
         return section;
     }
 
-    private ObjectNode bullet(String title, String detail) {
+    private ObjectNode bullet(String title, String detail, String locale) {
         ObjectNode n = objectMapper.createObjectNode();
-        n.put("title", normalizeUiTitle(title, "Ana Nokta"));
-        n.put("detail", normalizeParagraph(detail, ""));
+        n.put("title", normalizeNatalUiTitle(title, isEnglishLocale(locale) ? "Key Point" : "Ana Nokta", locale));
+        n.put("detail", normalizeNatalParagraph(detail, "", locale));
         return n;
     }
 
-    private ObjectNode analysisLine(String icon, String title, String text) {
+    private ObjectNode analysisLine(String icon, String title, String text, String locale) {
         ObjectNode n = objectMapper.createObjectNode();
         n.put("icon", normalizeLineIcon(icon));
-        n.put("title", normalizeUiTitle(title, "Analiz"));
-        n.put("text", normalizeParagraph(text, ""));
+        n.put("title", normalizeNatalUiTitle(title, isEnglishLocale(locale) ? "Analysis" : "Analiz", locale));
+        n.put("text", normalizeNatalParagraph(text, "", locale));
         return n;
+    }
+
+    private String normalizeNatalUiTitle(String raw, String fallback, String locale) {
+        String src = nonBlank(raw) ? raw : fallback;
+        src = sanitizeNatalNarrative(src == null ? "" : src, locale);
+        src = src.replaceAll("[\\{\\}\\[\\]\"]", " ")
+                 .replace('_', ' ')
+                 .replace('-', ' ')
+                 .replaceAll("\\s+", " ")
+                 .trim();
+        if (src.isEmpty()) return fallback;
+        if (src.equals(src.toUpperCase(Locale.ROOT))) {
+            src = toTitleCase(src.toLowerCase(Locale.ROOT));
+        }
+        return truncate(src, 64);
+    }
+
+    private String normalizeNatalParagraph(String raw, String fallback, String locale) {
+        String s = nonBlank(raw) ? raw : fallback;
+        if (s == null) return "";
+        s = sanitizeNatalNarrative(s, locale)
+                .replaceAll("[\\r\\n\\t]+", " ")
+                .replaceAll("\\s{2,}", " ")
+                .trim();
+        return s;
+    }
+
+    private String sanitizeNatalNarrative(String input, String locale) {
+        if (!nonBlank(input)) return input == null ? "" : input;
+        String normalized = input
+                .replace('“', '"')
+                .replace('”', '"')
+                .replace('’', '\'')
+                .replace('‘', '\'');
+        if (isEnglishLocale(locale)) {
+            return normalized
+                    .replaceAll("\\s+,", ",")
+                    .replaceAll("\\s+\\.", ".")
+                    .replaceAll("\\s{2,}", " ")
+                    .trim();
+        }
+        return sanitizeAiLanguageArtifacts(replaceTurkishTerms(normalized));
+    }
+
+    private String defaultNatalPlanetTitle(String planetId, String locale) {
+        if (isEnglishLocale(locale)) {
+            return switch (planetId) {
+                case "sun" -> "Sun: core identity";
+                case "moon" -> "Moon: emotional center";
+                case "mercury" -> "Mercury: mind and expression";
+                case "venus" -> "Venus: relationships and values";
+                case "mars" -> "Mars: drive and momentum";
+                case "jupiter" -> "Jupiter: growth and meaning";
+                case "saturn" -> "Saturn: structure and responsibility";
+                case "uranus" -> "Uranus: liberation and change";
+                case "neptune" -> "Neptune: intuition and imagination";
+                case "pluto" -> "Pluto: transformation and depth";
+                case "chiron" -> "Chiron: healing and sensitivity";
+                case "north_node" -> "North Node: growth direction";
+                default -> "Planetary Placement";
+            };
+        }
+        return switch (planetId) {
+            case "sun" -> "Güneş: yaşam kıvılcımın";
+            case "moon" -> "Ay: duygusal merkezin";
+            case "mercury" -> "Merkür: zihin ve ifade biçimin";
+            case "venus" -> "Venüs: ilişki ve zevk alanın";
+            case "mars" -> "Mars: hareket ve mücadele enerjin";
+            case "jupiter" -> "Jüpiter: büyüme ve anlam arayışın";
+            case "saturn" -> "Satürn: yapı ve sorumluluk alanın";
+            case "uranus" -> "Uranüs: özgürleşme dürtün";
+            case "neptune" -> "Neptün: sezgi ve hayal gücün";
+            case "pluto" -> "Plüton: dönüşüm gücün";
+            case "chiron" -> "Kiron: şifa ve hassasiyet alanın";
+            case "north_node" -> "Kuzey Düğümü: gelişim yönün";
+            default -> "Gezegen Yerleşimi";
+        };
     }
 
     private String normalizeUiTitle(String raw, String fallback) {
@@ -1349,6 +1537,923 @@ public class MysticalAiService {
         return s.trim();
     }
 
+    private boolean isEnglishLocale(String locale) {
+        return nonBlank(locale) && locale.toLowerCase(Locale.ROOT).startsWith("en");
+    }
+
+    private boolean isUsableNatalOutput(ObjectNode root, String locale) {
+        if (root == null) {
+            return false;
+        }
+
+        if (root.path("sections").size() < 4 || root.path("planetHighlights").size() < 3) {
+            return false;
+        }
+
+        String combined = collectNatalNarrative(root);
+        String lower = combined.toLowerCase(Locale.ROOT);
+        if (lower.contains("temel yorum korunarak başlıklara ayrıştırıldı")
+                || lower.contains("yorum bu aşamada sadeleştirilmiş yapıda sunuldu")
+                || lower.contains("yeniden üretimde daha zenginleşir")
+                || lower.contains("chartid.")
+                || lower.contains("absolutelongitude")) {
+            return false;
+        }
+
+        String inferredLocale = inferNarrativeLocale(combined);
+        return locale.equals(inferredLocale);
+    }
+
+    private String collectNatalNarrative(JsonNode node) {
+        StringBuilder sb = new StringBuilder();
+        appendNarrativeText(node, sb, 0);
+        return sb.toString();
+    }
+
+    private void appendNarrativeText(JsonNode node, StringBuilder sb, int depth) {
+        if (node == null || node.isNull() || depth > 6 || sb.length() > 8000) {
+            return;
+        }
+
+        if (node.isTextual()) {
+            String text = node.asText("");
+            if (nonBlank(text)) {
+                if (!sb.isEmpty()) sb.append(' ');
+                sb.append(text);
+            }
+            return;
+        }
+
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                appendNarrativeText(child, sb, depth + 1);
+            }
+            return;
+        }
+
+        if (node.isObject()) {
+            node.fields().forEachRemaining(entry -> appendNarrativeText(entry.getValue(), sb, depth + 1));
+        }
+    }
+
+    private String inferNarrativeLocale(String text) {
+        if (!nonBlank(text)) {
+            return null;
+        }
+        String lower = text.toLowerCase(Locale.ROOT);
+        boolean hasTurkish = containsTurkishSignals(lower);
+        boolean hasEnglish = containsEnglishSignals(lower);
+        if (hasEnglish && !hasTurkish) return "en";
+        if (hasTurkish && !hasEnglish) return "tr";
+        if (hasEnglish && hasTurkish) return "mixed";
+        return null;
+    }
+
+    private boolean containsTurkishSignals(String lower) {
+        return lower.matches(".*[çğıöşü].*")
+                || lower.matches(".*\\b(ve|ile|icin|için|dogum|doğum|harita|haritan|yorum|yorumun|yukselen|yükselen|burc|burcu|gezegen|duygusal|ilişki|güven|içsel|karakter|gösterir|gösteriyor)\\b.*");
+    }
+
+    private boolean containsEnglishSignals(String lower) {
+        return lower.matches(".*\\b(the|and|your|chart|sun|moon|rising|house|planet|relationship|career|daily|example|interpretation|strength|growth|identity|emotional)\\b.*");
+    }
+
+    private String buildDeterministicNatalJson(String payload, String locale) {
+        try {
+            NatalPayloadView natal = objectMapper.readValue(payload, NatalPayloadView.class);
+            String resolvedLocale = isEnglishLocale(locale) ? "en" : "tr";
+            ObjectNode out = objectMapper.createObjectNode();
+            out.put("version", "natal_v2");
+            out.put("tone", "scientific_warm");
+            out.put("opening", buildDeterministicOpening(natal, resolvedLocale));
+            out.put("coreSummary", buildDeterministicCoreSummary(natal, resolvedLocale));
+            out.set("sections", buildDeterministicNatalSections(natal, resolvedLocale));
+            out.set("planetHighlights", buildDeterministicPlanetHighlights(natal, resolvedLocale));
+            out.put("closing", buildDeterministicClosing(natal, resolvedLocale));
+            return objectMapper.writeValueAsString(out);
+        } catch (Exception e) {
+            logger.warn("Deterministic natal fallback generation failed: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    private ArrayNode buildDeterministicNatalSections(NatalPayloadView natal, String locale) {
+        ArrayNode sections = objectMapper.createArrayNode();
+
+        sections.add(buildNatalSection(
+                "core_portrait",
+                isEnglishLocale(locale) ? "Cosmic Portrait Essence" : "Kozmik Portrenin Özü",
+                buildCorePortraitBody(natal, locale),
+                isEnglishLocale(locale)
+                        ? "You notice this pattern when your first reaction and your deeper intention are not exactly the same."
+                        : "Bu tema özellikle ilk tepkin ile derindeki niyetin tam örtüşmediğinde görünür olur.",
+                isEnglishLocale(locale) ? "Main Identity Pattern" : "Ana Kimlik Deseni",
+                buildCorePortraitBullet(natal, locale),
+                isEnglishLocale(locale) ? "Outer Style" : "Dışa Yansıyan Tarz",
+                buildRisingBullet(natal, locale),
+                locale
+        ));
+
+        sections.add(buildNatalSection(
+                "inner_conflicts",
+                isEnglishLocale(locale) ? "Inner Conflicts and Power Centers" : "İç Çatışmalar ve Güç Merkezleri",
+                buildInnerConflictBody(natal, locale),
+                isEnglishLocale(locale)
+                        ? "This pattern becomes visible when pressure rises and two equally valid needs pull in opposite directions."
+                        : "Bu tema baskı arttığında ve iki gerçek ihtiyaç farklı yönlere çektiğinde belirginleşir.",
+                isEnglishLocale(locale) ? "Primary Tension" : "Ana Gerilim",
+                buildTensionBullet(natal, locale),
+                isEnglishLocale(locale) ? "Growth Lever" : "Gelişim Kolu",
+                isEnglishLocale(locale)
+                        ? "Naming the real need before reacting turns friction into usable information."
+                        : "Tepki vermeden önce asıl ihtiyacı isimlendirmek gerilimi kullanılabilir içgörüye dönüştürür.",
+                locale
+        ));
+
+        sections.add(buildNatalSection(
+                "natural_gifts",
+                isEnglishLocale(locale) ? "Natural Gifts and Talents" : "Doğal Yetenekler ve Armağanlar",
+                buildNaturalGiftsBody(natal, locale),
+                isEnglishLocale(locale)
+                        ? "This support pattern becomes obvious when you trust your natural rhythm instead of forcing the process."
+                        : "Bu destekleyici tema, süreci zorlamak yerine doğal ritmine güvendiğinde daha görünür olur.",
+                isEnglishLocale(locale) ? "Supportive Flow" : "Destekleyici Akış",
+                buildSupportBullet(natal, locale),
+                isEnglishLocale(locale) ? "Gift in Action" : "Çalışan Armağan",
+                isEnglishLocale(locale)
+                        ? "The chart gives you at least one area where growth comes with less resistance than expected."
+                        : "Harita, gelişimin beklenenden daha az dirençle aktığı en az bir alan veriyor.",
+                locale
+        ));
+
+        sections.add(buildNatalSection(
+                "planetary_placements",
+                isEnglishLocale(locale) ? "Planetary Placements" : "Gezegen Yerleşimleri",
+                buildPlanetPlacementBody(natal, locale),
+                isEnglishLocale(locale)
+                        ? "Your thinking, relating, and action style shape the texture of ordinary days."
+                        : "Düşünme, ilişki kurma ve hareket etme biçimin günlük hayatın dokusunu belirler.",
+                isEnglishLocale(locale) ? "Mind and Speech" : "Zihin ve İfade",
+                buildSpecificPlanetBullet(natal, "Mercury", locale),
+                isEnglishLocale(locale) ? "Desire and Action" : "Arzu ve Hareket",
+                buildVenusMarsBullet(natal, locale),
+                locale
+        ));
+
+        sections.add(buildNatalSection(
+                "career_purpose",
+                isEnglishLocale(locale) ? "Career and Life Purpose" : "Kariyer ve Yaşam Amacı",
+                buildCareerPurposeBody(natal, locale),
+                isEnglishLocale(locale)
+                        ? "You feel this most clearly when work needs both competence and a sense of meaning."
+                        : "Bu tema en çok işin hem yetkinlik hem de anlam istediği dönemlerde hissedilir.",
+                isEnglishLocale(locale) ? "Public Direction" : "Kamusal Yön",
+                buildCareerBullet(natal, locale),
+                isEnglishLocale(locale) ? "Long-Term Focus" : "Uzun Vadeli Odak",
+                isEnglishLocale(locale)
+                        ? "Your chart rewards consistency more than quick symbolic wins."
+                        : "Haritan hızlı sembolik kazançlardan çok istikrarlı ilerlemeyi ödüllendiriyor.",
+                locale
+        ));
+
+        sections.add(buildNatalSection(
+                "relationship_dynamics",
+                isEnglishLocale(locale) ? "Relationship Dynamics" : "İlişki Dinamikleri",
+                buildRelationshipBody(natal, locale),
+                isEnglishLocale(locale)
+                        ? "This appears in the way closeness, boundaries, and expectations get negotiated with other people."
+                        : "Bu tema, yakınlık, sınır ve beklenti dengesinin başka insanlarla nasıl kurulduğunda açığa çıkar.",
+                isEnglishLocale(locale) ? "Partnership Style" : "Ortaklık Tarzı",
+                buildRelationshipBullet(natal, locale),
+                isEnglishLocale(locale) ? "Balance Point" : "Denge Noktası",
+                isEnglishLocale(locale)
+                        ? "Relationships work best when honesty and pacing are protected at the same time."
+                        : "İlişkiler, dürüstlük ile tempo korunduğunda en sağlıklı akışını bulur.",
+                locale
+        ));
+
+        sections.add(buildNatalSection(
+                "spiritual_mission",
+                isEnglishLocale(locale) ? "Spiritual Direction and North Node" : "Ruhsal Yön ve Kuzey Düğümü",
+                buildSpiritualMissionBody(natal, locale),
+                isEnglishLocale(locale)
+                        ? "You feel this section most strongly in periods that ask for courage, healing, or a larger perspective."
+                        : "Bu bölüm özellikle cesaret, şifa ve daha geniş bir perspektif isteyen dönemlerde hissedilir.",
+                isEnglishLocale(locale) ? "Development Path" : "Gelişim Yolu",
+                buildMissionBullet(natal, locale),
+                isEnglishLocale(locale) ? "Inner Resource" : "İç Kaynak",
+                isEnglishLocale(locale)
+                        ? "The chart suggests that maturity arrives by integrating sensitivity with responsibility."
+                        : "Harita, olgunlaşmanın hassasiyet ile sorumluluğu birlikte taşıyarak geldiğini gösteriyor.",
+                locale
+        ));
+
+        return sections;
+    }
+
+    private ArrayNode buildDeterministicPlanetHighlights(NatalPayloadView natal, String locale) {
+        ArrayNode highlights = objectMapper.createArrayNode();
+        for (String planetName : List.of("Sun", "Moon", "Mercury", "Venus", "Mars")) {
+            NatalPlanetView planet = findPlanet(natal, planetName);
+            if (planet != null) {
+                highlights.add(buildPlanetHighlight(planet, locale));
+            }
+        }
+        return highlights;
+    }
+
+    private ObjectNode buildNatalSection(
+            String id,
+            String title,
+            String body,
+            String daily,
+            String bullet1Title,
+            String bullet1Detail,
+            String bullet2Title,
+            String bullet2Detail,
+            String locale
+    ) {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", id);
+        section.put("title", normalizeNatalUiTitle(title, title, locale));
+        section.put("body", normalizeNatalParagraph(body, body, locale));
+        section.put("dailyLifeExample", normalizeNatalParagraph(daily, daily, locale));
+        ArrayNode bullets = objectMapper.createArrayNode();
+        bullets.add(bullet(bullet1Title, bullet1Detail, locale));
+        bullets.add(bullet(bullet2Title, bullet2Detail, locale));
+        section.set("bulletPoints", bullets);
+        return section;
+    }
+
+    private ObjectNode buildPlanetHighlight(NatalPlanetView planet, String locale) {
+        String planetId = normalizePlanetId(planet.planet());
+        String planetLabel = localizePlanet(planet.planet(), locale);
+        String signLabel = localizeSign(planet.sign(), locale);
+        String title = isEnglishLocale(locale)
+                ? planetLabel + ": " + houseLabel(planet.house(), locale) + " expression"
+                : planetLabel + ": " + planet.house() + ". ev ifadesi";
+
+        String intro = isEnglishLocale(locale)
+                ? planetLabel + " in " + signLabel + " works through " + signEssence(planet.sign(), locale) + "."
+                : planetLabel + " " + signLabel + " burcunda " + signEssence(planet.sign(), locale) + " üzerinden çalışır.";
+        String character = isEnglishLocale(locale)
+                ? "Placed in the " + houseLabel(planet.house(), locale) + ", it links this planet to " + houseTheme(planet.house(), locale) + "."
+                : houseLabel(planet.house(), locale) + " yerleşimi bu gezegeni " + houseTheme(planet.house(), locale) + " temalarına bağlar.";
+        String depth = isEnglishLocale(locale)
+                ? "Under stress it can slip into " + signShadow(planet.sign(), locale) + ", but awareness turns it into a practical strength."
+                : "Zorlandığında " + signShadow(planet.sign(), locale) + " tarafına kayabilir; farkındalık bunu gerçek bir güce dönüştürür.";
+        String daily = isEnglishLocale(locale)
+                ? "You notice this when " + dailyCueForHouse(planet.house(), locale) + "."
+                : "Bu yerleşim özellikle " + dailyCueForHouse(planet.house(), locale) + " anlarında görünür olur.";
+
+        ObjectNode outNode = objectMapper.createObjectNode();
+        outNode.put("planetId", planetId);
+        outNode.put("title", normalizeNatalUiTitle(title, title, locale));
+        outNode.put("intro", normalizeNatalParagraph(intro, intro, locale));
+        outNode.put("character", normalizeNatalParagraph(character, character, locale));
+        outNode.put("depth", normalizeNatalParagraph(depth, depth, locale));
+        outNode.put("dailyLifeExample", normalizeNatalParagraph(daily, daily, locale));
+        ArrayNode lines = objectMapper.createArrayNode();
+        lines.add(analysisLine("sparkles", isEnglishLocale(locale) ? "Character Analysis" : "Karakter Analizi", intro, locale));
+        lines.add(analysisLine("rocket", isEnglishLocale(locale) ? "How It Affects You" : "Seni Nasıl Etkiler?", character, locale));
+        lines.add(analysisLine("warning", isEnglishLocale(locale) ? "Watch Out For" : "Dikkat Etmen Gerekenler", depth, locale));
+        lines.add(analysisLine("star", isEnglishLocale(locale) ? "Key Strengths" : "Öne Çıkan Özellikler", daily, locale));
+        outNode.set("analysisLines", lines);
+        return outNode;
+    }
+
+    private String buildDeterministicOpening(NatalPayloadView natal, String locale) {
+        NatalAspectView tension = findStrongestAspect(natal, List.of("SQUARE", "OPPOSITION"));
+        NatalAspectView support = findStrongestAspect(natal, List.of("TRINE", "SEXTILE", "CONJUNCTION"));
+        if (isEnglishLocale(locale)) {
+            return normalizeNatalParagraph(
+                    subjectLabel(natal, locale) + " blends " + localizeSign(natal.sunSign(), locale) + " purpose, "
+                            + localizeSign(natal.moonSign(), locale) + " emotional needs, and a "
+                            + localizeSign(natal.risingSign(), locale) + " rising style. "
+                            + (tension != null ? "A major tension appears through " + describeAspect(tension, locale) + ". " : "")
+                            + (support != null ? "A stabilizing gift comes through " + describeAspect(support, locale) + "." : "Support grows when curiosity and discipline cooperate."),
+                    "",
+                    locale
+            );
+        }
+        return normalizeNatalParagraph(
+                subjectLabel(natal, locale) + " içinde " + localizeSign(natal.sunSign(), locale) + " amacı, "
+                        + localizeSign(natal.moonSign(), locale) + " duygusal ihtiyacı ve "
+                        + localizeSign(natal.risingSign(), locale) + " yükselen tarzı bir araya geliyor. "
+                        + (tension != null ? "Ana gerilim " + describeAspect(tension, locale) + " üzerinden hissediliyor. " : "")
+                        + (support != null ? "Destekleyici akış ise " + describeAspect(support, locale) + " ile güçleniyor." : "Destekleyici taraf, merak ile disiplin birlikte çalıştığında görünür oluyor."),
+                "",
+                locale
+        );
+    }
+
+    private String buildDeterministicCoreSummary(NatalPayloadView natal, String locale) {
+        NatalPlanetView sun = findPlanet(natal, "Sun");
+        NatalPlanetView moon = findPlanet(natal, "Moon");
+        if (isEnglishLocale(locale)) {
+            return normalizeNatalParagraph(
+                    localizePlanet("Sun", locale) + " in " + localizeSign(natal.sunSign(), locale)
+                            + (sun != null ? " in the " + houseLabel(sun.house(), locale) : "")
+                            + " seeks " + signEssence(natal.sunSign(), locale) + ". "
+                            + localizePlanet("Moon", locale) + " in " + localizeSign(natal.moonSign(), locale)
+                            + (moon != null ? " in the " + houseLabel(moon.house(), locale) : "")
+                            + " needs " + signEssence(natal.moonSign(), locale) + ". "
+                            + localizeSign(natal.risingSign(), locale) + " rising makes your outer style feel " + signEssence(natal.risingSign(), locale) + ".",
+                    "",
+                    locale
+            );
+        }
+        return normalizeNatalParagraph(
+                localizePlanet("Güneş", locale) + " " + localizeSign(natal.sunSign(), locale)
+                        + (sun != null ? " burcunda " + houseLabel(sun.house(), locale) + " yerleşimiyle" : " burcunda")
+                        + " " + signEssence(natal.sunSign(), locale) + " arıyor. "
+                        + localizePlanet("Ay", locale) + " " + localizeSign(natal.moonSign(), locale)
+                        + (moon != null ? " burcunda " + houseLabel(moon.house(), locale) + " yerleşimiyle" : " burcunda")
+                        + " " + signEssence(natal.moonSign(), locale) + " ihtiyacını büyütüyor. "
+                        + localizeSign(natal.risingSign(), locale) + " yükseleni ise dış dünyaya " + signEssence(natal.risingSign(), locale) + " tonunu taşıyor.",
+                "",
+                locale
+        );
+    }
+
+    private String buildDeterministicClosing(NatalPayloadView natal, String locale) {
+        return isEnglishLocale(locale)
+                ? "This chart works best as a practical awareness tool. When you name the tension, use the gift, and respect your pacing, the pattern becomes much easier to live with."
+                : "Bu harita en iyi, pratik bir farkındalık aracı gibi kullanıldığında çalışır. Gerilimi isimlendirip armağanı bilinçli kullandığında ve kendi ritmine saygı duyduğunda desen çok daha yönetilebilir hale gelir.";
+    }
+
+    private String buildCorePortraitBody(NatalPayloadView natal, String locale) {
+        NatalPlanetView sun = findPlanet(natal, "Sun");
+        NatalPlanetView moon = findPlanet(natal, "Moon");
+        if (isEnglishLocale(locale)) {
+            return localizePlanet("Sun", locale) + " in " + localizeSign(natal.sunSign(), locale)
+                    + (sun != null ? " in the " + houseLabel(sun.house(), locale) : "")
+                    + " ties identity to " + houseTheme(sun != null ? sun.house() : 1, locale) + " and to " + signEssence(natal.sunSign(), locale) + ". "
+                    + localizePlanet("Moon", locale) + " in " + localizeSign(natal.moonSign(), locale)
+                    + (moon != null ? " in the " + houseLabel(moon.house(), locale) : "")
+                    + " adds emotional needs around " + houseTheme(moon != null ? moon.house() : 4, locale) + ". "
+                    + localizeSign(natal.risingSign(), locale) + " rising gives your first impression a " + signEssence(natal.risingSign(), locale) + " tone, so people may meet your flexibility before they see your deeper commitments.";
+        }
+        return localizePlanet("Sun", locale) + " " + localizeSign(natal.sunSign(), locale)
+                + (sun != null ? " burcunda " + houseLabel(sun.house(), locale) + " yerleşimiyle" : " burcunda")
+                + " kimliği " + houseTheme(sun != null ? sun.house() : 1, locale) + " ve " + signEssence(natal.sunSign(), locale) + " üzerinden kuruyor. "
+                + localizePlanet("Moon", locale) + " " + localizeSign(natal.moonSign(), locale)
+                + (moon != null ? " burcunda " + houseLabel(moon.house(), locale) + " yerleşimiyle" : " burcunda")
+                + " duygusal ihtiyacı " + houseTheme(moon != null ? moon.house() : 4, locale) + " alanına taşıyor. "
+                + localizeSign(natal.risingSign(), locale) + " yükseleni ise ilk izlenimde " + signEssence(natal.risingSign(), locale) + " tonunu öne çıkarıyor; insanlar önce hareketliliğini görüp alttaki kararlılığı sonra fark edebilir.";
+    }
+
+    private String buildInnerConflictBody(NatalPayloadView natal, String locale) {
+        NatalAspectView tension = findStrongestAspect(natal, List.of("SQUARE", "OPPOSITION"));
+        if (tension == null) {
+            return isEnglishLocale(locale)
+                    ? "Your chart is less about one dramatic fracture and more about pacing different needs without losing coherence."
+                    : "Haritan tek bir dramatik kırılmadan çok, farklı ihtiyaçları aynı ritimde taşıma becerisi etrafında çalışıyor.";
+        }
+        NatalPlanetView planet1 = findPlanet(natal, tension.planet1());
+        NatalPlanetView planet2 = findPlanet(natal, tension.planet2());
+        if (isEnglishLocale(locale)) {
+            return describeAspect(tension, locale) + " suggests friction between "
+                    + houseTheme(planet1 != null ? planet1.house() : 1, locale) + " and "
+                    + houseTheme(planet2 != null ? planet2.house() : 7, locale) + ". "
+                    + "This does not remove your strengths; it asks you to slow down long enough to understand which need is actually speaking first.";
+        }
+        return describeAspect(tension, locale) + " özellikle "
+                + houseTheme(planet1 != null ? planet1.house() : 1, locale) + " ile "
+                + houseTheme(planet2 != null ? planet2.house() : 7, locale) + " arasında bir sürtünme yaratıyor. "
+                + "Bu gerilim gücü ortadan kaldırmaz; sadece ilk konuşan ihtiyacın hangisi olduğunu daha bilinçli duymanı ister.";
+    }
+
+    private String buildNaturalGiftsBody(NatalPayloadView natal, String locale) {
+        NatalAspectView support = findStrongestAspect(natal, List.of("TRINE", "SEXTILE", "CONJUNCTION"));
+        if (support == null) {
+            return isEnglishLocale(locale)
+                    ? "The chart still shows usable gifts: endurance, pattern recognition, and an ability to learn through experience."
+                    : "Harita yine de kullanılabilir armağanlar veriyor: dayanıklılık, örüntü fark etme ve deneyimden öğrenme kapasitesi.";
+        }
+        NatalPlanetView planet1 = findPlanet(natal, support.planet1());
+        NatalPlanetView planet2 = findPlanet(natal, support.planet2());
+        if (isEnglishLocale(locale)) {
+            return describeAspect(support, locale) + " creates a more natural flow between "
+                    + houseTheme(planet1 != null ? planet1.house() : 1, locale) + " and "
+                    + houseTheme(planet2 != null ? planet2.house() : 9, locale) + ". "
+                    + "This is a place where your effort is usually rewarded faster because the chart is already wired for cooperation here.";
+        }
+        return describeAspect(support, locale) + " "
+                + houseTheme(planet1 != null ? planet1.house() : 1, locale) + " ile "
+                + houseTheme(planet2 != null ? planet2.house() : 9, locale) + " arasında daha doğal bir akış yaratıyor. "
+                + "Burada emek daha hızlı karşılık bulur; çünkü haritan bu alanda işbirliğine zaten yatkın çalışıyor.";
+    }
+
+    private String buildPlanetPlacementBody(NatalPayloadView natal, String locale) {
+        NatalPlanetView mercury = findPlanet(natal, "Mercury");
+        NatalPlanetView venus = findPlanet(natal, "Venus");
+        NatalPlanetView mars = findPlanet(natal, "Mars");
+        List<String> parts = new ArrayList<>();
+        if (mercury != null) {
+            parts.add(isEnglishLocale(locale)
+                    ? localizePlanet("Mercury", locale) + " in " + localizeSign(mercury.sign(), locale) + " thinks through " + signEssence(mercury.sign(), locale) + "."
+                    : localizePlanet("Mercury", locale) + " " + localizeSign(mercury.sign(), locale) + " burcunda " + signEssence(mercury.sign(), locale) + " üzerinden düşünür.");
+        }
+        if (venus != null) {
+            parts.add(isEnglishLocale(locale)
+                    ? localizePlanet("Venus", locale) + " in " + localizeSign(venus.sign(), locale) + " values " + signEssence(venus.sign(), locale) + "."
+                    : localizePlanet("Venus", locale) + " " + localizeSign(venus.sign(), locale) + " burcunda " + signEssence(venus.sign(), locale) + " değerini büyütür.");
+        }
+        if (mars != null) {
+            parts.add(isEnglishLocale(locale)
+                    ? localizePlanet("Mars", locale) + " in " + localizeSign(mars.sign(), locale) + " acts through " + signEssence(mars.sign(), locale) + "."
+                    : localizePlanet("Mars", locale) + " " + localizeSign(mars.sign(), locale) + " burcunda " + signEssence(mars.sign(), locale) + " ile harekete geçer.");
+        }
+        return String.join(" ", parts);
+    }
+
+    private String buildCareerPurposeBody(NatalPayloadView natal, String locale) {
+        NatalHouseView tenthHouse = findHouse(natal, 10);
+        List<NatalPlanetView> tenthHousePlanets = planetsInHouse(natal, 10);
+        String planetList = localizePlanetList(tenthHousePlanets, locale);
+        if (isEnglishLocale(locale)) {
+            return "The " + houseLabel(10, locale) + " begins in "
+                    + localizeSign(tenthHouse != null ? tenthHouse.sign() : "Capricorn", locale)
+                    + ", so vocation asks for " + signEssence(tenthHouse != null ? tenthHouse.sign() : "Capricorn", locale) + ". "
+                    + (!planetList.isBlank()
+                    ? "Visible career themes are reinforced by " + planetList + ". "
+                    : "")
+                    + "Your public direction becomes stronger when responsibility and originality can coexist.";
+        }
+        return houseLabel(10, locale) + " başlangıcı "
+                + localizeSign(tenthHouse != null ? tenthHouse.sign() : "Capricorn", locale)
+                + " burcunda olduğu için mesleki yön " + signEssence(tenthHouse != null ? tenthHouse.sign() : "Capricorn", locale) + " ister. "
+                + (!planetList.isBlank() ? "Görünür kariyer temaları " + planetList + " ile daha da vurgulanır. " : "")
+                + "Kamusal yönün, sorumluluk ile özgünlük birlikte taşındığında güçlenir.";
+    }
+
+    private String buildRelationshipBody(NatalPayloadView natal, String locale) {
+        NatalHouseView seventhHouse = findHouse(natal, 7);
+        List<NatalPlanetView> seventhHousePlanets = planetsInHouse(natal, 7);
+        String planetList = localizePlanetList(seventhHousePlanets, locale);
+        if (isEnglishLocale(locale)) {
+            return "The " + houseLabel(7, locale) + " begins in "
+                    + localizeSign(seventhHouse != null ? seventhHouse.sign() : "Libra", locale)
+                    + ", so partnership themes ask for " + signEssence(seventhHouse != null ? seventhHouse.sign() : "Libra", locale) + ". "
+                    + (!planetList.isBlank() ? "Relationships are further colored by " + planetList + ". " : "")
+                    + "The main lesson is not only closeness, but also pacing and clarity.";
+        }
+        return houseLabel(7, locale) + " başlangıcı "
+                + localizeSign(seventhHouse != null ? seventhHouse.sign() : "Libra", locale)
+                + " burcunda olduğu için ilişkiler " + signEssence(seventhHouse != null ? seventhHouse.sign() : "Libra", locale) + " talep eder. "
+                + (!planetList.isBlank() ? "İlişki dinamiği ayrıca " + planetList + " ile renklidir. " : "")
+                + "Ana ders yalnızca yakınlık değil; tempo ve netlik kurabilmektir.";
+    }
+
+    private String buildSpiritualMissionBody(NatalPayloadView natal, String locale) {
+        NatalPlanetView northNode = findPlanet(natal, "NorthNode");
+        NatalPlanetView chiron = findPlanet(natal, "Chiron");
+        if (isEnglishLocale(locale)) {
+            return (northNode != null
+                    ? localizePlanet("NorthNode", locale) + " in " + localizeSign(northNode.sign(), locale) + " points toward growth through "
+                    + houseTheme(northNode.house(), locale) + ". "
+                    : "The growth path in this chart becomes clearer when you stop repeating what feels safe but emotionally small. ")
+                    + (chiron != null
+                    ? localizePlanet("Chiron", locale) + " shows that healing is tied to " + houseTheme(chiron.house(), locale) + " and to learning a gentler relationship with vulnerability."
+                    : "A big part of maturity here comes from treating sensitivity as information instead of as weakness.");
+        }
+        return (northNode != null
+                ? localizePlanet("NorthNode", locale) + " " + localizeSign(northNode.sign(), locale) + " burcunda gelişimin "
+                + houseTheme(northNode.house(), locale) + " üzerinden çağrıldığını gösteriyor. "
+                : "Bu haritada gelişim yolu, güvenli ama dar gelen kalıpları tekrar etmek yerine daha büyük bir ufka açıldığında netleşir. ")
+                + (chiron != null
+                ? localizePlanet("Chiron", locale) + " ise şifanın " + houseTheme(chiron.house(), locale) + " alanı ve kırılganlıkla daha yumuşak ilişki kurmakla bağlantılı olduğunu anlatıyor."
+                : "Olgunlaşmanın önemli bir kısmı, hassasiyeti zayıflık değil veri gibi kullanabilmekten geçiyor.");
+    }
+
+    private String buildCorePortraitBullet(NatalPayloadView natal, String locale) {
+        NatalPlanetView sun = findPlanet(natal, "Sun");
+        return isEnglishLocale(locale)
+                ? "The chart centers identity around " + houseTheme(sun != null ? sun.house() : 1, locale) + " with a " + localizeSign(natal.sunSign(), locale) + " tone."
+                : "Harita kimliği " + houseTheme(sun != null ? sun.house() : 1, locale) + " alanında " + localizeSign(natal.sunSign(), locale) + " tonuyla merkeze alıyor.";
+    }
+
+    private String buildRisingBullet(NatalPayloadView natal, String locale) {
+        return isEnglishLocale(locale)
+                ? localizeSign(natal.risingSign(), locale) + " rising often makes you look " + signEssence(natal.risingSign(), locale) + " before your deeper motives are obvious."
+                : localizeSign(natal.risingSign(), locale) + " yükseleni, derindeki motivasyonlar görünmeden önce seni " + signEssence(natal.risingSign(), locale) + " gösterir.";
+    }
+
+    private String buildTensionBullet(NatalPayloadView natal, String locale) {
+        NatalAspectView tension = findStrongestAspect(natal, List.of("SQUARE", "OPPOSITION"));
+        if (tension == null) {
+            return isEnglishLocale(locale)
+                    ? "The pressure is subtle but recurring: different needs may ask for different timing."
+                    : "Gerilim ince ama tekrar edebilir; farklı ihtiyaçlar farklı tempo isteyebilir.";
+        }
+        return isEnglishLocale(locale)
+                ? describeAspect(tension, locale) + " is the clearest training ground in the chart."
+                : describeAspect(tension, locale) + " haritadaki en belirgin eğitim alanını oluşturuyor.";
+    }
+
+    private String buildSupportBullet(NatalPayloadView natal, String locale) {
+        NatalAspectView support = findStrongestAspect(natal, List.of("TRINE", "SEXTILE", "CONJUNCTION"));
+        if (support == null) {
+            return isEnglishLocale(locale)
+                    ? "The main gift is endurance: you can build skill by repetition."
+                    : "Ana armağan dayanıklılık: tekrar ederek beceri inşa edebilirsin.";
+        }
+        return isEnglishLocale(locale)
+                ? describeAspect(support, locale) + " gives one of the chart's easiest resource channels."
+                : describeAspect(support, locale) + " haritanın en rahat çalışan kaynak kanallarından birini veriyor.";
+    }
+
+    private String buildSpecificPlanetBullet(NatalPayloadView natal, String planetName, String locale) {
+        NatalPlanetView planet = findPlanet(natal, planetName);
+        if (planet == null) {
+            return isEnglishLocale(locale)
+                    ? "Mental style becomes clearer when you watch how you organize information under pressure."
+                    : "Zihinsel tarzın, baskı altında bilgiyi nasıl organize ettiğine baktığında daha net görünür.";
+        }
+        return isEnglishLocale(locale)
+                ? localizePlanet(planetName, locale) + " works through " + signEssence(planet.sign(), locale) + " in " + houseLabel(planet.house(), locale) + "."
+                : localizePlanet(planetName, locale) + " " + signEssence(planet.sign(), locale) + " ile " + houseLabel(planet.house(), locale) + " alanında çalışır.";
+    }
+
+    private String buildVenusMarsBullet(NatalPayloadView natal, String locale) {
+        NatalPlanetView venus = findPlanet(natal, "Venus");
+        NatalPlanetView mars = findPlanet(natal, "Mars");
+        if (isEnglishLocale(locale)) {
+            return (venus != null ? localizePlanet("Venus", locale) + " seeks " + signEssence(venus.sign(), locale) + ". " : "")
+                    + (mars != null ? localizePlanet("Mars", locale) + " acts through " + signEssence(mars.sign(), locale) + "." : "");
+        }
+        return (venus != null ? localizePlanet("Venus", locale) + " " + signEssence(venus.sign(), locale) + " ister. " : "")
+                + (mars != null ? localizePlanet("Mars", locale) + " " + signEssence(mars.sign(), locale) + " ile harekete geçer." : "");
+    }
+
+    private String buildCareerBullet(NatalPayloadView natal, String locale) {
+        NatalHouseView tenthHouse = findHouse(natal, 10);
+        return isEnglishLocale(locale)
+                ? "Career gains momentum when " + localizeSign(tenthHouse != null ? tenthHouse.sign() : "Capricorn", locale) + " qualities are used consciously."
+                : "Kariyer, " + localizeSign(tenthHouse != null ? tenthHouse.sign() : "Capricorn", locale) + " özellikleri bilinçli kullanıldığında daha fazla ivme kazanır.";
+    }
+
+    private String buildRelationshipBullet(NatalPayloadView natal, String locale) {
+        NatalHouseView seventhHouse = findHouse(natal, 7);
+        return isEnglishLocale(locale)
+                ? "Partnership mirrors become stronger around " + houseTheme(seventhHouse != null ? 7 : 7, locale) + "."
+                : "İlişki aynaları özellikle " + houseTheme(seventhHouse != null ? 7 : 7, locale) + " alanında daha görünür hale gelir.";
+    }
+
+    private String buildMissionBullet(NatalPayloadView natal, String locale) {
+        NatalPlanetView northNode = findPlanet(natal, "NorthNode");
+        if (northNode == null) {
+            return isEnglishLocale(locale)
+                    ? "Growth appears when you move toward a wider life perspective instead of repeating old defenses."
+                    : "Gelişim, eski savunmaları tekrar etmek yerine daha geniş bir yaşam perspektifine açıldığında görünür olur.";
+        }
+        return isEnglishLocale(locale)
+                ? localizePlanet("NorthNode", locale) + " directs growth toward " + houseTheme(northNode.house(), locale) + "."
+                : localizePlanet("NorthNode", locale) + " gelişimi " + houseTheme(northNode.house(), locale) + " alanına yönlendirir.";
+    }
+
+    private NatalPlanetView findPlanet(NatalPayloadView natal, String planetName) {
+        if (natal == null || natal.planets() == null) return null;
+        for (NatalPlanetView planet : natal.planets()) {
+            if (planet != null && nonBlank(planet.planet()) && planet.planet().equalsIgnoreCase(planetName)) {
+                return planet;
+            }
+        }
+        return null;
+    }
+
+    private NatalHouseView findHouse(NatalPayloadView natal, int houseNumber) {
+        if (natal == null || natal.houses() == null) return null;
+        for (NatalHouseView house : natal.houses()) {
+            if (house != null && house.houseNumber() == houseNumber) {
+                return house;
+            }
+        }
+        return null;
+    }
+
+    private List<NatalPlanetView> planetsInHouse(NatalPayloadView natal, int houseNumber) {
+        List<NatalPlanetView> planets = new ArrayList<>();
+        if (natal == null || natal.planets() == null) return planets;
+        for (NatalPlanetView planet : natal.planets()) {
+            if (planet != null && planet.house() == houseNumber) {
+                planets.add(planet);
+            }
+        }
+        return planets;
+    }
+
+    private NatalAspectView findStrongestAspect(NatalPayloadView natal, List<String> types) {
+        if (natal == null || natal.aspects() == null) return null;
+        NatalAspectView winner = null;
+        for (NatalAspectView aspect : natal.aspects()) {
+            if (aspect == null || !nonBlank(aspect.type()) || !types.contains(aspect.type().toUpperCase(Locale.ROOT))) {
+                continue;
+            }
+            if (winner == null || aspect.orb() < winner.orb()) {
+                winner = aspect;
+            }
+        }
+        return winner;
+    }
+
+    private String localizePlanetList(List<NatalPlanetView> planets, String locale) {
+        if (planets == null || planets.isEmpty()) return "";
+        List<String> names = new ArrayList<>();
+        for (NatalPlanetView planet : planets) {
+            if (planet != null && nonBlank(planet.planet())) {
+                names.add(localizePlanet(planet.planet(), locale));
+            }
+        }
+        if (names.isEmpty()) return "";
+        if (names.size() == 1) return names.getFirst();
+        if (names.size() == 2) {
+            return names.get(0) + (isEnglishLocale(locale) ? " and " : " ve ") + names.get(1);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                sb.append(i == names.size() - 1 ? (isEnglishLocale(locale) ? ", and " : " ve ") : ", ");
+            }
+            sb.append(names.get(i));
+        }
+        return sb.toString();
+    }
+
+    private String describeAspect(NatalAspectView aspect, String locale) {
+        if (aspect == null) return "";
+        String p1 = localizePlanet(aspect.planet1(), locale);
+        String p2 = localizePlanet(aspect.planet2(), locale);
+        String label = localizeAspect(aspect.type(), locale);
+        String orb = String.format(Locale.US, "%.2f", aspect.orb());
+        if (isEnglishLocale(locale)) {
+            return "the " + p1 + "-" + p2 + " " + label + " (orb " + orb + "°)";
+        }
+        return p1 + " ile " + p2 + " arasındaki " + label + " (orb " + orb + "°)";
+    }
+
+    private String localizeAspect(String type, String locale) {
+        String normalized = type == null ? "" : type.toUpperCase(Locale.ROOT);
+        if (isEnglishLocale(locale)) {
+            return switch (normalized) {
+                case "CONJUNCTION" -> "conjunction";
+                case "SEXTILE" -> "sextile";
+                case "SQUARE" -> "square";
+                case "TRINE" -> "trine";
+                case "OPPOSITION" -> "opposition";
+                default -> "aspect";
+            };
+        }
+        return switch (normalized) {
+            case "CONJUNCTION" -> "kavuşum";
+            case "SEXTILE" -> "altmışlık";
+            case "SQUARE" -> "kare";
+            case "TRINE" -> "üçgen";
+            case "OPPOSITION" -> "karşıt";
+            default -> "açı";
+        };
+    }
+
+    private String localizePlanet(String planet, String locale) {
+        String normalized = planet == null ? "" : planet.trim().toLowerCase(Locale.ROOT).replace(" ", "");
+        if (isEnglishLocale(locale)) {
+            return switch (normalized) {
+                case "sun", "güneş", "gunes" -> "Sun";
+                case "moon", "ay" -> "Moon";
+                case "mercury", "merkür", "merkur" -> "Mercury";
+                case "venus", "venüs" -> "Venus";
+                case "mars" -> "Mars";
+                case "jupiter", "jüpiter" -> "Jupiter";
+                case "saturn", "satürn" -> "Saturn";
+                case "uranus", "uranüs" -> "Uranus";
+                case "neptune", "neptün" -> "Neptune";
+                case "pluto", "plüton" -> "Pluto";
+                case "chiron", "kiron" -> "Chiron";
+                case "northnode", "north_node", "kuzeydüğümü", "kuzeydugumu", "kuzeydügümü" -> "North Node";
+                default -> planet;
+            };
+        }
+        return switch (normalized) {
+            case "sun", "güneş", "gunes" -> "Güneş";
+            case "moon", "ay" -> "Ay";
+            case "mercury", "merkür", "merkur" -> "Merkür";
+            case "venus", "venüs" -> "Venüs";
+            case "mars" -> "Mars";
+            case "jupiter", "jüpiter" -> "Jüpiter";
+            case "saturn", "satürn" -> "Satürn";
+            case "uranus", "uranüs" -> "Uranüs";
+            case "neptune", "neptün" -> "Neptün";
+            case "pluto", "plüton" -> "Plüton";
+            case "chiron", "kiron" -> "Kiron";
+            case "northnode", "north_node", "kuzeydüğümü", "kuzeydügümü" -> "Kuzey Düğümü";
+            default -> planet;
+        };
+    }
+
+    private String localizeSign(String sign, String locale) {
+        String normalized = sign == null ? "" : sign.trim().toLowerCase(Locale.ROOT);
+        if (isEnglishLocale(locale)) {
+            return switch (normalized) {
+                case "koç", "koc", "aries" -> "Aries";
+                case "boğa", "boga", "taurus" -> "Taurus";
+                case "ikizler", "gemini" -> "Gemini";
+                case "yengeç", "yengec", "cancer" -> "Cancer";
+                case "aslan", "leo" -> "Leo";
+                case "başak", "basak", "virgo" -> "Virgo";
+                case "terazi", "libra" -> "Libra";
+                case "akrep", "scorpio" -> "Scorpio";
+                case "yay", "sagittarius" -> "Sagittarius";
+                case "oğlak", "oglak", "capricorn" -> "Capricorn";
+                case "kova", "aquarius" -> "Aquarius";
+                case "balık", "balik", "pisces" -> "Pisces";
+                default -> sign;
+            };
+        }
+        return switch (normalized) {
+            case "aries", "koç", "koc" -> "Koç";
+            case "taurus", "boğa", "boga" -> "Boğa";
+            case "gemini", "ikizler" -> "İkizler";
+            case "cancer", "yengeç", "yengec" -> "Yengeç";
+            case "leo", "aslan" -> "Aslan";
+            case "virgo", "başak", "basak" -> "Başak";
+            case "libra", "terazi" -> "Terazi";
+            case "scorpio", "akrep" -> "Akrep";
+            case "sagittarius", "yay" -> "Yay";
+            case "capricorn", "oğlak", "oglak" -> "Oğlak";
+            case "aquarius", "kova" -> "Kova";
+            case "pisces", "balık", "balik" -> "Balık";
+            default -> sign;
+        };
+    }
+
+    private String signEssence(String sign, String locale) {
+        String normalized = localizeSign(sign, "en").toLowerCase(Locale.ROOT);
+        if (isEnglishLocale(locale)) {
+            return switch (normalized) {
+                case "aries" -> "direct action, courage, and initiative";
+                case "taurus" -> "stability, patience, and tangible security";
+                case "gemini" -> "curiosity, dialogue, and flexibility";
+                case "cancer" -> "protection, memory, and emotional bonding";
+                case "leo" -> "heart-led expression, pride, and creativity";
+                case "virgo" -> "analysis, refinement, and useful precision";
+                case "libra" -> "balance, diplomacy, and relational awareness";
+                case "scorpio" -> "depth, intensity, and emotional truth";
+                case "sagittarius" -> "meaning, openness, and larger vision";
+                case "capricorn" -> "discipline, strategy, and long-term responsibility";
+                case "aquarius" -> "perspective, originality, and independent thinking";
+                case "pisces" -> "sensitivity, imagination, and spiritual permeability";
+                default -> "a distinct psychological tone";
+            };
+        }
+        return switch (normalized) {
+            case "aries" -> "doğrudan hareket, cesaret ve başlangıç dürtüsü";
+            case "taurus" -> "istikrar, sabır ve somut güven";
+            case "gemini" -> "merak, diyalog ve esneklik";
+            case "cancer" -> "koruma, hafıza ve duygusal bağ";
+            case "leo" -> "kalpten ifade, gurur ve yaratıcılık";
+            case "virgo" -> "analiz, incelik ve işe yarayan düzen";
+            case "libra" -> "denge, diplomasi ve ilişki farkındalığı";
+            case "scorpio" -> "derinlik, yoğunluk ve duygusal hakikat";
+            case "sagittarius" -> "anlam, açıklık ve geniş vizyon";
+            case "capricorn" -> "disiplin, strateji ve uzun vadeli sorumluluk";
+            case "aquarius" -> "perspektif, özgünlük ve bağımsız düşünce";
+            case "pisces" -> "hassasiyet, hayal gücü ve ruhsal geçirgenlik";
+            default -> "ayırt edici bir psikolojik ton";
+        };
+    }
+
+    private String signShadow(String sign, String locale) {
+        String normalized = localizeSign(sign, "en").toLowerCase(Locale.ROOT);
+        if (isEnglishLocale(locale)) {
+            return switch (normalized) {
+                case "aries" -> "impulsiveness and unnecessary combat";
+                case "taurus" -> "rigidity and over-attachment to comfort";
+                case "gemini" -> "scattered attention and over-talking";
+                case "cancer" -> "withdrawal and emotional defensiveness";
+                case "leo" -> "hurt pride and dramatic reactions";
+                case "virgo" -> "over-criticism and perfection pressure";
+                case "libra" -> "people-pleasing and indecision";
+                case "scorpio" -> "control, secrecy, and intensity overload";
+                case "sagittarius" -> "restlessness and avoidance of detail";
+                case "capricorn" -> "hardness, over-control, and pessimism";
+                case "aquarius" -> "distance and emotional detachment";
+                case "pisces" -> "confusion, over-absorption, and blurred limits";
+                default -> "an unbalanced expression";
+            };
+        }
+        return switch (normalized) {
+            case "aries" -> "dürtüsellik ve gereksiz mücadele";
+            case "taurus" -> "katılık ve konfora aşırı tutunma";
+            case "gemini" -> "dağınık dikkat ve fazla konuşma";
+            case "cancer" -> "geri çekilme ve duygusal savunma";
+            case "leo" -> "incinmiş gurur ve dramatik tepkiler";
+            case "virgo" -> "aşırı eleştiri ve mükemmellik baskısı";
+            case "libra" -> "memnun etme zorunluluğu ve kararsızlık";
+            case "scorpio" -> "kontrol, gizlilik ve yoğunluk yükü";
+            case "sagittarius" -> "huzursuzluk ve detaydan kaçış";
+            case "capricorn" -> "sertlik, aşırı kontrol ve karamsarlık";
+            case "aquarius" -> "mesafe ve duygusal kopukluk";
+            case "pisces" -> "bulanıklık, aşırı etkilenme ve sınır kaybı";
+            default -> "dengesiz bir ifade";
+        };
+    }
+
+    private String houseTheme(int house, String locale) {
+        if (isEnglishLocale(locale)) {
+            return switch (house) {
+                case 1 -> "identity, body, and first impressions";
+                case 2 -> "money, values, and security";
+                case 3 -> "learning, communication, and immediate environment";
+                case 4 -> "home, family, and roots";
+                case 5 -> "creativity, pleasure, and self-expression";
+                case 6 -> "work, health, and daily systems";
+                case 7 -> "partnership, mirrors, and agreements";
+                case 8 -> "intimacy, shared resources, and transformation";
+                case 9 -> "belief, study, travel, and perspective";
+                case 10 -> "career, status, and public direction";
+                case 11 -> "community, friendship, and future plans";
+                case 12 -> "inner life, closure, rest, and retreat";
+                default -> "important life themes";
+            };
+        }
+        return switch (house) {
+            case 1 -> "kimlik, beden ve ilk izlenim";
+            case 2 -> "para, değer ve güven";
+            case 3 -> "öğrenme, iletişim ve yakın çevre";
+            case 4 -> "ev, aile ve kökler";
+            case 5 -> "yaratıcılık, keyif ve öz ifade";
+            case 6 -> "iş, sağlık ve günlük düzen";
+            case 7 -> "ortaklık, aynalar ve anlaşmalar";
+            case 8 -> "yakınlık, paylaşılan kaynaklar ve dönüşüm";
+            case 9 -> "inanç, eğitim, seyahat ve perspektif";
+            case 10 -> "kariyer, statü ve kamusal yön";
+            case 11 -> "topluluk, arkadaşlık ve gelecek planları";
+            case 12 -> "iç dünya, kapanış, dinlenme ve geri çekilme";
+            default -> "önemli yaşam temaları";
+        };
+    }
+
+    private String dailyCueForHouse(int house, String locale) {
+        if (isEnglishLocale(locale)) {
+            return switch (house) {
+                case 1 -> "you step into a room and immediately shape the tone";
+                case 2 -> "money, self-worth, or practical priorities are on the table";
+                case 3 -> "you have to explain something quickly and clearly";
+                case 4 -> "family, home, or emotional safety needs attention";
+                case 5 -> "you want to create, flirt, play, or take a personal risk";
+                case 6 -> "routines, deadlines, or body signals need a response";
+                case 7 -> "another person reflects your needs back to you";
+                case 8 -> "trust, sharing, or control becomes a sensitive topic";
+                case 9 -> "you are reframing a belief or seeking a wider perspective";
+                case 10 -> "public visibility, work, or authority is involved";
+                case 11 -> "group dynamics or long-term plans become active";
+                case 12 -> "you need silence, recovery, or emotional decompression";
+                default -> "a familiar life pattern repeats";
+            };
+        }
+        return switch (house) {
+            case 1 -> "bir ortama girip tonu hızlıca belirlediğinde";
+            case 2 -> "para, öz değer ya da pratik öncelikler gündeme geldiğinde";
+            case 3 -> "bir şeyi hızlı ve net anlatman gerektiğinde";
+            case 4 -> "aile, ev ya da duygusal güvenlik dikkat istediğinde";
+            case 5 -> "yaratmak, flört etmek ya da kişisel risk almak istediğinde";
+            case 6 -> "rutinler, son tarihler ya da beden sinyalleri cevap istediğinde";
+            case 7 -> "başka bir insan ihtiyaçlarını sana geri yansıttığında";
+            case 8 -> "güven, paylaşım ya da kontrol hassas bir konu olduğunda";
+            case 9 -> "bir inancı yeniden çerçevelediğinde ya da ufkunu genişletmek istediğinde";
+            case 10 -> "kamusal görünürlük, iş ya da otorite devreye girdiğinde";
+            case 11 -> "grup dinamiği ya da uzun vadeli planlar hareketlendiğinde";
+            case 12 -> "sessizlik, toparlanma ya da duygusal boşalma ihtiyacı doğduğunda";
+            default -> "tanıdık bir yaşam deseni tekrarlandığında";
+        };
+    }
+
+    private String houseLabel(int house, String locale) {
+        if (isEnglishLocale(locale)) {
+            return ordinal(house) + " House";
+        }
+        return house + ". ev";
+    }
+
+    private String ordinal(int value) {
+        int mod100 = value % 100;
+        if (mod100 >= 11 && mod100 <= 13) return value + "th";
+        return switch (value % 10) {
+            case 1 -> value + "st";
+            case 2 -> value + "nd";
+            case 3 -> value + "rd";
+            default -> value + "th";
+        };
+    }
+
+    private String subjectLabel(NatalPayloadView natal, String locale) {
+        if (natal == null || !nonBlank(natal.name())) {
+            return isEnglishLocale(locale) ? "This chart" : "Bu harita";
+        }
+        return isEnglishLocale(locale) ? natal.name() + "'s chart" : natal.name() + " için bu harita";
+    }
+
     private String text(JsonNode node, String field) {
         if (node == null || field == null || !node.has(field) || node.get(field).isNull()) return "";
         JsonNode v = node.get(field);
@@ -1442,4 +2547,44 @@ public class MysticalAiService {
         }
         return payload;
     }
+
+    private record NatalPayloadView(
+            Long chartId,
+            String name,
+            String sunSign,
+            String moonSign,
+            String risingSign,
+            double ascendantDegree,
+            List<NatalPlanetView> planets,
+            List<NatalHouseView> houses,
+            List<NatalAspectView> aspects,
+            List<String> currentTransitSummary,
+            String locale
+    ) {}
+
+    private record NatalPlanetView(
+            String planet,
+            String sign,
+            double degree,
+            int minutes,
+            int seconds,
+            boolean retrograde,
+            int house,
+            double absoluteLongitude
+    ) {}
+
+    private record NatalHouseView(
+            int houseNumber,
+            String sign,
+            double degree,
+            String ruler
+    ) {}
+
+    private record NatalAspectView(
+            String planet1,
+            String planet2,
+            String type,
+            double angle,
+            double orb
+    ) {}
 }

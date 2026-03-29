@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
@@ -13,6 +14,7 @@ interface MeditationStep {
 }
 
 export default function MeditationDailyScreen() {
+  const { t } = useTranslation();
   const { meditation } = useSpiritualDaily();
   const { colors } = useTheme();
   const s = createStyles(colors);
@@ -124,7 +126,7 @@ export default function MeditationDailyScreen() {
         title="Başlat"
         size="lg"
         onPress={() => router.push('/spiritual/meditation/session')}
-        accessibilityLabel="Nefes egzersizini başlat"
+        accessibilityLabel={t('spiritual.meditation.startBreathingA11y')}
       />
     </SafeScreen>
   );

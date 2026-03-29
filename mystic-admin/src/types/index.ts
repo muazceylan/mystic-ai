@@ -193,6 +193,7 @@ export interface PrayerContent {
   arabicText?: string;
   transliteration?: string;
   meaning?: string;
+  meaningEn?: string;
   contentType?: PrayerContentType;
   category: PrayerCategory;
   locale: string;

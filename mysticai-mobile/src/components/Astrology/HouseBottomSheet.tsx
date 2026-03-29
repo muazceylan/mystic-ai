@@ -14,13 +14,14 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import Reanimated from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import type {
   HousePlacement,
   NatalHouseComboInsight,
   PlanetPosition,
 } from '../../services/astrology.service';
-import { getZodiacInfo, PLANET_TURKISH } from '../../constants/zodiac';
-import { HOUSE_GLOSSARY } from '../../constants/astrology-glossary';
+import { getPlanetName, getZodiacInfo } from '../../constants/zodiac';
+import { getHouseGlossary } from '../../constants/astrology-glossary';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
 
@@ -34,43 +35,63 @@ type Props = {
   onClose: () => void;
 };
 
-function buildHouseLines(house: HousePlacement | null, planetsInHouse?: PlanetPosition[]) {
+function looksTurkish(text?: string | null): boolean {
+  if (!text) return false;
+  return /[çğıöşüİ]|\b(ev|burç|yönetici|kimlik|beden|duygusal|dikkat|özellikler|gezegen)\b/i.test(text);
+}
+
+function buildHouseLines(house: HousePlacement | null, locale: string, planetsInHouse?: PlanetPosition[]) {
   if (!house) return null;
-  const info = HOUSE_GLOSSARY[house.houseNumber];
-  const signInfo = getZodiacInfo(house.sign);
+  const isEnglish = locale.startsWith('en');
+  const info = getHouseGlossary(house.houseNumber, locale);
+  const signInfo = getZodiacInfo(house.sign, locale);
   const simpleTerm = info?.shortDesc ?? `${house.houseNumber}. ev teması`;
   const housePlanets = (planetsInHouse ?? []).filter((p) => p.house === house.houseNumber);
 
-  const basicIntro = `${house.houseNumber}. Ev: ${simpleTerm.charAt(0).toUpperCase()}${simpleTerm.slice(1)}. Astrolojiyi hiç bilmesen bile burası “hayatında bu konuların nasıl çalıştığını” anlatır.`;
-  const character = `Bu evin ${signInfo.name} (${signInfo.element}) ile başlaması, bu alanda yaklaşımının ${signInfo.name.toLowerCase()} tonuyla çalıştığını gösterir.`;
-  const impact = `${info?.longDesc ?? 'Bu ev, hayatının önemli bir temasını taşır.'} Bu yüzden burada aldığın kararlar öz güvenini ve günlük seçimlerini doğrudan etkileyebilir.`;
+  const fallbackTheme = isEnglish ? `House ${house.houseNumber} themes` : `${house.houseNumber}. ev teması`;
+  const basicIntro = isEnglish
+    ? `${house.houseNumber}th House: ${simpleTerm.charAt(0).toUpperCase()}${simpleTerm.slice(1)}. Even if you know nothing about astrology, this area shows how these themes work in your life.`
+    : `${house.houseNumber}. Ev: ${simpleTerm.charAt(0).toUpperCase()}${simpleTerm.slice(1)}. Astrolojiyi hiç bilmesen bile burası “hayatında bu konuların nasıl çalıştığını” anlatır.`;
+  const character = isEnglish
+    ? `When this house begins with ${signInfo.name} (${signInfo.element}), your approach in this area tends to operate through a ${signInfo.name.toLowerCase()} tone.`
+    : `Bu evin ${signInfo.name} (${signInfo.element}) ile başlaması, bu alanda yaklaşımının ${signInfo.name.toLowerCase()} tonuyla çalıştığını gösterir.`;
+  const impact = isEnglish
+    ? `${info?.longDesc ?? 'This house carries an important life theme for you.'} Because of this, the decisions you make here can directly shape your confidence and daily choices.`
+    : `${info?.longDesc ?? 'Bu ev, hayatının önemli bir temasını taşır.'} Bu yüzden burada aldığın kararlar öz güvenini ve günlük seçimlerini doğrudan etkileyebilir.`;
   const caution = house.houseNumber === 2
-    ? 'Değer duygunu sadece maddi sonuçlara bağlamamaya dikkat et.'
+    ? (isEnglish ? 'Try not to tie your sense of worth only to material results.' : 'Değer duygunu sadece maddi sonuçlara bağlamamaya dikkat et.')
     : house.houseNumber === 7
-      ? 'Partnerliklerde sınırlarını netleştirmek, uyumu bozmaz; aksine ilişkiyi güçlendirir.'
+      ? (isEnglish ? 'Clarifying your boundaries in partnerships does not break harmony; it strengthens the relationship.' : 'Partnerliklerde sınırlarını netleştirmek, uyumu bozmaz; aksine ilişkiyi güçlendirir.')
       : house.houseNumber === 8
-        ? 'Kontrol ihtiyacı yükseldiğinde güven inşasına küçük adımlarla dönmek iyi gelir.'
-        : 'Bu ev temasında tek bir doğruya sıkışmak yerine ritmini zamanla gözlemlemek daha sağlıklıdır.';
+        ? (isEnglish ? 'When the need for control rises, returning to trust through small steps helps.' : 'Kontrol ihtiyacı yükseldiğinde güven inşasına küçük adımlarla dönmek iyi gelir.')
+        : (isEnglish ? 'Instead of locking yourself into a single truth in this area, it is healthier to observe your rhythm over time.' : 'Bu ev temasında tek bir doğruya sıkışmak yerine ritmini zamanla gözlemlemek daha sağlıklıdır.');
   const strengths = house.houseNumber === 10
-    ? 'Hedef koyma, görünür olma, sorumluluk alma'
+    ? (isEnglish ? 'Setting goals, being visible, taking responsibility' : 'Hedef koyma, görünür olma, sorumluluk alma')
     : house.houseNumber === 4
-      ? 'Köklenme, koruma, aidiyet kurma'
+      ? (isEnglish ? 'Rooting, protecting, creating belonging' : 'Köklenme, koruma, aidiyet kurma')
       : house.houseNumber === 3
-        ? 'İletişim, öğrenme, bağlantı kurma'
-        : 'Farkındalık geliştirme, denge kurma, doğru kaynak kullanımı';
+        ? (isEnglish ? 'Communication, learning, building connections' : 'İletişim, öğrenme, bağlantı kurma')
+        : (isEnglish ? 'Building awareness, creating balance, using resources wisely' : 'Farkındalık geliştirme, denge kurma, doğru kaynak kullanımı');
 
   const comboSummary = housePlanets.length
     ? housePlanets.slice(0, 3).map((p) => {
-        const pName = PLANET_TURKISH[p.planet] ?? p.planet;
-        const pSign = getZodiacInfo(p.sign);
-        return `${pName} ${pSign.name} burcunda ${house.houseNumber}. evde: ${simpleTerm.toLowerCase()} temasını ${pSign.name.toLowerCase()} tarzında çalıştırır.`;
+        const pName = getPlanetName(p.planet, locale);
+        const pSign = getZodiacInfo(p.sign, locale);
+        return isEnglish
+          ? `${pName} in ${pSign.name}, placed in House ${house.houseNumber}, activates the theme of ${simpleTerm.toLowerCase()} through a ${pSign.name.toLowerCase()} style.`
+          : `${pName} ${pSign.name} burcunda ${house.houseNumber}. evde: ${simpleTerm.toLowerCase()} temasını ${pSign.name.toLowerCase()} tarzında çalıştırır.`;
       }).join(' ')
-    : `Bu evde görünür gezegen yerleşimi az olabilir; yine de ${signInfo.name.toLowerCase()} başlangıç tonu, ${simpleTerm.toLowerCase()} temasını nasıl yaşadığını belirler.`;
+    : isEnglish
+      ? `There may be few visible planetary placements in this house; even so, the ${signInfo.name.toLowerCase()} opening tone shapes how you experience the theme of ${simpleTerm.toLowerCase() || fallbackTheme.toLowerCase()}.`
+      : `Bu evde görünür gezegen yerleşimi az olabilir; yine de ${signInfo.name.toLowerCase()} başlangıç tonu, ${simpleTerm.toLowerCase()} temasını nasıl yaşadığını belirler.`;
 
   return { info, signInfo, basicIntro, character, impact, caution, strengths, comboSummary, housePlanets };
 }
 
 export default function HouseBottomSheet({ visible, house, planetsInHouse, insight, onClose }: Props) {
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
+  const isEnglish = locale.startsWith('en');
   const { colors } = useTheme();
   const s = useMemo(() => createStyles(colors), [colors]);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -95,15 +116,23 @@ export default function HouseBottomSheet({ visible, house, planetsInHouse, insig
     }
   }, [visible, backdropAnim, slideAnim]);
 
-  const lines = buildHouseLines(house, planetsInHouse);
+  const lines = buildHouseLines(house, locale, planetsInHouse);
   if (!house || !lines) return null;
   const insightStrengths = insight?.strengths?.filter(Boolean).join(', ');
-  const introLine = insight?.introLine || lines.basicIntro;
-  const characterLine = insight?.characterLine || lines.character;
-  const effectLine = insight?.effectLine || lines.impact;
-  const cautionLine = insight?.cautionLine || lines.caution;
-  const strengthsLine = insightStrengths || lines.strengths;
-  const comboSummary = insight?.comboSummary || lines.comboSummary;
+  const useFallbackInsightText = isEnglish && (
+    looksTurkish(insight?.introLine)
+    || looksTurkish(insight?.characterLine)
+    || looksTurkish(insight?.effectLine)
+    || looksTurkish(insight?.cautionLine)
+    || looksTurkish(insight?.comboSummary)
+    || looksTurkish(insightStrengths)
+  );
+  const introLine = !useFallbackInsightText && insight?.introLine ? insight.introLine : lines.basicIntro;
+  const characterLine = !useFallbackInsightText && insight?.characterLine ? insight.characterLine : lines.character;
+  const effectLine = !useFallbackInsightText && insight?.effectLine ? insight.effectLine : lines.impact;
+  const cautionLine = !useFallbackInsightText && insight?.cautionLine ? insight.cautionLine : lines.caution;
+  const strengthsLine = !useFallbackInsightText && insightStrengths ? insightStrengths : lines.strengths;
+  const comboSummary = !useFallbackInsightText && insight?.comboSummary ? insight.comboSummary : lines.comboSummary;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -121,26 +150,26 @@ export default function HouseBottomSheet({ visible, house, planetsInHouse, insig
 
                   <View style={s.header}>
                     <View style={[s.houseBadge, { backgroundColor: colors.violetBg }]}>
-                      <Text style={[s.houseBadgeText, { color: colors.violet }]}>{house.houseNumber}. Ev</Text>
+                      <Text style={[s.houseBadgeText, { color: colors.violet }]}>{isEnglish ? `House ${house.houseNumber}` : `${house.houseNumber}. Ev`}</Text>
                     </View>
                     <Text style={s.headerTitle}>
-                      {house.houseNumber}. Ev • {lines.signInfo.symbol} {lines.signInfo.name}
+                      {isEnglish ? `House ${house.houseNumber}` : `${house.houseNumber}. Ev`} • {lines.signInfo.symbol} {lines.signInfo.name}
                     </Text>
                     <Text style={s.headerSub}>{introLine}</Text>
-                    <Text style={s.headerMeta}>{Math.floor(house.degree)}° • Yönetici: {house.ruler}</Text>
+                    <Text style={s.headerMeta}>{Math.floor(house.degree)}° • {isEnglish ? 'Ruler' : 'Yönetici'}: {getPlanetName(house.ruler, locale)}</Text>
                   </View>
                 </View>
               </GestureDetector>
 
               <View style={s.lineList}>
-                <LineItem icon="sparkles-outline" title="Karakter Analizi" text={characterLine} colors={colors} />
-                <LineItem icon="rocket-outline" title="Seni Nasıl Etkiler?" text={effectLine} colors={colors} />
-                <LineItem icon="warning-outline" title="Dikkat Etmen Gerekenler" text={cautionLine} colors={colors} />
-                <LineItem icon="star-outline" title="Öne Çıkan Özellikler" text={strengthsLine} colors={colors} />
+                <LineItem icon="sparkles-outline" title={isEnglish ? 'Character Analysis' : 'Karakter Analizi'} text={characterLine} colors={colors} />
+                <LineItem icon="rocket-outline" title={isEnglish ? 'How It Affects You' : 'Seni Nasıl Etkiler?'} text={effectLine} colors={colors} />
+                <LineItem icon="warning-outline" title={isEnglish ? 'Watch Out For' : 'Dikkat Etmen Gerekenler'} text={cautionLine} colors={colors} />
+                <LineItem icon="star-outline" title={isEnglish ? 'Key Strengths' : 'Öne Çıkan Özellikler'} text={strengthsLine} colors={colors} />
               </View>
 
               <View style={[s.comboBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
-                <Text style={s.comboTitle}>Gezegen + Ev + Burç Kombinasyonu</Text>
+                <Text style={s.comboTitle}>{isEnglish ? 'Planet + House + Sign Combination' : 'Gezegen + Ev + Burç Kombinasyonu'}</Text>
                 <Text style={s.comboText}>{comboSummary}</Text>
               </View>
 
@@ -152,7 +181,7 @@ export default function HouseBottomSheet({ visible, house, planetsInHouse, insig
               )}
 
               <Pressable style={[s.closeBtn, { backgroundColor: colors.violet }]} onPress={onClose}>
-                <Text style={s.closeBtnText}>Kapat</Text>
+                <Text style={s.closeBtnText}>{isEnglish ? 'Close' : 'Kapat'}</Text>
               </Pressable>
             </ScrollView>
           </Reanimated.View>

@@ -12,16 +12,15 @@ import { getDailyActions, getTodayIsoDate, markActionDone, sendFeedback } from '
 import type { DailyActionsDTO, DailyFeedbackPayload } from '../../types/daily.types';
 import { trackEvent } from '../../services/analytics';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
+import { useTranslation } from 'react-i18next';
 
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
-const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-
-function formatDateLabel(dateIso: string): string {
+function formatDateLabel(dateIso: string, locale: string): string {
   const date = new Date(dateIso);
   if (Number.isNaN(date.getTime())) return dateIso;
-  return `${date.getDate()} ${TR_MONTHS[date.getMonth()]}`;
+  return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
 }
 
 function LoadingState() {
@@ -37,6 +36,7 @@ function LoadingState() {
 }
 
 export default function TodayActionsScreen() {
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
@@ -126,7 +126,7 @@ export default function TodayActionsScreen() {
         destination: 'today_actions',
         result: 'fail',
       });
-      Alert.alert('İşlem tamamlanamadı', error?.message ?? 'Bağlantı sorunu olabilir. Lütfen tekrar dene.');
+      Alert.alert(t('todayActions.actionFailedTitle'), error?.message ?? t('todayActions.actionFailedMsg'));
     },
     onSuccess: (response) => {
       queryClient.setQueryData<DailyActionsDTO>(queryKey, (current) => {
@@ -199,8 +199,8 @@ export default function TodayActionsScreen() {
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
       <AppHeader
-        title={data?.header.title ?? 'Bugün Ne Yapabilirsin?'}
-        subtitle={formatDateLabel(data?.date ?? date)}
+        title={data?.header.title ?? t('todayActions.headerFallback')}
+        subtitle={formatDateLabel(data?.date ?? date, i18n.language)}
         onBack={goBack}
       />
 
@@ -209,24 +209,24 @@ export default function TodayActionsScreen() {
 
         {dailyActionsQuery.isError ? (
           <View style={[styles.statusCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF' }]}>
-            <Text style={[styles.statusTitle, { color: colors.text }]}>Aksiyonlar alınamadı</Text>
+            <Text style={[styles.statusTitle, { color: colors.text }]}>{t('todayActions.errorTitle')}</Text>
             <Text style={[styles.statusBody, { color: colors.subtext }]}>
-              Bugün için aksiyon listesi şu anda yüklenemiyor.
+              {t('todayActions.errorBody')}
             </Text>
             <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
-              <Text style={styles.retryText}>Tekrar Dene</Text>
+              <Text style={styles.retryText}>{t('todayActions.retry')}</Text>
             </Pressable>
           </View>
         ) : null}
 
         {isEmpty ? (
           <View style={[styles.statusCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF' }]}>
-            <Text style={[styles.statusTitle, { color: colors.text }]}>Bugün için veri hazırlanıyor</Text>
+            <Text style={[styles.statusTitle, { color: colors.text }]}>{t('todayActions.emptyTitle')}</Text>
             <Text style={[styles.statusBody, { color: colors.subtext }]}>
-              Aksiyon listesi hazırlanırken kısa bir gecikme olabilir.
+              {t('todayActions.emptyBody')}
             </Text>
             <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
-              <Text style={styles.retryText}>Yenile</Text>
+              <Text style={styles.retryText}>{t('todayActions.refresh')}</Text>
             </Pressable>
           </View>
         ) : null}

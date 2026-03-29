@@ -12,12 +12,15 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -33,18 +36,58 @@ public class AstrologyService {
 
     private static final String AI_EXCHANGE = "ai.exchange";
     private static final String AI_REQUESTS_ROUTING_KEY = "ai.request";
+    private static final Duration PENDING_REUSE_WINDOW = Duration.ofMinutes(10);
 
     @Transactional
     public NatalChartResponse calculateAndSaveNatalChart(NatalChartRequest request) {
         log.info("Calculating natal chart for user: {}", request.userId());
 
         LocalTime birthTime = request.birthTime() != null ? request.birthTime() : LocalTime.NOON;
+        String normalizedLocale = normalizeLocale(request.locale());
         String timezone = request.timezone();
         double[] coords = (request.latitude() != null && request.longitude() != null)
                 ? new double[]{request.latitude(), request.longitude()}
                 : natalChartCalculator.parseLocation(request.birthLocation());
         double latitude = coords[0];
         double longitude = coords[1];
+        Double utcOffset = natalChartCalculator.getUtcOffset(request.birthDate(), birthTime, timezone);
+        List<NatalChart> matchingCharts = findChartsByBirthSignature(request, birthTime, latitude, longitude, utcOffset);
+
+        NatalChart reusableChart = findReusableChart(
+                matchingCharts,
+                normalizedLocale
+        );
+        if (reusableChart != null) {
+            ParsedChartData reusableChartData = parseChartData(reusableChart, null, null, null);
+            NatalChart preparedChart = ensureInterpretationRequested(reusableChart, reusableChartData, normalizedLocale);
+            ensureLocaleVariant(matchingCharts, preparedChart, reusableChartData, otherLocale(normalizedLocale));
+            log.info(
+                    "Reusing natal chart {} for user {} with locale {} and status {}",
+                    preparedChart.getId(),
+                    request.userId(),
+                    normalizedLocale,
+                    preparedChart.getInterpretationStatus()
+            );
+            return mapToResponse(preparedChart, reusableChartData.planets(), reusableChartData.houses());
+        }
+
+        NatalChart seedChart = matchingCharts.stream().findFirst().orElse(null);
+        if (seedChart != null) {
+            ParsedChartData seedData = parseChartData(seedChart, null, null, null);
+            NatalChart clonedChart = natalChartRepository.save(cloneChartForLocale(seedChart, normalizedLocale));
+            log.info(
+                    "Created natal chart {} for user {} by cloning chart {} into locale {}",
+                    clonedChart.getId(),
+                    request.userId(),
+                    seedChart.getId(),
+                    normalizedLocale
+            );
+            NatalChart preparedChart = ensureInterpretationRequested(clonedChart, seedData, normalizedLocale);
+            List<NatalChart> updatedMatches = new ArrayList<>(matchingCharts);
+            updatedMatches.add(preparedChart);
+            ensureLocaleVariant(updatedMatches, preparedChart, seedData, otherLocale(normalizedLocale));
+            return mapToResponse(preparedChart, seedData.planets(), seedData.houses());
+        }
 
         // Calculate all positions (SwissEph high-precision)
         List<PlanetPosition> planets = natalChartCalculator.calculatePlanetPositions(
@@ -80,38 +123,36 @@ public class AstrologyService {
             aspectsJson = "[]";
         }
 
-        // Build and save natal chart
-        NatalChart chart = NatalChart.builder()
-                .userId(request.userId() != null ? request.userId().toString() : null)
-                .name(request.name())
-                .birthDate(request.birthDate())
-                .birthTime(birthTime)
-                .birthLocation(request.birthLocation())
-                .latitude(latitude)
-                .longitude(longitude)
-                .sunSign(sunSign)
-                .moonSign(moonSign)
-                .risingSign(risingSign)
-                .ascendantDegree(ascendantDegree)
-                .mcDegree(mcDegree)
-                .utcOffset(natalChartCalculator.getUtcOffset(request.birthDate(), birthTime, timezone))
-                .planetPositionsJson(planetJson)
-                .housePlacementsJson(houseJson)
-                .aspectsJson(aspectsJson)
-                .interpretationStatus("PENDING")
-                .build();
+        ParsedChartData computedChartData = new ParsedChartData(planets, houses, aspects);
+        NatalChart chart = buildNatalChartEntity(
+                request,
+                birthTime,
+                latitude,
+                longitude,
+                utcOffset,
+                sunSign,
+                moonSign,
+                risingSign,
+                ascendantDegree,
+                mcDegree,
+                planetJson,
+                houseJson,
+                aspectsJson,
+                normalizedLocale
+        );
 
         NatalChart savedChart = natalChartRepository.save(chart);
         log.info("Saved natal chart with id: {} for user: {}", savedChart.getId(), request.userId());
 
-        // Send to AI Orchestrator for interpretation
-        sendToAiOrchestrator(savedChart, planets, houses, aspects);
+        NatalChart preparedChart = ensureInterpretationRequested(savedChart, computedChartData, normalizedLocale);
+        ensureLocaleVariant(List.of(preparedChart), preparedChart, computedChartData, otherLocale(normalizedLocale));
 
-        return mapToResponse(savedChart, planets, houses, null);
+        return mapToResponse(preparedChart, planets, houses);
     }
 
     private void sendToAiOrchestrator(NatalChart chart, List<PlanetPosition> planets,
-                                      List<HousePlacement> houses, List<PlanetaryAspect> aspects) {
+                                      List<HousePlacement> houses, List<PlanetaryAspect> aspects,
+                                      String locale) {
         try {
             // Build current transit summary for AI context
             List<PlanetPosition> currentTransits = transitCalculator.calculateTransitPositions(LocalDate.now());
@@ -130,7 +171,8 @@ public class AstrologyService {
                     planets,
                     houses,
                     aspects,
-                    transitSummary
+                    transitSummary,
+                    locale
             ));
 
             com.mysticai.common.event.AiAnalysisEvent event =
@@ -151,21 +193,301 @@ public class AstrologyService {
     public NatalChartResponse getNatalChartById(Long id) {
         NatalChart chart = natalChartRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Natal chart not found: " + id));
-        return mapToResponse(chart, null, null, chart.getAiInterpretation());
+        return mapToResponse(chart, null, null);
     }
 
     public List<NatalChartResponse> getNatalChartsByUserId(Long userId) {
         return natalChartRepository.findAllByUserId(userId != null ? userId.toString() : null)
                 .stream()
-                .map(c -> mapToResponse(c, null, null, c.getAiInterpretation()))
+                .map(c -> mapToResponse(c, null, null))
                 .toList();
     }
 
-    public NatalChartResponse getLatestNatalChartByUserId(Long userId) {
-        NatalChart chart = natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc(
-                        userId != null ? userId.toString() : null)
+    public NatalChartResponse getLatestNatalChartByUserId(Long userId, String locale) {
+        String userKey = userId != null ? userId.toString() : null;
+        List<NatalChart> charts = natalChartRepository.findAllByUserIdOrderByCalculatedAtDescIdDesc(userKey);
+        String normalizedLocale = normalizeStoredLocale(locale);
+        java.util.Optional<NatalChart> chartCandidate = normalizedLocale != null
+                ? resolveLatestChart(
+                        charts.stream()
+                                .filter(chart -> localeMatches(chart, normalizedLocale))
+                                .toList()
+                )
+                : resolveLatestChart(charts);
+        NatalChart chart = chartCandidate
                 .orElseThrow(() -> new IllegalArgumentException("Natal chart not found for user: " + userId));
-        return mapToResponse(chart, null, null, chart.getAiInterpretation());
+        if (normalizedLocale != null) {
+            ParsedChartData chartData = parseChartData(chart, null, null, null);
+            NatalChart preparedChart = ensureInterpretationRequested(chart, chartData, normalizedLocale);
+            return mapToResponse(preparedChart, chartData.planets(), chartData.houses());
+        }
+        return mapToResponse(chart, null, null);
+    }
+
+    private NatalChart findReusableChart(List<NatalChart> matchingCharts, String locale) {
+        return matchingCharts.stream()
+                .filter(chart -> localeMatches(chart, locale))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private java.util.Optional<NatalChart> resolveLatestChart(List<NatalChart> charts) {
+        if (charts == null || charts.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+
+        NatalChart latest = charts.getFirst();
+        if (!isStalePending(latest)) {
+            return java.util.Optional.of(latest);
+        }
+
+        return charts.stream()
+                .filter(chart -> hasUsableInterpretation(chart, normalizeStoredLocale(chart.getRequestedLocale())))
+                .findFirst()
+                .or(() -> java.util.Optional.of(latest));
+    }
+
+    private boolean isStalePending(NatalChart chart) {
+        if (!"PENDING".equalsIgnoreCase(chart.getInterpretationStatus())) {
+            return false;
+        }
+
+        if (chart.getCalculatedAt() == null) {
+            return true;
+        }
+
+        return chart.getCalculatedAt().isBefore(LocalDateTime.now().minus(PENDING_REUSE_WINDOW));
+    }
+
+    private boolean sameBirthSignature(
+            NatalChart chart,
+            NatalChartRequest request,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            Double utcOffset
+    ) {
+        return Objects.equals(chart.getBirthDate(), request.birthDate())
+                && Objects.equals(chart.getBirthTime(), birthTime)
+                && nearlyEqual(chart.getLatitude(), latitude)
+                && nearlyEqual(chart.getLongitude(), longitude)
+                && nearlyEqual(chart.getUtcOffset(), utcOffset);
+    }
+
+    private boolean localeMatches(NatalChart chart, String requestedLocale) {
+        String storedLocale = normalizeStoredLocale(chart.getRequestedLocale());
+        if (storedLocale != null) {
+            return storedLocale.equals(requestedLocale);
+        }
+
+        if (!hasUsableInterpretation(chart, requestedLocale)) {
+            return false;
+        }
+
+        return requestedLocale.equals(inferInterpretationLocale(chart.getAiInterpretation()));
+    }
+
+    private String inferInterpretationLocale(String interpretation) {
+        if (interpretation == null || interpretation.isBlank()) {
+            return null;
+        }
+
+        String lower = interpretation.toLowerCase(Locale.ROOT);
+        if (containsTurkishSignals(lower)) {
+            return "tr";
+        }
+
+        if (containsEnglishSignals(lower)) {
+            return "en";
+        }
+
+        return null;
+    }
+
+    private boolean containsTurkishSignals(String lower) {
+        return lower.matches(".*[çğıöşü].*")
+                || lower.matches(".*\\b(ve|ile|icin|için|dogum|doğum|harita|haritan|yorumu|yorum|yukselen|yükselen|burc|burcu|duygusal|gezegen|koruyucu|sezgileriniz|ruhunuz|gosterir|gösterir|gosteriyor|gösteriyor|yorumlanir|yorumlanır)\\b.*");
+    }
+
+    private boolean containsEnglishSignals(String lower) {
+        return lower.matches(".*\\b(the|and|your|chart|sun|moon|rising|interpretation|relationship|planet|emotional|energy|house|placement|summary|daily life)\\b.*");
+    }
+
+    private List<NatalChart> findChartsByBirthSignature(
+            NatalChartRequest request,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            Double utcOffset
+    ) {
+        if (request.userId() == null) {
+            return List.of();
+        }
+
+        return natalChartRepository.findAllByUserIdOrderByCalculatedAtDescIdDesc(request.userId().toString())
+                .stream()
+                .filter(chart -> sameBirthSignature(chart, request, birthTime, latitude, longitude, utcOffset))
+                .toList();
+    }
+
+    private NatalChart ensureInterpretationRequested(NatalChart chart, ParsedChartData chartData, String locale) {
+        if (hasUsableInterpretation(chart, locale)) {
+            return chart;
+        }
+
+        boolean missingInterpretation = chart.getAiInterpretation() == null || chart.getAiInterpretation().isBlank();
+        boolean shouldRequest = "COMPLETED".equalsIgnoreCase(chart.getInterpretationStatus())
+                || chart.getInterpretationStatus() == null
+                || "FAILED".equalsIgnoreCase(chart.getInterpretationStatus())
+                || isStalePending(chart)
+                || (missingInterpretation && !"PENDING".equalsIgnoreCase(chart.getInterpretationStatus()))
+                || looksBrokenInterpretation(chart.getAiInterpretation());
+
+        if (!shouldRequest) {
+            return chart;
+        }
+
+        chart.setRequestedLocale(locale);
+        chart.setAiInterpretation(null);
+        chart.setInterpretationStatus("PENDING");
+        NatalChart savedChart = natalChartRepository.save(chart);
+        sendToAiOrchestrator(savedChart, chartData.planets(), chartData.houses(), chartData.aspects(), locale);
+        return savedChart;
+    }
+
+    private void ensureLocaleVariant(
+            List<NatalChart> matchingCharts,
+            NatalChart sourceChart,
+            ParsedChartData chartData,
+            String locale
+    ) {
+        NatalChart localeChart = findReusableChart(matchingCharts, locale);
+        if (localeChart == null) {
+            localeChart = natalChartRepository.save(cloneChartForLocale(sourceChart, locale));
+            log.info(
+                    "Created sibling natal chart {} from chart {} for locale {}",
+                    localeChart.getId(),
+                    sourceChart.getId(),
+                    locale
+            );
+        }
+        ensureInterpretationRequested(localeChart, chartData, locale);
+    }
+
+    private NatalChart cloneChartForLocale(NatalChart sourceChart, String locale) {
+        return NatalChart.builder()
+                .userId(sourceChart.getUserId())
+                .name(sourceChart.getName())
+                .birthDate(sourceChart.getBirthDate())
+                .birthTime(sourceChart.getBirthTime())
+                .birthLocation(sourceChart.getBirthLocation())
+                .latitude(sourceChart.getLatitude())
+                .longitude(sourceChart.getLongitude())
+                .sunSign(sourceChart.getSunSign())
+                .moonSign(sourceChart.getMoonSign())
+                .risingSign(sourceChart.getRisingSign())
+                .ascendantDegree(sourceChart.getAscendantDegree())
+                .mcDegree(sourceChart.getMcDegree())
+                .utcOffset(sourceChart.getUtcOffset())
+                .planetPositionsJson(sourceChart.getPlanetPositionsJson())
+                .housePlacementsJson(sourceChart.getHousePlacementsJson())
+                .aspectsJson(sourceChart.getAspectsJson())
+                .requestedLocale(locale)
+                .build();
+    }
+
+    private NatalChart buildNatalChartEntity(
+            NatalChartRequest request,
+            LocalTime birthTime,
+            double latitude,
+            double longitude,
+            Double utcOffset,
+            String sunSign,
+            String moonSign,
+            String risingSign,
+            double ascendantDegree,
+            double mcDegree,
+            String planetJson,
+            String houseJson,
+            String aspectsJson,
+            String locale
+    ) {
+        return NatalChart.builder()
+                .userId(request.userId() != null ? request.userId().toString() : null)
+                .name(request.name())
+                .birthDate(request.birthDate())
+                .birthTime(birthTime)
+                .birthLocation(request.birthLocation())
+                .latitude(latitude)
+                .longitude(longitude)
+                .sunSign(sunSign)
+                .moonSign(moonSign)
+                .risingSign(risingSign)
+                .ascendantDegree(ascendantDegree)
+                .mcDegree(mcDegree)
+                .utcOffset(utcOffset)
+                .planetPositionsJson(planetJson)
+                .housePlacementsJson(houseJson)
+                .aspectsJson(aspectsJson)
+                .requestedLocale(locale)
+                .build();
+    }
+
+    private boolean hasUsableInterpretation(NatalChart chart, String locale) {
+        if (!"COMPLETED".equalsIgnoreCase(chart.getInterpretationStatus()) || chart.getAiInterpretation() == null || chart.getAiInterpretation().isBlank()) {
+            return false;
+        }
+        if (looksBrokenInterpretation(chart.getAiInterpretation())) {
+            return false;
+        }
+        if (locale == null) {
+            return true;
+        }
+        String inferredLocale = inferInterpretationLocale(chart.getAiInterpretation());
+        return locale.equals(inferredLocale);
+    }
+
+    private boolean looksBrokenInterpretation(String interpretation) {
+        if (interpretation == null || interpretation.isBlank()) {
+            return false;
+        }
+        String lower = interpretation.toLowerCase(Locale.ROOT);
+        boolean hasFallbackMarkers = lower.contains("temel yorum korunarak başlıklara ayrıştırıldı")
+                || lower.contains("yorum bu aşamada sadeleştirilmiş yapıda sunuldu")
+                || lower.contains("yeniden üretimde daha zenginleşir");
+        int payloadMarkers = 0;
+        if (lower.contains("chartid")) payloadMarkers++;
+        if (lower.contains("sunsign")) payloadMarkers++;
+        if (lower.contains("moonsign")) payloadMarkers++;
+        if (lower.contains("risingsign")) payloadMarkers++;
+        if (lower.contains("absolutelongitude")) payloadMarkers++;
+        if (lower.contains("planets. planet.")) payloadMarkers++;
+        return hasFallbackMarkers || payloadMarkers >= 2;
+    }
+
+    private String otherLocale(String locale) {
+        return "en".equals(locale) ? "tr" : "en";
+    }
+
+    private String normalizeLocale(String locale) {
+        if (locale == null || locale.isBlank()) {
+            return "tr";
+        }
+        return locale.toLowerCase(Locale.ROOT).startsWith("en") ? "en" : "tr";
+    }
+
+    private String normalizeStoredLocale(String locale) {
+        if (locale == null || locale.isBlank()) {
+            return null;
+        }
+        return locale.toLowerCase(Locale.ROOT).startsWith("en") ? "en" : "tr";
+    }
+
+    private boolean nearlyEqual(Double left, Double right) {
+        if (left == null || right == null) {
+            return left == null && right == null;
+        }
+        return Math.abs(left - right) < 0.000001d;
     }
 
     public ZodiacSign calculateSunSignOnly(int month, int day) {
@@ -173,7 +495,7 @@ public class AstrologyService {
     }
 
     private NatalChartResponse mapToResponse(NatalChart chart, List<PlanetPosition> planets,
-                                              List<HousePlacement> houses, String interpretation) {
+                                              List<HousePlacement> houses) {
         List<PlanetPosition> planetList = planets;
         List<HousePlacement> houseList = houses;
 
@@ -227,10 +549,56 @@ public class AstrologyService {
                 aspectList,
                 planetComboInsights,
                 houseComboInsights,
-                interpretation,
+                chart.getAiInterpretation(),
                 chart.getInterpretationStatus(),
                 chart.getCalculatedAt()
         );
+    }
+
+    private ParsedChartData parseChartData(
+            NatalChart chart,
+            List<PlanetPosition> fallbackPlanets,
+            List<HousePlacement> fallbackHouses,
+            List<PlanetaryAspect> fallbackAspects
+    ) {
+        List<PlanetPosition> planets = fallbackPlanets != null ? fallbackPlanets : List.of();
+        List<HousePlacement> houses = fallbackHouses != null ? fallbackHouses : List.of();
+        List<PlanetaryAspect> aspects = fallbackAspects != null ? fallbackAspects : List.of();
+
+        if ((fallbackPlanets == null || fallbackPlanets.isEmpty()) && chart.getPlanetPositionsJson() != null) {
+            try {
+                planets = objectMapper.readValue(
+                        chart.getPlanetPositionsJson(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, PlanetPosition.class)
+                );
+            } catch (JsonProcessingException e) {
+                planets = List.of();
+            }
+        }
+
+        if ((fallbackHouses == null || fallbackHouses.isEmpty()) && chart.getHousePlacementsJson() != null) {
+            try {
+                houses = objectMapper.readValue(
+                        chart.getHousePlacementsJson(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, HousePlacement.class)
+                );
+            } catch (JsonProcessingException e) {
+                houses = List.of();
+            }
+        }
+
+        if ((fallbackAspects == null || fallbackAspects.isEmpty()) && chart.getAspectsJson() != null) {
+            try {
+                aspects = objectMapper.readValue(
+                        chart.getAspectsJson(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, PlanetaryAspect.class)
+                );
+            } catch (JsonProcessingException e) {
+                aspects = List.of();
+            }
+        }
+
+        return new ParsedChartData(planets, houses, aspects);
     }
 
     private List<NatalPlanetComboInsight> buildPlanetComboInsights(List<PlanetPosition> planets) {
@@ -552,6 +920,13 @@ public class AstrologyService {
             List<PlanetPosition> planets,
             List<HousePlacement> houses,
             List<PlanetaryAspect> aspects,
-            List<String> currentTransitSummary
+            List<String> currentTransitSummary,
+            String locale
+    ) {}
+
+    private record ParsedChartData(
+            List<PlanetPosition> planets,
+            List<HousePlacement> houses,
+            List<PlanetaryAspect> aspects
     ) {}
 }

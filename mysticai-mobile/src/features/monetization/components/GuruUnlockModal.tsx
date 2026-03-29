@@ -10,6 +10,7 @@ import { useGuruUnlock } from '../hooks/useGuruUnlock';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
+import { useTranslation } from 'react-i18next';
 
 interface GuruUnlockModalProps {
   visible: boolean;
@@ -30,6 +31,7 @@ export function GuruUnlockModal({
   onShowAdOffer,
   onShowPurchase,
 }: GuruUnlockModalProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
   const { status, spendGuru, reset } = useGuruUnlock(moduleKey, actionKey);
@@ -74,7 +76,7 @@ export function GuruUnlockModal({
   }, [reset, onDismiss]);
 
   return (
-    <BottomSheet visible={visible} onClose={handleClose} title="Guru ile Aç">
+    <BottomSheet visible={visible} onClose={handleClose} title={t('monetization.guruUnlockTitle')}>
       <View style={s.content}>
         <View style={s.brandRow}>
           <BrandBadge variant="icon-transparent" size={28} />
@@ -85,7 +87,7 @@ export function GuruUnlockModal({
             style={s.label}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            İçerik
+            {t('monetization.guruContentLabel')}
           </Text>
           <Text
             style={s.value}
@@ -100,7 +102,7 @@ export function GuruUnlockModal({
             style={s.label}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            Maliyet
+            {t('monetization.guruCostLabel')}
           </Text>
           <Text
             style={s.costValue}
@@ -115,7 +117,7 @@ export function GuruUnlockModal({
             style={s.label}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            Bakiye
+            {t('monetization.guruBalanceLabel')}
           </Text>
           <Text
             style={[s.value, !canAfford && s.insufficientBalance]}
@@ -131,12 +133,12 @@ export function GuruUnlockModal({
               style={s.warningText}
               maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
             >
-              Yeterli Guru bakiyeniz yok. Reklam izleyerek veya satın alarak Guru kazanabilirsiniz.
+              {t('monetization.guruInsufficientWarning')}
             </Text>
             <View style={s.fallbackActions}>
               {onShowAdOffer && (
                 <Button
-                  title="Reklam İzle"
+                  title={t('monetization.guruWatchAdBtn')}
                   onPress={onShowAdOffer}
                   variant="outline"
                   leftIcon={PREMIUM_ICONS.ad}
@@ -145,7 +147,7 @@ export function GuruUnlockModal({
               )}
               {onShowPurchase && (
                 <Button
-                  title="Guru Satın Al"
+                  title={t('monetization.guruBuyBtn')}
                   onPress={onShowPurchase}
                   variant="outline"
                   leftIcon={PREMIUM_ICONS.purchase}
@@ -162,7 +164,7 @@ export function GuruUnlockModal({
               style={s.errorText}
               maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
             >
-              İşlem başarısız oldu. Lütfen tekrar deneyin.
+              {t('monetization.guruFailedError')}
             </Text>
           </View>
         )}
@@ -174,14 +176,14 @@ export function GuruUnlockModal({
               style={s.processingText}
               maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
             >
-              İşleniyor...
+              {t('monetization.guruProcessing')}
             </Text>
           </View>
         )}
 
         <View style={s.actions}>
           <Button
-            title="Guru Harca ve Aç"
+            title={t('monetization.guruSpendBtn')}
             onPress={handleSpend}
             loading={isProcessing}
             disabled={isProcessing || !canAfford}
@@ -190,7 +192,7 @@ export function GuruUnlockModal({
             style={s.spendButton}
           />
           <Button
-            title="Vazgeç"
+            title={t('monetization.dismissBtn')}
             onPress={handleClose}
             variant="ghost"
             size="sm"

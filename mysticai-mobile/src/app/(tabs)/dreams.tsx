@@ -278,14 +278,14 @@ function parseInterpretation(dream: DreamEntryResponse): {
 
 // ─── Date helpers ────────────────────────────────────────────────────
 const toIso = (d: Date) => d.toISOString().slice(0, 10);
-const fmtDate = (d: Date) =>
-  d.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'long' });
+const fmtDate = (d: Date, locale: string) =>
+  d.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long' });
 const isToday = (d: Date) =>
   toIso(d) === toIso(new Date());
 // ─────────────────────────────────────────────────────────────────────
 
 export default function DreamsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const premiumPanelGradient: readonly [string, string, string] =
@@ -687,7 +687,7 @@ export default function DreamsScreen() {
     `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
 
   const fmtCardDate = (ds: string) =>
-    new Date(ds).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' });
+    new Date(ds).toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', { day:'numeric', month:'long', year:'numeric' });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -766,13 +766,20 @@ export default function DreamsScreen() {
     if (!monthlyStory?.story) return;
     setPdfExporting(true);
     try {
-      const html = buildPdfHtml(monthlyStory.story, yearMonthLabel, monthlyStory.dominantSymbols, monthDreams);
+      const html = buildPdfHtml(monthlyStory.story, yearMonthLabel, monthlyStory.dominantSymbols, monthDreams, t('dreams.pdfFooter', { period: yearMonthLabel }), i18n.language, {
+        title: t('dreams.pdfTitle'),
+        journey: t('dreams.pdfSubconsciousJourney'),
+        symbolsLabel: t('dreams.pdfSymbolsSectionLabel'),
+        cosmicLabel: t('dreams.pdfCosmicLabel'),
+        dreamsSectionTitle: t('dreams.pdfDreamsTitle', { count: monthDreams.length }),
+        dreamEntryPrefix: (index: number, date: string) => t('dreams.pdfDreamEntry', { index, date }),
+      });
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: `Rüya Kitabım – ${yearMonthLabel}`,
+          dialogTitle: t('dreams.pdfDialogTitle', { period: yearMonthLabel }),
         });
       } else {
         Alert.alert(t('dreams.pdfReady'), t('dreams.pdfReadyMessage'));
@@ -830,53 +837,53 @@ export default function DreamsScreen() {
     }
 
     let eyebrow = t('dreams.journal');
-    let title = 'Rüya günlüğüm';
+    let title = t('dreams.overviewTitle');
     let subtitle = latestDream?.dreamDate ? fmtCardDate(latestDream.dreamDate) : t('dreams.subtitle');
     let icon: IoniconName = 'moon-outline';
-    let excerptLabel = latestDream ? 'Son kayit' : 'Rüya akisi';
+    let excerptLabel = latestDream ? t('dreams.overviewExcerptLabelLatest') : t('dreams.overviewExcerptLabelStream');
     let excerptBody = latestDream?.text?.trim()
       ? latestDream.text.trim()
-      : 'Kozmik yorumlarin, tekrar eden sembollerin ve bilinçalti izlerin burada birikir.';
+      : t('dreams.overviewExcerptBodyEmpty');
     let metrics: Array<{ icon: IoniconName; value: string; label: string }> = [
-      { icon: 'book-outline', value: String(dreams.length), label: 'Kayit' },
-      { icon: 'sparkles', value: String(completedDreamCount), label: 'Yorum' },
-      { icon: 'time-outline', value: String(pendingDreamCount), label: 'Bekleyen' },
+      { icon: 'book-outline', value: String(dreams.length), label: t('dreams.overviewMetricRecord') },
+      { icon: 'sparkles', value: String(completedDreamCount), label: t('dreams.overviewMetricInterpretation') },
+      { icon: 'time-outline', value: String(pendingDreamCount), label: t('dreams.overviewMetricPending') },
     ];
 
     if (tab === 'dictionary') {
       eyebrow = t('dreams.dictionary');
-      title = 'Sembollerin arsivi';
+      title = t('dreams.dictTitle');
       subtitle = recurringSymbols.length > 0
-        ? 'Tekrar eden imgeleri hizla takip et.'
-        : 'Her imgenin arkasindaki anlama daha zarif bir yüzeyden ulas.';
+        ? t('dreams.dictSubtitleRecurring')
+        : t('dreams.dictSubtitleEmpty');
       icon = 'library-outline';
-      excerptLabel = recurringSymbols.length > 0 ? 'En güçlü tema' : 'Sözlük modu';
+      excerptLabel = recurringSymbols.length > 0 ? t('dreams.dictExcerptLabelRecurring') : t('dreams.dictExcerptLabelEmpty');
       excerptBody = recurringSymbols.length > 0
         ? recurringSymbols
             .slice(0, 3)
             .map(item => `${item.symbolName} ${item.count}x`)
             .join(' • ')
-        : 'At, su, gökyüzü ya da kapilar gibi simgeler burada birer rehbere dönüsür.';
+        : t('dreams.dictExcerptBodyEmpty');
       metrics = [
-        { icon: 'library-outline', value: String(symbols.length), label: 'Simge' },
-        { icon: 'layers-outline', value: String(recurringSymbols.length), label: 'Tekrar' },
-        { icon: 'moon-outline', value: String(dreams.length), label: 'Rüya' },
+        { icon: 'library-outline', value: String(symbols.length), label: t('dreams.dictMetricSymbol') },
+        { icon: 'layers-outline', value: String(recurringSymbols.length), label: t('dreams.dictMetricRecurring') },
+        { icon: 'moon-outline', value: String(dreams.length), label: t('dreams.dictMetricDream') },
       ];
     }
 
     if (tab === 'book') {
       eyebrow = t('dreams.book');
-      title = 'Aylik rüya kitabin';
+      title = t('dreams.bookTitle');
       subtitle = yearMonthLabel;
       icon = 'journal-outline';
-      excerptLabel = isCompleted ? 'Kozmik hikaye hazir' : 'Bu ayin izi';
+      excerptLabel = isCompleted ? t('dreams.bookExcerptLabelReady') : t('dreams.bookExcerptLabelMonth');
       excerptBody = monthlyStory?.story?.trim()
         ? monthlyStory.story.trim()
-        : `${monthDreams.length} rüya bu dönemin kitabini besliyor. Yorumu hazir oldugunda burada premium bir anlatida toplanacak.`;
+        : t('dreams.bookExcerptBodyPending', { count: monthDreams.length });
       metrics = [
-        { icon: 'calendar-outline', value: yearMonthLabel, label: 'Dönem' },
-        { icon: 'book-outline', value: String(monthDreams.length), label: 'Rüya' },
-        { icon: 'sparkles', value: isCompleted ? 'Hazir' : (isPending ? 'Yaziliyor' : 'Bekliyor'), label: 'Durum' },
+        { icon: 'calendar-outline', value: yearMonthLabel, label: t('dreams.bookMetricPeriod') },
+        { icon: 'book-outline', value: String(monthDreams.length), label: t('dreams.bookMetricDream') },
+        { icon: 'sparkles', value: isCompleted ? t('dreams.bookStatusReady') : (isPending ? t('dreams.bookStatusPending') : t('dreams.bookStatusWaiting')), label: t('dreams.bookMetricStatus') },
       ];
     }
 
@@ -935,7 +942,7 @@ export default function DreamsScreen() {
     const recurring = dream.recurringSymbols ?? [];
     const { interpretation, opportunities, warnings } = parseInterpretation(dream);
     const hasInsight = Boolean(interpretation) || opportunities.length > 0 || warnings.length > 0;
-    const readyLabel = hasInsight ? 'Yorum hazir' : 'Kaydedildi';
+    const readyLabel = hasInsight ? t('dreams.cardReadyLabel') : t('dreams.cardSavedLabel');
 
     return (
       <Animated.View key={dream.id} entering={FadeInDown.delay(40).springify()}>
@@ -943,7 +950,7 @@ export default function DreamsScreen() {
           style={[styles.card, expanded && styles.cardActive]}
           onPress={() => setExpandedId(expanded ? null : dream.id)}
           activeOpacity={0.87}
-          accessibilityLabel={`Rüya: ${dream.title || dream.text.slice(0, 30)}...`}
+          accessibilityLabel={t('dreams.cardA11yLabel', { title: dream.title || dream.text.slice(0, 30) })}
           accessibilityRole="button"
         >
           {/* Header */}
@@ -1114,7 +1121,7 @@ export default function DreamsScreen() {
           <Ionicons name="chevron-back" size={20} color={colors.textSoft} />
         </TouchableOpacity>
         <View style={styles.dateCenter}>
-          <Text style={styles.dateMain}>{fmtDate(selectedDate)}</Text>
+          <Text style={styles.dateMain}>{fmtDate(selectedDate, i18n.language)}</Text>
           {!isToday(selectedDate) && (
             <TouchableOpacity
               onPress={() => setSelectedDate(new Date())}
@@ -1399,7 +1406,7 @@ export default function DreamsScreen() {
             <SurfaceHeaderIconButton
               iconName="help-circle-outline"
               onPress={handlePressTutorialHelp}
-              accessibilityLabel="Rüya rehberini tekrar aç"
+              accessibilityLabel={t('dreams.tutorialHelpA11y')}
             />
           </SpotlightTarget>
         }
@@ -2679,7 +2686,23 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   });
 }
 
-function buildPdfHtml(story: string, period: string, symbols: string[], entries: DreamEntryResponse[]): string {
+function buildPdfHtml(
+  story: string,
+  period: string,
+  symbols: string[],
+  entries: DreamEntryResponse[],
+  footerText: string,
+  locale: string,
+  labels: {
+    title: string;
+    journey: string;
+    symbolsLabel: string;
+    cosmicLabel: string;
+    dreamsSectionTitle: string;
+    dreamEntryPrefix: (index: number, date: string) => string;
+  }
+): string {
+  const lcStr = locale === 'tr' ? 'tr-TR' : 'en-US';
   const symbolBadges = (symbols ?? [])
     .map(s => `<span class="badge">${s.charAt(0).toUpperCase() + s.slice(1)}</span>`)
     .join(' ');
@@ -2687,9 +2710,9 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
   const dreamRows = entries
     .sort((a, b) => (a.dreamDate ?? '').localeCompare(b.dreamDate ?? ''))
     .map((d, i) => {
-      const dateLabel = new Date(d.dreamDate ?? '').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+      const dateLabel = new Date(d.dreamDate ?? '').toLocaleDateString(lcStr, { day: 'numeric', month: 'long' });
       return `<div class="dream-entry">
-        <div class="dream-date">📅 ${i + 1}. Rüya — ${dateLabel}</div>
+        <div class="dream-date">📅 ${labels.dreamEntryPrefix(i + 1, dateLabel)}</div>
         <div class="dream-text">${(d.text ?? '').replace(/\n/g, '<br/>')}</div>
       </div>`;
     }).join('');
@@ -2736,14 +2759,14 @@ function buildPdfHtml(story: string, period: string, symbols: string[], entries:
 <body>
   <div class="header">
     <div class="glyph">📖</div>
-    <div class="title">Rüya Kitabım</div>
-    <div class="period">${period} — Bilinçaltı Yolculuğu</div>
+    <div class="title">${labels.title}</div>
+    <div class="period">${period} — ${labels.journey}</div>
   </div>
-  ${symbolBadges ? `<div class="section-label">✦ Dönemin Sembolleri</div><div class="symbols">${symbolBadges}</div>` : ''}
-  <div class="section-label" style="margin-top:24px">✦ Kozmik Yorum</div>
+  ${symbolBadges ? `<div class="section-label">✦ ${labels.symbolsLabel}</div><div class="symbols">${symbolBadges}</div>` : ''}
+  <div class="section-label" style="margin-top:24px">✦ ${labels.cosmicLabel}</div>
   <div class="story">${story.replace(/\n/g, '<br/>')}</div>
-  ${dreamRows ? `<div class="dreams-section"><div class="dreams-title">📋 Bu Aydaki Rüyalarım (${entries.length} Adet)</div>${dreamRows}</div>` : ''}
-  <div class="footer">Astro Guru tarafından oluşturuldu • ${period}</div>
+  ${dreamRows ? `<div class="dreams-section"><div class="dreams-title">📋 ${labels.dreamsSectionTitle}</div>${dreamRows}</div>` : ''}
+  <div class="footer">${footerText}</div>
 </body>
 </html>`;
 }

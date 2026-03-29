@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,7 @@ const STEP = 30;
 export default function BreathingSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const technique = useContentStore().getBreathingById(id ?? '');
   const addEntry = useJournalStore((s) => s.addEntry);
   const s = makeStyles(colors, isDark);
@@ -60,16 +62,16 @@ export default function BreathingSessionScreen() {
           style={s.flex}
         >
           <AppHeader
-            title="Nefes Tekniği"
+            title={t('spiritual.breathing.title')}
             onBack={() => router.back()}
             transparent
             rightActions={<HeaderRightIcons />}
           />
           <View style={s.errorWrap}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
-            <Text style={s.errorText}>Teknik bulunamadı.</Text>
+            <Text style={s.errorText}>{t('spiritual.breathing.notFound')}</Text>
             <Pressable style={s.backBtn} onPress={() => router.back()}>
-              <Text style={s.backBtnText}>Geri Dön</Text>
+              <Text style={s.backBtnText}>{t('spiritual.breathing.goBack')}</Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -88,15 +90,15 @@ export default function BreathingSessionScreen() {
             <View style={s.completedIconWrap}>
               <Ionicons name="checkmark-circle" size={72} color={ACCENT} />
             </View>
-            <Text style={s.completedTitle}>Tebrikler!</Text>
+            <Text style={s.completedTitle}>{t('spiritual.breathing.congrats')}</Text>
             <Text style={s.completedSub}>
-              {technique.titleTr} seansını başarıyla tamamladınız.
+              {t('spiritual.breathing.completedSub', { name: technique.titleTr })}
             </Text>
             <Pressable
               style={s.doneBtn}
               onPress={() => router.back()}
             >
-              <Text style={s.doneBtnText}>Tamam</Text>
+              <Text style={s.doneBtnText}>{t('spiritual.breathing.done')}</Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -126,7 +128,7 @@ export default function BreathingSessionScreen() {
 
         {/* Benefits */}
         <View style={s.benefitsCard}>
-          <Text style={s.benefitsTitle}>Faydaları</Text>
+          <Text style={s.benefitsTitle}>{t('spiritual.breathing.benefits')}</Text>
           {technique.benefits.map((b, i) => (
             <View key={i} style={s.benefitRow}>
               <Ionicons name="leaf-outline" size={15} color={ACCENT} />
@@ -137,7 +139,7 @@ export default function BreathingSessionScreen() {
 
         {/* Duration adjuster */}
         <View style={s.durationCard}>
-          <Text style={s.durationLabel}>Süre</Text>
+          <Text style={s.durationLabel}>{t('spiritual.breathing.duration')}</Text>
           <View style={s.durationRow}>
             <Pressable
               style={[

@@ -3,14 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import { Lightbulb } from 'lucide-react-native';
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface DailyLifeHintCardProps {
   hint: string;
 }
 
 export default function DailyLifeHintCard({ hint }: DailyLifeHintCardProps) {
-  const safeHint =
-    hint?.trim() || 'Bu modülde küçük ve düzenli check-in alışkanlığı dengeyi korumaya yardımcı olur.';
+  const { t } = useTranslation();
+  const safeHint = hint?.trim() || t('compare.dailyLifeHint');
 
   return (
     <View style={styles.card}>

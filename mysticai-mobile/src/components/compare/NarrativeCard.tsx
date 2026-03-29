@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface NarrativeCardProps {
   headline: string;
@@ -9,10 +10,11 @@ interface NarrativeCardProps {
 }
 
 export default function NarrativeCard({ headline, narrative }: NarrativeCardProps) {
-  const safeHeadline = headline?.trim() || 'Uyum ritmi dengede';
+  const { t } = useTranslation();
+  const safeHeadline = headline?.trim() || t('compare.narrativeHeadlineFallback');
   const safeNarrative =
     narrative?.trim() ||
-    'Bu modülde temel akış korunuyor. Günlük iletişim tonu ve beklenti netliği sonuç üzerinde belirleyici olabilir.';
+    t('compare.narrativeHint');
 
   return (
     <View style={styles.card}>

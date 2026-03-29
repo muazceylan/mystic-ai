@@ -4,6 +4,7 @@
  * Supports custom set flow (setItems + setIndex params)
  */
 import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -42,6 +43,7 @@ export default function CounterScreen() {
     setIndex?: string;
   }>();
 
+  const { t } = useTranslation();
   const store = useCounterStore();
   const journal = useJournalStore();
   const settings = useSpiritualSettingsStore();
@@ -66,17 +68,25 @@ export default function CounterScreen() {
     opacity: tapOpacity.value,
   }));
 
-  // Get full Arabic text + transliteration from content store
-  const { fullArabic, fullTranslit } = useMemo(() => {
+  // Get full Arabic text + transliteration + meaning from content store
+  const { fullArabic, fullTranslit, fullMeaning } = useMemo(() => {
     const id = parseInt(params.itemId ?? '0', 10);
     if (params.itemType === 'esma') {
       const esma = contentStore.getEsmaById(id);
-      return { fullArabic: esma?.nameAr ?? '', fullTranslit: esma?.transliteration ?? '' };
+      return {
+        fullArabic: esma?.nameAr ?? '',
+        fullTranslit: esma?.transliteration ?? '',
+        fullMeaning: esma?.meaningTr ?? '',
+      };
     } else {
       const dua = contentStore.getDuaById(id);
-      if (!dua?.arabic) return { fullArabic: '', fullTranslit: '' };
+      if (!dua?.arabic) return { fullArabic: '', fullTranslit: '', fullMeaning: '' };
       const cleaned = dua.arabic.replace(/^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\s*۝?\s*/, '');
-      return { fullArabic: cleaned, fullTranslit: dua.transliteration ?? '' };
+      return {
+        fullArabic: cleaned,
+        fullTranslit: dua.transliteration ?? '',
+        fullMeaning: dua.meaningTr ?? '',
+      };
     }
   }, [params.itemType, params.itemId, contentStore]);
 
@@ -258,7 +268,7 @@ export default function CounterScreen() {
         style={styles.contentArea}
         onPress={handleTap}
         disabled={store.status !== 'running'}
-        accessibilityLabel="Sayacı azalt"
+        accessibilityLabel={t('spiritual.counter.decrementA11y')}
         accessibilityHint="Ekrana dokunarak zikir sayısını azaltın"
       >
         <Animated.View style={[styles.contentInner, tapAnimStyle]}>
@@ -275,6 +285,11 @@ export default function CounterScreen() {
             {transliteration.length > 0 && (
               <Text style={[styles.fullTransliteration, { color: ACCENT }]}>
                 {transliteration}
+              </Text>
+            )}
+            {fullMeaning.length > 0 && (
+              <Text style={[styles.fullMeaning, { color: SUBTEXT }]}>
+                {fullMeaning}
               </Text>
             )}
           </ScrollView>
@@ -352,7 +367,7 @@ export default function CounterScreen() {
             ]}
             onPress={handleEarlySave}
             accessibilityRole="button"
-            accessibilityLabel={`${store.completed} zikir kaydet ve çık`}
+            accessibilityLabel={t('spiritual.counter.saveAndExitA11y', { count: store.completed })}
           >
             <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
             <Text style={styles.saveButtonText}>
@@ -482,6 +497,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
     lineHeight: 24,
     letterSpacing: 0.3,
+  },
+  fullMeaning: {
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 20,
+    letterSpacing: 0.2,
+    paddingHorizontal: 8,
   },
   statusLabel: {
     textAlign: 'center',

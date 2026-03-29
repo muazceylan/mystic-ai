@@ -3,6 +3,7 @@ import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
@@ -18,13 +19,13 @@ import {
   useTutorialTrigger,
 } from '../../features/tutorial';
 
-/* ─── Navigation items ─── */
+/* ─── Navigation items (labels/subs resolved via t() in component) ─── */
 const MAIN_FEATURES: ReadonlyArray<{
   key: string;
   route: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  sub: string;
+  labelKey: string;
+  subKey: string;
   accentKey: keyof ThemeColors;
   bgKey: keyof ThemeColors;
 }> = [
@@ -32,8 +33,8 @@ const MAIN_FEATURES: ReadonlyArray<{
     key: 'dua',
     route: '/spiritual/dua',
     icon: 'book-outline',
-    label: 'Dualar',
-    sub: 'Tüm dua koleksiyonu',
+    labelKey: 'spiritual.home.features.duaLabel',
+    subKey: 'spiritual.home.features.duaSub',
     accentKey: 'spiritualDua',
     bgKey: 'spiritualDuaLight',
   },
@@ -41,8 +42,8 @@ const MAIN_FEATURES: ReadonlyArray<{
     key: 'esma',
     route: '/spiritual/asma',
     icon: 'sparkles-outline',
-    label: 'Esmalar',
-    sub: '99 Esmaül Hüsna',
+    labelKey: 'spiritual.home.features.esmaLabel',
+    subKey: 'spiritual.home.features.esmaSub',
     accentKey: 'spiritualEsma',
     bgKey: 'spiritualEsmaLight',
   },
@@ -50,8 +51,8 @@ const MAIN_FEATURES: ReadonlyArray<{
     key: 'sure',
     route: '/spiritual/sure',
     icon: 'library-outline',
-    label: 'Sureler',
-    sub: 'Yasin, Mülk, Nebe...',
+    labelKey: 'spiritual.home.features.sureLabel',
+    subKey: 'spiritual.home.features.sureSub',
     accentKey: 'gold',
     bgKey: 'goldLight',
   },
@@ -59,8 +60,8 @@ const MAIN_FEATURES: ReadonlyArray<{
     key: 'breath',
     route: '/spiritual/breathing',
     icon: 'leaf-outline',
-    label: 'Nefes Teknikleri',
-    sub: '4-7-8, Nadi Shodhana',
+    labelKey: 'spiritual.home.features.breathLabel',
+    subKey: 'spiritual.home.features.breathSub',
     accentKey: 'spiritualMeditation',
     bgKey: 'violetBg',
   },
@@ -70,46 +71,47 @@ const QUICK_ACTIONS: ReadonlyArray<{
   key: string;
   route: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  sub: string;
+  labelKey: string;
+  subKey: string;
   accent: string;
 }> = [
   {
     key: 'bag',
     route: '/spiritual/custom-sets',
     icon: 'bag-outline',
-    label: 'Ruhsal Çantam',
-    sub: 'Kişisel setler',
+    labelKey: 'spiritual.home.quick.bagLabel',
+    subKey: 'spiritual.home.quick.bagSub',
     accent: '#F59E0B',
   },
   {
     key: 'routine',
     route: '/spiritual/routine-picker',
     icon: 'layers-outline',
-    label: 'Rutin Belirle',
-    sub: 'Aktif rutin seç',
+    labelKey: 'spiritual.home.quick.routineLabel',
+    subKey: 'spiritual.home.quick.routineSub',
     accent: '#7C3AED',
   },
   {
     key: 'journal',
     route: '/spiritual/journal',
     icon: 'journal-outline',
-    label: 'Günlüğüm',
-    sub: 'Takvim ve istatistik',
+    labelKey: 'spiritual.home.quick.journalLabel',
+    subKey: 'spiritual.home.quick.journalSub',
     accent: '#6366F1',
   },
   {
     key: 'settings',
     route: '/spiritual/settings',
     icon: 'settings-outline',
-    label: 'Ayarlar',
-    sub: 'Font, TTS, bildirim',
+    labelKey: 'spiritual.home.quick.settingsLabel',
+    subKey: 'spiritual.home.quick.settingsSub',
     accent: '#64748B',
   },
 ];
 
 export default function SpiritualHomeScreen() {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const s = createStyles(colors, isDark);
   const userId = useAuthStore((state) => state.user?.id);
   const { reopenTutorialById } = useTutorial();
@@ -140,13 +142,13 @@ export default function SpiritualHomeScreen() {
   return (
     <SafeScreen scroll>
       <TabHeader
-        title="Ruhsal Pratikler"
+        title={t('spiritual.home.title')}
         rightActions={(
           <SpotlightTarget targetKey={SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
             <SurfaceHeaderIconButton
               iconName="help-circle-outline"
               onPress={handlePressTutorialHelp}
-              accessibilityLabel="Ruhsal pratikler rehberini tekrar aç"
+              accessibilityLabel={t('spiritual.home.helpA11y')}
             />
           </SpotlightTarget>
         )}
@@ -164,7 +166,7 @@ export default function SpiritualHomeScreen() {
                 pressed && { opacity: 0.8 },
               ]}
               onPress={() => router.push(q.route as any)}
-              accessibilityLabel={q.label}
+              accessibilityLabel={t(q.labelKey)}
             >
               <View style={[s.quickIcon, { backgroundColor: q.accent + '18' }]}>
                 <Ionicons name={q.icon} size={18} color={q.accent} />
@@ -173,14 +175,14 @@ export default function SpiritualHomeScreen() {
                 style={s.quickLabel}
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
               >
-                {q.label}
+                {t(q.labelKey)}
               </Text>
               <Text
                 style={s.quickSub}
                 numberOfLines={1}
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
               >
-                {q.sub}
+                {t(q.subKey)}
               </Text>
             </Pressable>
           ))}
@@ -194,14 +196,8 @@ export default function SpiritualHomeScreen() {
             s.routineBtn,
             pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
           ]}
-          onPress={() => {
-            if (activeSet) {
-              router.push(`/spiritual/custom-sets/${activeSet.id}` as any);
-            } else {
-              router.push('/spiritual/prayers/flow');
-            }
-          }}
-          accessibilityLabel="Dua rutinini başlat"
+          onPress={() => router.push('/spiritual/routine-picker' as any)}
+          accessibilityLabel={t('spiritual.home.routineStart')}
         >
           <LinearGradient
             colors={isDark
@@ -220,15 +216,15 @@ export default function SpiritualHomeScreen() {
                   style={s.routineTitle}
                   maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                 >
-                  Rutini Başlat
+                  {t('spiritual.home.routineStart')}
                 </Text>
                 <Text
                   style={s.routineSub}
                   maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                 >
                   {activeSet
-                    ? `📿 ${activeSet.name} • ${activeSet.items.length} öğe`
-                    : 'Günlük dua akışına geç'}
+                    ? t('spiritual.home.routineActiveSet', { name: activeSet.name, count: activeSet.items.length })
+                    : t('spiritual.home.routineNoSet')}
                 </Text>
               </View>
               <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.7)" />
@@ -245,7 +241,7 @@ export default function SpiritualHomeScreen() {
             style={s.sectionTitle}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            Keşfet
+            {t('spiritual.home.explore')}
           </Text>
         </View>
       </View>
@@ -263,7 +259,7 @@ export default function SpiritualHomeScreen() {
                   pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
                 ]}
                 onPress={() => router.push(f.route as any)}
-                accessibilityLabel={f.label}
+                accessibilityLabel={t(f.labelKey)}
               >
                 <LinearGradient
                   pointerEvents="none"
@@ -278,13 +274,13 @@ export default function SpiritualHomeScreen() {
                     style={s.featureLabel}
                     maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                   >
-                    {f.label}
+                    {t(f.labelKey)}
                   </Text>
                   <Text
                     style={s.featureSub}
                     maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                   >
-                    {f.sub}
+                    {t(f.subKey)}
                   </Text>
                 </View>
                 <View style={[s.featureArrow, { backgroundColor: accent + '14' }]}>

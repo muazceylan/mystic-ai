@@ -8,6 +8,7 @@ import { PREMIUM_ICONS } from '../../../constants/icons';
 import { useRewardedUnlock } from '../hooks/useRewardedUnlock';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
+import { useTranslation } from 'react-i18next';
 
 interface AdOfferCardProps {
   moduleKey: string;
@@ -17,6 +18,7 @@ interface AdOfferCardProps {
 }
 
 export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdOfferCardProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
   const { status, startRewardedUnlock, reset } = useRewardedUnlock(moduleKey, actionKey);
@@ -53,9 +55,9 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
 
   const statusLabel = (() => {
     switch (status) {
-      case 'loading_ad': return 'Reklam yükleniyor...';
-      case 'showing_ad': return 'Reklam gösteriliyor...';
-      case 'processing_reward': return 'Ödül işleniyor...';
+      case 'loading_ad': return t('monetization.adStatusLoading');
+      case 'showing_ad': return t('monetization.adStatusShowing');
+      case 'processing_reward': return t('monetization.adStatusProcessing');
       default: return null;
     }
   })();
@@ -74,15 +76,13 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
             style={s.title}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            Reklam İzle ve Guru Kazan
+            {t('monetization.adCardTitle')}
           </Text>
           <Text
             style={s.subtitle}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            Kısa bir reklam izleyerek{' '}
-            <Text style={s.rewardHighlight}>{rewardAmount} Guru</Text>
-            {' '}kazanın
+            {t('monetization.adCardSubtitle', { count: String(rewardAmount) })}
           </Text>
         </View>
       </View>
@@ -93,7 +93,7 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
             style={s.errorText}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            Reklam yüklenemedi. Tekrar deneyin.
+            {t('monetization.adLoadError')}
           </Text>
         </View>
       )}
@@ -112,7 +112,7 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
 
       <View style={s.actions}>
         <Button
-          title="Reklam İzle"
+          title={t('monetization.adWatchBtn')}
           onPress={handleWatchAd}
           loading={isProcessing}
           disabled={isProcessing}
@@ -121,7 +121,7 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
           style={s.watchButton}
         />
         <Button
-          title="Vazgeç"
+          title={t('monetization.dismissBtn')}
           onPress={handleDismiss}
           variant="ghost"
           size="sm"

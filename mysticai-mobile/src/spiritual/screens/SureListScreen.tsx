@@ -18,6 +18,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
@@ -44,6 +45,7 @@ export default function SureListScreen() {
   const { sureList } = useContentStore();
   const journal = useJournalStore();
   const { isDark } = useTheme();
+  const { t: tl, i18n } = useTranslation();
 
   const [tab, setTab] = useState<Tab>('selection');
   const [query, setQuery] = useState('');
@@ -87,7 +89,7 @@ export default function SureListScreen() {
     );
     return dailies.map((d) => {
       const dt = new Date(d.dateISO);
-      const label = dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+      const label = dt.toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
       return { label, value: d.total, dateISO: d.dateISO };
     });
   }, [journal]);
@@ -108,7 +110,7 @@ export default function SureListScreen() {
       <SpiritualListItem
         order={index + 1}
         title={item.title}
-        subtitle={item.shortBenefit}
+        subtitle={i18n.language === 'en' && item.meaningEn ? item.meaningEn : item.meaningTr}
         arabicText={arabicSnippet(item.arabic)}
         accentColor={ACCENT}
         textColor={TEXT}
@@ -119,7 +121,7 @@ export default function SureListScreen() {
         }
       />
     ),
-    [ACCENT, TEXT, SUBTEXT, BORDER],
+    [ACCENT, TEXT, SUBTEXT, BORDER, i18n.language],
   );
 
   return (
@@ -129,14 +131,14 @@ export default function SureListScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel="Geri">
+          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel={tl('common.back')}>
             <Ionicons name="chevron-back" size={24} color={TEXT} />
           </Pressable>
         <Text
           style={[styles.headerTitle, { color: TEXT }]}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
-          Sureler
+          {tl('spiritual.sure.title')}
         </Text>
         <HeaderRightIcons tintColor={TEXT} />
       </View>
@@ -152,7 +154,7 @@ export default function SureListScreen() {
             accessibilityState={{ selected: tab === t }}
           >
             <Text style={[styles.tabText, { color: tab === t ? TAB_ACTIVE_TEXT : TEXT + 'AA' }]}>
-              {t === 'selection' ? 'Seçim' : 'İstatistikler'}
+              {t === 'selection' ? tl('spiritual.list.tabSelection') : tl('spiritual.list.tabStats')}
             </Text>
           </Pressable>
         ))}
@@ -165,14 +167,14 @@ export default function SureListScreen() {
             <Ionicons name="search" size={16} color={SUBTEXT} />
             <TextInput
               style={[styles.searchInput, { color: TEXT }]}
-              placeholder="Sure ara..."
+              placeholder={tl('spiritual.sure.searchPlaceholder')}
               placeholderTextColor={TEXT + '44'}
               value={query}
               onChangeText={setQuery}
-              accessibilityLabel="Sure ara"
+              accessibilityLabel={tl('spiritual.sure.searchA11y')}
             />
             {query.length > 0 && (
-              <Pressable onPress={() => setQuery('')} accessibilityLabel="Aramayı temizle">
+              <Pressable onPress={() => setQuery('')} accessibilityLabel={tl('spiritual.list.searchClear')}>
                 <Ionicons name="close-circle" size={18} color={TEXT + '88'} />
               </Pressable>
             )}
@@ -186,7 +188,7 @@ export default function SureListScreen() {
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
-              <Text style={[styles.empty, { color: SUBTEXT }]}>Sonuç bulunamadı.</Text>
+              <Text style={[styles.empty, { color: SUBTEXT }]}>{tl('spiritual.list.noResults')}</Text>
             }
           />
         </>
@@ -195,7 +197,7 @@ export default function SureListScreen() {
           <View style={[styles.chartCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
             <View style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: ACCENT }]} />
-              <Text style={[styles.legendText, { color: SUBTEXT }]}>Okuma Sayısı</Text>
+              <Text style={[styles.legendText, { color: SUBTEXT }]}>{tl('spiritual.sure.legendLabel')}</Text>
             </View>
             <SpiritualBarChart
               data={chartData}
@@ -210,20 +212,20 @@ export default function SureListScreen() {
           <View style={[styles.metricRow, { backgroundColor: SURFACE, borderColor: BORDER }]}>
             <View style={styles.metricItem}>
               <Text style={[styles.metricValue, { color: ACCENT }]}>{streak}</Text>
-              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>Gün Serisi</Text>
+              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>{tl('spiritual.list.statsStreak')}</Text>
             </View>
             <View style={[styles.metricDivider, { backgroundColor: BORDER }]} />
             <View style={styles.metricItem}>
               <Text style={[styles.metricValue, { color: ACCENT }]}>
                 {chartData.reduce((sum, d) => sum + d.value, 0)}
               </Text>
-              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>7 Günlük Toplam</Text>
+              <Text style={[styles.metricLabel, { color: SUBTEXT }]}>{tl('spiritual.list.stats7Day')}</Text>
             </View>
           </View>
 
           {topItems.length > 0 && (
             <View style={[styles.topCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
-              <Text style={[styles.topTitle, { color: TEXT }]}>En Çok Okunanlar</Text>
+              <Text style={[styles.topTitle, { color: TEXT }]}>{tl('spiritual.list.statsTopItems')}</Text>
               {topItems.map((item, i) => (
                 <View key={`${item.itemType}-${item.itemId}`} style={[styles.topRow, { borderColor: BORDER }]}>
                   <Text style={[styles.topRank, { color: ACCENT }]}>#{i + 1}</Text>
@@ -236,7 +238,7 @@ export default function SureListScreen() {
 
           {topItems.length === 0 && (
             <Text style={[styles.empty, { color: SUBTEXT, textAlign: 'center', marginTop: 20 }]}>
-              Henüz kayıt yok. İlk sureni oku!
+              {tl('spiritual.sure.statsEmpty')}
             </Text>
           )}
         </ScrollView>

@@ -209,7 +209,7 @@ public class DreamService {
 
             // Get natal chart context
             NatalChart chart = natalChartRepository
-                    .findFirstByUserIdOrderByCalculatedAtDesc(userId.toString()).orElse(null);
+                    .findFirstByUserIdOrderByCalculatedAtDescIdDesc(userId.toString()).orElse(null);
             String moonSign = chart != null ? chart.getMoonSign() : "Bilinmiyor";
             String sunSign  = chart != null ? chart.getSunSign()  : "Bilinmiyor";
 
@@ -369,7 +369,7 @@ public class DreamService {
         try {
             // Get user's natal chart for astrological context
             NatalChart chart = natalChartRepository
-                    .findFirstByUserIdOrderByCalculatedAtDesc(request.userId().toString())
+                    .findFirstByUserIdOrderByCalculatedAtDescIdDesc(request.userId().toString())
                     .orElse(null);
 
             String moonSign = chart != null ? chart.getMoonSign() : "Bilinmiyor";

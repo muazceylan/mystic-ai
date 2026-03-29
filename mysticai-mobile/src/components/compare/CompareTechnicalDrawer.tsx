@@ -12,6 +12,7 @@ import {
   normalizeDataQualityLabel,
 } from '../../services/compare.presentation';
 import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
+import { useTranslation } from 'react-i18next';
 
 interface CompareTechnicalDrawerProps {
   visible: boolean;
@@ -26,6 +27,7 @@ export default function CompareTechnicalDrawer({
   warningText,
   onClose,
 }: CompareTechnicalDrawerProps) {
+  const { t } = useTranslation();
   const { animatedStyle, gesture } = useBottomSheetDragGesture({
     enabled: visible,
     onClose,
@@ -48,7 +50,7 @@ export default function CompareTechnicalDrawer({
               <View style={styles.handle} />
               <View style={styles.head}>
                 <AccessibleText style={styles.title} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-                  Hesaplama Özeti
+                  {t('compare.technicalDrawerTitle')}
                 </AccessibleText>
                 <Pressable onPress={onClose} style={styles.closeBtn} accessibilityRole="button">
                   <X size={16} color="#4F4666" />
@@ -58,23 +60,23 @@ export default function CompareTechnicalDrawer({
           </GestureDetector>
 
           <AccessibleText style={styles.item} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Sürüm: {safeVersion}
+            {t('compare.technicalDrawerVersion', { v: safeVersion })}
           </AccessibleText>
           <AccessibleText style={styles.item} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Veri Kalitesi: {safeDataQuality}
+            {t('compare.technicalDrawerDataQuality', { q: safeDataQuality })}
           </AccessibleText>
           <AccessibleText style={styles.item} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Profil: {safeProfile}
+            {t('compare.technicalDrawerProfile', { p: safeProfile })}
           </AccessibleText>
           <AccessibleText style={styles.item} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Son Güncelleme: {formattedGeneratedAt}
+            {t('compare.technicalDrawerUpdated', { d: formattedGeneratedAt })}
           </AccessibleText>
 
           <AccessibleText style={styles.subTitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            Kullanılan Faktörler
+            {t('compare.technicalDrawerFactorsTitle')}
           </AccessibleText>
           <AccessibleText style={styles.factors} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-            {factors.join(' • ') || 'Faktör bilgisi bulunamadı.'}
+            {factors.join(' • ') || t('compare.technicalDrawerNoFactor')}
           </AccessibleText>
 
           {warningText ? (

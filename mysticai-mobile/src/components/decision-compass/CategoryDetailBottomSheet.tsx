@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { BottomSheet } from '../ui/BottomSheet';
 import { statusColors } from './palette';
 import { statusLabel, type DecisionCategoryModel } from './model';
+import { useTranslation } from 'react-i18next';
 import { getCompassTokens } from './tokens';
 import { StatusPill } from './StatusPill';
 import { SoftActionButton } from './SoftActionButton';
@@ -34,6 +35,7 @@ export function CategoryDetailBottomSheet({
   onOpenCalendar,
   onOpenFullDetail,
 }: CategoryDetailBottomSheetProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
   const S = styles(colors, isDark, T);
@@ -46,7 +48,7 @@ export function CategoryDetailBottomSheet({
       .map((item) => trimText(item.shortAdvice, 64))
       .filter(Boolean);
     if (derived.length) return derived;
-    return ['Tek bir ana hedefe odaklan', 'Takvimde net bir blok ayır'];
+    return [t('decisionCompassScreen.doItemFallback1'), t('decisionCompassScreen.doItemFallback2')];
   }, [category]);
 
   if (!category) {
@@ -69,14 +71,14 @@ export function CategoryDetailBottomSheet({
               <Text style={[S.scoreText, tint ? { color: tint.text } : null]}>{Math.round(category.score)}%</Text>
             </View>
           </View>
-          <StatusPill label={statusLabel(category.status)} textColor={tint?.text ?? colors.primary} gradient={tint?.pill ?? ['#EEE7FF', '#E6DBFF']} />
+          <StatusPill label={statusLabel(category.status, t)} textColor={tint?.text ?? colors.primary} gradient={tint?.pill ?? ['#EEE7FF', '#E6DBFF']} />
           <Text style={S.summary}>
-            {trimText(category.shortSummary, 148) || 'Bu kategori bugün daha stratejik yaklaşım gerektiriyor.'}
+            {trimText(category.shortSummary, 148) || t('decisionCompassScreen.categorySummaryFallback')}
           </Text>
         </LinearGradient>
 
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Alt Alanlar</Text>
+          <Text style={S.sectionTitle}>{t('decisionCompassScreen.subAreasTitle')}</Text>
           <View style={S.subList}>
             {category.items.slice(0, 6).map((item, index) => {
               const subScore = Math.round(item.score);
@@ -106,7 +108,7 @@ export function CategoryDetailBottomSheet({
         </View>
 
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Önerilen Aksiyonlar</Text>
+          <Text style={S.sectionTitle}>{t('decisionCompassScreen.recommendedActionsTitle')}</Text>
           <View style={S.actionList}>
             {doItems.map((item, index) => (
               <View key={`do-${index}`} style={S.actionRow}>
@@ -120,10 +122,10 @@ export function CategoryDetailBottomSheet({
         <View style={S.ctaRow}>
           <Pressable onPress={onOpenCalendar} style={({ pressed }) => [S.secondaryBtn, pressed && S.pressed]}>
             <Ionicons name="calendar-outline" size={16} color={colors.subtext} />
-            <Text style={S.secondaryBtnText}>Takvime Git</Text>
+            <Text style={S.secondaryBtnText}>{t('decisionCompassScreen.goToCalendarBtn')}</Text>
           </Pressable>
           <SoftActionButton
-            label="Daha Fazla Detay"
+            label={t('decisionCompassScreen.moreDetailBtn')}
             onPress={() => onOpenFullDetail(category)}
             gradient={T.chip.selectedGradient as [string, string]}
             borderColor={T.border.soft}

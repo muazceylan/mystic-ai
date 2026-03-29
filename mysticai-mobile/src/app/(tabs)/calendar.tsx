@@ -2218,7 +2218,7 @@ export default function CalendarScreen() {
                   />
                   <SurfaceHeaderIconButton
                     iconName="notifications-outline"
-                    onPress={() => router.push('/notifications' as never)}
+                    onPress={() => router.navigate('/notifications' as never)}
                     accessibilityLabel={t('profile.menu.notifications')}
                     color={colors.text}
                     badgeText={notificationBadgeText}

@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Animated,
   Pressable,
@@ -29,6 +30,7 @@ const RING_STROKE = 8;
 
 export default function PrayerFlowScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark);
 
@@ -140,7 +142,7 @@ export default function PrayerFlowScreen() {
     return (
       <View style={S.emptyScreen}>
         <Ionicons name="book-outline" size={48} color={colors.muted} />
-        <Text style={S.emptyText}>Dua bulunamadı.</Text>
+        <Text style={S.emptyText}>{t('spiritual.prayerFlow.notFound')}</Text>
       </View>
     );
   }
@@ -411,13 +413,13 @@ export default function PrayerFlowScreen() {
           style={[S.noteInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={flow.note ?? ''}
           onChangeText={(t) => flow.setNote(t)}
-          placeholder="Kısa not (opsiyonel)"
+          placeholder={t('spiritual.prayerFlow.notePlaceholder')}
           placeholderTextColor={colors.muted}
           multiline
           maxLength={200}
         />
         <Button
-          title="Kaydet"
+          title={t('spiritual.prayerFlow.save')}
           variant="outline"
           onPress={() => setNoteSheetOpen(false)}
           style={{ marginTop: SPACING.md }}

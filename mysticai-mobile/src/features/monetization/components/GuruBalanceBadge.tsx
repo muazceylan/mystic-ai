@@ -3,6 +3,7 @@ import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/tokens';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
+import { useTranslation } from 'react-i18next';
 
 interface GuruBalanceBadgeProps {
   onPress?: () => void;
@@ -10,6 +11,7 @@ interface GuruBalanceBadgeProps {
 }
 
 export function GuruBalanceBadge({ onPress, size = 'md' }: GuruBalanceBadgeProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
   const balance = useGuruWalletStore(state => state.getBalance());
@@ -37,8 +39,8 @@ export function GuruBalanceBadge({ onPress, size = 'md' }: GuruBalanceBadgeProps
         onPress={onPress}
         style={({ pressed }) => pressed ? { opacity: 0.8 } : undefined}
         accessibilityRole="button"
-        accessibilityLabel={`Guru bakiyesi: ${balance}`}
-        accessibilityHint="Cüzdan ekranını açmak için dokunun"
+        accessibilityLabel={t('monetization.guruBalanceA11y', { balance: String(balance) })}
+        accessibilityHint={t('monetization.guruBalanceHint')}
       >
         {content}
       </Pressable>

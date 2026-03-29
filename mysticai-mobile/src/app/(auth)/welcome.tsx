@@ -626,7 +626,7 @@ export default function WelcomeScreen() {
                     <Image
                       source={HERO_PREMIUM_ICON}
                       style={styles.heroMarkImage}
-                      accessibilityLabel="Astro Guru"
+                      accessibilityLabel={t('appBrand.logoA11y')}
                       accessibilityRole="image"
                     />
                   </View>

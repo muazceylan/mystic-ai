@@ -3,17 +3,10 @@ import { StyleSheet, View } from 'react-native';
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import type { CompareMetricCardDTO } from '../../types/compare';
+import { useTranslation } from 'react-i18next';
 
 interface MetricCardsGridProps {
   metrics: CompareMetricCardDTO[];
-}
-
-function statusLabel(status: CompareMetricCardDTO['status']) {
-  if (status === 'strong') return 'Güçlü';
-  if (status === 'balanced') return 'Dengeli';
-  if (status === 'watch') return 'Dikkat';
-  if (status === 'growth') return 'Gelişim';
-  return 'Yoğun';
 }
 
 function statusColors(status: CompareMetricCardDTO['status']) {
@@ -24,7 +17,16 @@ function statusColors(status: CompareMetricCardDTO['status']) {
   return { bg: '#FDEEEF', border: '#F8C5CB', text: '#9F1239' };
 }
 
+function statusLabel(status: CompareMetricCardDTO['status'], t: (key: string) => string) {
+  if (status === 'strong') return t('compare.gradeStrong');
+  if (status === 'balanced') return t('compare.gradeBalanced');
+  if (status === 'watch') return t('compare.gradeAttention');
+  if (status === 'growth') return t('compare.gradeDevelopment');
+  return t('compare.gradeIntense');
+}
+
 export default function MetricCardsGrid({ metrics }: MetricCardsGridProps) {
+  const { t } = useTranslation();
   const safeMetrics = Array.isArray(metrics) ? metrics.filter((metric) => Boolean(metric?.id)) : [];
   if (!safeMetrics.length) {
     return null;
@@ -37,7 +39,7 @@ export default function MetricCardsGrid({ metrics }: MetricCardsGridProps) {
         const title = metric.title?.trim() || 'Metrik';
         const insight =
           metric.insight?.trim() ||
-          'Bu başlıkta küçük ve düzenli iyileştirme adımları dengeyi korumaya yardımcı olur.';
+          t('compare.metricCardHint');
         return (
           <View key={metric.id} style={styles.card}>
             <View style={styles.headRow}>
@@ -54,7 +56,7 @@ export default function MetricCardsGrid({ metrics }: MetricCardsGridProps) {
                 style={[styles.statusText, { color: palette.text }]}
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
               >
-                {statusLabel(metric.status)}
+                {statusLabel(metric.status, t)}
               </AccessibleText>
             </View>
 

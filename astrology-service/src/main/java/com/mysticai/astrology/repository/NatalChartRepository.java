@@ -19,7 +19,9 @@ public interface NatalChartRepository extends JpaRepository<NatalChart, Long> {
 
     List<NatalChart> findAllByUserId(String userId);
 
-    Optional<NatalChart> findFirstByUserIdOrderByCalculatedAtDesc(String userId);
+    List<NatalChart> findAllByUserIdOrderByCalculatedAtDescIdDesc(String userId);
+
+    Optional<NatalChart> findFirstByUserIdOrderByCalculatedAtDescIdDesc(String userId);
 
     boolean existsByUserId(String userId);
 
@@ -27,7 +29,7 @@ public interface NatalChartRepository extends JpaRepository<NatalChart, Long> {
             SELECT DISTINCT ON (user_id) *
             FROM natal_charts
             WHERE user_id IN (:userIds)
-            ORDER BY user_id, calculated_at DESC
+            ORDER BY user_id, calculated_at DESC, id DESC
             """, nativeQuery = true)
     List<NatalChart> findLatestForUserIds(@Param("userIds") List<String> userIds);
 }

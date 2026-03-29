@@ -2,13 +2,12 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AccessibleText, SafeScreen } from '../../../components/ui';
+import { AccessibleText, AppHeader, HeaderRightIcons, SafeScreen } from '../../../components/ui';
 import type { RelationshipType } from '../../../types/compare';
 import { RELATIONSHIP_TYPE_LABELS } from '../../../types/compare';
 import { getRelationshipPalette } from '../../../constants/compareDesignTokens';
 import { ACCESSIBILITY } from '../../../constants/tokens';
-import CompareHeader from '../../../components/compare/CompareHeader';
-import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
+import { useTranslation } from 'react-i18next';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -16,15 +15,15 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 
 const TYPE_ORDER: RelationshipType[] = ['love', 'work', 'friend', 'family', 'rival'];
 
-const DESCRIPTIONS: Record<RelationshipType, string> = {
-  love: 'Yakınlık, iletişim tonu ve duygusal güven odaklı analiz.',
-  work: 'İş bölümü, karar alma ve çalışma ritmi odaklı analiz.',
-  friend: 'Destek, sadakat, iletişim rahatlığı ve sınırlar odaklı analiz.',
-  family: 'Bağ, sorumluluk, hassasiyet ve güvenli alan odaklı analiz.',
-  rival: 'Rekabet, strateji, tetikleyiciler ve adil oyun kuralları odaklı analiz.',
-};
-
 export default function RelationshipTypePickerScreen() {
+  const { t } = useTranslation();
+  const DESCRIPTIONS: Record<RelationshipType, string> = {
+    love: t('compare.descLove'),
+    work: t('compare.descWork'),
+    friend: t('compare.descFriend'),
+    family: t('compare.descFamily'),
+    rival: t('compare.descRival'),
+  };
   const params = useLocalSearchParams<{
     matchId?: string;
     type?: string;
@@ -43,7 +42,7 @@ export default function RelationshipTypePickerScreen() {
   const rightAvatarUri = firstParam(params.rightAvatarUri);
   const leftSignLabel = firstParam(params.leftSignLabel);
   const rightSignLabel = firstParam(params.rightSignLabel);
-  const goBackSafely = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
+  const goBackToCompatibility = () => router.replace('/(tabs)/compatibility');
 
   const goCompare = (type: RelationshipType) => {
     router.push({
@@ -65,10 +64,11 @@ export default function RelationshipTypePickerScreen() {
     <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F7F5FB' }}>
       <View style={{ flex: 1 }}>
         <View style={styles.container}>
-          <CompareHeader
-            title="İlişki Türünü Seç"
-            subtitle="Seçtiğin türe göre tema başlıkları ve öneri dili otomatik değişecek."
-            onBack={goBackSafely}
+          <AppHeader
+            title={t('compare.typePickerTitle')}
+            subtitle={t('compare.typePickerSubtitle')}
+            onBack={goBackToCompatibility}
+            rightActions={<HeaderRightIcons />}
           />
 
           <View style={styles.grid}>
@@ -80,7 +80,7 @@ export default function RelationshipTypePickerScreen() {
                   onPress={() => goCompare(type)}
                   style={styles.cardPress}
                   accessibilityRole="button"
-                  accessibilityLabel={`${RELATIONSHIP_TYPE_LABELS[type]} karşılaştırma modunu aç`}
+                  accessibilityLabel={t('compare.typePickerA11y', { type: RELATIONSHIP_TYPE_LABELS[type] })}
                 >
                   <LinearGradient
                     colors={[palette.surface, '#FFFFFF']}

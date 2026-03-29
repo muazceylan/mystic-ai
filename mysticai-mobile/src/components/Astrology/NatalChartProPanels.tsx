@@ -17,13 +17,14 @@ import Svg, {
   LinearGradient as SvgLinearGradient,
   Stop,
 } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 import type {
   HousePlacement,
   PlanetPosition,
   PlanetaryAspect,
   AspectType,
 } from '../../services/astrology.service';
-import { getZodiacInfo, PLANET_TURKISH } from '../../constants/zodiac';
+import { getZodiacInfo, PLANET_TURKISH, SIGN_MODALITY_KEY, type ElementKey, type ModalityKey } from '../../constants/zodiac';
 import { labelPlanet } from '../../constants/astroLabelMap';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -42,11 +43,11 @@ type NatalChartProPanelsProps = {
 
 type AspectCell = PlanetaryAspect | null;
 
-type BalanceKey = 'Ateş' | 'Toprak' | 'Hava' | 'Su';
-type ModalityKey = 'Öncü' | 'Sabit' | 'Değişken';
+// ElementKey and ModalityKey imported from zodiac.ts ('fire'|'water'|'earth'|'air' and 'cardinal'|'fixed'|'mutable')
 
 type ScoredSlice<T extends string> = {
   key: T;
+  displayName: string;
   score: number;
   pct: number;
   color: string;
@@ -92,7 +93,7 @@ const ASPECT_META: Record<
     maxOrb: 8,
     colorLight: '#7C3AED',
     colorDark: '#C4B5FD',
-    label: 'Kavuşum',
+    label: 'natalChart.panels.aspectConjunction',
   },
   SEXTILE: {
     symbol: '⚹',
@@ -100,7 +101,7 @@ const ASPECT_META: Record<
     maxOrb: 6,
     colorLight: '#2563EB',
     colorDark: '#93C5FD',
-    label: 'Altıgen',
+    label: 'natalChart.panels.aspectSextile',
   },
   SQUARE: {
     symbol: '□',
@@ -108,7 +109,7 @@ const ASPECT_META: Record<
     maxOrb: 8,
     colorLight: '#D97706',
     colorDark: '#FCD34D',
-    label: 'Kare',
+    label: 'natalChart.panels.aspectSquare',
   },
   TRINE: {
     symbol: '△',
@@ -116,7 +117,7 @@ const ASPECT_META: Record<
     maxOrb: 8,
     colorLight: '#059669',
     colorDark: '#6EE7B7',
-    label: 'Üçgen',
+    label: 'natalChart.panels.aspectTrine',
   },
   OPPOSITION: {
     symbol: '☍',
@@ -124,7 +125,7 @@ const ASPECT_META: Record<
     maxOrb: 8,
     colorLight: '#DC2626',
     colorDark: '#FCA5A5',
-    label: 'Karşıt',
+    label: 'natalChart.panels.aspectOpposition',
   },
 };
 
@@ -158,20 +159,7 @@ const SIGN_KEYS_IN_ORDER = [
   'PISCES',
 ] as const;
 
-const SIGN_MODALITY: Record<string, ModalityKey> = {
-  ARIES: 'Öncü',
-  CANCER: 'Öncü',
-  LIBRA: 'Öncü',
-  CAPRICORN: 'Öncü',
-  TAURUS: 'Sabit',
-  LEO: 'Sabit',
-  SCORPIO: 'Sabit',
-  AQUARIUS: 'Sabit',
-  GEMINI: 'Değişken',
-  VIRGO: 'Değişken',
-  SAGITTARIUS: 'Değişken',
-  PISCES: 'Değişken',
-};
+// SIGN_MODALITY_KEY imported from zodiac.ts (ASCII keys: cardinal/fixed/mutable)
 
 const SIGN_ACCENT_COLORS: Record<string, string> = {
   ARIES: '#EF4444',
@@ -239,21 +227,8 @@ function shortPlanetLabel(planetKey: string, labels?: Record<string, string>) {
 }
 
 function compactPlanetLabel(planetKey: string, labels?: Record<string, string>) {
+  if (planetKey === 'NorthNode') return 'NN';
   const label = shortPlanetLabel(planetKey, labels);
-  const map: Record<string, string> = {
-    'Kuzey Düğümü': 'KD',
-    'Merkür': 'Mrk',
-    'Jüpiter': 'Jüp',
-    'Satürn': 'Sat',
-    'Uranüs': 'Ura',
-    'Neptün': 'Nep',
-    'Plüton': 'Plü',
-    'Venüs': 'Ven',
-    'Güneş': 'Gün',
-    'Ay': 'Ay',
-    'Mars': 'Mars',
-  };
-  if (map[label]) return map[label];
   return label.length > 4 ? label.slice(0, 3) : label;
 }
 
@@ -374,11 +349,13 @@ function donutSegmentPath(
 function toPercentSlices<T extends string>(
   scores: Record<T, number>,
   colors: Record<T, string>,
+  displayNames: Record<T, string>,
 ): ScoredSlice<T>[] {
   const total = (Object.values(scores) as number[]).reduce((sum, n) => sum + n, 0);
   const denominator = total > 0 ? total : 1;
   return (Object.keys(scores) as T[]).map((key) => ({
     key,
+    displayName: displayNames[key],
     score: scores[key],
     pct: Math.round((scores[key] / denominator) * 1000) / 10,
     color: colors[key],
@@ -386,37 +363,21 @@ function toPercentSlices<T extends string>(
 }
 
 function analyzeBalance(planets: PlanetPosition[], risingSign?: string | null) {
-  const elementScores: Record<BalanceKey, number> = {
-    Ateş: 0,
-    Toprak: 0,
-    Hava: 0,
-    Su: 0,
-  };
-  const modalityScores: Record<ModalityKey, number> = {
-    Öncü: 0,
-    Sabit: 0,
-    Değişken: 0,
-  };
+  const elementScores: Record<ElementKey, number> = { fire: 0, earth: 0, air: 0, water: 0 };
+  const modalityScores: Record<ModalityKey, number> = { cardinal: 0, fixed: 0, mutable: 0 };
 
   for (const planet of planets) {
     const weight = PLANET_WEIGHTS[planet.planet] ?? 1;
     const info = getZodiacInfo(planet.sign);
-    const element = (info.element as BalanceKey);
-    const modality = SIGN_MODALITY[planet.sign?.toUpperCase?.() ?? ''];
-
-    if (elementScores[element] != null) {
-      elementScores[element] += weight;
-    }
-    if (modality) {
-      modalityScores[modality] += weight;
-    }
+    const modality = SIGN_MODALITY_KEY[planet.sign?.toUpperCase?.() ?? ''];
+    elementScores[info.elementKey] += weight;
+    if (modality) modalityScores[modality] += weight;
   }
 
   if (risingSign) {
     const risingInfo = getZodiacInfo(risingSign);
-    const risingElement = risingInfo.element as BalanceKey;
-    const risingModality = SIGN_MODALITY[risingSign.toUpperCase()];
-    if (elementScores[risingElement] != null) elementScores[risingElement] += 2.8;
+    const risingModality = SIGN_MODALITY_KEY[risingSign.toUpperCase()];
+    elementScores[risingInfo.elementKey] += 2.8;
     if (risingModality) modalityScores[risingModality] += 2.2;
   }
 
@@ -424,8 +385,9 @@ function analyzeBalance(planets: PlanetPosition[], risingSign?: string | null) {
 }
 
 function buildBalanceSummary(
-  elements: ScoredSlice<BalanceKey>[],
+  elements: ScoredSlice<ElementKey>[],
   modalities: ScoredSlice<ModalityKey>[],
+  t: (key: string, opts?: Record<string, unknown>) => string,
 ) {
   const sorted = [...elements].sort((a, b) => b.score - a.score);
   const dominantElement = sorted[0];
@@ -437,38 +399,45 @@ function buildBalanceSummary(
   const secondPct = secondElement.pct;
   const lowestPct = lowestElement.pct;
 
-  const elementIntro: Record<BalanceKey, string> = {
-    Ateş: 'Haritanda Ateş elementi ön planda. Bu, güçlü bir irade, hızlı karar alma kapasitesi ve aksiyona yatkın bir enerji yapısına işaret eder.',
-    Toprak: 'Haritanda Toprak elementi ön planda. Bu, sonuç odaklı düşünce yapısı, pratik zeka ve güvenli temeller kurma eğilimi anlamına gelir.',
-    Hava: 'Haritanda Hava elementi ön planda. Bu, güçlü analitik düşünce, iletişim becerisi ve bilgi aracılığıyla anlam kurma eğilimi gösterir.',
-    Su: 'Haritanda Su elementi ön planda. Bu, derin sezgisel algı, duygusal zeka ve empatik kavrayış kapasitesine işaret eder.',
+  const elementIntroKey: Record<ElementKey, string> = {
+    fire:  'natalChart.panels.elementIntroFire',
+    earth: 'natalChart.panels.elementIntroEarth',
+    air:   'natalChart.panels.elementIntroAir',
+    water: 'natalChart.panels.elementIntroWater',
   };
 
-  const modalityDepth: Record<ModalityKey, string> = {
-    Öncü: 'Öncü (Kardinal) mod vurgun yüksek olduğundan yeni süreçleri başlatma ve inisiyatif alma konusunda doğal bir eğilimin var. Sürdürülebilirlik için projelere yapısal bir ritim kazandırmak gelişim alanın olabilir.',
-    Sabit: 'Sabit (Fixed) mod vurgun güçlü olduğundan kararlılık, sadakat ve uzun soluklu odaklanma senin doğal avantajın. Değişen koşullara esnek yanıt verebilme becerini geliştirmek potansiyelini artırır.',
-    Değişken: 'Değişken (Mutable) mod vurgun baskın olduğundan uyum sağlama, farklı bakış açılarını benimseme ve çok yönlü düşünme konusunda güçlüsün. Odak noktanı netleştirmek ve öncelik sıralaman üzerine çalışmak sana avantaj sağlar.',
+  const modalityDepthKey: Record<ModalityKey, string> = {
+    cardinal: 'natalChart.panels.modalityDepthCardinal',
+    fixed:    'natalChart.panels.modalityDepthFixed',
+    mutable:  'natalChart.panels.modalityDepthMutable',
   };
 
-  const balanceAdvice: Record<BalanceKey, string> = {
-    Ateş: 'Ateş enerjisinin düşük kalması, motivasyon ve cesareti bilinçli olarak beslemen gerektiğini gösterir. Küçük ama kararlı adımlar atmak bu alandaki dengeyi güçlendirir.',
-    Toprak: 'Toprak enerjisinin düşük kalması, somut planlama ve maddi düzene bilinçli önem vermen gerektiğini gösterir. Günlük rutinler ve finansal yapılandırma bu alandaki dengeyi destekler.',
-    Hava: 'Hava enerjisinin düşük kalması, düşüncelerini sözlü ifade etme ve zihinsel netlik konusunda bilinçli çaba göstermen gerektiğini gösterir. Düşünceni yazıya dökmek veya paylaşmak bu alandaki dengeyi güçlendirir.',
-    Su: 'Su enerjisinin düşük kalması, duygusal farkındalık ve sezgisel dinleme konusunda bilinçli alan açman gerektiğini gösterir. Bedeni ve duyguları gözlemleme pratiği bu alandaki dengeyi destekler.',
+  const balanceAdviceKey: Record<ElementKey, string> = {
+    fire:  'natalChart.panels.balanceAdviceFire',
+    earth: 'natalChart.panels.balanceAdviceEarth',
+    air:   'natalChart.panels.balanceAdviceAir',
+    water: 'natalChart.panels.balanceAdviceWater',
+  };
+
+  const elementDisplayKey: Record<ElementKey, string> = {
+    fire:  'natalChart.panels.elementFire',
+    earth: 'natalChart.panels.elementEarth',
+    air:   'natalChart.panels.elementAir',
+    water: 'natalChart.panels.elementWater',
   };
 
   const parts: string[] = [];
 
-  parts.push(elementIntro[dominantElement.key]);
+  parts.push(t(elementIntroKey[dominantElement.key]));
 
   if (dominantPct - secondPct < 8) {
-    parts.push(`${secondElement.key} elementinin de yakın ağırlıkta olması, bu iki enerjinin birbirini besleyen bir denge oluşturduğunu gösterir.`);
+    parts.push(t('natalChart.panels.elementSecondaryBalance', { element: t(elementDisplayKey[secondElement.key]) }));
   }
 
-  parts.push(modalityDepth[dominantModality.key]);
+  parts.push(t(modalityDepthKey[dominantModality.key]));
 
   if (lowestPct < 15) {
-    parts.push(balanceAdvice[lowestElement.key]);
+    parts.push(t(balanceAdviceKey[lowestElement.key]));
   }
 
   return parts.join('\n\n');
@@ -526,7 +495,7 @@ function MiniDonut<T extends string>({
           .map((slice) => (
             <View key={`legend-${String(slice.key)}`} style={stylesLocal.legendRow}>
               <View style={[stylesLocal.legendDot, { backgroundColor: slice.color }]} />
-              <Text style={[stylesLocal.legendLabel, { color: colors.textSoft }]}>{String(slice.key)}</Text>
+              <Text style={[stylesLocal.legendLabel, { color: colors.textSoft }]}>{slice.displayName}</Text>
               <Text style={[stylesLocal.legendValue, { color: colors.text }]}>%{slice.pct.toFixed(1)}</Text>
             </View>
           ))}
@@ -588,6 +557,7 @@ function NatalWheel({
   showAuras?: boolean;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const isHero = mode === 'hero';
   const isPoster = !isHero && !showMetaRow && !showAuras;
@@ -983,10 +953,10 @@ function NatalWheel({
             <Text style={[stylesLocal.wheelMetaLabel, { color: colors.violet }]}>Premium Wheel</Text>
           </View>
           <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
-            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>Tropikal</Text>
+            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>{t('natalChart.panels.tropicalLabel')}</Text>
           </View>
           <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
-            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>Placidus</Text>
+            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>{t('natalChart.panels.placidusLabel')}</Text>
           </View>
         </View>
       ) : null}
@@ -1002,6 +972,7 @@ function CosmicPositionDetails({
   planetNames?: Record<string, string>;
 }) {
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
 
   const ordered = useMemo(() => {
     const byKey = new Map(planets.map((p) => [p.planet, p] as const));
@@ -1011,13 +982,13 @@ function CosmicPositionDetails({
   return (
     <View style={stylesLocal.positionList}>
       <View style={[stylesLocal.positionHeaderRow, { backgroundColor: colors.surfaceAlt, borderBottomColor: colors.borderLight }]}>
-        <Text style={[stylesLocal.positionHeaderCellLeft, { color: colors.textMuted }]}>Gezegen</Text>
-        <Text style={[stylesLocal.positionHeaderCellMid, { color: colors.textMuted }]}>Burç</Text>
-        <Text style={[stylesLocal.positionHeaderCellDeg, { color: colors.textMuted }]}>Derece</Text>
-        <Text style={[stylesLocal.positionHeaderCellRight, { color: colors.textMuted }]}>Ev Konumu</Text>
+        <Text style={[stylesLocal.positionHeaderCellLeft, { color: colors.textMuted }]}>{t('natalChart.panels.colHeaderPlanet')}</Text>
+        <Text style={[stylesLocal.positionHeaderCellMid, { color: colors.textMuted }]}>{t('natalChart.panels.colHeaderSign')}</Text>
+        <Text style={[stylesLocal.positionHeaderCellDeg, { color: colors.textMuted }]}>{t('natalChart.panels.colHeaderDegree')}</Text>
+        <Text style={[stylesLocal.positionHeaderCellRight, { color: colors.textMuted }]}>{t('natalChart.panels.colHeaderHouse')}</Text>
       </View>
       {ordered.map((planet) => {
-        const zodiac = getZodiacInfo(planet.sign);
+        const zodiac = getZodiacInfo(planet.sign, i18n.language);
         return (
           <View
             key={`position-detail-${planet.planet}`}
@@ -1038,7 +1009,7 @@ function CosmicPositionDetails({
             <Text style={[stylesLocal.positionCellDeg, { color: colors.textSoft }]}>
               {formatPlanetDegreeMinute(planet)}
             </Text>
-            <Text style={[stylesLocal.positionCellRight, { color: colors.textMuted }]}>{planet.house}. Ev</Text>
+            <Text style={[stylesLocal.positionCellRight, { color: colors.textMuted }]}>{t('natalChart.panels.housePosition', { number: planet.house })}</Text>
           </View>
         );
       })}
@@ -1058,6 +1029,7 @@ function AspectMatrix({
   onAspectPress?: (aspect: PlanetaryAspect) => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const aspectList = useMemo(
     () => (aspects.length ? effectiveAspects(aspects) : calculateFallbackAspects(planets)),
     [aspects, planets],
@@ -1209,7 +1181,7 @@ function AspectMatrix({
                       key={`${rowPlanet}-${colPlanet}`}
                       onPress={() => onAspectPress(aspect)}
                       accessibilityRole="button"
-                      accessibilityLabel={`${labelPlanet(rowPlanet)} ${meta?.label ?? ''} ${labelPlanet(colPlanet)} orb ${aspect.orb.toFixed(1)}`}
+                      accessibilityLabel={`${labelPlanet(rowPlanet)} ${meta ? t(meta.label) : ''} ${labelPlanet(colPlanet)} orb ${aspect.orb.toFixed(1)}`}
                     >
                       {content}
                     </Pressable>
@@ -1231,7 +1203,7 @@ function AspectMatrix({
             <View key={`legend-${type}`} style={stylesLocal.aspectLegendItem}>
               <Text style={[stylesLocal.aspectLegendSymbol, { color }]}>{meta.symbol}</Text>
               <Text style={[stylesLocal.aspectLegendLabel, { color: colors.textMuted }]}>
-                {meta.label} · {meta.exact}° · orb≤{meta.maxOrb}°
+                {t(meta.label)} · {meta.exact}° · orb≤{meta.maxOrb}°
               </Text>
             </View>
           );
@@ -1249,32 +1221,44 @@ function CosmicBalance({
   risingSign?: string | null;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
-  const elementColors: Record<BalanceKey, string> = {
-    Ateş: '#F97316',
-    Toprak: '#84CC16',
-    Hava: '#38BDF8',
-    Su: '#6366F1',
+  const elementColors: Record<ElementKey, string> = {
+    fire: '#F97316',
+    earth: '#84CC16',
+    air: '#38BDF8',
+    water: '#6366F1',
   };
   const modalityColors: Record<ModalityKey, string> = {
-    Öncü: '#F59E0B',
-    Sabit: '#10B981',
-    Değişken: '#8B5CF6',
+    cardinal: '#F59E0B',
+    fixed: '#10B981',
+    mutable: '#8B5CF6',
   };
 
   const { elementSlices, modalitySlices, summary } = useMemo(() => {
+    const elementDisplayNames: Record<ElementKey, string> = {
+      fire: t('natalChart.panels.elementFire'),
+      earth: t('natalChart.panels.elementEarth'),
+      air: t('natalChart.panels.elementAir'),
+      water: t('natalChart.panels.elementWater'),
+    };
+    const modalityDisplayNames: Record<ModalityKey, string> = {
+      cardinal: t('natalChart.panels.modalityCardinal'),
+      fixed: t('natalChart.panels.modalityFixed'),
+      mutable: t('natalChart.panels.modalityMutable'),
+    };
     const { elementScores, modalityScores } = analyzeBalance(planets, risingSign);
-    const elementSlices = toPercentSlices(elementScores, elementColors);
-    const modalitySlices = toPercentSlices(modalityScores, modalityColors);
-    const summary = buildBalanceSummary(elementSlices, modalitySlices);
+    const elementSlices = toPercentSlices(elementScores, elementColors, elementDisplayNames);
+    const modalitySlices = toPercentSlices(modalityScores, modalityColors, modalityDisplayNames);
+    const summary = buildBalanceSummary(elementSlices, modalitySlices, t);
     return { elementSlices, modalitySlices, summary };
-  }, [planets, risingSign]);
+  }, [planets, risingSign, t]);
 
   return (
     <View style={stylesLocal.balanceWrap}>
       <View style={stylesLocal.balanceDonutsRow}>
-        <MiniDonut title="Element" subtitle="Ateş · Toprak · Hava · Su" slices={elementSlices} />
-        <MiniDonut title="Nitelik" subtitle="Öncü · Sabit · Değişken" slices={modalitySlices} />
+        <MiniDonut title={t('natalChart.panels.elementDonutTitle')} subtitle={t('natalChart.panels.elementDonutSubtitle')} slices={elementSlices} />
+        <MiniDonut title={t('natalChart.panels.modalityDonutTitle')} subtitle={t('natalChart.panels.modalityDonutSubtitle')} slices={modalitySlices} />
       </View>
 
       <View
@@ -1286,7 +1270,7 @@ function CosmicBalance({
           },
         ]}
       >
-        <Text style={[stylesLocal.balanceSummaryTitle, { color: colors.violet }]}>Enerji Dağılımı Analizi</Text>
+        <Text style={[stylesLocal.balanceSummaryTitle, { color: colors.violet }]}>{t('natalChart.panels.energyDistributionTitle')}</Text>
         <Text style={[stylesLocal.balanceSummaryText, { color: colors.body }]}>{summary}</Text>
       </View>
     </View>
@@ -1305,6 +1289,7 @@ export default function NatalChartProPanels({
   renderWidthOverride,
   presentation = 'default',
 }: NatalChartProPanelsProps) {
+  const { t } = useTranslation();
   const chartPlanets = useMemo(
     () => planets.filter((p) => PLANET_ORDER.includes(p.planet as (typeof PLANET_ORDER)[number])),
     [planets],
@@ -1323,8 +1308,8 @@ export default function NatalChartProPanels({
     return (
       <SectionCard
         compact
-        title="Kozmik Harita"
-        subtitle="Dairesel harita önizlemesi · detay yorumlar aşağıda"
+        title={t('natalChart.panels.heroTitle')}
+        subtitle={t('natalChart.panels.heroSubtitle')}
       >
         <NatalWheel
           planets={chartPlanets}
@@ -1363,8 +1348,8 @@ export default function NatalChartProPanels({
     <View style={stylesLocal.sectionGroup}>
       {enabledPanels.has('wheel') ? (
         <SectionCard
-          title="Doğum Haritası"
-          subtitle="Placidus ev çizgileri ve dairesel harita görünümü"
+          title={t('natalChart.panels.wheelTitle')}
+          subtitle={t('natalChart.panels.wheelSubtitle')}
         >
           <NatalWheel
             planets={chartPlanets}
@@ -1379,8 +1364,8 @@ export default function NatalChartProPanels({
 
       {enabledPanels.has('matrix') ? (
         <SectionCard
-          title="Gezegen Etkileşim Tablosu"
-          subtitle="Üçgen açı matrisi • orb içinde kalan etkili etkileşimler"
+          title={t('natalChart.panels.matrixTitle')}
+          subtitle={t('natalChart.panels.matrixSubtitle')}
         >
           <AspectMatrix
             planets={chartPlanets}
@@ -1393,8 +1378,8 @@ export default function NatalChartProPanels({
 
       {enabledPanels.has('positions') ? (
         <SectionCard
-          title="Kozmik Konum Detayları"
-          subtitle="Gezegen, burç, derece/dakika ve ev konumu teknik listesi"
+          title={t('natalChart.panels.positionsTitle')}
+          subtitle={t('natalChart.panels.positionsSubtitle')}
         >
           <CosmicPositionDetails
             planets={chartPlanets}
@@ -1405,8 +1390,8 @@ export default function NatalChartProPanels({
 
       {enabledPanels.has('balance') ? (
         <SectionCard
-          title="Kozmik Denge"
-          subtitle="Haritandaki elementel ve modal enerji dağılımının astrolojik analizi"
+          title={t('natalChart.panels.balanceTitle')}
+          subtitle={t('natalChart.panels.balanceSubtitle')}
         >
           <CosmicBalance planets={chartPlanets} risingSign={risingSign} />
         </SectionCard>

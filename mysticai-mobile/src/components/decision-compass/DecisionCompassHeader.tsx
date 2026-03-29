@@ -4,6 +4,7 @@ import { MonetizationQuickBar } from '../../features/monetization';
 import { SpotlightTarget } from '../../features/tutorial/components/SpotlightTarget';
 import { DECISION_COMPASS_TUTORIAL_TARGET_KEYS } from '../../features/tutorial/domain/tutorial.constants';
 import { useNotificationStore } from '../../store/useNotificationStore';
+import { useTranslation } from 'react-i18next';
 
 interface DecisionCompassHeaderProps {
   onBack: () => void;
@@ -16,13 +17,14 @@ export function DecisionCompassHeader({
   onOpenNotifications,
   onOpenHelp,
 }: DecisionCompassHeaderProps) {
+  const { t } = useTranslation();
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const badgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
 
   return (
     <AppSurfaceHeader
-      title="Karar Pusulası"
-      subtitle="Günün öncelik alanları ve skorlar"
+      title={t('decisionCompassScreen.headerTitle')}
+      subtitle={t('decisionCompassScreen.headerSubtitle')}
       variant="page"
       allowTitleAutoShrink
       titleMinimumScale={0.88}
@@ -34,11 +36,11 @@ export function DecisionCompassHeader({
           <SurfaceHeaderIconButton
             iconName="notifications-outline"
             onPress={onOpenNotifications}
-            accessibilityLabel="Bildirimler"
+            accessibilityLabel={t('decisionCompassScreen.headerA11yNotifications')}
             badgeText={badgeText}
           />
           <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <SurfaceHeaderIconButton iconName="help-circle-outline" onPress={onOpenHelp} accessibilityLabel="Yardım" />
+            <SurfaceHeaderIconButton iconName="help-circle-outline" onPress={onOpenHelp} accessibilityLabel={t('decisionCompassScreen.headerA11yHelp')} />
           </SpotlightTarget>
         </>
       )}

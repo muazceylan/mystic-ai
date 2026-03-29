@@ -14,26 +14,22 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useContentStore } from '../store/useContentStore';
 
 type TextTab = 'arabic' | 'transliteration' | 'meaning';
 
-const TAB_LABELS: Record<TextTab, string> = {
-  arabic: 'Arapça',
-  transliteration: 'Okunuş',
-  meaning: 'Meal',
-};
-
 export default function DuaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t: tl, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const { getDuaById } = useContentStore();
   const dua = getDuaById(parseInt(id ?? '0', 10));
 
   const [target, setTarget] = useState(dua?.defaultTargetCount ?? 33);
-  const [textTab, setTextTab] = useState<TextTab>('arabic');
+  const [textTab, setTextTab] = useState<TextTab>('transliteration');
 
   const isSure = dua?.category === 'SURE';
   // Renk paleti: Sure için yeşil-teal, Dua için indigo-mavi
@@ -57,9 +53,9 @@ export default function DuaDetailScreen() {
       <SafeScreen style={{ backgroundColor: GRAD[0] }}>
         <LinearGradient colors={GRAD} style={styles.container}>
           <View style={styles.center}>
-            <Text style={{ color: TEXT, fontSize: 15 }}>Dua bulunamadı.</Text>
+            <Text style={{ color: TEXT, fontSize: 15 }}>{tl('spiritual.detail.notFound')}</Text>
             <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-              <Text style={{ color: ACCENT, fontWeight: '700' }}>← Geri Dön</Text>
+              <Text style={{ color: ACCENT, fontWeight: '700' }}>{tl('spiritual.detail.goBack')}</Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -67,10 +63,13 @@ export default function DuaDetailScreen() {
     );
   }
 
+  const localizedMeaning =
+    i18n.language === 'en' && dua.meaningEn ? dua.meaningEn : dua.meaningTr;
+
   const textContent: Record<TextTab, string> = {
     arabic: dua.arabic,
     transliteration: dua.transliteration,
-    meaning: dua.meaningTr,
+    meaning: localizedMeaning,
   };
 
   const startCounter = () => {
@@ -100,9 +99,6 @@ export default function DuaDetailScreen() {
           <Text style={[styles.headerTitle, { color: TEXT }]} numberOfLines={1}>
             {dua.title}
           </Text>
-          <View style={[styles.categoryBadge, { backgroundColor: ACCENT + '20', borderColor: ACCENT + '40' }]}>
-            <Text style={[styles.categoryText, { color: ACCENT }]}>{dua.category}</Text>
-          </View>
         </View>
         <HeaderRightIcons tintColor={TEXT} />
       </View>
@@ -124,7 +120,11 @@ export default function DuaDetailScreen() {
                 styles.segmentText,
                 { color: textTab === t ? (isDark ? '#000' : '#fff') : SUBTEXT },
               ]}>
-                {TAB_LABELS[t]}
+                {t === 'arabic'
+                  ? tl('spiritual.detail.tabArabic')
+                  : t === 'transliteration'
+                  ? tl('spiritual.detail.tabTranslit')
+                  : tl('spiritual.detail.tabMeaning')}
               </Text>
             </Pressable>
           ))}
@@ -149,21 +149,12 @@ export default function DuaDetailScreen() {
           )}
         </View>
 
-        {/* Fayda */}
-        <View style={[styles.benefitCard, { backgroundColor: ACCENT + '12', borderColor: ACCENT + '30' }]}>
-          <View style={styles.benefitHeader}>
-            <Ionicons name="sparkles-outline" size={14} color={ACCENT} />
-            <Text style={[styles.benefitLabel, { color: ACCENT }]}>Faydası</Text>
-          </View>
-          <Text style={[styles.benefitText, { color: TEXT + 'DD' }]}>{dua.shortBenefit}</Text>
-        </View>
-
         {/* Ayet Referansı */}
         {dua.relatedAyahRef && (
           <View style={[styles.ayahRef, { backgroundColor: SURFACE, borderColor: BORDER }]}>
             <Ionicons name="book-outline" size={14} color={SUBTEXT} />
             <Text style={[styles.ayahText, { color: SUBTEXT }]}>
-              {dua.relatedAyahRef.surah} Suresi, {dua.relatedAyahRef.ayah}. Ayet
+              {tl('spiritual.detail.ayahRef', { surah: dua.relatedAyahRef.surah, ayah: dua.relatedAyahRef.ayah })}
             </Text>
           </View>
         )}
@@ -173,7 +164,7 @@ export default function DuaDetailScreen() {
           <View style={styles.targetHeaderRow}>
             <Ionicons name="repeat-outline" size={14} color={SUBTEXT} />
             <Text style={[styles.targetLabel, { color: SUBTEXT }]}>
-              Zikir Hedefi · Önerilen: {dua.defaultTargetCount}
+              {tl('spiritual.detail.targetLabel', { count: dua.defaultTargetCount })}
             </Text>
           </View>
           <View style={styles.targetRow}>
@@ -248,7 +239,7 @@ export default function DuaDetailScreen() {
           >
             <Ionicons name="sync-outline" size={18} color={isDark ? '#000' : '#fff'} />
             <Text style={[styles.primaryCtaText, { color: isDark ? '#000' : '#fff' }]}>
-              Zikre Başla ({target}×)
+              {tl('spiritual.detail.startCounter', { count: target })}
             </Text>
           </Pressable>
 
@@ -260,12 +251,12 @@ export default function DuaDetailScreen() {
             onPress={() => router.push('/spiritual/journal')}
           >
             <Ionicons name="journal-outline" size={16} color={ACCENT} />
-            <Text style={[styles.secondaryCtaText, { color: ACCENT }]}>Günlüğüm</Text>
+            <Text style={[styles.secondaryCtaText, { color: ACCENT }]}>{tl('spiritual.detail.journal')}</Text>
           </Pressable>
         </View>
 
         <Text style={[styles.disclaimer, { color: SUBTEXT + '60' }]}>
-          Bu içerikler bilgilendirme amaçlıdır. Dini hüküm ya da tıbbi tavsiye değildir.
+          {tl('spiritual.detail.disclaimer')}
         </Text>
       </ScrollView>
       </LinearGradient>
@@ -286,13 +277,6 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1, alignItems: 'center', gap: 5 },
   headerTitle: { fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  categoryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  categoryText: { fontSize: 11, fontWeight: '700' },
   content: { padding: 16, gap: 12, paddingBottom: 44 },
   segmentBar: {
     flexDirection: 'row',
@@ -334,15 +318,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
   },
-  benefitCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    gap: 6,
-  },
-  benefitHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  benefitLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
-  benefitText: { fontSize: 14, lineHeight: 21 },
   ayahRef: {
     flexDirection: 'row',
     alignItems: 'center',

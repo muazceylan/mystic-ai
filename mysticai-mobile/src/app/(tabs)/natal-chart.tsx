@@ -73,7 +73,7 @@ import {
 } from '../../services/googlePlaces.service';
 import { CITIES, COUNTRIES, DISTRICTS } from '../../constants';
 import { getZodiacInfo } from '../../constants/zodiac';
-import { HOUSE_GLOSSARY } from '../../constants/astrology-glossary';
+import { getHouseGlossary } from '../../constants/astrology-glossary';
 import { formatAspectAngleHuman, labelAspectType } from '../../constants/astroLabelMap';
 import PlanetBottomSheet from '../../components/Astrology/PlanetBottomSheet';
 import HouseBottomSheet from '../../components/Astrology/HouseBottomSheet';
@@ -124,6 +124,44 @@ const NIGHT_SKY_POSTER_LINK = 'https://mysticai.app/dl?utm_source=night_sky_post
 // Safe mode: keep DnD disabled to protect main scroll stability across devices.
 const ENABLE_SECTION_DND = false;
 
+function normalizeAppLocale(locale?: string | null): 'tr' | 'en' {
+  return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
+function looksTurkishInterpretation(text?: string | null): boolean {
+  if (!text) return false;
+  return /[çğıöşüİ]|\b(ve|ile|için|senin|harita|güneş|ay|yükselen|yorum|ilişki|duygusal|gezegen)\b/i.test(text);
+}
+
+function looksEnglishInterpretation(text?: string | null): boolean {
+  if (!text) return false;
+  return /\b(the|and|your|chart|sun|moon|rising|interpretation|relationship|planet|emotional|energy)\b/i.test(text);
+}
+
+function looksBrokenInterpretation(text?: string | null): boolean {
+  if (!text) return false;
+  return /chartid|sunsign|moonsign|risingsign|absolutelongitude|planets\.\s*planet|Temel yorum korunarak başlıklara ayrıştırıldı|Yorum bu aşamada sadeleştirilmiş yapıda sunuldu/i.test(text);
+}
+
+function chartNeedsLocalizedInterpretation(chart: NatalChartResponse | null | undefined, locale: 'tr' | 'en'): boolean {
+  if (!chart?.aiInterpretation || chart.interpretationStatus !== 'COMPLETED') return false;
+  if (looksBrokenInterpretation(chart.aiInterpretation)) return true;
+  return locale === 'en'
+    ? looksTurkishInterpretation(chart.aiInterpretation)
+    : looksEnglishInterpretation(chart.aiInterpretation);
+}
+
+function hasCompletedInterpretation(chart: NatalChartResponse | null | undefined): chart is NatalChartResponse {
+  return Boolean(chart?.aiInterpretation && chart.interpretationStatus === 'COMPLETED' && !looksBrokenInterpretation(chart.aiInterpretation));
+}
+
+function shouldPersistChartToCache(chart: NatalChartResponse | null | undefined): boolean {
+  if (!chart) return false;
+  return chart.interpretationStatus == null
+    || chart.interpretationStatus === 'COMPLETED'
+    || chart.interpretationStatus === 'FAILED';
+}
+
 type ScreenState = 'loading' | 'calculating' | 'error' | 'ready';
 type ProfileMode = 'switch' | 'compare';
 type PickerTarget = 'date' | 'time';
@@ -161,20 +199,8 @@ type CompanionFormState = {
 
 type EditableCompanion = SavedPerson | null;
 
-const RELATIONSHIP_OPTIONS: Array<{ key: RelationshipType; label: string }> = [
-  { key: 'FRIENDSHIP', label: 'Arkadaş' },
-  { key: 'LOVE', label: 'Partner' },
-  { key: 'FAMILY', label: 'Aile' },
-  { key: 'RIVAL', label: 'Rakip' },
-  { key: 'BUSINESS', label: 'İş' },
-];
-
-const GENDER_OPTIONS: Array<{ key: string; label: string }> = [
-  { key: 'WOMAN', label: 'Kadın' },
-  { key: 'MAN', label: 'Erkek' },
-  { key: 'NON_BINARY', label: 'Non-binary' },
-  { key: 'OTHER', label: 'Diğer' },
-];
+const RELATIONSHIP_KEYS: RelationshipType[] = ['FRIENDSHIP', 'LOVE', 'FAMILY', 'RIVAL', 'BUSINESS'];
+const GENDER_KEYS: string[] = ['WOMAN', 'MAN', 'NON_BINARY', 'OTHER'];
 
 const NATAL_SECTION_ORDER_STORAGE_KEY = 'natal_chart_section_order_v2';
 const DEFAULT_NATAL_SECTION_ORDER: DraggableNatalSectionKey[] = [
@@ -316,8 +342,8 @@ function formatTimeForApi(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:00`;
 }
 
-function formatDateForDisplay(date: Date | null, locale: string) {
-  if (!date) return 'Tarih Seç';
+function formatDateForDisplay(date: Date | null, locale: string, fallback?: string) {
+  if (!date) return fallback ?? 'Select Date';
   try {
     return new Intl.DateTimeFormat(locale?.startsWith('tr') ? 'tr-TR' : 'en-US', {
       day: '2-digit',
@@ -329,8 +355,8 @@ function formatDateForDisplay(date: Date | null, locale: string) {
   }
 }
 
-function formatTimeForDisplay(date: Date | null, locale: string) {
-  if (!date) return 'Saat Seç';
+function formatTimeForDisplay(date: Date | null, locale: string, fallback?: string) {
+  if (!date) return fallback ?? 'Select Time';
   try {
     return new Intl.DateTimeFormat(locale?.startsWith('tr') ? 'tr-TR' : 'en-US', {
       hour: '2-digit',
@@ -388,13 +414,13 @@ function composeFallbackBirthLocation(form: CompanionFormState) {
   return parts.join(', ');
 }
 
-function relationshipLabel(type: RelationshipType | null | undefined) {
-  return RELATIONSHIP_OPTIONS.find((o) => o.key === type)?.label ?? 'Arkadaş';
+function relationshipLabel(type: RelationshipType | null | undefined, options: Array<{ key: string; label: string }>) {
+  return options.find((o) => o.key === type)?.label ?? (type ?? '');
 }
 
-function genderLabel(gender?: string | null) {
+function genderLabel(gender: string | null | undefined, options: Array<{ key: string; label: string }>) {
   if (!gender) return '';
-  return GENDER_OPTIONS.find((o) => o.key === gender)?.label ?? gender;
+  return options.find((o) => o.key === gender)?.label ?? gender;
 }
 
 function savedPersonToChart(person: SavedPerson): NatalChartResponse {
@@ -431,9 +457,22 @@ function getAspectInfo(C: ReturnType<typeof useTheme>['colors'], t: (k: string) 
 export default function NatalChartTab() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
+  const resolvedLocale = useMemo(
+    () => normalizeAppLocale(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
   const { colors } = useTheme();
   const tabHeaderActions = useTabHeaderActions();
   const styles = makeStyles(colors);
+
+  const RELATIONSHIP_OPTIONS = useMemo(
+    () => RELATIONSHIP_KEYS.map((key) => ({ key, label: t(`natalChart.relationship${key}`) })),
+    [t],
+  );
+  const GENDER_OPTIONS = useMemo(
+    () => GENDER_KEYS.map((key) => ({ key, label: t(`natalChart.gender${key}`) })),
+    [t],
+  );
   const ASPECT_INFO = useMemo(() => getAspectInfo(colors, t), [colors, t]);
   const planetNames: Record<string, string> = useMemo(() => ({
     Sun: t('natalChart.sun'),
@@ -479,9 +518,27 @@ export default function NatalChartTab() {
     setError: setCacheError,
     isStale,
   } = useNatalChartStore();
+  const localeMatchedCachedChart = useMemo(
+    () => (chartNeedsLocalizedInterpretation(cachedChart, resolvedLocale) ? null : cachedChart),
+    [cachedChart, resolvedLocale],
+  );
 
-  const [state, setState] = useState<ScreenState>(cachedChart ? 'ready' : 'loading');
-  const [chart, setChart] = useState<NatalChartResponse | null>(cachedChart);
+  const [state, setState] = useState<ScreenState>(localeMatchedCachedChart ? 'ready' : 'loading');
+  const [chart, setChart] = useState<NatalChartResponse | null>(localeMatchedCachedChart);
+  const fallbackInterpretationChart = useMemo(() => {
+    if (hasCompletedInterpretation(chart)) return chart;
+    if (hasCompletedInterpretation(cachedChart)) return cachedChart;
+    return null;
+  }, [cachedChart, chart]);
+  const isShowingFallbackInterpretation = Boolean(
+    fallbackInterpretationChart
+    && chart
+    && chart.interpretationStatus !== 'COMPLETED'
+    && fallbackInterpretationChart.aiInterpretation !== chart.aiInterpretation,
+  );
+  const isFallbackInterpretationWrongLocale = Boolean(
+    fallbackInterpretationChart && chartNeedsLocalizedInterpretation(fallbackInterpretationChart, resolvedLocale),
+  );
   const [errorMessage, setErrorMessage] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetPosition | null>(null);
@@ -566,7 +623,7 @@ export default function NatalChartTab() {
       pollCountRef.current += 1;
 
       try {
-        const response = await fetchLatestNatalChart(user.id);
+        const response = await fetchLatestNatalChart(user.id, resolvedLocale);
         const updated = response.data;
         if (
           updated.interpretationStatus === 'COMPLETED' ||
@@ -586,6 +643,12 @@ export default function NatalChartTab() {
 
     pollRef.current = setTimeout(poll, POLL_INTERVAL_MS);
   }, [user, stopPolling, activeProfileIsSaved]);
+
+  const updateCacheIfStable = useCallback((nextChart: NatalChartResponse | null | undefined) => {
+    if (nextChart && shouldPersistChartToCache(nextChart)) {
+      setCachedChart(nextChart);
+    }
+  }, [setCachedChart]);
 
   useEffect(() => {
     return () => stopPolling();
@@ -698,8 +761,9 @@ export default function NatalChartTab() {
       timezone: user.timezone ?? undefined,
       latitude: user.latitude ?? user.lat,
       longitude: user.longitude ?? user.lng,
+      locale: resolvedLocale,
     };
-  }, [user]);
+  }, [resolvedLocale, user]);
 
   const loadChart = useCallback(async (forceRefresh = false) => {
     if (activeProfileIsSaved && resolvedActiveProfile) {
@@ -712,21 +776,21 @@ export default function NatalChartTab() {
     }
 
     if (!user?.id) {
-      setErrorMessage('Kullanici bilgisi bulunamadi. Lutfen tekrar giris yapin.');
+      setErrorMessage(t('natalChart.userBirthNotFound'));
       setState('error');
       return;
     }
 
     const request = buildRequest();
     if (!request) {
-      setErrorMessage('Dogum bilgileriniz eksik. Lutfen profilinizi guncelleyin.');
+      setErrorMessage(t('natalChart.birthDataMissing'));
       setState('error');
       setCacheError(t('natalChart.missingBirthData'));
       return;
     }
 
-    if (!forceRefresh && cachedChart && !isStale()) {
-      setChart(cachedChart);
+    if (!forceRefresh && localeMatchedCachedChart && !isStale()) {
+      setChart(localeMatchedCachedChart);
       setState('ready');
       return;
     }
@@ -734,10 +798,21 @@ export default function NatalChartTab() {
     try {
       setState('loading');
       setCacheLoading(true);
-      const response = await fetchLatestNatalChart(user.id);
-      setChart(response.data);
-      setCachedChart(response.data);
-      setState('ready');
+      const response = await fetchLatestNatalChart(user.id, resolvedLocale);
+        const latestChart = response.data;
+        if (chartNeedsLocalizedInterpretation(latestChart, resolvedLocale)) {
+          setState('calculating');
+          startCalcAnimation();
+          const localizedResponse = await calculateNatalChart(request);
+          stopCalcAnimation();
+          setChart(localizedResponse.data);
+          updateCacheIfStable(localizedResponse.data);
+          setState('ready');
+        } else {
+          setChart(latestChart);
+          updateCacheIfStable(latestChart);
+          setState('ready');
+        }
     } catch {
       try {
         setState('calculating');
@@ -745,18 +820,18 @@ export default function NatalChartTab() {
         const response = await calculateNatalChart(request);
         stopCalcAnimation();
         setChart(response.data);
-        setCachedChart(response.data);
+        updateCacheIfStable(response.data);
         setState('ready');
       } catch {
         stopCalcAnimation();
-        setErrorMessage('Dogum haritasi hesaplanamadi. Lutfen tekrar deneyin.');
+        setErrorMessage(t('natalChart.chartCalcFailed'));
         setState('error');
         setCacheError(t('natalChart.calcError'));
       }
     } finally {
       setCacheLoading(false);
     }
-  }, [user, cachedChart, isStale, buildRequest, activeProfileIsSaved, resolvedActiveProfile, stopPolling]);
+  }, [user, localeMatchedCachedChart, isStale, buildRequest, activeProfileIsSaved, resolvedActiveProfile, resolvedLocale, stopPolling, updateCacheIfStable]);
 
   const onRefresh = useCallback(async () => {
     if (!user?.id) return;
@@ -774,15 +849,23 @@ export default function NatalChartTab() {
         }
         return;
       }
-      const response = await fetchLatestNatalChart(user.id);
-      setChart(response.data);
-      setCachedChart(response.data);
+      const request = buildRequest();
+      const response = await fetchLatestNatalChart(user.id, resolvedLocale);
+      const latestChart = response.data;
+      if (request && chartNeedsLocalizedInterpretation(latestChart, resolvedLocale)) {
+        const localizedResponse = await calculateNatalChart(request);
+        setChart(localizedResponse.data);
+        updateCacheIfStable(localizedResponse.data);
+      } else {
+        setChart(latestChart);
+        updateCacheIfStable(latestChart);
+      }
     } catch {
       // ignore
     } finally {
       setRefreshing(false);
     }
-  }, [user, activeProfileIsSaved, resolvedActiveProfile, syncSavedPeople, setActiveProfile]);
+  }, [user, activeProfileIsSaved, resolvedActiveProfile, syncSavedPeople, setActiveProfile, buildRequest, resolvedLocale, updateCacheIfStable]);
 
   useEffect(() => {
     if (!resolvedActiveProfile && user) {
@@ -911,11 +994,11 @@ export default function NatalChartTab() {
   );
 
   const locationPickerTitle = useMemo(() => {
-    if (locationPickerTarget === 'country') return 'Ülke Seç';
-    if (locationPickerTarget === 'city') return 'İl / Şehir Seç';
-    if (locationPickerTarget === 'district') return 'İlçe Seç';
-    return 'Seçim Yap';
-  }, [locationPickerTarget]);
+    if (locationPickerTarget === 'country') return t('natalChart.selectCountry');
+    if (locationPickerTarget === 'city') return t('natalChart.selectCityTitle');
+    if (locationPickerTarget === 'district') return t('natalChart.selectDistrict');
+    return t('natalChart.selectGeneral');
+  }, [locationPickerTarget, t]);
 
   const locationPickerItems = useMemo(() => {
     const q = locationPickerQuery.trim().toLocaleLowerCase('tr-TR');
@@ -957,11 +1040,11 @@ export default function NatalChartTab() {
 
   const openFallbackLocationPicker = (target: LocationPickerTarget) => {
     if (target === 'city' && !fallbackCountryCode) {
-      Alert.alert('Önce Ülke Seçin', 'Lütfen önce ülke seçin.');
+      Alert.alert(t('natalChart.countryFirstTitle'), t('natalChart.countryFirstMsg'));
       return;
     }
     if (target === 'district' && !companionForm.city) {
-      Alert.alert('Önce İl Seçin', 'Lütfen önce il/şehir seçin.');
+      Alert.alert(t('natalChart.cityFirstTitle'), t('natalChart.cityFirstMsg'));
       return;
     }
     setLocationPickerQuery('');
@@ -1052,12 +1135,12 @@ export default function NatalChartTab() {
     if (!user?.id) return;
     const userId = user.id;
     Alert.alert(
-      'Kişiyi Sil',
-      `${person.name} profilini silmek istiyor musunuz?`,
+      t('natalChart.deletePersonTitle'),
+      t('natalChart.deletePersonConfirm', { name: person.name }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('natalChart.cancel'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('natalChart.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -1067,7 +1150,7 @@ export default function NatalChartTab() {
                 setActiveProfile(user);
               }
             } catch (e: any) {
-              Alert.alert('Hata', e?.response?.data?.message ?? 'Kişi silinemedi.');
+              Alert.alert(t('natalChart.errorTitle'), e?.response?.data?.message ?? t('natalChart.personDeleteFailed'));
             }
           },
         },
@@ -1089,11 +1172,11 @@ export default function NatalChartTab() {
   const handleSavedAvatarLongPress = (person: SavedPerson) => {
     Alert.alert(
       person.name,
-      'Bu profil için işlem seçin',
+      t('natalChart.profileActionTitle'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Düzenle', onPress: () => openEditCompanionModal(person) },
-        { text: 'Sil', style: 'destructive', onPress: () => handleDeleteCompanion(person) },
+        { text: t('natalChart.cancel'), style: 'cancel' },
+        { text: t('natalChart.editAction'), onPress: () => openEditCompanionModal(person) },
+        { text: t('natalChart.delete'), style: 'destructive', onPress: () => handleDeleteCompanion(person) },
       ]
     );
   };
@@ -1106,12 +1189,12 @@ export default function NatalChartTab() {
 
     Alert.alert(
       person.name,
-      'Bu profil için işlem seçin',
+      t('natalChart.profileActionTitle'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Profili Aç', onPress: () => setActiveProfile(person) },
-        { text: 'Düzenle', onPress: () => openEditCompanionModal(person) },
-        { text: 'Sil', style: 'destructive', onPress: () => handleDeleteCompanion(person) },
+        { text: t('natalChart.cancel'), style: 'cancel' },
+        { text: t('natalChart.openProfile'), onPress: () => setActiveProfile(person) },
+        { text: t('natalChart.editAction'), onPress: () => openEditCompanionModal(person) },
+        { text: t('natalChart.delete'), style: 'destructive', onPress: () => handleDeleteCompanion(person) },
       ],
     );
   };
@@ -1127,15 +1210,15 @@ export default function NatalChartTab() {
     ).trim();
 
     if (!name) {
-      Alert.alert('Eksik Bilgi', 'Lütfen isim girin.');
+      Alert.alert(t('natalChart.missingInfo'), t('natalChart.enterName'));
       return;
     }
     if (!birthDateValue) {
-      Alert.alert('Eksik Bilgi', 'Lütfen doğum tarihi seçin.');
+      Alert.alert(t('natalChart.missingInfo'), t('natalChart.enterBirthDate'));
       return;
     }
     if (!birthLocation) {
-      Alert.alert('Eksik Bilgi', 'Lütfen doğum lokasyonu seçin veya yazın.');
+      Alert.alert(t('natalChart.missingInfo'), t('natalChart.enterBirthLocation'));
       return;
     }
 
@@ -1161,7 +1244,7 @@ export default function NatalChartTab() {
       closeCompanionModal();
       setProfileMode('switch');
     } catch (e: any) {
-      Alert.alert('Hata', e?.response?.data?.message ?? 'Kişi kaydedilemedi.');
+      Alert.alert(t('natalChart.errorTitle'), e?.response?.data?.message ?? t('natalChart.personSaveFailed'));
     } finally {
       setCompanionSaving(false);
     }
@@ -1269,7 +1352,7 @@ export default function NatalChartTab() {
       const saved = isSavedPersonProfile(first) ? first : (isSavedPersonProfile(second) ? second : null);
       const selfProfile = !isSavedPersonProfile(first) ? first : (!isSavedPersonProfile(second) ? second : null);
       if (!saved || !selfProfile || !sameProfile(selfProfile, user, user.id)) {
-        Alert.alert('Karşılaştırma Sınırı', 'Karşılaştırma için iki kayıtlı kişi veya siz + bir kayıtlı kişi seçin.');
+        Alert.alert(t('natalChart.compareLimitTitle'), t('natalChart.compareLimitMsg'));
         return;
       }
       personAId = null; // authenticated requester user chart
@@ -1277,15 +1360,15 @@ export default function NatalChartTab() {
     }
 
     if (!personBId) {
-      Alert.alert('Karşılaştırma Hatası', 'İkinci profil bulunamadı.');
+      Alert.alert(t('natalChart.compareErrorTitle'), t('natalChart.compareSecondNotFound'));
       return;
     }
 
     const profileSunLabel = (profile: Profile) => {
       const profileChart = isSavedPersonProfile(profile)
         ? savedPersonToChart(profile)
-        : (cachedChart ?? chart);
-      const signInfo = getZodiacInfo(profileChart?.sunSign);
+        : (localeMatchedCachedChart ?? chart);
+      const signInfo = getZodiacInfo(profileChart?.sunSign, i18n.language);
       return `${signInfo.symbol} ${signInfo.name}`;
     };
 
@@ -1311,7 +1394,7 @@ export default function NatalChartTab() {
     user,
     comparisonPair,
     comparisonRelationshipType,
-    cachedChart,
+    localeMatchedCachedChart,
     chart,
   ]);
 
@@ -1600,7 +1683,7 @@ export default function NatalChartTab() {
             <ActivityIndicator size="large" color={colors.violet} />
             <Animated.View style={[styles.skelLine, { width: 180, opacity: pulseAnim }]} />
             <Animated.View style={[styles.skelLine, { width: 120, opacity: pulseAnim }]} />
-            <Text style={styles.loadingText}>Haritaniz yukleniyor...</Text>
+            <Text style={styles.loadingText}>{t('natalChart.loadingChart')}</Text>
           </View>
         </SafeScreen>
       </TabSwipeGesture>
@@ -1636,8 +1719,8 @@ export default function NatalChartTab() {
             >
               {ZODIAC_SYMBOLS[Math.floor(Date.now() / 500) % 12]}
             </Animated.Text>
-            <Text style={styles.calcTitle}>Yildizlar Hesaplaniyor...</Text>
-            <Text style={styles.calcSub}>Bu islem birkac saniye surebilir</Text>
+            <Text style={styles.calcTitle}>{t('natalChart.calculatingStars')}</Text>
+            <Text style={styles.calcSub}>{t('natalChart.calculatingSub')}</Text>
           </View>
         </SafeScreen>
       </TabSwipeGesture>
@@ -1663,7 +1746,7 @@ export default function NatalChartTab() {
               accessibilityRole="button"
             >
               <Ionicons name="refresh" size={16} color={colors.white} />
-              <Text style={styles.retryBtnText}>Tekrar Dene</Text>
+              <Text style={styles.retryBtnText}>{t('natalChart.retryBtn')}</Text>
             </Pressable>
           </View>
         </SafeScreen>
@@ -1674,9 +1757,9 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   // READY STATE — Modern Light UI
   // ═══════════════════════════════════════════════════════════════════
-  const sunInfo = getZodiacInfo(chart?.sunSign);
-  const moonInfo = getZodiacInfo(chart?.moonSign);
-  const risingInfo = getZodiacInfo(chart?.risingSign);
+  const sunInfo = getZodiacInfo(chart?.sunSign, i18n.language);
+  const moonInfo = getZodiacInfo(chart?.moonSign, i18n.language);
+  const risingInfo = getZodiacInfo(chart?.risingSign, i18n.language);
   const activeProfileName = getProfileName(resolvedActiveProfile);
   const activePosterFullName = (() => {
     if (resolvedActiveProfile) {
@@ -1722,23 +1805,23 @@ export default function NatalChartTab() {
       ? currentSynastry
       : null;
 
-  const comparisonPersonAName = comparisonResult?.personAName ?? (comparisonPair ? getProfileName(comparisonPair[0]) : 'Kişi A');
-  const comparisonPersonBName = comparisonResult?.personBName ?? (comparisonPair ? getProfileName(comparisonPair[1]) : 'Kişi B');
+  const comparisonPersonAName = comparisonResult?.personAName ?? (comparisonPair ? getProfileName(comparisonPair[0]) : t('natalChart.personAFallback'));
+  const comparisonPersonBName = comparisonResult?.personBName ?? (comparisonPair ? getProfileName(comparisonPair[1]) : t('natalChart.personBFallback'));
   const comparisonAProfile = comparisonPair?.[0] ?? null;
   const comparisonBProfile = comparisonPair?.[1] ?? null;
   const comparisonPersonAAvatarUri = getProfileAvatarUri(comparisonAProfile);
   const comparisonPersonBAvatarUri = getProfileAvatarUri(comparisonBProfile);
   const comparisonAChart = comparisonAProfile
-    ? (isSavedPersonProfile(comparisonAProfile) ? savedPersonToChart(comparisonAProfile) : (cachedChart ?? chart))
+    ? (isSavedPersonProfile(comparisonAProfile) ? savedPersonToChart(comparisonAProfile) : (localeMatchedCachedChart ?? chart))
     : null;
   const comparisonBChart = comparisonBProfile
-    ? (isSavedPersonProfile(comparisonBProfile) ? savedPersonToChart(comparisonBProfile) : (cachedChart ?? chart))
+    ? (isSavedPersonProfile(comparisonBProfile) ? savedPersonToChart(comparisonBProfile) : (localeMatchedCachedChart ?? chart))
     : null;
-  const comparisonASun = getZodiacInfo(comparisonAChart?.sunSign);
-  const comparisonBSun = getZodiacInfo(comparisonBChart?.sunSign);
+  const comparisonASun = getZodiacInfo(comparisonAChart?.sunSign, i18n.language);
+  const comparisonBSun = getZodiacInfo(comparisonBChart?.sunSign, i18n.language);
   const comparisonPersonASignLabel = `${comparisonASun.symbol} ${comparisonASun.name}`;
   const comparisonPersonBSignLabel = `${comparisonBSun.symbol} ${comparisonBSun.name}`;
-  const comparisonRelationLabel = relationshipLabel(comparisonRelationshipType);
+  const comparisonRelationLabel = relationshipLabel(comparisonRelationshipType, RELATIONSHIP_OPTIONS);
   const comparisonAspectsCount = comparisonResult?.crossAspects?.length ?? 0;
   const comparisonOverallScore =
     comparisonResult?.harmonyScore ?? comparisonResult?.scoreBreakdown?.overall ?? null;
@@ -1812,7 +1895,7 @@ export default function NatalChartTab() {
         isActive && styles.sectionDragHandleActive,
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${label} bölümünü sürükle`}
+      accessibilityLabel={t('natalChart.dragSectionA11y', { label })}
     >
       <Ionicons name="reorder-three-outline" size={16} color={colors.muted} />
     </Pressable>
@@ -1900,8 +1983,8 @@ export default function NatalChartTab() {
         return (
           <AccordionSection
             id="big_three"
-            title="Big Three (Güneş • Ay • Yükselen)"
-            subtitle="İkonlara dokunarak karakter, etki ve dikkat noktalarını aç"
+            title={t('natalChart.sectionBigThreeTitle')}
+            subtitle={t('natalChart.sectionBigThreeSub')}
             icon="planet-outline"
             iconStyle="premium"
             iconTone={accordionIconTone}
@@ -1921,7 +2004,7 @@ export default function NatalChartTab() {
                   style={({ pressed }) => [styles.trinityBubble, pressed && styles.trinityBubblePressed]}
                   onPress={() => openBigThreeSheet(item.role)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${item.label} detayını aç`}
+                  accessibilityLabel={t('natalChart.bigThreeOpenA11y', { label: item.label })}
                 >
                   <View style={styles.trinityIconShell}>
                     <View style={styles.trinityIconCore}>
@@ -1930,7 +2013,7 @@ export default function NatalChartTab() {
                   </View>
                   <Text style={styles.trinitySign}>{item.info.symbol} {item.info.name}</Text>
                   <Text style={styles.trinityLabel}>{item.label}</Text>
-                  <Text style={styles.trinityHint}>Detayı Aç</Text>
+                  <Text style={styles.trinityHint}>{t('natalChart.bigThreeOpenHint')}</Text>
                 </Pressable>
               ))}
             </View>
@@ -1943,7 +2026,7 @@ export default function NatalChartTab() {
           <AccordionSection
             id="hotspots"
             title={t('natalChart.cosmicHotspots')}
-            subtitle="En güçlü çalışan açılar • dokunup psikolojik dinamiği aç"
+            subtitle={t('natalChart.sectionHotspotsSub')}
             icon="flash-outline"
             iconStyle="premium"
             iconTone={accordionIconTone}
@@ -1979,8 +2062,8 @@ export default function NatalChartTab() {
         return (
           <AccordionSection
             id="natal_chart_visual"
-            title="Dairesel Doğum Haritası"
-            subtitle="Ev çizgileri ve gezegen yerleşimleri • görsel önizleme"
+            title={t('natalChart.sectionChartVisualTitle')}
+            subtitle={t('natalChart.sectionChartVisualSub')}
             icon="analytics-outline"
             iconStyle="premium"
             iconTone={accordionIconTone}
@@ -2005,11 +2088,11 @@ export default function NatalChartTab() {
                 <Pressable
                   style={styles.posterBtn}
                   onPress={() => openNatalVisualsPreview('wheel')}
-                  accessibilityLabel="Doğum haritasını tam ekran aç ve indir"
+                  accessibilityLabel={t('natalChart.chartVisualFullA11y')}
                   accessibilityRole="button"
                 >
                   <Ionicons name="scan-outline" size={16} color={colors.goldDark} />
-                  <Text style={styles.posterBtnText}>Tam Ekran Gör • İndir</Text>
+                  <Text style={styles.posterBtnText}>{t('natalChart.chartVisualFullBtn')}</Text>
                   <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
                 </Pressable>
               </SpotlightTarget>
@@ -2022,8 +2105,8 @@ export default function NatalChartTab() {
         return (
           <AccordionSection
             id="aspect_matrix_table"
-            title="Gezegen Etkileşim Tablosu"
-            subtitle="Açı matrisi • gezegenler arası etkileşimlerin üçgen görünümü"
+            title={t('natalChart.sectionMatrixTitle')}
+            subtitle={t('natalChart.sectionMatrixSub')}
             icon="git-network-outline"
             iconStyle="premium"
             iconTone={accordionIconTone}
@@ -2047,11 +2130,11 @@ export default function NatalChartTab() {
               <Pressable
                 style={styles.posterBtn}
                 onPress={() => openNatalVisualsPreview('matrix')}
-                accessibilityLabel="Gezegen etkileşim tablosunu tam ekran aç ve indir"
+                accessibilityLabel={t('natalChart.matrixFullA11y')}
                 accessibilityRole="button"
               >
                 <Ionicons name="grid-outline" size={16} color={colors.goldDark} />
-                <Text style={styles.posterBtnText}>Tam Ekran Matris • İndir</Text>
+                <Text style={styles.posterBtnText}>{t('natalChart.matrixFullBtn')}</Text>
                 <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
               </Pressable>
             </View>
@@ -2063,8 +2146,8 @@ export default function NatalChartTab() {
         return (
           <AccordionSection
             id="cosmic_position_details"
-            title="Kozmik Konum Detayları"
-            subtitle="Gezegen, burç, derece/dakika ve ev konumu teknik listesi"
+            title={t('natalChart.sectionCosmicPosTitle')}
+            subtitle={t('natalChart.sectionCosmicPosSub')}
             icon="list-outline"
             iconStyle="premium"
             iconTone={accordionIconTone}
@@ -2091,8 +2174,8 @@ export default function NatalChartTab() {
         return (
           <AccordionSection
             id="cosmic_balance"
-            title="Kozmik Denge"
-            subtitle="Haritandaki elementel ve modal enerji dağılımı"
+            title={t('natalChart.sectionCosmicBalanceTitle')}
+            subtitle={t('natalChart.sectionCosmicBalanceSub')}
             icon="pie-chart-outline"
             iconStyle="premium"
             iconTone={accordionIconTone}
@@ -2121,7 +2204,7 @@ export default function NatalChartTab() {
             <AccordionSection
               id="planet_positions"
               title={t('natalChart.planetaryPositions')}
-              subtitle="Her satıra dokunarak karakter + etki + dikkat alanlarını aç"
+              subtitle={t('natalChart.sectionPlanetPosSub')}
               icon="sparkles-outline"
               iconStyle="premium"
               iconTone={accordionIconTone}
@@ -2133,7 +2216,7 @@ export default function NatalChartTab() {
               <View style={styles.section}>
                 {chart.planets.map((planet, i) => {
                   const trName = planetNames[planet.planet] ?? planet.planet;
-                  const signInfo = getZodiacInfo(planet.sign);
+                  const signInfo = getZodiacInfo(planet.sign, i18n.language);
                   const sym = PLANET_SYMBOLS[planet.planet] ?? '⭐';
                   return (
                     <Pressable
@@ -2178,7 +2261,7 @@ export default function NatalChartTab() {
           <AccordionSection
             id="aspect_list"
             title={t('natalChart.planetaryAspects')}
-            subtitle="Ham derece yerine anlamlı açı özeti ve orb yakınlığı gösterilir"
+            subtitle={t('natalChart.sectionAspectListSub')}
             icon="git-network-outline"
             iconStyle="premium"
             iconTone={accordionIconTone}
@@ -2238,7 +2321,7 @@ export default function NatalChartTab() {
             <AccordionSection
               id="house_positions"
               title={t('natalChart.housePositions')}
-              subtitle="Evlere dokunarak basit açıklama + derin yorum kartını aç"
+              subtitle={t('natalChart.sectionHousePosSub')}
               icon="home-outline"
               iconStyle="premium"
               iconTone={accordionIconTone}
@@ -2250,15 +2333,15 @@ export default function NatalChartTab() {
               <View style={styles.section}>
                 <View style={styles.houseGrid}>
                   {chart.houses.map((h) => {
-                    const info = getZodiacInfo(h.sign);
-                    const houseGloss = HOUSE_GLOSSARY[h.houseNumber];
+                    const info = getZodiacInfo(h.sign, i18n.language);
+                    const houseGloss = getHouseGlossary(h.houseNumber, i18n.language);
                     return (
                       <Pressable
                         key={h.houseNumber}
                         style={({ pressed }) => [styles.houseCell, pressed && styles.houseCellPressed]}
                         onPress={() => openHouseSheet(h)}
                         accessibilityRole="button"
-                        accessibilityLabel={`${h.houseNumber}. ev detayını aç`}
+                        accessibilityLabel={t('natalChart.houseDetailA11y', { number: h.houseNumber })}
                       >
                         <View style={styles.houseNumCircle}>
                           <Text style={styles.houseNumText}>{h.houseNumber}</Text>
@@ -2268,7 +2351,7 @@ export default function NatalChartTab() {
                         </Text>
                         <Text style={styles.houseDeg}>{Math.floor(h.degree)}°</Text>
                         <Text style={styles.houseShortDesc} numberOfLines={2}>
-                          {houseGloss?.shortDesc ?? 'Ev teması detayını aç'}
+                          {houseGloss?.shortDesc ?? t('natalChart.houseDetailFallback')}
                         </Text>
                       </Pressable>
                     );
@@ -2285,8 +2368,8 @@ export default function NatalChartTab() {
           <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.INSIGHT_PANEL}>
             <AccordionSection
               id="ai_interpretation"
-              title="Harita Yorumu"
-              subtitle="Doğum haritanın uzman astrolojik analizi"
+              title={t('natalChart.sectionAiTitle')}
+              subtitle={t('natalChart.sectionAiSub')}
               icon="sparkles-outline"
               iconStyle="premium"
               iconTone={accordionIconTone}
@@ -2304,10 +2387,30 @@ export default function NatalChartTab() {
                     text={chart.aiInterpretation}
                     fallbackTextStyle={styles.aiText}
                   />
+                ) : isShowingFallbackInterpretation && !isFallbackInterpretationWrongLocale && fallbackInterpretationChart?.aiInterpretation ? (
+                  <>
+                    <View style={styles.aiLocaleNotice}>
+                      <Ionicons
+                        name={isFallbackInterpretationWrongLocale ? 'language-outline' : 'time-outline'}
+                        size={16}
+                        color={colors.violet}
+                      />
+                      <Text style={styles.aiLocaleNoticeText}>
+                        {isFallbackInterpretationWrongLocale
+                          ? t('natalChart.interpretationLocaleFallback')
+                          : t('natalChart.interpretationPending')}
+                      </Text>
+                    </View>
+                    <StructuredNatalAiInterpretation
+                      key={fallbackInterpretationChart.aiInterpretation}
+                      text={fallbackInterpretationChart.aiInterpretation}
+                      fallbackTextStyle={styles.aiText}
+                    />
+                  </>
                 ) : chart.interpretationStatus === 'FAILED' ? (
                   <View style={styles.aiStatus}>
                     <Ionicons name="alert-circle" size={22} color={colors.redBright} />
-                    <Text style={styles.aiStatusText}>Yorum olusturulamadi.</Text>
+                    <Text style={styles.aiStatusText}>{t('natalChart.interpretationFailed')}</Text>
                     <Pressable
                       style={styles.retrySmall}
                       onPress={onRefresh}
@@ -2321,7 +2424,7 @@ export default function NatalChartTab() {
                 ) : pollExhausted ? (
                   <View style={styles.aiStatus}>
                     <Ionicons name="time-outline" size={22} color={colors.muted} />
-                    <Text style={styles.aiStatusText}>Yorum henuz hazir degil.</Text>
+                    <Text style={styles.aiStatusText}>{t('natalChart.interpretationPending')}</Text>
                     <Pressable
                       style={styles.retrySmall}
                       onPress={() => { setPollExhausted(false); startPolling(); }}
@@ -2338,7 +2441,7 @@ export default function NatalChartTab() {
                     <Animated.View style={[styles.skelLine, { width: '100%', opacity: pulseAnim }]} />
                     <Animated.View style={[styles.skelLine, { width: '90%', opacity: pulseAnim }]} />
                     <Animated.View style={[styles.skelLine, { width: '70%', opacity: pulseAnim }]} />
-                    <Text style={styles.aiStatusText}>Yapay zeka yorumunuz hazirlaniyor...</Text>
+                    <Text style={styles.aiStatusText}>{t('natalChart.interpretationLoading')}</Text>
                   </View>
                 )}
               </View>
@@ -2377,8 +2480,8 @@ export default function NatalChartTab() {
           <Text style={styles.profileSwitcherTitle}>{t('natalChart.profileSwitcherTitle')}</Text>
           <Text style={styles.profileSwitcherSub}>
             {profileMode === 'compare'
-              ? 'Karşılaştırma için iki profil seçin'
-              : 'Haritayı görmek için profili seçin'}
+              ? t('natalChart.profileSwitcherSubCompare')
+              : t('natalChart.profileSwitcherSubSwitch')}
           </Text>
         </View>
         <Pressable
@@ -2388,7 +2491,7 @@ export default function NatalChartTab() {
           ]}
           onPress={() => setProfileMode((prev) => (prev === 'switch' ? 'compare' : 'switch'))}
           accessibilityRole="button"
-          accessibilityLabel="Karşılaştırma modunu aç veya kapat"
+          accessibilityLabel={t('natalChart.compareToggleA11y')}
         >
           <View style={[styles.modeChipIconWrap, profileMode === 'compare' && styles.modeChipIconWrapActive]}>
             <Scale size={13} color={profileMode === 'compare' ? colors.primary : colors.muted} />
@@ -2397,7 +2500,7 @@ export default function NatalChartTab() {
             styles.modeChipText,
             profileMode === 'compare' && styles.modeChipTextActive,
           ]}>
-            Karşılaştır
+            {t('natalChart.compareMode')}
           </Text>
         </Pressable>
       </View>
@@ -2405,14 +2508,14 @@ export default function NatalChartTab() {
       <View style={styles.profileSwitcherMetaRow}>
         <View style={styles.profileMetaTag}>
           <Text style={styles.profileMetaTagText}>
-            Toplam {savedPeople.length + (user ? 1 : 0)} profil
+            {t('natalChart.totalProfiles', { count: savedPeople.length + (user ? 1 : 0) })}
           </Text>
         </View>
         <View style={[styles.profileMetaTag, profileMode === 'compare' && styles.profileMetaTagActive]}>
           <Text style={[styles.profileMetaTagText, profileMode === 'compare' && styles.profileMetaTagTextActive]}>
             {profileMode === 'compare'
-              ? `Karşılaştırma modu • ${selectedForComparison.length}/2 seçili`
-              : 'Okuma modu'}
+              ? t('natalChart.compareSelected', { count: selectedForComparison.length })
+              : t('natalChart.readMode')}
           </Text>
         </View>
       </View>
@@ -2429,7 +2532,7 @@ export default function NatalChartTab() {
               style={styles.profilePill}
               onPress={() => handleAvatarPress(user)}
               accessibilityRole="button"
-              accessibilityLabel="Ben profilini seç"
+              accessibilityLabel={t('natalChart.selfProfileA11y')}
             >
               {(() => {
                 const badgeIndex = profileMode === 'compare' ? getComparisonBadgeIndex(user) : null;
@@ -2453,7 +2556,7 @@ export default function NatalChartTab() {
                   </View>
                 );
               })()}
-              <Text style={styles.profilePillLabel}>Ben</Text>
+              <Text style={styles.profilePillLabel}>{t('natalChart.selfLabel')}</Text>
             </Pressable>
           )}
 
@@ -2470,7 +2573,7 @@ export default function NatalChartTab() {
                 onLongPress={() => handleSavedAvatarLongPress(person)}
                 delayLongPress={320}
                 accessibilityRole="button"
-                accessibilityLabel={`${person.name} profilini seç`}
+                accessibilityLabel={t('natalChart.personProfileA11y', { name: person.name })}
               >
                 <View style={[
                   styles.avatarCircle,
@@ -2501,14 +2604,14 @@ export default function NatalChartTab() {
           style={styles.profilePill}
           onPress={openAddCompanionModal}
           accessibilityRole="button"
-          accessibilityLabel="Kişi ekle"
+          accessibilityLabel={t('natalChart.addPersonA11y')}
         >
           <View style={styles.addAvatarCircle}>
             <View style={styles.addAvatarCircleInner}>
               <Plus size={16} color={colors.primary} />
             </View>
           </View>
-          <Text style={styles.profilePillLabel}>Kişi Ekle</Text>
+          <Text style={styles.profilePillLabel}>{t('natalChart.addPerson')}</Text>
         </Pressable>
       </View>
     </View>
@@ -2555,7 +2658,7 @@ export default function NatalChartTab() {
               <SurfaceHeaderIconButton
                 iconName="help-circle-outline"
                 onPress={handlePressTutorialHelp}
-                accessibilityLabel="Harita rehberini tekrar aç"
+                accessibilityLabel={t('natalChart.helpA11y')}
                 color={colors.violet}
               />
             </SpotlightTarget>
@@ -2609,22 +2712,22 @@ export default function NatalChartTab() {
                     <Users size={15} color={colors.primary} />
                   </View>
                 </View>
-                <Text style={styles.compareTitle}>Sinastri Atölyesi</Text>
+                <Text style={styles.compareTitle}>{t('natalChart.synastryWorkshop')}</Text>
               </View>
               {selectedForComparison.length > 0 ? (
                 <Pressable onPress={clearComparisonSelection} style={styles.compareClearBtn}>
                   <X size={14} color={colors.muted} />
-                  <Text style={styles.compareClearText}>Temizle</Text>
+                  <Text style={styles.compareClearText}>{t('natalChart.compareClear')}</Text>
                 </Pressable>
               ) : null}
             </View>
 
             <Text style={styles.compareHint}>
               {comparisonPair
-                ? 'Dual chart görünümü hazır. İstersen AI uyum analizini başlat.'
+                ? t('natalChart.compareHintDual')
                 : selectedForComparison.length === 1
-                  ? 'İkinci profili seçerek karşılaştırmayı tamamla.'
-                : 'Yukarıdaki listeden iki profil seç. Uzun basarak kayıtlı kişiyi düzenleyebilir veya silebilirsin.'}
+                  ? t('natalChart.compareHintOneLeft')
+                : t('natalChart.compareHintEmpty')}
             </Text>
 
             {comparisonPair ? (
@@ -2633,10 +2736,10 @@ export default function NatalChartTab() {
                   {comparisonPair.map((profileItem, idx) => {
                     const pChart = isSavedPersonProfile(profileItem)
                       ? savedPersonToChart(profileItem)
-                      : (cachedChart ?? chart);
-                    const pSun = getZodiacInfo(pChart?.sunSign);
-                    const pMoon = getZodiacInfo(pChart?.moonSign);
-                    const pRise = getZodiacInfo(pChart?.risingSign);
+                      : (localeMatchedCachedChart ?? chart);
+                    const pSun = getZodiacInfo(pChart?.sunSign, i18n.language);
+                    const pMoon = getZodiacInfo(pChart?.moonSign, i18n.language);
+                    const pRise = getZodiacInfo(pChart?.risingSign, i18n.language);
                     return (
                       <View key={profileKey(profileItem, user?.id) ?? `compare-${idx}`} style={styles.dualChartPanel}>
                         <Text style={styles.dualChartName} numberOfLines={1}>
@@ -2645,9 +2748,9 @@ export default function NatalChartTab() {
                         <Text style={styles.dualChartMeta} numberOfLines={1}>
                           {[
                             isSavedPersonProfile(profileItem)
-                              ? relationshipLabel(profileItem.relationshipType)
-                              : 'SELF',
-                            genderLabel((profileItem as any)?.gender),
+                              ? relationshipLabel(profileItem.relationshipType, RELATIONSHIP_OPTIONS)
+                              : t('natalChart.selfRelationship'),
+                            genderLabel((profileItem as any)?.gender, GENDER_OPTIONS),
                           ].filter(Boolean).join(' • ')}
                         </Text>
                         <View style={styles.dualChartSigns}>
@@ -2672,14 +2775,14 @@ export default function NatalChartTab() {
                       <Sparkles size={15} color="#FFFFFF" />
                     )}
                     <Text style={styles.compareRunBtnText}>
-                      {isAnalyzingSynastry ? 'Analiz Hazırlanıyor…' : 'AI Karşılaştır'}
+                      {isAnalyzingSynastry ? t('natalChart.analyzingCompare') : t('natalChart.aiCompare')}
                     </Text>
                   </Pressable>
                 </View>
 
                 {!canRunSynastry && (
                   <Text style={styles.compareLimitText}>
-                    Karşılaştırma için en az bir kayıtlı kişi seçmelisiniz.
+                    {t('natalChart.compareRunLimit')}
                   </Text>
                 )}
 
@@ -2775,7 +2878,7 @@ export default function NatalChartTab() {
         >
           <Ionicons name="refresh" size={16} color={colors.violet} />
           <Text style={styles.refreshBtnText}>
-            {activeProfileIsSaved ? 'Profili Yenile' : 'Haritami Yenile'}
+            {activeProfileIsSaved ? t('natalChart.refreshProfile') : t('natalChart.refreshChart')}
           </Text>
         </Pressable>
         </Reanimated.View>
@@ -2801,10 +2904,10 @@ export default function NatalChartTab() {
                   <View style={styles.modalHeaderRow}>
                     <View>
                       <Text style={styles.modalTitle}>
-                        {editingCompanion ? 'Kişiyi Düzenle' : 'Kişi Ekle'}
+                        {editingCompanion ? t('natalChart.modalTitleEdit') : t('natalChart.modalTitleAdd')}
                       </Text>
                       <Text style={styles.modalSubtitle}>
-                        Kaydettiğiniz anda yüksek hassasiyetli harita hesaplaması yapılır.
+                        {t('natalChart.modalSubtitle')}
                       </Text>
                     </View>
                     <Pressable style={styles.modalIconBtn} onPress={closeCompanionModal}>
@@ -2823,12 +2926,12 @@ export default function NatalChartTab() {
                 onLayout={(event) => setCompanionFormViewportHeight(event.nativeEvent.layout.height)}
               >
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>İsim</Text>
+                  <Text style={styles.fieldLabel}>{t('natalChart.fieldName')}</Text>
                   <View style={styles.fieldInputRow}>
                     <Pencil size={16} color={colors.muted} />
                     <TextInput
                       style={styles.fieldTextInput}
-                      placeholder="Örn: Ayşe Yılmaz"
+                      placeholder={t('natalChart.fieldNamePlaceholder')}
                       placeholderTextColor={colors.disabledText}
                       value={companionForm.name}
                       onChangeText={(value) => setCompanionForm((prev) => ({ ...prev, name: value }))}
@@ -2837,7 +2940,7 @@ export default function NatalChartTab() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>İlişki Türü</Text>
+                  <Text style={styles.fieldLabel}>{t('natalChart.fieldRelationship')}</Text>
                   <View style={styles.relationshipChipWrap}>
                     {RELATIONSHIP_OPTIONS.map((option) => {
                       const selected = companionForm.relationshipType === option.key;
@@ -2857,7 +2960,7 @@ export default function NatalChartTab() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Cinsiyet (Opsiyonel)</Text>
+                  <Text style={styles.fieldLabel}>{t('natalChart.fieldGender')}</Text>
                   <View style={styles.relationshipChipWrap}>
                     {GENDER_OPTIONS.map((option) => {
                       const selected = companionForm.gender === option.key;
@@ -2880,36 +2983,36 @@ export default function NatalChartTab() {
                     })}
                   </View>
                   <Text style={styles.fieldHint}>
-                    Karşılaştırma yorumlarında hitap tonu ve ilişki bağlamını iyileştirmek için kullanılır.
+                    {t('natalChart.fieldGenderHint')}
                   </Text>
                 </View>
 
                 <View style={styles.fieldRow}>
                   <View style={[styles.fieldGroup, { flex: 1 }]}>
-                    <Text style={styles.fieldLabel}>Doğum Tarihi</Text>
+                    <Text style={styles.fieldLabel}>{t('natalChart.fieldBirthDate')}</Text>
                     <Pressable style={styles.pickerField} onPress={() => openNativePicker('date')}>
                       <Calendar size={16} color={colors.muted} />
                       <Text style={[
                         styles.pickerFieldText,
                         !companionForm.birthDateValue && styles.pickerFieldPlaceholder,
                       ]}>
-                        {formatDateForDisplay(companionForm.birthDateValue, i18n.language)}
+                        {formatDateForDisplay(companionForm.birthDateValue, i18n.language, t('natalChart.selectDateFallback'))}
                       </Text>
-                      <Text style={styles.pickerFieldAction}>Seç</Text>
+                      <Text style={styles.pickerFieldAction}>{t('natalChart.pickerSelect')}</Text>
                     </Pressable>
                   </View>
 
                   <View style={[styles.fieldGroup, { flex: 1 }]}>
-                    <Text style={styles.fieldLabel}>Doğum Saati</Text>
+                    <Text style={styles.fieldLabel}>{t('natalChart.fieldBirthTime')}</Text>
                     <Pressable style={styles.pickerField} onPress={() => openNativePicker('time')}>
                       <Clock3 size={16} color={colors.muted} />
                       <Text style={[
                         styles.pickerFieldText,
                         !companionForm.birthTimeValue && styles.pickerFieldPlaceholder,
                       ]}>
-                        {formatTimeForDisplay(companionForm.birthTimeValue, i18n.language)}
+                        {formatTimeForDisplay(companionForm.birthTimeValue, i18n.language, t('natalChart.selectTimeFallback'))}
                       </Text>
-                      <Text style={styles.pickerFieldAction}>Seç</Text>
+                      <Text style={styles.pickerFieldAction}>{t('natalChart.pickerSelect')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -2921,7 +3024,7 @@ export default function NatalChartTab() {
                         <MapPin size={16} color={colors.muted} />
                         <TextInput
                           style={styles.fieldTextInput}
-                          placeholder="Şehir, ülke veya tam adres"
+                          placeholder={t('natalChart.locationGooglePlaceholder')}
                           placeholderTextColor={colors.disabledText}
                           selectionColor={colors.violet}
                           value={placeQuery}
@@ -2969,9 +3072,9 @@ export default function NatalChartTab() {
                     <>
                       <View style={styles.locationSelectionCard}>
                         <View style={styles.locationSelectionHeader}>
-                          <Text style={styles.locationSelectionTitle}>Konum Seçimi</Text>
+                          <Text style={styles.locationSelectionTitle}>{t('natalChart.locationTitle')}</Text>
                           <Text style={styles.locationSelectionSub}>
-                            Ülke, şehir ve ilçe adımlarını aşağıdan seç.
+                            {t('natalChart.locationSub')}
                           </Text>
                         </View>
 
@@ -2984,13 +3087,13 @@ export default function NatalChartTab() {
                               <MapPin size={14} color="#5B4ACB" />
                             </View>
                             <View style={styles.locationStepTextCol}>
-                              <Text style={styles.locationStepLabel}>Ülke</Text>
+                              <Text style={styles.locationStepLabel}>{t('natalChart.locationCountry')}</Text>
                               <Text style={styles.locationStepValue} numberOfLines={1}>
-                                {companionForm.countryCode ? getCountryNameByCode(companionForm.countryCode) : 'Ülke seç'}
+                                {companionForm.countryCode ? getCountryNameByCode(companionForm.countryCode) : t('natalChart.locationCountryPlaceholder')}
                               </Text>
                             </View>
                           </View>
-                          <Text style={styles.locationStepAction}>Değiştir</Text>
+                          <Text style={styles.locationStepAction}>{t('natalChart.locationChange')}</Text>
                         </Pressable>
 
                         <View style={styles.locationStepRow}>
@@ -3003,7 +3106,7 @@ export default function NatalChartTab() {
                                 <MapPin size={13} color="#5B4ACB" />
                               </View>
                               <View style={styles.locationStepTextCol}>
-                                <Text style={styles.locationStepLabel}>İl / Şehir</Text>
+                                <Text style={styles.locationStepLabel}>{t('natalChart.locationCity')}</Text>
                                 <Text
                                   style={[
                                     styles.locationStepValue,
@@ -3011,11 +3114,11 @@ export default function NatalChartTab() {
                                   ]}
                                   numberOfLines={1}
                                 >
-                                  {companionForm.city || 'Seçilmedi'}
+                                  {companionForm.city || t('natalChart.locationCityPlaceholder')}
                                 </Text>
                               </View>
                             </View>
-                            <Text style={styles.locationStepAction}>Seç</Text>
+                            <Text style={styles.locationStepAction}>{t('natalChart.pickerSelect')}</Text>
                           </Pressable>
 
                           <Pressable
@@ -3032,7 +3135,7 @@ export default function NatalChartTab() {
                                 <MapPin size={13} color="#5B4ACB" />
                               </View>
                               <View style={styles.locationStepTextCol}>
-                                <Text style={styles.locationStepLabel}>İlçe</Text>
+                                <Text style={styles.locationStepLabel}>{t('natalChart.locationDistrict')}</Text>
                                 <Text
                                   style={[
                                     styles.locationStepValue,
@@ -3040,18 +3143,18 @@ export default function NatalChartTab() {
                                   ]}
                                   numberOfLines={1}
                                 >
-                                  {companionForm.district || (companionForm.city ? 'Seçilmedi' : 'Önce il seç')}
+                                  {companionForm.district || (companionForm.city ? t('natalChart.locationDistrictPlaceholder') : t('natalChart.locationDistrictSelectCity'))}
                                 </Text>
                               </View>
                             </View>
-                            <Text style={styles.locationStepAction}>Seç</Text>
+                            <Text style={styles.locationStepAction}>{t('natalChart.pickerSelect')}</Text>
                           </Pressable>
                         </View>
 
                         <View style={styles.locationSelectionSummaryBox}>
                           <View style={styles.locationSummaryHeader}>
                             <MapPin size={14} color="#64748B" />
-                            <Text style={styles.locationSummaryTitle}>Seçilen Konum</Text>
+                            <Text style={styles.locationSummaryTitle}>{t('natalChart.locationSummaryTitle')}</Text>
                           </View>
                           <Text
                             style={[
@@ -3059,7 +3162,7 @@ export default function NatalChartTab() {
                               !composeFallbackBirthLocation(companionForm) && styles.locationSummaryPlaceholder,
                             ]}
                           >
-                            {composeFallbackBirthLocation(companionForm) || 'Önce ülke ve şehir seçimi yap'}
+                            {composeFallbackBirthLocation(companionForm) || t('natalChart.locationSummaryPlaceholder')}
                           </Text>
                         </View>
                       </View>
@@ -3101,8 +3204,8 @@ export default function NatalChartTab() {
                           <Text style={styles.locationPickerInlineTitle}>{locationPickerTitle}</Text>
                           <Text style={styles.locationPickerInlineSubTitle}>
                             {locationPickerTarget === 'district'
-                              ? 'İlçeler seçili ile göre listelenir.'
-                              : 'Listeden seçim yapın veya arayın.'}
+                              ? t('natalChart.locationPickerDistrictHint')
+                              : t('natalChart.locationPickerHint')}
                           </Text>
                         </View>
                         <Pressable style={styles.modalIconBtn} onPress={closeFallbackLocationPicker}>
@@ -3114,7 +3217,7 @@ export default function NatalChartTab() {
                         <Search size={15} color={colors.muted} />
                         <TextInput
                           style={styles.fieldTextInput}
-                          placeholder="Ara..."
+                          placeholder={t('natalChart.locationSearchPlaceholder')}
                           placeholderTextColor={colors.disabledText}
                           selectionColor={colors.violet}
                           value={locationPickerQuery}
@@ -3133,8 +3236,8 @@ export default function NatalChartTab() {
                           <View style={styles.locationPickerEmpty}>
                             <Text style={styles.locationPickerEmptyText}>
                               {locationPickerTarget === 'district' && !companionForm.city
-                                ? 'Önce il/şehir seçin.'
-                                : 'Kayıt bulunamadı.'}
+                                ? t('natalChart.locationPickerCityRequired')
+                                : t('natalChart.locationPickerEmpty')}
                             </Text>
                           </View>
                         ) : (
@@ -3163,14 +3266,14 @@ export default function NatalChartTab() {
                 <View style={styles.iosPickerDock}>
                   <View style={styles.iosPickerHeader}>
                     <Text style={styles.iosPickerTitle}>
-                      {iosPickerTarget === 'date' ? 'Doğum Tarihi' : 'Doğum Saati'}
+                      {iosPickerTarget === 'date' ? t('natalChart.iosPickerDateTitle') : t('natalChart.iosPickerTimeTitle')}
                     </Text>
                     <View style={styles.iosPickerActions}>
                       <Pressable style={styles.iosPickerBtn} onPress={() => setIosPickerTarget(null)}>
-                        <Text style={styles.iosPickerBtnText}>İptal</Text>
+                        <Text style={styles.iosPickerBtnText}>{t('natalChart.iosPickerCancel')}</Text>
                       </Pressable>
                       <Pressable style={[styles.iosPickerBtn, styles.iosPickerBtnPrimary]} onPress={confirmIosPicker}>
-                        <Text style={[styles.iosPickerBtnText, styles.iosPickerBtnTextPrimary]}>Tamam</Text>
+                        <Text style={[styles.iosPickerBtnText, styles.iosPickerBtnTextPrimary]}>{t('natalChart.iosPickerConfirm')}</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -3189,7 +3292,7 @@ export default function NatalChartTab() {
 
               <View style={styles.modalFooter}>
                 <Pressable style={styles.modalSecondaryBtn} onPress={closeCompanionModal}>
-                  <Text style={styles.modalSecondaryBtnText}>Vazgeç</Text>
+                  <Text style={styles.modalSecondaryBtnText}>{t('natalChart.formCancel')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.modalPrimaryBtn, companionSaving && { opacity: 0.7 }]}
@@ -3202,7 +3305,7 @@ export default function NatalChartTab() {
                     <Plus size={16} color="#FFFFFF" />
                   )}
                   <Text style={styles.modalPrimaryBtnText}>
-                    {editingCompanion ? 'Güncelle' : 'Kaydet'}
+                    {editingCompanion ? t('natalChart.formUpdate') : t('natalChart.formSave')}
                   </Text>
                 </Pressable>
               </View>
@@ -4606,6 +4709,24 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   aiAccordionContent: {
     gap: 12,
+  },
+  aiLocaleNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: C.violetBg,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  aiLocaleNoticeText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: C.text,
+    fontWeight: '600',
   },
   aiHeader: {
     flexDirection: 'row',

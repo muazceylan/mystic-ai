@@ -1,4 +1,5 @@
 import React, { memo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   View,
@@ -39,6 +40,7 @@ export const CounterFinishModal = memo(function CounterFinishModal({
   surfaceColor = '#1E3A2F',
   bgColor = '#0F2B1E',
 }: Props) {
+  const { t } = useTranslation();
   const [note, setNote] = useState('');
   const { animatedStyle, gesture } = useBottomSheetDragGesture({
     enabled: visible,
@@ -71,7 +73,7 @@ export const CounterFinishModal = memo(function CounterFinishModal({
               <View style={styles.handle} />
               <View style={styles.header}>
                 <Text style={[styles.checkIcon]}>✅</Text>
-                <Text style={[styles.title, { color: textColor }]}>Tamamlandı!</Text>
+                <Text style={[styles.title, { color: textColor }]}>{t('spiritual.finishModal.completed')}</Text>
                 <Pressable onPress={onDismiss} style={styles.closeBtn}>
                   <Text style={[styles.closeText, { color: textColor + '80' }]}>✕</Text>
                 </Pressable>
@@ -83,17 +85,17 @@ export const CounterFinishModal = memo(function CounterFinishModal({
           <View style={[styles.summaryRow, { backgroundColor: bgColor + 'CC', borderColor: accentColor + '33' }]}>
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryValue, { color: accentColor }]}>{completed}</Text>
-              <Text style={[styles.summaryLabel, { color: textColor + '99' }]}>Tamamlanan</Text>
+              <Text style={[styles.summaryLabel, { color: textColor + '99' }]}>{t('spiritual.finishModal.completedLabel')}</Text>
             </View>
             <View style={[styles.divider, { backgroundColor: accentColor + '33' }]} />
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryValue, { color: accentColor }]}>{target}</Text>
-              <Text style={[styles.summaryLabel, { color: textColor + '99' }]}>Hedef</Text>
+              <Text style={[styles.summaryLabel, { color: textColor + '99' }]}>{t('spiritual.finishModal.targetLabel')}</Text>
             </View>
             <View style={[styles.divider, { backgroundColor: accentColor + '33' }]} />
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryValue, { color: accentColor }]}>{durationStr}</Text>
-              <Text style={[styles.summaryLabel, { color: textColor + '99' }]}>Süre</Text>
+              <Text style={[styles.summaryLabel, { color: textColor + '99' }]}>{t('spiritual.finishModal.durationLabel')}</Text>
             </View>
           </View>
 
@@ -102,7 +104,7 @@ export const CounterFinishModal = memo(function CounterFinishModal({
           {/* Note */}
           <TextInput
             style={[styles.noteInput, { color: textColor, borderColor: accentColor + '44', backgroundColor: bgColor + 'AA' }]}
-            placeholder="Not ekle (opsiyonel)..."
+            placeholder={t('spiritual.finishModal.notePlaceholder')}
             placeholderTextColor={textColor + '44'}
             value={note}
             onChangeText={setNote}
@@ -115,7 +117,7 @@ export const CounterFinishModal = memo(function CounterFinishModal({
             style={[styles.saveBtn, { backgroundColor: accentColor }]}
             onPress={handleSave}
           >
-            <Text style={styles.saveBtnText}>Kaydet</Text>
+            <Text style={styles.saveBtnText}>{t('spiritual.finishModal.save')}</Text>
           </Pressable>
         </Animated.View>
       </KeyboardAvoidingView>

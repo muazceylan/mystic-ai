@@ -75,8 +75,11 @@ public class AstrologyController {
      * Get latest natal chart for a user
      */
     @GetMapping("/natal-charts/user/{userId}/latest")
-    public ResponseEntity<NatalChartResponse> getLatestNatalChart(@PathVariable Long userId) {
-        return ResponseEntity.ok(astrologyService.getLatestNatalChartByUserId(userId));
+    public ResponseEntity<NatalChartResponse> getLatestNatalChart(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String locale
+    ) {
+        return ResponseEntity.ok(astrologyService.getLatestNatalChartByUserId(userId, locale));
     }
 
     /**

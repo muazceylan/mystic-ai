@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -20,12 +20,20 @@ export function HeaderRightIcons({ tintColor }: { tintColor?: string }) {
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const badgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
   const shouldShowThemeButton = pathname === '/(tabs)/profile';
+  const notifNavigatingRef = useRef(false);
+
+  const handleOpenNotifications = () => {
+    if (notifNavigatingRef.current) return;
+    notifNavigatingRef.current = true;
+    router.navigate('/notifications');
+    setTimeout(() => { notifNavigatingRef.current = false; }, 600);
+  };
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <SurfaceHeaderIconButton
         iconName="notifications-outline"
-        onPress={() => router.push('/notifications')}
+        onPress={handleOpenNotifications}
         accessibilityLabel={t('profile.menu.notifications')}
         badgeText={badgeText}
         color={tintColor}
@@ -88,9 +96,16 @@ export function TabHeader({
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const badgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
   const smartBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
+  const notifNavigatingRef = useRef(false);
   const handleBack = onBack ?? smartBack;
   const handleOpenSettings = onOpenSettings ?? (() => router.push('/theme-settings'));
-  const handleOpenNotifications = onOpenNotifications ?? (() => router.push('/notifications'));
+  const defaultOpenNotifications = () => {
+    if (notifNavigatingRef.current) return;
+    notifNavigatingRef.current = true;
+    router.navigate('/notifications');
+    setTimeout(() => { notifNavigatingRef.current = false; }, 600);
+  };
+  const handleOpenNotifications = onOpenNotifications ?? defaultOpenNotifications;
   const resolvedTitle = resolveSurfaceTitle(pathname, title, t) ?? t('tabs.home');
   const shouldShowBackButton = showBackButton ?? pathname !== '/(tabs)/home';
   const shouldShowThemeButton = pathname === '/(tabs)/profile';

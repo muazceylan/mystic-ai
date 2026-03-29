@@ -49,17 +49,17 @@ import {
 import { statusColors } from '../components/decision-compass/palette';
 import { getCompassTokens } from '../components/decision-compass/tokens';
 
-function formatDateShortTr(input?: string | null) {
-  if (!input) return 'Bugün';
+function formatDateShort(input: string | null | undefined, todayLabel: string, locale: string) {
+  if (!input) return todayLabel;
   const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return 'Bugün';
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  if (Number.isNaN(d.getTime())) return todayLabel;
+  return d.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
 }
 
 export default function DecisionCompassScreen() {
   const { colors, isDark } = useTheme();
   const T = getCompassTokens(colors, isDark);
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { width } = useWindowDimensions();
   const segments = useSegments();
   const isFocused = useIsFocused();
@@ -140,8 +140,8 @@ export default function DecisionCompassScreen() {
   );
 
   const availableFilters = useMemo(
-    () => buildDecisionCompassFilterOptions(visibleCategories),
-    [visibleCategories],
+    () => buildDecisionCompassFilterOptions(visibleCategories, t),
+    [visibleCategories, t],
   );
 
   React.useEffect(() => {
@@ -167,7 +167,7 @@ export default function DecisionCompassScreen() {
   const heroModel = useMemo(() => buildHeroModel(visibleCategories), [visibleCategories]);
   const strongestCategory = visibleCategories[0] ?? null;
 
-  const dateLabel = formatDateShortTr(selectedDate ?? query.data?.date);
+  const dateLabel = formatDateShort(selectedDate ?? query.data?.date, t('decisionCompassScreen.todayLabel'), i18n.language);
   const isInTabFlow = segments[0] === '(tabs)';
 
   const effectiveTabBarHeight = tabBarHeight ?? (Platform.OS === 'ios' ? 88 : 72);
@@ -260,7 +260,7 @@ export default function DecisionCompassScreen() {
 
         <DecisionCompassHeader
           onBack={goBack}
-          onOpenNotifications={() => router.push('/notifications')}
+          onOpenNotifications={() => router.navigate('/notifications')}
           onOpenHelp={handlePressTutorialHelp}
         />
 
@@ -318,20 +318,20 @@ export default function DecisionCompassScreen() {
               <Text style={S.emptyTitle}>Veri alınamadı</Text>
               <Text style={S.emptyText}>Ağ veya servis kaynaklı bir sorun olabilir.</Text>
               <Pressable onPress={() => { void query.refetch(); }} style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}>
-                <Text style={S.retryBtnText}>Tekrar Dene</Text>
+                <Text style={S.retryBtnText}>{t('decisionCompassScreen.retryBtn')}</Text>
               </Pressable>
             </View>
           ) : visibleCategories.length === 0 ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>{categories.length ? 'Tüm kategoriler gizli' : 'Gösterilecek alan yok'}</Text>
+              <Text style={S.emptyTitle}>{categories.length ? t('decisionCompassScreen.allHiddenTitle') : t('decisionCompassScreen.emptyTitle')}</Text>
               <Text style={S.emptyText}>
                 {categories.length
-                  ? 'Kategori ayarlarından görünmesini istediğiniz alanları açabilirsiniz.'
-                  : 'Karar Pusulası verisi şu an için boş döndü.'}
+                  ? t('decisionCompassScreen.allHiddenBody')
+                  : t('decisionCompassScreen.emptyBody')}
               </Text>
               {categories.length ? (
                 <Pressable onPress={resetHiddenCategories} style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}>
-                  <Text style={S.retryBtnText}>Tümünü Göster</Text>
+                  <Text style={S.retryBtnText}>{t('decisionCompassScreen.showAllBtn')}</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -371,7 +371,7 @@ export default function DecisionCompassScreen() {
                   ) : (
                     <View style={S.filterEmptyCard}>
                       <Ionicons name="funnel-outline" size={16} color={colors.subtext} />
-                      <Text style={S.filterEmptyText}>Bu filtrede ek kategori görünmüyor. "Tümü" filtresiyle genişletebilirsin.</Text>
+                      <Text style={S.filterEmptyText}>{t('decisionCompassScreen.filterEmptyText')}</Text>
                     </View>
                   )}
                 </View>
@@ -395,10 +395,10 @@ export default function DecisionCompassScreen() {
         <BottomSheet
           visible={settingsSheetOpen}
           onClose={() => setSettingsSheetOpen(false)}
-          title="Kategori Görünürlüğü"
+          title={t('decisionCompassScreen.categoryVisibilityTitle')}
         >
           <ScrollView style={S.settingsScroll} contentContainerStyle={S.settingsScrollContent} showsVerticalScrollIndicator={false}>
-            <Text style={S.settingsSubtitle}>Bu seçimler Karar Pusulası ve ilgili kartlarda ortak kullanılır.</Text>
+            <Text style={S.settingsSubtitle}>{t('decisionCompassScreen.settingsSubtitle')}</Text>
 
             {categories.map((category) => {
               const visible = !hiddenCategoryKeys.includes(category.id);

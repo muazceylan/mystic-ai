@@ -21,6 +21,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketNotificationService {
+    private static final int MAX_NOTIFICATION_BODY_LENGTH = 900;
+    private static final int MAX_NOTIFICATION_METADATA_LENGTH = 3900;
 
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationRepository notificationRepository;
@@ -51,14 +53,24 @@ public class WebSocketNotificationService {
                 .type(Notification.NotificationType.AI_ANALYSIS_COMPLETE)
                 .category(Notification.NotificationCategory.SYSTEM)
                 .title(title)
-                .body(message)
+                .body(trimToLength(message, MAX_NOTIFICATION_BODY_LENGTH))
                 .deeplink(getDeeplinkForAnalysisType(analysisType))
                 .sourceModule(getSourceModuleForAnalysisType(analysisType))
-                .metadata(payload)
+                .metadata(trimToLength(payload, MAX_NOTIFICATION_METADATA_LENGTH))
                 .build();
 
         Notification saved = notificationRepository.save(notification);
         sendNotificationToUser(userId, saved);
+    }
+
+    private String trimToLength(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        if (maxLength <= 1) {
+            return value.substring(0, maxLength);
+        }
+        return value.substring(0, maxLength - 1) + "...";
     }
 
     public Page<NotificationResponse> getUserNotificationsPaged(Long userId, int page, int size) {

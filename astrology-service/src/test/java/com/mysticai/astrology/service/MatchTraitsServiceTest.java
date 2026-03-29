@@ -105,12 +105,12 @@ class MatchTraitsServiceTest {
         when(synastryRepository.findById(highConfidenceMatchId)).thenReturn(Optional.of(highConfidenceSynastry));
         when(synastryRepository.findById(lowConfidenceMatchId)).thenReturn(Optional.of(lowConfidenceSynastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("101"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("101"))
                 .thenReturn(Optional.of(buildNatalChart("101", LocalTime.of(9, 30), true)));
         when(savedPersonRepository.findById(301L))
                 .thenReturn(Optional.of(buildSavedPerson(301L, LocalTime.of(10, 15), true)));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("102"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("102"))
                 .thenReturn(Optional.empty());
         when(savedPersonRepository.findById(302L))
                 .thenReturn(Optional.empty());
@@ -130,7 +130,7 @@ class MatchTraitsServiceTest {
         Synastry synastry = baseSynastry(matchId, "WORK", 66, sampleAspectsMixed(), 200L, 400L);
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("200"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("200"))
                 .thenReturn(Optional.of(buildNatalChart("200", LocalTime.NOON, false)));
         when(savedPersonRepository.findById(400L))
                 .thenReturn(Optional.of(buildSavedPerson(400L, LocalTime.NOON, false)));
@@ -148,7 +148,7 @@ class MatchTraitsServiceTest {
         Synastry synastry = baseSynastry(matchId, "RIVAL", 60, sampleAspectsClustered(), 300L, 500L);
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("300"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("300"))
                 .thenReturn(Optional.of(buildNatalChart("300", LocalTime.of(8, 40), true)));
         when(savedPersonRepository.findById(500L))
                 .thenReturn(Optional.of(buildSavedPerson(500L, LocalTime.of(8, 35), true)));
@@ -217,12 +217,12 @@ class MatchTraitsServiceTest {
         when(synastryRepository.findById(preciseMatchId)).thenReturn(Optional.of(precise));
         when(synastryRepository.findById(limitedMatchId)).thenReturn(Optional.of(limited));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("555"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("555"))
                 .thenReturn(Optional.of(buildNatalChart("555", LocalTime.of(6, 15), true)));
         when(savedPersonRepository.findById(556L))
                 .thenReturn(Optional.of(buildSavedPerson(556L, LocalTime.of(6, 5), true)));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("557"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("557"))
                 .thenReturn(Optional.of(buildNatalChart("557", LocalTime.NOON, false)));
         when(savedPersonRepository.findById(558L))
                 .thenReturn(Optional.of(buildSavedPerson(558L, LocalTime.NOON, false)));
@@ -240,7 +240,7 @@ class MatchTraitsServiceTest {
         Synastry synastry = baseSynastry(matchId, "LOVE", 91, sampleAspectsSupportiveDense(), 601L, 701L);
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("601"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("601"))
                 .thenReturn(Optional.of(buildNatalChart("601", LocalTime.of(9, 5), true)));
         when(savedPersonRepository.findById(701L))
                 .thenReturn(Optional.of(buildSavedPerson(701L, LocalTime.of(9, 25), true)));
@@ -269,7 +269,7 @@ class MatchTraitsServiceTest {
         Synastry synastry = baseSynastry(matchId, "LOVE", 76, sampleAspectsLoveHighWorkLow(), 604L, 704L);
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("604"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("604"))
                 .thenReturn(Optional.of(buildNatalChart("604", LocalTime.of(8, 10), true)));
         when(savedPersonRepository.findById(704L))
                 .thenReturn(Optional.of(buildSavedPerson(704L, LocalTime.of(8, 5), true)));
@@ -307,7 +307,7 @@ class MatchTraitsServiceTest {
         Synastry synastry = baseSynastry(matchId, "LOVE", 82, sampleAspectsMixed(), 602L, 702L);
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("602"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("602"))
                 .thenReturn(Optional.of(buildNatalChart("602", LocalTime.of(8, 50), true)));
         when(savedPersonRepository.findById(702L))
                 .thenReturn(Optional.of(buildSavedPerson(702L, LocalTime.of(8, 45), true)));
@@ -344,7 +344,7 @@ class MatchTraitsServiceTest {
         Synastry synastry = baseSynastry(matchId, "LOVE", 74, sampleAspectsMixed(), 603L, 703L);
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDesc("603"))
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("603"))
                 .thenReturn(Optional.of(buildNatalChart("603", LocalTime.of(7, 30), true)));
         when(savedPersonRepository.findById(703L))
                 .thenReturn(Optional.of(buildSavedPerson(703L, LocalTime.of(7, 20), true)));

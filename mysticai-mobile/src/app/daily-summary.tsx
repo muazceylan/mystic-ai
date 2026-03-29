@@ -22,31 +22,33 @@ import { useCosmicSummary, useHomeBrief, useSkyPulse } from '../hooks/useHomeQue
 import { useInnerHeaderSpacing } from '../hooks/useInnerHeaderSpacing';
 import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 
-function formatShortDateTr(input?: string | null) {
+function formatShortDate(input: string | null | undefined, locale: string) {
   const d = input ? new Date(input) : new Date();
-  const map = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-  return `${d.getDate()} ${map[d.getMonth()]}`;
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
-function riskLabel(score?: number | null) {
-  if (typeof score !== 'number') return 'Orta';
-  if (score >= 72) return 'Düşük';
-  if (score <= 42) return 'Yüksek';
-  return 'Orta';
+type TFn = (key: string, opts?: Record<string, string>) => string;
+
+function riskLabel(score: number | null | undefined, t: TFn) {
+  if (typeof score !== 'number') return t('dailySummary.riskMedium');
+  if (score >= 72) return t('dailySummary.riskLow');
+  if (score <= 42) return t('dailySummary.riskHigh');
+  return t('dailySummary.riskMedium');
 }
 
-function shortEmotionLabel(input?: string | null) {
+function shortEmotionLabel(input: string | null | undefined, t: TFn) {
   const s = (input ?? '').toLowerCase();
-  if (!s) return 'Sakin';
-  if (s.includes('dikkat') || s.includes('temkin')) return 'Temkinli';
-  if (s.includes('hareket') || s.includes('aktif')) return 'Canlı';
-  if (s.includes('akış') || s.includes('sakin')) return 'Sakin';
-  return 'Dengeli';
+  if (!s) return t('dailySummary.emotionCalm');
+  if (s.includes('dikkat') || s.includes('temkin') || s.includes('cautious')) return t('dailySummary.emotionCautious');
+  if (s.includes('hareket') || s.includes('aktif') || s.includes('lively') || s.includes('active')) return t('dailySummary.emotionLively');
+  if (s.includes('akış') || s.includes('sakin') || s.includes('calm')) return t('dailySummary.emotionCalm');
+  return t('dailySummary.emotionBalanced');
 }
 
 export default function DailySummaryScreen() {
   const { colors, isDark } = useTheme();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const tFn = t as TFn;
   const { width } = useWindowDimensions();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
@@ -82,9 +84,9 @@ export default function DailySummaryScreen() {
   const skyPulse = skyPulseQuery.data;
   const cosmicSummary = cosmicSummaryQuery.data;
   const score = cosmicSummary?.dailyGuide?.overallScore ?? null;
-  const themeLine = homeBrief?.transitHeadline || skyPulse?.dailyVibe || 'Değişim rüzgarları';
-  const suggestionLine = homeBrief?.actionMessage || homeBrief?.transitSummary || 'Cesaretle hareket et';
-  const emotionLabel = shortEmotionLabel(homeBrief?.transitSummary || skyPulse?.dailyVibe);
+  const themeLine = homeBrief?.transitHeadline || skyPulse?.dailyVibe || t('dailySummary.fallbackTheme');
+  const suggestionLine = homeBrief?.actionMessage || homeBrief?.transitSummary || t('dailySummary.fallbackSuggestion');
+  const emotionLabel = shortEmotionLabel(homeBrief?.transitSummary || skyPulse?.dailyVibe, tFn);
   const impactScore = homeBrief?.meta?.impactScore ?? null;
 
   const S = makeStyles(colors, isDark, {
@@ -102,14 +104,14 @@ export default function DailySummaryScreen() {
     <SafeScreen>
       <View style={S.container}>
         <AppHeader
-          title="Günlük Özet"
-          subtitle={`${formatShortDateTr(skyPulse?.date)} • ${skyPulse?.moonSignTurkish ? `☾ ${skyPulse.moonSignTurkish}` : 'Gökyüzü akışı'}`}
+          title={t('dailySummary.title')}
+          subtitle={`${formatShortDate(skyPulse?.date, i18n.language)} • ${skyPulse?.moonSignTurkish ? `☾ ${skyPulse.moonSignTurkish}` : t('dailySummary.skyFlowFallback')}`}
           onBack={goBack}
           rightActions={(
             <SurfaceHeaderIconButton
               iconName="calendar-outline"
               onPress={() => router.push('/(tabs)/calendar')}
-              accessibilityLabel="Takvim"
+              accessibilityLabel={t('dailySummary.calendarA11y')}
             />
           )}
         />
@@ -145,7 +147,7 @@ export default function DailySummaryScreen() {
             <View style={S.heroAura} />
             <View style={S.topGlow} />
             <View style={S.heroHeaderRow}>
-              <Text style={S.heroTitle}>Günlük Özet</Text>
+              <Text style={S.heroTitle}>{t('dailySummary.title')}</Text>
               <View style={S.heroHeaderRight}>
                 <View style={S.scorePill}>
                   {isInitialLoading ? (
@@ -156,7 +158,7 @@ export default function DailySummaryScreen() {
                   ) : (
                     <>
                       <Text style={S.scoreValue}>{typeof score === 'number' ? Math.round(score) : '--'}</Text>
-                      <Text style={S.scoreSub}>Genel</Text>
+                      <Text style={S.scoreSub}>{t('dailySummary.scoreOverall')}</Text>
                     </>
                   )}
                 </View>
@@ -185,12 +187,12 @@ export default function DailySummaryScreen() {
               ) : (
                 <>
                   <View style={S.summaryRow}>
-                    <Text style={S.summaryRowLabel}>Tema</Text>
+                    <Text style={S.summaryRowLabel}>{t('dailySummary.themeLabel')}</Text>
                     <Text style={S.summaryRowValue} numberOfLines={1}>{themeLine}</Text>
                   </View>
                   <View style={S.summaryRowDivider} />
                   <View style={S.summaryRow}>
-                    <Text style={S.summaryRowLabel}>Öneri</Text>
+                    <Text style={S.summaryRowLabel}>{t('dailySummary.suggestionLabel')}</Text>
                     <Text style={[S.summaryRowValue, S.summaryRowValueStrong]} numberOfLines={2}>{suggestionLine}</Text>
                   </View>
                 </>
@@ -207,8 +209,8 @@ export default function DailySummaryScreen() {
                 </>
               ) : (
                 <>
-                  <View style={[S.chip, S.chipEmotion]}><Text style={S.chipText}>Duygu: {emotionLabel}</Text></View>
-                  <View style={[S.chip, S.chipRisk]}><Text style={S.chipText}>Risk: {riskLabel(impactScore)}</Text></View>
+                  <View style={[S.chip, S.chipEmotion]}><Text style={S.chipText}>{t('dailySummary.emotionChip', { label: emotionLabel })}</Text></View>
+                  <View style={[S.chip, S.chipRisk]}><Text style={S.chipText}>{t('dailySummary.riskChip', { label: riskLabel(impactScore, tFn) })}</Text></View>
                 </>
               )}
             </View>
@@ -220,16 +222,16 @@ export default function DailySummaryScreen() {
               style={({ pressed }) => [S.actionBtn, pressed && S.pressed]}
             >
               <Ionicons name="compass-outline" size={16} color={colors.primary} />
-              <Text style={S.actionBtnText}>Karar Pusulası</Text>
+              <Text style={S.actionBtnText}>{t('dailySummary.compassBtn')}</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/(tabs)/calendar')} style={({ pressed }) => [S.actionBtn, pressed && S.pressed]}>
               <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-              <Text style={S.actionBtnText}>Planlayıcı</Text>
+              <Text style={S.actionBtnText}>{t('dailySummary.plannerBtn')}</Text>
             </Pressable>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(120).duration(460)} style={S.panel}>
-            <Text style={S.panelTitle}>Karar Pusulası Top Alanlar</Text>
+            <Text style={S.panelTitle}>{t('dailySummary.focusPanelTitle')}</Text>
             {isInitialLoading ? (
               <>
                 <Skeleton height={46} borderRadius={14} />
@@ -267,12 +269,12 @@ export default function DailySummaryScreen() {
               </Pressable>
             ))}
             {!isInitialLoading && !(cosmicSummary?.focusCards?.length) ? (
-              <Text style={S.emptyInline}>Focus card verisi henüz gelmedi.</Text>
+              <Text style={S.emptyInline}>{t('dailySummary.focusEmptyState')}</Text>
             ) : null}
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(180).duration(500)} style={S.panel}>
-            <Text style={S.panelTitle}>Haftalık Akış</Text>
+            <Text style={S.panelTitle}>{t('dailySummary.weeklyPanelTitle')}</Text>
             {isInitialLoading ? (
               <>
                 <Skeleton height={40} borderRadius={12} />
@@ -284,12 +286,12 @@ export default function DailySummaryScreen() {
                 <View style={S.weeklyBullet} />
                 <View style={{ flex: 1 }}>
                   <Text style={S.weeklyTitle}>{card.title || card.headline}</Text>
-                  <Text style={S.weeklySub} numberOfLines={2}>{card.quickTip || card.subtext || 'Detaylar yakında.'}</Text>
+                  <Text style={S.weeklySub} numberOfLines={2}>{card.quickTip || card.subtext || t('dailySummary.weeklyCardSubFallback')}</Text>
                 </View>
               </View>
             ))}
             {!isInitialLoading && !(homeBrief?.weeklyCards?.length) ? (
-              <Text style={S.emptyInline}>Haftalık özet hazırlanıyor.</Text>
+              <Text style={S.emptyInline}>{t('dailySummary.weeklyEmptyState')}</Text>
             ) : null}
           </Animated.View>
 
@@ -297,12 +299,12 @@ export default function DailySummaryScreen() {
             <Animated.View entering={FadeInDown.delay(240).duration(460)} style={S.panel}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="moon-outline" size={16} color={colors.primary} />
-                <Text style={S.panelTitle}>Gökyüzü Nabzı</Text>
+                <Text style={S.panelTitle}>{t('dailySummary.skyPulseTitle')}</Text>
               </View>
               <Text style={S.weeklyTitle}>{skyPulse.dailyVibe}</Text>
               {skyPulse.moonSignTurkish ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={S.focusSub}>Ay Burcu: {skyPulse.moonSignTurkish}</Text>
+                  <Text style={S.focusSub}>{t('dailySummary.moonSignLabel', { sign: skyPulse.moonSignTurkish })}</Text>
                   {(skyPulse as any).moonPhaseTurkish ? <Text style={S.focusSub}>• {(skyPulse as any).moonPhaseTurkish}</Text> : null}
                 </View>
               ) : null}
@@ -312,7 +314,7 @@ export default function DailySummaryScreen() {
           {isError ? (
             <Animated.View entering={FadeIn.duration(220)} style={S.errorBanner}>
               <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#E7C0CD' : '#A85D77'} />
-              <Text style={S.errorBannerText}>Bazı özet verileri alınamadı. Aşağı çekerek yenileyin.</Text>
+              <Text style={S.errorBannerText}>{t('dailySummary.errorBanner')}</Text>
             </Animated.View>
           ) : null}
         </ScrollView>

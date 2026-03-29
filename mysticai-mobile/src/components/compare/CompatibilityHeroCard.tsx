@@ -5,6 +5,7 @@ import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import type { CompareOverallDTO, RelationshipType } from '../../types/compare';
 import { getRelationshipPalette } from '../../constants/compareDesignTokens';
+import { useTranslation } from 'react-i18next';
 
 interface CompatibilityHeroCardProps {
   relationshipType: RelationshipType;
@@ -17,12 +18,13 @@ export default function CompatibilityHeroCard({
   overall,
   moduleIntro,
 }: CompatibilityHeroCardProps) {
+  const { t } = useTranslation();
   const palette = getRelationshipPalette(relationshipType);
   const safeScore = Number.isFinite(overall?.score) ? Math.max(0, Math.min(100, overall.score)) : 60;
-  const safeLevelLabel = overall?.levelLabel?.trim() || 'Dengeli Uyum';
-  const safeConfidenceLabel = overall?.confidenceLabel?.trim() || 'Orta';
+  const safeLevelLabel = overall?.levelLabel?.trim() || t('compare.gradeBalanced');
+  const safeConfidenceLabel = overall?.confidenceLabel?.trim() || '-';
   const safeModuleIntro =
-    moduleIntro?.trim() || 'Bu modülde ilişki ritmi ve temel etkileşim başlıkları birlikte değerlendirilir.';
+    moduleIntro?.trim() || t('compare.heroCardHint');
 
   return (
     <LinearGradient
@@ -33,7 +35,7 @@ export default function CompatibilityHeroCard({
     >
       <View style={styles.leftBlock}>
         <AccessibleText style={styles.title} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-          Genel Uyum
+          {t('compare.heroCardTitle')}
         </AccessibleText>
         <AccessibleText style={[styles.score, { color: palette.accent }]} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
           %{safeScore}
@@ -49,7 +51,7 @@ export default function CompatibilityHeroCard({
           </View>
           <View style={[styles.badge, { borderColor: palette.border, backgroundColor: '#FFFFFF' }]}> 
             <AccessibleText style={styles.badgeText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              Veri Güveni: {safeConfidenceLabel}
+              {t('compare.heroCardDataConfidence', { level: safeConfidenceLabel })}
             </AccessibleText>
           </View>
         </View>

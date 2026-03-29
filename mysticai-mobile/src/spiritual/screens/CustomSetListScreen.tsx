@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { useContentStore } from '../store/useContentStore';
+import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
@@ -30,6 +31,7 @@ const ITEM_ICONS: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: 
 };
 
 export default function CustomSetListScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark);
   const { sets, createSet, deleteSet, renameSet } = useCustomSetStore();
@@ -63,12 +65,12 @@ export default function CustomSetListScreen() {
 
   const handleDelete = useCallback((set: CustomSet) => {
     Alert.alert(
-      'Seti Sil',
-      `"${set.name}" setini silmek istediğinize emin misiniz?`,
+      t('spiritual.customSet.deleteTitle'),
+      t('spiritual.customSet.deleteMessage', { name: set.name }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('spiritual.customSet.cancel'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('spiritual.customSet.delete'),
           style: 'destructive',
           onPress: () => {
             deleteSet(set.id);
@@ -133,9 +135,9 @@ export default function CustomSetListScreen() {
         onLongPress={() => {
           if (isEditing) return;
           Alert.alert(item.name, undefined, [
-            { text: 'Yeniden Adlandır', onPress: () => startRename(item) },
-            { text: 'Sil', style: 'destructive', onPress: () => handleDelete(item) },
-            { text: 'Vazgeç', style: 'cancel' },
+            { text: t('spiritual.customSet.rename'), onPress: () => startRename(item) },
+            { text: t('spiritual.customSet.delete'), style: 'destructive', onPress: () => handleDelete(item) },
+            { text: t('spiritual.customSet.cancel'), style: 'cancel' },
           ]);
         }}
       >
