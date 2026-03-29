@@ -10,6 +10,7 @@ public record SynastryResponse(
         String personName,
         String relationshipType,
         Integer harmonyScore,
+        Integer baseHarmonyScore,
         List<CrossAspect> crossAspects,
         /** AI: 2-3 sentence overall harmony narrative */
         String harmonyInsight,
@@ -30,6 +31,8 @@ public record SynastryResponse(
         String personBType,
         String personAName,
         String personBName,
+        String scoringVersion,
+        java.util.Map<String, SynastryModuleScore> moduleScores,
         SynastryScoreBreakdown scoreBreakdown,
         List<SynastryAnalysisSection> analysisSections,
         List<SynastryDisplayMetric> displayMetrics

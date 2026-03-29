@@ -18,6 +18,7 @@ export interface UseMatchTraitsOptions {
   personBSignLabel?: string;
   overallScore?: number | null;
   summary?: string | null;
+  relationshipType?: string | null;
 }
 
 export interface UseMatchTraitsResult {
@@ -63,7 +64,7 @@ export function useMatchTraits(
     setError(null);
 
     try {
-      const response = await getMatchTraits(matchId);
+      const response = await getMatchTraits(matchId, options?.relationshipType);
       const normalized = normalizeMatchDTO(response.data, seed);
       setData(normalized);
       setIsMock(normalized.source === 'mock');
@@ -105,6 +106,7 @@ export function useMatchTraits(
     options?.personASignLabel,
     options?.personBName,
     options?.personBSignLabel,
+    options?.relationshipType,
     options?.summary,
   ]);
 

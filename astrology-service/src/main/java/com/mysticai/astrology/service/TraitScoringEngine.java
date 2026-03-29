@@ -144,14 +144,6 @@ public class TraitScoringEngine {
         double normalizedSigned = Math.tanh(raw / 2.0d);
         double score = 50.0d + normalizedSigned * 35.0d;
 
-        if (compatibilityScore != null) {
-            if (compatibilityScore < 40) {
-                score = 50 + (score - 50) * 0.70d;
-            } else if (compatibilityScore > 75) {
-                score = 50 + (score - 50) * 0.85d;
-            }
-        }
-
         return clampToScore(score);
     }
 

@@ -31,9 +31,21 @@ public class Synastry {
     /** 0-100 calculated harmony score */
     private Integer harmonyScore;
 
+    /** General compatibility score shared across surfaces */
+    @Column(name = "base_harmony_score")
+    private Integer baseHarmonyScore;
+
     /** JSON array of CrossAspect objects between the two charts */
     @Column(name = "cross_aspects_json", columnDefinition = "TEXT")
     private String crossAspectsJson;
+
+    /** Canonical scoring snapshot used by compare/share surfaces */
+    @Column(name = "score_snapshot_json", columnDefinition = "TEXT")
+    private String scoreSnapshotJson;
+
+    /** Version tag for the canonical scoring model */
+    @Column(name = "scoring_version")
+    private String scoringVersion;
 
     /** AI-generated narrative: overall harmony insight */
     @Column(name = "harmony_insight", columnDefinition = "TEXT")

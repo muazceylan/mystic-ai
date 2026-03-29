@@ -317,9 +317,11 @@ function mapSectionsToGrowthAreas(
 }
 
 function enrichWithProps(match: MatchDTO, props: MatchOverviewScreenProps): MatchDTO {
+  const preserveFetchedOverall = match.source === 'api';
+  const preserveFetchedNarrative = match.source === 'api';
   const mergedCategories = mergeCategories(
     match.categories,
-    props.compatibilityScore,
+    preserveFetchedOverall ? match.overallScore : props.compatibilityScore,
     props.scoreBreakdown,
     props.displayMetrics,
   );
@@ -329,7 +331,9 @@ function enrichWithProps(match: MatchDTO, props: MatchOverviewScreenProps): Matc
 
   return {
     ...match,
-    overallScore: clampScore(props.compatibilityScore || match.overallScore),
+    overallScore: preserveFetchedOverall
+      ? match.overallScore
+      : clampScore(props.compatibilityScore || match.overallScore),
     people: {
       left: {
         ...match.people.left,
@@ -343,7 +347,11 @@ function enrichWithProps(match: MatchDTO, props: MatchOverviewScreenProps): Matc
     summaryPlain: {
       ...match.summaryPlain,
       headline: sanitizeMainCopy(match.summaryPlain.headline),
-      body: sanitizeMainCopy(props.fallbackInsight || match.summaryPlain.body),
+      body: sanitizeMainCopy(
+        preserveFetchedNarrative
+          ? match.summaryPlain.body
+          : props.fallbackInsight || match.summaryPlain.body,
+      ),
     },
     categories: mergedCategories,
     growthAreas: mapSectionsToGrowthAreas(props.analysisSections, match.growthAreas),
@@ -373,6 +381,7 @@ export default function MatchOverviewScreen(props: MatchOverviewScreenProps) {
     personBSignLabel: props.personBSignLabel,
     overallScore: props.compatibilityScore,
     summary: props.fallbackInsight,
+    relationshipType: props.relationshipType,
   });
 
   const fallbackFromProps = useMemo(() => {

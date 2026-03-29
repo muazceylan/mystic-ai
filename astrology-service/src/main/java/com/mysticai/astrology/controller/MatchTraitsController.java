@@ -1,6 +1,8 @@
 package com.mysticai.astrology.controller;
 
 import com.mysticai.astrology.dto.MatchTraitsResponse;
+import com.mysticai.astrology.entity.Synastry;
+import com.mysticai.astrology.repository.SynastryRepository;
 import com.mysticai.astrology.service.MatchTraitsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import java.util.List;
 public class MatchTraitsController {
 
     private final MatchTraitsService matchTraitsService;
+    private final SynastryRepository synastryRepository;
 
     @GetMapping("/{matchId}/traits")
     public ResponseEntity<MatchTraitsResponse> getMatchTraits(
@@ -27,29 +30,38 @@ public class MatchTraitsController {
             return ResponseEntity.ok(matchTraitsService.getTraitsForMatch(matchId, relationshipType));
         } catch (Exception e) {
             log.error("Match traits endpoint fallback triggered for matchId={}", matchId, e);
+            Synastry synastry = synastryRepository.findById(matchId).orElse(null);
+            int fallbackScore = synastry != null && synastry.getHarmonyScore() != null
+                    ? Math.max(0, Math.min(100, synastry.getHarmonyScore()))
+                    : 60;
+            String fallbackModule = relationshipType != null && !relationshipType.isBlank()
+                    ? relationshipType
+                    : synastry != null && synastry.getRelationshipType() != null && !synastry.getRelationshipType().isBlank()
+                    ? synastry.getRelationshipType()
+                    : "LOVE";
             return ResponseEntity.ok(new MatchTraitsResponse(
                     matchId,
-                    null,
+                    fallbackScore,
                     List.of(),
                     List.of(),
                     "Karşılaştırma eksenleri şu anda hazırlanamadı. Ana sinastri analizi kullanılabilir.",
-                    relationshipType != null ? relationshipType : "LOVE",
-                    new MatchTraitsResponse.Overall(60, "Dengeli Uyum", 0.50d, "Orta", 50),
+                    fallbackModule,
+                    new MatchTraitsResponse.Overall(fallbackScore, "Karışık Potansiyel", 0.50d, "Orta", fallbackScore),
                     new MatchTraitsResponse.Summary(
-                            "Veri hazırlanıyor, denge korunuyor",
-                            "Karşılaştırma sinyalleri tam yüklenemediği için bu yorum kısa tutuldu. Veriler güncellendiğinde daha net bir dağılım ve neden analizi görebilirsiniz.",
-                            "Bir süre sonra tekrar deneyin; yeni hesaplamada daha ayrışmış sonuçlar görebilirsiniz."
+                        "Veri hazırlanıyor, denge korunuyor",
+                        "Karşılaştırma sinyalleri tam yüklenemediği için bu yorum kısa tutuldu. Veriler güncellendiğinde daha net bir dağılım ve neden analizi görebilirsiniz.",
+                        "Bir süre sonra tekrar deneyin; yeni hesaplamada daha ayrışmış sonuçlar görebilirsiniz."
                     ),
                     List.of(),
                     new MatchTraitsResponse.TopDrivers(List.of(), List.of(), List.of()),
                     List.of(),
                     new MatchTraitsResponse.Explainability(
-                            "compare-v3.0.0",
-                            List.of("aspect_type", "orb_decay", "confidence_damping"),
+                            "compare-legacy-fallback",
+                            List.of("stored_harmony_score", "fallback_summary"),
                             "limited",
                             java.time.LocalDateTime.now().toString(),
-                            "low_confidence_damped",
-                            "Doğum saati ve ev verisi netleştiğinde analiz hassasiyeti artar.",
+                            null,
+                            null,
                             "fallback"
                     )
             ));

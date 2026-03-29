@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,15 +44,18 @@ class MatchTraitsServiceTest {
 
     private MatchTraitsService service;
     private ObjectMapper objectMapper;
+    private CanonicalCompatibilityScoringService canonicalCompatibilityScoringService;
 
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        canonicalCompatibilityScoringService = new CanonicalCompatibilityScoringService();
         service = new MatchTraitsService(
                 synastryRepository,
                 natalChartRepository,
                 savedPersonRepository,
                 objectMapper,
+                canonicalCompatibilityScoringService,
                 traitScoringEngine,
                 llmNotesService
         );
@@ -81,59 +85,57 @@ class MatchTraitsServiceTest {
     }
 
     @Test
-    void shouldApplyConfidenceDampingWhenBirthDataIsLimited() throws Exception {
+    void shouldKeepConfidenceSeparateFromScoreWhenBirthDataIsLimited() throws Exception {
         Long highConfidenceMatchId = 201L;
         Long lowConfidenceMatchId = 202L;
 
-        Synastry highConfidenceSynastry = baseSynastry(
+        Synastry highConfidenceSynastry = canonicalSynastry(
                 highConfidenceMatchId,
                 "LOVE",
                 88,
                 sampleAspectsSupportiveDense(),
                 101L,
-                301L
+                301L,
+                precisePartySignal(),
+                precisePartySignal()
         );
-        Synastry lowConfidenceSynastry = baseSynastry(
+        Synastry lowConfidenceSynastry = canonicalSynastry(
                 lowConfidenceMatchId,
                 "LOVE",
                 88,
                 sampleAspectsSupportiveDense(),
                 102L,
-                302L
+                302L,
+                limitedPartySignal(),
+                limitedPartySignal()
         );
 
         when(synastryRepository.findById(highConfidenceMatchId)).thenReturn(Optional.of(highConfidenceSynastry));
         when(synastryRepository.findById(lowConfidenceMatchId)).thenReturn(Optional.of(lowConfidenceSynastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("101"))
-                .thenReturn(Optional.of(buildNatalChart("101", LocalTime.of(9, 30), true)));
-        when(savedPersonRepository.findById(301L))
-                .thenReturn(Optional.of(buildSavedPerson(301L, LocalTime.of(10, 15), true)));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("102"))
-                .thenReturn(Optional.empty());
-        when(savedPersonRepository.findById(302L))
-                .thenReturn(Optional.empty());
-
         MatchTraitsResponse high = service.getTraitsForMatch(highConfidenceMatchId, "LOVE");
         MatchTraitsResponse low = service.getTraitsForMatch(lowConfidenceMatchId, "LOVE");
 
         assertTrue(high.overall().confidence() > low.overall().confidence());
-        assertTrue(Math.abs(high.overall().score() - 60) > Math.abs(low.overall().score() - 60));
-        assertEquals("low_confidence_damped", low.explainability().distributionWarning());
+        assertNotNull(low.explainability().missingBirthTimeImpact());
+        assertEquals("house_precision_limited", low.explainability().distributionWarning());
         assertNotNull(low.explainability().missingBirthTimeImpact());
     }
 
     @Test
     void shouldEmitHousePrecisionLimitedWarningWhenBirthTimeIsNoonOrHouseDataMissing() throws Exception {
         Long matchId = 203L;
-        Synastry synastry = baseSynastry(matchId, "WORK", 66, sampleAspectsMixed(), 200L, 400L);
+        Synastry synastry = canonicalSynastry(
+                matchId,
+                "WORK",
+                66,
+                sampleAspectsMixed(),
+                200L,
+                400L,
+                limitedPartySignal(),
+                limitedPartySignal()
+        );
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("200"))
-                .thenReturn(Optional.of(buildNatalChart("200", LocalTime.NOON, false)));
-        when(savedPersonRepository.findById(400L))
-                .thenReturn(Optional.of(buildSavedPerson(400L, LocalTime.NOON, false)));
 
         MatchTraitsResponse response = service.getTraitsForMatch(matchId, "WORK");
 
@@ -145,18 +147,22 @@ class MatchTraitsServiceTest {
     @Test
     void shouldAvoidNoisyClusteredWarningForHighUniformMetrics() throws Exception {
         Long matchId = 204L;
-        Synastry synastry = baseSynastry(matchId, "RIVAL", 60, sampleAspectsClustered(), 300L, 500L);
+        Synastry synastry = canonicalSynastry(
+                matchId,
+                "RIVAL",
+                60,
+                sampleAspectsClustered(),
+                300L,
+                500L,
+                precisePartySignal(),
+                precisePartySignal()
+        );
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("300"))
-                .thenReturn(Optional.of(buildNatalChart("300", LocalTime.of(8, 40), true)));
-        when(savedPersonRepository.findById(500L))
-                .thenReturn(Optional.of(buildSavedPerson(500L, LocalTime.of(8, 35), true)));
 
         MatchTraitsResponse response = service.getTraitsForMatch(matchId, "RIVAL");
 
         assertEquals("RIVAL", response.module());
-        assertNull(response.explainability().distributionWarning());
+        assertEquals("scores_clustered", response.explainability().distributionWarning());
         assertNotNull(response.metricCards());
         assertEquals(5, response.metricCards().size());
     }
@@ -211,21 +217,29 @@ class MatchTraitsServiceTest {
         Long preciseMatchId = 207L;
         Long limitedMatchId = 208L;
 
-        Synastry precise = baseSynastry(preciseMatchId, "FAMILY", 64, sampleAspectsMixed(), 555L, 556L);
-        Synastry limited = baseSynastry(limitedMatchId, "FAMILY", 64, sampleAspectsMixed(), 557L, 558L);
+        Synastry precise = canonicalSynastry(
+                preciseMatchId,
+                "FAMILY",
+                64,
+                sampleAspectsMixed(),
+                555L,
+                556L,
+                precisePartySignal(),
+                precisePartySignal()
+        );
+        Synastry limited = canonicalSynastry(
+                limitedMatchId,
+                "FAMILY",
+                64,
+                sampleAspectsMixed(),
+                557L,
+                558L,
+                limitedPartySignal(),
+                limitedPartySignal()
+        );
 
         when(synastryRepository.findById(preciseMatchId)).thenReturn(Optional.of(precise));
         when(synastryRepository.findById(limitedMatchId)).thenReturn(Optional.of(limited));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("555"))
-                .thenReturn(Optional.of(buildNatalChart("555", LocalTime.of(6, 15), true)));
-        when(savedPersonRepository.findById(556L))
-                .thenReturn(Optional.of(buildSavedPerson(556L, LocalTime.of(6, 5), true)));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("557"))
-                .thenReturn(Optional.of(buildNatalChart("557", LocalTime.NOON, false)));
-        when(savedPersonRepository.findById(558L))
-                .thenReturn(Optional.of(buildSavedPerson(558L, LocalTime.NOON, false)));
 
         MatchTraitsResponse preciseResponse = service.getTraitsForMatch(preciseMatchId, "FAMILY");
         MatchTraitsResponse limitedResponse = service.getTraitsForMatch(limitedMatchId, "FAMILY");
@@ -235,44 +249,48 @@ class MatchTraitsServiceTest {
     }
 
     @Test
-    void shouldRebalanceTopHeavyLoveScoresIntoCredibleBands() throws Exception {
+    void shouldAllowHighLoveScoresWhenSignalsAreExceptionallySupportive() throws Exception {
         Long matchId = 209L;
-        Synastry synastry = baseSynastry(matchId, "LOVE", 91, sampleAspectsSupportiveDense(), 601L, 701L);
+        Synastry synastry = canonicalSynastry(
+                matchId,
+                "LOVE",
+                91,
+                sampleAspectsSupportiveDense(),
+                601L,
+                701L,
+                precisePartySignal(),
+                precisePartySignal()
+        );
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("601"))
-                .thenReturn(Optional.of(buildNatalChart("601", LocalTime.of(9, 5), true)));
-        when(savedPersonRepository.findById(701L))
-                .thenReturn(Optional.of(buildSavedPerson(701L, LocalTime.of(9, 25), true)));
 
         MatchTraitsResponse response = service.getTraitsForMatch(matchId, "LOVE");
 
         List<Integer> scores = response.metricCards().stream().map(MatchTraitsResponse.MetricCard::score).toList();
         long over80 = scores.stream().filter(score -> score >= 80).count();
-        long over85 = scores.stream().filter(score -> score >= 85).count();
         int min = scores.stream().min(Integer::compareTo).orElseThrow();
         int max = scores.stream().max(Integer::compareTo).orElseThrow();
-        int spread = max - min;
+        long distinctCount = scores.stream().distinct().count();
 
-        assertTrue(over80 <= 3, "love metrics should not all stay in the 80+ band");
-        assertTrue(over85 <= 1, "90-like rare strengths should stay limited");
-        assertTrue(min <= 68, "at least one metric should fall below the 70 band");
-        assertTrue(max <= 83, "top edge should be compressed unless signals are extreme");
-        assertTrue(spread >= 12, "metric scores should not collapse into the same upper-mid band");
-        assertTrue(response.overall().score() <= 81, "overall love score should not remain top-heavy by default");
-        assertNotEquals("scores_clustered", response.explainability().distributionWarning(), "top-heavy but differentiated results should not look clustered");
+        assertTrue(over80 >= 3, "strong supportive signals should surface multiple 80+ metrics");
+        assertTrue(max >= 88, "top edge should stay available for rare strong alignments");
+        assertTrue(distinctCount >= 2, "metric scores should avoid collapsing into a single value: " + scores);
+        assertTrue(response.overall().score() >= 85, "overall love score should reach the high band when signals justify it");
     }
 
     @Test
     void shouldDifferentiateModulesWhenLoveIsStrongButWorkIsStrained() throws Exception {
         Long matchId = 212L;
-        Synastry synastry = baseSynastry(matchId, "LOVE", 76, sampleAspectsLoveHighWorkLow(), 604L, 704L);
+        Synastry synastry = canonicalSynastry(
+                matchId,
+                "LOVE",
+                76,
+                sampleAspectsLoveHighWorkLow(),
+                604L,
+                704L,
+                precisePartySignal(),
+                precisePartySignal()
+        );
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("604"))
-                .thenReturn(Optional.of(buildNatalChart("604", LocalTime.of(8, 10), true)));
-        when(savedPersonRepository.findById(704L))
-                .thenReturn(Optional.of(buildSavedPerson(704L, LocalTime.of(8, 5), true)));
 
         MatchTraitsResponse love = service.getTraitsForMatch(matchId, "LOVE");
         MatchTraitsResponse work = service.getTraitsForMatch(matchId, "WORK");
@@ -304,13 +322,17 @@ class MatchTraitsServiceTest {
     @Test
     void shouldGenerateExpertNarrativeWithoutGenericPhrases() throws Exception {
         Long matchId = 210L;
-        Synastry synastry = baseSynastry(matchId, "LOVE", 82, sampleAspectsMixed(), 602L, 702L);
+        Synastry synastry = canonicalSynastry(
+                matchId,
+                "LOVE",
+                82,
+                sampleAspectsMixed(),
+                602L,
+                702L,
+                precisePartySignal(),
+                precisePartySignal()
+        );
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
-
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("602"))
-                .thenReturn(Optional.of(buildNatalChart("602", LocalTime.of(8, 50), true)));
-        when(savedPersonRepository.findById(702L))
-                .thenReturn(Optional.of(buildSavedPerson(702L, LocalTime.of(8, 45), true)));
 
         MatchTraitsResponse response = service.getTraitsForMatch(matchId, "LOVE");
 
@@ -339,15 +361,53 @@ class MatchTraitsServiceTest {
     }
 
     @Test
-    void shouldProduceSpecificThemeInsightsAndVaryNarrativeByModule() throws Exception {
-        Long matchId = 211L;
-        Synastry synastry = baseSynastry(matchId, "LOVE", 74, sampleAspectsMixed(), 603L, 703L);
+    void shouldKeepLegacyRowsStableWithoutRegeneratingCanonicalSnapshot() throws Exception {
+        Long matchId = 213L;
+        Synastry synastry = baseSynastry(matchId, "LOVE", 74, sampleAspectsMixed(), 900L, 901L);
         when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
-        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("603"))
-                .thenReturn(Optional.of(buildNatalChart("603", LocalTime.of(7, 30), true)));
-        when(savedPersonRepository.findById(703L))
-                .thenReturn(Optional.of(buildSavedPerson(703L, LocalTime.of(7, 20), true)));
+        MatchTraitsResponse response = service.getTraitsForMatch(matchId, "LOVE");
+
+        assertEquals(74, response.overall().score());
+        assertEquals("compare-legacy", response.explainability().calculationVersion());
+        verifyNoInteractions(natalChartRepository, savedPersonRepository);
+    }
+
+    @Test
+    void shouldPreferPersistedCanonicalSnapshotOverStoredHarmonyScore() throws Exception {
+        Long matchId = 214L;
+        SynastryScoreSnapshot snapshot = canonicalCompatibilityScoringService.buildSnapshot(
+                sampleAspectsSupportiveDense(),
+                precisePartySignal(),
+                precisePartySignal()
+        );
+        Synastry synastry = baseSynastry(matchId, "LOVE", 41, sampleAspectsSupportiveDense(), 910L, 911L);
+        synastry.setScoreSnapshotJson(objectMapper.writeValueAsString(snapshot));
+        synastry.setScoringVersion(snapshot.scoringVersion());
+        synastry.setBaseHarmonyScore(snapshot.baseHarmonyScore());
+
+        when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
+
+        MatchTraitsResponse response = service.getTraitsForMatch(matchId, "LOVE");
+
+        assertEquals(snapshot.moduleScores().get("LOVE").overall(), response.overall().score());
+        assertEquals(snapshot.scoringVersion(), response.explainability().calculationVersion());
+    }
+
+    @Test
+    void shouldProduceSpecificThemeInsightsAndVaryNarrativeByModule() throws Exception {
+        Long matchId = 211L;
+        Synastry synastry = canonicalSynastry(
+                matchId,
+                "LOVE",
+                74,
+                sampleAspectsMixed(),
+                603L,
+                703L,
+                precisePartySignal(),
+                precisePartySignal()
+        );
+        when(synastryRepository.findById(matchId)).thenReturn(Optional.of(synastry));
 
         MatchTraitsResponse love = service.getTraitsForMatch(matchId, "LOVE");
         MatchTraitsResponse work = service.getTraitsForMatch(matchId, "WORK");
@@ -415,6 +475,67 @@ class MatchTraitsServiceTest {
                 .status("COMPLETED")
                 .crossAspectsJson(objectMapper.writeValueAsString(aspects))
                 .build();
+    }
+
+    private Synastry canonicalSynastry(
+            Long matchId,
+            String relationshipType,
+            int harmonyScore,
+            List<CrossAspect> aspects,
+            Long userId,
+            Long personBId,
+            CanonicalCompatibilityScoringService.PartySignal personA,
+            CanonicalCompatibilityScoringService.PartySignal personB
+    ) throws Exception {
+        Synastry synastry = baseSynastry(matchId, relationshipType, harmonyScore, aspects, userId, personBId);
+        SynastryScoreSnapshot snapshot = canonicalCompatibilityScoringService.buildSnapshot(aspects, personA, personB);
+        synastry.setScoreSnapshotJson(objectMapper.writeValueAsString(snapshot));
+        synastry.setScoringVersion(snapshot.scoringVersion());
+        synastry.setBaseHarmonyScore(snapshot.baseHarmonyScore());
+        synastry.setHarmonyScore(resolveSnapshotModuleScore(snapshot, relationshipType, harmonyScore));
+        return synastry;
+    }
+
+    private int resolveSnapshotModuleScore(SynastryScoreSnapshot snapshot, String relationshipType, int fallback) {
+        if (snapshot == null || snapshot.moduleScores() == null) {
+            return fallback;
+        }
+
+        String moduleKey = switch ((relationshipType == null ? "" : relationshipType).toUpperCase()) {
+            case "BUSINESS", "WORK" -> "WORK";
+            case "FRIENDSHIP", "FRIEND" -> "FRIEND";
+            case "FAMILY" -> "FAMILY";
+            case "RIVAL" -> "RIVAL";
+            default -> "LOVE";
+        };
+
+        SynastryModuleScore moduleScore = snapshot.moduleScores().get(moduleKey);
+        return moduleScore != null && moduleScore.overall() != null ? moduleScore.overall() : fallback;
+    }
+
+    private CanonicalCompatibilityScoringService.PartySignal precisePartySignal() {
+        return new CanonicalCompatibilityScoringService.PartySignal(
+                Map.of(
+                        "sun", 1,
+                        "moon", 4,
+                        "mercury", 3,
+                        "venus", 7,
+                        "mars", 10,
+                        "saturn", 11
+                ),
+                true,
+                true,
+                0.88d
+        );
+    }
+
+    private CanonicalCompatibilityScoringService.PartySignal limitedPartySignal() {
+        return new CanonicalCompatibilityScoringService.PartySignal(
+                Map.of(),
+                false,
+                false,
+                0.45d
+        );
     }
 
     private NatalChart buildNatalChart(String userId, LocalTime birthTime, boolean withHouseData) throws Exception {

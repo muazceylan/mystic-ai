@@ -17,6 +17,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,9 +32,11 @@ public class SynastryService {
     private final SavedPersonRepository savedPersonRepository;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
+    private final CanonicalCompatibilityScoringService canonicalCompatibilityScoringService;
 
     private static final String AI_EXCHANGE = "ai.exchange";
     private static final String AI_REQUESTS_ROUTING_KEY = "ai.request";
+    private static final String LEGACY_SCORING_VERSION = "synastry-legacy";
 
     // ─── Planets considered key for each relationship type ─────────────────────
     private static final Set<String> LOVE_KEY_PLANETS     = Set.of("Venus", "Mars", "Moon", "Sun");
@@ -55,7 +58,11 @@ public class SynastryService {
             String sunSign,
             String moonSign,
             String risingSign,
-            List<PlanetPosition> planets
+            List<PlanetPosition> planets,
+            Map<String, Integer> planetHouses,
+            boolean hasHouseData,
+            boolean hasPlanetData,
+            double birthTimeCertainty
     ) {}
 
     private record PartySummary(
@@ -94,15 +101,26 @@ public class SynastryService {
         // Calculate cross-chart aspects
         List<CrossAspect> crossAspects = calculateCrossAspects(personA.planets(), personB.planets());
 
-        int quickHarmonyScore = computeHarmonyScore(crossAspects, req.relationshipType());
+        SynastryScoreSnapshot scoreSnapshot = canonicalCompatibilityScoringService.buildSnapshot(
+                crossAspects,
+                toPartySignal(personA),
+                toPartySignal(personB)
+        );
+        Integer activeModuleScore = canonicalCompatibilityScoringService.resolveModuleOverall(scoreSnapshot, req.relationshipType());
+        int quickHarmonyScore = activeModuleScore != null
+                ? activeModuleScore
+                : computeHarmonyScore(crossAspects, req.relationshipType());
 
         // Persist initial Synastry with an immediate rule-based score.
         // AI may refine/override this later when async interpretation completes.
         String crossAspectsJson;
+        String scoreSnapshotJson;
         try {
             crossAspectsJson = objectMapper.writeValueAsString(crossAspects);
+            scoreSnapshotJson = objectMapper.writeValueAsString(scoreSnapshot);
         } catch (JsonProcessingException e) {
             crossAspectsJson = "[]";
+            scoreSnapshotJson = null;
         }
 
         UUID correlationId = UUID.randomUUID();
@@ -115,7 +133,10 @@ public class SynastryService {
                 .personBType(personB.type().name())
                 .relationshipType(req.relationshipType())
                 .harmonyScore(quickHarmonyScore)
+                .baseHarmonyScore(scoreSnapshot.baseHarmonyScore())
                 .crossAspectsJson(crossAspectsJson)
+                .scoreSnapshotJson(scoreSnapshotJson)
+                .scoringVersion(scoreSnapshot.scoringVersion())
                 .status("PENDING")
                 .correlationId(correlationId)
                 .build();
@@ -167,7 +188,13 @@ public class SynastryService {
         PartyContext candidate = buildRealUserParty(candidateUserId, "Aday");
 
         List<CrossAspect> crossAspects = calculateCrossAspects(viewer.planets(), candidate.planets());
-        int score = computeHarmonyScore(crossAspects, "LOVE");
+        SynastryScoreSnapshot scoreSnapshot = canonicalCompatibilityScoringService.buildSnapshot(
+                crossAspects,
+                toPartySignal(viewer),
+                toPartySignal(candidate)
+        );
+        Integer loveScore = canonicalCompatibilityScoringService.resolveModuleOverall(scoreSnapshot, "LOVE");
+        int score = loveScore != null ? loveScore : computeHarmonyScore(crossAspects, "LOVE");
         long harmonious = crossAspects.stream().filter(CrossAspect::harmonious).count();
         long challenging = Math.max(0, crossAspects.size() - harmonious);
 
@@ -757,7 +784,8 @@ public class SynastryService {
             payload.put("partnerPlanetsText", partnerPlanetsText);
             payload.put("allAspectsText",    allAspectsText);
             payload.put("totalAspects",      aspects.size());
-            payload.put("baseHarmonyScore",  synastry.getHarmonyScore());
+            payload.put("baseHarmonyScore",  synastry.getBaseHarmonyScore());
+            payload.put("selectedModuleScore", synastry.getHarmonyScore());
             payload.put("locale", "tr");
             if (req.locale() != null && !req.locale().isBlank()) {
                 payload.put("requestedLocale", req.locale());
@@ -798,7 +826,11 @@ public class SynastryService {
                 userChart.getSunSign(),
                 userChart.getMoonSign(),
                 userChart.getRisingSign(),
-                planets
+                planets,
+                extractPlanetHouses(planets),
+                hasJsonData(userChart.getHousePlacementsJson()),
+                !planets.isEmpty(),
+                resolveBirthTimeCertainty(userChart.getBirthTime(), 0.45d, 0.70d, 0.88d)
         );
     }
 
@@ -811,6 +843,7 @@ public class SynastryService {
         String resolvedName = (chart.getName() != null && !chart.getName().isBlank())
                 ? chart.getName()
                 : fallbackName;
+        List<PlanetPosition> planets = parsePlanets(chart.getPlanetPositionsJson());
 
         return new PartyContext(
                 userId,
@@ -820,7 +853,11 @@ public class SynastryService {
                 chart.getSunSign(),
                 chart.getMoonSign(),
                 chart.getRisingSign(),
-                parsePlanets(chart.getPlanetPositionsJson())
+                planets,
+                extractPlanetHouses(planets),
+                hasJsonData(chart.getHousePlacementsJson()),
+                !planets.isEmpty(),
+                resolveBirthTimeCertainty(chart.getBirthTime(), 0.45d, 0.70d, 0.88d)
         );
     }
 
@@ -851,6 +888,7 @@ public class SynastryService {
     private PartyContext buildSavedParty(Long personId) {
         SavedPerson person = savedPersonRepository.findById(personId)
                 .orElseThrow(() -> new IllegalArgumentException("Saved person not found: " + personId));
+        List<PlanetPosition> planets = parsePlanets(person.getPlanetPositionsJson());
 
         return new PartyContext(
                 person.getId(),
@@ -860,7 +898,11 @@ public class SynastryService {
                 person.getSunSign(),
                 person.getMoonSign(),
                 person.getRisingSign(),
-                parsePlanets(person.getPlanetPositionsJson())
+                planets,
+                extractPlanetHouses(planets),
+                hasJsonData(person.getHousePlacementsJson()),
+                !planets.isEmpty(),
+                resolveBirthTimeCertainty(person.getBirthTime(), 0.40d, 0.66d, 0.84d)
         );
     }
 
@@ -942,6 +984,17 @@ public class SynastryService {
         }
     }
 
+    private SynastryScoreSnapshot parseScoreSnapshot(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, SynastryScoreSnapshot.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
     private SynastryResponse mapToResponse(
             Synastry s,
             PartySummary personA,
@@ -950,12 +1003,30 @@ public class SynastryService {
     ) {
         List<String> strengths  = parseStringList(s.getStrengthsJson());
         List<String> challenges = parseStringList(s.getChallengesJson());
-        SynastryScoreBreakdown scoreBreakdown = buildScoreBreakdown(aspects, s.getRelationshipType(), s.getHarmonyScore());
+        SynastryScoreSnapshot scoreSnapshot = resolveScoreSnapshot(s, aspects);
+        Integer activeHarmonyScore = canonicalCompatibilityScoringService.resolveModuleOverall(scoreSnapshot, s.getRelationshipType());
+        int resolvedHarmonyScore = activeHarmonyScore != null
+                ? activeHarmonyScore
+                : (s.getHarmonyScore() != null ? s.getHarmonyScore() : computeHarmonyScore(aspects, s.getRelationshipType()));
+        Integer resolvedBaseHarmonyScore = scoreSnapshot != null && scoreSnapshot.baseHarmonyScore() != null
+                ? scoreSnapshot.baseHarmonyScore()
+                : (s.getBaseHarmonyScore() != null ? s.getBaseHarmonyScore() : computeHarmonyScore(aspects, "FRIENDSHIP"));
+        SynastryScoreBreakdown scoreBreakdown = buildCanonicalScoreBreakdown(
+                scoreSnapshot,
+                resolvedBaseHarmonyScore,
+                aspects,
+                s.getRelationshipType()
+        );
         List<SynastryAnalysisSection> analysisSections = buildAnalysisSections(aspects, s.getRelationshipType());
-        List<SynastryDisplayMetric> displayMetrics = buildDisplayMetrics(aspects, s.getRelationshipType(), scoreBreakdown);
+        List<SynastryDisplayMetric> displayMetrics = resolveDisplayMetrics(
+                scoreSnapshot,
+                s.getRelationshipType(),
+                aspects,
+                scoreBreakdown
+        );
         String normalizedInsight = sanitizeHarmonyInsightForResponse(
                 s.getHarmonyInsight(),
-                s.getHarmonyScore(),
+                resolvedHarmonyScore,
                 s.getRelationshipType(),
                 personA,
                 personB
@@ -963,7 +1034,7 @@ public class SynastryService {
         return new SynastryResponse(
                 s.getId(), s.getUserId(), s.getSavedPersonId(),
                 personB != null ? personB.name() : null,
-                s.getRelationshipType(), s.getHarmonyScore(),
+                s.getRelationshipType(), resolvedHarmonyScore, resolvedBaseHarmonyScore,
                 aspects, normalizedInsight, strengths, challenges,
                 s.getKeyWarning(), s.getCosmicAdvice(), s.getStatus(),
                 s.getCalculatedAt(),
@@ -973,10 +1044,128 @@ public class SynastryService {
                 (personB != null ? personB.type() : resolvePartyType(s.getPersonBType(), PartyType.SAVED_PERSON)).name(),
                 personA != null ? personA.name() : null,
                 personB != null ? personB.name() : null,
+                scoreSnapshot != null
+                        ? scoreSnapshot.scoringVersion()
+                        : (s.getScoringVersion() != null && !s.getScoringVersion().isBlank()
+                        ? s.getScoringVersion()
+                        : LEGACY_SCORING_VERSION),
+                scoreSnapshot != null && scoreSnapshot.moduleScores() != null ? scoreSnapshot.moduleScores() : Map.of(),
                 scoreBreakdown,
                 analysisSections,
                 displayMetrics
         );
+    }
+
+    private CanonicalCompatibilityScoringService.PartySignal toPartySignal(PartyContext context) {
+        if (context == null) {
+            return CanonicalCompatibilityScoringService.PartySignal.empty();
+        }
+        return new CanonicalCompatibilityScoringService.PartySignal(
+                context.planetHouses(),
+                context.hasHouseData(),
+                context.hasPlanetData(),
+                context.birthTimeCertainty()
+        );
+    }
+
+    private CanonicalCompatibilityScoringService.PartySignal resolvePartySignal(Synastry synastry, boolean isPersonA) {
+        PartyType fallbackType = isPersonA ? PartyType.USER : PartyType.SAVED_PERSON;
+        PartyType resolvedType = resolvePartyType(isPersonA ? synastry.getPersonAType() : synastry.getPersonBType(), fallbackType);
+
+        if (resolvedType == PartyType.USER) {
+            String userId = synastry.getUserId() == null ? null : synastry.getUserId().toString();
+            if (userId == null) {
+                return CanonicalCompatibilityScoringService.PartySignal.empty();
+            }
+
+            return natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc(userId)
+                    .map(chart -> {
+                        List<PlanetPosition> planets = parsePlanets(chart.getPlanetPositionsJson());
+                        return new CanonicalCompatibilityScoringService.PartySignal(
+                                extractPlanetHouses(planets),
+                                hasJsonData(chart.getHousePlacementsJson()),
+                                !planets.isEmpty(),
+                                resolveBirthTimeCertainty(chart.getBirthTime(), 0.45d, 0.70d, 0.88d)
+                        );
+                    })
+                    .orElse(CanonicalCompatibilityScoringService.PartySignal.empty());
+        }
+
+        Long personId = isPersonA
+                ? synastry.getPersonAId()
+                : (synastry.getPersonBId() != null ? synastry.getPersonBId() : synastry.getSavedPersonId());
+        if (personId == null) {
+            return CanonicalCompatibilityScoringService.PartySignal.empty();
+        }
+
+        return savedPersonRepository.findById(personId)
+                .map(person -> {
+                    List<PlanetPosition> planets = parsePlanets(person.getPlanetPositionsJson());
+                    return new CanonicalCompatibilityScoringService.PartySignal(
+                            extractPlanetHouses(planets),
+                            hasJsonData(person.getHousePlacementsJson()),
+                            !planets.isEmpty(),
+                            resolveBirthTimeCertainty(person.getBirthTime(), 0.40d, 0.66d, 0.84d)
+                    );
+                })
+                .orElse(CanonicalCompatibilityScoringService.PartySignal.empty());
+    }
+
+    private SynastryScoreSnapshot resolveScoreSnapshot(Synastry synastry, List<CrossAspect> aspects) {
+        SynastryScoreSnapshot parsed = parseScoreSnapshot(synastry.getScoreSnapshotJson());
+        if (parsed != null && parsed.moduleScores() != null && !parsed.moduleScores().isEmpty()) {
+            return parsed;
+        }
+        return null;
+    }
+
+    private SynastryScoreBreakdown buildCanonicalScoreBreakdown(
+            SynastryScoreSnapshot scoreSnapshot,
+            Integer baseHarmonyScore,
+            List<CrossAspect> aspects,
+            String relationshipType
+    ) {
+        if (scoreSnapshot == null) {
+            return buildScoreBreakdown(aspects, relationshipType, baseHarmonyScore);
+        }
+
+        Integer love = canonicalCompatibilityScoringService.resolveModuleOverall(scoreSnapshot, "LOVE");
+        Integer communication = canonicalCompatibilityScoringService.resolveCompositeCommunication(scoreSnapshot);
+        Integer spiritualBond = canonicalCompatibilityScoringService.resolveCompositeSpiritualBond(scoreSnapshot);
+
+        return new SynastryScoreBreakdown(
+                baseHarmonyScore != null ? Math.max(0, Math.min(100, baseHarmonyScore)) : null,
+                love,
+                communication,
+                spiritualBond,
+                scoreSnapshot.scoringVersion()
+        );
+    }
+
+    private List<SynastryDisplayMetric> resolveDisplayMetrics(
+            SynastryScoreSnapshot scoreSnapshot,
+            String relationshipType,
+            List<CrossAspect> aspects,
+            SynastryScoreBreakdown scoreBreakdown
+    ) {
+        if (scoreSnapshot != null && scoreSnapshot.moduleScores() != null) {
+            String moduleKey = switch ((relationshipType == null ? "" : relationshipType).toUpperCase(Locale.ROOT)) {
+                case "BUSINESS" -> "WORK";
+                case "FRIENDSHIP" -> "FRIEND";
+                case "LOVE" -> "LOVE";
+                case "WORK" -> "WORK";
+                case "FRIEND" -> "FRIEND";
+                case "FAMILY" -> "FAMILY";
+                case "RIVAL" -> "RIVAL";
+                default -> "LOVE";
+            };
+            SynastryModuleScore moduleScore = scoreSnapshot.moduleScores().get(moduleKey);
+            if (moduleScore != null && moduleScore.metrics() != null && !moduleScore.metrics().isEmpty()) {
+                return moduleScore.metrics();
+            }
+        }
+
+        return buildDisplayMetrics(aspects, relationshipType, scoreBreakdown);
     }
 
     private String sanitizeHarmonyInsightForResponse(
@@ -1028,5 +1217,37 @@ public class SynastryService {
         } catch (JsonProcessingException e) {
             return List.of();
         }
+    }
+
+    private Map<String, Integer> extractPlanetHouses(List<PlanetPosition> planets) {
+        if (planets == null || planets.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, Integer> houses = new LinkedHashMap<>();
+        for (PlanetPosition planet : planets) {
+            if (planet == null || planet.planet() == null || planet.planet().isBlank() || planet.house() <= 0) {
+                continue;
+            }
+            houses.put(planet.planet().trim().toLowerCase(Locale.ROOT), planet.house());
+        }
+        return houses;
+    }
+
+    private boolean hasJsonData(String json) {
+        return json != null
+                && !json.isBlank()
+                && !Objects.equals(json.trim(), "{}")
+                && !Objects.equals(json.trim(), "[]");
+    }
+
+    private double resolveBirthTimeCertainty(LocalTime birthTime, double missingValue, double noonValue, double exactValue) {
+        if (birthTime == null) {
+            return missingValue;
+        }
+        if (LocalTime.NOON.equals(birthTime)) {
+            return noonValue;
+        }
+        return exactValue;
     }
 }

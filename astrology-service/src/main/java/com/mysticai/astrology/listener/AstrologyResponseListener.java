@@ -495,17 +495,11 @@ public class AstrologyResponseListener {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> parsed = objectMapper.readValue(aiJson, Map.class);
 
-                int baseScore = synastry.getHarmonyScore() == null
-                        ? 50
-                        : Math.max(0, Math.min(100, synastry.getHarmonyScore()));
-                int resolvedHarmonyScore = resolveHarmonyScore(parsed.get("harmonyScore"), baseScore);
-                synastry.setHarmonyScore(resolvedHarmonyScore);
-
                 String fallbackInsight = buildFallbackHarmonyInsight(synastry);
                 synastry.setHarmonyInsight(normalizeHarmonyInsight(
                         (String) parsed.get("harmonyInsight"),
                         fallbackInsight,
-                        resolvedHarmonyScore
+                        synastry.getHarmonyScore() == null ? 50 : synastry.getHarmonyScore()
                 ));
 
                 List<String> strengths = normalizeTextList(
@@ -541,29 +535,6 @@ public class AstrologyResponseListener {
             log.info("Updated Synastry {} with AI relationship analysis", synastry.getId());
         } catch (Exception e) {
             log.error("Failed to process relationship analysis response", e);
-        }
-    }
-
-    private int resolveHarmonyScore(Object scoreObj, int baseScore) {
-        int base = Math.max(0, Math.min(100, baseScore));
-        int aiScore = parseIntScore(scoreObj, base);
-        int min = Math.max(0, base - 8);
-        int max = Math.min(100, base + 8);
-        return Math.max(min, Math.min(max, aiScore));
-    }
-
-    private int parseIntScore(Object scoreObj, int fallback) {
-        if (scoreObj == null) return fallback;
-        try {
-            if (scoreObj instanceof Number n) {
-                return Math.max(0, Math.min(100, n.intValue()));
-            }
-            String raw = scoreObj.toString().replace(",", ".").trim();
-            if (raw.isEmpty()) return fallback;
-            int parsed = (int) Math.round(Double.parseDouble(raw));
-            return Math.max(0, Math.min(100, parsed));
-        } catch (Exception ignored) {
-            return fallback;
         }
     }
 

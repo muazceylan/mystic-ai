@@ -27,7 +27,8 @@ import java.util.stream.Collectors;
 public class MatchTraitsService {
 
     private static final Duration CACHE_TTL = Duration.ofMinutes(15);
-    private static final String CALCULATION_VERSION = "compare-v3.1.0";
+    private static final String CALCULATION_VERSION = "compare-v4.0.0";
+    private static final String LEGACY_CALCULATION_VERSION = "compare-legacy";
     private static final double SCORE_CENTER = 60.0d;
     private static final double SCORE_MIN = 22.0d;
     private static final double SCORE_MAX = 93.0d;
@@ -41,6 +42,7 @@ public class MatchTraitsService {
     private final NatalChartRepository natalChartRepository;
     private final SavedPersonRepository savedPersonRepository;
     private final ObjectMapper objectMapper;
+    private final CanonicalCompatibilityScoringService canonicalCompatibilityScoringService;
     private final TraitScoringEngine traitScoringEngine;
     private final LlmNotesService llmNotesService;
 
@@ -59,18 +61,21 @@ public class MatchTraitsService {
         CompareModule module = CompareModule.resolve(requestedModule, synastry.getRelationshipType());
         String cacheKey = matchId + ":" + module.name() + ":" + CALCULATION_VERSION;
 
-        PartyData personA = loadPartyData(synastry, true);
-        PartyData personB = loadPartyData(synastry, false);
+        List<CrossAspect> aspects = parseCrossAspects(synastry.getCrossAspectsJson());
+        LegacyPayload legacyPayload = buildLegacyPayload(matchId, synastry, aspects);
+        SynastryScoreSnapshot scoreSnapshot = parseStoredScoreSnapshot(synastry.getScoreSnapshotJson());
+        boolean hasCanonicalSnapshot = hasCanonicalSnapshot(scoreSnapshot);
 
         int fingerprint = Objects.hash(
                 synastry.getCrossAspectsJson(),
                 synastry.getHarmonyScore(),
+                synastry.getBaseHarmonyScore(),
+                synastry.getScoreSnapshotJson(),
+                synastry.getScoringVersion(),
                 synastry.getStatus(),
                 synastry.getRelationshipType(),
                 module.name(),
-                CALCULATION_VERSION,
-                personA.fingerprintPart(),
-                personB.fingerprintPart()
+                CALCULATION_VERSION
         );
 
         CachedEntry cached = cache.get(cacheKey);
@@ -78,16 +83,15 @@ public class MatchTraitsService {
             return cached.response();
         }
 
-        List<CrossAspect> aspects = parseCrossAspects(synastry.getCrossAspectsJson());
-
         MatchTraitsResponse response;
         try {
-            LegacyPayload legacyPayload = buildLegacyPayload(matchId, synastry, aspects);
-            V3Payload v3Payload = buildV3Payload(matchId, module, aspects, personA, personB, synastry.getHarmonyScore());
+            V3Payload v3Payload = hasCanonicalSnapshot
+                    ? buildV3Payload(matchId, synastry, module, scoreSnapshot)
+                    : buildLegacyV3Payload(matchId, synastry, module, legacyPayload);
 
             response = new MatchTraitsResponse(
                     matchId,
-                    synastry.getHarmonyScore(),
+                    v3Payload.overall().score(),
                     legacyPayload.categories(),
                     legacyPayload.cardAxes(),
                     legacyPayload.cardSummary(),
@@ -142,36 +146,38 @@ public class MatchTraitsService {
 
     private V3Payload buildV3Payload(
             Long matchId,
+            Synastry synastry,
             CompareModule module,
-            List<CrossAspect> aspects,
-            PartyData personA,
-            PartyData personB,
-            Integer persistedScore
+            SynastryScoreSnapshot scoreSnapshot
     ) {
         ModuleProfile profile = ModuleProfile.forModule(module);
-        ConfidenceComputation confidence = computeConfidence(personA, personB, aspects);
-
-        List<MetricComputation> rawMetrics = profile.metricProfiles().stream()
-                .map(metric -> computeMetric(metric, profile, aspects, personA, personB, confidence.confidence()))
-                .toList();
-
-        List<MetricComputation> separatedMetrics = enforceMetricSeparation(rawMetrics, 4);
-        List<MetricComputation> metricComputations = calibrateMetricDistribution(
-                separatedMetrics,
-                profile,
-                confidence
+        double confidenceValue = scoreSnapshot != null && scoreSnapshot.confidence() != null
+                ? clamp01(scoreSnapshot.confidence())
+                : 0.60d;
+        ConfidenceComputation confidence = new ConfidenceComputation(
+                confidenceValue,
+                scoreSnapshot != null && scoreSnapshot.confidenceLabel() != null
+                        ? scoreSnapshot.confidenceLabel()
+                        : mapConfidenceLabel(confidenceValue),
+                0.0d,
+                0.0d,
+                0.0d,
+                0.0d,
+                scoreSnapshot != null && scoreSnapshot.dataQuality() != null
+                        ? scoreSnapshot.dataQuality()
+                        : mapDataQualityLabel(confidenceValue)
         );
-
-        int rawModuleScore = composeOverallRawScore(metricComputations, profile);
-        int moduleMappedScore = mapRawToModuleBand(rawModuleScore, profile.moduleBias(), profile.module());
-        int seeded = blendPersistedScore(moduleMappedScore, persistedScore, profile.module());
-        int rebalancedSeed = applyOverallCalibration(seeded, metricComputations, profile, confidence);
-        int finalScore = applyConfidenceDamping(rebalancedSeed, confidence.confidence(), profile.spreadBase());
+        List<MetricComputation> metricComputations = resolveMetricComputations(scoreSnapshot, profile);
+        int finalScore = resolveCanonicalModuleScore(scoreSnapshot, metricComputations, module);
         int percentile = scoreToPercentile(finalScore);
         String levelLabel = mapLevelLabel(finalScore);
 
-        String distributionWarning = resolveDistributionWarning(separatedMetrics, metricComputations, confidence);
-        String missingBirthTimeImpact = resolveMissingBirthTimeImpact(confidence);
+        String distributionWarning = scoreSnapshot != null
+                ? scoreSnapshot.distributionWarning()
+                : resolveDistributionWarning(metricComputations, metricComputations, confidence);
+        String missingBirthTimeImpact = scoreSnapshot != null
+                ? scoreSnapshot.missingBirthTimeImpact()
+                : resolveMissingBirthTimeImpact(confidence);
 
         List<MatchTraitsResponse.MetricCard> metricCards = metricComputations.stream()
                 .map(metric -> new MatchTraitsResponse.MetricCard(
@@ -200,7 +206,9 @@ public class MatchTraitsService {
         );
 
         MatchTraitsResponse.Explainability explainability = new MatchTraitsResponse.Explainability(
-                CALCULATION_VERSION,
+                scoreSnapshot != null && scoreSnapshot.scoringVersion() != null
+                        ? scoreSnapshot.scoringVersion()
+                        : CALCULATION_VERSION,
                 List.of(
                         "aspect_type",
                         "planet_pair_weight",
@@ -208,9 +216,11 @@ public class MatchTraitsService {
                         "house_context_weight",
                         "module_weight",
                         "supportive_challenging_split",
-                        "confidence_damping"
+                        "canonical_snapshot"
                 ),
-                confidence.dataQualityLabel(),
+                scoreSnapshot != null && scoreSnapshot.dataQuality() != null
+                        ? scoreSnapshot.dataQuality()
+                        : confidence.dataQualityLabel(),
                 LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
                 distributionWarning,
                 missingBirthTimeImpact,
@@ -218,6 +228,204 @@ public class MatchTraitsService {
         );
 
         return new V3Payload(overall, summary, metricCards, topDrivers, themeSections, explainability);
+    }
+
+    private boolean hasCanonicalSnapshot(SynastryScoreSnapshot scoreSnapshot) {
+        return scoreSnapshot != null
+                && scoreSnapshot.moduleScores() != null
+                && !scoreSnapshot.moduleScores().isEmpty();
+    }
+
+    private SynastryScoreSnapshot parseStoredScoreSnapshot(String json) {
+        return parseScoreSnapshot(json);
+    }
+
+    private V3Payload buildLegacyV3Payload(
+            Long matchId,
+            Synastry synastry,
+            CompareModule module,
+            LegacyPayload legacyPayload
+    ) {
+        ModuleProfile profile = ModuleProfile.forModule(module);
+        int finalScore = clampScore(synastry.getHarmonyScore() == null ? 60 : synastry.getHarmonyScore(), 0, 100);
+        double legacyConfidenceValue = 0.50d;
+        ConfidenceComputation legacyConfidence = new ConfidenceComputation(
+                legacyConfidenceValue,
+                mapConfidenceLabel(legacyConfidenceValue),
+                0.50d,
+                0.50d,
+                0.50d,
+                0.50d,
+                mapDataQualityLabel(legacyConfidenceValue)
+        );
+
+        List<MetricComputation> metricComputations = buildLegacyMetricComputations(legacyPayload, profile, finalScore);
+        MatchTraitsResponse.TopDrivers topDrivers = buildTopDrivers(metricComputations, profile);
+        List<MatchTraitsResponse.ThemeSection> themeSections = buildThemeSections(metricComputations, profile);
+        int narrativeSeed = Objects.hash(matchId, module.name(), finalScore, LEGACY_CALCULATION_VERSION);
+
+        MatchTraitsResponse.Summary generatedSummary = buildSummary(
+                profile,
+                metricComputations,
+                finalScore,
+                legacyConfidence,
+                narrativeSeed
+        );
+        String legacyNarrativeSource = safeText(
+                legacyPayload.cardSummary(),
+                generatedSummary.shortNarrative()
+        );
+        MatchTraitsResponse.Summary summary = new MatchTraitsResponse.Summary(
+                generatedSummary.headline(),
+                ensureLengthRange(legacyNarrativeSource, 220, 360, generatedSummary.shortNarrative()),
+                generatedSummary.dailyLifeHint()
+        );
+
+        List<MatchTraitsResponse.MetricCard> metricCards = metricComputations.stream()
+                .map(metric -> new MatchTraitsResponse.MetricCard(
+                        metric.id(),
+                        metric.title(),
+                        metric.score(),
+                        metric.status(),
+                        metric.insight()
+                ))
+                .toList();
+
+        MatchTraitsResponse.Overall overall = new MatchTraitsResponse.Overall(
+                finalScore,
+                mapLevelLabel(finalScore),
+                round2(legacyConfidenceValue),
+                mapConfidenceLabel(legacyConfidenceValue),
+                scoreToPercentile(finalScore)
+        );
+
+        MatchTraitsResponse.Explainability explainability = new MatchTraitsResponse.Explainability(
+                LEGACY_CALCULATION_VERSION,
+                List.of("stored_harmony_score", "legacy_trait_axes"),
+                "limited",
+                LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
+                null,
+                null,
+                "legacy"
+        );
+
+        return new V3Payload(overall, summary, metricCards, topDrivers, themeSections, explainability);
+    }
+
+    private List<MetricComputation> resolveMetricComputations(
+            SynastryScoreSnapshot scoreSnapshot,
+            ModuleProfile profile
+    ) {
+        Map<String, Integer> scoresById = new HashMap<>();
+        if (scoreSnapshot != null && scoreSnapshot.moduleScores() != null) {
+            SynastryModuleScore moduleScore = scoreSnapshot.moduleScores().get(profile.module().name());
+            if (moduleScore != null && moduleScore.metrics() != null) {
+                for (SynastryDisplayMetric metric : moduleScore.metrics()) {
+                    if (metric != null && metric.id() != null && metric.score() != null) {
+                        scoresById.put(metric.id(), clampScore(metric.score(), 0, 100));
+                    }
+                }
+            }
+        }
+
+        return profile.metricProfiles().stream()
+                .map(metric -> {
+                    int score = scoresById.getOrDefault(metric.id(), clampScore(50 + metric.baseOffset(), 0, 100));
+                    String status = mapMetricStatus(score, false);
+                    return new MetricComputation(
+                            metric.id(),
+                            metric.title(),
+                            score,
+                            status,
+                            buildMetricInsight(metric, status, score)
+                    );
+                })
+                .toList();
+    }
+
+    private int resolveCanonicalModuleScore(
+            SynastryScoreSnapshot scoreSnapshot,
+            List<MetricComputation> metricComputations,
+            CompareModule module
+    ) {
+        if (scoreSnapshot != null && scoreSnapshot.moduleScores() != null) {
+            SynastryModuleScore moduleScore = scoreSnapshot.moduleScores().get(module.name());
+            if (moduleScore != null && moduleScore.overall() != null) {
+                return clampScore(moduleScore.overall(), 0, 100);
+            }
+        }
+
+        return clampScore(
+                (int) Math.round(metricComputations.stream().mapToInt(MetricComputation::score).average().orElse(50.0d)),
+                0,
+                100
+        );
+    }
+
+    private SynastryScoreSnapshot parseScoreSnapshot(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, SynastryScoreSnapshot.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    private CanonicalCompatibilityScoringService.PartySignal toPartySignal(PartyData partyData) {
+        if (partyData == null) {
+            return CanonicalCompatibilityScoringService.PartySignal.empty();
+        }
+        return new CanonicalCompatibilityScoringService.PartySignal(
+                partyData.planetHouseMap(),
+                partyData.hasHouseData(),
+                partyData.hasPlanetData(),
+                partyData.birthTimeCertainty()
+        );
+    }
+
+    private List<MetricComputation> buildLegacyMetricComputations(
+            LegacyPayload legacyPayload,
+            ModuleProfile profile,
+            int finalScore
+    ) {
+        List<TraitAxis> sourceAxes = legacyPayload.cardAxes() != null && !legacyPayload.cardAxes().isEmpty()
+                ? legacyPayload.cardAxes()
+                : legacyPayload.categories().stream()
+                .filter(Objects::nonNull)
+                .flatMap(group -> group.items() == null ? java.util.stream.Stream.<TraitAxis>empty() : group.items().stream())
+                .filter(Objects::nonNull)
+                .toList();
+
+        return profile.metricProfiles().stream()
+                .map(metric -> {
+                    int index = profile.metricProfiles().indexOf(metric);
+                    TraitAxis axis = sourceAxes.size() > index ? sourceAxes.get(index) : null;
+                    int score = axis != null
+                            ? legacyAxisCompatibilityScore(axis)
+                            : clampScore(finalScore + metric.baseOffset(), 0, 100);
+                    String status = mapMetricStatus(score, false);
+                    String insight = axis != null && axis.note() != null && !axis.note().isBlank()
+                            ? axis.note().trim()
+                            : buildMetricInsight(metric, status, score);
+                    return new MetricComputation(
+                            metric.id(),
+                            metric.title(),
+                            score,
+                            status,
+                            insight
+                    );
+                })
+                .toList();
+    }
+
+    private int legacyAxisCompatibilityScore(TraitAxis axis) {
+        if (axis == null || axis.score0to100() == null) {
+            return 50;
+        }
+        int axisScore = clampScore(axis.score0to100(), 0, 100);
+        return clampScore(100 - Math.abs(axisScore - 50) * 2, 0, 100);
     }
 
     private MetricComputation computeMetric(
@@ -1347,10 +1555,6 @@ public class MatchTraitsService {
             return null;
         }
 
-        if (confidence.confidence() < CONFIDENCE_MEDIUM_THRESHOLD) {
-            return "low_confidence_damped";
-        }
-
         if (confidence.houseReliability() < HOUSE_PRECISION_LIMITED_THRESHOLD
                 || confidence.birthTimeCertainty() < BIRTH_TIME_LIMITED_THRESHOLD) {
             return "house_precision_limited";
@@ -1474,16 +1678,17 @@ public class MatchTraitsService {
     }
 
     private int scoreToPercentile(int score) {
-        double normalized = (score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN);
+        double normalized = score / 100.0d;
         int percentile = (int) Math.round(1 + clamp01(normalized) * 98);
         return clampScore(percentile, 1, 99);
     }
 
     private String mapLevelLabel(int score) {
-        if (score <= 39) return "Yüksek Problem";
-        if (score <= 54) return "Zorlayıcı Denge";
-        if (score <= 69) return "Dengeli Uyum";
-        if (score <= 84) return "Güçlü Eşleşme";
+        if (score <= 34) return "Zorlayıcı Eşleşme";
+        if (score <= 49) return "Gelişim Gerektiriyor";
+        if (score <= 64) return "Karışık Potansiyel";
+        if (score <= 79) return "Güçlü Eşleşme";
+        if (score <= 89) return "Yüksek Uyum";
         return "Nadir Uyum";
     }
 
@@ -1731,15 +1936,22 @@ public class MatchTraitsService {
 
     private MatchTraitsResponse fallbackResponse(Long matchId, Synastry synastry, CompareModule module) {
         String fallbackBody = "Karşılaştırma verisi hazırlanırken bazı sinyaller eksik kaldı. Yine de bu modülde temel akış dengeli görünüyor; sonuçları birkaç gün içinde tekrar kontrol etmek daha net tablo verebilir.";
+        int fallbackScore = clampScore(synastry.getHarmonyScore() == null ? 60 : synastry.getHarmonyScore(), 0, 100);
 
         return new MatchTraitsResponse(
                 matchId,
-                synastry.getHarmonyScore(),
+                fallbackScore,
                 List.of(),
                 List.of(),
                 "Karşılaştırma eksenleri hazırlanamadı. Ana sinastri analizi kullanılabilir.",
                 module.name(),
-                new MatchTraitsResponse.Overall(60, mapLevelLabel(60), 0.52d, mapConfidenceLabel(0.52d), 50),
+                new MatchTraitsResponse.Overall(
+                        fallbackScore,
+                        mapLevelLabel(fallbackScore),
+                        0.52d,
+                        mapConfidenceLabel(0.52d),
+                        scoreToPercentile(fallbackScore)
+                ),
                 new MatchTraitsResponse.Summary(
                         "Denge korunuyor, netlik gelişebilir",
                         fallbackBody,
@@ -1749,11 +1961,11 @@ public class MatchTraitsService {
                 new MatchTraitsResponse.TopDrivers(List.of(), List.of(), List.of()),
                 List.of(),
                 new MatchTraitsResponse.Explainability(
-                        CALCULATION_VERSION,
-                        List.of("aspect_type", "orb_decay", "confidence_damping"),
+                        LEGACY_CALCULATION_VERSION + "-fallback",
+                        List.of("stored_harmony_score", "fallback_summary"),
                         mapDataQualityLabel(0.52d),
                         LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
-                        "low_confidence_damped",
+                        null,
                         "Doğum saati belirsizliği ev bazlı hassasiyeti düşürebilir.",
                         module.name().toLowerCase(Locale.ROOT) + "-fallback"
                 )

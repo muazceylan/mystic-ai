@@ -667,13 +667,13 @@ function SynastryProPanel({
   const scoreBreakdown: SynastryScoreBreakdown = useMemo(() => {
     const raw = result.scoreBreakdown ?? null;
     return {
-      overall: clampScore(result.harmonyScore ?? raw?.overall),
+      overall: clampScore(result.baseHarmonyScore ?? raw?.overall ?? result.harmonyScore),
       love: clampScore(raw?.love),
       communication: clampScore(raw?.communication),
       spiritualBond: clampScore(raw?.spiritualBond),
-      methodologyNote: raw?.methodologyNote ?? null,
+      methodologyNote: raw?.methodologyNote ?? result.scoringVersion ?? null,
     };
-  }, [result.harmonyScore, result.scoreBreakdown]);
+  }, [result.baseHarmonyScore, result.harmonyScore, result.scoreBreakdown, result.scoringVersion]);
 
   const sections = useMemo(
     () => ((result.analysisSections?.length ? result.analysisSections : buildFallbackSections(result.crossAspects)) ?? []),

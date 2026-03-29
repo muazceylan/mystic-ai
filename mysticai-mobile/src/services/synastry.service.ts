@@ -105,6 +105,11 @@ export interface SynastryDisplayMetric {
   score: number | null;
 }
 
+export interface SynastryModuleScore {
+  overall: number | null;
+  metrics: SynastryDisplayMetric[];
+}
+
 export interface SynastryAnalysisSection {
   id: string;
   title: string;
@@ -128,6 +133,7 @@ export interface SynastryResponse {
   personBName?: string | null;
   relationshipType: RelationshipType;
   harmonyScore: number | null;
+  baseHarmonyScore?: number | null;
   crossAspects: CrossAspect[];
   harmonyInsight: string | null;
   strengths: string[];
@@ -136,6 +142,8 @@ export interface SynastryResponse {
   cosmicAdvice: string | null;
   status: 'PENDING' | 'COMPLETED' | 'FAILED';
   calculatedAt: string;
+  scoringVersion?: string | null;
+  moduleScores?: Record<string, SynastryModuleScore> | null;
   scoreBreakdown?: SynastryScoreBreakdown | null;
   analysisSections?: SynastryAnalysisSection[] | null;
   displayMetrics?: SynastryDisplayMetric[] | null;

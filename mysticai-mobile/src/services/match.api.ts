@@ -45,6 +45,46 @@ export interface MatchTraitsResponse {
   categories: CategoryGroup[];
   cardAxes: TraitAxis[];
   cardSummary?: string | null;
+  module?: string | null;
+  overall?: {
+    score?: number | null;
+    levelLabel?: string | null;
+    confidence?: number | null;
+    confidenceLabel?: string | null;
+    percentile?: number | null;
+  } | null;
+  summary?: {
+    headline?: string | null;
+    shortNarrative?: string | null;
+    dailyLifeHint?: string | null;
+  } | null;
+  metricCards?: Array<{
+    id?: string | null;
+    title?: string | null;
+    score?: number | null;
+    status?: string | null;
+    insight?: string | null;
+  }> | null;
+  topDrivers?: {
+    supportive?: Array<{ title?: string | null; impact?: number | null; why?: string | null; hint?: string | null }>;
+    challenging?: Array<{ title?: string | null; impact?: number | null; why?: string | null; hint?: string | null }>;
+    growth?: Array<{ title?: string | null; impact?: number | null; why?: string | null; hint?: string | null }>;
+  } | null;
+  themeSections?: Array<{
+    theme?: string | null;
+    score?: number | null;
+    miniInsight?: string | null;
+    cards?: Array<{ title?: string | null; description?: string | null; actionHint?: string | null }>;
+  }> | null;
+  explainability?: {
+    calculationVersion?: string | null;
+    factorsUsed?: string[] | null;
+    dataQuality?: string | null;
+    generatedAt?: string | null;
+    distributionWarning?: string | null;
+    missingBirthTimeImpact?: string | null;
+    moduleScoringProfile?: string | null;
+  } | null;
 }
 
 const MATCH_BASE = '/api/v1/match';
@@ -411,6 +451,174 @@ function normalizeGrowthAreas(value: unknown, axes: AxisDTO[]): GrowthAreaDTO[] 
     ],
     habitLabel: 'Bu hafta dene: 10 dakikalık sakin başlangıç',
   }));
+}
+
+function looksLikeTraitsV3Response(obj: Record<string, any>) {
+  return Object.keys(asObject(obj.overall)).length > 0
+    || Object.keys(asObject(obj.summary)).length > 0
+    || asArray(obj.metricCards).length > 0
+    || asArray(obj.themeSections).length > 0;
+}
+
+function normalizeCategoriesFromMetricCards(value: unknown, overallScore: number): CategoryScoreDTO[] {
+  const metricCards = asArray<any>(value);
+  const fallbacks = fallbackCategoryScores(overallScore);
+
+  return fallbacks.map((slot, index) => {
+    const metric = asObject(metricCards[index]);
+    if (!Object.keys(metric).length) {
+      return slot;
+    }
+
+    return {
+      id: slot.id,
+      label: asString(metric.title, slot.label),
+      value: clampScore(metric.score, overallScore),
+    };
+  });
+}
+
+function metricAxisDeviation(score: number) {
+  return Math.max(0, Math.min(32, Math.round((100 - score) * 0.45)));
+}
+
+function metricTip(title: string, result: MatchResultKind) {
+  if (result === 'UYUMLU') {
+    return `${title} tarafındaki ritmi korumak için küçük ama düzenli check-in yapın.`;
+  }
+  if (result === 'DIKKAT') {
+    return `${title} başlığında beklentiyi baştan netleştirmek sürtünmeyi azaltır.`;
+  }
+  return `${title} başlığında kısa geri bildirim rutini kurmak dengeyi güçlendirir.`;
+}
+
+function normalizeAxesFromMetricCards(value: unknown): AxisDTO[] {
+  return asArray<any>(value)
+    .slice(0, 5)
+    .map((item, index) => {
+      const metric = asObject(item);
+      const title = sanitizePlainText(asString(metric.title, `Uyum Dinamiği ${index + 1}`), `Uyum Dinamiği ${index + 1}`);
+      const harmonyScore = clampScore(metric.score, 60);
+      const deviation = metricAxisDeviation(harmonyScore);
+      const leftScore = Math.max(0, 50 - deviation);
+      const rightScore = Math.min(100, 50 + deviation);
+      const result = resolveResult(leftScore, rightScore);
+      const impactFallback = `${title} bu modülde ilişki ritmini doğrudan etkiliyor.`;
+
+      return {
+        id: asString(metric.id, `metric-axis-${index + 1}`),
+        title,
+        leftLabel: `${title} daha dengeli`,
+        rightLabel: `${title} daha fazla ayar istiyor`,
+        leftScore,
+        rightScore,
+        impactPlain: sanitizePlainText(asString(metric.insight, impactFallback), impactFallback),
+        tipPlain: metricTip(title, result),
+        result,
+      };
+    });
+}
+
+function normalizeGrowthAreasFromThemeSections(value: unknown, axes: AxisDTO[]): GrowthAreaDTO[] {
+  const sections = asArray<any>(value);
+  if (!sections.length) {
+    return normalizeGrowthAreas([], axes);
+  }
+
+  return sections.slice(0, 4).map((item, index) => {
+    const section = asObject(item);
+    const cards = asArray<any>(section.cards);
+    const protocolSource = cards
+      .map((card) => {
+        const obj = asObject(card);
+        return asString(obj.actionHint, asString(obj.description, ''));
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+
+    return {
+      id: asString(section.theme, `theme-growth-${index + 1}`),
+      title: asString(section.theme, `Tema ${index + 1}`),
+      trigger: asString(section.miniInsight, 'Bu tema başlığında tempo farkı görünür olabilir.'),
+      pattern: asString(
+        asObject(cards[0]).description,
+        asString(section.miniInsight, 'Küçük davranış farkları bu başlıkta belirginleşebilir.'),
+      ),
+      protocol: [
+        protocolSource[0] ?? 'Konuyu tek bir başlıkta tutup önce niyeti netleştirin.',
+        protocolSource[1] ?? 'İki taraf da kısa ve somut bir geri bildirim versin.',
+        protocolSource[2] ?? 'Günün sonuna tek bir küçük anlaşma yazın.',
+      ],
+      habitLabel: asString(
+        asObject(cards[0]).actionHint,
+        'Bu hafta bir küçük alışkanlık seçip birlikte deneyin',
+      ),
+    };
+  });
+}
+
+function normalizeDailySuggestionsFromTraits(summaryObj: Record<string, any>, topDriversObj: Record<string, any>): [string, string] {
+  const supportiveHint = asString(asObject(asArray(topDriversObj.supportive)[0]).hint, '');
+  const challengingHint = asString(asObject(asArray(topDriversObj.challenging)[0]).hint, '');
+  const dailyHint = asString(summaryObj.dailyLifeHint, '');
+
+  return [
+    dailyHint || supportiveHint || 'Akşam 10 dakikalık sakin check-in yapın.',
+    challengingHint || supportiveHint || 'Yarın için tek bir ortak mini karar belirleyin.',
+  ];
+}
+
+function normalizeTraitsV3Response(raw: Record<string, any>, seed: MatchSeedDTO): MatchDTO {
+  const overallObj = asObject(raw.overall);
+  const summaryObj = asObject(raw.summary);
+  const topDriversObj = asObject(raw.topDrivers);
+  const overallScore = clampScore(overallObj.score ?? raw.compatibilityScore ?? seed.overallScore, 72);
+
+  const axes = normalizeAxesFromMetricCards(raw.metricCards);
+  const categories = asArray(raw.metricCards).length
+    ? normalizeCategoriesFromMetricCards(raw.metricCards, overallScore)
+    : normalizeCategoriesFromGroups(asArray<CategoryGroup>(raw.categories), overallScore);
+  const growthAreas = normalizeGrowthAreasFromThemeSections(raw.themeSections, axes);
+
+  const leftSign = parseSignLabel(seed.personASignLabel, 'Akrep');
+  const rightSign = parseSignLabel(seed.personBSignLabel, 'Balık');
+
+  return {
+    matchId: Number.isFinite(Number(raw.matchId)) ? Number(raw.matchId) : seed.matchId,
+    overallScore,
+    people: {
+      left: {
+        name: asString(seed.personAName, DEFAULT_LEFT_NAME),
+        signIcon: leftSign.signIcon,
+        signLabel: leftSign.signLabel,
+      },
+      right: {
+        name: asString(seed.personBName, DEFAULT_RIGHT_NAME),
+        signIcon: rightSign.signIcon,
+        signLabel: rightSign.signLabel,
+      },
+    },
+    categories,
+    summaryPlain: {
+      headline: sanitizePlainText(
+        asString(summaryObj.headline, 'Birlikte ritim kurduğunuzda güçleniyorsunuz'),
+        'Birlikte ritim kurduğunuzda güçleniyorsunuz',
+      ),
+      body: sanitizePlainText(
+        asString(
+          summaryObj.shortNarrative,
+          asString(raw.cardSummary, asString(seed.summary, 'Farklı yaklaşım hızlarınızı doğru ritimde buluşturduğunuzda bağınız güçleniyor.')),
+        ),
+        'Farklı yaklaşım hızlarınızı doğru ritimde buluşturduğunuzda bağınız güçleniyor.',
+      ),
+    },
+    axes,
+    growthAreas,
+    dailySuggestions: normalizeDailySuggestionsFromTraits(summaryObj, topDriversObj),
+    aspectsEvaluated: clampCount(raw.aspectsEvaluated ?? 0, 0),
+    aspects: [],
+    source: 'api',
+  };
 }
 
 function normalizeAspectTone(item: Record<string, any>): AspectTone {
@@ -909,10 +1117,15 @@ export function normalizeMatchDTO(raw: unknown, seed: MatchSeedDTO): MatchDTO {
     return buildMockMatchDTO(seed);
   }
 
+  const looksTraitsV3 = looksLikeTraitsV3Response(obj);
   const looksModern = Array.isArray(obj.axes) || Boolean(obj.summaryPlain);
-  const normalized = looksModern
-    ? normalizeModernResponse(obj, seed)
-    : normalizeLegacyResponse(obj, seed);
+  const normalized = looksTraitsV3
+    ? normalizeTraitsV3Response(obj, seed)
+    : looksModern
+      ? normalizeModernResponse(obj, seed)
+      : normalizeLegacyResponse(obj, seed);
+  const preserveBackendNarrative = looksTraitsV3;
+  const preserveBackendOverall = looksTraitsV3;
 
   const leftSignOverride = seed.personASignLabel
     ? parseSignLabel(seed.personASignLabel, normalized.people.left.signLabel)
@@ -931,7 +1144,11 @@ export function normalizeMatchDTO(raw: unknown, seed: MatchSeedDTO): MatchDTO {
   return {
     ...normalized,
     matchId: seed.matchId,
-    overallScore: seed.overallScore != null ? clampScore(seed.overallScore, normalized.overallScore) : normalized.overallScore,
+    overallScore: preserveBackendOverall
+      ? normalized.overallScore
+      : seed.overallScore != null
+        ? clampScore(seed.overallScore, normalized.overallScore)
+        : normalized.overallScore,
     people: {
       left: {
         ...normalized.people.left,
@@ -946,7 +1163,9 @@ export function normalizeMatchDTO(raw: unknown, seed: MatchSeedDTO): MatchDTO {
     },
     summaryPlain: {
       ...normalized.summaryPlain,
-      body: sanitizePlainText(asString(seed.summary, normalized.summaryPlain.body), normalized.summaryPlain.body),
+      body: preserveBackendNarrative
+        ? normalized.summaryPlain.body
+        : sanitizePlainText(asString(seed.summary, normalized.summaryPlain.body), normalized.summaryPlain.body),
     },
   };
 }
@@ -961,5 +1180,7 @@ export function toTraitAxes(axes: AxisDTO[]): TraitAxis[] {
   }));
 }
 
-export const getMatchTraits = (matchId: number) =>
-  api.get<unknown>(`${MATCH_BASE}/${matchId}/traits`);
+export const getMatchTraits = (matchId: number, relationshipType?: string | null) =>
+  api.get<unknown>(`${MATCH_BASE}/${matchId}/traits`, {
+    params: relationshipType ? { relationshipType } : undefined,
+  });

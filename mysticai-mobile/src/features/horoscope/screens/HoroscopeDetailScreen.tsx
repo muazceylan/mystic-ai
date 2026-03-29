@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -39,8 +39,6 @@ export default function HoroscopeDetailScreen() {
     fetch: fetchHoroscope,
     toggleFavorite,
   } = useHoroscopeStore();
-
-  const [showSources, setShowSources] = useState(false);
 
   useEffect(() => {
     if (periodParam === 'weekly') setPeriod('weekly');
@@ -149,53 +147,6 @@ export default function HoroscopeDetailScreen() {
               </Text>
             </View>
           )}
-
-          {/* Raw API Sources (dev/test) */}
-          <View style={S.sourcesSection}>
-            <Pressable
-              style={S.sourcesToggle}
-              onPress={() => setShowSources((v) => !v)}
-            >
-              <Ionicons name="code-slash-outline" size={16} color={colors.subtext} />
-              <Text style={S.sourcesToggleText}>
-                API Kaynakları{current.sources?.length ? ` (${current.sources.length})` : ''}
-              </Text>
-              <Ionicons
-                name={showSources ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={colors.subtext}
-              />
-            </Pressable>
-
-            {showSources && (!current.sources || current.sources.length === 0) && (
-              <View style={[S.sourceCard, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-                <Text style={S.sourceText}>
-                  Kaynak verisi yok. Backend deploy edildikten sonra ham API cevapları burada görünecek.
-                </Text>
-              </View>
-            )}
-
-            {showSources && current.sources?.map((src, idx) => {
-              const labelColor =
-                src.name === 'freehoroscopeapi' ? '#3B82F6' :
-                src.name === 'ohmanda' ? '#10B981' : '#8B5CF6';
-              return (
-                <View
-                  key={src.name + idx}
-                  style={[S.sourceCard, { borderColor: labelColor + (isDark ? '30' : '25') }]}
-                >
-                  <View style={S.sourceHeader}>
-                    <View style={[S.sourceBadge, { backgroundColor: labelColor + '20' }]}>
-                      <Text style={[S.sourceBadgeText, { color: labelColor }]}>
-                        {src.name}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={S.sourceText} selectable>{src.text}</Text>
-                </View>
-              );
-            })}
-          </View>
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -306,55 +257,6 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     sourceInfoText: {
       ...TYPOGRAPHY.CaptionSmall,
       color: C.subtext,
-    },
-
-    /* Raw Sources */
-    sourcesSection: {
-      marginTop: SPACING.lg,
-      gap: SPACING.sm,
-    },
-    sourcesToggle: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      borderRadius: RADIUS.md,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-      alignSelf: 'flex-start',
-    },
-    sourcesToggleText: {
-      ...TYPOGRAPHY.CaptionBold,
-      color: C.subtext,
-    },
-    sourceCard: {
-      borderRadius: RADIUS.md,
-      borderWidth: 1,
-      padding: SPACING.md,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : C.surface,
-      gap: SPACING.sm,
-    },
-    sourceHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    sourceBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 3,
-      borderRadius: RADIUS.full,
-    },
-    sourceBadgeText: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
-    },
-    sourceText: {
-      ...TYPOGRAPHY.Body,
-      color: C.body,
-      fontSize: 13,
-      lineHeight: 20,
     },
   });
 }
