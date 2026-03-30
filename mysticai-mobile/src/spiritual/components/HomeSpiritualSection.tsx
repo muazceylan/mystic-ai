@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
+import { platformColor } from '../../theme';
 import { DailyRecommendationCard } from './DailyRecommendationCard';
 
 type Variant = 'v1' | 'v2';
@@ -132,7 +133,7 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
             >
               <LinearGradient
                 pointerEvents="none"
-                colors={[accent + (isDark ? '18' : '10'), 'transparent']}
+                colors={[accent + (isDark ? '18' : '10'), accent + '00']}
                 style={S.featureGlow}
               />
               <View style={[S.featureIconWrap, { backgroundColor: bg }]}>
@@ -224,10 +225,10 @@ function makeStyles(
       borderRadius: 22,
       borderWidth: 1,
       borderColor: isV2
-        ? (isDark ? 'rgba(168,139,250,0.18)' : 'rgba(124,58,237,0.10)')
+        ? (isDark ? platformColor('rgba(168,139,250,0.18)', C.border) : 'rgba(124,58,237,0.10)')
         : C.border,
       backgroundColor: isV2
-        ? (isDark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.86)')
+        ? (isDark ? platformColor('rgba(15,23,42,0.72)', C.card) : platformColor('rgba(255,255,255,0.86)', C.surface))
         : C.surface,
       gap: 14,
     },
@@ -309,10 +310,10 @@ function makeStyles(
       borderRadius: 16,
       borderWidth: 1,
       borderColor: isDark
-        ? 'rgba(148,163,184,0.14)'
+        ? platformColor('rgba(148,163,184,0.14)', C.border)
         : 'rgba(226,232,240,0.85)',
       backgroundColor: isDark
-        ? 'rgba(30,41,59,0.70)'
+        ? platformColor('rgba(30,41,59,0.70)', C.card)
         : 'rgba(248,250,252,0.92)',
       overflow: 'hidden',
     },
@@ -357,11 +358,11 @@ function makeStyles(
       borderRadius: 16,
       padding: 12,
       backgroundColor: isDark
-        ? 'rgba(15,23,42,0.40)'
+        ? platformColor('rgba(15,23,42,0.40)', C.card)
         : 'rgba(255,255,255,0.65)',
       borderWidth: 1,
       borderColor: isDark
-        ? 'rgba(148,163,184,0.10)'
+        ? platformColor('rgba(148,163,184,0.10)', C.border)
         : 'rgba(229,231,235,0.7)',
     },
     sureHeader: {
@@ -396,11 +397,11 @@ function makeStyles(
       paddingVertical: 10,
       borderRadius: 12,
       backgroundColor: isDark
-        ? 'rgba(30,41,59,0.70)'
+        ? platformColor('rgba(30,41,59,0.70)', C.card)
         : 'rgba(248,250,252,0.95)',
       borderWidth: 1,
       borderColor: isDark
-        ? 'rgba(148,163,184,0.12)'
+        ? platformColor('rgba(148,163,184,0.12)', C.border)
         : 'rgba(226,232,240,0.8)',
     },
     sureArabic: {
@@ -427,11 +428,11 @@ function makeStyles(
       paddingHorizontal: 8,
       paddingVertical: 5,
       backgroundColor: isDark
-        ? 'rgba(15,23,42,0.48)'
+        ? platformColor('rgba(15,23,42,0.48)', C.card)
         : 'rgba(255,255,255,0.72)',
       borderWidth: 1,
       borderColor: isDark
-        ? 'rgba(148,163,184,0.12)'
+        ? platformColor('rgba(148,163,184,0.12)', C.border)
         : 'rgba(229,231,235,0.8)',
     },
     footerText: {

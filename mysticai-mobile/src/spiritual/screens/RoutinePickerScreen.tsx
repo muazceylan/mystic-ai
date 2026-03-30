@@ -10,6 +10,7 @@ import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
+import { platformColor } from '../../theme';
 import type { CustomSet, SpiritualItemType } from '../types';
 
 export default function RoutinePickerScreen() {
@@ -137,7 +138,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(241,245,249,0.9)',
+      backgroundColor: isDark
+        ? platformColor('rgba(30,41,59,0.6)', C.card)
+        : platformColor('rgba(241,245,249,0.9)', '#F1F5F9'),
     },
     headerTitle: {
       ...TYPOGRAPHY.BodyLarge,
@@ -152,14 +155,16 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     setCard: {
       borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.14)' : C.border,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.65)' : C.surface,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.14)', C.border) : C.border,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.65)', C.card) : C.surface,
       padding: SPACING.mdLg,
       ...SHADOW.sm,
     },
     setCardActive: {
       borderColor: isDark ? 'rgba(129,140,248,0.4)' : 'rgba(99,102,241,0.35)',
-      backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.04)',
+      backgroundColor: isDark
+        ? platformColor('rgba(99,102,241,0.08)', 'rgba(99,102,241,0.14)')
+        : 'rgba(99,102,241,0.04)',
     },
     setCardContent: {
       flexDirection: 'row',

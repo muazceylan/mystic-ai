@@ -9,6 +9,7 @@ import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useContentStore } from '../store/useContentStore';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
+import { platformColor } from '../../theme';
 import type { EsmaItem, DuaItem } from '../types';
 
 type Tab = 'esma' | 'dua' | 'sure';
@@ -29,6 +30,18 @@ export default function AllRecommendationsScreen() {
   const { chart } = useNatalChartStore();
   const { esmaList, pureDuaList, sureList } = useContentStore();
   const [activeTab, setActiveTab] = useState<Tab>('esma');
+  const rowBg = isDark
+    ? platformColor('rgba(30,41,59,0.7)', colors.card)
+    : platformColor('rgba(255,255,255,0.85)', colors.surface);
+  const rowBorder = isDark
+    ? platformColor('rgba(148,163,184,0.16)', colors.border)
+    : platformColor('rgba(226,232,240,0.85)', colors.border);
+  const inactiveTabBg = isDark
+    ? platformColor('rgba(30,41,59,0.5)', colors.card)
+    : platformColor('rgba(255,255,255,0.6)', colors.surface);
+  const activeTabBg = isDark
+    ? platformColor('rgba(74,222,128,0.20)', 'rgba(74,222,128,0.12)')
+    : platformColor('rgba(22,163,74,0.12)', '#ECFDF3');
 
   const theme = useMemo(() => buildDailyTheme(chart), [chart]);
 
@@ -60,7 +73,7 @@ export default function AllRecommendationsScreen() {
 
   const renderEsmaItem = useCallback(({ item }: { item: ScoredEsma }) => (
     <Pressable
-      style={[s.row, { backgroundColor: isDark ? 'rgba(30,41,59,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(226,232,240,0.85)' }]}
+      style={[s.row, { backgroundColor: rowBg, borderColor: rowBorder }]}
       onPress={() => handlePressEsma(item.item.id)}
     >
       <View style={s.rowLeft}>
@@ -71,11 +84,11 @@ export default function AllRecommendationsScreen() {
         <Text style={[s.scoreText, { color: isDark ? '#4ADE80' : '#16A34A' }]}>{item.score}</Text>
       </View>
     </Pressable>
-  ), [isDark, colors, handlePressEsma]);
+  ), [colors, handlePressEsma, rowBg, rowBorder]);
 
   const renderDuaItem = useCallback(({ item }: { item: ScoredDua }) => (
     <Pressable
-      style={[s.row, { backgroundColor: isDark ? 'rgba(30,41,59,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(226,232,240,0.85)' }]}
+      style={[s.row, { backgroundColor: rowBg, borderColor: rowBorder }]}
       onPress={() => handlePressDua(item.item.id)}
     >
       <View style={s.rowLeft}>
@@ -86,7 +99,7 @@ export default function AllRecommendationsScreen() {
         <Text style={[s.scoreText, { color: isDark ? '#4ADE80' : '#16A34A' }]}>{item.score}</Text>
       </View>
     </Pressable>
-  ), [isDark, colors, handlePressDua]);
+  ), [colors, handlePressDua, rowBg, rowBorder]);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'esma', label: t('spiritual.tabs.esma') },
@@ -112,11 +125,11 @@ export default function AllRecommendationsScreen() {
                 s.tabPill,
                 {
                   backgroundColor: active
-                    ? (isDark ? 'rgba(74,222,128,0.20)' : 'rgba(22,163,74,0.12)')
-                    : (isDark ? 'rgba(30,41,59,0.5)' : 'rgba(255,255,255,0.6)'),
+                    ? activeTabBg
+                    : inactiveTabBg,
                   borderColor: active
                     ? (isDark ? '#4ADE80' : '#16A34A')
-                    : (isDark ? 'rgba(148,163,184,0.16)' : 'rgba(226,232,240,0.85)'),
+                    : rowBorder,
                 },
               ]}
               onPress={() => setActiveTab(tab.key)}

@@ -9,6 +9,7 @@ import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
 import { BreathTimer } from '../components/BreathTimer';
+import { platformColor } from '../../theme';
 
 const ACCENT = '#7C3AED';
 const MIN_DURATION = 60;
@@ -201,11 +202,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       color: C.subtext,
     },
     benefitsCard: {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#FFFFFF',
+      backgroundColor: isDark ? platformColor('rgba(255,255,255,0.07)', C.card) : '#FFFFFF',
       borderRadius: 14,
       padding: 16,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(124,58,237,0.2)' : '#E9D5FF',
+      borderColor: isDark ? platformColor('rgba(124,58,237,0.2)', C.border) : '#E9D5FF',
       gap: 10,
     },
     benefitsTitle: {
@@ -226,11 +227,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flex: 1,
     },
     durationCard: {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#FFFFFF',
+      backgroundColor: isDark ? platformColor('rgba(255,255,255,0.07)', C.card) : '#FFFFFF',
       borderRadius: 14,
       padding: 16,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(124,58,237,0.2)' : '#E9D5FF',
+      borderColor: isDark ? platformColor('rgba(124,58,237,0.2)', C.border) : '#E9D5FF',
       alignItems: 'center',
       gap: 10,
     },
@@ -245,7 +246,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       gap: 20,
     },
     durationBtn: {
-      backgroundColor: isDark ? 'rgba(124,58,237,0.25)' : '#F3E8FF',
+      backgroundColor: isDark ? platformColor('rgba(124,58,237,0.25)', 'rgba(124,58,237,0.34)') : '#F3E8FF',
       borderRadius: 10,
       paddingHorizontal: 16,
       paddingVertical: 8,

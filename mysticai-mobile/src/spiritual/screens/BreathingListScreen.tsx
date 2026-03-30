@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useContentStore } from '../store/useContentStore';
 import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
+import { platformColor } from '../../theme';
 import type { BreathingTechnique } from '../types';
 
 const ACCENT = '#7C3AED';
@@ -135,11 +136,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     card: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#FFFFFF',
+      backgroundColor: isDark ? platformColor('rgba(255,255,255,0.07)', C.card) : '#FFFFFF',
       borderRadius: 16,
       padding: 16,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(124,58,237,0.2)' : '#E9D5FF',
+      borderColor: isDark ? platformColor('rgba(124,58,237,0.2)', C.border) : '#E9D5FF',
       shadowColor: '#7C3AED',
       shadowOpacity: isDark ? 0.15 : 0.08,
       shadowRadius: 12,
@@ -150,7 +151,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       width: 52,
       height: 52,
       borderRadius: 14,
-      backgroundColor: isDark ? 'rgba(124,58,237,0.18)' : '#F3E8FF',
+      backgroundColor: isDark ? platformColor('rgba(124,58,237,0.18)', 'rgba(124,58,237,0.28)') : '#F3E8FF',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 14,

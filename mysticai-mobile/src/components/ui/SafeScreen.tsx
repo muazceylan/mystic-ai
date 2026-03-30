@@ -13,6 +13,7 @@ import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { usePathname } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { platformColor } from '../../theme';
 import { AppSurfaceBackground } from './AppSurfaceBackground';
 import { isStandardSurfaceRoute } from './surfaceUtils';
 
@@ -84,7 +85,9 @@ export function SafeScreen({
   const flattenedStyle = StyleSheet.flatten(style) ?? {};
   const { backgroundColor, ...rawContainerStyle } = flattenedStyle;
   const containerStyle = rawContainerStyle as ViewStyle;
-  const resolvedBackgroundColor = standardBackgroundEnabled ? 'transparent' : backgroundColor ?? colors.bg;
+  const resolvedBackgroundColor = standardBackgroundEnabled
+    ? platformColor('transparent', colors.bg)
+    : backgroundColor ?? colors.bg;
   const hasTopEdge = edges.includes('top');
   const hasBottomEdge = edges.includes('bottom');
   const safeAreaEdges = hasTopEdge ? edges.filter((edge) => edge !== 'top') : edges;

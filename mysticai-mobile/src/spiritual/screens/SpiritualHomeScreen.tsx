@@ -12,6 +12,7 @@ import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW, ACCESSIBILITY } from '../../constants/tokens';
 import { useAuthStore } from '../../store/useAuthStore';
+import { platformColor } from '../../theme';
 import {
   SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
@@ -350,7 +351,7 @@ export default function SpiritualHomeScreen() {
               >
                 <LinearGradient
                   pointerEvents="none"
-                  colors={[accent + (isDark ? '14' : '0A'), 'transparent']}
+                  colors={[accent + (isDark ? '14' : '0A'), accent + '00']}
                   style={s.featureGlow}
                 />
                 <View style={[s.featureIcon, { backgroundColor: bg + (isDark ? '' : '30') }]}>
@@ -422,8 +423,8 @@ function createStyles(C: ThemeColors, isDark: boolean) {
       padding: SPACING.mdLg,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.14)' : C.border,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.65)' : C.surface,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.14)', C.border) : C.border,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.65)', C.card) : C.surface,
       overflow: 'hidden',
       ...SHADOW.sm,
     },
@@ -481,7 +482,7 @@ function createStyles(C: ThemeColors, isDark: boolean) {
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: platformColor('rgba(255,255,255,0.18)', 'rgba(255,255,255,0.24)'),
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -511,8 +512,8 @@ function createStyles(C: ThemeColors, isDark: boolean) {
       paddingHorizontal: SPACING.sm,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.12)', C.border) : C.border,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.55)', C.card) : C.surface,
     },
     quickIcon: {
       width: 36,

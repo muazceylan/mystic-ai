@@ -1,18 +1,22 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { radius } from '../../theme';
+import { isAndroid, radius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
 export function AppSurfaceBackground() {
   const { colors, isDark } = useTheme();
-  const baseGradient = isDark
-    ? (['#050914', '#0A1222', '#121B2E'] as const)
-    : ([colors.bgGrad1, colors.bg] as const);
+  const baseGradient: readonly [string, string, ...string[]] = isDark
+    ? (isAndroid ? ['#0B1220', '#111827', '#162033'] : ['#050914', '#0A1222', '#121B2E'])
+    : (isAndroid ? ['#F4EEFF', '#F8FAFC'] : [colors.bgGrad1, colors.bg]);
 
-  const glowGradient = isDark
-    ? (['rgba(124,58,237,0.26)', 'rgba(56,189,248,0.09)', 'rgba(2,6,23,0.00)'] as const)
-    : (['rgba(123,77,255,0.10)', 'rgba(180,130,255,0.06)', 'rgba(255,255,255,0.00)'] as const);
+  const glowGradient: readonly [string, string, ...string[]] = isDark
+    ? (isAndroid
+      ? ['rgba(124,58,237,0.16)', 'rgba(56,189,248,0.05)', 'rgba(2,6,23,0.00)']
+      : ['rgba(124,58,237,0.26)', 'rgba(56,189,248,0.09)', 'rgba(2,6,23,0.00)'])
+    : (isAndroid
+      ? ['rgba(123,77,255,0.05)', 'rgba(180,130,255,0.03)', 'rgba(255,255,255,0.00)']
+      : ['rgba(123,77,255,0.10)', 'rgba(180,130,255,0.06)', 'rgba(255,255,255,0.00)']);
 
   return (
     <>
@@ -33,7 +37,9 @@ export function AppSurfaceBackground() {
         style={[
           styles.blobTopRight,
           {
-            backgroundColor: isDark ? 'rgba(124,58,237,0.30)' : 'rgba(123,77,255,0.12)',
+            backgroundColor: isDark
+              ? (isAndroid ? 'rgba(124,58,237,0.18)' : 'rgba(124,58,237,0.30)')
+              : (isAndroid ? 'rgba(123,77,255,0.07)' : 'rgba(123,77,255,0.12)'),
           },
         ]}
       />
@@ -42,7 +48,9 @@ export function AppSurfaceBackground() {
         style={[
           styles.blobBottomLeft,
           {
-            backgroundColor: isDark ? 'rgba(56,189,248,0.18)' : 'rgba(180,130,255,0.10)',
+            backgroundColor: isDark
+              ? (isAndroid ? 'rgba(56,189,248,0.10)' : 'rgba(56,189,248,0.18)')
+              : (isAndroid ? 'rgba(180,130,255,0.06)' : 'rgba(180,130,255,0.10)'),
           },
         ]}
       />

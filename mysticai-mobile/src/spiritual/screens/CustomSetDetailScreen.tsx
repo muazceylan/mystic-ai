@@ -28,6 +28,7 @@ import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, HeaderRightIcons, useBottomTabBarOffset } from '../../components/ui';
 import { ProgressRing } from '../components/ProgressRing';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
+import { platformColor } from '../../theme';
 import type { CustomSetItem, SpiritualItemType } from '../types';
 import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 
@@ -410,7 +411,7 @@ export default function CustomSetDetailScreen() {
           S.addBtn,
           {
             backgroundColor: accentSoft,
-            borderColor: isDark ? colors.surfaceGlassBorder : accent + '22',
+            borderColor: isDark ? platformColor(colors.surfaceGlassBorder, colors.border) : accent + '22',
           },
           pressed && { opacity: 0.8 },
         ]}
@@ -858,7 +859,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: isDark
+        ? platformColor('rgba(255,255,255,0.06)', C.card)
+        : platformColor('rgba(0,0,0,0.04)', '#F1F5F9'),
     },
     headerCenter: {
       flex: 1,
@@ -892,7 +895,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: isDark
+        ? platformColor('rgba(255,255,255,0.06)', C.card)
+        : platformColor('rgba(0,0,0,0.04)', '#F1F5F9'),
     },
 
     /* Progress card */
@@ -904,8 +909,8 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       padding: SPACING.mdLg,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.12)', C.border) : C.border,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.55)', C.card) : C.surface,
       gap: SPACING.md,
     },
     progressInner: {
@@ -973,12 +978,14 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       padding: SPACING.md,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.12)', C.border) : C.border,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.55)', C.card) : C.surface,
     },
     itemCardDone: {
       opacity: 0.7,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.35)' : 'rgba(248,250,252,0.7)',
+      backgroundColor: isDark
+        ? platformColor('rgba(30,41,59,0.35)', '#182233')
+        : platformColor('rgba(248,250,252,0.7)', '#F8FAFC'),
     },
     checkBtn: {
       width: 24,
@@ -1083,8 +1090,8 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       paddingTop: SPACING.md,
       paddingBottom: 20,
       borderTopWidth: 1,
-      borderTopColor: isDark ? C.surfaceGlassBorder : C.borderLight,
-      backgroundColor: C.surfaceGlass,
+      borderTopColor: isDark ? platformColor(C.surfaceGlassBorder, C.border) : C.borderLight,
+      backgroundColor: isDark ? platformColor(C.surfaceGlass, C.card) : platformColor(C.surfaceGlass, C.surface),
     },
     hiddenBottomBar: {
       display: 'none',
@@ -1169,12 +1176,12 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       marginHorizontal: SPACING.lgXl,
       marginBottom: SPACING.md,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.14)' : C.border,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.14)', C.border) : C.border,
       borderRadius: RADIUS.md,
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.sm,
       gap: SPACING.sm,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.50)' : C.surface,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.50)', C.card) : C.surface,
     },
     searchInput: { flex: 1, ...TYPOGRAPHY.Body },
     selectAllBtn: {

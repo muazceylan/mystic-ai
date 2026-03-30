@@ -22,6 +22,7 @@ import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { BottomSheet, Button, HeaderRightIcons } from '../../components/ui';
 import { MoodSelector } from '../components/MoodSelector';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import { platformColor } from '../../theme';
 import type { Mood, DuaItem } from '../types';
 
 /* ─── Helpers ─── */
@@ -220,8 +221,8 @@ export default function PrayerFlowScreen() {
             { key: 'meaning' as const, label: t('spiritual.prayerFlow.tabMeaning') },
           ]).map((tab) => (
             <Pressable
-              key={t.key}
-              onPress={() => setTextMode(t.key)}
+              key={tab.key}
+              onPress={() => setTextMode(tab.key)}
               style={[
                 S.textTab,
                 textMode === tab.key && { backgroundColor: accentSoft, borderColor: accent + '44' },
@@ -497,7 +498,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: isDark
+        ? platformColor('rgba(255,255,255,0.06)', C.card)
+        : platformColor('rgba(0,0,0,0.04)', '#F1F5F9'),
     },
     topCenter: {
       flex: 1,
@@ -520,7 +523,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: isDark
+        ? platformColor('rgba(255,255,255,0.06)', C.card)
+        : platformColor('rgba(0,0,0,0.04)', '#F1F5F9'),
     },
 
     /* ── Text section ── */

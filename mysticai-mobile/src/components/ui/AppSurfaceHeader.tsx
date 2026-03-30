@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { radius, shadowSubtle, spacing, typography } from '../../theme';
+import { isAndroid, platformColor, radius, shadowSubtle, spacing, typography } from '../../theme';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 
 type SurfaceHeaderVariant = 'home' | 'page';
@@ -83,9 +83,9 @@ export function AppSurfaceHeader({
   const [titleWidth, setTitleWidth] = React.useState(0);
   const textColor = tintColor ?? colors.text;
   const subtextColor = tintColor ? `${tintColor}B3` : colors.subtext;
-  const headerGradient = isDark
-    ? (['rgba(24,22,40,0.97)', 'rgba(14,14,24,0.90)'] as const)
-    : (['rgba(247,241,255,0.95)', 'rgba(255,255,255,0.86)'] as const);
+  const headerGradient: readonly [string, string, ...string[]] = isDark
+    ? (isAndroid ? ['#181626', '#0F1320'] : ['rgba(24,22,40,0.97)', 'rgba(14,14,24,0.90)'])
+    : (isAndroid ? ['#FBF8FF', '#FFFFFF'] : ['rgba(247,241,255,0.95)', 'rgba(255,255,255,0.86)']);
   const hasLeadingNode = Boolean(leftActions || (variant !== 'home' && showBackButton && onBack));
   const inlineLeadingGap = variant === 'page' ? spacing.xs : spacing.sm;
   const inlineOuterGap = rightActions ? spacing.md : 0;
@@ -282,7 +282,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     headerShell: {
       borderRadius: radius.card,
       borderWidth: 1,
-      borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      borderColor: isDark ? platformColor(C.surfaceGlassBorder, C.border) : C.borderLight,
       paddingHorizontal: spacing.cardPadding,
       paddingVertical: spacing.md,
       ...shadowSubtle,
@@ -401,8 +401,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       height: spacing.chevronHitArea,
       borderRadius: radius.pill,
       borderWidth: 1,
-      borderColor: isDark ? C.surfaceGlassBorder : C.border,
-      backgroundColor: isDark ? 'rgba(36,34,54,0.88)' : 'rgba(255,255,255,0.92)',
+      borderColor: isDark ? platformColor(C.surfaceGlassBorder, C.border) : C.border,
+      backgroundColor: isDark
+        ? platformColor('rgba(36,34,54,0.88)', C.card)
+        : platformColor('rgba(255,255,255,0.92)', C.surface),
       alignItems: 'center',
       justifyContent: 'center',
       ...shadowSubtle,

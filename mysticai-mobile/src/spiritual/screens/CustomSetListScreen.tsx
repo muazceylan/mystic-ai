@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, AppHeader, HeaderRightIcons, useBottomTabBarOffset } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
+import { platformColor } from '../../theme';
 import type { CustomSet, CustomSetItem } from '../types';
 
 /* ─── Icon per item type ─── */
@@ -354,9 +355,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       marginBottom: SPACING.md,
       paddingVertical: SPACING.md,
       borderRadius: RADIUS.lg,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.55)', C.card) : C.surface,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.12)', C.border) : C.border,
     },
     statItem: {
       flex: 1,
@@ -389,9 +390,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.smMd,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.70)' : C.surface,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.70)', C.card) : C.surface,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.16)' : C.border,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.16)', C.border) : C.border,
       borderRadius: RADIUS.lg,
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.smMd,
@@ -427,8 +428,8 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     card: {
       borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
-      backgroundColor: isDark ? 'rgba(30,41,59,0.60)' : C.surface,
+      borderColor: isDark ? platformColor('rgba(148,163,184,0.12)', C.border) : C.border,
+      backgroundColor: isDark ? platformColor('rgba(30,41,59,0.60)', C.card) : C.surface,
       padding: SPACING.mdLg,
       gap: SPACING.smMd,
       ...SHADOW.sm,
