@@ -10,7 +10,6 @@ import {
   TextInput,
   Alert,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +18,7 @@ import { useCustomSetStore } from '../store/useCustomSetStore';
 import { useContentStore } from '../store/useContentStore';
 import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
+import { SafeScreen, AppHeader, HeaderRightIcons, useBottomTabBarOffset } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import type { CustomSet, CustomSetItem } from '../types';
 
@@ -34,6 +33,7 @@ export default function CustomSetListScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark);
+  const { bottomTabBarOffset } = useBottomTabBarOffset();
   const { sets, createSet, deleteSet, renameSet } = useCustomSetStore();
   const { getEsmaById, getDuaById } = useContentStore();
 
@@ -316,7 +316,7 @@ export default function CustomSetListScreen() {
         data={sets}
         keyExtractor={(item) => item.id}
         renderItem={renderSet}
-        contentContainerStyle={S.listContent}
+        contentContainerStyle={[S.listContent, { paddingBottom: bottomTabBarOffset + 36 }]}
         ListEmptyComponent={renderEmpty}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -327,6 +327,7 @@ export default function CustomSetListScreen() {
         <Pressable
           style={({ pressed }) => [
             S.fab,
+            { bottom: bottomTabBarOffset + 24 },
             { backgroundColor: accent },
             pressed && { opacity: 0.85, transform: [{ scale: 0.92 }] },
           ]}
@@ -418,7 +419,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     /* List */
     listContent: {
       paddingHorizontal: SPACING.lgXl,
-      paddingBottom: 100,
+      paddingBottom: 36,
       gap: SPACING.smMd,
     },
 
@@ -572,7 +573,6 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     /* FAB */
     fab: {
       position: 'absolute',
-      bottom: Platform.OS === 'ios' ? 110 : 90,
       right: SPACING.lgXl,
       width: 56,
       height: 56,

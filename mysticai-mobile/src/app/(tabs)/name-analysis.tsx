@@ -3,7 +3,6 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { NameTagChip } from '../../components/NameModule';
@@ -169,7 +168,6 @@ export default function NameLandingScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { t } = useTranslation();
-  const tabBarHeight = useBottomTabBarHeight();
   const userId = useAuthStore((state) => state.user?.id);
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.NAME_ANALYSIS);
@@ -222,7 +220,7 @@ export default function NameLandingScreen() {
         />
 
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 18 }]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>

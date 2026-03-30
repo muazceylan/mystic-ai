@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import * as Haptics from '../../utils/haptics';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
@@ -79,7 +78,6 @@ function isPremium(roles?: string[]): boolean {
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 80;
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
@@ -272,7 +270,7 @@ export default function ProfileScreen() {
         />
         <ScrollView
         style={S.scroll}
-        contentContainerStyle={[S.scrollContent, { paddingBottom: tabBarHeight + 28 }]}
+        contentContainerStyle={S.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

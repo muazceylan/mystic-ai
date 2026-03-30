@@ -15,7 +15,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
@@ -228,7 +227,6 @@ export default function NameSearchScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const tabBarHeight = useBottomTabBarHeight();
   const params = useLocalSearchParams<{ q?: string; tag?: string }>();
   const initialQuery = typeof params.q === 'string' ? params.q : '';
   const initialTag = typeof params.tag === 'string' ? params.tag : '';
@@ -382,7 +380,7 @@ export default function NameSearchScreen() {
             </View>
           ) : (
             <ScrollView
-              contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 16 }]}
+              contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
             >
               {content.map((item, index) => (

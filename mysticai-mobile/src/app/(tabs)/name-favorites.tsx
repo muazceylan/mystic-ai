@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
@@ -59,7 +58,6 @@ export default function NameFavoritesScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const tabBarHeight = useBottomTabBarHeight();
   const favorites = useNameFavorites();
 
   useEffect(() => {
@@ -93,7 +91,7 @@ export default function NameFavoritesScreen() {
             </View>
           ) : (
             <ScrollView
-              contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 16 }]}
+              contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
             >
               {favorites.favorites.map((item, index) => (

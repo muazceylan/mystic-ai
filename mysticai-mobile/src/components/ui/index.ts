@@ -5,7 +5,7 @@ export { Badge } from './Badge';
 export { Skeleton } from './Skeleton';
 export { ListItem } from './ListItem';
 export { ErrorStateCard } from './ErrorStateCard';
-export { SafeScreen } from './SafeScreen';
+export { SafeScreen, useBottomTabBarOffset } from './SafeScreen';
 export { TabSwipeGesture } from './TabSwipeGesture';
 export { AccessibleText } from './AccessibleText';
 export { default as AccordionSection } from './AccordionSection';

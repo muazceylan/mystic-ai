@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useContext, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -9,6 +9,7 @@ import {
   StatusBar as NativeStatusBar,
 } from 'react-native';
 import Constants from 'expo-constants';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { usePathname } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
@@ -23,7 +24,7 @@ type SafeScreenProps = {
   /**
    * Which edges to apply safe-area insets on.
    * Default: all four edges.
-   * Use ['top','left','right'] for tab screens to avoid double bottom padding with tab bar.
+   * SafeScreen automatically compensates for bottom tab bar overlay on tab routes.
    */
   edges?: Edge[];
   /**
@@ -36,6 +37,20 @@ type SafeScreenProps = {
   /** Force or disable the standard app background. Defaults to auto by route. */
   showStandardBackground?: boolean;
 };
+
+export function useBottomTabBarOffset() {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
+
+  return useMemo(() => {
+    const bottomTabBarOffset = Math.max(0, tabBarHeight - insets.bottom);
+    return {
+      tabBarHeight,
+      bottomInset: insets.bottom,
+      bottomTabBarOffset,
+    };
+  }, [insets.bottom, tabBarHeight]);
+}
 
 /**
  * Universal, platform-independent safe-area wrapper for every screen.
@@ -63,6 +78,7 @@ export function SafeScreen({
   const { colors } = useTheme();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { tabBarHeight, bottomTabBarOffset } = useBottomTabBarOffset();
   const { width: windowWidth } = useWindowDimensions();
   const standardBackgroundEnabled = showStandardBackground ?? isStandardSurfaceRoute(pathname);
   const flattenedStyle = StyleSheet.flatten(style) ?? {};
@@ -70,15 +86,28 @@ export function SafeScreen({
   const containerStyle = rawContainerStyle as ViewStyle;
   const resolvedBackgroundColor = standardBackgroundEnabled ? 'transparent' : backgroundColor ?? colors.bg;
   const hasTopEdge = edges.includes('top');
+  const hasBottomEdge = edges.includes('bottom');
   const safeAreaEdges = hasTopEdge ? edges.filter((edge) => edge !== 'top') : edges;
   const topInsetFallback = Platform.OS === 'ios'
     ? Math.round(Constants.statusBarHeight ?? 0)
     : (NativeStatusBar.currentHeight ?? 0);
   const resolvedTopInset = hasTopEdge ? Math.max(insets.top, topInsetFallback) : 0;
   const basePaddingTop = typeof containerStyle.paddingTop === 'number' ? containerStyle.paddingTop : 0;
+  const basePaddingBottom = typeof containerStyle.paddingBottom === 'number' ? containerStyle.paddingBottom : 0;
+  const isTabRoute = pathname.startsWith('/(tabs)');
+  const bottomTabCompensation = isTabRoute && tabBarHeight > 0
+    ? (hasBottomEdge ? bottomTabBarOffset : tabBarHeight)
+    : 0;
   const adjustedContainerStyle: ViewStyle = hasTopEdge
-    ? { ...containerStyle, paddingTop: basePaddingTop + resolvedTopInset }
-    : containerStyle;
+    ? {
+        ...containerStyle,
+        paddingTop: basePaddingTop + resolvedTopInset,
+        paddingBottom: basePaddingBottom + bottomTabCompensation,
+      }
+    : {
+        ...containerStyle,
+        paddingBottom: basePaddingBottom + bottomTabCompensation,
+      };
 
   const webContentStyle: ViewStyle | undefined = useMemo(() => {
     if (Platform.OS !== 'web') return undefined;

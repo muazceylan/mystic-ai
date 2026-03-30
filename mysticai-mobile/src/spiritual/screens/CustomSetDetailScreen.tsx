@@ -19,15 +19,13 @@ import {
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from '../../utils/haptics';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
-import { SafeScreen, HeaderRightIcons } from '../../components/ui';
+import { SafeScreen, HeaderRightIcons, useBottomTabBarOffset } from '../../components/ui';
 import { ProgressRing } from '../components/ProgressRing';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import type { CustomSetItem, SpiritualItemType } from '../types';
@@ -47,10 +45,8 @@ export default function CustomSetDetailScreen() {
     sure: { icon: 'library-outline', color: '#7C3AED', darkColor: '#A78BFA', label: t('spiritual.tabs.sure') },
   };
   const { colors, isDark } = useTheme();
-  const tabBarHeight = useBottomTabBarHeight();
-  const insets = useSafeAreaInsets();
+  const { bottomTabBarOffset } = useBottomTabBarOffset();
   const S = makeStyles(colors, isDark);
-  const tabBarOverlayOffset = Platform.OS === 'ios' ? Math.max(0, tabBarHeight - insets.bottom) : 0;
 
   const {
     getSetById, renameSet, removeItem,
@@ -489,7 +485,7 @@ export default function CustomSetDetailScreen() {
         data={set.items}
         keyExtractor={(item) => itemKey(item)}
         renderItem={renderItem}
-        contentContainerStyle={[S.listContent, { paddingBottom: 120 + tabBarOverlayOffset }]}
+        contentContainerStyle={S.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={S.emptyItems}>
@@ -503,7 +499,7 @@ export default function CustomSetDetailScreen() {
       />
 
       {/* ─── Bottom bar ─── */}
-      <View style={[S.bottomBar, { paddingBottom: 36 + tabBarOverlayOffset }]}>
+      <View style={[S.bottomBar, { paddingBottom: Math.max(20, bottomTabBarOffset > 0 ? 20 : 36) }]}>
         <Pressable
           style={({ pressed }) => [
             S.addBtn,
@@ -920,7 +916,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     /* List */
     listContent: {
       paddingHorizontal: SPACING.lgXl,
-      paddingBottom: 120,
+      paddingBottom: SPACING.xl,
       gap: SPACING.sm,
     },
 
@@ -1039,7 +1035,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       gap: SPACING.smMd,
       paddingHorizontal: SPACING.lgXl,
       paddingTop: SPACING.md,
-      paddingBottom: 36,
+      paddingBottom: 20,
       borderTopWidth: 1,
       borderTopColor: isDark ? 'rgba(148,163,184,0.10)' : C.border,
       backgroundColor: C.bg,

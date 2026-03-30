@@ -10,9 +10,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeScreen } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
@@ -79,9 +77,7 @@ export default function DecisionCompassAllCategoriesScreen() {
   const T = getCompassTokens(colors, isDark);
   const { i18n, t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const tabBarHeight = React.useContext(BottomTabBarHeightContext);
   const goBack = useSmartBackNavigation({
     fallbackRoute: '/(tabs)/home',
     preferLastTabPath: true,
@@ -153,12 +149,7 @@ export default function DecisionCompassAllCategoriesScreen() {
     [filteredCategories],
   );
 
-  const effectiveTabBarHeight = tabBarHeight ?? (Platform.OS === 'ios' ? 88 : 72);
-  const contentBottomPadding = Platform.OS === 'ios'
-    ? effectiveTabBarHeight + Math.max(18, insets.bottom > 0 ? 12 : 18)
-    : Platform.OS === 'web'
-      ? 40
-      : 92;
+  const contentBottomPadding = Platform.OS === 'web' ? 40 : 24;
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(920, width - 24) : undefined;
   const gridAvailableWidth = Math.min(contentMaxWidth ?? (width - 40), 520);
   const columnWidth = Math.max(152, Math.floor((gridAvailableWidth - 14) / 2));

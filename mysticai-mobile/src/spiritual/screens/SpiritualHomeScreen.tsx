@@ -8,6 +8,8 @@ import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { useCustomSetStore } from '../store/useCustomSetStore';
+import { useContentStore } from '../store/useContentStore';
+import { useJournalStore } from '../store/useJournalStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW, ACCESSIBILITY } from '../../constants/tokens';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
@@ -18,6 +20,7 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
+import type { CustomSetItem } from '../types';
 
 /* ─── Navigation items (labels/subs resolved via t() in component) ─── */
 const MAIN_FEATURES: ReadonlyArray<{
@@ -120,9 +123,17 @@ export default function SpiritualHomeScreen() {
 
   const activeRoutineSetId = useCustomSetStore((s) => s.activeRoutineSetId);
   const sets = useCustomSetStore((s) => s.sets);
+  const journalEntries = useJournalStore((state) => state.entries);
+  const getEsmaById = useContentStore((state) => state.getEsmaById);
+  const getDuaById = useContentStore((state) => state.getDuaById);
   const activeSet = useMemo(
     () => (activeRoutineSetId ? sets.find((s) => s.id === activeRoutineSetId) : undefined),
     [activeRoutineSetId, sets],
+  );
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayEntries = useMemo(
+    () => journalEntries.filter((entry) => entry.dateISO === todayISO),
+    [journalEntries, todayISO],
   );
 
   useEffect(() => {
@@ -138,6 +149,90 @@ export default function SpiritualHomeScreen() {
   const handlePressTutorialHelp = useCallback(() => {
     void reopenTutorialById(TUTORIAL_IDS.SPIRITUAL_PRACTICE_FOUNDATION, 'spiritual_home');
   }, [reopenTutorialById]);
+
+  const resolveItemTarget = useCallback(
+    (item: CustomSetItem) => {
+      if (item.itemType === 'esma') {
+        return item.targetCount ?? getEsmaById(item.itemId)?.defaultTargetCount ?? 33;
+      }
+
+      return item.targetCount ?? getDuaById(item.itemId)?.defaultTargetCount ?? 3;
+    },
+    [getDuaById, getEsmaById],
+  );
+
+  const resolveItemName = useCallback(
+    (item: CustomSetItem) => {
+      if (item.itemType === 'esma') {
+        return getEsmaById(item.itemId)?.nameTr ?? '';
+      }
+
+      return getDuaById(item.itemId)?.title ?? '';
+    },
+    [getDuaById, getEsmaById],
+  );
+
+  const getCompletedCount = useCallback(
+    (item: CustomSetItem) =>
+      todayEntries
+        .filter(
+          (entry) =>
+            entry.itemType === (item.itemType === 'sure' ? 'dua' : item.itemType) &&
+            entry.itemId === item.itemId,
+        )
+        .reduce((sum, entry) => sum + entry.completed, 0),
+    [todayEntries],
+  );
+
+  const handlePressRoutineStart = useCallback(() => {
+    if (!activeSet) {
+      router.push('/spiritual/routine-picker' as any);
+      return;
+    }
+
+    if (activeSet.items.length === 0) {
+      router.push({
+        pathname: '/spiritual/custom-sets/[id]',
+        params: { id: activeSet.id },
+      } as any);
+      return;
+    }
+
+    const nextItemIndex = activeSet.items.findIndex((item) => resolveItemTarget(item) > getCompletedCount(item));
+
+    if (nextItemIndex < 0) {
+      router.push({
+        pathname: '/spiritual/custom-sets/[id]',
+        params: { id: activeSet.id },
+      } as any);
+      return;
+    }
+
+    const nextItem = activeSet.items[nextItemIndex];
+    const target = resolveItemTarget(nextItem);
+    const completed = getCompletedCount(nextItem);
+    const remaining = Math.max(0, target - completed);
+
+    if (remaining <= 0) {
+      router.push({
+        pathname: '/spiritual/custom-sets/[id]',
+        params: { id: activeSet.id },
+      } as any);
+      return;
+    }
+
+    router.push({
+      pathname: '/spiritual/counter',
+      params: {
+        itemType: nextItem.itemType === 'sure' ? 'dua' : nextItem.itemType,
+        itemId: nextItem.itemId.toString(),
+        itemName: resolveItemName(nextItem),
+        target: remaining.toString(),
+        setItems: JSON.stringify(activeSet.items),
+        setIndex: nextItemIndex.toString(),
+      },
+    } as any);
+  }, [activeSet, getCompletedCount, resolveItemName, resolveItemTarget]);
 
   return (
     <SafeScreen scroll>
@@ -196,7 +291,7 @@ export default function SpiritualHomeScreen() {
             s.routineBtn,
             pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
           ]}
-          onPress={() => router.push('/spiritual/routine-picker' as any)}
+          onPress={handlePressRoutineStart}
           accessibilityLabel={t('spiritual.home.routineStart')}
         >
           <LinearGradient

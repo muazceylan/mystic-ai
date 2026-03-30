@@ -3,7 +3,6 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../../components/ui';
 import { useTheme } from '../../../context/ThemeContext';
@@ -178,7 +177,6 @@ export default function NameDetailScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const tabBarHeight = useBottomTabBarHeight();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const params = useLocalSearchParams<{ id?: string; source?: string; position?: string }>();
   const nameId = Number(params.id);
@@ -292,7 +290,7 @@ export default function NameDetailScreen() {
           </View>
         ) : (
           <ScrollView
-            contentContainerStyle={[styles.body, { paddingBottom: tabBarHeight + 20 }]}
+            contentContainerStyle={styles.body}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.hero}>
