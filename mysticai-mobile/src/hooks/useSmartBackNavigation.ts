@@ -8,6 +8,11 @@ type SmartBackOptions = {
   preferFromParam?: boolean;
 };
 
+const PATH_ALIASES: Record<string, string> = {
+  '/decision-compass': '/(tabs)/decision-compass-tab',
+  '/transits-today': '/(tabs)/daily-transits',
+};
+
 function defaultFallback(pathname: string): string {
   void pathname;
   return '/(tabs)/home';
@@ -21,10 +26,7 @@ function normalizeComparablePath(path: string | null | undefined): string | null
   if (normalized.length > 1 && normalized.endsWith('/')) {
     normalized = normalized.slice(0, -1);
   }
-  if (normalized === '/decision-compass') {
-    return '/(tabs)/decision-compass-tab';
-  }
-  return normalized;
+  return PATH_ALIASES[normalized] ?? normalized;
 }
 
 /**

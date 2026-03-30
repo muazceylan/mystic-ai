@@ -19,6 +19,8 @@ import { isStandardSurfaceRoute } from './surfaceUtils';
 
 const WEB_MAX_WIDTH = 920;
 const WEB_SIDE_PAD = 24;
+const IOS_TAB_BAR_BASE_HEIGHT = 54;
+const ANDROID_TAB_BAR_BASE_HEIGHT = 64;
 
 type SafeScreenProps = {
   children: React.ReactNode;
@@ -40,17 +42,31 @@ type SafeScreenProps = {
 };
 
 export function useBottomTabBarOffset() {
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
+  const navigatorTabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
+  const isTabRoute = pathname.startsWith('/(tabs)');
 
   return useMemo(() => {
+    const fallbackTabBarHeight = isTabRoute
+      ? (
+          Platform.OS === 'ios'
+            ? IOS_TAB_BAR_BASE_HEIGHT + insets.bottom
+            : Platform.OS === 'android'
+              ? ANDROID_TAB_BAR_BASE_HEIGHT + insets.bottom
+              : 0
+        )
+      : 0;
+    const tabBarHeight = Math.max(navigatorTabBarHeight, fallbackTabBarHeight);
     const bottomTabBarOffset = Math.max(0, tabBarHeight - insets.bottom);
+
     return {
       tabBarHeight,
+      navigatorTabBarHeight,
       bottomInset: insets.bottom,
       bottomTabBarOffset,
     };
-  }, [insets.bottom, tabBarHeight]);
+  }, [insets.bottom, isTabRoute, navigatorTabBarHeight]);
 }
 
 /**

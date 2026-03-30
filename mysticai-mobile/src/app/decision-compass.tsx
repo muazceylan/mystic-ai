@@ -13,12 +13,11 @@ import {
 import { router, useLocalSearchParams, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeScreen } from '../components/ui';
+import { SafeScreen, useBottomTabBarOffset } from '../components/ui';
 import { BottomSheet } from '../components/ui/BottomSheet';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
@@ -65,7 +64,7 @@ export default function DecisionCompassScreen() {
   const isFocused = useIsFocused();
   const params = useLocalSearchParams<{ from?: string | string[] }>();
   const insets = useSafeAreaInsets();
-  const tabBarHeight = React.useContext(BottomTabBarHeightContext);
+  const { tabBarHeight } = useBottomTabBarOffset();
   const user = useAuthStore((s) => s.user);
   const hiddenCategoryKeys = useDecisionCompassStore((s) => s.hiddenCategoryKeys);
   const setCategoryVisibility = useDecisionCompassStore((s) => s.setCategoryVisibility);
@@ -170,7 +169,7 @@ export default function DecisionCompassScreen() {
   const dateLabel = formatDateShort(selectedDate ?? query.data?.date, t('decisionCompassScreen.todayLabel'), i18n.language);
   const isInTabFlow = segments[0] === '(tabs)';
 
-  const effectiveTabBarHeight = tabBarHeight ?? (Platform.OS === 'ios' ? 88 : 72);
+  const effectiveTabBarHeight = isInTabFlow ? tabBarHeight : 0;
   const contentBottomPadding = Platform.OS === 'ios'
     ? effectiveTabBarHeight + Math.max(18, insets.bottom > 0 ? 12 : 18)
     : Platform.OS === 'web'

@@ -109,13 +109,9 @@ const styles = StyleSheet.create({
   },
   headline: {
     ...TYPOGRAPHY.H2,
-    fontSize: 24,
-    lineHeight: 32,
   },
   supporting: {
     ...TYPOGRAPHY.BodyMid,
-    fontSize: 16,
-    lineHeight: 24,
   },
 });
 

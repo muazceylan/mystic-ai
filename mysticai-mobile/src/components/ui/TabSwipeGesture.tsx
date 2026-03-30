@@ -1,18 +1,19 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
+  InteractionManager,
   PanResponder,
   Platform,
   StyleSheet,
-  Text,
   View,
   type PanResponderGestureState,
 } from 'react-native';
 import { router } from 'expo-router';
 import { TabActions, useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+import { useIsFocused } from '@react-navigation/native';
+import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { useTheme } from '../../context/ThemeContext';
 import { AppSurfaceBackground } from './AppSurfaceBackground';
 
@@ -25,18 +26,17 @@ type TabSwipeGestureProps = {
   children: React.ReactNode;
 };
 
-type TabMeta = {
-  icon: keyof typeof Ionicons.glyphMap;
-  labelKey: string;
+type PreviewCacheEntry = {
+  capturedAt: number;
+  uri: string;
 };
 
-const TAB_META: Record<MainTabRoute, TabMeta> = {
-  home: { icon: 'home', labelKey: 'tabs.home' },
-  discover: { icon: 'compass', labelKey: 'tabs.discover' },
-  calendar: { icon: 'calendar', labelKey: 'tabs.calendar' },
-  'natal-chart': { icon: 'planet', labelKey: 'tabs.natalChart' },
-  profile: { icon: 'person', labelKey: 'tabs.profile' },
-};
+const previewCache = new Map<MainTabRoute, PreviewCacheEntry>();
+const CAPTURE_OPTIONS = {
+  format: 'jpg',
+  quality: Platform.OS === 'android' ? 0.24 : 0.3,
+  result: 'tmpfile',
+} as const;
 
 const SWIPE_CONFIG = Platform.select({
   ios: {
@@ -88,6 +88,8 @@ const HORIZONTAL_DOMINANCE_RATIO = SWIPE_CONFIG.horizontalDominanceRatio;
 const EDGE_ACTIVATION_WIDTH = SWIPE_CONFIG.edgeActivationWidth;
 const PREVIEW_REVEAL_DISTANCE = SWIPE_CONFIG.previewRevealDistance;
 const EXIT_DURATION_MS = SWIPE_CONFIG.exitDuration;
+const PREVIEW_CAPTURE_DELAY_MS = Platform.OS === 'android' ? 420 : 260;
+const PREVIEW_CAPTURE_COOLDOWN_MS = Platform.OS === 'android' ? 1600 : 1100;
 const NAVIGATION_LOCK_MS = 380;
 let globalLastNavigationAt = 0;
 
@@ -126,14 +128,100 @@ function resolvePreviewTab(tab: MainTabRoute, deltaX: number): MainTabRoute | nu
   return getAdjacentTab(tab, direction);
 }
 
+function setCachedPreview(tab: MainTabRoute, uri: string) {
+  const previous = previewCache.get(tab)?.uri;
+  if (previous && previous !== uri) {
+    try {
+      releaseCapture(previous);
+    } catch {
+      // Ignore tmpfile cleanup failures.
+    }
+  }
+
+  previewCache.set(tab, {
+    uri,
+    capturedAt: Date.now(),
+  });
+}
+
+function getNavigationCandidates(navigation: any): any[] {
+  const candidates: any[] = [];
+  const seen = new Set<any>();
+  let current = navigation;
+
+  while (current && !seen.has(current)) {
+    candidates.push(current);
+    seen.add(current);
+    current = current.getParent?.();
+  }
+
+  return candidates;
+}
+
 export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
   const { colors, isDark } = useTheme();
-  const { t } = useTranslation();
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const isNavigatingRef = useRef(false);
+  const viewShotRef = useRef<ViewShot | null>(null);
+  const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const captureTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
+  const lastCaptureAtRef = useRef(0);
   const [previewTab, setPreviewTab] = useState<MainTabRoute | null>(null);
   const [containerWidth, setContainerWidth] = useState(1);
   const translateX = useRef(new Animated.Value(0)).current;
+
+  const clearPendingCapture = useCallback(() => {
+    if (captureTimerRef.current) {
+      clearTimeout(captureTimerRef.current);
+      captureTimerRef.current = null;
+    }
+
+    captureTaskRef.current?.cancel();
+    captureTaskRef.current = null;
+  }, []);
+
+  const capturePreview = useCallback(async () => {
+    if (Platform.OS === 'web' || !isFocused || isNavigatingRef.current) return;
+
+    const now = Date.now();
+    const cachedAt = previewCache.get(tab)?.capturedAt ?? 0;
+    const latestCaptureAt = Math.max(lastCaptureAtRef.current, cachedAt);
+    if (now - latestCaptureAt < PREVIEW_CAPTURE_COOLDOWN_MS) return;
+
+    const viewShot = viewShotRef.current;
+    if (!viewShot?.capture) return;
+
+    try {
+      const uri = await viewShot.capture();
+      if (!uri) return;
+      lastCaptureAtRef.current = Date.now();
+      setCachedPreview(tab, uri);
+    } catch {
+      // Preview capture should never interrupt gestures.
+    }
+  }, [isFocused, tab]);
+
+  const scheduleCapture = useCallback((delay = PREVIEW_CAPTURE_DELAY_MS) => {
+    if (Platform.OS === 'web' || !isFocused) return;
+
+    clearPendingCapture();
+    captureTimerRef.current = setTimeout(() => {
+      captureTaskRef.current = InteractionManager.runAfterInteractions(() => {
+        void capturePreview();
+      });
+    }, delay);
+  }, [capturePreview, clearPendingCapture, isFocused]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      clearPendingCapture();
+      return undefined;
+    }
+
+    scheduleCapture();
+    return clearPendingCapture;
+  }, [clearPendingCapture, isFocused, scheduleCapture]);
 
   const animateBackToCenter = useCallback(() => {
     if (isNavigatingRef.current) return;
@@ -144,17 +232,15 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
       useNativeDriver: true,
     }).start(() => {
       setPreviewTab(null);
+      scheduleCapture(180);
     });
-  }, [translateX]);
+  }, [scheduleCapture, translateX]);
 
   const currentIndex = MAIN_TAB_ORDER.indexOf(tab);
   const hasLeftTab = currentIndex > 0;
   const hasRightTab = currentIndex < MAIN_TAB_ORDER.length - 1;
   const navigateToTab = useCallback((targetTab: MainTabRoute) => {
-    const parent = navigation.getParent?.();
-    const candidates = [navigation, parent].filter(Boolean) as any[];
-
-    for (const nav of candidates) {
+    for (const nav of getNavigationCandidates(navigation)) {
       const routeNames: unknown = nav?.getState?.()?.routeNames;
       if (Array.isArray(routeNames) && routeNames.includes(targetTab)) {
         nav.dispatch(TabActions.jumpTo(targetTab));
@@ -206,6 +292,7 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
         }
         globalLastNavigationAt = now;
         isNavigatingRef.current = true;
+        clearPendingCapture();
         setPreviewTab(targetTab);
 
         const exitTo = gestureState.dx < 0 ? -containerWidth : containerWidth;
@@ -223,49 +310,45 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
       },
       onPanResponderTerminate: animateBackToCenter,
     }),
-    [animateBackToCenter, containerWidth, hasLeftTab, hasRightTab, navigateToTab, tab, translateX],
+    [animateBackToCenter, clearPendingCapture, containerWidth, hasLeftTab, hasRightTab, navigateToTab, tab, translateX],
   );
 
-  const previewMeta = previewTab ? TAB_META[previewTab] : null;
-
+  const previewUri = previewTab ? previewCache.get(previewTab)?.uri ?? null : null;
   const handleLayout = useCallback((event: any) => {
     const nextWidth = Math.max(1, Math.round(event?.nativeEvent?.layout?.width ?? 1));
     if (nextWidth !== containerWidth) {
       setContainerWidth(nextWidth);
+      if (isFocused) {
+        scheduleCapture(120);
+      }
     }
-  }, [containerWidth]);
+  }, [containerWidth, isFocused, scheduleCapture]);
 
   return (
     <View style={styles.container} onLayout={handleLayout} {...panResponder.panHandlers}>
       {previewTab ? (
         <View pointerEvents="none" style={styles.previewLayer}>
-          <AppSurfaceBackground />
-          <View
-            style={[
-              styles.previewOverlay,
-              { backgroundColor: isDark ? 'rgba(8,10,22,0.12)' : 'rgba(255,255,255,0.10)' },
-            ]}
-          />
-          {previewMeta ? (
-            <View style={styles.previewContent}>
+          {previewUri ? (
+            <>
+              <Image source={{ uri: previewUri }} style={styles.previewImage} resizeMode="cover" />
               <View
                 style={[
-                  styles.previewFallback,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
+                  styles.previewOverlay,
+                  { backgroundColor: isDark ? 'rgba(8,10,22,0.06)' : 'rgba(255,255,255,0.04)' },
                 ]}
-              >
-                <View style={[styles.previewIconWrap, { backgroundColor: colors.primarySoft }]}>
-                  <Ionicons name={previewMeta.icon} size={28} color={colors.primary} />
-                </View>
-                <Text style={[styles.previewFallbackText, { color: colors.text }]}>
-                  {t(previewMeta.labelKey)}
-                </Text>
-              </View>
-            </View>
-          ) : null}
+              />
+            </>
+          ) : (
+            <>
+              <AppSurfaceBackground />
+              <View
+                style={[
+                  styles.previewOverlay,
+                  { backgroundColor: isDark ? 'rgba(8,10,22,0.12)' : 'rgba(255,255,255,0.10)' },
+                ]}
+              />
+            </>
+          )}
         </View>
       ) : null}
 
@@ -276,7 +359,19 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
           { transform: [{ translateX }] },
         ]}
       >
-        {children}
+        {Platform.OS === 'web' ? (
+          children
+        ) : (
+          <View style={styles.currentLayer} collapsable={false}>
+            <ViewShot
+              ref={viewShotRef}
+              options={CAPTURE_OPTIONS}
+              style={styles.currentLayer}
+            >
+              {children}
+            </ViewShot>
+          </View>
+        )}
       </Animated.View>
     </View>
   );
@@ -290,41 +385,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
   },
+  previewImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
   previewOverlay: {
     ...StyleSheet.absoluteFillObject,
-  },
-  previewContent: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  previewFallback: {
-    minWidth: 180,
-    maxWidth: 280,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  previewIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewFallbackText: {
-    fontSize: 17,
-    fontWeight: '700',
   },
   currentLayer: {
     flex: 1,

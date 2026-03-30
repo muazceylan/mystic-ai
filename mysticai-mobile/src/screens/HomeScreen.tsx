@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
-import { useContext } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +31,7 @@ import {
   AppSurfaceHeader,
   SafeScreen,
   SurfaceHeaderIconButton,
+  useBottomTabBarOffset,
 } from '../components/ui';
 import { radius, shadowSubtle, spacing, typography } from '../theme';
 import { useTheme, type ThemeColors } from '../context/ThemeContext';
@@ -274,7 +273,7 @@ export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const router = useRouter();
-  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 80;
+  const { tabBarHeight } = useBottomTabBarOffset();
   const user = useAuthStore((state) => state.user);
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.HOME);

@@ -8,6 +8,14 @@ type NavigationHistoryState = {
   reset: () => void;
 };
 
+const ROOT_TAB_PATHS = new Set([
+  '/(tabs)/home',
+  '/(tabs)/discover',
+  '/(tabs)/calendar',
+  '/(tabs)/natal-chart',
+  '/(tabs)/profile',
+]);
+
 function normalizePath(path: string): string {
   if (!path) return '/';
   return path.startsWith('/') ? path : `/${path}`;
@@ -21,8 +29,7 @@ export const useNavigationHistoryStore = create<NavigationHistoryState>((set, ge
     const nextPath = normalizePath(rawPath);
     const { currentPath } = get();
     if (currentPath === nextPath) return;
-    const isTabPath = nextPath.startsWith('/(tabs)/');
-    const shouldTrackAsLastTab = isTabPath && nextPath !== '/(tabs)/decision-compass-tab';
+    const shouldTrackAsLastTab = ROOT_TAB_PATHS.has(nextPath);
     set({
       previousPath: currentPath,
       currentPath: nextPath,
