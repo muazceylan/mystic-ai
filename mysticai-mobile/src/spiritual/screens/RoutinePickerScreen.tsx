@@ -5,21 +5,23 @@ import React from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import type { CustomSet, SpiritualItemType } from '../types';
 
-const TYPE_BADGE: Record<SpiritualItemType, { label: string; color: string; darkColor: string }> = {
-  esma: { label: 'Esma', color: '#B45309', darkColor: '#FBBF24' },
-  dua: { label: 'Dua', color: '#4F46E5', darkColor: '#818CF8' },
-  sure: { label: 'Sure', color: '#7C3AED', darkColor: '#A78BFA' },
-};
-
 export default function RoutinePickerScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark);
+
+  const TYPE_BADGE: Record<SpiritualItemType, { label: string; color: string; darkColor: string }> = {
+    esma: { label: t('spiritual.tabs.esma'), color: '#B45309', darkColor: '#FBBF24' },
+    dua: { label: t('spiritual.tabs.dua'), color: '#4F46E5', darkColor: '#818CF8' },
+    sure: { label: t('spiritual.tabs.sure'), color: '#7C3AED', darkColor: '#A78BFA' },
+  };
 
   const sets = useCustomSetStore((s) => s.sets);
   const activeRoutineSetId = useCustomSetStore((s) => s.activeRoutineSetId);
@@ -52,11 +54,11 @@ export default function RoutinePickerScreen() {
           <View style={S.setInfo}>
             <Text style={S.setName} numberOfLines={1}>{item.name}</Text>
             <View style={S.setMeta}>
-              <Text style={S.setCount}>{item.items.length} öğe</Text>
-              {types.map((t) => (
-                <View key={t} style={[S.badge, { backgroundColor: (isDark ? TYPE_BADGE[t].darkColor : TYPE_BADGE[t].color) + '18' }]}>
-                  <Text style={[S.badgeText, { color: isDark ? TYPE_BADGE[t].darkColor : TYPE_BADGE[t].color }]}>
-                    {TYPE_BADGE[t].label}
+              <Text style={S.setCount}>{t('spiritual.routinePicker.itemCount', { count: item.items.length })}</Text>
+              {types.map((type) => (
+                <View key={type} style={[S.badge, { backgroundColor: (isDark ? TYPE_BADGE[type].darkColor : TYPE_BADGE[type].color) + '18' }]}>
+                  <Text style={[S.badgeText, { color: isDark ? TYPE_BADGE[type].darkColor : TYPE_BADGE[type].color }]}>
+                    {TYPE_BADGE[type].label}
                   </Text>
                 </View>
               ))}
@@ -75,14 +77,14 @@ export default function RoutinePickerScreen() {
   const EmptyState = () => (
     <View style={S.emptyWrap}>
       <Ionicons name="bag-outline" size={48} color={colors.subtext + '60'} />
-      <Text style={S.emptyTitle}>Henüz liste yok</Text>
-      <Text style={S.emptySub}>Ruhsal çantana öğe ekleyerek bir liste oluştur</Text>
+      <Text style={S.emptyTitle}>{t('spiritual.routinePicker.emptyTitle')}</Text>
+      <Text style={S.emptySub}>{t('spiritual.routinePicker.emptySub')}</Text>
       <Pressable
         style={({ pressed }) => [S.createBtn, pressed && { opacity: 0.85 }]}
         onPress={() => router.push('/spiritual/custom-sets')}
       >
         <Ionicons name="add" size={18} color="#FFF" />
-        <Text style={S.createBtnText}>Liste Oluştur</Text>
+        <Text style={S.createBtnText}>{t('spiritual.routinePicker.createBtn')}</Text>
       </Pressable>
     </View>
   );
@@ -94,7 +96,7 @@ export default function RoutinePickerScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={S.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
-        <Text style={S.headerTitle}>Rutin Belirle</Text>
+        <Text style={S.headerTitle}>{t('spiritual.routinePicker.headerTitle')}</Text>
         <View style={{ width: 34 }} />
       </View>
 
@@ -111,7 +113,7 @@ export default function RoutinePickerScreen() {
               onPress={() => router.push('/spiritual/custom-sets')}
             >
               <Ionicons name="add-circle-outline" size={18} color={isDark ? '#818CF8' : '#6366F1'} />
-              <Text style={S.newListBtnText}>Yeni Liste Oluştur</Text>
+              <Text style={S.newListBtnText}>{t('spiritual.routinePicker.newListBtn')}</Text>
             </Pressable>
           ) : null
         }

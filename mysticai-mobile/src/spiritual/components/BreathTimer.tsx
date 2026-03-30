@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -20,12 +21,6 @@ interface BreathTimerProps {
   onComplete: (payload: { actualDurationSec: number; cycles: number }) => void;
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  INHALE: 'Nefes Al',
-  HOLD: 'Tut',
-  EXHALE: 'Ver',
-};
-
 const CIRCLE = 180;
 
 export function BreathTimer({ pattern, targetDurationSec, onComplete }: BreathTimerProps) {
@@ -39,6 +34,13 @@ export function BreathTimer({ pattern, targetDurationSec, onComplete }: BreathTi
       ].filter((p) => p.sec > 0),
     [pattern],
   );
+
+  const { t } = useTranslation();
+  const phaseLabels: Record<string, string> = {
+    INHALE: t('breathTimer.inhale'),
+    HOLD: t('breathTimer.hold'),
+    EXHALE: t('breathTimer.exhale'),
+  };
 
   const [running, setRunning] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -104,16 +106,16 @@ export function BreathTimer({ pattern, targetDurationSec, onComplete }: BreathTi
       <View style={styles.circleArea}>
         <Animated.View style={[styles.circle, circleStyle]}>
           <Text style={styles.phaseLabel}>
-            {running ? (PHASE_LABELS[phase?.key ?? ''] ?? phase?.key ?? '–') : 'HAZIR'}
+            {running ? (phaseLabels[phase?.key ?? ''] ?? phase?.key ?? '–') : t('breathTimer.ready')}
           </Text>
           <Text style={styles.countdown}>{phaseRemaining}s</Text>
         </Animated.View>
       </View>
 
-      <Text style={styles.meta}>{elapsedSec} / {targetDurationSec} sn</Text>
+      <Text style={styles.meta}>{t('breathTimer.progress', { elapsed: elapsedSec, total: targetDurationSec })}</Text>
 
       <Pressable style={styles.btn} onPress={() => setRunning((v) => !v)}>
-        <Text style={styles.btnText}>{running ? 'Duraklat' : 'Başlat'}</Text>
+        <Text style={styles.btnText}>{running ? t('breathTimer.pause') : t('breathTimer.start')}</Text>
       </Pressable>
     </View>
   );

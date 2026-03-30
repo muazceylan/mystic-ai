@@ -290,6 +290,7 @@ export const tutorialConfigsApi = {
     status?: TutorialConfigStatus;
     isActive?: boolean;
     platform?: TutorialPlatform;
+    locale?: string;
     page?: number;
     size?: number;
   }) => api.get<{ content: TutorialConfigSummary[]; totalElements: number }>('/api/admin/v1/tutorial-configs', { params }),

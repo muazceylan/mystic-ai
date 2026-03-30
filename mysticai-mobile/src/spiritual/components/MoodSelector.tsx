@@ -1,15 +1,16 @@
 import React, { memo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { Mood } from '../types';
 
-const MOODS: Array<{ key: Mood; label: string; emoji: string }> = [
-  { key: 'SAKIN', label: 'Sakin', emoji: '😌' },
-  { key: 'SUKURLU', label: 'Şükürli', emoji: '🤲' },
-  { key: 'MUTLU', label: 'Mutlu', emoji: '😊' },
-  { key: 'ODAKLI', label: 'Odaklı', emoji: '🎯' },
-  { key: 'YORGUN', label: 'Yorgun', emoji: '😮‍💨' },
-  { key: 'GERGIN', label: 'Gergin', emoji: '😤' },
-  { key: 'DIGER', label: 'Diğer', emoji: '🌀' },
+const MOODS: Array<{ key: Mood; labelKey: string; emoji: string }> = [
+  { key: 'SAKIN', labelKey: 'moodSelector.sakin', emoji: '😌' },
+  { key: 'SUKURLU', labelKey: 'moodSelector.sukurlu', emoji: '🤲' },
+  { key: 'MUTLU', labelKey: 'moodSelector.mutlu', emoji: '😊' },
+  { key: 'ODAKLI', labelKey: 'moodSelector.odakli', emoji: '🎯' },
+  { key: 'YORGUN', labelKey: 'moodSelector.yorgun', emoji: '😮‍💨' },
+  { key: 'GERGIN', labelKey: 'moodSelector.gergin', emoji: '😤' },
+  { key: 'DIGER', labelKey: 'moodSelector.diger', emoji: '🌀' },
 ];
 
 interface Props {
@@ -25,6 +26,7 @@ export const MoodSelector = memo(function MoodSelector({
   accentColor = '#4CAF50',
   textColor = '#111',
 }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       {MOODS.map((m) => {
@@ -40,7 +42,7 @@ export const MoodSelector = memo(function MoodSelector({
           >
             <Text style={styles.emoji}>{m.emoji}</Text>
             <Text style={[styles.label, { color: isSelected ? accentColor : textColor }]}>
-              {m.label}
+              {t(m.labelKey)}
             </Text>
           </Pressable>
         );

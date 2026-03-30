@@ -39,6 +39,7 @@ public class AdminTutorialConfigController {
             @RequestParam(required = false) TutorialConfigStatus status,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) TutorialPlatform platform,
+            @RequestParam(required = false) String locale,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size
     ) {
@@ -48,6 +49,7 @@ public class AdminTutorialConfigController {
                         status,
                         isActive,
                         platform,
+                        locale,
                         PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"))
                 )
         );

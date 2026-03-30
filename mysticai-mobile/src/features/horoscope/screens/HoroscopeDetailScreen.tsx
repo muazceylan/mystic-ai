@@ -14,14 +14,14 @@ import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS } from '../../../constants/tokens';
 import { SafeScreen } from '../../../components/ui/SafeScreen';
 import { useHoroscopeStore } from '../store/useHoroscopeStore';
-import { ZODIAC_MAP } from '../utils/zodiacData';
+import { ZODIAC_MAP, resolveZodiacSign } from '../utils/zodiacData';
 import { ZodiacSign, HoroscopePeriod } from '../types/horoscope.types';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { HoroscopeDetailSkeleton } from '../components/HoroscopeSkeleton';
 
 export default function HoroscopeDetailScreen() {
   const { sign: signParam, period: periodParam } = useLocalSearchParams<{ sign: string; period?: string }>();
-  const sign = (signParam ?? 'aries') as ZodiacSign;
+  const sign = resolveZodiacSign(signParam ?? 'aries') ?? 'aries';
 
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();

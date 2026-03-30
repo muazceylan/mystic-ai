@@ -4,11 +4,12 @@ import type { TutorialPlatform } from '../domain/tutorial.types';
 import type { TutorialRemoteClient } from '../sources/TutorialRemoteSource';
 
 export class TutorialRemoteConfigApi implements TutorialRemoteClient {
-  async fetchTutorialConfig(platform: TutorialPlatform): Promise<TutorialConfigListResponse | null> {
+  async fetchTutorialConfig(platform: TutorialPlatform, locale: string): Promise<TutorialConfigListResponse | null> {
     try {
       const response = await api.get<TutorialConfigListResponse>('/api/v1/tutorial-configs', {
         params: {
           platform,
+          locale,
           onlyActive: true,
           publishedOnly: true,
         },

@@ -433,6 +433,7 @@ export interface TutorialConfigSummary {
   tutorialId: string;
   name: string;
   screenKey: string;
+  locale?: string;
   platform: TutorialPlatform;
   version: number;
   status: TutorialConfigStatus;

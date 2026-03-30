@@ -40,10 +40,20 @@ public class TutorialConfigAdminService {
             TutorialConfigStatus status,
             Boolean isActive,
             TutorialPlatform platform,
+            String locale,
             Pageable pageable
     ) {
         return repository
-                .findAll(TutorialConfigSpec.filter(screenKey, status, isActive, platform), pageable)
+                .findAll(
+                        TutorialConfigSpec.filter(
+                                screenKey,
+                                status,
+                                isActive,
+                                platform,
+                                normalizeLocaleNullable(locale)
+                        ),
+                        pageable
+                )
                 .map(mapper::toAdminSummary);
     }
 
@@ -96,7 +106,7 @@ public class TutorialConfigAdminService {
                 .audienceRules(normalizeNullable(request.getAudienceRules()))
                 .minAppVersion(normalizeNullable(request.getMinAppVersion()))
                 .maxAppVersion(normalizeNullable(request.getMaxAppVersion()))
-                .locale(normalizeNullable(request.getLocale()))
+                .locale(normalizeLocaleNullable(request.getLocale()))
                 .experimentKey(normalizeNullable(request.getExperimentKey()))
                 .rolloutPercentage(request.getRolloutPercentage())
                 .createdBy(resolveActor(adminId, adminEmail))
@@ -171,7 +181,7 @@ public class TutorialConfigAdminService {
         existing.setAudienceRules(normalizeNullable(request.getAudienceRules()));
         existing.setMinAppVersion(normalizeNullable(request.getMinAppVersion()));
         existing.setMaxAppVersion(normalizeNullable(request.getMaxAppVersion()));
-        existing.setLocale(normalizeNullable(request.getLocale()));
+        existing.setLocale(normalizeLocaleNullable(request.getLocale()));
         existing.setExperimentKey(normalizeNullable(request.getExperimentKey()));
         existing.setRolloutPercentage(request.getRolloutPercentage());
         existing.setStatus(nextStatus);
@@ -364,6 +374,22 @@ public class TutorialConfigAdminService {
         }
         String normalized = value.trim();
         return normalized.isBlank() ? null : normalized;
+    }
+
+    private String normalizeLocaleNullable(String value) {
+        String normalized = normalizeNullable(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        String lowered = normalized.toLowerCase(java.util.Locale.ROOT);
+        if (lowered.startsWith("en")) {
+            return "en";
+        }
+        if (lowered.startsWith("tr")) {
+            return "tr";
+        }
+        return lowered;
     }
 
     private String resolveActor(Long adminId, String adminEmail) {

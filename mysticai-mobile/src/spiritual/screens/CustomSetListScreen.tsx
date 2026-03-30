@@ -92,12 +92,12 @@ export default function CustomSetListScreen() {
     (items: CustomSetItem[]): string[] => {
       return items.slice(0, 3).map((it) => {
         if (it.itemType === 'esma') {
-          return getEsmaById(it.itemId)?.nameTr ?? 'Esma';
+          return getEsmaById(it.itemId)?.nameTr ?? t('spiritual.customSet.fallbackEsma');
         }
-        return getDuaById(it.itemId)?.title ?? 'Dua';
+        return getDuaById(it.itemId)?.title ?? t('spiritual.customSet.fallbackDua');
       });
     },
-    [getEsmaById, getDuaById],
+    [getEsmaById, getDuaById, t],
   );
 
   /* count items by type */
@@ -169,7 +169,7 @@ export default function CustomSetListScreen() {
               <>
                 <Text style={S.cardName} numberOfLines={1}>{item.name}</Text>
                 <Text style={S.cardDate}>
-                  {item.items.length} öğe
+                  {t('spiritual.customSet.cardItemCount', { count: item.items.length })}
                 </Text>
               </>
             )}
@@ -189,7 +189,10 @@ export default function CustomSetListScreen() {
                 <View key={type} style={[S.typeBadge, { backgroundColor: clr + '14', borderColor: clr + '22' }]}>
                   <Ionicons name={meta.icon} size={12} color={clr} />
                   <Text style={[S.typeBadgeText, { color: clr }]}>
-                    {count} {type === 'esma' ? 'Esma' : type === 'sure' ? 'Sure' : 'Dua'}
+                    {t('spiritual.customSet.typeBadgeCount', {
+                      count,
+                      type: type === 'esma' ? t('spiritual.tabs.esma') : type === 'sure' ? t('spiritual.tabs.sure') : t('spiritual.tabs.dua'),
+                    })}
                   </Text>
                 </View>
               );
@@ -216,7 +219,7 @@ export default function CustomSetListScreen() {
         {isEmpty && !isEditing && (
           <View style={S.cardEmptyRow}>
             <Ionicons name="add-circle-outline" size={14} color={colors.muted} />
-            <Text style={S.cardEmptyText}>Esma veya dua ekleyin</Text>
+            <Text style={S.cardEmptyText}>{t('spiritual.customSet.cardEmptyHint')}</Text>
           </View>
         )}
       </Pressable>
@@ -229,10 +232,8 @@ export default function CustomSetListScreen() {
       <View style={[S.emptyIconWrap, { backgroundColor: accentSoft }]}>
         <Ionicons name="sparkles-outline" size={40} color={accent} />
       </View>
-      <Text style={S.emptyTitle}>Henüz set oluşturmadınız</Text>
-      <Text style={S.emptySub}>
-        Kendi dua ve esma koleksiyonlarınızı oluşturun, günlük pratiklerinizi kişiselleştirin.
-      </Text>
+      <Text style={S.emptyTitle}>{t('spiritual.customSet.emptyTitle')}</Text>
+      <Text style={S.emptySub}>{t('spiritual.customSet.emptySub')}</Text>
       <Pressable
         style={({ pressed }) => [
           S.emptyCta,
@@ -242,35 +243,35 @@ export default function CustomSetListScreen() {
         onPress={() => { setIsCreating(true); setInputText(''); }}
       >
         <Ionicons name="add" size={18} color="#FFF" />
-        <Text style={S.emptyCtaText}>İlk Setini Oluştur</Text>
+        <Text style={S.emptyCtaText}>{t('spiritual.customSet.emptyCreateBtn')}</Text>
       </Pressable>
     </View>
   );
 
   return (
     <SafeScreen>
-      <AppHeader title="Ruhsal Çantam" onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
+      <AppHeader title={t('spiritual.customSet.listTitle')} onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
 
       {/* ─── Stats strip ─── */}
       {sets.length > 0 && (
         <View style={S.statsRow}>
           <View style={S.statItem}>
             <Text style={S.statValue}>{sets.length}</Text>
-            <Text style={S.statLabel}>Set</Text>
+            <Text style={S.statLabel}>{t('spiritual.customSet.statSetLabel')}</Text>
           </View>
           <View style={[S.statDivider, { backgroundColor: colors.border }]} />
           <View style={S.statItem}>
             <Text style={S.statValue}>
               {sets.reduce((sum, s) => sum + s.items.length, 0)}
             </Text>
-            <Text style={S.statLabel}>Öğe</Text>
+            <Text style={S.statLabel}>{t('spiritual.customSet.statItemLabel')}</Text>
           </View>
           <View style={[S.statDivider, { backgroundColor: colors.border }]} />
           <View style={S.statItem}>
             <Text style={S.statValue}>
               {sets.reduce((sum, s) => sum + s.items.filter((i) => i.itemType === 'esma').length, 0)}
             </Text>
-            <Text style={S.statLabel}>Esma</Text>
+            <Text style={S.statLabel}>{t('spiritual.tabs.esma')}</Text>
           </View>
         </View>
       )}
@@ -284,7 +285,7 @@ export default function CustomSetListScreen() {
             </View>
             <TextInput
               style={[S.createInput, { color: colors.text }]}
-              placeholder="Set adı girin..."
+              placeholder={t('spiritual.customSet.createPlaceholder')}
               placeholderTextColor={colors.muted}
               value={inputText}
               onChangeText={setInputText}

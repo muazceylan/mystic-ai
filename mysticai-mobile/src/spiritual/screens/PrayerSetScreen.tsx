@@ -35,22 +35,22 @@ export default function PrayerSetScreen() {
   }, [prayers.data, startSet, shortMode]);
 
   const shortTitle = useMemo(() => {
-    if (!category) return 'Kısa Dualar';
+    if (!category) return t('spiritual.prayerSet.shortTitle');
     switch (category) {
-      case 'SABAH_AKSAM': return 'Kısa Dualar · Sabah/Akşam';
-      case 'SUKUR': return 'Kısa Dualar · Şükür';
-      case 'KORUNMA': return 'Kısa Dualar · Korunma';
-      case 'HUZUR': return 'Kısa Dualar · Huzur';
-      default: return `Kısa Dualar · ${category}`;
+      case 'SABAH_AKSAM': return t('spiritual.prayerSet.shortTitleSabahAksam');
+      case 'SUKUR': return t('spiritual.prayerSet.shortTitleSukur');
+      case 'KORUNMA': return t('spiritual.prayerSet.shortTitleKorunma');
+      case 'HUZUR': return t('spiritual.prayerSet.shortTitleHuzur');
+      default: return t('spiritual.prayerSet.shortTitleCategory', { category });
     }
-  }, [category]);
+  }, [category, t]);
 
   if (shortMode) {
     if (shortPrayersQuery.isLoading) {
       return (
         <SafeScreen>
           <View style={s.center}>
-            <Text style={{ color: colors.subtext }}>Kısa dualar yükleniyor...</Text>
+            <Text style={{ color: colors.subtext }}>{t('spiritual.prayerSet.loadingShort')}</Text>
           </View>
         </SafeScreen>
       );
@@ -60,7 +60,7 @@ export default function PrayerSetScreen() {
       return (
         <SafeScreen>
           <View style={s.center}>
-            <Text style={{ color: colors.error }}>Kısa dualar yüklenemedi.</Text>
+            <Text style={{ color: colors.error }}>{t('spiritual.prayerSet.errorShort')}</Text>
           </View>
         </SafeScreen>
       );
@@ -70,7 +70,7 @@ export default function PrayerSetScreen() {
       return (
         <SafeScreen>
           <View style={s.center}>
-            <Text style={{ color: colors.subtext }}>Bu kategori için kısa dua bulunamadı.</Text>
+            <Text style={{ color: colors.subtext }}>{t('spiritual.prayerSet.emptyShort')}</Text>
           </View>
         </SafeScreen>
       );
@@ -78,7 +78,7 @@ export default function PrayerSetScreen() {
 
     return (
       <SafeScreen scroll>
-        <AppHeader title={shortTitle} subtitle="10-30 sn hızlı erişim" onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
+        <AppHeader title={shortTitle} subtitle={t('spiritual.prayerSet.shortSubtitle')} onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
         {shortPrayersQuery.data.map((item, index) => (
           <ListRow
             key={item.id}
@@ -86,7 +86,7 @@ export default function PrayerSetScreen() {
             iconColor={colors.spiritualDua}
             title={`${index + 1}. ${item.title}`}
             subtitle={item.category}
-            meta={`${item.recommendedRepeatCount} tekrar · ~${item.estimatedReadSeconds} sn`}
+            meta={t('spiritual.prayerSet.metaRepeatSec', { count: item.recommendedRepeatCount, sec: item.estimatedReadSeconds })}
             onPress={() => router.push('/spiritual/prayers')}
           />
         ))}
@@ -98,7 +98,7 @@ export default function PrayerSetScreen() {
     return (
       <SafeScreen>
         <View style={s.center}>
-          <Text style={{ color: colors.subtext }}>Bugünün dua seti yükleniyor...</Text>
+          <Text style={{ color: colors.subtext }}>{t('spiritual.prayerSet.loadingSet')}</Text>
         </View>
       </SafeScreen>
     );
@@ -108,7 +108,7 @@ export default function PrayerSetScreen() {
     return (
       <SafeScreen>
         <View style={s.center}>
-          <Text style={{ color: colors.error }}>Dua seti yüklenemedi.</Text>
+          <Text style={{ color: colors.error }}>{t('spiritual.prayerSet.errorSet')}</Text>
         </View>
       </SafeScreen>
     );
@@ -118,7 +118,7 @@ export default function PrayerSetScreen() {
     return (
       <SafeScreen>
         <View style={s.center}>
-          <Text style={{ color: colors.subtext }}>Bugün için dua seti bulunamadı.</Text>
+          <Text style={{ color: colors.subtext }}>{t('spiritual.prayerSet.emptySet')}</Text>
         </View>
       </SafeScreen>
     );
@@ -130,7 +130,7 @@ export default function PrayerSetScreen() {
   return (
     <SafeScreen scroll>
       <AppHeader
-        title="Bugünün Dua Seti"
+        title={t('spiritual.prayerSet.todayTitle')}
         subtitle={`${date} · ${variant}`}
         onBack={() => router.back()}
         rightActions={<HeaderRightIcons />}
@@ -143,7 +143,7 @@ export default function PrayerSetScreen() {
           iconColor={colors.spiritualDua}
           title={`${item.order}. ${item.title}`}
           subtitle={item.category}
-          meta={`${item.recommendedRepeatCount}x · ~${item.estimatedReadSeconds} sn`}
+          meta={t('spiritual.prayerSet.metaRepeatXSec', { count: item.recommendedRepeatCount, sec: item.estimatedReadSeconds })}
           badge={
             item.isCompletedToday
               ? { label: '✓', variant: 'success' as const }
@@ -154,7 +154,7 @@ export default function PrayerSetScreen() {
       ))}
 
       <Button
-        title="Devam Et"
+        title={t('spiritual.prayerSet.continueBtn')}
         size="lg"
         onPress={() => router.push('/spiritual/prayers/flow')}
         accessibilityLabel={t('spiritual.prayerFlow.continueA11y')}

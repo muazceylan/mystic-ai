@@ -3,6 +3,7 @@
  */
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import type { BarChartDataPoint } from '../types';
 
@@ -28,10 +29,11 @@ export const SpiritualBarChart = memo(function SpiritualBarChart({
   labelColor = '#999',
   axisColor = '#555',
 }: Props) {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
       <View style={[styles.empty, { width, height }]}>
-        <Text style={[styles.emptyText, { color: labelColor }]}>Henüz veri yok</Text>
+        <Text style={[styles.emptyText, { color: labelColor }]}>{t('barChart.empty')}</Text>
       </View>
     );
   }

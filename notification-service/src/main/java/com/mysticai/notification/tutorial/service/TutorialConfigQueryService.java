@@ -27,15 +27,24 @@ public class TutorialConfigQueryService {
             TutorialPlatform requestedPlatform,
             boolean onlyActive,
             boolean publishedOnly,
-            String screenKey
+            String screenKey,
+            String locale
     ) {
         TutorialPlatform effectivePlatform = requestedPlatform != null ? requestedPlatform : TutorialPlatform.MOBILE;
         Set<TutorialPlatform> platforms = resolvePlatformSet(effectivePlatform);
+        String normalizedLocale = normalizeLocaleNullable(locale);
 
         LocalDateTime now = LocalDateTime.now();
 
         List<TutorialConfigPublicTutorialDto> tutorials = repository
-                .findForPublicRead(platforms, normalizeNullable(screenKey), onlyActive, publishedOnly, TutorialConfigStatus.PUBLISHED)
+                .findForPublicRead(
+                        platforms,
+                        normalizeNullable(screenKey),
+                        normalizedLocale,
+                        onlyActive,
+                        publishedOnly,
+                        TutorialConfigStatus.PUBLISHED
+                )
                 .stream()
                 .filter(config -> isWithinDateWindow(config, now))
                 .sorted(Comparator.comparingInt(TutorialConfig::getPriority).reversed()
@@ -83,5 +92,21 @@ public class TutorialConfigQueryService {
         }
         String normalized = value.trim();
         return normalized.isBlank() ? null : normalized;
+    }
+
+    private String normalizeLocaleNullable(String value) {
+        String normalized = normalizeNullable(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        String lowered = normalized.toLowerCase(java.util.Locale.ROOT);
+        if (lowered.startsWith("en")) {
+            return "en";
+        }
+        if (lowered.startsWith("tr")) {
+            return "tr";
+        }
+        return lowered;
     }
 }

@@ -15,6 +15,7 @@ import {
   TUTORIAL_SCREEN_KEYS,
 } from '../domain/tutorial.constants';
 import type { TutorialDefinition, TutorialDisplayRule } from '../domain/tutorial.types';
+import { LOCAL_TUTORIAL_ENGLISH_COPY } from './tutorialRegistry.en';
 
 const SCREEN_BASE_RULES: TutorialDisplayRule[] = [
   {
@@ -86,7 +87,7 @@ function createMonetizationStep(order: number, targetKey: string) {
   };
 }
 
-export const localTutorialRegistry: TutorialDefinition[] = [
+const localTutorialRegistryBase: TutorialDefinition[] = [
   {
     tutorialId: TUTORIAL_IDS.GLOBAL_ONBOARDING,
     name: 'Global Onboarding',
@@ -1321,6 +1322,57 @@ export const localTutorialRegistry: TutorialDefinition[] = [
     createdAt: NOW,
     updatedAt: NOW,
   },
+];
+
+function localizeMonetizationStep(step: TutorialDefinition['steps'][number]) {
+  if (step.stepId !== 'monetization-entry') {
+    return step;
+  }
+
+  return {
+    ...step,
+    title: 'Guru and Free',
+    body: 'Use the Guru icon in the top right to unlock packages, or earn Guru by watching rewarded videos from the FREE icon. This balance is used in Guru-powered insights and unlock flows.',
+  };
+}
+
+function createLocalizedTutorialVariant(
+  tutorial: TutorialDefinition,
+  locale: 'tr' | 'en',
+): TutorialDefinition {
+  const englishCopy = locale === 'en' ? LOCAL_TUTORIAL_ENGLISH_COPY[tutorial.tutorialId] : null;
+
+  return {
+    ...tutorial,
+    tutorialId: locale === 'en' ? `${tutorial.tutorialId}_en` : tutorial.tutorialId,
+    targeting: {
+      ...(tutorial.targeting ?? {}),
+      locale,
+    },
+    steps: tutorial.steps.map((step) => {
+      if (locale !== 'en') {
+        return { ...step };
+      }
+
+      const localizedStep = englishCopy?.steps[step.stepId];
+      if (!localizedStep) {
+        return localizeMonetizationStep({ ...step });
+      }
+
+      return {
+        ...step,
+        title: localizedStep.title,
+        body: localizedStep.body,
+      };
+    }),
+    targets: tutorial.targets.map((target) => ({ ...target })),
+    displayRules: tutorial.displayRules.map((rule) => ({ ...rule })),
+  };
+}
+
+export const localTutorialRegistry: TutorialDefinition[] = [
+  ...localTutorialRegistryBase.map((tutorial) => createLocalizedTutorialVariant(tutorial, 'tr')),
+  ...localTutorialRegistryBase.map((tutorial) => createLocalizedTutorialVariant(tutorial, 'en')),
 ];
 
 export function getLocalTutorialById(tutorialId: string): TutorialDefinition | null {

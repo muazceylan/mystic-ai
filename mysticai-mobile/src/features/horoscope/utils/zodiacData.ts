@@ -19,6 +19,68 @@ export const ZODIAC_MAP = new Map<ZodiacSign, ZodiacSignData>(
   ZODIAC_SIGNS.map((s) => [s.id, s]),
 );
 
+const ZODIAC_ALIAS_MAP: Record<string, ZodiacSign> = {
+  aries: 'aries',
+  koc: 'aries',
+  taurus: 'taurus',
+  boga: 'taurus',
+  gemini: 'gemini',
+  ikizler: 'gemini',
+  cancer: 'cancer',
+  yengec: 'cancer',
+  leo: 'leo',
+  aslan: 'leo',
+  virgo: 'virgo',
+  basak: 'virgo',
+  libra: 'libra',
+  terazi: 'libra',
+  scorpio: 'scorpio',
+  akrep: 'scorpio',
+  sagittarius: 'sagittarius',
+  yay: 'sagittarius',
+  capricorn: 'capricorn',
+  oglak: 'capricorn',
+  aquarius: 'aquarius',
+  kova: 'aquarius',
+  pisces: 'pisces',
+  balik: 'pisces',
+};
+
+function normalizeZodiacToken(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[♈-♓]/g, ' ')
+    .replace(/[^a-z\s]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function resolveZodiacSign(value: string | null | undefined): ZodiacSign | null {
+  if (!value) return null;
+
+  const normalized = normalizeZodiacToken(value);
+  if (!normalized) return null;
+
+  const direct = ZODIAC_ALIAS_MAP[normalized];
+  if (direct) return direct;
+
+  const compact = normalized.replace(/\s+/g, '');
+  if (compact && ZODIAC_ALIAS_MAP[compact]) {
+    return ZODIAC_ALIAS_MAP[compact];
+  }
+
+  const parts = normalized.split(' ').reverse();
+  for (const part of parts) {
+    const resolved = ZODIAC_ALIAS_MAP[part];
+    if (resolved) return resolved;
+  }
+
+  return null;
+}
+
 export function getSignFromBirthDate(dateStr: string): ZodiacSign | null {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return null;

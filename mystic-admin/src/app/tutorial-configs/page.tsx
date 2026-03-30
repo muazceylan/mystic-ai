@@ -29,6 +29,7 @@ export default function TutorialConfigsPage() {
   const [status, setStatus] = useState('');
   const [isActive, setIsActive] = useState('');
   const [platform, setPlatform] = useState('');
+  const [locale, setLocale] = useState('');
   const [bootstrapMessage, setBootstrapMessage] = useState('');
   const { data: contractOptions } = useQuery({
     queryKey: ['tutorial-config-contract'],
@@ -36,7 +37,7 @@ export default function TutorialConfigsPage() {
   });
   const screenOptions = resolveScreenOptions(screenKey, contractOptions);
 
-  const queryKey = ['tutorial-configs', screenKey, status, isActive, platform];
+  const queryKey = ['tutorial-configs', screenKey, status, isActive, platform, locale];
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: () => tutorialConfigsApi.list({
@@ -44,6 +45,7 @@ export default function TutorialConfigsPage() {
       ...(status && { status: status as TutorialConfigStatus }),
       ...(isActive !== '' && { isActive: isActive === 'true' }),
       ...(platform && { platform: platform as TutorialPlatform }),
+      ...(locale && { locale }),
       page: 0,
       size: 100,
     }).then((response) => response.data),
@@ -142,6 +144,16 @@ export default function TutorialConfigsPage() {
             <option key={option} value={option}>{option}</option>
           ))}
         </select>
+
+        <select
+          value={locale}
+          onChange={(event) => setLocale(event.target.value)}
+          className="bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-lg px-3 py-2"
+        >
+          <option value="">All Locales</option>
+          <option value="tr">tr</option>
+          <option value="en">en</option>
+        </select>
       </div>
 
       {bootstrapMessage ? (
@@ -157,6 +169,7 @@ export default function TutorialConfigsPage() {
               <th className="text-left px-4 py-3">name</th>
               <th className="text-left px-4 py-3">tutorialId</th>
               <th className="text-left px-4 py-3">screenKey</th>
+              <th className="text-left px-4 py-3">locale</th>
               <th className="text-left px-4 py-3">version</th>
               <th className="text-left px-4 py-3">status</th>
               <th className="text-left px-4 py-3">isActive</th>
@@ -170,11 +183,11 @@ export default function TutorialConfigsPage() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-gray-500">Loading...</td>
+                <td colSpan={11} className="px-4 py-8 text-center text-gray-500">Loading...</td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                   <div className="space-y-3">
                     <div>No tutorial config found</div>
                     <button
@@ -193,6 +206,7 @@ export default function TutorialConfigsPage() {
                 <td className="px-4 py-3 text-white font-medium">{row.name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-purple-300">{row.tutorialId}</td>
                 <td className="px-4 py-3 font-mono text-xs text-gray-300">{row.screenKey}</td>
+                <td className="px-4 py-3 text-xs text-gray-400">{row.locale ?? 'ALL'}</td>
                 <td className="px-4 py-3 text-gray-300">{row.version}</td>
                 <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[row.status]}`}>{row.status}</span>

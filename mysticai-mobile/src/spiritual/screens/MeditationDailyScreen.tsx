@@ -33,7 +33,7 @@ export default function MeditationDailyScreen() {
     return (
       <SafeScreen>
         <View style={s.center}>
-          <Text style={[s.loadingText, { color: colors.subtext }]}>Egzersiz yükleniyor...</Text>
+          <Text style={[s.loadingText, { color: colors.subtext }]}>{t('spiritual.meditationDaily.loading')}</Text>
         </View>
       </SafeScreen>
     );
@@ -43,7 +43,7 @@ export default function MeditationDailyScreen() {
     return (
       <SafeScreen>
         <View style={s.center}>
-          <Text style={[s.loadingText, { color: colors.error }]}>Egzersiz yüklenemedi.</Text>
+          <Text style={[s.loadingText, { color: colors.error }]}>{t('spiritual.meditationDaily.error')}</Text>
         </View>
       </SafeScreen>
     );
@@ -53,7 +53,7 @@ export default function MeditationDailyScreen() {
 
   return (
     <SafeScreen scroll>
-      <AppHeader title="Bugünün Nefesi" onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
+      <AppHeader title={t('spiritual.meditationDaily.title')} onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
 
       <Card variant="elevated">
         <View style={s.titleRow}>
@@ -69,13 +69,13 @@ export default function MeditationDailyScreen() {
           style={s.meta}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
-          {focusTheme} · {Math.floor(durationSec / 60)} dk
+          {focusTheme} · {t('spiritual.meditationDaily.durationMin', { min: Math.floor(durationSec / 60) })}
         </Text>
       </Card>
 
       {steps.length > 0 && (
         <Card>
-          <Text style={s.sectionTitle}>Adımlar</Text>
+          <Text style={s.sectionTitle}>{t('spiritual.meditationDaily.stepsTitle')}</Text>
           {steps.map((step, i) => (
             <View key={i} style={s.stepRow}>
               <View style={[s.stepNum, { backgroundColor: colors.primarySoftBg }]}>
@@ -103,7 +103,7 @@ export default function MeditationDailyScreen() {
                     style={s.stepDuration}
                     maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                   >
-                    {step.durationSec} sn
+                    {t('spiritual.meditationDaily.stepSec', { sec: step.durationSec })}
                   </Text>
                 ) : null}
               </View>
@@ -113,17 +113,17 @@ export default function MeditationDailyScreen() {
       )}
 
       <Card variant="outlined">
-        <Text style={s.disclaimerTitle}>Bilgilendirme</Text>
+        <Text style={s.disclaimerTitle}>{t('spiritual.meditationDaily.disclaimerTitle')}</Text>
         <Text
           style={s.disclaimer}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
         >
-          {disclaimerText ?? 'Bu bölüm nefes ve farkındalık egzersizi sunar; tıbbi tavsiye değildir.'}
+          {disclaimerText ?? t('spiritual.meditationDaily.disclaimerDefault')}
         </Text>
       </Card>
 
       <Button
-        title="Başlat"
+        title={t('spiritual.meditationDaily.startBtn')}
         size="lg"
         onPress={() => router.push('/spiritual/meditation/session')}
         accessibilityLabel={t('spiritual.meditation.startBreathingA11y')}

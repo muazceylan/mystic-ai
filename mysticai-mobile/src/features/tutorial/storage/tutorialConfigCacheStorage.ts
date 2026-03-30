@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TutorialConfigListResponse } from '../domain/tutorial.contracts';
 import { TUTORIAL_STORAGE_KEYS } from '../domain/tutorial.constants';
+import { normalizeTutorialLocaleTag } from '../domain/tutorial.locale';
 
 interface TutorialConfigCacheEnvelope {
   cachedAt: string;
@@ -23,14 +24,19 @@ function isValidPayload(input: unknown): input is TutorialConfigListResponse {
   return Array.isArray(candidate.tutorials);
 }
 
-export async function readTutorialConfigCache(): Promise<TutorialConfigListResponse | null> {
-  const snapshot = await readTutorialConfigCacheSnapshot();
+function resolveCacheKey(locale?: string | null): string {
+  const normalizedLocale = normalizeTutorialLocaleTag(locale) ?? 'default';
+  return `${TUTORIAL_STORAGE_KEYS.REMOTE_CONFIG_CACHE}:${normalizedLocale}`;
+}
+
+export async function readTutorialConfigCache(locale?: string | null): Promise<TutorialConfigListResponse | null> {
+  const snapshot = await readTutorialConfigCacheSnapshot(locale);
   return snapshot?.payload ?? null;
 }
 
-export async function readTutorialConfigCacheSnapshot(): Promise<TutorialConfigCacheSnapshot | null> {
+export async function readTutorialConfigCacheSnapshot(locale?: string | null): Promise<TutorialConfigCacheSnapshot | null> {
   try {
-    const raw = await AsyncStorage.getItem(TUTORIAL_STORAGE_KEYS.REMOTE_CONFIG_CACHE);
+    const raw = await AsyncStorage.getItem(resolveCacheKey(locale));
     if (!raw) {
       return null;
     }
@@ -62,7 +68,10 @@ export async function readTutorialConfigCacheSnapshot(): Promise<TutorialConfigC
   }
 }
 
-export async function writeTutorialConfigCache(payload: TutorialConfigListResponse): Promise<void> {
+export async function writeTutorialConfigCache(
+  locale: string | null | undefined,
+  payload: TutorialConfigListResponse,
+): Promise<void> {
   try {
     const envelope: TutorialConfigCacheEnvelope = {
       cachedAt: new Date().toISOString(),
@@ -71,7 +80,7 @@ export async function writeTutorialConfigCache(payload: TutorialConfigListRespon
     };
 
     await AsyncStorage.setItem(
-      TUTORIAL_STORAGE_KEYS.REMOTE_CONFIG_CACHE,
+      resolveCacheKey(locale),
       JSON.stringify(envelope),
     );
   } catch {
@@ -79,9 +88,9 @@ export async function writeTutorialConfigCache(payload: TutorialConfigListRespon
   }
 }
 
-export async function clearTutorialConfigCache(): Promise<void> {
+export async function clearTutorialConfigCache(locale?: string | null): Promise<void> {
   try {
-    await AsyncStorage.removeItem(TUTORIAL_STORAGE_KEYS.REMOTE_CONFIG_CACHE);
+    await AsyncStorage.removeItem(resolveCacheKey(locale));
   } catch {
     // Non-blocking cache clear.
   }

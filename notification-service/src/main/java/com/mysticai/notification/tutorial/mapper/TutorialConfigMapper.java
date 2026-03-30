@@ -31,6 +31,7 @@ public class TutorialConfigMapper {
                 .tutorialId(entity.getTutorialId())
                 .name(entity.getName())
                 .screenKey(entity.getScreenKey())
+                .locale(entity.getLocale())
                 .platform(entity.getPlatform())
                 .version(entity.getVersion())
                 .status(entity.getStatus())

@@ -1,21 +1,23 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { spiritualApi } from '../api/spiritual.api';
 
 export default function AsmaDailyScreen() {
+  const { t } = useTranslation();
   const { asma } = useSpiritualDaily();
   const [count, setCount] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  if (asma.isLoading) return <View style={styles.center}><Text>Gunun esmasi yukleniyor...</Text></View>;
-  if (asma.isError || !asma.data) return <View style={styles.center}><Text>Esma yuklenemedi.</Text></View>;
+  if (asma.isLoading) return <View style={styles.center}><Text>{t('spiritual.asmaDaily.loading')}</Text></View>;
+  if (asma.isError || !asma.data) return <View style={styles.center}><Text>{t('spiritual.asmaDaily.error')}</Text></View>;
 
   const target = asma.data.recommendedDhikrCount ?? 33;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Gunun Esmasi</Text>
+      <Text style={styles.title}>{t('spiritual.asmaDaily.title')}</Text>
       <View style={styles.card}>
         <Text style={styles.arabic}>{asma.data.arabicName}</Text>
         <Text style={styles.name}>{asma.data.transliterationTr}</Text>
@@ -48,10 +50,10 @@ export default function AsmaDailyScreen() {
           }
         }}
       >
-        <Text style={styles.primaryBtnText}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</Text>
+        <Text style={styles.primaryBtnText}>{saving ? t('spiritual.asmaDaily.saving') : t('common.save')}</Text>
       </Pressable>
 
-      <Text style={styles.disclaimer}>Bu icerikler bilgilendirme amaclidir.</Text>
+      <Text style={styles.disclaimer}>{t('spiritual.asmaDaily.disclaimer')}</Text>
     </ScrollView>
   );
 }

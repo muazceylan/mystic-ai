@@ -1,5 +1,6 @@
 import type { TutorialConfigSource, TutorialDefinition } from '../domain/tutorial.types';
 import { TUTORIAL_CONFIG_POLICY } from '../domain/tutorial.constants';
+import { buildTutorialIdCandidates, resolveTutorialLocaleTag } from '../domain/tutorial.locale';
 import { TutorialRepository } from '../repository/TutorialRepository';
 import { tutorialDebugLog } from './tutorialDebug';
 
@@ -11,22 +12,29 @@ interface CacheEntry {
 const CACHE_TTL_MS = TUTORIAL_CONFIG_POLICY.IN_MEMORY_TTL_MS;
 
 export class TutorialConfigService {
-  private readonly cache = new Map<TutorialConfigSource, CacheEntry>();
+  private readonly cache = new Map<string, CacheEntry>();
 
   constructor(private readonly repository: TutorialRepository) {}
 
+  private buildCacheKey(source: TutorialConfigSource): string {
+    return `${source}:${resolveTutorialLocaleTag()}`;
+  }
+
   async getTutorials(source: TutorialConfigSource = 'merged_fallback', forceRefresh = false): Promise<TutorialDefinition[]> {
     const now = Date.now();
-    const current = this.cache.get(source);
+    const cacheKey = this.buildCacheKey(source);
+    const locale = resolveTutorialLocaleTag();
+    const current = this.cache.get(cacheKey);
 
     if (!forceRefresh && current && now - current.cachedAt < CACHE_TTL_MS) {
       return current.tutorials;
     }
 
     const tutorials = await this.repository.listTutorials({ source });
-    this.cache.set(source, { tutorials, cachedAt: now });
+    this.cache.set(cacheKey, { tutorials, cachedAt: now });
     tutorialDebugLog('config_resolved', {
       source,
+      locale,
       tutorials: tutorials.length,
       resolved_sources: tutorials.reduce<Record<string, number>>((acc, tutorial) => {
         acc[tutorial.resolvedSource] = (acc[tutorial.resolvedSource] ?? 0) + 1;
@@ -55,12 +63,24 @@ export class TutorialConfigService {
     }
 
     const tutorials = await this.getTutorials(source);
-    return tutorials.find((tutorial) => tutorial.tutorialId === tutorialId) ?? null;
+    const tutorialIdCandidates = buildTutorialIdCandidates(tutorialId, resolveTutorialLocaleTag());
+
+    for (const candidate of tutorialIdCandidates) {
+      const matchedTutorial = tutorials.find((tutorial) => tutorial.tutorialId === candidate);
+      if (matchedTutorial) {
+        return matchedTutorial;
+      }
+    }
+
+    return null;
   }
 
   invalidateCache(source?: TutorialConfigSource): void {
     if (source) {
-      this.cache.delete(source);
+      const prefix = `${source}:`;
+      Array.from(this.cache.keys())
+        .filter((key) => key.startsWith(prefix))
+        .forEach((key) => this.cache.delete(key));
       return;
     }
 

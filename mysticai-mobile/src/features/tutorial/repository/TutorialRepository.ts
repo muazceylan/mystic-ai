@@ -1,4 +1,5 @@
 import type { TutorialConfigSource, TutorialDefinition } from '../domain/tutorial.types';
+import { getTutorialLocaleRank, resolveTutorialLocaleTag } from '../domain/tutorial.locale';
 import type { TutorialSource } from '../sources/TutorialSource';
 
 export interface TutorialQuery {
@@ -8,8 +9,18 @@ export interface TutorialQuery {
   at?: Date;
 }
 
-function sortTutorials(tutorials: TutorialDefinition[]): TutorialDefinition[] {
-  return tutorials.sort((left, right) => right.priority - left.priority || left.order - right.order);
+function sortTutorials(tutorials: TutorialDefinition[], locale: string): TutorialDefinition[] {
+  return tutorials.sort((left, right) => {
+    const localeRankDiff =
+      getTutorialLocaleRank(right.targeting?.locale, locale)
+      - getTutorialLocaleRank(left.targeting?.locale, locale);
+
+    if (localeRankDiff !== 0) {
+      return localeRankDiff;
+    }
+
+    return right.priority - left.priority || left.order - right.order;
+  });
 }
 
 function isWithinSchedule(tutorial: TutorialDefinition, at: Date): boolean {
@@ -38,9 +49,14 @@ export class TutorialRepository {
 
     const sourceAdapter = this.resolveSource(source);
     const tutorials = await sourceAdapter.fetchTutorials();
+    const locale = resolveTutorialLocaleTag();
 
     return sortTutorials(
       tutorials.filter((tutorial) => {
+        if (getTutorialLocaleRank(tutorial.targeting?.locale, locale) === 0) {
+          return false;
+        }
+
         if (screenKey && tutorial.screenKey !== screenKey) {
           return false;
         }
@@ -56,6 +72,7 @@ export class TutorialRepository {
 
         return true;
       }),
+      locale,
     );
   }
 

@@ -1,7 +1,9 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function SpiritualSettingsScreen() {
+  const { t } = useTranslation();
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [morningReminder, setMorningReminder] = useState(true);
@@ -9,31 +11,31 @@ export default function SpiritualSettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Ruhsal Ayarlar</Text>
+      <Text style={styles.title}>{t('spiritual.settingsScreen.title')}</Text>
 
       <View style={styles.card}>
-        <Row label="Sabah hatirlatici" value={morningReminder} onChange={setMorningReminder} />
+        <Row label={t('spiritual.settingsScreen.morningReminder')} value={morningReminder} onChange={setMorningReminder} />
         <Divider />
-        <Row label="Aksam hatirlatici" value={eveningReminder} onChange={setEveningReminder} />
+        <Row label={t('spiritual.settingsScreen.eveningReminder')} value={eveningReminder} onChange={setEveningReminder} />
       </View>
 
       <View style={styles.card}>
-        <Row label="TTS (varsayilan kapali)" value={ttsEnabled} onChange={setTtsEnabled} />
+        <Row label={t('spiritual.settingsScreen.ttsLabel')} value={ttsEnabled} onChange={setTtsEnabled} />
         <Divider />
-        <Row label="Okuma modu (buyuk font)" value={readingMode} onChange={setReadingMode} />
+        <Row label={t('spiritual.settingsScreen.readingModeLabel')} value={readingMode} onChange={setReadingMode} />
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Icerik dili</Text>
-        <Text style={styles.sectionSub}>TR (future: EN/AR altyapisi desteklenecek)</Text>
+        <Text style={styles.sectionTitle}>{t('spiritual.settingsScreen.contentLanguageTitle')}</Text>
+        <Text style={styles.sectionSub}>{t('spiritual.settingsScreen.contentLanguageSub')}</Text>
       </View>
 
       <Pressable style={styles.outlineBtn}>
-        <Text style={styles.outlineBtnText}>JSON Export (opsiyonel)</Text>
+        <Text style={styles.outlineBtnText}>{t('spiritual.settingsScreen.exportBtn')}</Text>
       </Pressable>
 
       <Pressable style={styles.outlineBtn}>
-        <Text style={styles.outlineBtnText}>Hatali icerik bildir</Text>
+        <Text style={styles.outlineBtnText}>{t('spiritual.settingsScreen.reportBtn')}</Text>
       </Pressable>
     </ScrollView>
   );

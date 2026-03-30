@@ -3,6 +3,7 @@ import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { buildDailyTheme, scoreContent } from '../engine/recommendationEngine';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useContentStore } from '../store/useContentStore';
@@ -23,6 +24,7 @@ interface ScoredDua {
 }
 
 export default function AllRecommendationsScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { chart } = useNatalChartStore();
   const { esmaList, pureDuaList, sureList } = useContentStore();
@@ -87,9 +89,9 @@ export default function AllRecommendationsScreen() {
   ), [isDark, colors, handlePressDua]);
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'esma', label: 'Esma' },
-    { key: 'dua', label: 'Dua' },
-    { key: 'sure', label: 'Sure' },
+    { key: 'esma', label: t('spiritual.tabs.esma') },
+    { key: 'dua', label: t('spiritual.tabs.dua') },
+    { key: 'sure', label: t('spiritual.tabs.sure') },
   ];
 
   return (
@@ -98,7 +100,7 @@ export default function AllRecommendationsScreen() {
         colors={isDark ? ['#0B1A12', '#0F2318', '#0B1A12'] : ['#ECFDF5', '#F0FDF4', '#ECFDF5']}
         style={s.container}
       >
-        <AppHeader title="Oneriler" onBack={() => router.back()} transparent rightActions={<HeaderRightIcons />} />
+        <AppHeader title={t('spiritual.allRecommendations.title')} onBack={() => router.back()} transparent rightActions={<HeaderRightIcons />} />
 
       <View style={s.tabRow}>
         {tabs.map((tab) => {
@@ -135,7 +137,7 @@ export default function AllRecommendationsScreen() {
       <View style={s.themeInfo}>
         <Ionicons name="sparkles-outline" size={12} color={isDark ? '#86EFAC' : '#166534'} />
         <Text style={[s.themeText, { color: isDark ? '#86EFAC' : '#166534' }]}>
-          Tema: {theme.tags.slice(0, 3).join(', ')}
+          {t('spiritual.allRecommendations.themeLabel', { tags: theme.tags.slice(0, 3).join(', ') })}
         </Text>
       </View>
 

@@ -269,7 +269,7 @@ export default function CounterScreen() {
         onPress={handleTap}
         disabled={store.status !== 'running'}
         accessibilityLabel={t('spiritual.counter.decrementA11y')}
-        accessibilityHint="Ekrana dokunarak zikir sayısını azaltın"
+        accessibilityHint={t('spiritual.counter.decrementHint')}
       >
         <Animated.View style={[styles.contentInner, tapAnimStyle]}>
           <ScrollView
@@ -297,10 +297,10 @@ export default function CounterScreen() {
           {/* Status hint */}
           <Text style={[styles.statusLabel, { color: SUBTEXT }]}>
             {store.status === 'paused'
-              ? 'Duraklatıldı'
+              ? t('spiritual.counter.statusPaused')
               : store.remaining === 0
-              ? 'Tamamlandı'
-              : 'Ekrana dokun'}
+              ? t('spiritual.counter.statusCompleted')
+              : t('spiritual.counter.statusTap')}
           </Text>
         </Animated.View>
       </Pressable>
@@ -338,20 +338,20 @@ export default function CounterScreen() {
           />
           <ToolbarBtn
             icon="arrow-undo-outline"
-            label="Geri Al"
+            label={t('spiritual.counter.undoLabel')}
             color={SUBTEXT}
             disabled={store.history.length === 0}
             onPress={() => store.undo()}
           />
           <ToolbarBtn
             icon={store.status === 'paused' ? 'play-outline' : 'pause-outline'}
-            label={store.status === 'paused' ? 'Devam' : 'Duraklat'}
+            label={store.status === 'paused' ? t('spiritual.counter.resumeLabel') : t('spiritual.counter.pauseLabel')}
             color={ACCENT}
             onPress={() => (store.status === 'paused' ? store.resume() : store.pause())}
           />
           <ToolbarBtn
             icon="refresh-outline"
-            label="Sıfırla"
+            label={t('spiritual.counter.resetLabel')}
             color={SUBTEXT}
             onPress={() => store.reset()}
           />
@@ -371,7 +371,7 @@ export default function CounterScreen() {
           >
             <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
             <Text style={styles.saveButtonText}>
-              Kaydet ({store.completed}/{store.target})
+              {t('spiritual.counter.saveBtnLabel', { done: store.completed, target: store.target })}
             </Text>
           </Pressable>
         )}

@@ -12,6 +12,7 @@ public record TutorialConfigAdminSummaryResponse(
         String tutorialId,
         String name,
         String screenKey,
+        String locale,
         TutorialPlatform platform,
         Integer version,
         TutorialConfigStatus status,

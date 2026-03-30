@@ -1878,6 +1878,157 @@
     "missingChartMessage": "Your birth chart could not be found. Please create it first from the My Chart screen.",
     "dragSectionA11y": "Drag {{label}} section"
   },
+  "shareableCards": {
+    "title": "Shareable Cards",
+    "subtitle": "Turn compatibility, readings, and astro insights into polished share cards.",
+    "tabs": {
+      "all": "All",
+      "compatibility": "Compatibility",
+      "daily": "Daily Insight",
+      "numerology": "Numerology"
+    },
+  "create": {
+    "title": "Create a new card",
+    "cardType": "Card Type",
+    "theme": "Theme",
+    "aspectRatio": "Ratio",
+    "generate": "Generate",
+    "options": {
+      "cardType": {
+        "guruCard": "Guru Card",
+        "compatibilitySummary": "Compatibility Summary",
+        "bondSnapshot": "Bond Rhythm",
+        "dailyInsight": "Daily Aura",
+          "numerologySignature": "Number Signature"
+        },
+        "theme": {
+          "romanticNight": "Romantic Night",
+          "lavenderMist": "Lavender Mist",
+          "starlitBloom": "Starlit Bloom"
+        },
+        "aspectRatio": {
+          "story": "Story 9:16",
+          "portrait": "Portrait 4:5"
+        }
+      }
+    },
+  "preview": {
+    "title": "Compatibility Summary",
+    "guruCardTitle": "Guru Card",
+    "bondSnapshotTitle": "Bond Rhythm",
+    "dailyTitle": "Flow of the Day",
+    "numerologyTitle": "Number Signature",
+    "strongestArea": "Strongest Area",
+    "focusArea": "Watchpoint",
+    "connectionPulse": "Connection Pulse",
+    "sharedCurrent": "Shared Current",
+    "shareReady": "Ready to Share",
+    "sectionTitle": "Card preview",
+      "sectionSubtitle": "Your selected theme, ratio, and style appear here as the real share output.",
+      "love": "Love",
+      "communication": "Communication",
+      "balance": "Balance",
+      "defaultSummary": "This bond gathers emotional warmth and communication rhythm into a calm, premium match scene.",
+      "defaultLeftPerson": "Person A",
+      "defaultRightPerson": "Person B",
+      "defaultLeftSign": "Moon Sign",
+      "defaultRightSign": "Sun Sign",
+      "brand": "Astro Guru",
+      "source": {
+        "live": "Live synastry data",
+        "mock": "Preview with sample data",
+        "savedDraft": "Saved card draft",
+        "quickSeed": "Quick preview"
+      },
+      "relationships": {
+        "love": "Passionate bond",
+        "business": "Strategic match",
+        "friendship": "Easy flow",
+        "family": "Supportive bond",
+        "rival": "Tense balance"
+      }
+    },
+    "actions": {
+      "changeLayout": "Change Layout",
+      "changeIcons": "Change Icons",
+      "changeBackground": "Change Background",
+      "save": "Save",
+      "download": "Download",
+      "share": "Share"
+    },
+    "loading": {
+      "title": "Preparing card",
+      "description": "The premium preview scene and high-resolution output are being prepared together.",
+      "inline": "Refreshing the card…"
+    },
+    "empty": {
+      "title": "This category is not ready yet",
+      "description": "The share studio is waiting for content for the selected card type.",
+      "dailyDescription": "The content pipeline for daily insight cards is being prepared. For now, the synastry card remains the hero.",
+      "numerologyDescription": "Visual numerology templates will open in a later release.",
+      "switchToCompatibility": "Back to compatibility"
+    },
+    "error": {
+      "title": "Card content could not be loaded",
+      "description": "Live card data is currently unavailable. Try again to refresh the studio scene.",
+      "captureDescription": "The card image could not be generated right now. Please try again.",
+      "retry": "Try again"
+    },
+    "banner": {
+      "mockPreview": "Live data is unavailable right now. The preview is shown with sample content.",
+      "seedPreview": "The preview was created in quick studio mode with the current names and score."
+    },
+    "success": {
+      "generated": "New preview is ready",
+      "share": "Share sheet opened",
+      "save": "Card saved to gallery",
+      "download": "PDF export prepared"
+    },
+    "alerts": {
+      "generateTitle": "Card could not be created",
+      "shareTitle": "Share Error",
+      "saveTitle": "Save Error",
+      "downloadTitle": "Download Error",
+      "genericFailure": "The action could not be completed.",
+      "shareUnavailable": "Sharing is not available on this device right now.",
+      "mediaPermissionDenied": "Photo access is required to save the card to the gallery.",
+      "mediaSaveFailed": "The card could not be saved to the gallery. Please try again.",
+      "openSettings": "Open Settings",
+      "settingsOpenTitle": "Settings could not be opened",
+      "settingsOpenDescription": "Please open the Settings app manually."
+    },
+    "language": {
+      "label": "Language",
+      "turkish": "Turkish",
+      "english": "English"
+    },
+    "premium": {
+      "unlockToExport": "Unlock to save, download, or share this card.",
+      "guruUnlocked": "Unlocked with Guru"
+    },
+  "personPicker": {
+    "title": "Select Person",
+    "readyCards": "Ready analyses",
+    "loadingSaved": "Loading ready analyses…",
+    "selectPerson": "Select a saved person for compatibility analysis",
+    "noPeople": "No saved people yet",
+      "addPersonHint": "You can add people from the Compatibility tab",
+      "analyzing": "Running compatibility analysis…",
+      "analysisFailed": "Analysis could not be completed. Please try again.",
+      "analysisReady": "Compatibility analysis ready"
+    },
+    "horoscope": {
+      "luckyColor": "Lucky Color",
+      "luckyNumber": "Lucky Number",
+      "loadingHoroscope": "Loading daily horoscope…",
+      "horoscopeError": "Could not load daily horoscope"
+    },
+    "numerologyCard": {
+      "personalYear": "Personal Year: {{year}}",
+      "loadingNumerology": "Calculating numerology…",
+      "numerologyError": "Could not load numerology data"
+    }
+  },
   "notificationPermission": {
     "title": "Enable Notifications",
     "subtitle": "Allow notifications so you never miss Guru opportunities. Here's what we'll send:",
@@ -2527,20 +2678,147 @@
       "delete": "Delete",
       "rename": "Rename",
       "searchPlaceholder": "Search...",
-      "countPlaceholder": "?"
+      "countPlaceholder": "?",
+      "listTitle": "My Spiritual Bag",
+      "statSetLabel": "Sets",
+      "statItemLabel": "Items",
+      "cardItemCount": "{{count}} items",
+      "typeBadgeCount": "{{count}} {{type}}",
+      "cardEmptyHint": "Add names or prayers",
+      "emptyTitle": "No sets yet",
+      "emptySub": "Create your own prayer and name collections to personalize your daily practice.",
+      "emptyCreateBtn": "Create Your First Set",
+      "createPlaceholder": "Enter set name...",
+      "fallbackEsma": "Name",
+      "fallbackDua": "Prayer",
+      "unknownEsma": "Unknown Name",
+      "unknownDua": "Unknown Prayer",
+      "enterEditMode": "Enter Edit Mode",
+      "editItems": "Edit Items",
+      "addItems": "Add Items",
+      "continuePractice": "Continue",
+      "completedStatus": "Completed"
     },
     "prayerFlow": {
       "notFound": "Prayer not found.",
       "notePlaceholder": "Short note (optional)",
       "save": "Save",
-      "continueA11y": "Continue to prayer flow"
+      "continueA11y": "Continue to prayer flow",
+      "completedTitle": "Set Completed",
+      "completedSub": "All prayers completed. You can check your journal.",
+      "completedBtn": "Go Back",
+      "tabArabic": "Arabic",
+      "tabTrans": "Transliteration",
+      "tabMeaning": "Meaning",
+      "textNotFound": "Text not found.",
+      "countHintDone": "Done",
+      "countHintTap": "Tap",
+      "noteBtn": "Note",
+      "nextBtn": "Next",
+      "completeBtn": "Complete",
+      "flowSheetTitle": "Prayer Flow",
+      "repeatCount": "{{target}} repeats",
+      "noteSheetTitle": "Note & Mood"
+    },
+    "tabs": {
+      "esma": "Names",
+      "dua": "Prayer",
+      "sure": "Surah"
+    },
+    "routinePicker": {
+      "headerTitle": "Set Routine",
+      "itemCount": "{{count}} items",
+      "emptyTitle": "No lists yet",
+      "emptySub": "Add items to your spiritual bag to create a list",
+      "createBtn": "Create List",
+      "newListBtn": "Create New List"
+    },
+    "settingsScreen": {
+      "title": "Spiritual Settings",
+      "morningReminder": "Morning reminder",
+      "eveningReminder": "Evening reminder",
+      "ttsLabel": "TTS (default off)",
+      "readingModeLabel": "Reading mode (large font)",
+      "contentLanguageTitle": "Content language",
+      "contentLanguageSub": "TR (EN/AR support coming soon)",
+      "exportBtn": "JSON Export (optional)",
+      "reportBtn": "Report incorrect content"
+    },
+    "allRecommendations": {
+      "title": "Recommendations",
+      "themeLabel": "Theme: {{tags}}"
+    },
+    "dailyRecCard": {
+      "badge": "✨ Today's Recommendation",
+      "esmaLabel": "Today's Name",
+      "duaLabel": "Today's Prayer",
+      "sureLabel": "Today's Surah",
+      "showAll": "View All →"
+    },
+    "homeSection": {
+      "title": "Spiritual Practices",
+      "exploreBtn": "Explore",
+      "featDuaLabel": "Prayers",
+      "featDuaSub": "Daily prayers",
+      "featEsmaLabel": "Names",
+      "featEsmaSub": "99 Names",
+      "featBreathLabel": "Breathing",
+      "featBreathSub": "Breathing techniques",
+      "featRoutineLabel": "Set Routine",
+      "featRoutineSub": "My spiritual bag",
+      "sureSectionTitle": "Surahs",
+      "sureAllBtn": "All",
+      "footerSource": "Source note",
+      "footerQuick": "Quick practice",
+      "footerTrack": "Daily tracking"
+    },
+    "breathingList": {
+      "title": "Breathing Techniques",
+      "durationMin": "{{min}} min",
+      "difficultyBeginner": "Beginner",
+      "difficultyIntermediate": "Intermediate",
+      "difficultyAdvanced": "Advanced"
+    },
+    "asmaDaily": {
+      "loading": "Loading today's name...",
+      "error": "Failed to load name.",
+      "title": "Today's Name",
+      "saving": "Saving...",
+      "disclaimer": "This content is for informational purposes only."
     },
     "meditation": {
       "startBreathingA11y": "Start breathing exercise"
     },
+    "meditationSession": {
+      "loading": "Preparing session...",
+      "error": "Failed to start session.",
+      "subtitle": "Breathing and mindfulness exercise",
+      "saved": "Saved • {{sec}} sec • {{cycles}} cycles",
+      "disclaimerDefault": "This section provides breathing and mindfulness exercises; it is not medical advice."
+    },
+    "meditationDaily": {
+      "loading": "Loading exercise...",
+      "error": "Failed to load exercise.",
+      "title": "Today's Breath",
+      "durationMin": "{{min}} min",
+      "stepsTitle": "Steps",
+      "stepSec": "{{sec}} sec",
+      "disclaimerTitle": "Information",
+      "disclaimerDefault": "This section provides breathing and mindfulness exercises; it is not medical advice.",
+      "startBtn": "Start"
+    },
     "counter": {
       "decrementA11y": "Decrement counter",
-      "saveAndExitA11y": "Save {{count}} dhikr and exit"
+      "saveAndExitA11y": "Save {{count}} dhikr and exit",
+      "decrementHint": "Tap the screen to decrease dhikr count",
+      "statusPaused": "Paused",
+      "statusCompleted": "Completed",
+      "statusTap": "Tap to count",
+      "undoLabel": "Undo",
+      "resumeLabel": "Resume",
+      "pauseLabel": "Pause",
+      "resetLabel": "Reset",
+      "saveBtnLabel": "Save ({{done}}/{{target}})"
     },
     "finishModal": {
       "completed": "Completed!",
@@ -2549,6 +2827,25 @@
       "durationLabel": "Duration",
       "notePlaceholder": "Add a note (optional)...",
       "save": "Save"
+    },
+    "prayerSet": {
+      "shortTitle": "Short Prayers",
+      "shortTitleSabahAksam": "Short Prayers · Morning/Evening",
+      "shortTitleSukur": "Short Prayers · Gratitude",
+      "shortTitleKorunma": "Short Prayers · Protection",
+      "shortTitleHuzur": "Short Prayers · Serenity",
+      "shortTitleCategory": "Short Prayers · {{category}}",
+      "shortSubtitle": "10-30 sec quick access",
+      "loadingShort": "Loading short prayers...",
+      "errorShort": "Failed to load short prayers.",
+      "emptyShort": "No short prayers found for this category.",
+      "loadingSet": "Loading today's prayer set...",
+      "errorSet": "Failed to load prayer set.",
+      "emptySet": "No prayer set found for today.",
+      "todayTitle": "Today's Prayer Set",
+      "metaRepeatSec": "{{count}} reps · ~{{sec}} sec",
+      "metaRepeatXSec": "{{count}}x · ~{{sec}} sec",
+      "continueBtn": "Continue"
     }
   },
   "dailySummary": {
@@ -2870,5 +3167,92 @@
   },
   "appBrand": {
     "logoA11y": "Astro Guru"
+  },
+  "journalScreen": {
+    "headerTitle": "Dhikr Journal",
+    "statsLink": "Statistics",
+    "statStreak": "Day Streak",
+    "statThisWeek": "This Week",
+    "statTotal": "Total Entries",
+    "filterAll": "All",
+    "filterEsma": "Names",
+    "filterDua": "Prayer",
+    "emptyText": "No entries yet.\nComplete your first dhikr!",
+    "emptyBtn": "Go to 99 Names",
+    "typeBadgeEsma": "Name",
+    "typeBadgeDua": "Prayer",
+    "repeatCount": "{{done}}/{{target}} repeats",
+    "duration": " • {{min}}m {{sec}}s",
+    "deleteTitle": "Delete Entry",
+    "deleteMsg": "This entry will be deleted. Are you sure?",
+    "deleteCancel": "Cancel",
+    "deleteConfirm": "Delete",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "statsScreen": {
+    "headerTitle": "Statistics",
+    "period7d": "7 Days",
+    "period30d": "30 Days",
+    "periodAll": "All",
+    "legendDhikr": "Dhikr Count",
+    "metricPrayerRepeat": "Prayer Repeats",
+    "metricEsmaRepeat": "Name Repeats",
+    "metricActiveDays": "Active Days",
+    "metricStreak": "Day Streak",
+    "topTitle": "Most Recited",
+    "typeEsma": "Name",
+    "typeDua": "Prayer",
+    "emptyText": "No statistics yet. They'll appear here as you complete your dhikr."
+  },
+  "spiritualLayout": {
+    "screenPractices": "Spiritual Practices",
+    "screenTodaysPrayer": "Today's Prayer",
+    "screenPrayerFlow": "Prayer Flow",
+    "screenEsmaList": "99 Names of Allah",
+    "screenEsmaDetail": "Name Detail",
+    "screenDuaList": "Supplications",
+    "screenDuaDetail": "Supplication Detail",
+    "screenSureList": "Surahs",
+    "screenCounter": "Dhikr Counter",
+    "screenMeditationList": "Today's Breath",
+    "screenMeditationSession": "Breathing Session",
+    "screenJournal": "Dhikr Journal",
+    "screenStats": "Statistics",
+    "screenSettings": "Spiritual Settings",
+    "screenRecommendations": "Recommendations",
+    "screenCustomSets": "My Spiritual Bag",
+    "screenCustomSetDetail": "Set Detail",
+    "screenBreathingList": "Breathing Techniques",
+    "screenBreathingSession": "Breathing Session",
+    "screenRoutinePicker": "Set Routine"
+  },
+  "moodSelector": {
+    "sakin": "Calm",
+    "sukurlu": "Grateful",
+    "mutlu": "Happy",
+    "odakli": "Focused",
+    "yorgun": "Tired",
+    "gergin": "Tense",
+    "diger": "Other"
+  },
+  "breathTimer": {
+    "inhale": "Inhale",
+    "hold": "Hold",
+    "exhale": "Exhale",
+    "ready": "READY",
+    "progress": "{{elapsed}} / {{total}} sec",
+    "pause": "Pause",
+    "start": "Start"
+  },
+  "prayerCounter": {
+    "completed": "Completed",
+    "addLabel": "Add one",
+    "addHint": "Hold to count quickly",
+    "addBtn": "Add",
+    "holdHint": "Hold = fast"
+  },
+  "barChart": {
+    "empty": "No data yet"
   }
 }

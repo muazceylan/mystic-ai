@@ -3,18 +3,13 @@ import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useContentStore } from '../store/useContentStore';
 import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
 import type { BreathingTechnique } from '../types';
 
 const ACCENT = '#7C3AED';
-
-const DIFFICULTY_LABEL: Record<string, string> = {
-  BEGINNER: 'Başlangıç',
-  INTERMEDIATE: 'Orta',
-  ADVANCED: 'İleri',
-};
 
 const DIFFICULTY_COLOR: Record<string, string> = {
   BEGINNER: '#16A34A',
@@ -30,14 +25,21 @@ function formatPattern(p: BreathingTechnique['pattern']): string {
 }
 
 export default function BreathingListScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { breathingTechniques } = useContentStore();
   const s = makeStyles(colors, isDark);
 
+  const difficultyLabel: Record<string, string> = {
+    BEGINNER: t('spiritual.breathingList.difficultyBeginner'),
+    INTERMEDIATE: t('spiritual.breathingList.difficultyIntermediate'),
+    ADVANCED: t('spiritual.breathingList.difficultyAdvanced'),
+  };
+
   const renderCard = ({ item }: { item: BreathingTechnique }) => {
-    const diffLabel = DIFFICULTY_LABEL[item.difficulty] ?? item.difficulty;
+    const diffLabel = difficultyLabel[item.difficulty] ?? item.difficulty;
     const diffColor = DIFFICULTY_COLOR[item.difficulty] ?? ACCENT;
-    const durationMin = Math.floor(item.defaultDurationSec / 60) + ' dk';
+    const durationMin = t('spiritual.breathingList.durationMin', { min: Math.floor(item.defaultDurationSec / 60) });
     const patternStr = formatPattern(item.pattern);
 
     return (
@@ -102,7 +104,7 @@ export default function BreathingListScreen() {
         style={s.flex}
       >
         <AppHeader
-        title="Nefes Teknikleri"
+        title={t('spiritual.breathingList.title')}
         onBack={() => router.back()}
         transparent
         rightActions={<HeaderRightIcons />}

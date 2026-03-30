@@ -1,6 +1,7 @@
 import React, { memo, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useRecommendationStore } from '../store/useRecommendationStore';
 import { useContentStore } from '../store/useContentStore';
@@ -24,6 +25,7 @@ export const DailyRecommendationCard = memo(function DailyRecommendationCard({
   borderColor = '#2D5A3D',
   onShowAll,
 }: Props) {
+  const { t } = useTranslation();
   const { chart } = useNatalChartStore();
   const { today, generate, markShown } = useRecommendationStore();
   const { esmaList, duaList, getEsmaById, getDuaById } = useContentStore();
@@ -47,7 +49,7 @@ export const DailyRecommendationCard = memo(function DailyRecommendationCard({
     <View style={[styles.card, { backgroundColor: surfaceColor, borderColor }]}>
       <View style={styles.headerRow}>
         <Text style={[styles.badge, { backgroundColor: accentColor + '22', color: accentColor }]}>
-          ✨ Günün Önerisi
+          {t('spiritual.dailyRecCard.badge')}
         </Text>
       </View>
 
@@ -60,7 +62,7 @@ export const DailyRecommendationCard = memo(function DailyRecommendationCard({
             onPress={() => router.push({ pathname: '/spiritual/asma/[id]', params: { id: esma.id } })}
           >
             <View style={styles.itemLeft}>
-              <Text style={[styles.itemLabel, { color: subtextColor }]}>Günün Esması</Text>
+              <Text style={[styles.itemLabel, { color: subtextColor }]}>{t('spiritual.dailyRecCard.esmaLabel')}</Text>
               <Text style={[styles.itemName, { color: textColor }]}>{esma.nameTr}</Text>
               <Text style={[styles.itemSub, { color: subtextColor + 'BB' }]}>{esma.transliteration}</Text>
             </View>
@@ -74,7 +76,7 @@ export const DailyRecommendationCard = memo(function DailyRecommendationCard({
             onPress={() => router.push({ pathname: '/spiritual/dua/[id]', params: { id: dua.id } })}
           >
             <View style={styles.itemLeft}>
-              <Text style={[styles.itemLabel, { color: subtextColor }]}>Günün Duası</Text>
+              <Text style={[styles.itemLabel, { color: subtextColor }]}>{t('spiritual.dailyRecCard.duaLabel')}</Text>
               <Text style={[styles.itemName, { color: textColor }]}>{dua.title}</Text>
               <Text style={[styles.itemSub, { color: subtextColor + 'BB' }]}>{dua.shortBenefit}</Text>
             </View>
@@ -90,7 +92,7 @@ export const DailyRecommendationCard = memo(function DailyRecommendationCard({
             onPress={() => router.push({ pathname: '/spiritual/dua/[id]', params: { id: sure.id } })}
           >
             <View style={styles.itemLeft}>
-              <Text style={[styles.itemLabel, { color: SURE_ACCENT }]}>Günün Suresi</Text>
+              <Text style={[styles.itemLabel, { color: SURE_ACCENT }]}>{t('spiritual.dailyRecCard.sureLabel')}</Text>
               <Text style={[styles.itemName, { color: textColor }]}>{sure.title}</Text>
               <Text style={[styles.itemSub, { color: subtextColor + 'BB' }]}>{sure.shortBenefit}</Text>
             </View>
@@ -103,7 +105,7 @@ export const DailyRecommendationCard = memo(function DailyRecommendationCard({
 
       {onShowAll && (
         <Pressable onPress={onShowAll} style={styles.showAllRow}>
-          <Text style={[styles.showAllText, { color: accentColor }]}>Tümünü Gör →</Text>
+          <Text style={[styles.showAllText, { color: accentColor }]}>{t('spiritual.dailyRecCard.showAll')}</Text>
         </Pressable>
       )}
     </View>

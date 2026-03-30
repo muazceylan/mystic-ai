@@ -493,8 +493,9 @@ export function TutorialConfigForm({
               value={form.locale ?? ''}
               onChange={(event) => setField('locale', event.target.value)}
               className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-white"
-              placeholder="tr, en gibi"
+              placeholder="tr veya en"
             />
+            <p className="mt-1 text-xs text-gray-500">Boş bırakırsan tutorial tüm diller için generic fallback olarak kalır.</p>
           </div>
           <div>
             <label className="mb-1 block text-sm text-gray-400">experimentKey</label>

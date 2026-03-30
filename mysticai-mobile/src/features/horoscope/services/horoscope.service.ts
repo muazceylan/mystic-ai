@@ -1,6 +1,7 @@
 import api from '../../../services/api';
 import { fetchDailyHoroscopeFromCms, fetchWeeklyHoroscopeFromCms, CmsDailyHoroscope, CmsWeeklyHoroscope } from '../../../services/cmsContent.service';
 import { HoroscopeResponse, HoroscopePeriod, ZodiacSign } from '../types/horoscope.types';
+import { resolveZodiacSign } from '../utils/zodiacData';
 
 const CACHE_TTL = 30 * 60 * 1000; // 30 min
 const cache = new Map<string, { data: HoroscopeResponse; ts: number }>();
@@ -82,13 +83,18 @@ function cmsToHoroscopeResponse(
 }
 
 export async function fetchHoroscope(
-  sign: ZodiacSign,
+  sign: ZodiacSign | string,
   period: HoroscopePeriod,
   lang: string,
 ): Promise<HoroscopeResponse> {
+  const normalizedSign = resolveZodiacSign(sign);
+  if (!normalizedSign) {
+    throw new Error(`Invalid zodiac sign: ${String(sign ?? '')}`);
+  }
+
   clearIfDayChanged();
 
-  const tag = `[Horoscope] ${sign} ${period} ${lang}`;
+  const tag = `[Horoscope] ${normalizedSign} ${period} ${lang}`;
 
   // CMS first — always fetch fresh so admin edits are immediately visible.
   // The CMS endpoint itself falls back to astrology-service ingest on 404.
@@ -98,22 +104,22 @@ export async function fetchHoroscope(
   let cmsInfraError = false;
   try {
     if (period === 'daily') {
-      const cmsRecord = await fetchDailyHoroscopeFromCms(sign, todayStr(), lang);
+      const cmsRecord = await fetchDailyHoroscopeFromCms(normalizedSign, todayStr(), lang);
       if (cmsRecord) {
         console.log(`${tag} → SOURCE: CMS-DB | sourceType=${cmsRecord.sourceType} | id=${cmsRecord.id}`);
-        return cmsToHoroscopeResponse(cmsRecord, sign, period, lang);
+        return cmsToHoroscopeResponse(cmsRecord, normalizedSign, period, lang);
       }
       // 404: CMS has no data and astrology-service ingest also failed — do not call direct API
       console.warn(`${tag} → CMS 404: no data in DB and ingest failed`);
-      throw new Error(`No horoscope data available for ${sign}`);
+      throw new Error(`No horoscope data available for ${normalizedSign}`);
     } else if (period === 'weekly') {
-      const cmsRecord = await fetchWeeklyHoroscopeFromCms(sign, currentMondayStr(), lang);
+      const cmsRecord = await fetchWeeklyHoroscopeFromCms(normalizedSign, currentMondayStr(), lang);
       if (cmsRecord) {
         console.log(`${tag} → SOURCE: CMS-DB | sourceType=${cmsRecord.sourceType} | id=${cmsRecord.id}`);
-        return cmsToHoroscopeResponse(cmsRecord, sign, period, lang);
+        return cmsToHoroscopeResponse(cmsRecord, normalizedSign, period, lang);
       }
       console.warn(`${tag} → CMS 404: no data in DB and ingest failed`);
-      throw new Error(`No horoscope data available for ${sign}`);
+      throw new Error(`No horoscope data available for ${normalizedSign}`);
     }
     throw new Error(`Unknown period: ${period}`);
   } catch (err) {
@@ -125,10 +131,10 @@ export async function fetchHoroscope(
     cmsInfraError = true;
   }
 
-  if (!cmsInfraError) throw new Error(`No horoscope data available for ${sign}`);
+  if (!cmsInfraError) throw new Error(`No horoscope data available for ${normalizedSign}`);
 
   // Emergency fallback to astrology-service — only when CMS is unreachable
-  const key = cacheKey(sign, period, lang);
+  const key = cacheKey(normalizedSign, period, lang);
   const cached = cache.get(key);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     console.log(`${tag} → SOURCE: IN-MEMORY CACHE (emergency API fallback)`);
@@ -137,7 +143,7 @@ export async function fetchHoroscope(
 
   console.log(`${tag} → SOURCE: ASTROLOGY-SERVICE API (emergency fallback — CMS unreachable)`);
   const res = await api.get<HoroscopeResponse>('/api/v1/horoscope', {
-    params: { sign, period, lang },
+    params: { sign: normalizedSign, period, lang },
   });
 
   const data = res.data;

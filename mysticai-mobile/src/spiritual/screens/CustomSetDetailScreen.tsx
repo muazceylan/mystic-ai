@@ -35,20 +35,17 @@ import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDra
 
 type AddTab = 'esma' | 'dua' | 'sure';
 
-const TYPE_META: Record<string, {
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  darkColor: string;
-  label: string;
-}> = {
-  esma: { icon: 'sparkles-outline', color: '#B45309', darkColor: '#FBBF24', label: 'Esma' },
-  dua: { icon: 'book-outline', color: '#4F46E5', darkColor: '#818CF8', label: 'Dua' },
-  sure: { icon: 'library-outline', color: '#7C3AED', darkColor: '#A78BFA', label: 'Sure' },
-};
+type TypeMetaItem = { icon: keyof typeof Ionicons.glyphMap; color: string; darkColor: string; label: string; };
 
 export default function CustomSetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
+
+  const TYPE_META: Record<string, TypeMetaItem> = {
+    esma: { icon: 'sparkles-outline', color: '#B45309', darkColor: '#FBBF24', label: t('spiritual.tabs.esma') },
+    dua: { icon: 'book-outline', color: '#4F46E5', darkColor: '#818CF8', label: t('spiritual.tabs.dua') },
+    sure: { icon: 'library-outline', color: '#7C3AED', darkColor: '#A78BFA', label: t('spiritual.tabs.sure') },
+  };
   const { colors, isDark } = useTheme();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
@@ -99,7 +96,7 @@ export default function CustomSetDetailScreen() {
       if (item.itemType === 'esma') {
         const esma = getEsmaById(item.itemId);
         return {
-          name: esma?.nameTr ?? 'Bilinmeyen Esma',
+          name: esma?.nameTr ?? t('spiritual.customSet.unknownEsma'),
           arabic: esma?.nameAr ?? '',
           sub: esma?.meaningTr ?? '',
           target: item.targetCount ?? esma?.defaultTargetCount ?? 33,
@@ -107,7 +104,7 @@ export default function CustomSetDetailScreen() {
       }
       const dua = getDuaById(item.itemId);
       return {
-        name: dua?.title ?? 'Bilinmeyen Dua',
+        name: dua?.title ?? t('spiritual.customSet.unknownDua'),
         arabic: dua?.arabic ? dua.arabic.slice(0, 40) : '',
         sub: dua?.shortBenefit ?? '',
         target: item.targetCount ?? dua?.defaultTargetCount ?? 3,
@@ -284,13 +281,13 @@ export default function CustomSetDetailScreen() {
         onLongPress={() => {
           if (!isEditMode) {
             Alert.alert(resolved.name, undefined, [
-              { text: 'Düzenle Moduna Geç', onPress: () => setIsEditMode(true) },
+              { text: t('spiritual.customSet.enterEditMode'), onPress: () => setIsEditMode(true) },
               {
-                text: 'Sil',
+                text: t('spiritual.customSet.delete'),
                 style: 'destructive',
                 onPress: () => removeItem(set.id, item.itemType, item.itemId),
               },
-              { text: 'Vazgeç', style: 'cancel' },
+              { text: t('spiritual.customSet.cancel'), style: 'cancel' },
             ]);
           }
         }}
@@ -516,7 +513,7 @@ export default function CustomSetDetailScreen() {
           onPress={() => { setAddSearch(''); setAddItemCounts({}); setExpandedCountPicker(null); setCustomCountText(''); setShowAddModal(true); }}
         >
           <Ionicons name={totalCount > 0 ? 'pencil-outline' : 'add-circle-outline'} size={18} color={accent} />
-          <Text style={[S.addBtnText, { color: accent }]}>{totalCount > 0 ? 'Öğe Düzenle' : 'Öğe Ekle'}</Text>
+          <Text style={[S.addBtnText, { color: accent }]}>{totalCount > 0 ? t('spiritual.customSet.editItems') : t('spiritual.customSet.addItems')}</Text>
         </Pressable>
 
         {totalCount > 0 && completedCount < totalCount && (
@@ -533,14 +530,14 @@ export default function CustomSetDetailScreen() {
             }}
           >
             <Ionicons name="play" size={18} color="#FFF" />
-            <Text style={S.startBtnText}>Devam Et</Text>
+            <Text style={S.startBtnText}>{t('spiritual.customSet.continuePractice')}</Text>
           </Pressable>
         )}
 
         {totalCount > 0 && completedCount >= totalCount && (
           <View style={[S.startBtn, { backgroundColor: doneColor }]}>
             <Ionicons name="checkmark-circle" size={18} color="#FFF" />
-            <Text style={S.startBtnText}>Tamamlandı</Text>
+            <Text style={S.startBtnText}>{t('spiritual.customSet.completedStatus')}</Text>
           </View>
         )}
       </View>
@@ -558,7 +555,7 @@ export default function CustomSetDetailScreen() {
                   <View>
                     <View style={S.modalHandle} />
                     <View style={S.modalHeader}>
-                      <Text style={S.modalTitle}>{totalCount > 0 ? 'Öğe Düzenle' : 'Öğe Ekle'}</Text>
+                      <Text style={S.modalTitle}>{totalCount > 0 ? t('spiritual.customSet.editItems') : t('spiritual.customSet.addItems')}</Text>
                       <Pressable onPress={closeAddModal} hitSlop={10}>
                         <Ionicons name="close" size={22} color={colors.text} />
                       </Pressable>
@@ -568,13 +565,13 @@ export default function CustomSetDetailScreen() {
 
               {/* Tab chips */}
               <View style={S.chipRow}>
-                {(['esma', 'dua', 'sure'] as AddTab[]).map((t) => {
-                  const meta = TYPE_META[t];
+                {(['esma', 'dua', 'sure'] as AddTab[]).map((tab) => {
+                  const meta = TYPE_META[tab];
                   const clr = isDark ? meta.darkColor : meta.color;
-                  const isActive = addTab === t;
+                  const isActive = addTab === tab;
                   return (
                     <Pressable
-                      key={t}
+                      key={tab}
                       style={[
                         S.chip,
                         {
@@ -582,7 +579,7 @@ export default function CustomSetDetailScreen() {
                           borderColor: isActive ? clr + '44' : colors.border,
                         },
                       ]}
-                      onPress={() => { setAddTab(t); setAddSearch(''); setExpandedCountPicker(null); }}
+                      onPress={() => { setAddTab(tab); setAddSearch(''); setExpandedCountPicker(null); }}
                     >
                       <Ionicons name={meta.icon} size={14} color={isActive ? clr : colors.subtext} />
                       <Text style={[S.chipText, { color: isActive ? clr : colors.subtext }]}>

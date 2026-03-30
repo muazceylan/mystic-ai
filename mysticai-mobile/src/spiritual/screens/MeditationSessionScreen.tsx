@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { BreathTimer } from '../components/BreathTimer';
 import { useSpiritualDaily } from '../hooks/useSpiritualDaily';
 import { spiritualApi } from '../api/spiritual.api';
@@ -20,6 +21,7 @@ function parseBreathingPattern(raw?: string | null): { inhale: number; hold1?: n
 }
 
 export default function MeditationSessionScreen() {
+  const { t } = useTranslation();
   const { meditation } = useSpiritualDaily();
   const [resultText, setResultText] = useState<string>('');
 
@@ -28,13 +30,13 @@ export default function MeditationSessionScreen() {
     [meditation.data?.breathingPatternJson],
   );
 
-  if (meditation.isLoading) return <View style={styles.center}><Text>Seans hazirlaniyor...</Text></View>;
-  if (meditation.isError || !meditation.data) return <View style={styles.center}><Text>Seans baslatilamadi.</Text></View>;
+  if (meditation.isLoading) return <View style={styles.center}><Text>{t('spiritual.meditationSession.loading')}</Text></View>;
+  if (meditation.isError || !meditation.data) return <View style={styles.center}><Text>{t('spiritual.meditationSession.error')}</Text></View>;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{meditation.data.title}</Text>
-      <Text style={styles.sub}>Nefes ve farkindalik egzersizi</Text>
+      <Text style={styles.sub}>{t('spiritual.meditationSession.subtitle')}</Text>
 
       <BreathTimer
         pattern={pattern}
@@ -46,12 +48,12 @@ export default function MeditationSessionScreen() {
             durationSec: actualDurationSec,
             completedCycles: cycles,
           });
-          setResultText(`Kaydedildi • ${res.actualDurationSec} sn • ${res.completedCycles ?? 0} dongu`);
+          setResultText(t('spiritual.meditationSession.saved', { sec: res.actualDurationSec, cycles: res.completedCycles ?? 0 }));
         }}
       />
 
       <Text style={styles.disclaimer}>
-        {meditation.data.disclaimerText ?? 'Bu bolum nefes ve farkindalik egzersizi sunar; tibbi tavsiye degildir.'}
+        {meditation.data.disclaimerText ?? t('spiritual.meditationSession.disclaimerDefault')}
       </Text>
 
       {resultText ? <Text style={styles.success}>{resultText}</Text> : null}

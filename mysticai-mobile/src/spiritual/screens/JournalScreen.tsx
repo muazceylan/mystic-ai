@@ -14,6 +14,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { useJournalStore } from '../store/useJournalStore';
@@ -27,12 +28,12 @@ interface Section {
   data: JournalEntry[];
 }
 
-function formatDateLabel(dateISO: string): string {
+function formatDateLabel(dateISO: string, todayLabel: string, yesterdayLabel: string, locale: string): string {
   const today = new Date().toISOString().slice(0, 10);
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (dateISO === today) return 'Bugün';
-  if (dateISO === yesterday) return 'Dün';
-  return new Date(dateISO).toLocaleDateString('tr-TR', {
+  if (dateISO === today) return todayLabel;
+  if (dateISO === yesterday) return yesterdayLabel;
+  return new Date(dateISO).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -40,6 +41,7 @@ function formatDateLabel(dateISO: string): string {
 }
 
 export default function JournalScreen() {
+  const { t, i18n } = useTranslation();
   const journal = useJournalStore();
   const { colors, isDark } = useTheme();
   const [filter, setFilter] = useState<FilterType>('all');
@@ -65,7 +67,7 @@ export default function JournalScreen() {
     return Object.entries(grouped)
       .sort(([a], [b]) => b.localeCompare(a)) // en yeni önce
       .map(([dateISO, data]) => ({
-        title: formatDateLabel(dateISO),
+        title: formatDateLabel(dateISO, t('journalScreen.today'), t('journalScreen.yesterday'), i18n.language),
         dateISO,
         data,
       }));
@@ -84,10 +86,10 @@ export default function JournalScreen() {
   const streak = journal.getStreakDays();
 
   const handleDelete = (id: string) => {
-    Alert.alert('Kaydı Sil', 'Bu kayıt silinecek. Emin misin?', [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('journalScreen.deleteTitle'), t('journalScreen.deleteMsg'), [
+      { text: t('journalScreen.deleteCancel'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('journalScreen.deleteConfirm'),
         style: 'destructive',
         onPress: () => journal.deleteEntry(id),
       },
@@ -104,10 +106,10 @@ export default function JournalScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={TEXT} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: TEXT }]}>Zikir Günlüğüm</Text>
+        <Text style={[styles.headerTitle, { color: TEXT }]}>{t('journalScreen.headerTitle')}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Pressable onPress={() => router.push('/spiritual/journal/stats')}>
-            <Text style={[styles.statsLink, { color: ACCENT }]}>İstatistik</Text>
+            <Text style={[styles.statsLink, { color: ACCENT }]}>{t('journalScreen.statsLink')}</Text>
           </Pressable>
           <HeaderRightIcons tintColor={TEXT} />
         </View>
@@ -117,17 +119,17 @@ export default function JournalScreen() {
       <View style={[styles.statsBar, { backgroundColor: SURFACE, borderColor: BORDER }]}>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: ACCENT }]}>{streak}</Text>
-          <Text style={[styles.statLabel, { color: SUBTEXT }]}>Gün Serisi</Text>
+          <Text style={[styles.statLabel, { color: SUBTEXT }]}>{t('journalScreen.statStreak')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: BORDER }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: ACCENT }]}>{totalThisWeek}</Text>
-          <Text style={[styles.statLabel, { color: SUBTEXT }]}>Bu Hafta</Text>
+          <Text style={[styles.statLabel, { color: SUBTEXT }]}>{t('journalScreen.statThisWeek')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: BORDER }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: ACCENT }]}>{journal.entries.length}</Text>
-          <Text style={[styles.statLabel, { color: SUBTEXT }]}>Toplam Kayıt</Text>
+          <Text style={[styles.statLabel, { color: SUBTEXT }]}>{t('journalScreen.statTotal')}</Text>
         </View>
       </View>
 
@@ -144,7 +146,7 @@ export default function JournalScreen() {
             ]}
           >
             <Text style={[styles.filterText, { color: f === filter ? ACCENT : SUBTEXT }]}>
-              {f === 'all' ? 'Tümü' : f === 'esma' ? 'Esma' : 'Dua'}
+              {f === 'all' ? t('journalScreen.filterAll') : f === 'esma' ? t('journalScreen.filterEsma') : t('journalScreen.filterDua')}
             </Text>
           </Pressable>
         ))}
@@ -159,13 +161,13 @@ export default function JournalScreen() {
           <View style={styles.emptyState}>
             <Text style={[styles.emptyIcon]}>🤲</Text>
             <Text style={[styles.emptyText, { color: SUBTEXT }]}>
-              Henüz kayıt yok.{'\n'}İlk zikrini tamamla!
+              {t('journalScreen.emptyText')}
             </Text>
             <Pressable
               style={[styles.emptyBtn, { backgroundColor: ACCENT + '22', borderColor: ACCENT + '44' }]}
               onPress={() => router.push('/spiritual/asma')}
             >
-              <Text style={[styles.emptyBtnText, { color: ACCENT }]}>Esmaül Hüsna'ya Git</Text>
+              <Text style={[styles.emptyBtnText, { color: ACCENT }]}>{t('journalScreen.emptyBtn')}</Text>
             </Pressable>
           </View>
         }
@@ -191,11 +193,11 @@ export default function JournalScreen() {
                       { color: item.itemType === 'esma' ? ACCENT : '#4CAF50' },
                     ]}
                   >
-                    {item.itemType === 'esma' ? 'Esma' : 'Dua'}
+                    {item.itemType === 'esma' ? t('journalScreen.typeBadgeEsma') : t('journalScreen.typeBadgeDua')}
                   </Text>
                 </View>
                 <Text style={[styles.entryTime, { color: TEXT + '55' }]}>
-                  {new Date(item.createdAt).toLocaleTimeString('tr-TR', {
+                  {new Date(item.createdAt).toLocaleTimeString(i18n.language === 'tr' ? 'tr-TR' : 'en-US', {
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
@@ -205,8 +207,8 @@ export default function JournalScreen() {
                 {item.itemName}
               </Text>
               <Text style={[styles.entryMeta, { color: SUBTEXT }]}>
-                {item.completed}/{item.target} tekrar
-                {item.durationSec > 0 ? ` • ${Math.floor(item.durationSec / 60)}dk ${item.durationSec % 60}sn` : ''}
+                {t('journalScreen.repeatCount', { done: item.completed, target: item.target })}
+                {item.durationSec > 0 ? t('journalScreen.duration', { min: Math.floor(item.durationSec / 60), sec: item.durationSec % 60 }) : ''}
               </Text>
               {item.note ? (
                 <Text style={[styles.entryNote, { color: TEXT + '88' }]} numberOfLines={2}>

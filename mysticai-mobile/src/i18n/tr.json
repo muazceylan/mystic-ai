@@ -1877,6 +1877,157 @@
     "missingChartMessage": "Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun.",
     "dragSectionA11y": "{{label}} bölümünü sürükle"
   },
+  "shareableCards": {
+    "title": "Paylaşılabilir Kartlar",
+    "subtitle": "Uyum, yorum ve astro içgörülerini paylaşılabilir kartlara dönüştür.",
+    "tabs": {
+      "all": "Tümü",
+      "compatibility": "Uyum Analizi",
+      "daily": "Günlük Yorum",
+      "numerology": "Numeroloji"
+    },
+  "create": {
+    "title": "Yeni kart oluştur",
+    "cardType": "Kart Türü",
+    "theme": "Tema",
+    "aspectRatio": "Oran",
+    "generate": "Oluştur",
+    "options": {
+      "cardType": {
+        "guruCard": "Guru Kart",
+        "compatibilitySummary": "Uyum Özeti",
+        "bondSnapshot": "Bağ Ritmi",
+        "dailyInsight": "Günlük Aura",
+          "numerologySignature": "Sayı İmzası"
+        },
+        "theme": {
+          "romanticNight": "Romantik Gece",
+          "lavenderMist": "Lavanta Sis",
+          "starlitBloom": "Yıldız Çiçeği"
+        },
+        "aspectRatio": {
+          "story": "Hikaye 9:16",
+          "portrait": "Portre 4:5"
+        }
+      }
+    },
+  "preview": {
+    "title": "Uyum Özeti",
+    "guruCardTitle": "Guru Kart",
+    "bondSnapshotTitle": "Bağ Ritmi",
+    "dailyTitle": "Günün Akışı",
+    "numerologyTitle": "Sayı İmzası",
+    "strongestArea": "En Güçlü Alan",
+    "focusArea": "Dikkat Alanı",
+    "connectionPulse": "Bağın Nabzı",
+    "sharedCurrent": "Ortak Akış",
+    "shareReady": "Paylaşıma Hazır",
+    "sectionTitle": "Kart önizlemesi",
+      "sectionSubtitle": "Seçtiğin tema, oran ve stil ile gerçek paylaşım çıktısı burada görünür.",
+      "love": "Aşk",
+      "communication": "İletişim",
+      "balance": "Denge",
+      "defaultSummary": "Bu bağ, duygusal sıcaklığı ve iletişim ritmini aynı sahnede toplayan dengeli bir eşleşme sunuyor.",
+      "defaultLeftPerson": "Kişi A",
+      "defaultRightPerson": "Kişi B",
+      "defaultLeftSign": "Ay Burcu",
+      "defaultRightSign": "Güneş Burcu",
+      "brand": "Astro Guru",
+      "source": {
+        "live": "Canlı synastry verisi",
+        "mock": "Örnek veri ile önizleme",
+        "savedDraft": "Kaydedilmiş kart taslağı",
+        "quickSeed": "Hızlı önizleme"
+      },
+      "relationships": {
+        "love": "Tutkulu bağ",
+        "business": "Stratejik eşleşme",
+        "friendship": "Akışta uyum",
+        "family": "Destekleyici bağ",
+        "rival": "Gergin denge"
+      }
+    },
+    "actions": {
+      "changeLayout": "Düzeni Değiştir",
+      "changeIcons": "İkonları Değiştir",
+      "changeBackground": "Arka Planı Değiştir",
+      "save": "Kaydet",
+      "download": "İndir",
+      "share": "Paylaş"
+    },
+    "loading": {
+      "title": "Kart hazırlanıyor",
+      "description": "Premium önizleme sahnesi ve yüksek çözünürlüklü çıktı eşzamanlı hazırlanıyor.",
+      "inline": "Kart yeniden işleniyor…"
+    },
+    "empty": {
+      "title": "Bu kategori için sahne hazır değil",
+      "description": "Paylaşım stüdyosu şu anda seçili kart türü için içerik bekliyor.",
+      "dailyDescription": "Günlük yorum kartları için içerik hattı hazırlanıyor. Şimdilik synastry kartını öne çıkarıyoruz.",
+      "numerologyDescription": "Numeroloji kartları için görsel şablonlar bir sonraki sürümde açılacak.",
+      "switchToCompatibility": "Uyum kartına dön"
+    },
+    "error": {
+      "title": "Kart içeriği alınamadı",
+      "description": "Canlı kart verisine ulaşılamadı. Yeniden deneyerek studio sahnesini tazeleyebilirsin.",
+      "captureDescription": "Kart görseli şu anda üretilemedi. Lütfen tekrar deneyin.",
+      "retry": "Tekrar dene"
+    },
+    "banner": {
+      "mockPreview": "Canlı veri şu an erişilebilir değil. Önizleme örnek içerikle gösteriliyor.",
+      "seedPreview": "Önizleme, mevcut isim ve skor bilgileriyle hızlı stüdyo modunda oluşturuldu."
+    },
+    "success": {
+      "generated": "Yeni önizleme hazır",
+      "share": "Paylaşım menüsü açıldı",
+      "save": "Kart galeriye kaydedildi",
+      "download": "PDF çıktısı hazırlandı"
+    },
+    "alerts": {
+      "generateTitle": "Kart oluşturulamadı",
+      "shareTitle": "Paylaşım Hatası",
+      "saveTitle": "Kaydetme Hatası",
+      "downloadTitle": "İndirme Hatası",
+      "genericFailure": "İşlem tamamlanamadı.",
+      "shareUnavailable": "Bu cihazda paylaşım özelliği şu anda kullanılamıyor.",
+      "mediaPermissionDenied": "Galeriye kaydetmek için fotoğraf erişimi gerekiyor.",
+      "mediaSaveFailed": "Kart galeriye kaydedilemedi. Lütfen tekrar deneyin.",
+      "openSettings": "Ayarları Aç",
+      "settingsOpenTitle": "Ayarlar açılamadı",
+      "settingsOpenDescription": "Lütfen Ayarlar uygulamasını manuel olarak açın."
+    },
+    "language": {
+      "label": "Dil",
+      "turkish": "Türkçe",
+      "english": "İngilizce"
+    },
+    "premium": {
+      "unlockToExport": "Kartı kaydetmek, indirmek veya paylaşmak için kilidini aç.",
+      "guruUnlocked": "Guru ile kilit açıldı"
+    },
+  "personPicker": {
+    "title": "Kişi Seç",
+    "readyCards": "Hazır analizler",
+    "loadingSaved": "Hazır analizler yükleniyor…",
+    "selectPerson": "Uyum analizi için kayıtlı bir kişi seçin",
+    "noPeople": "Henüz kayıtlı kişi yok",
+      "addPersonHint": "Uyum sekmesinden kişi ekleyebilirsiniz",
+      "analyzing": "Uyum analizi yapılıyor…",
+      "analysisFailed": "Analiz tamamlanamadı. Tekrar deneyin.",
+      "analysisReady": "Uyum analizi hazır"
+    },
+    "horoscope": {
+      "luckyColor": "Şanslı Renk",
+      "luckyNumber": "Şanslı Sayı",
+      "loadingHoroscope": "Günlük yorum yükleniyor…",
+      "horoscopeError": "Günlük yorum alınamadı"
+    },
+    "numerologyCard": {
+      "personalYear": "Kişisel Yıl: {{year}}",
+      "loadingNumerology": "Numeroloji hesaplanıyor…",
+      "numerologyError": "Numeroloji verisi alınamadı"
+    }
+  },
   "notificationPermission": {
     "title": "Bildirimleri Aç",
     "subtitle": "Guru fırsatları kaçırmamak için bildirimlere izin verin. Size neler göndereceğiz:",
@@ -2526,20 +2677,147 @@
       "delete": "Sil",
       "rename": "Yeniden Adlandır",
       "searchPlaceholder": "Ara...",
-      "countPlaceholder": "?"
+      "countPlaceholder": "?",
+      "listTitle": "Ruhsal Çantam",
+      "statSetLabel": "Set",
+      "statItemLabel": "Öğe",
+      "cardItemCount": "{{count}} öğe",
+      "typeBadgeCount": "{{count}} {{type}}",
+      "cardEmptyHint": "Esma veya dua ekleyin",
+      "emptyTitle": "Henüz set oluşturmadınız",
+      "emptySub": "Kendi dua ve esma koleksiyonlarınızı oluşturun, günlük pratiklerinizi kişiselleştirin.",
+      "emptyCreateBtn": "İlk Setini Oluştur",
+      "createPlaceholder": "Set adı girin...",
+      "fallbackEsma": "Esma",
+      "fallbackDua": "Dua",
+      "unknownEsma": "Bilinmeyen Esma",
+      "unknownDua": "Bilinmeyen Dua",
+      "enterEditMode": "Düzenle Moduna Geç",
+      "editItems": "Öğe Düzenle",
+      "addItems": "Öğe Ekle",
+      "continuePractice": "Devam Et",
+      "completedStatus": "Tamamlandı"
     },
     "prayerFlow": {
       "notFound": "Dua bulunamadı.",
       "notePlaceholder": "Kısa not (opsiyonel)",
       "save": "Kaydet",
-      "continueA11y": "Dua akışına devam et"
+      "continueA11y": "Dua akışına devam et",
+      "completedTitle": "Set Tamamlandı",
+      "completedSub": "Tüm dualar tamamlandı. Günlüğünüzü kontrol edebilirsiniz.",
+      "completedBtn": "Geri Dön",
+      "tabArabic": "Arapça",
+      "tabTrans": "Okunuş",
+      "tabMeaning": "Meal",
+      "textNotFound": "Metin bulunamadı.",
+      "countHintDone": "Tamam",
+      "countHintTap": "Dokun",
+      "noteBtn": "Not",
+      "nextBtn": "Sonraki",
+      "completeBtn": "Tamamla",
+      "flowSheetTitle": "Dua Akışı",
+      "repeatCount": "{{target}} tekrar",
+      "noteSheetTitle": "Not & Ruh Hali"
+    },
+    "tabs": {
+      "esma": "Esma",
+      "dua": "Dua",
+      "sure": "Sure"
+    },
+    "routinePicker": {
+      "headerTitle": "Rutin Belirle",
+      "itemCount": "{{count}} öğe",
+      "emptyTitle": "Henüz liste yok",
+      "emptySub": "Ruhsal çantana öğe ekleyerek bir liste oluştur",
+      "createBtn": "Liste Oluştur",
+      "newListBtn": "Yeni Liste Oluştur"
+    },
+    "settingsScreen": {
+      "title": "Ruhsal Ayarlar",
+      "morningReminder": "Sabah hatırlatıcı",
+      "eveningReminder": "Akşam hatırlatıcı",
+      "ttsLabel": "TTS (varsayılan kapalı)",
+      "readingModeLabel": "Okuma modu (büyük font)",
+      "contentLanguageTitle": "İçerik dili",
+      "contentLanguageSub": "TR (gelecekte EN/AR altyapısı desteklenecek)",
+      "exportBtn": "JSON Dışa Aktar (opsiyonel)",
+      "reportBtn": "Hatalı içerik bildir"
+    },
+    "allRecommendations": {
+      "title": "Öneriler",
+      "themeLabel": "Tema: {{tags}}"
+    },
+    "dailyRecCard": {
+      "badge": "✨ Günün Önerisi",
+      "esmaLabel": "Günün Esması",
+      "duaLabel": "Günün Duası",
+      "sureLabel": "Günün Suresi",
+      "showAll": "Tümünü Gör →"
+    },
+    "homeSection": {
+      "title": "Ruhsal Pratikler",
+      "exploreBtn": "Keşfet",
+      "featDuaLabel": "Dualar",
+      "featDuaSub": "Günlük dualar",
+      "featEsmaLabel": "Esmalar",
+      "featEsmaSub": "99 Esma",
+      "featBreathLabel": "Nefes",
+      "featBreathSub": "Nefes teknikleri",
+      "featRoutineLabel": "Rutin Belirle",
+      "featRoutineSub": "Ruhsal çantam",
+      "sureSectionTitle": "Sureler",
+      "sureAllBtn": "Tümü",
+      "footerSource": "Kaynak notu",
+      "footerQuick": "Kısa pratik",
+      "footerTrack": "Günlük takip"
+    },
+    "breathingList": {
+      "title": "Nefes Teknikleri",
+      "durationMin": "{{min}} dk",
+      "difficultyBeginner": "Başlangıç",
+      "difficultyIntermediate": "Orta",
+      "difficultyAdvanced": "İleri"
+    },
+    "asmaDaily": {
+      "loading": "Günün esması yükleniyor...",
+      "error": "Esma yüklenemedi.",
+      "title": "Günün Esması",
+      "saving": "Kaydediliyor...",
+      "disclaimer": "Bu içerikler bilgilendirme amaçlıdır."
     },
     "meditation": {
       "startBreathingA11y": "Nefes egzersizini başlat"
     },
+    "meditationSession": {
+      "loading": "Seans hazırlanıyor...",
+      "error": "Seans başlatılamadı.",
+      "subtitle": "Nefes ve farkındalık egzersizi",
+      "saved": "Kaydedildi • {{sec}} sn • {{cycles}} döngü",
+      "disclaimerDefault": "Bu bölüm nefes ve farkındalık egzersizi sunar; tıbbi tavsiye değildir."
+    },
+    "meditationDaily": {
+      "loading": "Egzersiz yükleniyor...",
+      "error": "Egzersiz yüklenemedi.",
+      "title": "Bugünün Nefesi",
+      "durationMin": "{{min}} dk",
+      "stepsTitle": "Adımlar",
+      "stepSec": "{{sec}} sn",
+      "disclaimerTitle": "Bilgilendirme",
+      "disclaimerDefault": "Bu bölüm nefes ve farkındalık egzersizi sunar; tıbbi tavsiye değildir.",
+      "startBtn": "Başlat"
+    },
     "counter": {
       "decrementA11y": "Sayacı azalt",
-      "saveAndExitA11y": "{{count}} zikir kaydet ve çık"
+      "saveAndExitA11y": "{{count}} zikir kaydet ve çık",
+      "decrementHint": "Ekrana dokunarak zikir sayısını azaltın",
+      "statusPaused": "Duraklatıldı",
+      "statusCompleted": "Tamamlandı",
+      "statusTap": "Ekrana dokun",
+      "undoLabel": "Geri Al",
+      "resumeLabel": "Devam",
+      "pauseLabel": "Duraklat",
+      "resetLabel": "Sıfırla",
+      "saveBtnLabel": "Kaydet ({{done}}/{{target}})"
     },
     "finishModal": {
       "completed": "Tamamlandı!",
@@ -2548,6 +2826,25 @@
       "durationLabel": "Süre",
       "notePlaceholder": "Not ekle (opsiyonel)...",
       "save": "Kaydet"
+    },
+    "prayerSet": {
+      "shortTitle": "Kısa Dualar",
+      "shortTitleSabahAksam": "Kısa Dualar · Sabah/Akşam",
+      "shortTitleSukur": "Kısa Dualar · Şükür",
+      "shortTitleKorunma": "Kısa Dualar · Korunma",
+      "shortTitleHuzur": "Kısa Dualar · Huzur",
+      "shortTitleCategory": "Kısa Dualar · {{category}}",
+      "shortSubtitle": "10-30 sn hızlı erişim",
+      "loadingShort": "Kısa dualar yükleniyor...",
+      "errorShort": "Kısa dualar yüklenemedi.",
+      "emptyShort": "Bu kategori için kısa dua bulunamadı.",
+      "loadingSet": "Bugünün dua seti yükleniyor...",
+      "errorSet": "Dua seti yüklenemedi.",
+      "emptySet": "Bugün için dua seti bulunamadı.",
+      "todayTitle": "Bugünün Dua Seti",
+      "metaRepeatSec": "{{count}} tekrar · ~{{sec}} sn",
+      "metaRepeatXSec": "{{count}}x · ~{{sec}} sn",
+      "continueBtn": "Devam Et"
     }
   },
   "dailySummary": {
@@ -2869,5 +3166,92 @@
   },
   "appBrand": {
     "logoA11y": "Astro Guru"
+  },
+  "journalScreen": {
+    "headerTitle": "Zikir Günlüğüm",
+    "statsLink": "İstatistik",
+    "statStreak": "Gün Serisi",
+    "statThisWeek": "Bu Hafta",
+    "statTotal": "Toplam Kayıt",
+    "filterAll": "Tümü",
+    "filterEsma": "Esma",
+    "filterDua": "Dua",
+    "emptyText": "Henüz kayıt yok.\nİlk zikrini tamamla!",
+    "emptyBtn": "Esmaül Hüsna'ya Git",
+    "typeBadgeEsma": "Esma",
+    "typeBadgeDua": "Dua",
+    "repeatCount": "{{done}}/{{target}} tekrar",
+    "duration": " • {{min}}dk {{sec}}sn",
+    "deleteTitle": "Kaydı Sil",
+    "deleteMsg": "Bu kayıt silinecek. Emin misin?",
+    "deleteCancel": "İptal",
+    "deleteConfirm": "Sil",
+    "today": "Bugün",
+    "yesterday": "Dün"
+  },
+  "statsScreen": {
+    "headerTitle": "İstatistikler",
+    "period7d": "7 Gün",
+    "period30d": "30 Gün",
+    "periodAll": "Tümü",
+    "legendDhikr": "Zikir Sayısı",
+    "metricPrayerRepeat": "Dua Tekrarı",
+    "metricEsmaRepeat": "Esma Tekrarı",
+    "metricActiveDays": "Aktif Gün",
+    "metricStreak": "Gün Serisi",
+    "topTitle": "En Çok Okunanlar",
+    "typeEsma": "Esma",
+    "typeDua": "Dua",
+    "emptyText": "Henüz istatistik yok. Zikirlerini tamamladıkça burada görünecek."
+  },
+  "spiritualLayout": {
+    "screenPractices": "Ruhsal Pratikler",
+    "screenTodaysPrayer": "Bugünün Duası",
+    "screenPrayerFlow": "Dua Akışı",
+    "screenEsmaList": "Esmaül Hüsna",
+    "screenEsmaDetail": "Esma Detay",
+    "screenDuaList": "Dualar",
+    "screenDuaDetail": "Dua Detay",
+    "screenSureList": "Sureler",
+    "screenCounter": "Zikirmatik",
+    "screenMeditationList": "Bugünün Nefesi",
+    "screenMeditationSession": "Nefes Seansı",
+    "screenJournal": "Zikir Günlüğüm",
+    "screenStats": "İstatistikler",
+    "screenSettings": "Ruhsal Ayarlar",
+    "screenRecommendations": "Öneriler",
+    "screenCustomSets": "Ruhsal Çantam",
+    "screenCustomSetDetail": "Set Detay",
+    "screenBreathingList": "Nefes Teknikleri",
+    "screenBreathingSession": "Nefes Seansı",
+    "screenRoutinePicker": "Rutin Belirle"
+  },
+  "moodSelector": {
+    "sakin": "Sakin",
+    "sukurlu": "Şükürli",
+    "mutlu": "Mutlu",
+    "odakli": "Odaklı",
+    "yorgun": "Yorgun",
+    "gergin": "Gergin",
+    "diger": "Diğer"
+  },
+  "breathTimer": {
+    "inhale": "Nefes Al",
+    "hold": "Tut",
+    "exhale": "Ver",
+    "ready": "HAZIR",
+    "progress": "{{elapsed}} / {{total}} sn",
+    "pause": "Duraklat",
+    "start": "Başlat"
+  },
+  "prayerCounter": {
+    "completed": "Tamamlandı",
+    "addLabel": "Bir ekle",
+    "addHint": "Basılı tutarak hızlı sayım yapabilirsiniz",
+    "addBtn": "Ekle",
+    "holdHint": "Basılı tut = hızlı"
+  },
+  "barChart": {
+    "empty": "Henüz veri yok"
   }
 }

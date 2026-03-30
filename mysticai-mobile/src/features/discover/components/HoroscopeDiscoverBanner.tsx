@@ -19,6 +19,7 @@ import { useAuthStore } from '../../../store/useAuthStore';
 import {
   ZODIAC_MAP,
   getSignFromBirthDate,
+  resolveZodiacSign,
 } from '../../horoscope/utils/zodiacData';
 import type { ZodiacSign } from '../../horoscope/types/horoscope.types';
 
@@ -34,7 +35,7 @@ export function HoroscopeDiscoverBanner() {
   const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase();
 
   const userSign = useMemo<ZodiacSign | null>(() => {
-    if (chart?.sunSign) return chart.sunSign.toLowerCase() as ZodiacSign;
+    if (chart?.sunSign) return resolveZodiacSign(chart.sunSign);
     if (user?.birthDate) return getSignFromBirthDate(user.birthDate);
     return null;
   }, [chart?.sunSign, user?.birthDate]);

@@ -160,13 +160,13 @@ export default function PrayerFlowScreen() {
         <View style={S.completedIcon}>
           <Ionicons name="checkmark-circle" size={56} color={isDark ? '#4ADE80' : '#16A34A'} />
         </View>
-        <Text style={S.completedTitle}>Set Tamamlandı</Text>
-        <Text style={S.completedSub}>Tüm dualar tamamlandı. Günlüğünüzü kontrol edebilirsiniz.</Text>
+        <Text style={S.completedTitle}>{t('spiritual.prayerFlow.completedTitle')}</Text>
+        <Text style={S.completedSub}>{t('spiritual.prayerFlow.completedSub')}</Text>
         <Pressable
           style={({ pressed }) => [S.completedBtn, pressed && { opacity: 0.8 }]}
           onPress={() => { flow.reset(); router.back(); }}
         >
-          <Text style={S.completedBtnText}>Geri Dön</Text>
+          <Text style={S.completedBtnText}>{t('spiritual.prayerFlow.completedBtn')}</Text>
         </Pressable>
       </View>
     );
@@ -215,23 +215,23 @@ export default function PrayerFlowScreen() {
         {/* text mode tabs */}
         <View style={S.textTabs}>
           {([
-            { key: 'arabic' as const, label: 'Arapça' },
-            { key: 'trans' as const, label: 'Okunuş' },
-            { key: 'meaning' as const, label: 'Meal' },
-          ]).map((t) => (
+            { key: 'arabic' as const, label: t('spiritual.prayerFlow.tabArabic') },
+            { key: 'trans' as const, label: t('spiritual.prayerFlow.tabTrans') },
+            { key: 'meaning' as const, label: t('spiritual.prayerFlow.tabMeaning') },
+          ]).map((tab) => (
             <Pressable
               key={t.key}
               onPress={() => setTextMode(t.key)}
               style={[
                 S.textTab,
-                textMode === t.key && { backgroundColor: accentSoft, borderColor: accent + '44' },
+                textMode === tab.key && { backgroundColor: accentSoft, borderColor: accent + '44' },
               ]}
             >
               <Text style={[
                 S.textTabLabel,
-                { color: textMode === t.key ? accent : colors.subtext },
+                { color: textMode === tab.key ? accent : colors.subtext },
               ]}>
-                {t.label}
+                {tab.label}
               </Text>
             </Pressable>
           ))}
@@ -254,7 +254,7 @@ export default function PrayerFlowScreen() {
             ]}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            {displayText || 'Metin bulunamadı.'}
+            {displayText || t('spiritual.prayerFlow.textNotFound')}
           </Text>
         </ScrollView>
       </View>
@@ -280,7 +280,7 @@ export default function PrayerFlowScreen() {
                 <View style={[S.countDividerLine, { backgroundColor: colors.border }]} />
               </View>
               <Text style={[S.countHint, { color: done ? doneColor : colors.muted }]}>
-                {done ? 'Tamam' : 'Dokun'}
+                {done ? t('spiritual.prayerFlow.countHintDone') : t('spiritual.prayerFlow.countHintTap')}
               </Text>
             </View>
           </Animated.View>
@@ -311,7 +311,7 @@ export default function PrayerFlowScreen() {
           onPress={() => setNoteSheetOpen(true)}
         >
           <Ionicons name="create-outline" size={18} color={accent} />
-          <Text style={[S.actionBtnText, { color: accent }]}>Not</Text>
+          <Text style={[S.actionBtnText, { color: accent }]}>{t('spiritual.prayerFlow.noteBtn')}</Text>
         </Pressable>
 
         <Pressable
@@ -326,7 +326,7 @@ export default function PrayerFlowScreen() {
           disabled={!done}
         >
           <Text style={S.nextBtnText}>
-            {flow.currentIndex < items.length - 1 ? 'Sonraki' : 'Tamamla'}
+            {flow.currentIndex < items.length - 1 ? t('spiritual.prayerFlow.nextBtn') : t('spiritual.prayerFlow.completeBtn')}
           </Text>
           <Ionicons
             name={flow.currentIndex < items.length - 1 ? 'arrow-forward' : 'checkmark'}
@@ -340,7 +340,7 @@ export default function PrayerFlowScreen() {
       <BottomSheet
         visible={flowSheetOpen}
         onClose={() => setFlowSheetOpen(false)}
-        title="Dua Akışı"
+        title={t('spiritual.prayerFlow.flowSheetTitle')}
       >
         <FlatList
           data={items}
@@ -387,7 +387,7 @@ export default function PrayerFlowScreen() {
                     {item.title}
                   </Text>
                   <Text style={[S.flowMeta, { color: colors.subtext }]}>
-                    {count > 0 ? `${count}/${target}` : `${target} tekrar`}
+                    {count > 0 ? `${count}/${target}` : t('spiritual.prayerFlow.repeatCount', { target })}
                   </Text>
                 </View>
                 {isCurrent && (
@@ -403,7 +403,7 @@ export default function PrayerFlowScreen() {
       <BottomSheet
         visible={noteSheetOpen}
         onClose={() => setNoteSheetOpen(false)}
-        title="Not & Ruh Hali"
+        title={t('spiritual.prayerFlow.noteSheetTitle')}
       >
         <MoodSelector
           selected={flow.mood}

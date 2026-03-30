@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { DailyRecommendationCard } from './DailyRecommendationCard';
 
@@ -11,42 +12,6 @@ interface HomeSpiritualSectionProps {
   variant?: Variant;
 }
 
-/* ─── Feature card data ─── */
-const FEATURES = [
-  {
-    key: 'dua',
-    route: '/spiritual/dua' as const,
-    icon: 'book-outline' as const,
-    label: 'Dualar',
-    sub: 'Günlük dualar',
-    colorKey: 'dua' as const,
-  },
-  {
-    key: 'esma',
-    route: '/spiritual/asma' as const,
-    icon: 'sparkles-outline' as const,
-    label: 'Esmalar',
-    sub: '99 Esma',
-    colorKey: 'esma' as const,
-  },
-  {
-    key: 'breath',
-    route: '/spiritual/breathing' as const,
-    icon: 'leaf-outline' as const,
-    label: 'Nefes',
-    sub: 'Nefes teknikleri',
-    colorKey: 'meditation' as const,
-  },
-  {
-    key: 'routine',
-    route: '/spiritual/routine-picker' as const,
-    icon: 'layers-outline' as const,
-    label: 'Rutin Belirle',
-    sub: 'Ruhsal çantam',
-    colorKey: 'dua' as const,
-  },
-] as const;
-
 const SURES = [
   { id: 16, letter: 'ف', name: 'Fâtiha', color: 'dua' as const },
   { id: 17, letter: 'إ', name: 'İhlâs', color: 'gold' as const },
@@ -55,9 +20,45 @@ const SURES = [
 ] as const;
 
 export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark, variant);
+
+  const FEATURES = [
+    {
+      key: 'dua',
+      route: '/spiritual/dua' as const,
+      icon: 'book-outline' as const,
+      label: t('spiritual.homeSection.featDuaLabel'),
+      sub: t('spiritual.homeSection.featDuaSub'),
+      colorKey: 'dua' as const,
+    },
+    {
+      key: 'esma',
+      route: '/spiritual/asma' as const,
+      icon: 'sparkles-outline' as const,
+      label: t('spiritual.homeSection.featEsmaLabel'),
+      sub: t('spiritual.homeSection.featEsmaSub'),
+      colorKey: 'esma' as const,
+    },
+    {
+      key: 'breath',
+      route: '/spiritual/breathing' as const,
+      icon: 'leaf-outline' as const,
+      label: t('spiritual.homeSection.featBreathLabel'),
+      sub: t('spiritual.homeSection.featBreathSub'),
+      colorKey: 'meditation' as const,
+    },
+    {
+      key: 'routine',
+      route: '/spiritual/routine-picker' as const,
+      icon: 'layers-outline' as const,
+      label: t('spiritual.homeSection.featRoutineLabel'),
+      sub: t('spiritual.homeSection.featRoutineSub'),
+      colorKey: 'dua' as const,
+    },
+  ];
 
   /* ─── Palette helpers ─── */
   const palette = {
@@ -94,13 +95,13 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
               color={isDark ? '#FCD34D' : '#7C3AED'}
             />
           </View>
-          <Text style={S.title}>Ruhsal Pratikler</Text>
+          <Text style={S.title}>{t('spiritual.homeSection.title')}</Text>
         </View>
         <Pressable
           onPress={() => router.push('/spiritual')}
           style={({ pressed }) => [S.allBtn, pressed && { opacity: 0.7 }]}
         >
-          <Text style={S.allBtnText}>Keşfet</Text>
+          <Text style={S.allBtnText}>{t('spiritual.homeSection.exploreBtn')}</Text>
           <Ionicons name="arrow-forward" size={12} color={colors.primary} />
         </Pressable>
       </View>
@@ -158,10 +159,10 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
               size={12}
               color={isDark ? colors.gold : colors.goldDark}
             />
-            <Text style={S.sureTitle}>Sureler</Text>
+            <Text style={S.sureTitle}>{t('spiritual.homeSection.sureSectionTitle')}</Text>
           </View>
           <Pressable onPress={() => router.push('/spiritual/sure')}>
-            <Text style={S.sureAll}>Tümü</Text>
+            <Text style={S.sureAll}>{t('spiritual.homeSection.sureAllBtn')}</Text>
           </Pressable>
         </View>
         <View style={S.sureChips}>
@@ -192,9 +193,9 @@ export function HomeSpiritualSection({ variant = 'v1' }: HomeSpiritualSectionPro
       {/* ─── Footer Badges ─── */}
       <View style={S.footerRow}>
         {[
-          { icon: 'shield-checkmark-outline' as const, text: 'Kaynak notu' },
-          { icon: 'moon-outline' as const, text: 'Kısa pratik' },
-          { icon: 'stats-chart-outline' as const, text: 'Günlük takip' },
+          { icon: 'shield-checkmark-outline' as const, text: t('spiritual.homeSection.footerSource') },
+          { icon: 'moon-outline' as const, text: t('spiritual.homeSection.footerQuick') },
+          { icon: 'stats-chart-outline' as const, text: t('spiritual.homeSection.footerTrack') },
         ].map((f) => (
           <View key={f.text} style={S.footerItem}>
             <Ionicons name={f.icon} size={11} color={colors.subtext} />

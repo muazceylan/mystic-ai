@@ -76,7 +76,9 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
         int skipped = 0;
 
         for (TutorialSeed seed : seeds) {
-            if (repository.existsByTutorialId(seed.tutorialId())) {
+            var existing = repository.findByTutorialId(seed.tutorialId());
+            if (existing.isPresent()) {
+                backfillSeedMetadata(existing.get(), seed, actor);
                 skipped += 1;
                 continue;
             }
@@ -107,6 +109,21 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
         return new BootstrapResult(created, skipped, seeds.size());
     }
 
+    private void backfillSeedMetadata(TutorialConfig existing, TutorialSeed seed, String actor) {
+        boolean changed = false;
+
+        if ((existing.getLocale() == null || existing.getLocale().isBlank())
+                && seed.locale() != null && !seed.locale().isBlank()) {
+            existing.setLocale(seed.locale());
+            changed = true;
+        }
+
+        if (changed) {
+            existing.setUpdatedBy(actor);
+            repository.save(existing);
+        }
+    }
+
     private TutorialConfig toEntity(TutorialSeed seed, String actor) {
         TutorialConfig config = TutorialConfig.builder()
                 .tutorialId(seed.tutorialId())
@@ -119,6 +136,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                 .priority(seed.priority())
                 .presentationType(seed.presentationType())
                 .description(seed.description())
+                .locale(seed.locale())
                 .createdBy(actor)
                 .updatedBy(actor)
                 .publishedAt(LocalDateTime.now())
@@ -152,6 +170,13 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
     }
 
     private List<TutorialSeed> defaultSeeds() {
+        return java.util.stream.Stream.concat(
+                defaultTurkishSeeds().stream(),
+                defaultEnglishSeeds().stream()
+        ).toList();
+    }
+
+    private List<TutorialSeed> defaultTurkishSeeds() {
         return List.of(
                 tutorial(
                         "global_onboarding_v1",
@@ -160,6 +185,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         1000,
                         TutorialPresentationType.FULLSCREEN_CAROUSEL,
                         "Kullanicinin uygulamanin degerini ilk acilista hizli anlamasi icin global onboarding akisi.",
+                        "tr",
                         step(1, "welcome", "Hos Geldin",
                                 "Sana ozel astrolojik rehberlik, planlama ve icgoru deneyimine hos geldin.",
                                 "global_onboarding.intro", "sparkles-outline"),
@@ -183,6 +209,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         900,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Ana sayfa deneyimini ilk kullanimda kisa adimlarla tanitan tutorial.",
+                        "tr",
                         step(1, "hero-energy", "Gunun Enerjisi",
                                 "Bugunun enerjisini burada kisa ve sade bicimde gorursun.",
                                 "home.hero_energy", "sunny-outline"),
@@ -203,6 +230,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         700,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Gunluk transit ekranindaki temel alanlari tanitan onboarding akisi.",
+                        "tr",
                         step(1, "daily-summary", "Gunun Ozeti",
                                 "Bugunun gokyuzu etkilerini burada kisa ve anlasilir bicimde gorursun.",
                                 "daily_transits.hero_summary", "sunny-outline"),
@@ -223,6 +251,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         680,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Kozmik Planlayici ekraninda odak alani, filtre ve planlama aksiyonlarini tanitir.",
+                        "tr",
                         step(1, "date-selection", "Tarih Secimi",
                                 "Hangi gun hangi konuya odaklanmanin daha uygun oldugunu burada gorursun.",
                                 "cosmic_planner.date_picker", "calendar-outline"),
@@ -243,6 +272,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         660,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Karar Pusulasi ekraninda giris, sonuc ve yeniden degerlendirme akisini aciklar.",
+                        "tr",
                         step(1, "decision-input", "Karar Giris Alani",
                                 "Burada seceneklerini karsilastirarak gunun etkileriyle birlikte degerlendirebilirsin.",
                                 "decision_compass.input_area", "list-outline"),
@@ -263,6 +293,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         640,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Uyum Analizi ekranindaki ozet, sekmeler ve skor kartlarini tanitan akistir.",
+                        "tr",
                         step(1, "compatibility-summary", "Uyum Ozeti",
                                 "Genel uyum ozetini burada hizlica gorursun.",
                                 "compatibility.summary_header", "heart-outline"),
@@ -283,6 +314,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         630,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Haritam ekraninda ozet, teknik detay ve yorum bolumlerini adim adim tanitir.",
+                        "tr",
                         step(1, "hero-summary", "Harita Ozeti",
                                 "Dogum haritanin genel ozetini burada hizlica gorebilirsin.",
                                 "birth_chart.hero_summary", "planet-outline"),
@@ -306,6 +338,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         620,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Ruya modulu deneyimini ilk kullanimda sade adimlarla aciklar.",
+                        "tr",
                         step(1, "dream-entry", "Ruya Girisi",
                                 "Ruyani yazarak sembolik bir yorum alirsin.",
                                 "dreams.compose_entry", "create-outline"),
@@ -326,6 +359,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         610,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Numeroloji ekraninda giris, sonuc ve detay kartlarini tanitan akistir.",
+                        "tr",
                         step(1, "numerology-input", "Giris Alani",
                                 "Sayilarin sembolik anlamlarini burada kesfedersin.",
                                 "numerology.input_area", "calculator-outline"),
@@ -346,6 +380,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         600,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Isim analizi ekranindaki giris, anlam ve kaydetme adimlarini aciklar.",
+                        "tr",
                         step(1, "name-input", "Isim Giris Alani",
                                 "Ismini girerek anlam ve sembolik cagrisimlarini kesfetmeye baslarsin.",
                                 "name_analysis.name_input", "search-outline"),
@@ -366,6 +401,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         590,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Dua/meditasyon ve manevi pratik ekraninda gunluk akisi tanitir.",
+                        "tr",
                         step(1, "daily-recommendation", "Gunluk Oneri",
                                 "Gunun onerilen pratigini burada gorerek hizli bir baslangic yapabilirsin.",
                                 "spiritual_practice.daily_recommendation", "sunny-outline"),
@@ -386,6 +422,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                         580,
                         TutorialPresentationType.SPOTLIGHT_CARD,
                         "Profil ve ayarlar ekraninda kisisellestirme alanlarini tanitan tutorial.",
+                        "tr",
                         step(1, "personal-info", "Kisisel Bilgiler",
                                 "Profil bilgilerini burada guncelleyerek deneyimini sana ozel hale getirebilirsin.",
                                 "profile.personal_info", "person-outline"),
@@ -402,6 +439,269 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
         );
     }
 
+    private List<TutorialSeed> defaultEnglishSeeds() {
+        return List.of(
+                tutorial(
+                        localizedTutorialId("global_onboarding_v1", "en"),
+                        "Global Onboarding",
+                        SCREEN_GLOBAL_ONBOARDING,
+                        1000,
+                        TutorialPresentationType.FULLSCREEN_CAROUSEL,
+                        "Global onboarding flow that helps the user understand the app's value on first launch.",
+                        "en",
+                        step(1, "welcome", "Welcome",
+                                "Welcome to your personalized astrology, planning, and insight experience.",
+                                "global_onboarding.intro", "sparkles-outline"),
+                        step(2, "daily-guidance", "Daily Guidance",
+                                "Track today's energy, transits, and standout influences here.",
+                                "global_onboarding.intro", "sunny-outline"),
+                        step(3, "planning-and-decisions", "Planning and Decisions",
+                                "Use Cosmic Planner and Decision Compass to review timing and options with more clarity.",
+                                "global_onboarding.intro", "compass-outline"),
+                        step(4, "compatibility-and-discovery", "Compatibility and Discovery",
+                                "Explore compatibility, dreams, numerology, and other modules to know yourself more deeply.",
+                                "global_onboarding.intro", "planet-outline"),
+                        step(5, "lets-start", "Let's Begin",
+                                "As you open modules, short guides will help you get started.",
+                                "global_onboarding.intro", "rocket-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("home_foundation_tutorial", "en"),
+                        "Home Foundation Tutorial",
+                        SCREEN_HOME,
+                        900,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Tutorial that introduces the home experience with short first-use steps.",
+                        "en",
+                        step(1, "hero-energy", "Today's Energy",
+                                "See today's energy here in a short and simple format.",
+                                "home.hero_energy", "sunny-outline"),
+                        step(2, "quick-actions", "Core Module Shortcuts",
+                                "Jump quickly to the modules you use most from here.",
+                                "home.quick_actions", "rocket-outline"),
+                        step(3, "personal-widget", "Personalized Suggestions",
+                                "Your personalized insights and recommendations stand out here.",
+                                "home.personal_widget", "sparkles-outline"),
+                        step(4, "module-guides", "More Guides",
+                                "You will see the rest of the guides as you enter each module.",
+                                "home.help_entry", "navigate-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("daily_transits_foundation_tutorial", "en"),
+                        "Daily Transits Tutorial",
+                        SCREEN_DAILY_TRANSITS,
+                        700,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Onboarding flow that introduces the key sections of the Daily Transits screen.",
+                        "en",
+                        step(1, "daily-summary", "Today's Summary",
+                                "See today's sky influences here in a short and easy-to-read format.",
+                                "daily_transits.hero_summary", "sunny-outline"),
+                        step(2, "transit-cards", "Transit Cards",
+                                "Transit cards explain the day's standout influences one by one.",
+                                "daily_transits.transit_cards", "albums-outline"),
+                        step(3, "impact-zones", "Impact Zones",
+                                "Supportive areas and caution zones help you interpret decisions more consciously.",
+                                "daily_transits.impact_zones", "flash-outline"),
+                        step(4, "help-reopen", "Open the Guide Again",
+                                "You can restart this guide here whenever you need it.",
+                                "daily_transits.help_entry", "help-circle-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("cosmic_planner_intro", "en"),
+                        "Cosmic Planner Tutorial",
+                        SCREEN_COSMIC_PLANNER,
+                        680,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Introduces the focus area, filters, and planning actions on the Cosmic Planner screen.",
+                        "en",
+                        step(1, "date-selection", "Date Selection",
+                                "See which day is better suited for the topic you want to focus on.",
+                                "cosmic_planner.date_picker", "calendar-outline"),
+                        step(2, "category-dock", "Category Dock",
+                                "Choose a category to focus on areas like love, work, or communication.",
+                                "cosmic_planner.category_dock", "albums-outline"),
+                        step(3, "daily-recommendations", "Daily Recommendations",
+                                "Daily suggestions are designed to help you shape plans around the sky rhythm.",
+                                "cosmic_planner.daily_recommendations", "sparkles-outline"),
+                        step(4, "reminder-action", "Reminder and Plan",
+                                "Use reminders to follow your plan without missing the right timing.",
+                                "cosmic_planner.reminder_action", "alarm-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("decision_compass_intro", "en"),
+                        "Decision Compass Tutorial",
+                        SCREEN_DECISION_COMPASS,
+                        660,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Explains the input, result, and re-evaluation flow on the Decision Compass screen.",
+                        "en",
+                        step(1, "decision-input", "Decision Input Area",
+                                "Compare your options here while considering the day's influences.",
+                                "decision_compass.input_area", "list-outline"),
+                        step(2, "result-comparison", "Result Comparison",
+                                "The result area does not give a rigid verdict; it offers supportive guidance for your choice.",
+                                "decision_compass.result_area", "stats-chart-outline"),
+                        step(3, "insight-commentary", "Insight Commentary",
+                                "These notes help you see the strengths and weak points of each option more clearly.",
+                                "decision_compass.header_summary", "reader-outline"),
+                        step(4, "reevaluate-entry", "Re-evaluate",
+                                "Save your result to revisit it later or adjust your options when needed.",
+                                "decision_compass.reevaluate_entry", "options-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("compatibility_foundation_tutorial", "en"),
+                        "Compatibility Tutorial",
+                        SCREEN_COMPATIBILITY,
+                        640,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Flow that introduces the summary, tabs, and score cards on the Compatibility screen.",
+                        "en",
+                        step(1, "compatibility-summary", "Compatibility Summary",
+                                "See the overall compatibility snapshot here at a glance.",
+                                "compatibility.summary_header", "heart-outline"),
+                        step(2, "sections-and-details", "Sections and Details",
+                                "Review personal and relationship areas together for a clearer interpretation.",
+                                "compatibility.section_tabs", "grid-outline"),
+                        step(3, "category-score-cards", "Category Cards",
+                                "Alongside the scores, you also get explanations and suggestions instead of numbers alone.",
+                                "compatibility.score_area", "analytics-outline"),
+                        step(4, "save-and-share", "Save and Share",
+                                "Save the analysis to revisit it later or share the result when you want.",
+                                "compatibility.save_share_entry", "share-social-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("birth_chart_intro", "en"),
+                        "Birth Chart Tutorial",
+                        SCREEN_BIRTH_CHART,
+                        630,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Introduces the summary, technical detail, and interpretation sections on the Birth Chart screen.",
+                        "en",
+                        step(1, "hero-summary", "Chart Summary",
+                                "See the main summary of your birth chart here at a glance.",
+                                "birth_chart.hero_summary", "planet-outline"),
+                        step(2, "main-placements", "Main Placements",
+                                "Main placements help you understand your character and natural tendencies.",
+                                "birth_chart.planet_positions", "sparkles-outline"),
+                        step(3, "technical-details", "Technical Details",
+                                "Dive into houses, signs, and technical layers from the detail area.",
+                                "birth_chart.technical_details", "grid-outline"),
+                        step(4, "insight-cards", "Insight Cards",
+                                "Insight cards make the information in your chart clearer and easier to absorb.",
+                                "birth_chart.insight_panel", "reader-outline"),
+                        step(5, "detail-actions", "Save and Explore",
+                                "Save this area, share it, or continue with a deeper review whenever you want.",
+                                "birth_chart.detail_action", "share-social-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("dreams_foundation_tutorial", "en"),
+                        "Dreams Tutorial",
+                        SCREEN_DREAMS,
+                        620,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Explains the dream module experience with simple first-use steps.",
+                        "en",
+                        step(1, "dream-entry", "Dream Entry",
+                                "Write your dream to receive a symbolic interpretation.",
+                                "dreams.compose_entry", "create-outline"),
+                        step(2, "interpretation-result", "Interpretation Result",
+                                "The interpretation is designed to support awareness and insight.",
+                                "dreams.interpretation_result", "moon-outline"),
+                        step(3, "history-entry", "Past Records",
+                                "Return to previous dream entries and follow your evolving patterns over time.",
+                                "dreams.history_entry", "time-outline"),
+                        step(4, "help-entry", "Open the Guide Again",
+                                "Restart this guide from the same screen whenever you need it.",
+                                "dreams.help_entry", "help-circle-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("numerology_foundation_tutorial", "en"),
+                        "Numerology Tutorial",
+                        SCREEN_NUMEROLOGY,
+                        610,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Flow that introduces the input, result, and detail cards on the Numerology screen.",
+                        "en",
+                        step(1, "numerology-input", "Input Area",
+                                "Discover the symbolic meanings of your numbers here.",
+                                "numerology.input_area", "calculator-outline"),
+                        step(2, "numerology-result", "Result Card",
+                                "Your core number profile and current theme stand out here in a short summary.",
+                                "numerology.result_card", "analytics-outline"),
+                        step(3, "numerology-detail", "Detailed Explanations",
+                                "Detail cards explain your personal numbers in a deeper and clearer way.",
+                                "numerology.detail_section", "reader-outline"),
+                        step(4, "help-entry", "Open the Guide Again",
+                                "Restart this guide manually whenever you want.",
+                                "numerology.help_entry", "help-circle-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("name_analysis_foundation_tutorial", "en"),
+                        "Name Analysis Tutorial",
+                        SCREEN_NAME_ANALYSIS,
+                        600,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Explains the input, meaning, and save steps on the Name Analysis screen.",
+                        "en",
+                        step(1, "name-input", "Name Input Area",
+                                "Enter a name to start exploring its meaning and symbolic associations.",
+                                "name_analysis.name_input", "search-outline"),
+                        step(2, "meaning-panel", "Meaning and Origin",
+                                "See the meaning of the name and its symbolic associations here.",
+                                "name_analysis.meaning_panel", "book-outline"),
+                        step(3, "save-share", "Save and Favorite",
+                                "Save the names you like and come back to them quickly later.",
+                                "name_analysis.save_share_entry", "bookmark-outline"),
+                        step(4, "help-entry", "Open the Guide Again",
+                                "You can reopen this guide whenever you need it from the same screen.",
+                                "name_analysis.help_entry", "help-circle-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("spiritual_practice_foundation_tutorial", "en"),
+                        "Spiritual Practice Tutorial",
+                        SCREEN_SPIRITUAL_PRACTICE,
+                        590,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Introduces the daily flow on the prayer, meditation, and spiritual practice screen.",
+                        "en",
+                        step(1, "daily-recommendation", "Daily Recommendation",
+                                "See today's recommended practice here and begin with a quick entry point.",
+                                "spiritual_practice.daily_recommendation", "sunny-outline"),
+                        step(2, "practice-counter", "Practice Counter",
+                                "Use the counter area to follow your daily practice step by step.",
+                                "spiritual_practice.practice_counter", "timer-outline"),
+                        step(3, "journal-entry", "Journal and Records",
+                                "Save short notes about your experience and follow your growth more consistently.",
+                                "spiritual_practice.journal_entry", "book-outline"),
+                        step(4, "help-entry", "Open the Guide Again",
+                                "Reopen this guide from the same screen whenever you want.",
+                                "spiritual_practice.help_entry", "help-circle-outline")
+                ),
+                tutorial(
+                        localizedTutorialId("profile_foundation_tutorial", "en"),
+                        "Profile Tutorial",
+                        SCREEN_PROFILE,
+                        580,
+                        TutorialPresentationType.SPOTLIGHT_CARD,
+                        "Tutorial that introduces personalization areas on the profile and settings screen.",
+                        "en",
+                        step(1, "personal-info", "Personal Information",
+                                "Update your profile details here to make the experience feel more personal.",
+                                "profile.personal_info", "person-outline"),
+                        step(2, "preferences", "Preferences",
+                                "Manage notification, language, and experience preferences from this section.",
+                                "profile.preferences", "options-outline"),
+                        step(3, "tutorial-center", "Tutorial Center",
+                                "See all onboarding and tutorial flows in one place and restart them whenever needed.",
+                                "profile.tutorial_center_entry", "refresh-outline"),
+                        step(4, "help-entry", "Help and Guidance",
+                                "Use the help area whenever you want to review tutorials again.",
+                                "profile.help_entry", "help-circle-outline")
+                )
+        );
+    }
+
     private TutorialSeed tutorial(
             String tutorialId,
             String name,
@@ -409,6 +709,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
             int priority,
             TutorialPresentationType presentationType,
             String description,
+            String locale,
             TutorialStepSeed... steps
     ) {
         return new TutorialSeed(
@@ -420,8 +721,16 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
                 priority,
                 presentationType,
                 description,
+                locale,
                 List.of(steps)
         );
+    }
+
+    private String localizedTutorialId(String baseTutorialId, String locale) {
+        if ("en".equalsIgnoreCase(locale)) {
+            return baseTutorialId + "_en";
+        }
+        return baseTutorialId;
     }
 
     private TutorialStepSeed step(
@@ -444,6 +753,7 @@ public class TutorialConfigBootstrapService implements ApplicationRunner {
             int priority,
             TutorialPresentationType presentationType,
             String description,
+            String locale,
             List<TutorialStepSeed> steps
     ) {
     }

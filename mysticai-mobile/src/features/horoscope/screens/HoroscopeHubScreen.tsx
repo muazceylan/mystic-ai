@@ -10,7 +10,7 @@ import { TabHeader } from '../../../components/ui/TabHeader';
 import { useNatalChartStore } from '../../../store/useNatalChartStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useHoroscopeStore } from '../store/useHoroscopeStore';
-import { getSignFromBirthDate } from '../utils/zodiacData';
+import { getSignFromBirthDate, resolveZodiacSign } from '../utils/zodiacData';
 import { ZodiacSign } from '../types/horoscope.types';
 import { UserSignCard } from '../components/UserSignCard';
 import { ZodiacGrid } from '../components/ZodiacGrid';
@@ -29,7 +29,7 @@ export default function HoroscopeHubScreen() {
 
   const userSign = useMemo<ZodiacSign | null>(() => {
     if (chart?.sunSign) {
-      return chart.sunSign.toLowerCase() as ZodiacSign;
+      return resolveZodiacSign(chart.sunSign);
     }
     if (user?.birthDate) {
       return getSignFromBirthDate(user.birthDate);

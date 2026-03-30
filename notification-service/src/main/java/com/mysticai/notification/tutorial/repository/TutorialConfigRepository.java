@@ -34,11 +34,18 @@ public interface TutorialConfigRepository extends JpaRepository<TutorialConfig, 
             where (:publishedOnly = false or tc.status = :publishedStatus)
               and (:onlyActive = false or tc.isActive = true)
               and (:screenKey is null or tc.screenKey = :screenKey)
+              and (
+                    :locale is null
+                    or tc.locale is null
+                    or lower(tc.locale) = :locale
+                    or lower(tc.locale) like concat(:locale, '-%')
+              )
               and tc.platform in :platforms
             """)
     List<TutorialConfig> findForPublicRead(
             @Param("platforms") Collection<TutorialPlatform> platforms,
             @Param("screenKey") String screenKey,
+            @Param("locale") String locale,
             @Param("onlyActive") boolean onlyActive,
             @Param("publishedOnly") boolean publishedOnly,
             @Param("publishedStatus") TutorialConfigStatus publishedStatus

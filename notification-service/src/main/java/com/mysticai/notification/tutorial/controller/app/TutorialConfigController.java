@@ -25,10 +25,11 @@ public class TutorialConfigController {
             @RequestParam(defaultValue = "MOBILE") TutorialPlatform platform,
             @RequestParam(defaultValue = "true") boolean onlyActive,
             @RequestParam(defaultValue = "true") boolean publishedOnly,
-            @RequestParam(required = false) String screenKey
+            @RequestParam(required = false) String screenKey,
+            @RequestParam(required = false) String locale
     ) {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(60, TimeUnit.SECONDS))
-                .body(queryService.findForMobile(platform, onlyActive, publishedOnly, screenKey));
+                .body(queryService.findForMobile(platform, onlyActive, publishedOnly, screenKey, locale));
     }
 }

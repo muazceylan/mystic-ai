@@ -15,6 +15,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { useJournalStore } from '../store/useJournalStore';
@@ -24,6 +25,7 @@ import type { BarChartDataPoint } from '../types';
 type Period = '7d' | '30d' | 'all';
 
 export default function StatsScreen() {
+  const { t, i18n } = useTranslation();
   const journal = useJournalStore();
   const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
@@ -35,6 +37,8 @@ export default function StatsScreen() {
   const SUBTEXT = isDark ? '#93C5FD' : colors.subtext;
   const SURFACE = isDark ? '#162032' : colors.surface;
   const BORDER = isDark ? '#1E3A5F' : colors.border;
+
+  const lcStr = i18n.language === 'tr' ? 'tr-TR' : 'en-US';
 
   const dateRange = useMemo(() => {
     const today = new Date();
@@ -61,12 +65,11 @@ export default function StatsScreen() {
   const chartData = useMemo<BarChartDataPoint[]>(() => {
     const dailies = journal.getDailyTotals(dateRange.from, dateRange.to);
 
-    // 30g ve all için haftalık gruplama (çok fazla bar olmasın)
     if (period === '7d') {
       return dailies.map((d) => {
         const dt = new Date(d.dateISO);
         return {
-          label: dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
+          label: dt.toLocaleDateString(lcStr, { day: 'numeric', month: 'short' }),
           value: d.total,
           dateISO: d.dateISO,
         };
@@ -86,11 +89,11 @@ export default function StatsScreen() {
     return Object.entries(weeks)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([, v]) => ({
-        label: new Date(v.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
+        label: new Date(v.startDate).toLocaleDateString(lcStr, { day: 'numeric', month: 'short' }),
         value: v.total,
         dateISO: v.startDate,
       }));
-  }, [dateRange, journal, period]);
+  }, [dateRange, journal, period, lcStr]);
 
   const { prayerTotal, esmaTotal, dayCount } = useMemo(
     () => journal.getTotalByDateRange(dateRange.from, dateRange.to),
@@ -105,9 +108,9 @@ export default function StatsScreen() {
   );
 
   const periodLabel: Record<Period, string> = {
-    '7d': '7 Gün',
-    '30d': '30 Gün',
-    all: 'Tümü',
+    '7d': t('statsScreen.period7d'),
+    '30d': t('statsScreen.period30d'),
+    all: t('statsScreen.periodAll'),
   };
 
   return (
@@ -120,7 +123,7 @@ export default function StatsScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={TEXT} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: TEXT }]}>İstatistikler</Text>
+        <Text style={[styles.headerTitle, { color: TEXT }]}>{t('statsScreen.headerTitle')}</Text>
         <HeaderRightIcons tintColor={TEXT} />
       </View>
 
@@ -147,7 +150,7 @@ export default function StatsScreen() {
         <View style={[styles.chartCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
           <View style={styles.legendRow}>
             <View style={[styles.legendDot, { backgroundColor: ACCENT }]} />
-            <Text style={[styles.legendText, { color: SUBTEXT }]}>Zikir Sayısı</Text>
+            <Text style={[styles.legendText, { color: SUBTEXT }]}>{t('statsScreen.legendDhikr')}</Text>
           </View>
           <SpiritualBarChart
             data={chartData}
@@ -161,16 +164,16 @@ export default function StatsScreen() {
 
         {/* Key Metrics */}
         <View style={styles.metricsGrid}>
-          <MetricCard label="Dua Tekrarı" value={prayerTotal} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
-          <MetricCard label="Esma Tekrarı" value={esmaTotal} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
-          <MetricCard label="Aktif Gün" value={dayCount} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
-          <MetricCard label="Gün Serisi" value={streak} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
+          <MetricCard label={t('statsScreen.metricPrayerRepeat')} value={prayerTotal} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
+          <MetricCard label={t('statsScreen.metricEsmaRepeat')} value={esmaTotal} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
+          <MetricCard label={t('statsScreen.metricActiveDays')} value={dayCount} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
+          <MetricCard label={t('statsScreen.metricStreak')} value={streak} accent={ACCENT} text={TEXT} sub={SUBTEXT} surface={SURFACE} border={BORDER} />
         </View>
 
         {/* Top 3 */}
         {topItems.length > 0 && (
           <View style={[styles.topCard, { backgroundColor: SURFACE, borderColor: BORDER }]}>
-            <Text style={[styles.topTitle, { color: TEXT }]}>En Çok Okunanlar</Text>
+            <Text style={[styles.topTitle, { color: TEXT }]}>{t('statsScreen.topTitle')}</Text>
             {topItems.map((item, i) => (
               <View
                 key={`${item.itemType}-${item.itemId}`}
@@ -182,7 +185,7 @@ export default function StatsScreen() {
                     {item.itemName}
                   </Text>
                   <Text style={[styles.topType, { color: SUBTEXT }]}>
-                    {item.itemType === 'esma' ? 'Esma' : 'Dua'}
+                    {item.itemType === 'esma' ? t('statsScreen.typeEsma') : t('statsScreen.typeDua')}
                   </Text>
                 </View>
                 <Text style={[styles.topCount, { color: ACCENT }]}>{item.total}</Text>
@@ -194,7 +197,7 @@ export default function StatsScreen() {
         {journal.entries.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyText, { color: SUBTEXT }]}>
-              Henüz istatistik yok. Zikirlerini tamamladıkça burada görünecek.
+              {t('statsScreen.emptyText')}
             </Text>
           </View>
         )}

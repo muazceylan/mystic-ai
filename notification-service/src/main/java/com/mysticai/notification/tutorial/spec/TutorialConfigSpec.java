@@ -18,7 +18,8 @@ public final class TutorialConfigSpec {
             String screenKey,
             TutorialConfigStatus status,
             Boolean isActive,
-            TutorialPlatform platform
+            TutorialPlatform platform,
+            String locale
     ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -37,6 +38,12 @@ public final class TutorialConfigSpec {
 
             if (platform != null) {
                 predicates.add(cb.equal(root.get("platform"), platform));
+            }
+
+            if (locale != null && !locale.isBlank()) {
+                Predicate exactLocale = cb.equal(cb.lower(root.get("locale")), locale);
+                Predicate localePrefix = cb.like(cb.lower(root.get("locale")), locale + "-%");
+                predicates.add(cb.or(exactLocale, localePrefix));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

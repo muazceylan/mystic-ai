@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from '../../utils/haptics';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
@@ -12,6 +13,7 @@ interface PrayerCounterProps {
 }
 
 export function PrayerCounter({ value, target, onAdd }: PrayerCounterProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const s = createStyles(colors);
   const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -60,7 +62,7 @@ export function PrayerCounter({ value, target, onAdd }: PrayerCounterProps) {
             backgroundColor: isDark ? 'rgba(74,222,128,0.15)' : 'rgba(22,163,74,0.12)',
           }]}>
             <Ionicons name="checkmark-circle" size={14} color={doneColor} />
-            <Text style={[s.doneText, { color: doneColor }]}>Tamamlandı</Text>
+            <Text style={[s.doneText, { color: doneColor }]}>{t('prayerCounter.completed')}</Text>
           </View>
         )}
       </View>
@@ -87,12 +89,12 @@ export function PrayerCounter({ value, target, onAdd }: PrayerCounterProps) {
         onPress={() => onAdd(1)}
         onLongPress={startHold}
         onPressOut={stopHold}
-        accessibilityLabel="Bir ekle"
-        accessibilityHint="Basılı tutarak hızlı sayım yapabilirsiniz"
+        accessibilityLabel={t('prayerCounter.addLabel')}
+        accessibilityHint={t('prayerCounter.addHint')}
       >
         <Ionicons name="add" size={32} color="#fff" />
-        <Text style={s.mainBtnLabel}>Ekle</Text>
-        <Text style={s.mainBtnHint}>Basılı tut = hızlı</Text>
+        <Text style={s.mainBtnLabel}>{t('prayerCounter.addBtn')}</Text>
+        <Text style={s.mainBtnHint}>{t('prayerCounter.holdHint')}</Text>
       </Pressable>
     </View>
   );

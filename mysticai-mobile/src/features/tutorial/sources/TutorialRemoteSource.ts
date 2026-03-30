@@ -7,6 +7,7 @@ import {
 import { TUTORIAL_CONFIG_POLICY } from '../domain/tutorial.constants';
 import { getTutorialTargetKeyOptions } from '../domain/tutorial.constants';
 import type { TutorialConfigListResponse } from '../domain/tutorial.contracts';
+import { resolveTutorialLocaleTag } from '../domain/tutorial.locale';
 import { mapContractToTutorialDefinition } from '../domain/tutorial.mappers';
 import type { TutorialDefinition, TutorialPlatform } from '../domain/tutorial.types';
 import {
@@ -18,7 +19,7 @@ import { tutorialDebugLog } from '../services/tutorialDebug';
 import type { TutorialSource } from './TutorialSource';
 
 export interface TutorialRemoteClient {
-  fetchTutorialConfig: (platform: TutorialPlatform) => Promise<TutorialConfigListResponse | null>;
+  fetchTutorialConfig: (platform: TutorialPlatform, locale: string) => Promise<TutorialConfigListResponse | null>;
 }
 
 function mapRuntimePlatform(): TutorialPlatform {
@@ -94,11 +95,11 @@ function toCacheAgeMs(snapshot: TutorialConfigCacheSnapshot): number {
   return Math.max(0, Date.now() - snapshot.cachedAtMs);
 }
 
-async function readNormalizedCacheSnapshot(): Promise<{
+async function readNormalizedCacheSnapshot(locale: string): Promise<{
   snapshot: TutorialConfigCacheSnapshot;
   normalized: TutorialConfigListResponse;
 } | null> {
-  const snapshot = await readTutorialConfigCacheSnapshot();
+  const snapshot = await readTutorialConfigCacheSnapshot(locale);
   const normalized = snapshot ? normalizeResponse(snapshot.payload) : null;
 
   if (!snapshot || !normalized) {
@@ -117,12 +118,12 @@ export class TutorialRemoteSource implements TutorialSource {
 
   constructor(private readonly client: TutorialRemoteClient | null = null) {}
 
-  private async fetchNormalizedRemoteConfig(runtimePlatform: TutorialPlatform): Promise<{
+  private async fetchNormalizedRemoteConfig(runtimePlatform: TutorialPlatform, locale: string): Promise<{
     normalized: TutorialConfigListResponse | null;
     failureReason: string | null;
   }> {
     try {
-      const response = await this.client?.fetchTutorialConfig(runtimePlatform);
+      const response = await this.client?.fetchTutorialConfig(runtimePlatform, locale);
       return {
         normalized: normalizeResponse(response ?? null),
         failureReason: null,
@@ -135,7 +136,7 @@ export class TutorialRemoteSource implements TutorialSource {
     }
   }
 
-  private refreshRemoteInBackground(runtimePlatform: TutorialPlatform): void {
+  private refreshRemoteInBackground(runtimePlatform: TutorialPlatform, locale: string): void {
     if (!this.client || this.backgroundRefreshInFlight) {
       return;
     }
@@ -144,19 +145,21 @@ export class TutorialRemoteSource implements TutorialSource {
 
     void (async () => {
       trackTutorialConfigFetchStarted(runtimePlatform);
-      const result = await this.fetchNormalizedRemoteConfig(runtimePlatform);
+      const result = await this.fetchNormalizedRemoteConfig(runtimePlatform, locale);
 
       if (result.normalized) {
-        await writeTutorialConfigCache(result.normalized);
+        await writeTutorialConfigCache(locale, result.normalized);
         tutorialDebugLog('config_source_selected', {
           source: 'remote',
           tutorial_count: result.normalized.tutorials.length,
           refresh_mode: 'background',
+          locale,
         });
         trackTutorialConfigFetchSucceeded(runtimePlatform, result.normalized.tutorials.length, 'remote');
       } else {
         tutorialDebugLog('config_background_refresh_failed', {
           reason: result.failureReason ?? 'remote_empty_or_invalid_response',
+          locale,
         });
         trackTutorialConfigFetchFailed(
           runtimePlatform,
@@ -171,7 +174,8 @@ export class TutorialRemoteSource implements TutorialSource {
 
   async fetchTutorials(): Promise<TutorialDefinition[]> {
     const runtimePlatform = mapRuntimePlatform();
-    const cacheEntry = await readNormalizedCacheSnapshot();
+    const locale = resolveTutorialLocaleTag();
+    const cacheEntry = await readNormalizedCacheSnapshot(locale);
 
     if (!this.client) {
       if (!cacheEntry) {
@@ -182,6 +186,7 @@ export class TutorialRemoteSource implements TutorialSource {
         source: 'cached_remote',
         tutorial_count: cacheEntry.normalized.tutorials.length,
         reason: 'remote_client_missing',
+        locale,
       });
       trackTutorialConfigFetchSucceeded(runtimePlatform, cacheEntry.normalized.tutorials.length, 'cache');
       return mapToDefinitions(cacheEntry.normalized, 'cache');
@@ -196,6 +201,7 @@ export class TutorialRemoteSource implements TutorialSource {
           tutorial_count: cacheEntry.normalized.tutorials.length,
           reason: 'fresh_cache',
           cache_age_ms: cacheAgeMs,
+          locale,
         });
         trackTutorialConfigFetchSucceeded(runtimePlatform, cacheEntry.normalized.tutorials.length, 'cache');
         return mapToDefinitions(cacheEntry.normalized, 'cache');
@@ -207,22 +213,24 @@ export class TutorialRemoteSource implements TutorialSource {
           tutorial_count: cacheEntry.normalized.tutorials.length,
           reason: 'stale_cache_background_refresh',
           cache_age_ms: cacheAgeMs,
+          locale,
         });
-        this.refreshRemoteInBackground(runtimePlatform);
+        this.refreshRemoteInBackground(runtimePlatform, locale);
         trackTutorialConfigFetchSucceeded(runtimePlatform, cacheEntry.normalized.tutorials.length, 'cache');
         return mapToDefinitions(cacheEntry.normalized, 'cache');
       }
     }
 
     trackTutorialConfigFetchStarted(runtimePlatform);
-    const remoteResult = await this.fetchNormalizedRemoteConfig(runtimePlatform);
+    const remoteResult = await this.fetchNormalizedRemoteConfig(runtimePlatform, locale);
 
     if (remoteResult.normalized) {
-      await writeTutorialConfigCache(remoteResult.normalized);
+      await writeTutorialConfigCache(locale, remoteResult.normalized);
       tutorialDebugLog('config_source_selected', {
         source: 'remote',
         tutorial_count: remoteResult.normalized.tutorials.length,
         reason: 'fresh_remote_fetch',
+        locale,
       });
       trackTutorialConfigFetchSucceeded(runtimePlatform, remoteResult.normalized.tutorials.length, 'remote');
       return mapToDefinitions(remoteResult.normalized, 'remote');
@@ -243,6 +251,7 @@ export class TutorialRemoteSource implements TutorialSource {
       source: 'cached_remote',
       tutorial_count: cacheEntry.normalized.tutorials.length,
       reason: 'remote_fetch_failed',
+      locale,
     });
     trackTutorialConfigFetchSucceeded(runtimePlatform, cacheEntry.normalized.tutorials.length, 'cache');
     return mapToDefinitions(cacheEntry.normalized, 'cache');

@@ -302,11 +302,12 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const reopenTutorialById = useCallback(
     async (tutorialId: string, sourceScreen = 'tutorial_center'): Promise<boolean> => {
       const tutorial = await tutorialConfigService.getTutorialById(tutorialId);
-      const progress = tutorial ? getProgress(scopeKey, tutorialId) : null;
+      const resolvedTutorialId = tutorial?.tutorialId ?? tutorialId;
+      const progress = tutorial ? getProgress(scopeKey, resolvedTutorialId) : null;
 
       trackTutorialReopenClicked({
         tutorial,
-        tutorialId,
+        tutorialId: resolvedTutorialId,
         tutorialVersion: tutorial?.version ?? null,
         screenKey: tutorial?.screenKey ?? null,
         sourceScreen,
@@ -314,10 +315,10 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
         completionState: progress?.status ?? 'not_started',
       });
 
-      if (tutorial?.tutorialId === TUTORIAL_IDS.GLOBAL_ONBOARDING) {
+      if (tutorial?.screenKey === TUTORIAL_SCREEN_KEYS.GLOBAL_ONBOARDING) {
         trackGlobalOnboardingReopened({
           tutorial,
-          tutorialId,
+          tutorialId: resolvedTutorialId,
           tutorialVersion: tutorial?.version ?? null,
           screenKey: tutorial?.screenKey ?? null,
           sourceScreen,
@@ -325,7 +326,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      return openTutorialById(tutorialId, 'manual_reopen');
+      return openTutorialById(resolvedTutorialId, 'manual_reopen');
     },
     [getProgress, openTutorialById, scopeKey],
   );
@@ -345,11 +346,12 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const resetTutorialById = useCallback(
     async (tutorialId: string, sourceScreen = 'tutorial_center') => {
       const tutorial = await tutorialConfigService.getTutorialById(tutorialId);
-      const existingProgress = getProgress(scopeKey, tutorialId);
+      const resolvedTutorialId = tutorial?.tutorialId ?? tutorialId;
+      const existingProgress = getProgress(scopeKey, resolvedTutorialId);
 
       trackTutorialResetClicked({
         tutorial,
-        tutorialId,
+        tutorialId: resolvedTutorialId,
         tutorialVersion: tutorial?.version ?? null,
         screenKey: tutorial?.screenKey ?? null,
         sourceScreen,
@@ -357,7 +359,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
         completionState: existingProgress?.status ?? 'not_started',
       });
 
-      resetTutorialProgress(scopeKey, tutorialId);
+      resetTutorialProgress(scopeKey, resolvedTutorialId);
 
       if (tutorial) {
         resetScreenVisit(scopeKey, tutorial.screenKey);
@@ -366,7 +368,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      if (activeSessionRef.current?.definition.tutorialId === tutorialId) {
+      if (activeSessionRef.current?.definition.tutorialId === resolvedTutorialId) {
         viewedStepRef.current = null;
         activeSessionRef.current = null;
         setActiveSession(null);
@@ -374,7 +376,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
 
       trackTutorialResetConfirmed({
         tutorial,
-        tutorialId,
+        tutorialId: resolvedTutorialId,
         tutorialVersion: tutorial?.version ?? null,
         screenKey: tutorial?.screenKey ?? null,
         sourceScreen,
