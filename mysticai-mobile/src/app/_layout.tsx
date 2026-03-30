@@ -13,6 +13,7 @@ import {
   ScrollView,
   FlatList,
   SectionList,
+  useColorScheme,
 } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -32,10 +33,14 @@ import { useCompanionStore } from '../store/useCompanionStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useAppConfigStore } from '../store/useAppConfigStore';
 import { useNavigationHistoryStore } from '../store/useNavigationHistoryStore';
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import {
+  ThemeProvider,
+  getThemeColors,
+  resolveActiveTheme,
+  useTheme,
+} from '../context/ThemeContext';
 import { TutorialProvider, TUTORIAL_SCREEN_KEYS, useTutorialTrigger } from '../features/tutorial';
 import { initI18n } from '../i18n';
-import { COLORS } from '../constants/colors';
 import { queryClient } from '../lib/queryClient';
 import { needsOnboarding } from '../utils/authOnboarding';
 import { isGuestUser } from '../store/useAuthStore';
@@ -552,7 +557,17 @@ function GuestSessionBootstrap() {
   return null;
 }
 
-function SafeAreaBootstrapGate({ children }: { children: ReactNode }) {
+function SafeAreaBootstrapGate({
+  children,
+  backgroundColor,
+  spinnerColor,
+  statusBarStyle,
+}: {
+  children: ReactNode;
+  backgroundColor: string;
+  spinnerColor: string;
+  statusBarStyle: 'light' | 'dark';
+}) {
   const insets = useSafeAreaInsets();
   const [ready, setReady] = useState(Platform.OS !== 'ios');
   const latestTopRef = useRef(insets.top);
@@ -597,9 +612,12 @@ function SafeAreaBootstrapGate({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <>
+        <StatusBar style={statusBarStyle} />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor }}>
+          <ActivityIndicator size="large" color={spinnerColor} />
+        </View>
+      </>
     );
   }
 
@@ -609,6 +627,7 @@ function SafeAreaBootstrapGate({ children }: { children: ReactNode }) {
 export default function Layout() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const [i18nReady, setI18nReady] = useState(false);
+  const systemScheme = useColorScheme();
   const [fontsLoaded, fontLoadError] = useFonts({
     'MysticInter-Regular': require('../../assets/fonts/MysticInter-Regular.otf'),
     'MysticInter-SemiBold': require('../../assets/fonts/MysticInter-SemiBold.otf'),
@@ -620,22 +639,32 @@ export default function Layout() {
   }, []);
 
   const startupReady = i18nReady && (fontsLoaded || Boolean(fontLoadError));
+  const startupTheme = resolveActiveTheme('system', systemScheme);
+  const startupColors = getThemeColors(startupTheme);
+  const startupStatusBarStyle = startupTheme === 'dark' ? 'light' : 'dark';
 
   // Block rendering navigator until i18n is ready — prevents "NO_I18NEXT_INSTANCE" when
   // useTranslation runs in TabsLayout/other screens before init completes.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider initialMetrics={SAFE_AREA_INITIAL_METRICS}>
-        <SafeAreaBootstrapGate>
+        <SafeAreaBootstrapGate
+          backgroundColor={startupColors.background}
+          spinnerColor={startupColors.primary}
+          statusBarStyle={startupStatusBarStyle}
+        >
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <TutorialProvider>
                 {startupReady ? (
                   <AppNavigator i18nReady={i18nReady} />
                 ) : (
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                  </View>
+                  <>
+                    <StatusBar style={startupStatusBarStyle} />
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: startupColors.background }}>
+                      <ActivityIndicator size="large" color={startupColors.primary} />
+                    </View>
+                  </>
                 )}
               </TutorialProvider>
             </ThemeProvider>

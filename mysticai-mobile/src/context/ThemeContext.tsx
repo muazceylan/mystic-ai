@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, type ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants/colors';
 
@@ -353,6 +353,21 @@ export const DARK: ThemeColors = {
 
 const STORAGE_KEY = 'mysticai_theme_pref';
 
+export function resolveActiveTheme(
+  mode: ThemeMode,
+  systemScheme: ColorSchemeName,
+): ActiveTheme {
+  if (mode === 'system') {
+    return systemScheme === 'dark' ? 'dark' : 'light';
+  }
+
+  return mode;
+}
+
+export function getThemeColors(activeTheme: ActiveTheme): ThemeColors {
+  return activeTheme === 'dark' ? DARK : LIGHT;
+}
+
 interface ThemeContextValue {
   mode: ThemeMode;
   activeTheme: ActiveTheme;
@@ -384,9 +399,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY, newMode);
   };
 
-  const activeTheme: ActiveTheme =
-    mode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : mode;
-  const colors = activeTheme === 'dark' ? DARK : LIGHT;
+  const activeTheme = resolveActiveTheme(mode, systemScheme);
+  const colors = getThemeColors(activeTheme);
   const isDark = activeTheme === 'dark';
 
   return (

@@ -92,68 +92,70 @@ export function SkyHeroCard({
       hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <LinearGradient
-        colors={[colors.heroGradA, colors.heroGradB, colors.heroGradC]}
-        start={{ x: 0.05, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        <View pointerEvents="none" style={styles.starsLayer}>
-          {STAR_POINTS.map(([left, top, size, opacity], index) => (
-            <View
-              key={`star-${index}`}
-              style={[
-                styles.star,
-                {
-                  left,
-                  top,
-                  width: size,
-                  height: size,
-                  borderRadius: size / 2,
-                  opacity,
-                },
-              ]}
-            />
-          ))}
-          {SPARKLE_POINTS.map(([left, top, opacity], index) => (
-            <View key={`spark-${index}`} style={[styles.sparkleWrap, { left, top, opacity }]}>
-              <View style={styles.sparkleH} />
-              <View style={styles.sparkleV} />
-            </View>
-          ))}
-        </View>
-
-        <View pointerEvents="none" style={styles.moonWrap}>
-          <View style={styles.moonAuraOuter} />
-          <View style={styles.moonAuraMid} />
-          <View style={styles.moonAuraInner} />
-          <View style={styles.moonCircle}>
-            <View style={[styles.crater, styles.craterA]} />
-            <View style={[styles.crater, styles.craterB]} />
-            <View style={[styles.crater, styles.craterC]} />
-            <View style={[styles.crater, styles.craterD]} />
+      <View style={styles.cardInner}>
+        <LinearGradient
+          colors={[colors.heroGradA, colors.heroGradB, colors.heroGradC]}
+          start={{ x: 0.05, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          <View pointerEvents="none" style={styles.starsLayer}>
+            {STAR_POINTS.map(([left, top, size, opacity], index) => (
+              <View
+                key={`star-${index}`}
+                style={[
+                  styles.star,
+                  {
+                    left,
+                    top,
+                    width: size,
+                    height: size,
+                    borderRadius: size / 2,
+                    opacity,
+                  },
+                ]}
+              />
+            ))}
+            {SPARKLE_POINTS.map(([left, top, opacity], index) => (
+              <View key={`spark-${index}`} style={[styles.sparkleWrap, { left, top, opacity }]}>
+                <View style={styles.sparkleH} />
+                <View style={styles.sparkleV} />
+              </View>
+            ))}
           </View>
-        </View>
 
-        <View style={[styles.contentZone, { maxWidth: safeTextWidth }]}>
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.title}>{t('homeSurface.skyHero.title')}</Text>
-          {isLoading ? (
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.subTitle}>{t('homeSurface.skyHero.loadingSubtitle')}</Text>
-          ) : (
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={3} style={styles.subTitle}>
-              {subtitle || fallbackSubtitle}
+          <View pointerEvents="none" style={styles.moonWrap}>
+            <View style={styles.moonAuraOuter} />
+            <View style={styles.moonAuraMid} />
+            <View style={styles.moonAuraInner} />
+            <View style={styles.moonCircle}>
+              <View style={[styles.crater, styles.craterA]} />
+              <View style={[styles.crater, styles.craterB]} />
+              <View style={[styles.crater, styles.craterC]} />
+              <View style={[styles.crater, styles.craterD]} />
+            </View>
+          </View>
+
+          <View style={[styles.contentZone, { maxWidth: safeTextWidth }]}>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.title}>{t('homeSurface.skyHero.title')}</Text>
+            {isLoading ? (
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} style={styles.subTitle}>{t('homeSurface.skyHero.loadingSubtitle')}</Text>
+            ) : (
+              <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={3} style={styles.subTitle}>
+                {subtitle || fallbackSubtitle}
+              </Text>
+            )}
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={4} style={styles.description}>
+              {isLoading ? t('homeSurface.skyHero.loadingInsight') : insightText}
             </Text>
-          )}
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={4} style={styles.description}>
-            {isLoading ? t('homeSurface.skyHero.loadingInsight') : insightText}
-          </Text>
-        </View>
+          </View>
 
-        <View style={styles.cta}>
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.ctaText}>{resolvedCtaLabel}</Text>
-          <Ionicons name="chevron-forward" size={spacing.md} color={colors.white} />
-        </View>
-      </LinearGradient>
+          <View style={styles.cta}>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.ctaText}>{resolvedCtaLabel}</Text>
+            <Ionicons name="chevron-forward" size={spacing.md} color={colors.white} />
+          </View>
+        </LinearGradient>
+      </View>
     </Pressable>
   );
 }
@@ -161,15 +163,18 @@ export function SkyHeroCard({
 const styles = StyleSheet.create({
   card: {
     marginTop: spacing.cardGap,
+    ...shadowHero,
+  },
+  cardInner: {
     borderRadius: radius.hero,
     overflow: 'hidden',
-    ...shadowHero,
   },
   pressed: {
     opacity: 0.95,
     transform: [{ scale: 0.996 }],
   },
   gradient: {
+    borderRadius: radius.hero,
     minHeight: spacing.xxl * 8 + spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sectionGap + spacing.xs,

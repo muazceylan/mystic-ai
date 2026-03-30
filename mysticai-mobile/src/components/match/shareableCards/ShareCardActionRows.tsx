@@ -56,6 +56,9 @@ export function ShareCardPrimaryActions({ actions }: ActionRowProps) {
     <View style={styles.primaryRow}>
       {actions.map((action) => {
         const accent = action.tone === 'accent';
+        const backgroundColor = accent ? colors.violet : colors.violetBg;
+        const borderColor = accent ? colors.violet : colors.violetLight;
+        const contentColor = accent ? '#FFFFFF' : colors.violetText;
 
         return (
           <Pressable
@@ -67,22 +70,24 @@ export function ShareCardPrimaryActions({ actions }: ActionRowProps) {
             accessibilityState={{ disabled: action.disabled, busy: action.loading }}
             style={({ pressed }) => [
               styles.primaryItem,
-              accent
-                ? { backgroundColor: colors.violet }
-                : { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(180, 165, 210, 0.35)' },
+              {
+                backgroundColor,
+                borderWidth: 1,
+                borderColor,
+              },
               pressed && styles.pressed,
               action.disabled && styles.disabled,
             ]}
           >
             {action.loading ? (
-              <ActivityIndicator size="small" color={accent ? '#FFFFFF' : colors.violet} />
+              <ActivityIndicator size="small" color={contentColor} />
             ) : (
-              <Ionicons name={action.iconName} size={17} color={accent ? '#FFFFFF' : colors.violet} />
+              <Ionicons name={action.iconName} size={17} color={contentColor} />
             )}
             <AccessibleText
               style={[
                 styles.primaryLabel,
-                { color: accent ? '#FFFFFF' : colors.text },
+                { color: contentColor },
               ]}
               maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
             >
