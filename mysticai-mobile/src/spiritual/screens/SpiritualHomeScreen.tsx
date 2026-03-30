@@ -102,14 +102,6 @@ const QUICK_ACTIONS: ReadonlyArray<{
     subKey: 'spiritual.home.quick.journalSub',
     accent: '#6366F1',
   },
-  {
-    key: 'settings',
-    route: '/spiritual/settings',
-    icon: 'settings-outline',
-    labelKey: 'spiritual.home.quick.settingsLabel',
-    subKey: 'spiritual.home.quick.settingsSub',
-    accent: '#64748B',
-  },
 ];
 
 export default function SpiritualHomeScreen() {

@@ -85,6 +85,7 @@ export default function CustomSetDetailScreen() {
   const accent = isDark ? '#A78BFA' : '#7C3AED';
   const accentSoft = isDark ? 'rgba(167,139,250,0.14)' : 'rgba(124,58,237,0.08)';
   const doneColor = isDark ? '#4ADE80' : '#16A34A';
+  const primaryCta = colors.primary;
 
   /* ─── Resolve item info ─── */
   const resolveItem = useCallback(
@@ -407,7 +408,10 @@ export default function CustomSetDetailScreen() {
       <Pressable
         style={({ pressed }) => [
           S.addBtn,
-          { borderColor: accent },
+          {
+            backgroundColor: accentSoft,
+            borderColor: isDark ? colors.surfaceGlassBorder : accent + '22',
+          },
           pressed && { opacity: 0.8 },
         ]}
         onPress={() => { setAddSearch(''); setAddItemCounts({}); setExpandedCountPicker(null); setCustomCountText(''); setShowAddModal(true); }}
@@ -420,7 +424,7 @@ export default function CustomSetDetailScreen() {
         <Pressable
           style={({ pressed }) => [
             S.startBtn,
-            { backgroundColor: accent },
+            { backgroundColor: primaryCta },
             pressed && { opacity: 0.85 },
           ]}
           onPress={() => {
@@ -1073,13 +1077,14 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     /* Bottom bar */
     bottomBar: {
       flexDirection: 'row',
+      alignItems: 'center',
       gap: SPACING.smMd,
       paddingHorizontal: SPACING.lgXl,
       paddingTop: SPACING.md,
       paddingBottom: 20,
       borderTopWidth: 1,
-      borderTopColor: isDark ? 'rgba(148,163,184,0.10)' : C.border,
-      backgroundColor: C.bg,
+      borderTopColor: isDark ? C.surfaceGlassBorder : C.borderLight,
+      backgroundColor: C.surfaceGlass,
     },
     hiddenBottomBar: {
       display: 'none',
@@ -1093,6 +1098,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       paddingHorizontal: SPACING.lg,
       borderRadius: RADIUS.full,
       borderWidth: 1.5,
+      ...SHADOW.sm,
     },
     addBtnText: { ...TYPOGRAPHY.SmallBold },
     startBtn: {

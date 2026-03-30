@@ -35,7 +35,6 @@ export default function SpiritualLayout() {
       <Stack.Screen name="meditation/session" options={{ title: t('spiritualLayout.screenMeditationSession') }} />
       <Stack.Screen name="journal/index" options={{ title: t('spiritualLayout.screenJournal'), headerShown: false }} />
       <Stack.Screen name="journal/stats" options={{ title: t('spiritualLayout.screenStats'), headerShown: false }} />
-      <Stack.Screen name="settings" options={{ title: t('spiritualLayout.screenSettings') }} />
       <Stack.Screen name="recommendations" options={{ title: t('spiritualLayout.screenRecommendations'), headerShown: false }} />
       <Stack.Screen name="custom-sets/index" options={{ title: t('spiritualLayout.screenCustomSets'), headerShown: false }} />
       <Stack.Screen name="custom-sets/[id]" options={{ title: t('spiritualLayout.screenCustomSetDetail'), headerShown: false }} />
