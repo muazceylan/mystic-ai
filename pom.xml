@@ -69,6 +69,14 @@
                         <release>21</release>
                     </configuration>
                 </plugin>
+                <!-- Windows: baska surec JAR'i kisa sureligine tutuyorsa clean tekrar dener -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <configuration>
+                        <retryOnError>true</retryOnError>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>

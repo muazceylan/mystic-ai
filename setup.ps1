@@ -19,12 +19,27 @@ $Host.UI.RawUI.WindowTitle = "Mystic AI Setup"
 $ROOT = $PSScriptRoot
 Set-Location $ROOT
 
-# ── Renk yardimcilari ─────────────────────────────────────────
-function Write-Step  { param($msg) Write-Host "`n🔹 $msg" -ForegroundColor Cyan }
-function Write-OK    { param($msg) Write-Host "  ✅ $msg" -ForegroundColor Green }
-function Write-Warn  { param($msg) Write-Host "  ⚠️  $msg" -ForegroundColor Yellow }
-function Write-Fail  { param($msg) Write-Host "  ❌ $msg" -ForegroundColor Red }
-function Write-Info  { param($msg) Write-Host "     $msg" -ForegroundColor Gray }
+# ── Renk yardimcilari (Unicode/emoji'siz, PowerShell parser'a guvenli) ──
+function Write-Step {
+    param([string]$msg)
+    Write-Host "`n[STEP] $msg" -ForegroundColor Cyan
+}
+function Write-OK {
+    param([string]$msg)
+    Write-Host "  [OK] $msg" -ForegroundColor Green
+}
+function Write-Warn {
+    param([string]$msg)
+    Write-Host "  [WARN] $msg" -ForegroundColor Yellow
+}
+function Write-Fail {
+    param([string]$msg)
+    Write-Host "  [FAIL] $msg" -ForegroundColor Red
+}
+function Write-Info {
+    param([string]$msg)
+    Write-Host "  [INFO] $msg" -ForegroundColor Gray
+}
 
 # ── Port kontrol ──────────────────────────────────────────────
 function Test-Port {
@@ -71,7 +86,12 @@ Assert-Command "npm"    "Node.js ile gelir"
 Assert-Command "docker" "https://www.docker.com/products/docker-desktop"
 
 # Java versiyonu kontrol (21+)
-$javaVer = (java -version 2>&1 | Select-String "version" | Out-String)
+# Not: `java -version` ciktisi genellikle stderr'e yazilir ve `$ErrorActionPreference = "Stop"` bunu "hata" gibi
+# terminasyon hatasina cevirebiliyor. Java cagrisi oncesi `$ErrorActionPreference`i gecici olarak yumuşatiyoruz.
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+$javaVer = (& java -version 2>&1 | Out-String)
+$ErrorActionPreference = $prevEap
 if ($javaVer -match '"(\d+)') {
     $major = [int]$Matches[1]
     if ($major -lt 21) {
@@ -80,6 +100,18 @@ if ($javaVer -match '"(\d+)') {
         exit 1
     }
     Write-OK "Java $major"
+
+    # Maven tarafinin da ayni JDK'yi kullanmasini sagla.
+    # (mvn -v bazen JAVA_HOME veya toolchain nedeniyle farkli bir java'ya kayabiliyor)
+    try {
+        $javaExe = (Get-Command java -ErrorAction Stop).Source
+        $javaHome = Split-Path -Parent (Split-Path -Parent $javaExe)
+        $env:JAVA_HOME = $javaHome
+        $env:Path = "$($env:JAVA_HOME)\\bin;$env:Path"
+        Write-Info "Maven icin JAVA_HOME set edildi: $env:JAVA_HOME"
+    } catch {
+        Write-Warn "JAVA_HOME otomatik set edilemedi (devam ediliyor)."
+    }
 }
 
 # Node versiyonu kontrol (20+)
@@ -94,7 +126,7 @@ Write-OK "Node.js $nodeVer"
 
 # pnpm kontrol (admin panel icin)
 if (-not (Get-Command "pnpm" -ErrorAction SilentlyContinue)) {
-    Write-Warn "pnpm bulunamadi — admin panel icin kuruluyor..."
+    Write-Warn 'pnpm bulunamadi - admin panel icin kuruluyor...'
     npm install -g pnpm
 }
 Write-OK "pnpm $(pnpm --version)"
@@ -115,17 +147,17 @@ Write-Step "Ortam dosyalari hazirlaniyor"
 
 if (-not (Test-Path "$ROOT\.env")) {
     Copy-Item "$ROOT\.env.example" "$ROOT\.env"
-    Write-OK ".env olusturuldu (.env.example'dan)"
-    Write-Warn "Gerekirse .env icindeki API anahtarlarini (OPENAI_API_KEY vb.) doldurun"
+    Write-OK '.env olusturuldu (.env.example ornek dosyasindan)'
+    Write-Warn 'Gerekirse .env icindeki API anahtarlarini (OPENAI_API_KEY vb.) doldurun'
 } else {
-    Write-OK ".env zaten mevcut"
+    Write-OK '.env zaten mevcut'
 }
 
 if (-not (Test-Path "$ROOT\mysticai-mobile\.env")) {
     Copy-Item "$ROOT\mysticai-mobile\.env.example" "$ROOT\mysticai-mobile\.env"
-    Write-OK "mysticai-mobile\.env olusturuldu"
+    Write-OK 'mysticai-mobile\.env olusturuldu'
 } else {
-    Write-OK "mysticai-mobile\.env zaten mevcut"
+    Write-OK 'mysticai-mobile\.env zaten mevcut'
 }
 
 # ============================================================
@@ -144,7 +176,7 @@ if (-not (Wait-Port 6379 60 "Redis"))       { exit 1 }
 Write-OK "Tum altyapi portlari hazir"
 
 if ($InfraOnly) {
-    Write-Host "`n✅ Altyapi baslatildi. Servisler icin tekrar calistirin (--InfraOnly olmadan)." -ForegroundColor Green
+    Write-Host "`n[OK] Altyapi baslatildi. Servisler icin tekrar calistirin (--InfraOnly olmadan)." -ForegroundColor Green
     exit 0
 }
 
@@ -166,7 +198,7 @@ if (-not $SkipBuild) {
 }
 
 if ($NoServices) {
-    Write-Host "`n✅ Build tamamlandi. Servisleri baslatmak icin: .\start-services.ps1" -ForegroundColor Green
+    Write-Host "`n[OK] Build tamamlandi. Servisleri baslatmak icin: .\start-services.ps1" -ForegroundColor Green
     exit 0
 }
 
@@ -231,7 +263,7 @@ function Start-JavaService {
     $logFile = "$LOG_DIR\$Tag.log"
     $cmd = "java -jar `"$($jar.FullName)`" $ExtraArgs *> `"$logFile`""
     $proc = Start-Process powershell -ArgumentList "-NoProfile -Command $cmd" -PassThru -WindowStyle Hidden
-    Write-Info "▶ $Tag baslatildi (PID=$($proc.Id)) → $logFile"
+    Write-Info ">> $Tag baslatildi (PID=$($proc.Id)) -> $logFile"
     return $proc
 }
 
@@ -243,11 +275,11 @@ if (-not (Wait-Port 8761 60 "Eureka")) {
 }
 
 # Auth Service
-$authPid = Start-JavaService "auth" "auth-service-*.jar"
+$authPid = Start-JavaService "auth" "auth-service-*.jar" "--spring.profiles.active=local"
 if (-not (Wait-Port 8081 90 "auth-service")) {
     Write-Fail "Auth service baslamadi. Log: $LOG_DIR\auth.log"
-    Write-Info "Sikca karsilasilan sorun: '8081 already in use'"
-    Write-Info "Cozum: netstat -ano | findstr :8081  sonra  taskkill /PID <pid> /F"
+    Write-Info "Sikca karsilasilan sorun: 8081 dolu (netstat/taskkill) veya Flyway checksum (auth.log: checksum mismatch / flyway repair)"
+    Write-Info "8081 icin: netstat -ano | findstr :8081  sonra  taskkill /PID <pid> /F"
     exit 1
 }
 
@@ -291,24 +323,24 @@ try {
 # OZET
 # ============================================================
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkCyan
-Write-Host "  ✨ Mystic AI — Kurulum Tamamlandi!" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkCyan
+Write-Host "====================================================" -ForegroundColor DarkCyan
+Write-Host "  Mystic AI - Kurulum Tamamlandi!" -ForegroundColor Cyan
+Write-Host "====================================================" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Backend Servisleri:" -ForegroundColor White
-Write-Host "    API Gateway  → http://localhost:8080" -ForegroundColor Gray
-Write-Host "    Swagger UI   → http://localhost:8080/swagger-ui.html" -ForegroundColor Gray
-Write-Host "    Eureka       → http://localhost:8761" -ForegroundColor Gray
+Write-Host "    API Gateway  -> http://localhost:8080" -ForegroundColor Gray
+Write-Host "    Swagger UI   -> http://localhost:8080/swagger-ui.html" -ForegroundColor Gray
+Write-Host "    Eureka       -> http://localhost:8761" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Altyapi Panelleri:" -ForegroundColor White
-Write-Host "    MailHog      → http://localhost:8025" -ForegroundColor Gray
-Write-Host "    RabbitMQ     → http://localhost:15672  (mystic / mystic123)" -ForegroundColor Gray
+Write-Host "    MailHog      -> http://localhost:8025" -ForegroundColor Gray
+Write-Host "    RabbitMQ     -> http://localhost:15672  (mystic / mystic123)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Loglar: $LOG_DIR" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Sonraki adimlar:" -ForegroundColor White
-Write-Host "    Admin Panel  →  cd mystic-admin  &&  pnpm install  &&  pnpm dev" -ForegroundColor DarkYellow
-Write-Host "    Mobil        →  cd mysticai-mobile  &&  npm install  &&  npm start" -ForegroundColor DarkYellow
+Write-Host "    Admin Panel  -> cd mystic-admin; pnpm install; pnpm dev" -ForegroundColor DarkYellow
+Write-Host "    Mobil        -> cd mysticai-mobile; npm install; npm start" -ForegroundColor DarkYellow
 Write-Host ""
 Write-Host "  Ipucu: Servisleri tekrar baslatmak icin: .\start-services.ps1" -ForegroundColor DarkGray
 Write-Host ""

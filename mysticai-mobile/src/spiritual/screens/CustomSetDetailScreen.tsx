@@ -402,6 +402,46 @@ export default function CustomSetDetailScreen() {
     );
   };
 
+  const bottomBar = (
+    <View style={[S.bottomBar, { paddingBottom: Math.max(20, bottomTabBarOffset > 0 ? 20 : 36) }]}>
+      <Pressable
+        style={({ pressed }) => [
+          S.addBtn,
+          { borderColor: accent },
+          pressed && { opacity: 0.8 },
+        ]}
+        onPress={() => { setAddSearch(''); setAddItemCounts({}); setExpandedCountPicker(null); setCustomCountText(''); setShowAddModal(true); }}
+      >
+        <Ionicons name={totalCount > 0 ? 'pencil-outline' : 'add-circle-outline'} size={18} color={accent} />
+        <Text style={[S.addBtnText, { color: accent }]}>{totalCount > 0 ? t('spiritual.customSet.editItems') : t('spiritual.customSet.addItems')}</Text>
+      </Pressable>
+
+      {totalCount > 0 && completedCount < totalCount && (
+        <Pressable
+          style={({ pressed }) => [
+            S.startBtn,
+            { backgroundColor: accent },
+            pressed && { opacity: 0.85 },
+          ]}
+          onPress={() => {
+            const next = set.items.find((it) => !isItemDone(it));
+            if (next) handleItemPress(next);
+          }}
+        >
+          <Ionicons name="play" size={18} color="#FFF" />
+          <Text style={S.startBtnText}>{t('spiritual.customSet.continuePractice')}</Text>
+        </Pressable>
+      )}
+
+      {totalCount > 0 && completedCount >= totalCount && (
+        <View style={[S.startBtn, { backgroundColor: doneColor }]}>
+          <Ionicons name="checkmark-circle" size={18} color="#FFF" />
+          <Text style={S.startBtnText}>{t('spiritual.customSet.completedStatus')}</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <SafeScreen>
       {/* ─── Header ─── */}
@@ -496,10 +536,11 @@ export default function CustomSetDetailScreen() {
             <Text style={S.emptyItemsSub}>Esma, dua veya sure ekleyerek rutininizi oluşturun</Text>
           </View>
         }
+        ListFooterComponent={bottomBar}
       />
 
       {/* ─── Bottom bar ─── */}
-      <View style={[S.bottomBar, { paddingBottom: Math.max(20, bottomTabBarOffset > 0 ? 20 : 36) }]}>
+      <View style={S.hiddenBottomBar}>
         <Pressable
           style={({ pressed }) => [
             S.addBtn,
@@ -1039,6 +1080,9 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderTopWidth: 1,
       borderTopColor: isDark ? 'rgba(148,163,184,0.10)' : C.border,
       backgroundColor: C.bg,
+    },
+    hiddenBottomBar: {
+      display: 'none',
     },
     addBtn: {
       flexDirection: 'row',

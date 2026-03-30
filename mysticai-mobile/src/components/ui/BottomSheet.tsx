@@ -17,6 +17,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS } from '../../constants/tokens';
 import { useBottomSheetDragGesture } from './useBottomSheetDragGesture';
@@ -31,7 +32,9 @@ interface BottomSheetProps {
 export function BottomSheet({ visible, onClose, title, children }: BottomSheetProps) {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
-  const s = createStyles(colors);
+  const insets = useSafeAreaInsets();
+  const maxSheetHeight = Math.min(height * 0.85, height - insets.top - SPACING.xl);
+  const s = createStyles(colors, maxSheetHeight, Math.max(insets.bottom, SPACING.lg));
 
   const translateY = useSharedValue(height);
   const backdropOpacity = useSharedValue(0);
@@ -97,7 +100,7 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
   );
 }
 
-function createStyles(C: ThemeColors) {
+function createStyles(C: ThemeColors, maxSheetHeight: number, bottomPadding: number) {
   return StyleSheet.create({
     wrapper: {
       flex: 1,
@@ -111,8 +114,8 @@ function createStyles(C: ThemeColors) {
       backgroundColor: C.card,
       borderTopLeftRadius: RADIUS.xl,
       borderTopRightRadius: RADIUS.xl,
-      maxHeight: '85%',
-      paddingBottom: 34,
+      maxHeight: maxSheetHeight,
+      paddingBottom: bottomPadding,
     },
     dragZone: {
       paddingTop: SPACING.sm,

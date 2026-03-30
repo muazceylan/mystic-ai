@@ -13,11 +13,26 @@ $ErrorActionPreference = "Stop"
 $ROOT = $PSScriptRoot
 Set-Location $ROOT
 
-function Write-Step { param($msg) Write-Host "`n🔹 $msg" -ForegroundColor Cyan }
-function Write-OK   { param($msg) Write-Host "  ✅ $msg" -ForegroundColor Green }
-function Write-Warn { param($msg) Write-Host "  ⚠️  $msg" -ForegroundColor Yellow }
-function Write-Fail { param($msg) Write-Host "  ❌ $msg" -ForegroundColor Red }
-function Write-Info { param($msg) Write-Host "     $msg" -ForegroundColor Gray }
+function Write-Step {
+    param([string]$msg)
+    Write-Host "`n[STEP] $msg" -ForegroundColor Cyan
+}
+function Write-OK {
+    param([string]$msg)
+    Write-Host "  [OK] $msg" -ForegroundColor Green
+}
+function Write-Warn {
+    param([string]$msg)
+    Write-Host "  [WARN] $msg" -ForegroundColor Yellow
+}
+function Write-Fail {
+    param([string]$msg)
+    Write-Host "  [FAIL] $msg" -ForegroundColor Red
+}
+function Write-Info {
+    param([string]$msg)
+    Write-Host "  [INFO] $msg" -ForegroundColor Gray
+}
 
 function Test-Port {
     param([int]$Port, [int]$TimeoutMs = 500)
@@ -56,7 +71,7 @@ Write-OK "Altyapi portlari hazir (5432, 5672, 6379)"
 # ── Build ─────────────────────────────────────────────────────
 if (-not $SkipBuild) {
     Write-Step "Maven build"
-    mvn clean install -DskipTests -q
+    & (Join-Path $ROOT "scripts\mvn.ps1") clean install -DskipTests -q
     if ($LASTEXITCODE -ne 0) { Write-Fail "Build basarisiz"; exit 1 }
     Write-OK "Build tamamlandi"
 }
@@ -99,7 +114,7 @@ function Start-JavaService {
     $cmd = "java -jar `"$($jar.FullName)`" $ExtraArgs *> `"$log`""
     $proc = Start-Process powershell -ArgumentList "-NoProfile -Command $cmd" -PassThru -WindowStyle Hidden
     $proc.Id | Out-File "$LOG_DIR\$Tag.pid" -Encoding ascii
-    Write-Info "▶ $Tag  PID=$($proc.Id)  →  $log"
+    Write-Info ">> $Tag  PID=$($proc.Id)  ->  $log"
 }
 
 # ── Servisleri sirayla baslat ─────────────────────────────────
@@ -108,9 +123,10 @@ Write-Step "Servisler baslatiliyor"
 Start-JavaService "eureka"       "service-registry-*.jar"
 if (-not (Wait-Port 8761 60 "Eureka")) { exit 1 }
 
-Start-JavaService "auth"         "auth-service-*.jar"
+Start-JavaService "auth"         "auth-service-*.jar" "--spring.profiles.active=local"
 if (-not (Wait-Port 8081 90 "auth-service")) {
-    Write-Info "Cozum icin: netstat -ano | findstr :8081"
+    Write-Info "Log: logs\auth.log  (Flyway checksum veya 8081 dolu olabilir)"
+    Write-Info "8081 icin: netstat -ano | findstr :8081"
     exit 1
 }
 
@@ -137,7 +153,7 @@ try {
 }
 
 Write-Host ""
-Write-Host "  ✅ Servisler calisiyor. Loglar: $LOG_DIR" -ForegroundColor Green
+Write-Host "  [OK] Servisler calisiyor. Loglar: $LOG_DIR" -ForegroundColor Green
 Write-Host "  Gateway:  http://localhost:8080" -ForegroundColor Gray
 Write-Host "  Eureka:   http://localhost:8761" -ForegroundColor Gray
 Write-Host "  Swagger:  http://localhost:8080/swagger-ui.html" -ForegroundColor Gray
