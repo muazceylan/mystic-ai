@@ -282,16 +282,35 @@ const fmtDate = (d: Date, locale: string) =>
   d.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long' });
 const isToday = (d: Date) =>
   toIso(d) === toIso(new Date());
+
+function fadeToTransparent(color: string): string {
+  if (/^#([0-9a-fA-F]{6})$/.test(color)) return `${color}00`;
+
+  const rgbaMatch = color.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)$/);
+  if (rgbaMatch) {
+    return `rgba(${rgbaMatch[1]},${rgbaMatch[2]},${rgbaMatch[3]},0)`;
+  }
+
+  const rgbMatch = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  if (rgbMatch) {
+    return `rgba(${rgbMatch[1]},${rgbMatch[2]},${rgbMatch[3]},0)`;
+  }
+
+  return 'transparent';
+}
 // ─────────────────────────────────────────────────────────────────────
 
 export default function DreamsScreen() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const isAndroid = Platform.OS === 'android';
   const premiumPanelGradient: readonly [string, string, string] =
-    Platform.OS === 'android'
+    isAndroid
       ? [colors.card, colors.primarySoftBg, colors.card]
       : [colors.surfaceGlass, colors.primarySoftBg, colors.surface];
+  const ambientTopGradient: readonly [string, string] = [colors.glowTop, isAndroid ? fadeToTransparent(colors.glowTop) : 'transparent'];
+  const ambientBottomGradient: readonly [string, string] = [colors.glowBottom, isAndroid ? fadeToTransparent(colors.glowBottom) : 'transparent'];
   const { user }        = useAuthStore();
   const {
     dreams, symbols, loading, submitting, transcribing, error,
@@ -1382,14 +1401,14 @@ export default function DreamsScreen() {
       <LinearGradient colors={[colors.background, colors.surfaceMuted, colors.background]} style={styles.container}>
         <LinearGradient
           pointerEvents="none"
-          colors={[colors.glowTop, 'transparent']}
+          colors={ambientTopGradient}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.7, y: 1 }}
           style={styles.ambientTopGlow}
         />
         <LinearGradient
           pointerEvents="none"
-          colors={[colors.glowBottom, 'transparent']}
+          colors={ambientBottomGradient}
           start={{ x: 1, y: 0 }}
           end={{ x: 0.2, y: 1 }}
           style={styles.ambientBottomGlow}
@@ -1769,6 +1788,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   const shellBg = isAndroid ? (isDark ? C.surfaceAlt : C.surface) : 'rgba(255,255,255,0.5)';
   const haloBg = isAndroid ? (isDark ? C.surfaceAlt : C.primaryTint) : 'rgba(255,255,255,0.24)';
   const activeTabBg = isAndroid ? (isDark ? C.surfaceAlt : C.surface) : (isDark ? C.surfaceAlt : 'rgba(255,255,255,0.86)');
+  const goldHaloBg = isAndroid ? 'rgba(212,175,55,0.08)' : 'rgba(212,175,55,0.10)';
+  const goldHaloBorder = isAndroid ? 'rgba(212,175,55,0.20)' : 'rgba(212,175,55,0.28)';
+  const whiteShellBg = isAndroid ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.18)';
+  const whiteShellBorder = isAndroid ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.2)';
+  const softGlowBg = isAndroid ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.14)';
 
   return StyleSheet.create({
     container: { flex: 1, position: 'relative' },
@@ -1807,7 +1831,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       width: 154,
       height: 154,
       borderRadius: 77,
-      backgroundColor: 'rgba(212,175,55,0.10)',
+      backgroundColor: goldHaloBg,
       opacity: isDark ? 0.15 : 0.5,
     },
 
@@ -1851,7 +1875,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       width: 128,
       height: 128,
       borderRadius: 64,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: softGlowBg,
     },
     composeEntryCopy: {
       flex: 1,
@@ -1901,9 +1925,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       width: 58,
       height: 58,
       borderRadius: 19,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: whiteShellBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.2)',
+      borderColor: whiteShellBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -1944,7 +1968,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       width: 110,
       height: 110,
       borderRadius: 55,
-      backgroundColor: 'rgba(212,175,55,0.12)',
+      backgroundColor: goldHaloBg,
       opacity: isDark ? 0.16 : 0.55,
     },
     overviewHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
@@ -1983,7 +2007,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       height: 58,
       borderRadius: 29,
       borderWidth: 1,
-      borderColor: 'rgba(212,175,55,0.28)',
+      borderColor: goldHaloBorder,
       backgroundColor: shellBg,
       alignItems: 'center',
       justifyContent: 'center',
@@ -1995,7 +2019,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       right: 0,
       bottom: 0,
       left: 0,
-      backgroundColor: 'rgba(212,175,55,0.12)',
+      backgroundColor: goldHaloBg,
     },
     overviewMetricsRow: {
       flexDirection: 'row',
@@ -2194,11 +2218,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      backgroundColor: 'rgba(212,175,55,0.10)',
+      backgroundColor: goldHaloBg,
       borderRadius: 18,
       padding: 14,
       borderWidth: 1,
-      borderColor: 'rgba(212,175,55,0.28)',
+      borderColor: goldHaloBorder,
       marginBottom: 16,
       width: '100%',
     },
@@ -2260,7 +2284,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       backgroundColor: isDark ? C.surface : C.primarySoftBg,
     },
     unlockOptionIconWrapPrimary: {
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: whiteShellBg,
     },
     unlockOptionTitle: {
       fontSize: 14,

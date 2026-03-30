@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  Image,
   PanResponder,
   Platform,
   StyleSheet,
@@ -12,11 +11,10 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { TabActions, useNavigation } from '@react-navigation/native';
-import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
+import { AppSurfaceBackground } from './AppSurfaceBackground';
 
 const MAIN_TAB_ORDER = ['home', 'discover', 'calendar', 'natal-chart', 'profile'] as const;
 
@@ -40,19 +38,56 @@ const TAB_META: Record<MainTabRoute, TabMeta> = {
   profile: { icon: 'person', labelKey: 'tabs.profile' },
 };
 
-const CAPTURE_OPTIONS = {
-  format: 'jpg',
-  quality: 0.36,
-  result: 'tmpfile',
-} as const;
+const SWIPE_CONFIG = Platform.select({
+  ios: {
+    activateHorizontalDelta: 26,
+    minSwipeDistance: 84,
+    minSwipeVelocity: 0.32,
+    maxVerticalDrift: 72,
+    horizontalDominanceRatio: 1.2,
+    edgeActivationWidth: 28,
+    previewRevealDistance: 42,
+    exitDuration: 210,
+  },
+  android: {
+    activateHorizontalDelta: 24,
+    minSwipeDistance: 78,
+    minSwipeVelocity: 0.3,
+    maxVerticalDrift: 68,
+    horizontalDominanceRatio: 1.16,
+    edgeActivationWidth: 24,
+    previewRevealDistance: 38,
+    exitDuration: 180,
+  },
+  default: {
+    activateHorizontalDelta: 24,
+    minSwipeDistance: 78,
+    minSwipeVelocity: 0.3,
+    maxVerticalDrift: 68,
+    horizontalDominanceRatio: 1.16,
+    edgeActivationWidth: 24,
+    previewRevealDistance: 38,
+    exitDuration: 180,
+  },
+}) ?? {
+  activateHorizontalDelta: 24,
+  minSwipeDistance: 78,
+  minSwipeVelocity: 0.3,
+  maxVerticalDrift: 68,
+  horizontalDominanceRatio: 1.16,
+  edgeActivationWidth: 24,
+  previewRevealDistance: 38,
+  exitDuration: 180,
+};
 
-const previewCache = new Map<MainTabRoute, string>();
-
-const ACTIVATE_HORIZONTAL_DELTA = 18;
-const MIN_SWIPE_DISTANCE = 50;
-const MIN_SWIPE_VELOCITY = 0.3;
-const MAX_VERTICAL_DRIFT = 80;
-const HORIZONTAL_DOMINANCE_RATIO = 1.1;
+const ACTIVATE_HORIZONTAL_DELTA = SWIPE_CONFIG.activateHorizontalDelta;
+const MIN_SWIPE_DISTANCE = SWIPE_CONFIG.minSwipeDistance;
+const MIN_SWIPE_VELOCITY = SWIPE_CONFIG.minSwipeVelocity;
+const MAX_VERTICAL_DRIFT = SWIPE_CONFIG.maxVerticalDrift;
+const HORIZONTAL_DOMINANCE_RATIO = SWIPE_CONFIG.horizontalDominanceRatio;
+const EDGE_ACTIVATION_WIDTH = SWIPE_CONFIG.edgeActivationWidth;
+const PREVIEW_REVEAL_DISTANCE = SWIPE_CONFIG.previewRevealDistance;
+const EXIT_DURATION_MS = SWIPE_CONFIG.exitDuration;
 const NAVIGATION_LOCK_MS = 380;
 let globalLastNavigationAt = 0;
 
@@ -80,67 +115,25 @@ function resolveTargetTab(tab: MainTabRoute, gestureState: PanResponderGestureSt
   return adjacentTab;
 }
 
-function setCachedPreview(tab: MainTabRoute, uri: string) {
-  const previous = previewCache.get(tab);
-  if (previous && previous !== uri) {
-    try {
-      releaseCapture(previous);
-    } catch {
-      // Ignore release failures; stale tmp files are tolerable in development.
-    }
-  }
-  previewCache.set(tab, uri);
+function shouldActivateFromEdge(locationX: number, containerWidth: number): boolean {
+  if (containerWidth <= EDGE_ACTIVATION_WIDTH * 2) return true;
+  return locationX <= EDGE_ACTIVATION_WIDTH || locationX >= containerWidth - EDGE_ACTIVATION_WIDTH;
+}
+
+function resolvePreviewTab(tab: MainTabRoute, deltaX: number): MainTabRoute | null {
+  if (Math.abs(deltaX) < PREVIEW_REVEAL_DISTANCE) return null;
+  const direction: -1 | 1 = deltaX < 0 ? 1 : -1;
+  return getAdjacentTab(tab, direction);
 }
 
 export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
-  const isFocused = useIsFocused();
   const isNavigatingRef = useRef(false);
-  const viewShotRef = useRef<ViewShot | null>(null);
-  const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewTab, setPreviewTab] = useState<MainTabRoute | null>(null);
   const [containerWidth, setContainerWidth] = useState(1);
   const translateX = useRef(new Animated.Value(0)).current;
-
-  const scheduleCapture = useCallback((delay = 220) => {
-    if (Platform.OS === 'web') return;
-    if (captureTimerRef.current) {
-      clearTimeout(captureTimerRef.current);
-    }
-
-    captureTimerRef.current = setTimeout(async () => {
-      const viewShot = viewShotRef.current;
-      if (!viewShot) return;
-      try {
-        const uri = await viewShot.capture?.();
-        if (uri) {
-          setCachedPreview(tab, uri);
-        }
-      } catch {
-        // Snapshot failures should never block swipe navigation.
-      }
-    }, delay);
-  }, [tab]);
-
-  // Capture on mount
-  useEffect(() => {
-    scheduleCapture(420);
-    return () => {
-      if (captureTimerRef.current) {
-        clearTimeout(captureTimerRef.current);
-        captureTimerRef.current = null;
-      }
-    };
-  }, [scheduleCapture]);
-
-  // Recapture every time this tab gains focus (so adjacent tabs see fresh preview)
-  useEffect(() => {
-    if (isFocused) {
-      scheduleCapture(300);
-    }
-  }, [isFocused, scheduleCapture]);
 
   const animateBackToCenter = useCallback(() => {
     if (isNavigatingRef.current) return;
@@ -151,9 +144,8 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
       useNativeDriver: true,
     }).start(() => {
       setPreviewTab(null);
-      scheduleCapture(160);
     });
-  }, [scheduleCapture, translateX]);
+  }, [translateX]);
 
   const currentIndex = MAIN_TAB_ORDER.indexOf(tab);
   const hasLeftTab = currentIndex > 0;
@@ -176,15 +168,14 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
   const panResponder = useMemo(
     () => PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      // No edge detection. React Native's ScrollView.onResponderTerminationRequest
-      // already handles conflicts: it rejects transfer when actively scrolling and
-      // allows transfer when at a scroll boundary (can't scroll further).
-      onMoveShouldSetPanResponder: (_, gestureState) => {
+      onMoveShouldSetPanResponder: (event, gestureState) => {
         const absDx = Math.abs(gestureState.dx);
         const absDy = Math.abs(gestureState.dy);
+        const locationX = Number(event.nativeEvent.locationX ?? 0);
 
         if (absDx < ACTIVATE_HORIZONTAL_DELTA) return false;
         if (absDx < absDy * HORIZONTAL_DOMINANCE_RATIO) return false;
+        if (!shouldActivateFromEdge(locationX, containerWidth)) return false;
         if (!hasLeftTab && gestureState.dx > 0) return false;
         if (!hasRightTab && gestureState.dx < 0) return false;
         return true;
@@ -199,8 +190,7 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
           return;
         }
 
-        const direction: -1 | 1 = clampedDx < 0 ? 1 : -1;
-        setPreviewTab(getAdjacentTab(tab, direction));
+        setPreviewTab(resolvePreviewTab(tab, clampedDx));
       },
       onPanResponderRelease: (_, gestureState) => {
         const targetTab = resolveTargetTab(tab, gestureState);
@@ -216,11 +206,12 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
         }
         globalLastNavigationAt = now;
         isNavigatingRef.current = true;
+        setPreviewTab(targetTab);
 
         const exitTo = gestureState.dx < 0 ? -containerWidth : containerWidth;
         Animated.timing(translateX, {
           toValue: exitTo,
-          duration: 180,
+          duration: EXIT_DURATION_MS,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }).start(() => {
@@ -235,7 +226,6 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
     [animateBackToCenter, containerWidth, hasLeftTab, hasRightTab, navigateToTab, tab, translateX],
   );
 
-  const previewUri = previewTab ? previewCache.get(previewTab) ?? null : null;
   const previewMeta = previewTab ? TAB_META[previewTab] : null;
 
   const handleLayout = useCallback((event: any) => {
@@ -243,52 +233,50 @@ export function TabSwipeGesture({ tab, children }: TabSwipeGestureProps) {
     if (nextWidth !== containerWidth) {
       setContainerWidth(nextWidth);
     }
-    scheduleCapture(220);
-  }, [containerWidth, scheduleCapture]);
+  }, [containerWidth]);
 
   return (
     <View style={styles.container} onLayout={handleLayout} {...panResponder.panHandlers}>
       {previewTab ? (
         <View pointerEvents="none" style={styles.previewLayer}>
-          {previewUri ? (
-            <Image source={{ uri: previewUri }} style={styles.previewImage} resizeMode="cover" />
-          ) : (
-            <View
-              style={[
-                styles.previewFallback,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              {previewMeta ? (
-                <>
-                  <Ionicons name={previewMeta.icon} size={40} color={colors.primary} />
-                  <Text style={[styles.previewFallbackText, { color: colors.text }]}>
-                    {t(previewMeta.labelKey)}
-                  </Text>
-                </>
-              ) : null}
-            </View>
-          )}
+          <AppSurfaceBackground />
           <View
             style={[
               styles.previewOverlay,
-              { backgroundColor: isDark ? 'rgba(8,10,22,0.14)' : 'rgba(255,255,255,0.12)' },
+              { backgroundColor: isDark ? 'rgba(8,10,22,0.12)' : 'rgba(255,255,255,0.10)' },
             ]}
           />
+          {previewMeta ? (
+            <View style={styles.previewContent}>
+              <View
+                style={[
+                  styles.previewFallback,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View style={[styles.previewIconWrap, { backgroundColor: colors.primarySoft }]}>
+                  <Ionicons name={previewMeta.icon} size={28} color={colors.primary} />
+                </View>
+                <Text style={[styles.previewFallbackText, { color: colors.text }]}>
+                  {t(previewMeta.labelKey)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
         </View>
       ) : null}
 
-      <Animated.View style={[styles.currentLayer, { transform: [{ translateX }] }]}>
-        {Platform.OS === 'web' ? (
-          children
-        ) : (
-          <ViewShot ref={viewShotRef} options={CAPTURE_OPTIONS} style={styles.currentLayer}>
-            {children}
-          </ViewShot>
-        )}
+      <Animated.View
+        style={[
+          styles.currentLayer,
+          previewTab ? styles.currentLayerRaised : null,
+          { transform: [{ translateX }] },
+        ]}
+      >
+        {children}
       </Animated.View>
     </View>
   );
@@ -300,19 +288,39 @@ const styles = StyleSheet.create({
   },
   previewLayer: {
     ...StyleSheet.absoluteFillObject,
-  },
-  previewImage: {
-    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
   },
   previewOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
-  previewFallback: {
-    flex: 1,
+  previewContent: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    paddingHorizontal: 24,
+  },
+  previewFallback: {
+    minWidth: 180,
+    maxWidth: 280,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderRadius: 24,
     borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  previewIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   previewFallbackText: {
     fontSize: 17,
@@ -320,5 +328,12 @@ const styles = StyleSheet.create({
   },
   currentLayer: {
     flex: 1,
+  },
+  currentLayerRaised: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
 });

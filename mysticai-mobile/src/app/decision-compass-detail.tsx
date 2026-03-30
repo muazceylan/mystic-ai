@@ -368,7 +368,7 @@ export default function DecisionCompassDetailScreen() {
               <View style={S.panel}>
                 <View style={S.panelHeaderRow}>
                   <Text style={S.panelTitle}>{t('decisionCompassDetail.starCategoriesTitle')}</Text>
-                  <Text style={S.panelMeta}>{t('decisionCompassDetail.starCategoriesCount', { count: String(detail.subcategories?.length ?? 0) })}</Text>
+                  <Text style={S.panelMeta}>{t('decisionCompassDetail.starCategoriesCount', { count: detail.subcategories?.length ?? 0 })}</Text>
                 </View>
                 <View style={S.subAnalysisList}>
                   {(detail.subcategories ?? []).slice(0, 8).map((sub, idx) => {
@@ -443,6 +443,13 @@ function makeStyles(
     headerHorizontalPadding: number;
   },
 ) {
+  const isAndroid = Platform.OS === 'android';
+  const insetSurfaceBg = isAndroid ? (isDark ? C.surfaceAlt : C.surface) : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.68)');
+  const insetSurfaceBorder = isAndroid ? C.borderLight : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)');
+  const accentInsetBg = isAndroid ? C.primaryTint : (isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)');
+  const accentInsetBorder = isAndroid ? C.borderLight : (isDark ? 'rgba(180,148,255,0.16)' : 'rgba(122,91,234,0.08)');
+  const topGlowColor = isAndroid ? (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.88)') : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)');
+
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: {
@@ -471,7 +478,7 @@ function makeStyles(
     },
     heroTopGlow: {
       position: 'absolute', top: 0, left: 14, right: 14, height: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)',
+      backgroundColor: topGlowColor,
     },
     heroRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
     heroLeft: { flex: 1 },
@@ -480,7 +487,7 @@ function makeStyles(
     heroDate: { color: C.subtext, fontSize: 11.5, fontWeight: '600', marginTop: 4 },
     heroScorePill: {
       minWidth: 56, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(180,148,255,0.14)' : 'rgba(122,91,234,0.08)', paddingHorizontal: 10,
+      backgroundColor: accentInsetBg, paddingHorizontal: 10,
     },
     heroScoreValue: { color: C.primary, fontSize: 14, fontWeight: '800' },
     heroScoreSub: { color: C.subtext, fontSize: 9.5, fontWeight: '700' },
@@ -498,9 +505,9 @@ function makeStyles(
       borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.8)',
+      backgroundColor: insetSurfaceBg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(122,91,234,0.05)',
+      borderColor: insetSurfaceBorder,
     },
     dateCenterPill: {
       minHeight: 28,
@@ -509,9 +516,9 @@ function makeStyles(
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      backgroundColor: accentInsetBg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(180,148,255,0.16)' : 'rgba(122,91,234,0.08)',
+      borderColor: accentInsetBorder,
     },
     dateCenterText: { color: C.text, fontSize: 11.5, fontWeight: '700' },
     dateTodayBtn: {
@@ -528,9 +535,9 @@ function makeStyles(
     datePickerNativeWrap: {
       borderRadius: 14,
       overflow: 'hidden',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.72)',
+      backgroundColor: insetSurfaceBg,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
+      borderColor: insetSurfaceBorder,
       marginTop: 2,
     },
     datePresetScroll: {
@@ -549,13 +556,13 @@ function makeStyles(
       paddingVertical: 6,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.68)',
+      backgroundColor: insetSurfaceBg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)',
+      borderColor: insetSurfaceBorder,
     },
     datePresetChipActive: {
-      backgroundColor: isDark ? 'rgba(180,148,255,0.14)' : 'rgba(122,91,234,0.10)',
-      borderColor: isDark ? 'rgba(180,148,255,0.18)' : 'rgba(122,91,234,0.10)',
+      backgroundColor: accentInsetBg,
+      borderColor: accentInsetBorder,
     },
     datePresetText: {
       color: C.subtext,
@@ -596,8 +603,8 @@ function makeStyles(
     tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     tagPill: {
       borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.05)',
-      borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)',
+      backgroundColor: isAndroid ? C.primaryTint : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.05)'),
+      borderWidth: 1, borderColor: isAndroid ? C.borderLight : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)'),
     },
     tagText: { color: C.subtext, fontSize: 11, fontWeight: '700' },
     subAnalysisList: {
@@ -605,9 +612,9 @@ function makeStyles(
     },
     subAnalysisCard: {
       borderRadius: 14,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.65)',
+      backgroundColor: insetSurfaceBg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.04)',
+      borderColor: insetSurfaceBorder,
       overflow: 'hidden',
       padding: 10,
       gap: 9,
@@ -680,7 +687,7 @@ function makeStyles(
     subAnalysisBarTrack: {
       height: 6,
       borderRadius: 999,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(122,91,234,0.08)',
+      backgroundColor: isAndroid ? C.primaryTint : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(122,91,234,0.08)'),
       overflow: 'hidden',
     },
     subAnalysisBarFill: {
@@ -711,7 +718,7 @@ function makeStyles(
     },
     retryBtn: {
       alignSelf: 'flex-start', marginTop: 4, borderRadius: 12,
-      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      backgroundColor: accentInsetBg,
       paddingHorizontal: 12, paddingVertical: 8,
     },
     retryBtnText: { color: C.primary, fontSize: 12, fontWeight: '700' },

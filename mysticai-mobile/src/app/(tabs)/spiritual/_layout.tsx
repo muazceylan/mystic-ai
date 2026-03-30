@@ -1,12 +1,15 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { HeaderRightIcons } from '../../../components/ui';
+import { useTheme } from '../../../context/ThemeContext';
+import { createAppStackScreenOptions } from '../../../navigation/stackOptions';
 import { useContentStore } from '../../../spiritual/store/useContentStore';
 import { useTranslation } from 'react-i18next';
 
 export default function SpiritualLayout() {
   const loadFromCms = useContentStore((s) => s.loadFromCms);
   const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
 
   useEffect(() => {
     // Reload from CMS on every entry to the spiritual section
@@ -16,11 +19,12 @@ export default function SpiritualLayout() {
 
   return (
     <Stack
-      screenOptions={{
+      screenOptions={createAppStackScreenOptions({
+        backgroundColor: colors.bg,
         headerShown: true,
         headerTitleStyle: { fontWeight: '700' },
         headerRight: () => <HeaderRightIcons />,
-      }}
+      })}
     >
       <Stack.Screen name="index" options={{ title: t('spiritualLayout.screenPractices'), headerShown: false }} />
       <Stack.Screen name="prayers/index" options={{ title: t('spiritualLayout.screenTodaysPrayer'), headerShown: false }} />

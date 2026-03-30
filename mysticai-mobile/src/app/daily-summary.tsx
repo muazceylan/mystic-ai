@@ -50,6 +50,7 @@ export default function DailySummaryScreen() {
   const { i18n, t } = useTranslation();
   const tFn = t as TFn;
   const { width } = useWindowDimensions();
+  const isAndroid = Platform.OS === 'android';
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const { headerPaddingTop, headerPaddingBottom, headerHorizontalPadding } = useInnerHeaderSpacing();
   const user = useAuthStore((s) => s.user);
@@ -95,6 +96,9 @@ export default function DailySummaryScreen() {
     headerHorizontalPadding,
   });
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(900, width - 24) : undefined;
+  const heroCardGradient: readonly [string, string] = isDark
+    ? (isAndroid ? ['#1B2234', '#111827'] : ['rgba(24,28,46,0.84)', 'rgba(12,16,28,0.72)'])
+    : (isAndroid ? ['#FFFFFF', '#F5F1FF'] : ['rgba(255,255,255,0.95)', 'rgba(248,245,255,0.78)']);
 
   const isRefreshing = cosmicSummaryQuery.isRefetching || homeBriefQuery.isRefetching || skyPulseQuery.isRefetching;
   const isInitialLoading = (!homeBrief && homeBriefQuery.isLoading) || (!skyPulse && skyPulseQuery.isLoading) || (!cosmicSummary && cosmicSummaryQuery.isLoading);
@@ -137,11 +141,7 @@ export default function DailySummaryScreen() {
         >
           <Animated.View entering={FadeInDown.duration(380)} style={S.heroCard}>
             <LinearGradient
-              colors={
-                isDark
-                  ? ['rgba(24,28,46,0.84)', 'rgba(12,16,28,0.72)']
-                  : ['rgba(255,255,255,0.95)', 'rgba(248,245,255,0.78)']
-              }
+              colors={heroCardGradient}
               style={StyleSheet.absoluteFillObject}
             />
             <View style={S.heroAura} />
@@ -332,6 +332,14 @@ function makeStyles(
     headerHorizontalPadding: number;
   },
 ) {
+  const isAndroid = Platform.OS === 'android';
+  const insetSurfaceBg = isAndroid ? (isDark ? C.surfaceAlt : C.surface) : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.70)');
+  const insetSurfaceBorder = isAndroid ? C.borderLight : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)');
+  const accentInsetBg = isAndroid ? C.primaryTint : (isDark ? 'rgba(180,148,255,0.14)' : 'rgba(122,91,234,0.08)');
+  const accentInsetBorder = isAndroid ? C.borderLight : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)');
+  const heroAuraBg = isAndroid ? C.primaryTint : (isDark ? 'rgba(115,96,210,0.18)' : 'rgba(122,91,234,0.10)');
+  const topGlowColor = isAndroid ? (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.88)') : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)');
+
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: {
@@ -365,11 +373,11 @@ function makeStyles(
       width: 140,
       height: 140,
       borderRadius: 70,
-      backgroundColor: isDark ? 'rgba(115,96,210,0.18)' : 'rgba(122,91,234,0.10)',
+      backgroundColor: heroAuraBg,
     },
     topGlow: {
       position: 'absolute', top: 0, left: 14, right: 14, height: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)',
+      backgroundColor: topGlowColor,
     },
     heroHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     heroHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -380,16 +388,16 @@ function makeStyles(
       borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.72)',
+      backgroundColor: insetSurfaceBg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)',
+      borderColor: insetSurfaceBorder,
     },
     scorePill: {
       minHeight: 30, borderRadius: 15, paddingHorizontal: 12,
-      backgroundColor: isDark ? 'rgba(180,148,255,0.14)' : 'rgba(122,91,234,0.08)',
+      backgroundColor: accentInsetBg,
       flexDirection: 'row', alignItems: 'center', gap: 5,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)',
+      borderColor: accentInsetBorder,
     },
     scoreValue: { color: C.primary, fontSize: 14, fontWeight: '800' },
     scoreSub: { color: C.subtext, fontSize: 10, fontWeight: '700' },
@@ -398,9 +406,9 @@ function makeStyles(
       paddingHorizontal: 10,
       paddingVertical: 8,
       gap: 8,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.72)',
+      backgroundColor: insetSurfaceBg,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(122,91,234,0.04)',
+      borderColor: insetSurfaceBorder,
     },
     summaryRow: {
       flexDirection: 'row',
@@ -411,7 +419,7 @@ function makeStyles(
     },
     summaryRowDivider: {
       height: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)',
+      backgroundColor: isAndroid ? C.borderLight : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.06)'),
     },
     summaryRowLabel: {
       color: C.subtext,
@@ -431,7 +439,7 @@ function makeStyles(
     },
     heroDivider: {
       height: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)',
+      backgroundColor: isAndroid ? C.borderLight : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)'),
       marginTop: -2,
     },
     chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -459,22 +467,22 @@ function makeStyles(
     panelTitle: { color: C.text, fontSize: 14.5, fontWeight: '800' },
     focusRow: {
       minHeight: 46, borderRadius: 14,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.70)',
-      borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(122,91,234,0.05)',
+      backgroundColor: insetSurfaceBg,
+      borderWidth: 1, borderColor: insetSurfaceBorder,
       flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10,
     },
     focusLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
     focusIconBubble: {
       width: 24, height: 24, borderRadius: 12,
       alignItems: 'center', justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.08)',
+      backgroundColor: isAndroid ? C.primaryTint : (isDark ? 'rgba(180,148,255,0.10)' : 'rgba(122,91,234,0.08)'),
     },
     focusLabel: { color: C.text, fontSize: 12.5, fontWeight: '700' },
     focusSub: { color: C.subtext, fontSize: 10.5, fontWeight: '600', marginTop: 1 },
     focusScorePill: {
       minWidth: 32, height: 22, borderRadius: 11,
       alignItems: 'center', justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)',
+      backgroundColor: isAndroid ? C.primaryTint : (isDark ? 'rgba(180,148,255,0.12)' : 'rgba(122,91,234,0.08)'),
       paddingHorizontal: 8,
     },
     focusScore: { color: C.primary, fontSize: 11, fontWeight: '800' },

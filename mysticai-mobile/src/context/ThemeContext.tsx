@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme, type ColorSchemeName } from 'react-native';
+import { Platform, useColorScheme, type ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants/colors';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ActiveTheme = 'light' | 'dark';
+
+const IS_ANDROID = Platform.OS === 'android';
 
 export interface ThemeColors {
   bg: string;
@@ -192,17 +194,17 @@ export const LIGHT: ThemeColors = {
   recordingEnd: COLORS.recordingEnd,
   primaryDark: COLORS.primaryDark,
   overlayDark: COLORS.overlayDark,
-  tabBarBg: COLORS.themeLightTabBarBg,
-  tabBarBorder: COLORS.themeLightTabBarBorder,
+  tabBarBg: IS_ANDROID ? COLORS.surface : COLORS.themeLightTabBarBg,
+  tabBarBorder: IS_ANDROID ? COLORS.borderLight : COLORS.themeLightTabBarBorder,
   tabBarActive: COLORS.themeLightTabBarActive,
   tabBarInactive: COLORS.themeLightTabBarInactive,
   switchTrack: COLORS.switchTrack,
   switchThumbActive: COLORS.switchThumbActive,
   statusBar: 'dark',
-  glowTop: COLORS.glowTop,
-  glowBottom: COLORS.glowBottom,
-  surfaceGlass: COLORS.themeLightSurfaceGlass,
-  surfaceGlassBorder: COLORS.themeLightSurfaceGlassBorder,
+  glowTop: IS_ANDROID ? 'rgba(220,233,255,0.36)' : COLORS.glowTop,
+  glowBottom: IS_ANDROID ? 'rgba(245,214,232,0.30)' : COLORS.glowBottom,
+  surfaceGlass: IS_ANDROID ? COLORS.surface : COLORS.themeLightSurfaceGlass,
+  surfaceGlassBorder: IS_ANDROID ? COLORS.borderLight : COLORS.themeLightSurfaceGlassBorder,
   primaryTint: COLORS.themeLightPrimaryTint,
   textSlate: COLORS.textSlate,
   textMuted: COLORS.textMuted,
@@ -307,17 +309,17 @@ export const DARK: ThemeColors = {
   recordingEnd: COLORS.themeDarkRed,
   primaryDark: COLORS.themeDarkPrimary,
   overlayDark: COLORS.themeDarkBg,
-  tabBarBg: COLORS.themeDarkTabBarBg,
-  tabBarBorder: COLORS.themeDarkTabBarBorder,
+  tabBarBg: IS_ANDROID ? COLORS.themeDarkSurface : COLORS.themeDarkTabBarBg,
+  tabBarBorder: IS_ANDROID ? COLORS.themeDarkBorderLight : COLORS.themeDarkTabBarBorder,
   tabBarActive: COLORS.themeDarkTabBarActive,
   tabBarInactive: COLORS.themeDarkTabBarInactive,
   switchTrack: COLORS.themeDarkSwitchTrack,
   switchThumbActive: COLORS.themeDarkSwitchThumbActive,
   statusBar: 'light',
-  glowTop: COLORS.themeDarkGlowTop,
-  glowBottom: COLORS.themeDarkGlowBottom,
-  surfaceGlass: COLORS.themeDarkSurfaceGlass,
-  surfaceGlassBorder: COLORS.themeDarkSurfaceGlassBorder,
+  glowTop: IS_ANDROID ? 'rgba(124,58,237,0.18)' : COLORS.themeDarkGlowTop,
+  glowBottom: IS_ANDROID ? 'rgba(168,85,247,0.14)' : COLORS.themeDarkGlowBottom,
+  surfaceGlass: IS_ANDROID ? COLORS.themeDarkCard : COLORS.themeDarkSurfaceGlass,
+  surfaceGlassBorder: IS_ANDROID ? COLORS.themeDarkBorderLight : COLORS.themeDarkSurfaceGlassBorder,
   primaryTint: COLORS.themeDarkPrimaryTint,
   textSlate: COLORS.themeDarkTextSlate,
   textMuted: COLORS.themeDarkTextMuted,

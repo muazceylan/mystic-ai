@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import OnboardingProgressBar from '../../components/OnboardingProgressBar';
 import { useTheme } from '../../context/ThemeContext';
+import { createAppStackScreenOptions } from '../../navigation/stackOptions';
 
 const ONBOARDING_STEPS = [
   'email-register',
@@ -40,16 +41,11 @@ export default function AuthLayout() {
         </SafeAreaView>
       )}
       <Stack
-        screenOptions={{
+        screenOptions={createAppStackScreenOptions({
+          backgroundColor: colors.bg,
           headerShown: false,
-          contentStyle: {
-            backgroundColor: colors.bg,
-          },
-          animation: 'slide_from_right',
           animationDuration: 250,
-          gestureEnabled: true,
-          fullScreenGestureEnabled: true,
-        }}
+        })}
       >
         <Stack.Screen name="welcome" />
         <Stack.Screen name="guest-name" options={{ gestureEnabled: false }} />

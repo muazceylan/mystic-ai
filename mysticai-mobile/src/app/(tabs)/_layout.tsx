@@ -39,6 +39,7 @@ export default function TabsLayout() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const isAndroid = Platform.OS === 'android';
   const user = useAuthStore((s) => s.user);
   const chart = useNatalChartStore((s) => s.chart);
   const isNatalChartStale = useNatalChartStore((s) => s.isStale);
@@ -68,6 +69,29 @@ export default function TabsLayout() {
   const iosBottomInset = Math.max(insets.bottom, 0);
   const iosTabBarHeight = 54 + iosBottomInset;
   const iosTabBarPaddingBottom = Math.max(4, iosBottomInset - 2);
+  const tabBarShellGradient: readonly [string, string] = isDark
+    ? (
+        isAndroid
+          ? ['#161A27', '#0F1320']
+          : [
+              Platform.OS === 'web' ? 'rgba(17,22,33,0.88)' : 'rgba(20,18,40,0.36)',
+              Platform.OS === 'web' ? 'rgba(17,22,33,0.72)' : 'rgba(20,18,40,0.14)',
+            ]
+      )
+    : (
+        isAndroid
+          ? ['#FFFFFF', '#F5F1FF']
+          : [
+              Platform.OS === 'web' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.72)',
+              Platform.OS === 'web' ? 'rgba(249,247,255,0.82)' : 'rgba(248,244,255,0.38)',
+            ]
+      );
+  const tabBarAccentTint = isDark
+    ? (isAndroid ? 'rgba(117,98,199,0.02)' : (Platform.OS === 'ios' ? 'rgba(138,118,220,0.062)' : 'rgba(117,98,199,0.05)'))
+    : (isAndroid ? 'rgba(145,108,234,0.02)' : (Platform.OS === 'ios' ? 'rgba(172,148,252,0.072)' : 'rgba(145,108,234,0.040)'));
+  const tabBarTopLine = isDark
+    ? (isAndroid ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)')
+    : (isAndroid ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.82)');
 
   useEffect(() => {
     let active = true;
@@ -121,7 +145,10 @@ export default function TabsLayout() {
 
   useEffect(() => {
     if (!user?.id || !chart) return;
-    const prefetchKey = `${user.id}:${plannerLocale}:${chart.calculatedAt ?? chart.id ?? 'chart'}`;
+    const userId = user.id;
+    const userGender = user.gender;
+    const maritalStatus = user.maritalStatus;
+    const prefetchKey = `${userId}:${plannerLocale}:${chart.calculatedAt ?? chart.id ?? 'chart'}`;
     if (prefetchKeyRef.current === prefetchKey) return;
     prefetchKeyRef.current = prefetchKey;
     clearPlannerFullDistributionCache();
@@ -135,9 +162,9 @@ export default function TabsLayout() {
       const nextRange = getMonthRange(nextMonth);
 
       void prefetchPlannerFullDistribution({
-        userId: user.id,
-        userGender: user.gender,
-        maritalStatus: user.maritalStatus,
+        userId,
+        userGender,
+        maritalStatus,
         locale: plannerLocale,
         responseMode: 'GRID_ONLY',
         startDate: currentRange.startDate,
@@ -145,9 +172,9 @@ export default function TabsLayout() {
       });
 
       void prefetchPlannerFullDistribution({
-        userId: user.id,
-        userGender: user.gender,
-        maritalStatus: user.maritalStatus,
+        userId,
+        userGender,
+        maritalStatus,
         locale: plannerLocale,
         responseMode: 'GRID_ONLY',
         startDate: nextRange.startDate,
@@ -168,7 +195,7 @@ export default function TabsLayout() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'transparent',
+          backgroundColor: isAndroid ? colors.tabBarBg : 'transparent',
           borderTopWidth: 0,
           height: Platform.OS === 'ios' ? iosTabBarHeight : 64 + iosBottomInset,
           paddingBottom: Platform.OS === 'ios' ? iosTabBarPaddingBottom : Math.max(4, iosBottomInset),
@@ -186,10 +213,10 @@ export default function TabsLayout() {
               overflow: 'hidden',
               borderTopWidth: 1,
               borderColor: colors.tabBarBorder,
-              backgroundColor: 'transparent',
+              backgroundColor: isAndroid ? colors.tabBarBg : 'transparent',
             }}
           >
-            {Platform.OS !== 'web' ? (
+            {Platform.OS !== 'web' && !isAndroid ? (
               <BlurView
                 intensity={Platform.OS === 'ios' ? (isDark ? 78 : 110) : 38}
                 tint={isDark ? 'dark' : 'light'}
@@ -210,17 +237,7 @@ export default function TabsLayout() {
               />
             ) : null}
             <LinearGradient
-              colors={
-                isDark
-                  ? [
-                      Platform.OS === 'web' ? 'rgba(17,22,33,0.88)' : 'rgba(20,18,40,0.36)',
-                      Platform.OS === 'web' ? 'rgba(17,22,33,0.72)' : 'rgba(20,18,40,0.14)',
-                    ]
-                  : [
-                      Platform.OS === 'web' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.72)',
-                      Platform.OS === 'web' ? 'rgba(249,247,255,0.82)' : 'rgba(248,244,255,0.38)',
-                    ]
-              }
+              colors={tabBarShellGradient}
               style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
             />
             <View
@@ -230,9 +247,7 @@ export default function TabsLayout() {
                 right: 0,
                 bottom: 0,
                 left: 0,
-                backgroundColor: isDark
-                  ? (Platform.OS === 'ios' ? 'rgba(138,118,220,0.062)' : 'rgba(117,98,199,0.05)')
-                  : (Platform.OS === 'ios' ? 'rgba(172,148,252,0.072)' : 'rgba(145,108,234,0.040)'),
+                backgroundColor: tabBarAccentTint,
               }}
             />
             {Platform.OS === 'ios' ? (
@@ -255,7 +270,7 @@ export default function TabsLayout() {
                 left: 14,
                 right: 14,
                 height: 1,
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.82)',
+                backgroundColor: tabBarTopLine,
               }}
             />
             {Platform.OS === 'ios' ? (

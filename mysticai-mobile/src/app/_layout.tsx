@@ -39,6 +39,7 @@ import {
   resolveActiveTheme,
   useTheme,
 } from '../context/ThemeContext';
+import { createAppStackScreenOptions } from '../navigation/stackOptions';
 import { TutorialProvider, TUTORIAL_SCREEN_KEYS, useTutorialTrigger } from '../features/tutorial';
 import { initI18n } from '../i18n';
 import { queryClient } from '../lib/queryClient';
@@ -253,13 +254,10 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
       <AnalyticsDebugBootstrap />
       <AnalyticsIdentityBootstrap />
       <Stack
-        screenOptions={{
+        screenOptions={createAppStackScreenOptions({
+          backgroundColor: colors.bg,
           headerShown: false,
-          contentStyle: { backgroundColor: colors.bg },
-          animation: 'slide_from_right',
-          gestureEnabled: true,
-          fullScreenGestureEnabled: true,
-        }}
+        })}
       />
     </>
   );
