@@ -619,16 +619,7 @@ export default function NumerologyScreen() {
             goBack();
           }}
           rightActions={(
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              {monetization.guruEnabled && <GuruBalanceBadge />}
-              <SpotlightTarget targetKey={NUMEROLOGY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-                <SurfaceHeaderIconButton
-                  iconName="help-circle-outline"
-                  onPress={handlePressTutorialHelp}
-                  accessibilityLabel={t('numerology.howCalculatedCta')}
-                />
-              </SpotlightTarget>
-            </View>
+            monetization.guruEnabled ? <GuruBalanceBadge /> : undefined
           )}
         />
 

@@ -2244,14 +2244,6 @@ export function CalendarScreenContent() {
                     color={colors.text}
                     badgeText={notificationBadgeText}
                   />
-                  <SpotlightTarget targetKey={COSMIC_PLANNER_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-                    <SurfaceHeaderIconButton
-                      iconName="help-circle-outline"
-                      onPress={handlePressTutorialHelp}
-                      accessibilityLabel={t('profile.menu.help')}
-                      color={colors.text}
-                    />
-                  </SpotlightTarget>
                 </>
               }
             />

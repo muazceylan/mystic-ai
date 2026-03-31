@@ -53,6 +53,7 @@ public class OracleService {
     }
 
     private static final Duration HOME_BRIEF_TIMEOUT = Duration.ofSeconds(18);
+    private static final Duration UPSTREAM_CALL_TIMEOUT = Duration.ofSeconds(6);
 
     public Mono<HomeBriefResponse> getHomeBrief(
             Long userId,
@@ -603,7 +604,8 @@ public class OracleService {
                 .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .map(this::parseNumerologyResponse);
+                .map(this::parseNumerologyResponse)
+                .timeout(UPSTREAM_CALL_TIMEOUT);
 
         return circuitBreaker.run(remoteCall, throwable -> {
             log.warn("Circuit breaker activated for numerology-service: {}", throwable.getMessage());
@@ -633,7 +635,8 @@ public class OracleService {
                 .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .map(this::parseNatalChartResponse);
+                .map(this::parseNatalChartResponse)
+                .timeout(UPSTREAM_CALL_TIMEOUT);
 
         return circuitBreaker.run(remoteCall, throwable -> {
             log.warn("Circuit breaker activated for astrology-service: {}", throwable.getMessage());
@@ -657,14 +660,15 @@ public class OracleService {
                 .get()
                 .uri(uriBuilder -> uriBuilder
                         .scheme("lb")
-                        .host("dream-service")
+                        .host("astrology-service")
                         .path("/api/v1/dreams/recent")
                         .build())
                 .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .header("X-User-Id", userId.toString())
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .map(this::parseDreamResponse);
+                .map(this::parseDreamResponse)
+                .timeout(UPSTREAM_CALL_TIMEOUT);
 
         return circuitBreaker.run(remoteCall, throwable -> {
             log.warn("Circuit breaker activated for dream-service: {}", throwable.getMessage());
@@ -694,7 +698,8 @@ public class OracleService {
                 .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .map(this::parseSkyPulseResponse);
+                .map(this::parseSkyPulseResponse)
+                .timeout(UPSTREAM_CALL_TIMEOUT);
 
         return circuitBreaker.run(remoteCall, throwable -> {
             log.warn("Circuit breaker activated for sky-pulse: {}", throwable.getMessage());
@@ -727,7 +732,8 @@ public class OracleService {
                 .header("X-Internal-Gateway-Key", internalGatewayKey)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .map(this::parseWeeklyCards);
+                .map(this::parseWeeklyCards)
+                .timeout(UPSTREAM_CALL_TIMEOUT);
 
         return circuitBreaker.run(remoteCall, throwable -> {
             log.warn("Circuit breaker activated for weekly-swot: {}", throwable.getMessage());

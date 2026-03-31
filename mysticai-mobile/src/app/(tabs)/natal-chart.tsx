@@ -2707,16 +2707,6 @@ export function NatalChartScreenContent() {
         <TabHeader
           title={t('tabs.natalChart')}
           transparent
-          rightActions={(
-            <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <SurfaceHeaderIconButton
-                iconName="help-circle-outline"
-                onPress={handlePressTutorialHelp}
-                accessibilityLabel={t('natalChart.helpA11y')}
-                color={colors.violet}
-              />
-            </SpotlightTarget>
-          )}
           {...tabHeaderActions}
         />
 

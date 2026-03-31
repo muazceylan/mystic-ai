@@ -76,7 +76,7 @@ export function TabHeader({
   showBackButton,
   onBack,
   rightActions,
-  showAvatar = true,
+  showAvatar = false,
   transparent = false,
   onOpenProfile,
   onOpenSettings,

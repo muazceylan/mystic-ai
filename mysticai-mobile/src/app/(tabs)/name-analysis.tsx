@@ -208,15 +208,6 @@ export default function NameLandingScreen() {
       <View style={styles.container}>
         <TabHeader
           title={t('nameAnalysis.title')}
-          rightActions={(
-            <SpotlightTarget targetKey={NAME_ANALYSIS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <SurfaceHeaderIconButton
-                iconName="help-circle-outline"
-                onPress={handlePressTutorialHelp}
-                accessibilityLabel={t('nameAnalysis.landing.helpAccessibility')}
-              />
-            </SpotlightTarget>
-          )}
         />
 
         <ScrollView

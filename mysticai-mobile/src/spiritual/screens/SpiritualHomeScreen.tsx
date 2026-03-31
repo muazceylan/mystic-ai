@@ -231,15 +231,6 @@ export default function SpiritualHomeScreen() {
     <SafeScreen scroll>
       <TabHeader
         title={t('spiritual.home.title')}
-        rightActions={(
-          <SpotlightTarget targetKey={SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <SurfaceHeaderIconButton
-              iconName="help-circle-outline"
-              onPress={handlePressTutorialHelp}
-              accessibilityLabel={t('spiritual.home.helpA11y')}
-            />
-          </SpotlightTarget>
-        )}
         {...useTabHeaderActions()}
       />
 

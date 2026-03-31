@@ -591,16 +591,7 @@ export default function CompatibilityScreen() {
           title={t('compatibility.title')}
           subtitle={t('compatibility.subtitle')}
           rightActions={(
-            <>
-              {monetization.guruEnabled ? <GuruBalanceBadge /> : null}
-              <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-                <SurfaceHeaderIconButton
-                  iconName="help-circle-outline"
-                  onPress={handlePressTutorialHelp}
-                  accessibilityLabel={t('compatibility.helpAccessibility')}
-                />
-              </SpotlightTarget>
-            </>
+            monetization.guruEnabled ? <GuruBalanceBadge /> : undefined
           )}
           {...tabHeaderActions}
         />

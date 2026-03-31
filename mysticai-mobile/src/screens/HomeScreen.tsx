@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -497,6 +497,10 @@ export default function HomeScreen() {
     void reopenTutorialById(TUTORIAL_IDS.HOME_FOUNDATION, 'home');
   }, [reopenTutorialById]);
 
+  const handlePressProfile = useCallback(() => {
+    router.push('/(tabs)/profile' as never);
+  }, [router]);
+
   const handlePressSkyCard = useCallback(() => {
     trackEvent('home_skymap_click', {
       surface: 'hero',
@@ -620,15 +624,38 @@ export default function HomeScreen() {
         <AppSurfaceHeader
           title=""
           variant="home"
-          avatarUri={null}
+          avatarUri={avatarUrl}
           leftActions={(
-            <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <SurfaceHeaderIconButton
-                iconName="help-circle-outline"
-                onPress={handlePressTutorialHelp}
-                accessibilityLabel={t('homeSurface.header.helpAccessibility')}
-              />
-            </SpotlightTarget>
+            avatarUrl ? (
+              <Pressable
+                onPress={handlePressProfile}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.profile')}
+                hitSlop={{ top: spacing.xs, bottom: spacing.xs, left: spacing.xs, right: spacing.xs }}
+                style={({ pressed }) => [styles.avatarBtn, pressed && styles.avatarBtnPressed]}
+              >
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={styles.avatarImg}
+                  resizeMode="cover"
+                  accessibilityIgnoresInvertColors
+                />
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={handlePressProfile}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.profile')}
+                style={({ pressed }) => [styles.guruBtn, pressed && styles.avatarBtnPressed]}
+              >
+                <Image
+                  source={require('../../assets/guru_transparent.png')}
+                  style={styles.guruImg}
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                />
+              </Pressable>
+            )
           )}
           rightActions={(
             <>
@@ -867,6 +894,37 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderWidth: 1,
       borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
       backgroundColor: C.surfaceGlass,
+    },
+    avatarBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.pill,
+      overflow: 'hidden',
+      borderWidth: 1.5,
+      borderColor: C.primary,
+      backgroundColor: isDark ? C.surfaceGlass : C.primarySoft,
+      ...shadowSubtle,
+    },
+    avatarBtnPressed: {
+      opacity: 0.78,
+    },
+    avatarImg: {
+      width: 48,
+      height: 48,
+    },
+    // Fallback: no circle, bleeds beyond header, shifted left, vertically centered
+    // Fallback: no circle, shifted left, pushed down via transform (no layout impact)
+    guruBtn: {
+      marginVertical: -spacing.md - 32,
+      marginLeft: -spacing.cardPadding - 16,
+      height: spacing.chevronHitArea + spacing.md * 2 + 64,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    guruImg: {
+      width: 150,
+      height: spacing.chevronHitArea + spacing.md * 2 + 64,
+      transform: [{ translateY: 10 }],
     },
     retryWrap: {
       marginTop: spacing.sectionGap,

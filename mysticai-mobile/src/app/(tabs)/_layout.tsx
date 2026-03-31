@@ -198,6 +198,10 @@ export default function TabsLayout() {
   }, [pathname]);
 
   const isMainTabActive = currentMainIdx >= 0;
+  // Keep a ref so the pager callback can read the latest value without
+  // being recreated on every render (avoids PagerView re-attaching the listener).
+  const isMainTabActiveRef = useRef(isMainTabActive);
+  isMainTabActiveRef.current = isMainTabActive;
 
   useEffect(() => {
     if (isMainTabActive && currentMainIdx !== lastPagerIdxRef.current) {
@@ -207,6 +211,11 @@ export default function TabsLayout() {
   }, [currentMainIdx, isMainTabActive]);
 
   const handlePagerPageSelected = useCallback((index: number) => {
+    // Guard: ignore native PagerView settle/scroll events while the overlay
+    // is hidden (e.g. user navigated to a non-main-tab screen like daily-transits).
+    // Without this guard the native pager can fire onPageSelected during the
+    // overlay hide transition and navigate back to the home tab unexpectedly.
+    if (!isMainTabActiveRef.current) return;
     lastPagerIdxRef.current = index;
     const targetTab = MAIN_TAB_ORDER[index];
     if (targetTab) {

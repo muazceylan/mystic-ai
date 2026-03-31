@@ -50,6 +50,8 @@ api.interceptors.request.use(async (config: any) => {
   const usernameHeader = authState.user?.username?.trim() || undefined;
   const localeHeader = resolveRequestLocale(authState.user?.preferredLanguage);
 
+  const isFormData = config.data instanceof FormData;
+
   config.headers = {
     ...(config.headers ?? {}),
     ...(userIdHeader ? { 'X-User-Id': userIdHeader } : {}),
@@ -64,6 +66,14 @@ api.interceptors.request.use(async (config: any) => {
       Authorization: `Bearer ${token}`,
     };
   }
+
+  // For FormData (file uploads), explicitly set multipart/form-data so Axios
+  // does not override it with application/x-www-form-urlencoded in dispatchRequest.
+  // React Native XHR then appends the correct boundary when calling send(formData).
+  if (isFormData) {
+    config.headers['Content-Type'] = 'multipart/form-data';
+  }
+
   return config;
 });
 

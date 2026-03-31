@@ -209,7 +209,7 @@ export function ProfileScreenContent() {
     setSelectingAvatar(true);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.85,
@@ -224,8 +224,8 @@ export function ProfileScreenContent() {
 
       const response = await uploadProfileAvatar(
         selected.uri,
-        (selected as any).fileName ?? 'avatar.jpg',
-        (selected as any).mimeType ?? null
+        selected.fileName ?? 'avatar.jpg',
+        selected.mimeType ?? null
       );
       applyUserFromServer(response.data as any);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -258,15 +258,6 @@ export function ProfileScreenContent() {
         <TabHeader
           title={t('profile.title')}
           showAvatar={false}
-          rightActions={(
-            <SpotlightTarget targetKey={PROFILE_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-              <SurfaceHeaderIconButton
-                iconName="help-circle-outline"
-                onPress={handlePressTutorialHelp}
-                accessibilityLabel={t('profile.tutorialHelpA11y')}
-              />
-            </SpotlightTarget>
-          )}
           {...useTabHeaderActions()}
         />
         <ScrollView

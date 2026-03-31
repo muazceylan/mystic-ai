@@ -48,10 +48,12 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         String message = ex.getMessage();
-        boolean isConflict = message != null &&
-                (message.contains("already exists"));
+        boolean isConflict = message != null && message.contains("already exists");
+        boolean isNotFound = message != null && message.toLowerCase().contains("not found");
 
-        HttpStatus status = isConflict ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+        HttpStatus status = isConflict ? HttpStatus.CONFLICT
+                : isNotFound ? HttpStatus.NOT_FOUND
+                : HttpStatus.BAD_REQUEST;
         ErrorResponse error = new ErrorResponse(
                 status.value(),
                 status.getReasonPhrase(),

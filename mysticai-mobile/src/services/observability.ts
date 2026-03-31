@@ -52,6 +52,7 @@ export function logApiError(scope: string, error: unknown, context?: LogContext)
       ...safeBase,
       code: error.code,
       status: error.response?.status,
+      serverMessage: (error.response?.data as any)?.message,
       method: error.config?.method,
       path,
       baseUrl,

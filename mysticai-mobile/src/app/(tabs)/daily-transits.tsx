@@ -1272,15 +1272,6 @@ export default function DailyTransitsScreen() {
         title={data?.title ?? t('homeSurface.dailyTransits.title')}
         subtitle={formatDateLabel(data?.date ?? date, i18n.language)}
         onBack={goBack}
-        rightActions={(
-          <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <SurfaceHeaderIconButton
-              iconName="help-circle-outline"
-              onPress={handlePressTutorialHelp}
-              accessibilityLabel={t('dailyTransits.tutorialHelpA11y')}
-            />
-          </SpotlightTarget>
-        )}
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

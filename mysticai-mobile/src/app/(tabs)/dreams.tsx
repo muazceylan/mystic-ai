@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   StyleSheet, Platform, Alert, ActivityIndicator, RefreshControl,
@@ -1439,15 +1439,6 @@ export default function DreamsScreen() {
       <TabHeader
         title={t('tabs.dream')}
         subtitle={t('dreams.subtitle')}
-        rightActions={
-          <SpotlightTarget targetKey={DREAMS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <SurfaceHeaderIconButton
-              iconName="help-circle-outline"
-              onPress={handlePressTutorialHelp}
-              accessibilityLabel={t('dreams.tutorialHelpA11y')}
-            />
-          </SpotlightTarget>
-        }
         {...useTabHeaderActions()}
       />
 

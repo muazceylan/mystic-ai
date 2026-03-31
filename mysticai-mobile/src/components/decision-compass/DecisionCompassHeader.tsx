@@ -39,9 +39,6 @@ export function DecisionCompassHeader({
             accessibilityLabel={t('decisionCompassScreen.headerA11yNotifications')}
             badgeText={badgeText}
           />
-          <SpotlightTarget targetKey={DECISION_COMPASS_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
-            <SurfaceHeaderIconButton iconName="help-circle-outline" onPress={onOpenHelp} accessibilityLabel={t('decisionCompassScreen.headerA11yHelp')} />
-          </SpotlightTarget>
         </>
       )}
     />
