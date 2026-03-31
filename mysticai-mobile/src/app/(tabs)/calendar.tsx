@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { usePagerReady } from '../../navigation/pagerContext';
 import {
   Alert,
   ActivityIndicator,
@@ -3245,13 +3244,10 @@ export function CalendarScreenContent() {
 }
 
 /**
- * When PagerView is active, content is rendered by MainTabPager.
- * Before PagerView is ready, renders content as a fallback.
+ * Route shell — content is rendered by MainTabPager (PagerView).
  */
 export default function CalendarRoute() {
-  const pagerReady = usePagerReady();
-  if (pagerReady) return null;
-  return <CalendarScreenContent />;
+  return null;
 }
 
 function makeStyles(C: ThemeColors, isDark: boolean) {

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { usePagerReady } from '../../navigation/pagerContext';
 import {
   View,
   Text,
@@ -24,7 +23,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader, BrandBadge, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
-import { usePagerPageFocused } from '../../navigation/MainTabPager';
+import { usePagerActivePage } from '../../navigation/MainTabPager';
+import { MAIN_TAB_ORDER } from '../../navigation/tabPagerConfig';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
 import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
@@ -134,14 +134,11 @@ export function ProfileScreenContent() {
     }
   }, [user?.id]);
 
-  const isProfileFocused = usePagerPageFocused('profile');
-  const wasFocusedRef = useRef(false);
+  const pagerPage = usePagerActivePage();
+  const isProfileActive = pagerPage === MAIN_TAB_ORDER.indexOf('profile');
   useEffect(() => {
-    if (isProfileFocused && !wasFocusedRef.current) {
-      fetchStats(false);
-    }
-    wasFocusedRef.current = isProfileFocused;
-  }, [isProfileFocused, fetchStats]);
+    if (isProfileActive) fetchStats(false);
+  }, [isProfileActive, fetchStats]);
 
   const handleSettingPress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -552,13 +549,10 @@ export function ProfileScreenContent() {
 }
 
 /**
- * When PagerView is active, content is rendered by MainTabPager.
- * Before PagerView is ready, renders content as a fallback.
+ * Route shell — content is rendered by MainTabPager (PagerView).
  */
 export default function ProfileRoute() {
-  const pagerReady = usePagerReady();
-  if (pagerReady) return null;
-  return <ProfileScreenContent />;
+  return null;
 }
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {

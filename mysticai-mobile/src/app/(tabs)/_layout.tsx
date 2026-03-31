@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Tabs, usePathname, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY } from '../../constants/tokens';
@@ -19,8 +19,7 @@ import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope.service';
 import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
 import { MainTabPager, type MainTabPagerHandle } from '../../navigation/MainTabPager';
-import { MAIN_TAB_ORDER, mainTabIndex } from '../../navigation/tabPagerConfig';
-import { PagerReadyProvider } from '../../navigation/pagerContext';
+import { MAIN_TAB_ORDER, isMainTab, mainTabIndex } from '../../navigation/tabPagerConfig';
 
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -189,22 +188,18 @@ export default function TabsLayout() {
   }, [user?.id, user?.gender, user?.maritalStatus, chart, plannerLocale]);
 
   const pagerRef = useRef<MainTabPagerHandle>(null);
-  const [isPagerReady, setIsPagerReady] = useState(false);
   const pathname = usePathname();
   const lastPagerIdxRef = useRef(0);
-  const lastExplicitNavRef = useRef(0);
 
   const currentMainIdx = useMemo(() => {
-    const segs = pathname.replace(/\/+$/, '').split('/');
-    const tabsIdx = segs.indexOf('(tabs)');
-    if (tabsIdx < 0 || tabsIdx + 1 >= segs.length) return -1;
-    return mainTabIndex(segs[tabsIdx + 1]);
+    const cleaned = pathname.replace(/\/+$/, '');
+    const lastSeg = cleaned.split('/').pop() ?? '';
+    return mainTabIndex(lastSeg);
   }, [pathname]);
 
   const isMainTabActive = currentMainIdx >= 0;
 
   useEffect(() => {
-    if (Date.now() - lastExplicitNavRef.current < 300) return;
     if (isMainTabActive && currentMainIdx !== lastPagerIdxRef.current) {
       pagerRef.current?.setPageWithoutAnimation(currentMainIdx);
       lastPagerIdxRef.current = currentMainIdx;
@@ -212,7 +207,6 @@ export default function TabsLayout() {
   }, [currentMainIdx, isMainTabActive]);
 
   const handlePagerPageSelected = useCallback((index: number) => {
-    lastExplicitNavRef.current = Date.now();
     lastPagerIdxRef.current = index;
     const targetTab = MAIN_TAB_ORDER[index];
     if (targetTab) {
@@ -220,27 +214,19 @@ export default function TabsLayout() {
     }
   }, []);
 
-  const handlePagerReady = useCallback(() => {
-    setIsPagerReady(true);
-  }, []);
-
-  const { height: windowHeight } = useWindowDimensions();
   const tabBarHeight =
     Platform.OS === 'ios' ? iosTabBarHeight : 64 + iosBottomInset;
 
   return (
-    <PagerReadyProvider value={isPagerReady}>
     <View style={layoutStyles.root}>
     <Tabs
       screenListeners={{
         tabPress: (e) => {
           const target = e.target ?? '';
           for (let i = 0; i < MAIN_TAB_ORDER.length; i++) {
-            const name = MAIN_TAB_ORDER[i];
-            if (target === name || target.startsWith(name + '-')) {
-              lastExplicitNavRef.current = Date.now();
-              lastPagerIdxRef.current = i;
+            if (target.startsWith(MAIN_TAB_ORDER[i])) {
               pagerRef.current?.setPageWithoutAnimation(i);
+              lastPagerIdxRef.current = i;
               break;
             }
           }
@@ -584,25 +570,22 @@ export default function TabsLayout() {
       />
     </Tabs>
 
+    {/* PagerView overlay — renders real adjacent screens */}
     <View
       style={[
         layoutStyles.pagerOverlay,
-        { height: windowHeight - tabBarHeight },
+        { bottom: tabBarHeight },
         !isMainTabActive && layoutStyles.pagerHidden,
       ]}
       pointerEvents={isMainTabActive ? 'auto' : 'none'}
-      accessibilityElementsHidden={!isMainTabActive}
-      importantForAccessibility={isMainTabActive ? 'auto' : 'no-hide-descendants'}
     >
       <MainTabPager
         ref={pagerRef}
         initialPage={Math.max(0, currentMainIdx)}
         onPageSelected={handlePagerPageSelected}
-        onReady={handlePagerReady}
       />
     </View>
     </View>
-    </PagerReadyProvider>
   );
 }
 
