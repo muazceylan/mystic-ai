@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen } from '../../components/ui/SafeScreen';
-import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
+import { TabSwipePager } from '../../components/navigation/TabSwipePager';
 import { TabHeader } from '../../components/ui/TabHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../constants/colors';
@@ -428,7 +428,7 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <TabSwipeGesture tab="discover">
+    <TabSwipePager tab="discover">
       <SafeScreen edges={['top', 'left', 'right']}>
         <View style={[styles.root, { backgroundColor: colors.bg }]}> 
         <LinearGradient
@@ -691,7 +691,7 @@ export default function DiscoverScreen() {
         </ScrollView>
         </View>
       </SafeScreen>
-    </TabSwipeGesture>
+    </TabSwipePager>
   );
 }
 

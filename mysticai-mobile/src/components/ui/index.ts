@@ -6,6 +6,7 @@ export { Skeleton } from './Skeleton';
 export { ListItem } from './ListItem';
 export { ErrorStateCard } from './ErrorStateCard';
 export { SafeScreen, useBottomTabBarOffset } from './SafeScreen';
+/** @deprecated Use TabSwipePager from components/navigation instead */
 export { TabSwipeGesture } from './TabSwipeGesture';
 export { AccessibleText } from './AccessibleText';
 export { default as AccordionSection } from './AccordionSection';

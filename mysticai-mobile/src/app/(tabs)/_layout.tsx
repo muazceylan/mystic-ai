@@ -189,6 +189,8 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        freezeOnBlur: true,
+        lazy: true,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
           position: 'absolute',

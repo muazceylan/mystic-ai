@@ -32,13 +32,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { getCosmicSubcategoryIcon } from '../../constants/icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from '../../utils/haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
+import { SafeScreen, SurfaceHeaderIconButton, TabHeader, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
+import { TabSwipePager } from '../../components/navigation/TabSwipePager';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
 import { COSMIC_DOCK_LABEL_OVERRIDE_KEYS, PLANNER_LOCAL_TO_COSMIC_CATEGORY } from '../../constants/CosmicConstants';
 import {
@@ -2125,7 +2126,7 @@ export default function CalendarScreen() {
 
   if (!chart && natalChartLoading) {
     return (
-      <TabSwipeGesture tab="calendar">
+      <TabSwipePager tab="calendar">
         <SafeScreen edges={['top', 'left', 'right']}>
           <View style={styles.container}>
           <LinearGradient
@@ -2139,13 +2140,13 @@ export default function CalendarScreen() {
           </View>
           </View>
         </SafeScreen>
-      </TabSwipeGesture>
+      </TabSwipePager>
     );
   }
 
   if (!chart) {
     return (
-      <TabSwipeGesture tab="calendar">
+      <TabSwipePager tab="calendar">
         <SafeScreen edges={['top', 'left', 'right']}>
           <View style={styles.container}>
           <LinearGradient
@@ -2178,12 +2179,12 @@ export default function CalendarScreen() {
           </View>
           </View>
         </SafeScreen>
-      </TabSwipeGesture>
+      </TabSwipePager>
     );
   }
 
   return (
-    <TabSwipeGesture tab="calendar">
+    <TabSwipePager tab="calendar">
       <SafeScreen edges={['top', 'left', 'right']}>
         <View style={styles.container}>
         <LinearGradient
@@ -2795,7 +2796,7 @@ export default function CalendarScreen() {
           animationType="none"
           onRequestClose={closeDetailPanel}
         >
-          <GestureHandlerRootView style={styles.sheetModalRoot}>
+          <View style={styles.sheetModalRoot}>
             <Pressable style={styles.sheetBackdrop} onPress={closeDetailPanel} />
 
             <Animated.View style={[styles.detailSheet, detailSheetStaticStyle, detailSheetStyle]}>
@@ -3241,11 +3242,11 @@ export default function CalendarScreen() {
                 </TouchableOpacity>
               </View>
             </Animated.View>
-          </GestureHandlerRootView>
+          </View>
         </Modal>
         </View>
       </SafeScreen>
-    </TabSwipeGesture>
+    </TabSwipePager>
   );
 }
 

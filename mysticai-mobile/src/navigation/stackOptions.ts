@@ -18,13 +18,15 @@ export function createAppStackScreenOptions({
     contentStyle: [{ backgroundColor }, contentStyle],
     animation: Platform.select({
       ios: 'default',
-      android: 'slide_from_right',
+      android: 'fade_from_bottom',
       default: 'default',
     }),
+    animationDuration: Platform.select({ android: 200, default: undefined }),
     gestureEnabled: Platform.OS === 'ios',
     gestureDirection: 'horizontal',
-    fullScreenGestureEnabled: false,
-    animationMatchesGesture: false,
+    fullScreenGestureEnabled: Platform.OS === 'ios',
+    animationMatchesGesture: Platform.OS === 'ios',
+    freezeOnBlur: true,
     ...overrides,
   };
 }

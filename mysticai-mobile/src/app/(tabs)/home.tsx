@@ -1,10 +1,10 @@
 import HomeScreen from '../../screens/HomeScreen';
-import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
+import { TabSwipePager } from '../../components/navigation/TabSwipePager';
 
 export default function HomeTabScreen() {
   return (
-    <TabSwipeGesture tab="home">
+    <TabSwipePager tab="home">
       <HomeScreen />
-    </TabSwipeGesture>
+    </TabSwipePager>
   );
 }

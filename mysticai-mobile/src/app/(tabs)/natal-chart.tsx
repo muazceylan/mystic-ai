@@ -90,7 +90,8 @@ import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster'
 import { posterTokens } from '../../features/nightSkyPoster/poster.tokens';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader, TabSwipeGesture } from '../../components/ui';
+import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
+import { TabSwipePager } from '../../components/navigation/TabSwipePager';
 import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import {
@@ -1677,7 +1678,7 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'loading') {
     return (
-      <TabSwipeGesture tab="natal-chart">
+      <TabSwipePager tab="natal-chart">
         <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.violet} />
@@ -1686,7 +1687,7 @@ export default function NatalChartTab() {
             <Text style={styles.loadingText}>{t('natalChart.loadingChart')}</Text>
           </View>
         </SafeScreen>
-      </TabSwipeGesture>
+      </TabSwipePager>
     );
   }
 
@@ -1695,7 +1696,7 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'calculating') {
     return (
-      <TabSwipeGesture tab="natal-chart">
+      <TabSwipePager tab="natal-chart">
         <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
           <View style={styles.center}>
             <Animated.Text
@@ -1723,7 +1724,7 @@ export default function NatalChartTab() {
             <Text style={styles.calcSub}>{t('natalChart.calculatingSub')}</Text>
           </View>
         </SafeScreen>
-      </TabSwipeGesture>
+      </TabSwipePager>
     );
   }
 
@@ -1732,7 +1733,7 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'error') {
     return (
-      <TabSwipeGesture tab="natal-chart">
+      <TabSwipePager tab="natal-chart">
         <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
           <View style={styles.center}>
             <View style={styles.errorIcon}>
@@ -1750,7 +1751,7 @@ export default function NatalChartTab() {
             </Pressable>
           </View>
         </SafeScreen>
-      </TabSwipeGesture>
+      </TabSwipePager>
     );
   }
 
@@ -2621,7 +2622,7 @@ export default function NatalChartTab() {
   const stickyHeaderIndices = chart ? [1, 2] : [1];
 
   return (
-    <TabSwipeGesture tab="natal-chart">
+    <TabSwipePager tab="natal-chart">
       <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
         <View style={styles.readyLayout}>
         <MainVerticalScroll
@@ -3349,7 +3350,7 @@ export default function NatalChartTab() {
         onClose={closeBigThreeSheet}
       />
       </SafeScreen>
-    </TabSwipeGesture>
+    </TabSwipePager>
   );
 }
 

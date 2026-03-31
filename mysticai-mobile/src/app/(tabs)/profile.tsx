@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader, BrandBadge, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
-import { TabSwipeGesture } from '../../components/ui/TabSwipeGesture';
+import { TabSwipePager } from '../../components/navigation/TabSwipePager';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
 import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
@@ -251,7 +251,7 @@ export default function ProfileScreen() {
   const S = makeStyles(colors);
 
   return (
-    <TabSwipeGesture tab="profile">
+    <TabSwipePager tab="profile">
       <SafeScreen edges={['top', 'left', 'right']}>
         <View style={S.container}>
         <TabHeader
@@ -544,7 +544,7 @@ export default function ProfileScreen() {
       </Modal>
 
       </SafeScreen>
-    </TabSwipeGesture>
+    </TabSwipePager>
   );
 }
 
