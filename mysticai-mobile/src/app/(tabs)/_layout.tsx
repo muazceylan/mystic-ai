@@ -19,7 +19,7 @@ import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope.service';
 import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
 import { MainTabPager, type MainTabPagerHandle } from '../../navigation/MainTabPager';
-import { MAIN_TAB_ORDER, isMainTab, mainTabIndex } from '../../navigation/tabPagerConfig';
+import { MAIN_TAB_ORDER, mainTabIndex } from '../../navigation/tabPagerConfig';
 
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -190,16 +190,19 @@ export default function TabsLayout() {
   const pagerRef = useRef<MainTabPagerHandle>(null);
   const pathname = usePathname();
   const lastPagerIdxRef = useRef(0);
+  const lastExplicitNavRef = useRef(0);
 
   const currentMainIdx = useMemo(() => {
-    const cleaned = pathname.replace(/\/+$/, '');
-    const lastSeg = cleaned.split('/').pop() ?? '';
-    return mainTabIndex(lastSeg);
+    const segs = pathname.replace(/\/+$/, '').split('/');
+    const tabsIdx = segs.indexOf('(tabs)');
+    if (tabsIdx < 0 || tabsIdx + 1 >= segs.length) return -1;
+    return mainTabIndex(segs[tabsIdx + 1]);
   }, [pathname]);
 
   const isMainTabActive = currentMainIdx >= 0;
 
   useEffect(() => {
+    if (Date.now() - lastExplicitNavRef.current < 300) return;
     if (isMainTabActive && currentMainIdx !== lastPagerIdxRef.current) {
       pagerRef.current?.setPageWithoutAnimation(currentMainIdx);
       lastPagerIdxRef.current = currentMainIdx;
@@ -207,6 +210,7 @@ export default function TabsLayout() {
   }, [currentMainIdx, isMainTabActive]);
 
   const handlePagerPageSelected = useCallback((index: number) => {
+    lastExplicitNavRef.current = Date.now();
     lastPagerIdxRef.current = index;
     const targetTab = MAIN_TAB_ORDER[index];
     if (targetTab) {
@@ -224,9 +228,11 @@ export default function TabsLayout() {
         tabPress: (e) => {
           const target = e.target ?? '';
           for (let i = 0; i < MAIN_TAB_ORDER.length; i++) {
-            if (target.startsWith(MAIN_TAB_ORDER[i])) {
-              pagerRef.current?.setPageWithoutAnimation(i);
+            const name = MAIN_TAB_ORDER[i];
+            if (target === name || target.startsWith(name + '-')) {
+              lastExplicitNavRef.current = Date.now();
               lastPagerIdxRef.current = i;
+              pagerRef.current?.setPageWithoutAnimation(i);
               break;
             }
           }
@@ -570,7 +576,6 @@ export default function TabsLayout() {
       />
     </Tabs>
 
-    {/* PagerView overlay — renders real adjacent screens */}
     <View
       style={[
         layoutStyles.pagerOverlay,
@@ -578,6 +583,8 @@ export default function TabsLayout() {
         !isMainTabActive && layoutStyles.pagerHidden,
       ]}
       pointerEvents={isMainTabActive ? 'auto' : 'none'}
+      accessibilityElementsHidden={!isMainTabActive}
+      importantForAccessibility={isMainTabActive ? 'auto' : 'no-hide-descendants'}
     >
       <MainTabPager
         ref={pagerRef}

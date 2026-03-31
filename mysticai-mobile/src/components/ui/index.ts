@@ -6,8 +6,7 @@ export { Skeleton } from './Skeleton';
 export { ListItem } from './ListItem';
 export { ErrorStateCard } from './ErrorStateCard';
 export { SafeScreen, useBottomTabBarOffset } from './SafeScreen';
-/** @deprecated Replaced by PagerView-based MainTabPager in navigation/ */
-export { TabSwipeGesture } from './TabSwipeGesture';
+
 export { AccessibleText } from './AccessibleText';
 export { default as AccordionSection } from './AccordionSection';
 /** @deprecated Use SafeScreen with scroll prop instead */

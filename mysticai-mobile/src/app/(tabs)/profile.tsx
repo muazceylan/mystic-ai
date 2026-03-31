@@ -23,8 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader, BrandBadge, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
-import { usePagerActivePage } from '../../navigation/MainTabPager';
-import { MAIN_TAB_ORDER } from '../../navigation/tabPagerConfig';
+import { usePagerPageFocused } from '../../navigation/MainTabPager';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
 import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
@@ -134,11 +133,14 @@ export function ProfileScreenContent() {
     }
   }, [user?.id]);
 
-  const pagerPage = usePagerActivePage();
-  const isProfileActive = pagerPage === MAIN_TAB_ORDER.indexOf('profile');
+  const isProfileFocused = usePagerPageFocused('profile');
+  const wasFocusedRef = useRef(false);
   useEffect(() => {
-    if (isProfileActive) fetchStats(false);
-  }, [isProfileActive, fetchStats]);
+    if (isProfileFocused && !wasFocusedRef.current) {
+      fetchStats(false);
+    }
+    wasFocusedRef.current = isProfileFocused;
+  }, [isProfileFocused, fetchStats]);
 
   const handleSettingPress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

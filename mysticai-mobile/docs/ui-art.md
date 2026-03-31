@@ -1,262 +1,188 @@
-PROJE GÖREVİ — UI MİMARİSİNİ BAŞTAN DÜZENLE / COMPONENT-BAZLI STİL SİSTEMİ KUR / SAYFALARI BOZMA
+# Mystic AI Mobile — UI yönü ve tasarım sistemi notları
 
-Bu projede UI katmanı dağınık. Ortak stil yaklaşımı net değil, component sınırları bulanık, buton/tabbar/typography/font kullanımları standardize değil. İstediğim şey mevcut sayfaları görsel olarak bozmadan, UI mimarisini baştan düzenlemen.
+Bu dosya **mysticai-mobile** içinde UI katmanının nereden beslendiğini, hangi prensiplerle genişletilmesi gerektiğini ve kademeli iyileştirme yolunu özetler. Repo genelinde agent ve geliştirici kuralları için kök dizindeki [**CLAUDE.md**](../../CLAUDE.md) (özellikle bölüm 2, 4, 9 ve “Existing Pattern’i Bozma”) tek kaynak kabul edilir; burada tekrar etmek yerine uyum vurgulanır.
 
-HEDEF
-- Tüm UI mimarisini yeniden organize et.
-- Sayfaların mevcut akışını, business logic’ini ve route yapısını bozma.
-- Görsel yapı mümkün olduğunca korunacak; ama iç mimari profesyonel, ölçeklenebilir ve component-bazlı hale gelecek.
-- Yeni geliştirilecek tüm ekranlar aynı UI sistemini kullanabilecek hale gelsin.
-- “Bir ekranda ayrı, başka ekranda ayrı stil” kaosunu bitir.
+---
 
-KRİTİK KURAL
-- Bu iş sadece kozmetik değil, mimari refactor işidir.
-- Yarım bırakma.
-- Geçici çözüm üretme.
-- Dosya dosya uygula.
-- Kullanılmayan eski stil yapılarını temizle.
-- Sonunda detaylı teslim raporu ver.
+## 1. Amaç ve kapsam
 
-TEKNİK HEDEF MİMARİ
-UI katmanı aşağıdaki prensiplerle yeniden kurulacak:
+- **Amaç:** Mevcut foundation’ı (theme + ortak bileşenler) büyüterek tutarlı, ölçeklenebilir UI; görsel parity; route ve iş mantığına dokunmadan stil mimarisini netleştirmek.
+- **Kapsam dışı:** Tek PR’da tüm uygulamayı yeniden yazmak, paralel bir “ikinci tasarım sistemi” kurmak veya sadece kozmetik yüzeysel düzenlemelerle mimari borcu gizlemek.
+- **Stil yaklaşımı:** Projede NativeWind bağımlılığı vardır; fiilen ekranların çoğu **React Native `StyleSheet` + token/theme** ile yazılmıştır. Yeni kodda mevcut ekranın ve komşu bileşenlerin stil dilini takip edin; inline stil yalnızca gerçekten dinamik olan durumlarda kalsın.
 
-1) COMPONENT-BAZLI YAPI
-- Her reusable UI parçası ayrı component olacak.
-- Her component kendi stilini kendi içinde veya kendi klasöründe taşıyacak.
-- Stil, component’e yakın olacak; rastgele tek bir global dosyada birikmeyecek.
-- “screen içinde inline style yığını” yaklaşımı kaldırılacak.
-- Büyük ekran dosyaları parçalanacak.
+---
 
-2) TASARIM SİSTEMİ OLUŞTUR
-Projede net bir design system kurulacak:
-- Renk sistemi
-- Typography sistemi
-- Font family / weight / size / lineHeight sistemi
-- Spacing sistemi
-- Radius sistemi
-- Shadow/elevation sistemi
-- Border sistemi
-- Z-index/layering yaklaşımı
-- Opacity/overlay değerleri
-- Icon size standartları
-- Button height / input height / chip / card / header / tabbar ölçüleri
-- Light/dark mode uyumu varsa bunu bozmadan sistematik hale getir
+## 2. Mevcut foundation (dosya konumları)
 
-3) GLOBAL STYLE ÇÖPLÜĞÜ YAPMA
-- Tek bir “styles.ts” ya da “commonStyles.ts” içine yüzlerce stil yığma.
-- Merkezi yerde sadece design token / theme contract / primitive sabitler olabilir.
-- Component görünümü component seviyesinde tanımlansın.
-- Ama renk, spacing, typography, radius, shadow gibi kararlar merkezi token sistemi üzerinden beslensin.
-- Yani:
-  - Merkezi: tokens, theme, semantic values
-  - Yerel: component’in kendi stili
-Bu ayrımı temiz kur.
+### 2.1 Tasarım token’ları ve tema
 
-4) ORTAK UI BİLEŞENLERİNİ STANDARDİZE ET
-Aşağıdaki bileşenleri reusable ve production-ready hale getir:
-- Button
-  - primary
-  - secondary
-  - ghost
-  - outline
-  - danger
-  - icon button
-  - loading
-  - disabled
-  - full width / compact / large varyantları
-- Text / Typography primitives
-  - display
-  - title
-  - subtitle
-  - body
-  - caption
-  - label
-- Screen container
-- Section container
-- Card
-- Chip / Tag / Pill
-- Divider
-- Icon wrapper
-- Input / TextField
-- Search input
-- TextArea
-- Switch / Toggle row
-- Modal / BottomSheet içerik wrapper’ları
-- Empty state
-- Loading state / skeleton varsa düzenle
-- List item patternleri
-- Header patternleri
-- TabBar / custom tab item
-- CTA row / sticky bottom action area
-- Badge / counter / status indicator
+| Konum | İçerik |
+|--------|--------|
+| [`src/theme/`](../src/theme/) | `colors`, `spacing`, `radius`, `typography`, `shadow`, `platform`; [`index.ts`](../src/theme/index.ts) barrel export. |
+| [`src/constants/tokens.ts`](../src/constants/tokens.ts) | `TYPOGRAPHY`, `SPACING`, `RADIUS` ve ilgili sabitler — birçok UI bileşeni buradan beslenir. |
+| [`src/constants/colors.ts`](../src/constants/colors.ts) + [`src/context/ThemeContext.tsx`](../src/context/ThemeContext.tsx) | Light/dark semantic renkler; `useTheme()` ile bileşen içi dinamik renk. |
 
-5) TABBAR VE NAVIGATION UI STANDARDI
-- Tab bar görünümü tek standarda bağlanacak.
-- Aktif/pasif icon davranışı, label stili, spacing, hit area, safe area, yükseklik, background, blur/shadow yaklaşımı net olsun.
-- Bottom tab’ın farklı ekranlarda farklı görünmesi engellensin.
-- Header/title/back davranışları mümkün olduğunca ortak desenle yönetilsin.
-- Navigation kaynaklı layout zıplamaları varsa azalt.
+**Gerçekçi not:** Tokenlar hem `src/theme/*` hem `src/constants/tokens.ts` üzerinden kullanılıyor; sayılar iki kümede birebir aynı olmayabilir. Hedef **uzun vadede tek sözleşmeye yakınsamak**; kısa vadede **aynı ekranda yeni parça eklerken o ekranın veya kullanılan ortak bileşenin kaynağını** kullanın, üçüncü bir rastgele ölçek icat etmeyin.
 
-6) FONT VE TYPOGRAPHY STANDARDI
-- Projede hangi fontlar kullanılıyorsa tek yerde tanımla.
-- Font kullanımını component seviyesinde rastgele yapma.
-- Tüm başlıklar, metinler, buton label’ları, tab label’ları typography sisteminden beslensin.
-- Hardcoded fontSize/fontWeight kalabalığını temizle.
-- Metin hiyerarşisi netleşsin.
-- Türkçe içeriklerin okunabilirliğini bozma.
+### 2.2 Ortak UI bileşenleri
 
-7) SCREEN DOSYALARINI TEMİZLE
-- Screen dosyaları mümkün olduğunca orchestration katmanı gibi çalışsın.
-- Büyük JSX bloklarını componentlere ayır.
-- Stil ve layout tekrarlarını çıkar.
-- Aynı card, aynı section, aynı title patterni farklı ekranlarda kopyalanmışsa ortaklaştır.
-- Business logic’i gereksiz yere taşıma; UI ayrıştırmasını dikkatli yap.
+[`src/components/ui/`](../src/components/ui/) — barrel: [`index.ts`](../src/components/ui/index.ts).
 
-8) CSS / STYLE YAKLAŞIMI
-Projede kullanılan styling yaklaşımı neyse ona sadık kal ama mimariyi düzelt:
-- StyleSheet kullanılıyorsa düzenli ve component-bazlı kullan
-- NativeWind / benzeri yapı varsa yine component-bazlı contract kur
-- Inline style sadece gerçekten dinamik durumda ve anlamlıysa kalsın
-- Magic number kullanımını azalt
-- Tekrarlanan değerleri token’a bağla
-- Gereksiz re-render üreten style üretimlerini azalt
+**İhracat özeti (mevcut):** `Button`, `IconButton`, `Card`, `Badge`, `Skeleton`, `ListItem`, `ListRow`, `ErrorStateCard`, `SafeScreen` (+ `useBottomTabBarOffset`), `AccessibleText`, `AccordionSection`, `AppHeader`, `BottomSheet`, `ProgressPill`, `Chip`, `TabHeader` (+ `HeaderRightIcons`), `AppSurfaceBackground`, `AppSurfaceHeader` (+ `SurfaceHeaderIconButton`), `AppIcon`, `BrandLogo` / `BrandMark` / `BrandBadge`, `PremiumIconBadge`.
 
-9) SAYFALARI GÖRSEL OLARAK BOZMA
-En kritik konulardan biri bu:
-- Var olan ekranların route, içerik ve genel görsel kurgusu korunacak
-- Refactor sonrası “tamamen başka tasarım olmuş” görüntüsü istemiyorum
-- Ama dağınık, tutarsız, tekrar eden UI yapıları temizlenecek
-- Hedef: görsel parity + mimari iyileşme
-- Yani kullanıcı mevcut sayfayı tanımaya devam etmeli ama kod tarafı profesyonel hale gelmeli
+**Deprecated (migration sırasında dikkat):** `TabSwipeGesture` (PagerView tabanlı akışa geçiş notu), `Screen` (`SafeScreen` + scroll tercih edilir).
 
-10) COMPONENT DOSYA ORGANİZASYONU
-Aşağıdaki gibi net ve sürdürülebilir bir klasörleme yap:
-- ui/
-  - primitives/
-  - components/
-  - navigation/
-  - feedback/
-  - form/
-  - layout/
-- theme/
-  - tokens
-  - colors
-  - typography
-  - spacing
-  - radius
-  - shadows
-  - semantic mapping
-- screen’lerde kullanılan özel parçalar ekran altı component klasörlerine ayrılabilir
-- Çok genel component ile sadece tek ekrana özel component’i birbirine karıştırma
+Özellik ekranlarına özel parçalar [`src/components/`](../src/components/) altında domain klasörleriyle ayrılmaya devam edebilir; bunları `components/ui` içindeki genel bileşenlerle karıştırmayın.
 
-11) TOKEN / SEMANTIC AYRIMINI DOĞRU KUR
-Aşağıdakileri ayır:
-- Raw tokens: sayı/renk/radius/spacings
-- Semantic tokens: surface, background, textPrimary, textSecondary, borderSubtle, actionPrimary vb.
-- Component variant mapping: Button primary, Card elevated, Tab active, Badge success vb.
-Bu katmanları karıştırma.
+### 2.3 Tipik ekran iskeleti
 
-12) VARIANT SİSTEMİ KUR
-Özellikle reusable bileşenlerde varyant mantığı kur:
-- size
-- tone
-- emphasis
-- state
-- icon position
-- fullWidth
-- pressed / disabled / loading
-Ama abartılı generic yapı kurup okunabilirliği bozma.
+- **Güvenli alan ve tab bar:** `SafeScreen`, gerekirse `useBottomTabBarOffset`.
+- **Başlık:** `AppHeader`, `TabHeader` veya yüzeye özel `AppSurfaceHeader` pattern’i.
+- **Hata / boş / yükleme:** `ErrorStateCard`, `Skeleton`; liste satırları için `ListItem` / `ListRow`.
 
-13) ERİŞİLEBİLİRLİK VE DOKUNMATİK KALİTE
-- Dokunma alanlarını iyileştir
-- Küçük icon-only target’ları düzelt
-- Kontrastı bozma
-- Text overflow durumlarını kontrol et
-- Uzun Türkçe metinlerde kırılma ve line-height kalitesini koru
-- Accessibility label gerektiren temel yerleri atlama
+---
 
-14) PERFORMANS
-- Gereksiz büyük component render zincirlerini azalt
-- Memoization gerekiyorsa abartmadan kullan
-- Stil objeleri yüzünden gereksiz render üretme
-- FlatList / SectionList kullanılan yerlerde item component ayrımını düzgün yap
-- Animated/Navigation kaynaklı layout flicker varsa kötüleştirme
+## 3. Prensipler (CLAUDE.md ile uyumlu)
 
-15) KALDIRILACAK KÖTÜ PRATİKLER
-Aşağıdakileri tespit edip temizle:
-- Ekran içinde dağınık inline style kümeleri
-- Aynı stilin copy-paste edilmiş halleri
-- Rastgele margin/padding düzeltmeleri
-- Aynı işi yapan birden fazla benzer UI component
-- Hardcoded font family / font size / color
-- Safe area / bottom spacing hack’leri
-- Tabbar/header için ekran bazlı kırık override’lar
-- Kullanılmayan style blokları ve ölü componentler
+1. **Foundation’ı genişlet:** Paralel “yeni ui/ ağacı” veya ikinci bir token dosya kümesi açmak yerine mevcut `theme`, `constants/tokens`, `ThemeContext` ve `components/ui` hattını netleştirin.
+2. **Merkezi karar, yerel uygulama:** Renk, spacing, tipografi, radius gibi kararlar token/theme üzerinden; bileşenin görünümü bileşen dosyasında `StyleSheet` veya tutarlı bir stil fabrikasında.
+3. **Görsel parity:** Refactor sonrası kullanıcı mevcut ekranı tanımaya devam etmeli; “tamamen başka ürün” hissi hedef değil.
+4. **Sınır:** Route yapısı, API çağrıları, Zustand/React Query akışları — yalnızca UI refactor bahanesiyle değiştirilmez.
+5. **Büyük dosyalar:** `src/app/**` altında çok satırlı route dosyaları orchestration’a indirgenmeli; bu **kademeli** ve küçük PR’larla yapılır, tek seferde tüm ekranı koparmak beklenmez.
 
-16) UYGULAMA ŞEKLİ
-Bu işi bir kerede bütün projeye yay:
-- Önce mevcut UI yapısını analiz et
-- Tekrarlanan desenleri çıkar
-- Ortak reusable componentleri belirle
-- Theme/token altyapısını kur
-- Sonra ekranları sırayla yeni yapıya taşı
-- Her taşımada görsel bozulma yaratma
-- Eski kullanım yerlerini migrate et
-- Migration bitmeden sistemi yarım bırakma
+---
 
-17) DOKUNULMAMASI GEREKENLER
-- Route yapısını bozma
-- API/business logic akışlarını bozma
-- State management düzenini gereksiz yere değiştirme
-- Sadece UI refactor bahanesiyle feature davranışlarını değiştirme
-- Kullanıcı akışını kırma
-- Çalışan ekranı gereksiz yere yeniden tasarlama
+## 4. Bileşen envanteri (yön — “var / kısmen / açık”)
 
-18) ÇIKTI BEKLENTİSİ
-Çalışma sonunda aşağıdakileri teslim et:
-- Yeni UI mimarisi uygulanmış kod
-- Oluşturulan / güncellenen component listesi
-- Theme/token yapısı
-- Standardize edilen button/tabbar/typography sistemi
-- Refactor edilen ekran listesi
-- Kaldırılan eski stil yapıları
-- Gerekliyse migration notları
-- Riskli görülen alanlar
-- Sonraki ekranların bu sistemi nasıl kullanacağına dair kısa yönlendirme
+| İhtiyaç | Durum | Not |
+|---------|--------|-----|
+| Button (variant, loading, disabled) | **Var** | [`Button.tsx`](../src/components/ui/Button.tsx) — `ThemeContext` + `constants/tokens` |
+| Icon button | **Var** | `IconButton` |
+| Metin hiyerarşisi | **Kısmen** | `AccessibleText`; tipografi `theme/typography` ve `constants/tokens` içinde; tüm ekranlar tek primitive’e bağlı değil |
+| Ekran kabı | **Var** | `SafeScreen` (tercih), `Screen` deprecated |
+| Kart, chip, badge | **Var** | `Card`, `Chip`, `Badge`, `PremiumIconBadge` |
+| Liste satırı | **Var** | `ListItem`, `ListRow` |
+| Bottom sheet | **Var** | `BottomSheet` |
+| Header | **Var** | `AppHeader`, `TabHeader`, `AppSurfaceHeader` |
+| Boş / hata / iskelet | **Var** | `ErrorStateCard`, `Skeleton` |
+| Form alanları (tek TextField primitive) | **Açık** | İhtiyaç oldukça mevcut form pattern’leri veya yeni primitive `components/ui` altında, token ile |
+| Tab bar görünümü | **Kısmen** | Tab layout [`src/app/(tabs)/_layout.tsx`](../src/app/(tabs)/_layout.tsx); görsel tekilleştirme layout + ortak header ile kademeli |
 
-19) TESLİM RAPORU ZORUNLU
-İş bitince şu formatta rapor ver:
-1. Yapılan mimari değişiklikler
-2. Oluşturulan yeni klasör/dosyalar
-3. Refactor edilen ekranlar
-4. Standardize edilen reusable componentler
-5. Typography / font / spacing / color sistemi
-6. Tabbar / header / button standardizasyonu
-7. Silinen eski / gereksiz yapılar
-8. Kırılma riski olan noktalar
-9. Manuel test edilmesi gereken alanlar
+---
 
-20) KABUL KRİTERLERİ
-İş ancak şu şartlarla tamamlanmış sayılacak:
-- UI component-bazlı mimariye geçmiş olacak
-- Ortak tasarım kararları sistematik olacak
-- Button, tabbar, typography, font ve temel UI standartları netleşmiş olacak
-- Screen dosyaları sadeleşmiş olacak
-- Tekrarlayan stiller azaltılmış olacak
-- Yeni ekran geliştirirken kullanılacak temiz UI altyapısı kurulmuş olacak
-- Mevcut sayfalar bozulmamış olacak
-- Eksik bırakılmış migrate edilmemiş kritik ekran olmayacak
+## 5. Klasörleme
 
-21) ÇALIŞMA PRENSİBİ
-- Tahmin etme, kodu incele
-- Dosya dosya ilerle
-- Gerekirse componentleri böl
-- Ama over-engineering yapma
-- Okunabilirlik ve sürdürülebilirlik öncelik olsun
-- “Şimdilik böyle kalsın” yaklaşımı istemiyorum
-- Prod-ready kalite istiyorum
+Hedef yapı **zaten var** olanları genişletmektir:
 
-Bu görev bir UI cleanup değil; tam kapsamlı UI architecture refactor görevidir.
-Eksik bırakma.
-Tüm kritik ekranları yeni sisteme geçir.
-Kod tabanını bundan sonra büyütülebilir hale getir.
+- **`src/theme/`** — renk/spacing/radius/typography/shadow; gerektiğinde `semantic` ayrımı **yeni dosyalar** ile (ör. ileride `semantic.ts`) ve geriye dönük uyum planıyla.
+- **`src/components/ui/`** — uygulama genelinde tekrar eden primitives ve bileşenler; alt klasörler (ör. `form/`) yalnızca dosya sayısı ve sınır netleştiğinde eklenir.
+- **Ekrana özel parçalar:** `src/components/<feature>/` veya ekran yanında `components` — `components/ui` ile karıştırılmaz.
+
+Yeni “hepsi tek `styles.ts` içinde” çöplükleri oluşturmayın; tekrar eden ekran stilleri bileşene veya feature-local `styles` modülüne taşınır.
+
+---
+
+## 6. Kademeli yol haritası (önerilen sıra)
+
+1. **Yeni özellik / yeni ekran:** Sadece `theme` + `constants/tokens` + `components/ui` + `ThemeContext`; magic number yerine mevcut token’a bağlanma.
+2. **Mevcut ekran dokunuşu:** Aynı PR’da yalnızca ilgili bölüm; görsel karşılaştırma (parity).
+3. **Büyük ekran parçalama:** `calendar.tsx` gibi çok satırlı dosyalarda section/component çıkarma; davranış değişmeden.
+4. **Token birleşimi:** İki token kümesini uzun vadede tek sözleşmeye indirgeme — ayrı milestone; migration notu ve tüketici güncellemeleri ile.
+
+---
+
+## 7. Anti-pattern’ler (temizlik sürekli süreçtir)
+
+- Ekran içinde büyük inline style blokları ve copy-paste margin/padding.
+- Aynı işi yapan ikinci bir “mini Button” / “mini Card” (önce `components/ui` ve theme’i kontrol edin).
+- Hardcoded `fontSize` / renk — mümkünse token veya `useTheme()` semantic rengi.
+- Tab bar veya safe area için ekran bazlı kırık hack’ler; önce `SafeScreen` ve tab layout ortak davranışı.
+- Kullanılmayan style ve ölü bileşen — dokunduğunuz dosyada güvenle kaldırılabilir (kapsamı dar tutun).
+
+---
+
+## 8. Erişilebilirlik ve performans
+
+- Dokunma alanları: `spacing` içindeki hit alanı sabitlerine (ör. `chevronHitArea`) uyum; icon-only için `accessibilityLabel`.
+- `AccessibleText` ve theme ile kontrastı bilinçli düşünün.
+- Uzun Türkçe metinlerde `lineHeight` ve taşma (`numberOfLines`) davranışını koruyun.
+- Listelerde `FlatList` / `SectionList` ile stabil `keyExtractor`; gereksiz inline style objesi üretiminden kaçının.
+
+---
+
+## 9. Yeni ekran / PR checklist (kısa)
+
+- [ ] `SafeScreen` ve uygun header pattern kullanıldı mı?
+- [ ] Renk/spacing tipografi mümkün olduğunca token / `useTheme` ile mi?
+- [ ] Yükleme / hata / boş durumları düşünüldü mü?
+- [ ] Route ve veri akışı değişmeden yalnızca UI mı?
+- [ ] Görsel parity için önce/sonra veya ekran görüntüsü notu (büyük değişikliklerde)?
+
+---
+
+## 10. Kabul ölçütleri (milestone bazlı)
+
+Tek seferde “tüm kritik ekranlar migrate” şartı yerine:
+
+- Yeni veya ciddi değişen kod **`src/theme` / `constants/tokens` ve `components/ui` hattına** uyuyor.
+- Tekrarlayan stiller azalıyor; büyük ekranlar planlı parçalanıyor.
+- Paralel ikinci bir tasarım dili (yeni global stil çöplüğü) oluşmuyor.
+- Çalışan kullanıcı akışları ve route’lar korunuyor.
+
+---
+
+## 11. Teslim raporu (kapsam ve zorunlu çıktılar)
+
+UI ile ilgili **epic, milestone veya büyük refactor** (birden fazla ekran / token / ortak bileşen) tamamlandığında yalnızca kod yetmez; aşağıdaki **teslim raporu** doldurulmalıdır. PR açıklamasına özet, detay repoda veya ekip aracında (Confluence, issue, vb.) tutulabilir; en azından PR’da **eksikler** ve **kalan işler** maddeleri yazılmalıdır.
+
+### 11.1 Raporun amacı
+
+- Yapılan işin **ne olduğunu** ve **nerede bittiğini** netleştirmek.
+- **Bilinçli olarak yapılmayan** veya **ertelenen** noktaları kayıt altına almak.
+- Sonraki sprint’e **taşınan işleri** (backlog) tek listede toplamak.
+- Regresyon ve QA için **manuel test alanlarını** açık bırakmamak.
+
+### 11.2 Kapsamlı teslim raporu şablonu
+
+Aşağıdaki başlıkları sırayla doldurun; ilgisi yoksa “Yok / bu kapsamda değil” yazın.
+
+| # | Başlık | İçerik |
+|---|--------|--------|
+| 1 | **Özet** | 3–6 cümle: hedef, yapılan, etki (kullanıcı / geliştirici). |
+| 2 | **Mimari ve kararlar** | Hangi token hattı (`src/theme` vs `constants/tokens` + `ThemeContext`); yeni bileşen sınırları; görsel parity stratejisi. |
+| 3 | **Değişen dosyalar** | `src/theme/*`, `src/constants/tokens.ts`, `src/components/ui/*`, dokunulan `src/app/**` route’ları — mümkünse madde veya `git diff --stat` özeti. |
+| 4 | **Yeni / güncellenen ortak bileşenler** | İsim, kısa amaç, tüketen ekranlar (varsa). |
+| 5 | **Refactor edilen ekranlar veya modüller** | Dosya yolu + ne parçalandı / ne sadeleştirildi. |
+| 6 | **Test ve doğrulama** | Çalıştırılan komutlar (`npx tsc --noEmit`, vb.); manuel smoke senaryoları (hangi sekmeler / akışlar). |
+| 7 | **Eksikler ve bilinçli tavizler** | Token birleşimi ertelendi mi; bir ekran yarı migrate mi; deprecated bileşen hâlâ kullanılıyor mu — **açık liste**. |
+| 8 | **Kalan işler (backlog)** | Sonraki PR’lara bırakılan maddeler: öncelik (P0/P1), tahmini kapsam, bağımlılık notu. |
+| 9 | **Riskler ve dikkat noktaları** | Regresyon riski yüksek alanlar; dark mode; büyük liste performansı; erişilebilirlik. |
+| 10 | **Dokümantasyon** | `ui-art.md` veya ilgili doc güncellendi mi; migration notu var mı. |
+
+### 11.3 “Eksikler” bölümü — ne yazılmalı?
+
+Şunları özellikle kaçırmayın:
+
+- **İki token kümesi:** `src/theme` ile `constants/tokens` hâlâ hizalanmadıysa hangi dosyaların eski kalacağı.
+- **Tamamlanmamış migrate:** `Screen` / `TabSwipeGesture` gibi deprecated kullanımın kaldığı yerler.
+- **Form / tab bar / tipografi:** Tabloda “açık” veya “kısmen” olan alanlarda bu milestone’da ne yapılmadı.
+- **Büyük dosyalar:** Örn. `calendar.tsx` — sadece bir bölüm çıkarıldıysa geriye kalan satır riski.
+- **Analytics / i18n:** UI değişikliği etiket veya çeviri anahtarını etkilediyse kontrol edilmediyse not.
+
+### 11.4 “Kalan işler” bölümü — örnek format
+
+Her madde tek satırda net olsun:
+
+- **[P1]** `src/theme/typography` ile `constants/tokens` TYPOGRAPHY hizası — bağımlı: tema genişletme PR’ı.
+- **[P2]** `X` ekranında inline style kümesini `Y` bileşenine taşıma.
+- **[Backlog]** Token tekilleştirme ADR veya kısa migration planı.
+
+### 11.5 Küçük değişiklikler
+
+Tek dosyalı, davranışı değiştirmeyen küçük UI düzeltmelerinde tam tablo şart değildir; PR’da **2–3 cümle özet + test notu** yeterlidir. Kapsam büyürse bu bölüme uygun raporu tamamlayın.
+
+---
+
+## 12. Özet
+
+Bu proje için UI işi **sıfırdan mimari kurma** değil; **mevcut `theme`, `constants/tokens`, `ThemeContext` ve `components/ui` omurgasını** büyütüp tutarlı hale getirmektir. İyileştirme **küçük, güvenli adımlarla** ve CLAUDE.md’deki minimal değişiklik disipliniyle yapılır. Büyük teslimlerde **eksikler** ve **kalan işler** bölüm 11’deki teslim raporu şablonu ile kapatılmalıdır.

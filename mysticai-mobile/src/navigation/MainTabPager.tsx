@@ -7,32 +7,41 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import PagerView, {
   type PagerViewOnPageSelectedEvent,
 } from 'react-native-pager-view';
+import { usePathname } from 'expo-router';
 
 import HomeScreen from '../screens/HomeScreen';
-
-/**
- * Named-export screen content components.
- * Each route file keeps its full implementation and exports it as a named
- * function; the default export returns `null` (content is rendered here).
- */
 import { DiscoverScreenContent } from '../app/(tabs)/discover';
 import { CalendarScreenContent } from '../app/(tabs)/calendar';
 import { NatalChartScreenContent } from '../app/(tabs)/natal-chart';
 import { ProfileScreenContent } from '../app/(tabs)/profile';
-import { MAIN_TAB_ORDER } from './tabPagerConfig';
+import { MAIN_TAB_ORDER, type MainTabRoute } from './tabPagerConfig';
 
 const PagerActivePageCtx = createContext<number>(0);
 
-/**
- * Returns the currently active page index inside the MainTabPager.
- * Useful for replacing `useFocusEffect` in screens rendered by the pager.
- */
 export function usePagerActivePage(): number {
   return useContext(PagerActivePageCtx);
+}
+
+/**
+ * Returns `true` when the given tab is the active pager page AND the
+ * current top-level route.  Becomes `false` when a stack screen is
+ * pushed on top (e.g. settings, detail) and `true` again on return.
+ *
+ * Drop-in replacement for the old `useFocusEffect` pattern.
+ */
+export function usePagerPageFocused(tab: MainTabRoute): boolean {
+  const activePage = useContext(PagerActivePageCtx);
+  const pathname = usePathname();
+  const idx = MAIN_TAB_ORDER.indexOf(tab);
+  if (activePage !== idx) return false;
+
+  const segs = pathname.replace(/\/+$/, '').split('/');
+  const tabsIdx = segs.indexOf('(tabs)');
+  return tabsIdx >= 0 && segs[tabsIdx + 1] === tab;
 }
 
 export type MainTabPagerHandle = {
@@ -85,7 +94,16 @@ export const MainTabPager = forwardRef<MainTabPagerHandle, MainTabPagerProps>(
           onPageSelected={handlePageSelected}
         >
           {MAIN_TAB_ORDER.map((tab, idx) => (
-            <View key={tab} style={styles.page} collapsable={false}>
+            <View
+              key={tab}
+              style={styles.page}
+              collapsable={false}
+              accessibilityElementsHidden={activePage !== idx}
+              {...(Platform.OS === 'android' && {
+                importantForAccessibility:
+                  activePage === idx ? 'auto' : 'no-hide-descendants',
+              })}
+            >
               <PageContent index={idx} />
             </View>
           ))}
@@ -95,11 +113,6 @@ export const MainTabPager = forwardRef<MainTabPagerHandle, MainTabPagerProps>(
   },
 );
 
-/**
- * Resolves the screen component for a given pager index.
- * Wrapped in React.memo so a page re-renders only when its own props change,
- * not when a sibling page updates state.
- */
 const PageContent = React.memo(function PageContent({ index }: { index: number }) {
   switch (index) {
     case 0:
