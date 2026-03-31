@@ -1,5 +1,6 @@
 import React, { forwardRef, useState } from 'react';
 import {
+  StyleProp,
   StyleSheet,
   TextInput,
   TextInputProps,
@@ -8,6 +9,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 import { AppText } from './AppText';
@@ -28,11 +30,17 @@ export interface TextFieldProps {
   numberOfLines?: number;
   onBlur?: TextInputProps['onBlur'];
   onFocus?: TextInputProps['onFocus'];
-  onSubmitEditing?: () => void;
+  onSubmitEditing?: TextInputProps['onSubmitEditing'];
   returnKeyType?: TextInputProps['returnKeyType'];
+  autoFocus?: boolean;
+  clearButtonMode?: TextInputProps['clearButtonMode'];
+  maxLength?: number;
+  selectTextOnFocus?: boolean;
   leftIcon?: keyof typeof Ionicons.glyphMap;
+  rightAccessory?: React.ReactNode;
   passwordToggle?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  fieldStyle?: StyleProp<ViewStyle>;
   inputStyle?: TextInputProps['style'];
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -58,9 +66,15 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
     onFocus,
     onSubmitEditing,
     returnKeyType,
+    autoFocus = false,
+    clearButtonMode,
+    maxLength,
+    selectTextOnFocus = false,
     leftIcon,
+    rightAccessory,
     passwordToggle = false,
     style,
+    fieldStyle,
     inputStyle,
     accessibilityLabel,
     accessibilityHint,
@@ -68,6 +82,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   },
   ref,
 ) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
   const [focused, setFocused] = useState(false);
@@ -101,6 +116,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
           !!error && s.inputWrapError,
           !editable && s.inputWrapDisabled,
           multiline && s.inputWrapMultiline,
+          fieldStyle,
         ]}
       >
         {leftIcon ? (
@@ -130,26 +146,35 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
           onFocus={handleFocus}
           onSubmitEditing={onSubmitEditing}
           returnKeyType={returnKeyType}
+          autoFocus={autoFocus}
+          clearButtonMode={clearButtonMode}
+          maxLength={maxLength}
+          selectTextOnFocus={selectTextOnFocus}
           maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           accessibilityLabel={accessibilityLabel ?? label}
           accessibilityHint={accessibilityHint}
           testID={testID}
         />
 
-        {passwordToggle ? (
-          <TouchableOpacity
-            onPress={() => setPassVisible((v) => !v)}
-            accessibilityRole="button"
-            accessibilityLabel={passVisible ? 'Hide password' : 'Show password'}
-            style={s.trailingAction}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons
-              name={passVisible ? 'eye-off-outline' : 'eye-outline'}
-              size={18}
-              color={colors.subtext}
-            />
-          </TouchableOpacity>
+        {rightAccessory || passwordToggle ? (
+          <View style={s.trailingWrap}>
+            {rightAccessory}
+            {passwordToggle ? (
+              <TouchableOpacity
+                onPress={() => setPassVisible((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={passVisible ? t('ui.textField.hidePassword') : t('ui.textField.showPassword')}
+                style={s.trailingAction}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons
+                  name={passVisible ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.subtext}
+                />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         ) : null}
       </View>
 
@@ -215,6 +240,11 @@ function createStyles(C: ThemeColors) {
     },
     trailingAction: {
       padding: SPACING.xsSm,
+    },
+    trailingWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xsSm,
       marginLeft: SPACING.sm,
     },
   });

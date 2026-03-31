@@ -1,7 +1,9 @@
 package com.mysticai.notification.admin.service;
 
+import com.mysticai.notification.entity.Notification;
 import com.mysticai.notification.entity.Notification.NotificationType;
 import com.mysticai.notification.entity.NotificationTrigger;
+import com.mysticai.notification.repository.NotificationPreferenceRepository;
 import com.mysticai.notification.repository.NotificationRepository;
 import com.mysticai.notification.repository.PushTokenRepository;
 import com.mysticai.notification.scheduler.NotificationScheduler;
@@ -13,23 +15,24 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Verifies that scheduler methods respect the trigger-active guard:
- *  - when a trigger is disabled, no notifications are generated
- *  - a SKIPPED run status is recorded in the trigger monitor
- *  - no exception propagates to the caller
- */
 @ExtendWith(MockitoExtension.class)
 class NotificationSchedulerTest {
 
     @Mock NotificationGenerationService generationService;
     @Mock UserEngagementScorerService engagementScorer;
     @Mock PushTokenRepository pushTokenRepository;
+    @Mock NotificationPreferenceRepository preferenceRepository;
     @Mock NotificationRepository notificationRepository;
     @Mock NotificationTriggerService triggerService;
 
@@ -37,28 +40,20 @@ class NotificationSchedulerTest {
 
     @Test
     void shouldSkipGenerationWhenTriggerIsDisabled() {
-        // ── Arrange ──────────────────────────────────────────────────────────
-        // Simulate admin disabling the dream-reminder trigger
         when(triggerService.isActive("dream_reminder_job")).thenReturn(false);
 
-        // ── Act ───────────────────────────────────────────────────────────────
         assertThatNoException().isThrownBy(() -> scheduler.generateDreamReminders());
 
-        // ── Assert: no notifications generated ───────────────────────────────
-        verify(generationService, never())
-                .generateNotification(any(), any(), any());
-
-        verify(pushTokenRepository, never()).findAllByActiveTrue();
-
-        // ── Assert: SKIPPED status recorded in trigger monitor ────────────────
+        verify(generationService, never()).generateNotification(any(), any(), any());
+        verify(pushTokenRepository, never()).findDistinctActiveUserIds();
+        verify(preferenceRepository, never()).findDistinctUserIds();
+        verify(notificationRepository, never()).findDistinctUserIds();
         verify(triggerService).recordRun(
                 eq("dream_reminder_job"),
                 eq(NotificationTrigger.RunStatus.SKIPPED),
                 eq(0),
                 any()
         );
-
-        // SUCCESS must NOT have been recorded (trigger didn't run)
         verify(triggerService, never()).recordRun(
                 eq("dream_reminder_job"),
                 eq(NotificationTrigger.RunStatus.SUCCESS),
@@ -68,38 +63,45 @@ class NotificationSchedulerTest {
     }
 
     @Test
-    void shouldGenerateNotificationsWhenTriggerIsActive() {
-        // ── Arrange ──────────────────────────────────────────────────────────
+    void shouldSkipScheduledDreamReminderGenerationWhenTriggerIsActive() {
         when(triggerService.isActive("dream_reminder_job")).thenReturn(true);
-        when(pushTokenRepository.findAllByActiveTrue()).thenReturn(
-                java.util.List.of(
-                        stubToken(10L), stubToken(11L)
-                )
-        );
 
-        // ── Act ───────────────────────────────────────────────────────────────
         scheduler.generateDreamReminders();
 
-        // ── Assert: generation attempted for each active user ─────────────────
-        verify(generationService, times(2))
-                .generateNotification(any(), eq(NotificationType.DREAM_REMINDER), eq(null));
-
-        // SUCCESS recorded
+        verify(generationService, never()).generateNotification(any(), eq(NotificationType.DREAM_REMINDER), eq(null));
         verify(triggerService).recordRun(
                 eq("dream_reminder_job"),
-                eq(NotificationTrigger.RunStatus.SUCCESS),
-                eq(2),
+                eq(NotificationTrigger.RunStatus.SKIPPED),
+                eq(0),
                 any()
         );
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────────
+    @Test
+    void shouldCountOnlyCreatedNotificationsInDailyMetrics() {
+        when(triggerService.isActive("daily_notification_generation")).thenReturn(true);
+        when(pushTokenRepository.findDistinctActiveUserIds()).thenReturn(List.of(10L, 11L));
+        when(preferenceRepository.findDistinctUserIds()).thenReturn(List.of());
+        when(notificationRepository.findDistinctUserIds()).thenReturn(List.of());
+        when(generationService.generateNotification(10L, NotificationType.DAILY_SUMMARY, null))
+                .thenReturn(Optional.of(stubNotification()));
+        when(generationService.generateNotification(11L, NotificationType.DAILY_SUMMARY, null))
+                .thenReturn(Optional.empty());
 
-    private com.mysticai.notification.entity.PushToken stubToken(Long userId) {
-        return com.mysticai.notification.entity.PushToken.builder()
-                .userId(userId)
-                .token("token-" + userId)
-                .active(true)
+        scheduler.generateDailyNotifications();
+
+        verify(triggerService).recordRun(
+                eq("daily_notification_generation"),
+                eq(NotificationTrigger.RunStatus.SUCCESS),
+                eq(1),
+                any()
+        );
+    }
+
+    private Notification stubNotification() {
+        return Notification.builder()
+                .title("Dream ready")
+                .body("Open your journal")
                 .build();
     }
 }

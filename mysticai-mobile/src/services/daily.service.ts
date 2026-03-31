@@ -17,14 +17,20 @@ const DAILY_TRANSITS_BASE = '/api/v1/daily/transits';
 const FEEDBACK_BASE = '/api/v1/feedback';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+type DailyLocale = 'tr' | 'en';
+
 interface CacheEnvelope<T> {
   payload: T;
   savedAt: number;
   expiresAt: number;
 }
 
-const transitsCacheKey = (date: string) => `dailyTransits:${date}`;
-const actionsCacheKey = (date: string) => `dailyActions:${date}`;
+const transitsCacheKey = (date: string, locale: DailyLocale) => `dailyTransits:${locale}:${date}`;
+const actionsCacheKey = (date: string, locale: DailyLocale) => `dailyActions:${locale}:${date}`;
+
+function normalizeLocale(locale?: string | null): DailyLocale {
+  return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
 
 function toIsoDate(value: Date): string {
   const y = value.getFullYear();
@@ -88,8 +94,14 @@ async function writeCache<T>(key: string, payload: T): Promise<void> {
   }
 }
 
-async function patchLocalActionState(date: string, actionId: string, isDone: boolean, doneAt?: string | null): Promise<void> {
-  const key = actionsCacheKey(date);
+async function patchLocalActionState(
+  date: string,
+  actionId: string,
+  isDone: boolean,
+  locale: DailyLocale,
+  doneAt?: string | null,
+): Promise<void> {
+  const key = actionsCacheKey(date, locale);
   const existing = await readCache<DailyActionsDTO>(key);
   if (!existing) return;
 
@@ -101,23 +113,27 @@ async function patchLocalActionState(date: string, actionId: string, isDone: boo
   await writeCache(key, updated);
 }
 
-function buildEmptyDailyTransits(date: string): DailyTransitsDTO {
+function buildEmptyDailyTransits(date: string, locale: DailyLocale): DailyTransitsDTO {
+  const isEnglish = locale === 'en';
+
   return {
     date,
-    title: 'Bugünün Gökyüzü Etkileri',
+    title: isEnglish ? "Today's Sky Effects" : 'Bugünün Gökyüzü Etkileri',
     hero: {
-      headline: 'Bugün için veri hazırlanıyor',
-      supporting: 'Veri gelir gelmez bu alan otomatik güncellenecek.',
-      moodTag: 'Sakin',
+      headline: isEnglish ? 'Today is being prepared' : 'Bugün için veri hazırlanıyor',
+      supporting: isEnglish
+        ? 'This area will update automatically as soon as the data arrives.'
+        : 'Veri gelir gelmez bu alan otomatik güncellenecek.',
+      moodTag: isEnglish ? 'Calm' : 'Sakin',
       intensity: 0,
       icon: 'moon',
       gradientKey: 'purpleMist',
     },
     quickFacts: [],
     todayCanDo: {
-      headline: 'Bugün Yapabileceklerin',
-      body: 'Aksiyon önerileri henüz hazır değil.',
-      ctaText: 'Bugün Ne Yapabilirsin?',
+      headline: isEnglish ? 'What You Can Do Today' : 'Bugün Yapabileceklerin',
+      body: isEnglish ? 'Action suggestions are not ready yet.' : 'Aksiyon önerileri henüz hazır değil.',
+      ctaText: isEnglish ? 'What Can You Do Today?' : 'Bugün Ne Yapabilirsin?',
       ctaRoute: 'TodayActions',
     },
     focusPoints: [],
@@ -126,74 +142,78 @@ function buildEmptyDailyTransits(date: string): DailyTransitsDTO {
   };
 }
 
-function buildEmptyDailyActions(date: string): DailyActionsDTO {
+function buildEmptyDailyActions(date: string, locale: DailyLocale): DailyActionsDTO {
+  const isEnglish = locale === 'en';
+
   return {
     date,
     header: {
-      title: 'Bugün Ne Yapabilirsin?',
-      subtitle: 'Aksiyon listesi hazırlanıyor.',
+      title: isEnglish ? 'What Can You Do Today?' : 'Bugün Ne Yapabilirsin?',
+      subtitle: isEnglish ? 'The action list is being prepared.' : 'Aksiyon listesi hazırlanıyor.',
     },
     actions: [],
     miniPlan: {
-      title: 'Mini Plan',
+      title: isEnglish ? 'Mini Plan' : 'Mini Plan',
       steps: [],
     },
   };
 }
 
-export async function getDailyTransits(date: string): Promise<DailyTransitsDTO> {
+export async function getDailyTransits(date: string, locale?: string): Promise<DailyTransitsDTO> {
   const normalizedDate = normalizeDate(date);
-  const cacheKey = transitsCacheKey(normalizedDate);
+  const resolvedLocale = normalizeLocale(locale);
+  const cacheKey = transitsCacheKey(normalizedDate, resolvedLocale);
 
   if (!envConfig.isApiConfigured) {
     logWarnOnce(
       'daily',
       'transits_service_not_configured',
       'Daily transits service is not configured. Returning empty state payload.',
-      { appEnv: envConfig.appEnv, date: normalizedDate },
+      { appEnv: envConfig.appEnv, date: normalizedDate, locale: resolvedLocale },
     );
     const cached = await readCache<DailyTransitsDTO>(cacheKey);
-    return cached ?? buildEmptyDailyTransits(normalizedDate);
+    return cached ?? buildEmptyDailyTransits(normalizedDate, resolvedLocale);
   }
 
   try {
     const { data } = await api.get<DailyTransitsDTO>(DAILY_TRANSITS_BASE, {
-      params: { date: normalizedDate },
+      params: { date: normalizedDate, locale: resolvedLocale },
     });
     await writeCache(cacheKey, data);
     return data;
   } catch (error) {
-    logApiError('daily_transits_fetch', error, { date: normalizedDate });
+    logApiError('daily_transits_fetch', error, { date: normalizedDate, locale: resolvedLocale });
     const fallback = await readCache<DailyTransitsDTO>(cacheKey);
-    return fallback ?? buildEmptyDailyTransits(normalizedDate);
+    return fallback ?? buildEmptyDailyTransits(normalizedDate, resolvedLocale);
   }
 }
 
-export async function getDailyActions(date: string): Promise<DailyActionsDTO> {
+export async function getDailyActions(date: string, locale?: string): Promise<DailyActionsDTO> {
   const normalizedDate = normalizeDate(date);
-  const cacheKey = actionsCacheKey(normalizedDate);
+  const resolvedLocale = normalizeLocale(locale);
+  const cacheKey = actionsCacheKey(normalizedDate, resolvedLocale);
 
   if (!envConfig.isApiConfigured) {
     logWarnOnce(
       'daily',
       'actions_service_not_configured',
       'Daily actions service is not configured. Returning empty state payload.',
-      { appEnv: envConfig.appEnv, date: normalizedDate },
+      { appEnv: envConfig.appEnv, date: normalizedDate, locale: resolvedLocale },
     );
     const cached = await readCache<DailyActionsDTO>(cacheKey);
-    return cached ?? buildEmptyDailyActions(normalizedDate);
+    return cached ?? buildEmptyDailyActions(normalizedDate, resolvedLocale);
   }
 
   try {
     const { data } = await api.get<DailyActionsDTO>(`${DAILY_TRANSITS_BASE}/actions`, {
-      params: { date: normalizedDate },
+      params: { date: normalizedDate, locale: resolvedLocale },
     });
     await writeCache(cacheKey, data);
     return data;
   } catch (error) {
-    logApiError('daily_actions_fetch', error, { date: normalizedDate });
+    logApiError('daily_actions_fetch', error, { date: normalizedDate, locale: resolvedLocale });
     const fallback = await readCache<DailyActionsDTO>(cacheKey);
-    return fallback ?? buildEmptyDailyActions(normalizedDate);
+    return fallback ?? buildEmptyDailyActions(normalizedDate, resolvedLocale);
   }
 }
 
@@ -201,8 +221,10 @@ export async function markActionDone(
   date: string,
   actionId: string,
   isDone: boolean,
+  locale?: string,
 ): Promise<DailyActionToggleResponse> {
   const normalizedDate = normalizeDate(date);
+  const resolvedLocale = normalizeLocale(locale);
 
   if (!envConfig.isApiConfigured) {
     logWarnOnce(
@@ -217,21 +239,24 @@ export async function markActionDone(
   try {
     const { data } = await api.post<DailyActionToggleResponse>(
       `${DAILY_TRANSITS_BASE}/actions/${encodeURIComponent(actionId)}/done`,
-      { date: normalizedDate, isDone },
+      { date: normalizedDate, isDone, locale: resolvedLocale },
     );
-    await patchLocalActionState(normalizedDate, actionId, data.isDone, data.doneAt);
+    await patchLocalActionState(normalizedDate, actionId, data.isDone, resolvedLocale, data.doneAt);
     return data;
   } catch (error) {
     logApiError('daily_action_toggle', error, {
       date: normalizedDate,
       actionId,
       isDone,
+      locale: resolvedLocale,
     });
     throw error;
   }
 }
 
-export async function sendFeedback(payload: DailyFeedbackPayload): Promise<void> {
+export async function sendFeedback(payload: DailyFeedbackPayload, locale?: string): Promise<void> {
+  const resolvedLocale = normalizeLocale(locale);
+
   if (!envConfig.isApiConfigured) {
     logWarnOnce(
       'daily',
@@ -246,12 +271,14 @@ export async function sendFeedback(payload: DailyFeedbackPayload): Promise<void>
     await api.post(FEEDBACK_BASE, {
       ...payload,
       date: normalizeDate(payload.date),
+      locale: resolvedLocale,
     });
   } catch (error) {
     logApiError('daily_feedback_send', error, {
       itemType: payload.itemType,
       itemId: payload.itemId,
       sentiment: payload.sentiment,
+      locale: resolvedLocale,
     });
     throw error;
   }
@@ -260,4 +287,3 @@ export async function sendFeedback(payload: DailyFeedbackPayload): Promise<void>
 export function getTodayIsoDate(): string {
   return normalizeDate();
 }
-

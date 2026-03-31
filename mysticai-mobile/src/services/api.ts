@@ -2,6 +2,7 @@ import axios from 'axios/dist/browser/axios.cjs';
 import { getToken } from '../utils/storage';
 import { useAuthStore } from '../store/useAuthStore';
 import { envConfig } from '../config/env';
+import i18n from '../i18n';
 import {
   createServiceNotConfiguredError,
   logApiError,
@@ -26,6 +27,11 @@ function toHeaderUserId(value: unknown): string | null {
   return null;
 }
 
+function resolveRequestLocale(preferredLanguage?: string | null): 'tr' | 'en' {
+  const source = i18n.resolvedLanguage ?? i18n.language ?? preferredLanguage ?? 'tr';
+  return source.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
 // Attach token to every request
 api.interceptors.request.use(async (config: any) => {
   if (!envConfig.isApiConfigured) {
@@ -42,11 +48,14 @@ api.interceptors.request.use(async (config: any) => {
   const authState = useAuthStore.getState();
   const userIdHeader = toHeaderUserId(authState.user?.id);
   const usernameHeader = authState.user?.username?.trim() || undefined;
+  const localeHeader = resolveRequestLocale(authState.user?.preferredLanguage);
 
   config.headers = {
     ...(config.headers ?? {}),
     ...(userIdHeader ? { 'X-User-Id': userIdHeader } : {}),
     ...(usernameHeader ? { 'X-Username': usernameHeader } : {}),
+    'Accept-Language': localeHeader,
+    'X-Locale': localeHeader,
   };
 
   if (token) {

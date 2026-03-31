@@ -7,7 +7,6 @@ import {
   View,
   Text,
   FlatList,
-  TextInput,
   Pressable,
   StyleSheet,
   StatusBar,
@@ -23,8 +22,8 @@ import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
 import { SpiritualListItem } from '../components/SpiritualListItem';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen, HeaderRightIcons } from '../../components/ui';
-import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import { AppHeader, HeaderRightIcons, SafeScreen, TextField } from '../../components/ui';
+import { TYPOGRAPHY, SPACING, RADIUS } from '../../constants/tokens';
 import type { EsmaItem, BarChartDataPoint } from '../types';
 
 type Tab = 'selection' | 'stats';
@@ -117,19 +116,12 @@ export default function EsmaListScreen() {
       <LinearGradient colors={GRAD} style={styles.container}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel={tl('common.back')}>
-            <Ionicons name="chevron-back" size={24} color={TEXT} />
-          </Pressable>
-        <Text
-          style={[styles.headerTitle, { color: TEXT }]}
-          maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-        >
-          {tl('spiritual.esma.title')}
-        </Text>
-        <HeaderRightIcons tintColor={TEXT} />
-      </View>
+        <AppHeader
+          title={tl('spiritual.esma.title')}
+          onBack={() => router.back()}
+          rightActions={<HeaderRightIcons tintColor={TEXT} />}
+          tintColor={TEXT}
+        />
 
       {/* Tabs */}
       <View style={[styles.tabs, { backgroundColor: SURFACE + '88', borderColor: BORDER }]}>
@@ -159,22 +151,21 @@ export default function EsmaListScreen() {
       {tab === 'selection' ? (
         <>
           {/* Search */}
-          <View style={[styles.searchWrapper, { backgroundColor: SURFACE + 'AA', borderColor: BORDER }]}>
-            <Ionicons name="search" size={16} color={SUBTEXT} />
-            <TextInput
-              style={[styles.searchInput, { color: TEXT }]}
-              placeholder={tl('spiritual.esma.searchPlaceholder')}
-              placeholderTextColor={TEXT + '44'}
-              value={query}
-              onChangeText={setQuery}
-              accessibilityLabel={tl('spiritual.esma.searchA11y')}
-            />
-            {query.length > 0 && (
+          <TextField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={tl('spiritual.esma.searchPlaceholder')}
+            accessibilityLabel={tl('spiritual.esma.searchA11y')}
+            leftIcon="search"
+            style={styles.searchFieldContainer}
+            fieldStyle={[styles.searchWrapper, { backgroundColor: SURFACE + 'AA', borderColor: BORDER }]}
+            inputStyle={[styles.searchInput, { color: TEXT }]}
+            rightAccessory={query.length > 0 ? (
               <Pressable onPress={() => setQuery('')} accessibilityLabel={tl('spiritual.list.searchClear')}>
                 <Ionicons name="close-circle" size={18} color={TEXT + '88'} />
               </Pressable>
-            )}
-          </View>
+            ) : null}
+          />
 
           {/* List */}
           <FlatList
@@ -251,16 +242,10 @@ export default function EsmaListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: SPACING.md,
-    paddingHorizontal: SPACING.lgXl,
-    paddingBottom: SPACING.md,
+  searchFieldContainer: {
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
   },
-  backBtn: { width: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { ...TYPOGRAPHY.H2 },
   tabs: {
     flexDirection: 'row',
     marginHorizontal: SPACING.lg,
@@ -279,15 +264,10 @@ const styles = StyleSheet.create({
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.sm,
-    borderWidth: 1,
+    minHeight: 0,
     borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    gap: SPACING.sm,
   },
-  searchInput: { flex: 1, ...TYPOGRAPHY.Body },
+  searchInput: { ...TYPOGRAPHY.Body, paddingVertical: 0 },
   listContent: { paddingHorizontal: SPACING.lg, paddingBottom: 32 },
   empty: { textAlign: 'center', marginTop: 32, ...TYPOGRAPHY.Small },
 

@@ -155,14 +155,36 @@ export async function handlePushNotificationOpen(
   const deeplink = withNumerologyEntryPoint((data?.deeplink as string | undefined) ?? undefined);
   const incomingId = normalizeId(data?.notificationId);
   const notifId = incomingId || generateTempId();
+  const type = typeof data?.type === 'string' ? data.type : undefined;
+  const category = typeof data?.category === 'string' ? data.category : undefined;
+  const sourceModule = typeof data?.sourceModule === 'string' ? data.sourceModule : undefined;
+  const templateKey = typeof data?.templateKey === 'string' ? data.templateKey : undefined;
+  const variantKey = typeof data?.variantKey === 'string' ? data.variantKey : undefined;
 
-  trackNotificationEvent(NotificationEvent.PUSH_OPENED, { notificationId: notifId, deeplink });
+  trackNotificationEvent(NotificationEvent.PUSH_OPENED, {
+    notificationId: notifId,
+    deeplink,
+    type,
+    category,
+    sourceModule,
+    templateKey,
+    variantKey,
+  });
 
   // Refresh unread count after tap
   useNotificationStore.getState().fetchUnreadCount().catch(() => {});
 
   await openNotification(
-    { id: notifId, deeplink, status: incomingId ? 'UNREAD' : undefined },
+    {
+      id: notifId,
+      deeplink,
+      status: incomingId ? 'UNREAD' : undefined,
+      type,
+      category,
+      sourceModule,
+      templateKey,
+      variantKey,
+    },
     isAuthenticated
   );
 }

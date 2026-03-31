@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator,
+  View, StyleSheet, ScrollView, ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
 import { setPassword, changePassword, updateProfile } from '../services/auth';
-import { SafeScreen, TabHeader } from '../components/ui';
-import { TextField, PrimaryButton, StatusBanner } from '../components/auth';
+import { AppText, SafeScreen, TabHeader, TextField } from '../components/ui';
+import { PrimaryButton, StatusBanner } from '../components/auth';
 import { AxiosError } from 'axios';
 import { isStrongPassword } from '../utils/passwordPolicy';
 
@@ -36,9 +34,6 @@ export default function SecurityScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [banner, setBanner] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
 
@@ -118,7 +113,9 @@ export default function SecurityScreen() {
         <TabHeader title={t('security.title')} />
 
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} keyboardShouldPersistTaps="handled">
-          <Text style={S.hint}>{`${description}\n${passwordPolicyText}`}</Text>
+          <AppText variant="Small" color="secondary" style={S.hint}>
+            {`${description}\n${passwordPolicyText}`}
+          </AppText>
 
           {banner && (
             <StatusBanner tone={banner.tone} message={banner.message} />
@@ -130,9 +127,9 @@ export default function SecurityScreen() {
                 label={t('security.changePassword.currentPassword')}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
-                secureTextEntry={!showCurrent}
+                secureTextEntry
                 autoCapitalize="none"
-                passwordToggle={{ visible: showCurrent, onToggle: () => setShowCurrent(!showCurrent) }}
+                passwordToggle
               />
             )}
 
@@ -140,18 +137,18 @@ export default function SecurityScreen() {
               label={t(isSetMode ? 'security.setPassword.newPassword' : 'security.changePassword.newPassword')}
               value={newPassword}
               onChangeText={setNewPassword}
-              secureTextEntry={!showNew}
+              secureTextEntry
               autoCapitalize="none"
-              passwordToggle={{ visible: showNew, onToggle: () => setShowNew(!showNew) }}
+              passwordToggle
             />
 
             <TextField
               label={t(isSetMode ? 'security.setPassword.confirmPassword' : 'security.changePassword.confirmPassword')}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirm}
+              secureTextEntry
               autoCapitalize="none"
-              passwordToggle={{ visible: showConfirm, onToggle: () => setShowConfirm(!showConfirm) }}
+              passwordToggle
             />
 
             <PrimaryButton
@@ -171,21 +168,6 @@ export default function SecurityScreen() {
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingTop: 56,
-      paddingBottom: 12,
-    },
-    backBtn: {
-      width: 40, height: 40, borderRadius: 20,
-      backgroundColor: C.surface,
-      alignItems: 'center', justifyContent: 'center',
-      borderWidth: 1, borderColor: C.border,
-    },
-    headerTitle: { fontSize: 16, fontWeight: '700', color: C.text },
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 16 },
     hint: {

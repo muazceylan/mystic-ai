@@ -17,10 +17,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import * as Notifications from 'expo-notifications';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+import { registerPushTokenIfNeeded } from '../../utils/pushNotifications';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -236,7 +236,10 @@ export default function NotificationPermissionScreen() {
     setRequesting(true);
     try {
       if (Platform.OS !== 'web') {
-        await Notifications.requestPermissionsAsync();
+        await registerPushTokenIfNeeded({
+          allowPrompt: true,
+          syncBackendPreference: true,
+        });
       }
     } catch {
       // Permission denied or unavailable — proceed anyway

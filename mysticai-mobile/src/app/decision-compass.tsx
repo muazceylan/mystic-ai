@@ -304,18 +304,18 @@ export default function DecisionCompassScreen() {
         >
           {!user?.id ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>Kullanıcı bulunamadı</Text>
-              <Text style={S.emptyText}>Karar Pusulası için giriş yapmanız gerekiyor.</Text>
+              <Text style={S.emptyTitle}>{t('decisionCompassScreen.authRequiredTitle')}</Text>
+              <Text style={S.emptyText}>{t('decisionCompassScreen.authRequiredBody')}</Text>
             </View>
           ) : query.isLoading ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>Karar Pusulası yükleniyor…</Text>
-              <Text style={S.emptyText}>Günlük skorlar hazırlanıyor.</Text>
+              <Text style={S.emptyTitle}>{t('decisionCompassScreen.loadingTitle')}</Text>
+              <Text style={S.emptyText}>{t('decisionCompassScreen.loadingBody')}</Text>
             </View>
           ) : query.isError ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>Veri alınamadı</Text>
-              <Text style={S.emptyText}>Ağ veya servis kaynaklı bir sorun olabilir.</Text>
+              <Text style={S.emptyTitle}>{t('decisionCompassScreen.errorTitle')}</Text>
+              <Text style={S.emptyText}>{t('decisionCompassScreen.errorBody')}</Text>
               <Pressable onPress={() => { void query.refetch(); }} style={({ pressed }) => [S.retryBtn, pressed && S.pressed]}>
                 <Text style={S.retryBtnText}>{t('decisionCompassScreen.retryBtn')}</Text>
               </Pressable>

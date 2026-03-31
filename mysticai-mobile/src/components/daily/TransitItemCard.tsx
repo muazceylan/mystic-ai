@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import type { DailyFeedbackPayload, DailyTransitsDTO } from '../../types/daily.types';
@@ -17,12 +18,59 @@ function formatTechnicalLabel(value?: string): string {
   return value;
 }
 
+function normalizeToken(value?: string | null): string {
+  const trMap: Record<string, string> = {
+    ç: 'c',
+    ğ: 'g',
+    ı: 'i',
+    ö: 'o',
+    ş: 's',
+    ü: 'u',
+  };
+
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .split('')
+    .map((char) => trMap[char] ?? char)
+    .join('')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function isCautionLabel(label?: string | null): boolean {
+  const token = normalizeToken(label);
+  return token.includes('dikkat') || token.includes('caution');
+}
+
+function localizeTransitTheme(theme: string, locale: string): string {
+  const token = normalizeToken(theme);
+  const resolvedLocale = locale.toLowerCase().startsWith('en') ? 'en' : 'tr';
+
+  if (token.includes('iletisim') || token.includes('communication')) {
+    return resolvedLocale === 'en' ? 'Communication' : 'İletişim';
+  }
+  if (token.includes('ask') || token.includes('love') || token.includes('relationship')) {
+    return resolvedLocale === 'en' ? 'Love' : 'Aşk';
+  }
+  if (token === 'is' || token.includes('work') || token.includes('career')) {
+    return resolvedLocale === 'en' ? 'Work' : 'İş';
+  }
+  if (token.includes('enerji') || token.includes('energy')) {
+    return resolvedLocale === 'en' ? 'Energy' : 'Enerji';
+  }
+  return resolvedLocale === 'en' ? 'Mood' : 'Ruh Hali';
+}
+
 export function TransitItemCard({ transit, date, onDetailOpened, onFeedback }: TransitItemCardProps) {
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const [expanded, setExpanded] = useState(false);
+  const localizedLabel = isCautionLabel(transit.label) ? t('dailyTransits.badgeCaution') : t('dailyTransits.badgeSupportive');
+  const localizedTheme = localizeTransitTheme(transit.theme, i18n.resolvedLanguage ?? i18n.language);
 
   const badgeColors = useMemo(() => {
-    if (transit.label === 'Dikkat') {
+    if (isCautionLabel(transit.label)) {
       return {
         text: isDark ? '#FFCCCC' : '#B42318',
         bg: isDark ? 'rgba(239,68,68,0.20)' : '#FEE4E2',
@@ -55,11 +103,11 @@ export function TransitItemCard({ transit, date, onDetailOpened, onFeedback }: T
     >
       <View style={styles.topRow}>
         <View style={styles.topLeft}>
-          <Text style={[styles.themeText, { color: colors.primary }]}>{transit.theme}</Text>
+          <Text style={[styles.themeText, { color: colors.primary }]}>{localizedTheme}</Text>
           {transit.timeWindow ? <Text style={[styles.timeText, { color: colors.subtext }]}>{transit.timeWindow}</Text> : null}
         </View>
         <View style={[styles.badge, { backgroundColor: badgeColors.bg }]}>
-          <Text style={[styles.badgeText, { color: badgeColors.text }]}>{transit.label}</Text>
+          <Text style={[styles.badgeText, { color: badgeColors.text }]}>{localizedLabel}</Text>
         </View>
       </View>
 
@@ -72,10 +120,10 @@ export function TransitItemCard({ transit, date, onDetailOpened, onFeedback }: T
           style={styles.detailsBtn}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel={expanded ? 'Teknik detayları gizle' : 'Teknik detayları aç'}
+          accessibilityLabel={expanded ? t('dailyTransits.detailsCloseA11y') : t('dailyTransits.detailsOpenA11y')}
         >
           <Text style={[styles.detailsText, { color: colors.primary }]}>
-            {expanded ? 'Detayları Gizle' : 'Detayları Aç'}
+            {expanded ? t('dailyTransits.detailsClose') : t('dailyTransits.detailsOpen')}
           </Text>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary} />
         </Pressable>
@@ -92,43 +140,43 @@ export function TransitItemCard({ transit, date, onDetailOpened, onFeedback }: T
           ]}
         >
           <View style={styles.technicalRow}>
-            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>Transit Gezegen</Text>
+            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalTransitPlanet')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
               {formatTechnicalLabel(transit.technical.transitPlanet)}
             </Text>
           </View>
           <View style={styles.technicalRow}>
-            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>Natal Nokta</Text>
+            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalNatalPoint')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
               {formatTechnicalLabel(transit.technical.natalPoint)}
             </Text>
           </View>
           <View style={styles.technicalRow}>
-            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>Açı</Text>
+            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalAspect')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
               {formatTechnicalLabel(transit.technical.aspect)}
             </Text>
           </View>
           <View style={styles.technicalRow}>
-            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>Orb</Text>
+            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalOrb')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
               {typeof transit.technical.orb === 'number' ? transit.technical.orb.toFixed(1) : '-'}
             </Text>
           </View>
           <View style={styles.technicalRow}>
-            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>Kesinleşme</Text>
+            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalExactAt')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
               {formatTechnicalLabel(transit.technical.exactAt)}
             </Text>
           </View>
           <View style={styles.technicalRow}>
-            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>Ev</Text>
+            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalHouse')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
               {formatTechnicalLabel(transit.technical.house)}
             </Text>
           </View>
           <View style={styles.technicalRow}>
-            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>Güven Skoru</Text>
+            <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalConfidence')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
               %{transit.confidence}
             </Text>
@@ -143,7 +191,7 @@ export function TransitItemCard({ transit, date, onDetailOpened, onFeedback }: T
             onPress={() => onFeedback({ date, itemType: 'transit', itemId: transit.id, sentiment: 'up' })}
           >
             <Ionicons name="thumbs-up-outline" size={13} color={colors.primary} />
-            <Text style={[styles.feedbackText, { color: colors.primary }]}>Faydalı</Text>
+            <Text style={[styles.feedbackText, { color: colors.primary }]}>{t('dailyTransits.feedbackHelpful')}</Text>
           </Pressable>
           {expanded ? (
             <Pressable
@@ -151,7 +199,7 @@ export function TransitItemCard({ transit, date, onDetailOpened, onFeedback }: T
               onPress={() => onFeedback({ date, itemType: 'transit', itemId: transit.id, sentiment: 'down' })}
             >
               <Ionicons name="thumbs-down-outline" size={13} color={colors.primary} />
-              <Text style={[styles.feedbackText, { color: colors.primary }]}>Geliştir</Text>
+              <Text style={[styles.feedbackText, { color: colors.primary }]}>{t('dailyTransits.feedbackImprove')}</Text>
             </Pressable>
           ) : null}
         </View>

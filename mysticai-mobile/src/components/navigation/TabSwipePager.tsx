@@ -50,7 +50,7 @@ type TabSwipePagerProps = {
  * Wraps a main-tab screen and provides an Instagram-style horizontal swipe
  * gesture to navigate between sibling tabs.
  *
- * Key improvements over the legacy `TabSwipeGesture`:
+ * Key improvements over the legacy tab-swipe wrapper:
  *
  * - **Native-thread gesture** via `Gesture.Pan()` from react-native-gesture-handler.
  * - **UI-thread animation** via Reanimated `useSharedValue` + `useAnimatedStyle`.

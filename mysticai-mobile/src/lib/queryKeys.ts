@@ -14,8 +14,8 @@ export const queryKeys = {
   weeklySwot: (userId: number) => ['astrology', 'weekly-swot', userId] as const,
   dailyLifeGuide: (userId: number, locale?: string, date?: string) =>
     ['astrology', 'daily-life-guide', userId, locale ?? 'tr', date ?? 'today'] as const,
-  dailyTransits: (date: string) => ['dailyTransits', date] as const,
-  dailyActions: (date: string) => ['dailyActions', date] as const,
+  dailyTransits: (date: string, locale?: string) => ['dailyTransits', date, locale ?? 'tr'] as const,
+  dailyActions: (date: string, locale?: string) => ['dailyActions', date, locale ?? 'tr'] as const,
   cosmicSummary: (userId: number, locale?: string, date?: string, gender?: string, maritalStatus?: string) =>
     ['cosmic', 'summary', userId, locale ?? 'tr', date ?? 'today', gender ?? '', maritalStatus ?? ''] as const,
   cosmicPlanner: (userId: number, month?: string, locale?: string, gender?: string, maritalStatus?: string) =>

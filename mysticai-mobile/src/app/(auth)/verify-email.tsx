@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
-import { SafeScreen } from '../../components/ui';
+import { AppText, SafeScreen, TextField } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
-import { PrimaryButton, SecondaryButton, StatusBanner, TextField } from '../../components/auth';
+import { PrimaryButton, SecondaryButton, StatusBanner } from '../../components/auth';
 import { resendVerification } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { trackEvent } from '../../services/analytics';
@@ -184,8 +184,12 @@ export default function VerifyEmailResultScreen() {
               <Ionicons name={resultConfig.icon as any} size={28} color={colors.primary} />
             </View>
 
-            <Text style={styles.title}>{resultConfig.title}</Text>
-            <Text style={styles.subtitle}>{resultConfig.description}</Text>
+            <AppText variant="H1" style={styles.title}>
+              {resultConfig.title}
+            </AppText>
+            <AppText variant="Body" color="secondary" style={styles.subtitle}>
+              {resultConfig.description}
+            </AppText>
 
             {banner && <StatusBanner tone={banner.tone} message={banner.message} />}
 

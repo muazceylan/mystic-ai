@@ -423,26 +423,24 @@ function localizeMoonPhase(value: string | null | undefined, locale: DashboardLo
     return '';
   }
 
-  const normalized = phase.toLowerCase();
-  const map: Record<string, { tr: string; en: string }> = {
-    dolunay: { tr: 'Dolunay', en: 'Full Moon' },
-    'yeni ay': { tr: 'Yeni Ay', en: 'New Moon' },
-    'ilk dordun': { tr: 'İlk Dördün', en: 'First Quarter' },
-    'ilk dördün': { tr: 'İlk Dördün', en: 'First Quarter' },
-    'son dordun': { tr: 'Son Dördün', en: 'Last Quarter' },
-    'son dördün': { tr: 'Son Dördün', en: 'Last Quarter' },
-    waxing: { tr: phase, en: phase },
-    waning: { tr: phase, en: phase },
-    crescent: { tr: phase, en: phase },
-    gibbous: { tr: phase, en: phase },
-  };
+  const normalized = slugify(phase).replace(/-/g, ' ');
+  const map: Array<{ keys: string[]; tr: string; en: string }> = [
+    { keys: ['new moon', 'yeni ay'], tr: 'Yeni Ay', en: 'New Moon' },
+    { keys: ['waxing crescent', 'buyuyen hilal'], tr: 'Büyüyen Hilal', en: 'Waxing Crescent' },
+    { keys: ['first quarter', 'ilk dordun'], tr: 'İlk Dördün', en: 'First Quarter' },
+    { keys: ['waxing gibbous', 'buyuyen siskin ay', 'siskin ay'], tr: 'Büyüyen Şişkin Ay', en: 'Waxing Gibbous' },
+    { keys: ['full moon', 'dolunay'], tr: 'Dolunay', en: 'Full Moon' },
+    { keys: ['waning gibbous', 'kuculen siskin ay'], tr: 'Küçülen Şişkin Ay', en: 'Waning Gibbous' },
+    { keys: ['last quarter', 'third quarter', 'son dordun'], tr: 'Son Dördün', en: 'Last Quarter' },
+    { keys: ['waning crescent', 'kuculen hilal'], tr: 'Küçülen Hilal', en: 'Waning Crescent' },
+  ];
 
-  const matchedEntry = Object.entries(map).find(([key]) => normalized.includes(key));
+  const matchedEntry = map.find((entry) => entry.keys.some((key) => normalized.includes(key)));
   if (!matchedEntry) {
     return phase;
   }
 
-  return matchedEntry[1][locale];
+  return locale === 'en' ? matchedEntry.en : matchedEntry.tr;
 }
 
 function localizeMoonSign(skyPulse: SkyPulseResponse | null, locale: DashboardLocale): string {

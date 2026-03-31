@@ -1987,7 +1987,10 @@ export function CalendarScreenContent() {
 
     setIsSavingReminder(true);
     try {
-      const pushToken = await registerPushTokenIfNeeded().catch(() => null);
+      const pushToken = await registerPushTokenIfNeeded({
+        allowPrompt: true,
+        syncBackendPreference: true,
+      }).catch(() => null);
       let delivery: 'backend_push' | 'local_fallback' = 'backend_push';
       let reminderId: number | string | undefined;
       let reminderDateTime: string | undefined;

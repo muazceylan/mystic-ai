@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +10,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { SafeScreen } from '../../components/ui';
+import { AppText, Button, SafeScreen, TextField } from '../../components/ui';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePendingGuestStore } from '../../store/usePendingGuestStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
@@ -85,60 +82,15 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     },
     heading: {
       fontFamily: HERO_DISPLAY_FONT,
-      fontSize: 30,
-      lineHeight: 34,
       fontWeight: Platform.OS === 'ios' ? '700' : '600',
-      letterSpacing: -0.6,
-      color: colors.text,
-      textAlign: 'center',
       marginBottom: 8,
     },
     sub: {
-      fontFamily: 'MysticInter-Regular',
-      fontSize: 15,
-      color: colors.subtext,
-      textAlign: 'center',
-      lineHeight: 22,
       marginBottom: 32,
     },
-    inputContainer: {
-      backgroundColor: colors.inputBg,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 14,
-      marginBottom: 12,
-    },
-    input: {
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      fontSize: 16,
-      color: colors.text,
-    },
-    continueButton: {
-      backgroundColor: colors.primary,
-      borderRadius: 28,
-      paddingVertical: 15,
-      alignItems: 'center',
+    buttonColumn: {
+      gap: 8,
       marginTop: 8,
-    },
-    continueButtonDisabled: {
-      backgroundColor: colors.disabled,
-    },
-    continueText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: colors.white,
-    },
-    continueTextDisabled: {
-      color: colors.disabledText,
-    },
-    skipButton: {
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    skipText: {
-      fontSize: 14,
-      color: colors.subtext,
     },
   });
 }
@@ -159,8 +111,6 @@ export default function GuestNameScreen() {
 
   const completeLogin = async (name: string) => {
     if (!session) {
-      // Session already consumed — user navigated back from birth-date.
-      // Update name if provided, then continue forward.
       if (name) {
         setFirstName(name);
         updateProfile({ firstName: name }).then((res) => setUser(res.data as any)).catch(() => {});
@@ -170,15 +120,11 @@ export default function GuestNameScreen() {
     }
 
     const { accessToken, refreshToken, user } = session;
-
-    // Update user object with entered name before logging in
     const updatedUser = name ? { ...user, firstName: name } : user;
     storeLogin(accessToken, refreshToken, updatedUser);
 
-    // Persist name in onboarding store so link-account can read it
     if (name) {
       setFirstName(name);
-      // Best-effort profile update in background — not awaited
       updateProfile({ firstName: name }).then((res) => {
         setUser(res.data as any);
       }).catch(() => {});
@@ -228,45 +174,38 @@ export default function GuestNameScreen() {
             </View>
           </View>
 
-          <Text style={styles.heading}>{t('guestName.heading', 'İsminiz?')}</Text>
-          <Text style={styles.sub}>
-            {t('guestName.sub', 'İstersen bir isim gir, istersen anonim devam et. Her zaman değiştirebilirsin.')}
-          </Text>
+          <AppText variant="Display" align="center" style={styles.heading}>
+            {t('guestName.heading')}
+          </AppText>
+          <AppText variant="Body" color="secondary" align="center" style={styles.sub}>
+            {t('guestName.sub')}
+          </AppText>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder={t('guestName.placeholder', 'Adın (isteğe bağlı)')}
-              placeholderTextColor={colors.subtext}
-              value={firstName}
-              onChangeText={setFirstNameLocal}
-              autoCapitalize="words"
-              autoCorrect={false}
-              returnKeyType="done"
-              onSubmitEditing={handleContinue}
+          <TextField
+            value={firstName}
+            onChangeText={setFirstNameLocal}
+            placeholder={t('guestName.placeholder')}
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleContinue}
+          />
+
+          <View style={styles.buttonColumn}>
+            <Button
+              title={t('guestName.continue')}
+              onPress={handleContinue}
+              disabled={!trimmed}
+              fullWidth
+              size="lg"
+            />
+            <Button
+              title={t('guestName.skip')}
+              onPress={handleSkip}
+              variant="ghost"
+              fullWidth
             />
           </View>
-
-          <TouchableOpacity
-            style={[styles.continueButton, !trimmed && styles.continueButtonDisabled]}
-            onPress={handleContinue}
-            disabled={!trimmed}
-            accessibilityRole="button"
-            accessibilityLabel={t('guestName.continue', 'Devam Et')}
-          >
-            <Text style={[styles.continueText, !trimmed && styles.continueTextDisabled]}>
-              {t('guestName.continue', 'Devam Et')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={handleSkip}
-            accessibilityRole="button"
-            accessibilityLabel={t('guestName.skip', 'Atla')}
-          >
-            <Text style={styles.skipText}>{t('guestName.skip', 'Atla, anonim devam et')}</Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeScreen>

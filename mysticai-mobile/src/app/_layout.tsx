@@ -57,7 +57,9 @@ import {
 import { resolveScreenName } from '../services/analyticsScreenNames';
 import {
   ensureNotificationHandlerInstalled,
+  maybeTriggerMorningDreamReminder,
   registerPushTokenIfNeeded,
+  syncNotificationPreferencesWithDeviceState,
   setupNotificationResponseHandler,
   setupNotificationChannel,
 } from '../utils/pushNotifications';
@@ -294,6 +296,7 @@ function CompanionBootstrap() {
 function NotificationBootstrap() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isHydrated = useAuthStore((s) => s.isHydrated);
+  const userId = useAuthStore((s) => s.user?.id);
   const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount);
   const resetNotifications = useNotificationStore((s) => s.reset);
   const appState = useRef<AppStateStatus>(AppState.currentState);
@@ -311,18 +314,21 @@ function NotificationBootstrap() {
     // geçiş animasyonları tamamlandıktan sonra başlat.
     let pushCleanup: (() => void) | null = null;
     const deferredTask = InteractionManager.runAfterInteractions(() => {
-      void setupNotificationChannel();
-      void registerPushTokenIfNeeded();
-      void fetchUnreadCount();
-      setupNotificationResponseHandler(isAuthenticated).then((unsub) => {
-        pushCleanup = unsub;
-      });
+      void (async () => {
+        await setupNotificationChannel();
+        await syncNotificationPreferencesWithDeviceState();
+        await registerPushTokenIfNeeded({ respectStoredPreference: true });
+        await maybeTriggerMorningDreamReminder(userId);
+        await fetchUnreadCount();
+        pushCleanup = await setupNotificationResponseHandler(isAuthenticated);
+      })();
     });
 
     // AppState listener: refresh on foreground return (background → active)
     const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (appState.current === 'background' && nextState === 'active') {
         void fetchUnreadCount();
+        void maybeTriggerMorningDreamReminder(userId);
       }
       appState.current = nextState;
     });
@@ -338,7 +344,7 @@ function NotificationBootstrap() {
       clearInterval(interval);
       pushCleanup?.();
     };
-  }, [isHydrated, isAuthenticated]);
+  }, [isHydrated, isAuthenticated, userId]);
 
   return null;
 }

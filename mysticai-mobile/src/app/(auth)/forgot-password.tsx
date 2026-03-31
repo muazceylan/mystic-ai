@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
-import { SafeScreen } from '../../components/ui';
+import { AppText, Button, SafeScreen, TextField } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { forgotPassword } from '../../services/auth';
 
@@ -40,59 +40,13 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       color: C.text,
     },
     subtitle: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: C.subtext,
-    },
-    inputContainer: {
-      backgroundColor: C.inputBg,
-      borderWidth: 1,
-      borderColor: C.border,
-      borderRadius: 12,
-    },
-    input: {
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      color: C.text,
-      fontSize: 16,
-    },
-    button: {
-      marginTop: 4,
-      borderRadius: 24,
-      paddingVertical: 14,
-      alignItems: 'center',
-      backgroundColor: C.primary,
-    },
-    buttonDisabled: {
-      backgroundColor: C.disabled,
-    },
-    buttonText: {
-      color: C.white,
-      fontWeight: '700',
-      fontSize: 15,
-    },
-    secondaryButton: {
-      marginTop: 4,
-      borderRadius: 24,
-      paddingVertical: 12,
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: C.border,
-      backgroundColor: C.bg,
-    },
-    secondaryButtonText: {
-      color: C.text,
-      fontWeight: '600',
-      fontSize: 15,
+      marginTop: 2,
     },
     successText: {
       color: C.success,
-      fontSize: 14,
-      lineHeight: 20,
     },
-    errorText: {
-      color: C.error,
-      fontSize: 13,
+    buttonColumn: {
+      gap: 10,
     },
   });
 }
@@ -142,51 +96,47 @@ export default function ForgotPasswordScreen() {
       <View style={styles.container}>
         <OnboardingBackground />
         <View style={styles.card}>
-          <Text style={styles.title}>{t('auth.passwordReset.title')}</Text>
-          <Text style={styles.subtitle}>{t('auth.passwordReset.subtitle')}</Text>
+          <AppText variant="H1" style={styles.title}>
+            {t('auth.passwordReset.title')}
+          </AppText>
+          <AppText variant="Body" color="secondary" style={styles.subtitle}>
+            {t('auth.passwordReset.subtitle')}
+          </AppText>
 
           {!isSubmitted ? (
-            <>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('auth.email')}
-                  placeholderTextColor={colors.subtext}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={email}
-                  onChangeText={setEmail}
-                  editable={!loading}
-                />
-              </View>
-              {!!error && <Text style={styles.errorText}>{error}</Text>}
-              <TouchableOpacity
-                style={[styles.button, !canSubmit && styles.buttonDisabled]}
+            <View style={styles.buttonColumn}>
+              <TextField
+                value={email}
+                onChangeText={setEmail}
+                label={t('auth.email')}
+                placeholder={t('auth.email')}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+                error={error}
+              />
+              <Button
+                title={t('auth.passwordReset.sendButton')}
                 onPress={handleSubmit}
                 disabled={!canSubmit}
-                accessibilityRole="button"
-                accessibilityLabel={t('auth.passwordReset.sendButton')}
-              >
-                {loading ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Text style={styles.buttonText}>{t('auth.passwordReset.sendButton')}</Text>
-                )}
-              </TouchableOpacity>
-            </>
+                loading={loading}
+                fullWidth
+                size="lg"
+              />
+            </View>
           ) : (
-            <Text style={styles.successText}>{t('auth.passwordReset.requestSent')}</Text>
+            <AppText variant="Body" color="success" style={styles.successText}>
+              {t('auth.passwordReset.requestSent')}
+            </AppText>
           )}
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
+          <Button
+            title={t('auth.passwordReset.backToLogin')}
             onPress={handleBack}
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.passwordReset.backToLogin')}
-          >
-            <Text style={styles.secondaryButtonText}>{t('auth.passwordReset.backToLogin')}</Text>
-          </TouchableOpacity>
+            variant="outline"
+            fullWidth
+          />
         </View>
       </View>
     </SafeScreen>

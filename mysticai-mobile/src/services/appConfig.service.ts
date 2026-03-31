@@ -46,13 +46,14 @@ const CACHE_TTL_MS = 60_000; // 1 minute — matches backend Cache-Control
 export const DEFAULT_CONFIG: AppConfig = {
   version: '0.0-fallback',
   fetchedAt: new Date().toISOString(),
-  maintenanceFlags: [],
+  maintenanceFlags: ['star_mate'],
   activeModules: [
     { moduleKey: 'home', displayName: 'Ana Sayfa', icon: 'home', isActive: true, isPremium: false, showOnHome: true, showOnExplore: false, showInTabBar: true, sortOrder: 0, maintenanceMode: false, hiddenButDeepLinkable: false, badgeLabel: null },
     { moduleKey: 'daily_transits', displayName: 'Günlük Transitler', icon: 'sun', isActive: true, isPremium: false, showOnHome: true, showOnExplore: true, showInTabBar: false, sortOrder: 1, maintenanceMode: false, hiddenButDeepLinkable: false, badgeLabel: null },
     { moduleKey: 'dream_analysis', displayName: 'Rüya Analizi', icon: 'moon', isActive: true, isPremium: false, showOnHome: true, showOnExplore: true, showInTabBar: true, sortOrder: 3, maintenanceMode: false, hiddenButDeepLinkable: false, badgeLabel: null },
     { moduleKey: 'spiritual', displayName: 'Manevi Alan', icon: 'heart', isActive: true, isPremium: false, showOnHome: true, showOnExplore: true, showInTabBar: true, sortOrder: 4, maintenanceMode: false, hiddenButDeepLinkable: false, badgeLabel: null },
     { moduleKey: 'compatibility', displayName: 'Uyumluluk', icon: 'link', isActive: true, isPremium: false, showOnHome: true, showOnExplore: true, showInTabBar: true, sortOrder: 5, maintenanceMode: false, hiddenButDeepLinkable: false, badgeLabel: null },
+    { moduleKey: 'star_mate', displayName: 'Ruh Eşi', icon: 'sparkles', isActive: true, isPremium: false, showOnHome: false, showOnExplore: false, showInTabBar: false, sortOrder: 6, maintenanceMode: true, hiddenButDeepLinkable: true, badgeLabel: null },
     { moduleKey: 'notifications', displayName: 'Bildirimler', icon: 'bell', isActive: true, isPremium: false, showOnHome: false, showOnExplore: false, showInTabBar: true, sortOrder: 9, maintenanceMode: false, hiddenButDeepLinkable: false, badgeLabel: null },
     { moduleKey: 'profile', displayName: 'Profil', icon: 'user', isActive: true, isPremium: false, showOnHome: false, showOnExplore: false, showInTabBar: true, sortOrder: 10, maintenanceMode: false, hiddenButDeepLinkable: false, badgeLabel: null },
   ],

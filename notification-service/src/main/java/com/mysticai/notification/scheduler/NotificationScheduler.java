@@ -52,27 +52,43 @@ public class NotificationScheduler {
         if (skipIfDisabled(key)) return;
         log.info("Running daily notification generation");
         List<Long> userIds = getDistinctActiveUserIds();
-        int sent = 0;
+        int produced = 0;
         for (Long userId : userIds) {
             try {
-                generationService.generateNotification(userId, NotificationType.DAILY_SUMMARY, null);
-                sent++;
+                boolean created = generationService.generateNotification(userId, NotificationType.DAILY_SUMMARY, null)
+                        .isPresent();
+                if (created) {
+                    produced++;
+                }
             } catch (Exception e) {
                 log.warn("Failed daily notification for user {}: {}", userId, e.getMessage());
             }
         }
-        log.info("Daily notifications: {}/{} users", sent, userIds.size());
-        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, sent, sent + "/" + userIds.size() + " users");
+        log.info("Daily notifications produced: {}/{} users", produced, userIds.size());
+        triggerService.recordRun(
+                key,
+                NotificationTrigger.RunStatus.SUCCESS,
+                produced,
+                produced + "/" + userIds.size() + " users created"
+        );
     }
 
-    /** Dream reminder - 08:00 every morning */
+    /**
+     * Dream reminders are now generated opportunistically on the user's first
+     * morning app open so they align with real wake-up behavior instead of a fixed
+     * 08:00 cron. The scheduled job remains as an operational breadcrumb.
+     */
     @Scheduled(cron = "0 0 8 * * *")
     public void generateDreamReminders() {
         final String key = "dream_reminder_job";
         if (skipIfDisabled(key)) return;
-        log.info("Running dream reminder generation");
-        int count = generateForAll(NotificationType.DREAM_REMINDER);
-        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, count, null);
+        log.info("Dream reminder cron skipped; reminders are handled on first morning app open");
+        triggerService.recordRun(
+                key,
+                NotificationTrigger.RunStatus.SKIPPED,
+                0,
+                "Handled opportunistically on first morning app open"
+        );
     }
 
     /** Numerology check-in reminder - 12:15 every day */
@@ -163,18 +179,28 @@ public class NotificationScheduler {
         log.info("Running re-engagement notification generation");
         List<Long> userIds = getDistinctActiveUserIds();
         int eligible = 0;
+        int produced = 0;
         for (Long userId : userIds) {
             try {
                 if (engagementScorer.shouldReEngage(userId)) {
-                    generationService.generateNotification(userId, NotificationType.RE_ENGAGEMENT, null);
                     eligible++;
+                    boolean created = generationService.generateNotification(userId, NotificationType.RE_ENGAGEMENT, null)
+                            .isPresent();
+                    if (created) {
+                        produced++;
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Re-engagement check failed for user {}: {}", userId, e.getMessage());
             }
         }
-        log.info("Re-engagement: {}/{} users eligible", eligible, userIds.size());
-        triggerService.recordRun(key, NotificationTrigger.RunStatus.SUCCESS, eligible, eligible + " eligible of " + userIds.size());
+        log.info("Re-engagement produced: {} notifications for {} eligible users", produced, eligible);
+        triggerService.recordRun(
+                key,
+                NotificationTrigger.RunStatus.SUCCESS,
+                produced,
+                produced + " created of " + eligible + " eligible / " + userIds.size() + " scanned"
+        );
     }
 
     /** Product/module nudge - Wednesday & Saturday at 18:30 */
@@ -210,8 +236,10 @@ public class NotificationScheduler {
         int count = 0;
         for (Long userId : userIds) {
             try {
-                generationService.generateNotification(userId, type, null);
-                count++;
+                boolean created = generationService.generateNotification(userId, type, null).isPresent();
+                if (created) {
+                    count++;
+                }
             } catch (Exception e) {
                 log.warn("Failed {} for user {}: {}", type, userId, e.getMessage());
             }

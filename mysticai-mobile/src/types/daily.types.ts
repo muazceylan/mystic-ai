@@ -1,4 +1,15 @@
-export type MoodTag = 'Sosyal' | 'Odak' | 'Duygusal' | 'Cesur' | 'Sakin';
+export type MoodTag =
+  | 'Sosyal'
+  | 'Odak'
+  | 'Duygusal'
+  | 'Cesur'
+  | 'Sakin'
+  | 'Social'
+  | 'Focus'
+  | 'Emotional'
+  | 'Bold'
+  | 'Calm';
+
 export type HeroIconKey =
   | 'saturn'
   | 'moon'
@@ -7,6 +18,7 @@ export type HeroIconKey =
   | 'mercury'
   | 'jupiter'
   | 'sun';
+
 export type GradientKey = 'purpleMist' | 'nightSky' | 'sunrise';
 
 export interface DailyTransitsDTO {
@@ -46,8 +58,18 @@ export interface DailyTransitsDTO {
     id: string;
     titlePlain: string;
     impactPlain: string;
-    label: 'Destekleyici' | 'Dikkat';
-    theme: 'İletişim' | 'Aşk' | 'İş' | 'Ruh Hali' | 'Enerji';
+    label: 'Destekleyici' | 'Dikkat' | 'Supportive' | 'Caution';
+    theme:
+      | 'İletişim'
+      | 'Aşk'
+      | 'İş'
+      | 'Ruh Hali'
+      | 'Enerji'
+      | 'Communication'
+      | 'Love'
+      | 'Work'
+      | 'Mood'
+      | 'Energy';
     timeWindow?: string;
     confidence: number;
     technical?: {
@@ -72,7 +94,7 @@ export interface DailyActionsDTO {
     title: string;
     detail: string;
     icon: string;
-    tag?: 'Kolay' | 'Orta' | 'Cesur';
+    tag?: 'Kolay' | 'Orta' | 'Cesur' | 'Easy' | 'Moderate' | 'Bold';
     etaMin?: number;
     isDone: boolean;
     doneAt?: string | null;

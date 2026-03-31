@@ -11,7 +11,7 @@ import { PREMIUM_ICONS, ACTION_ICONS } from '../constants/icons';
 const FEATURE_KEYS = ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6', 'feature7'] as const;
 
 const PLANS = [
-  { id: 'monthly', price: '₺149', periodKey: 'periodMonth', badge: null, popular: false },
+  { id: 'monthly', price: '₺149', periodKey: 'periodMonth', badgeKey: null, popular: false },
   { id: 'yearly', price: '₺999', periodKey: 'periodYear', badgeKey: 'discountBadge', popular: true },
 ] as const;
 
@@ -159,7 +159,7 @@ export default function PremiumScreen() {
           <TouchableOpacity
             key={plan.id}
             style={[styles.planCard, plan.popular && styles.planCardPopular]}
-            accessibilityLabel={`${t(`premium.${plan.id}`)} planını seç`}
+            accessibilityLabel={t('premium.selectPlanA11y', { plan: t(`premium.${plan.id}`) })}
             accessibilityRole="button"
             onPress={() => handleSubscribe(plan.id)}
             activeOpacity={0.8}

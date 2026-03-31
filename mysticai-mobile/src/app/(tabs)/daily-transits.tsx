@@ -53,6 +53,119 @@ type HeroPersonalization = {
   dominantElement?: string;
 };
 
+type DailyLocale = 'tr' | 'en';
+type CanonicalTransitTheme = 'mood' | 'energy' | 'communication' | 'love' | 'work';
+
+const THEME_METADATA: Record<
+  CanonicalTransitTheme,
+  {
+    tr: string;
+    en: string;
+    trFocus: string;
+    enFocus: string;
+  }
+> = {
+  mood: { tr: 'Ruh Hali', en: 'Mood', trFocus: 'duygu dengesi', enFocus: 'emotional balance' },
+  energy: { tr: 'Enerji', en: 'Energy', trFocus: 'enerji yönetimi', enFocus: 'energy management' },
+  communication: { tr: 'İletişim', en: 'Communication', trFocus: 'iletişim akışı', enFocus: 'communication flow' },
+  love: { tr: 'Aşk', en: 'Love', trFocus: 'ilişki dengesi', enFocus: 'relationship balance' },
+  work: { tr: 'İş', en: 'Work', trFocus: 'iş akışı', enFocus: 'work flow' },
+};
+
+const THEME_SEQUENCE: CanonicalTransitTheme[] = ['mood', 'energy', 'communication', 'love', 'work'];
+
+function resolveDailyLocale(locale?: string): DailyLocale {
+  return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
+function normalizeDailyToken(value?: string | null): string {
+  const trMap: Record<string, string> = {
+    ç: 'c',
+    ğ: 'g',
+    ı: 'i',
+    ö: 'o',
+    ş: 's',
+    ü: 'u',
+  };
+
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .split('')
+    .map((char) => trMap[char] ?? char)
+    .join('')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function canonicalizeTheme(theme?: string | null): CanonicalTransitTheme {
+  const token = normalizeDailyToken(theme);
+  if (token.includes('iletisim') || token.includes('communication')) return 'communication';
+  if (token.includes('ask') || token.includes('love') || token.includes('relationship')) return 'love';
+  if (token === 'is' || token.includes('work') || token.includes('career')) return 'work';
+  if (token.includes('enerji') || token.includes('energy')) return 'energy';
+  return 'mood';
+}
+
+function localizeTheme(theme: string, locale: DailyLocale): string {
+  return THEME_METADATA[canonicalizeTheme(theme)][locale];
+}
+
+function getThemeFocusText(theme: CanonicalTransitTheme, locale: DailyLocale): string {
+  return locale === 'en' ? THEME_METADATA[theme].enFocus : THEME_METADATA[theme].trFocus;
+}
+
+function isCautionLabel(label?: string | null): boolean {
+  const token = normalizeDailyToken(label);
+  return token.includes('dikkat') || token.includes('caution');
+}
+
+function isSupportiveLabel(label?: string | null): boolean {
+  const token = normalizeDailyToken(label);
+  return token.includes('destekleyici') || token.includes('supportive');
+}
+
+function localizeTransitLabel(label: string, locale: DailyLocale): string {
+  return isCautionLabel(label)
+    ? (locale === 'en' ? 'Caution' : 'Dikkat')
+    : (locale === 'en' ? 'Supportive' : 'Destekleyici');
+}
+
+function localizeMoodTag(tag: string, locale: DailyLocale): string {
+  const token = normalizeDailyToken(tag);
+  if (token.includes('sosyal') || token.includes('social')) return locale === 'en' ? 'Social' : 'Sosyal';
+  if (token.includes('odak') || token.includes('focus')) return locale === 'en' ? 'Focus' : 'Odak';
+  if (token.includes('duygusal') || token.includes('emotional')) return locale === 'en' ? 'Emotional' : 'Duygusal';
+  if (token.includes('cesur') || token.includes('bold')) return locale === 'en' ? 'Bold' : 'Cesur';
+  return locale === 'en' ? 'Calm' : 'Sakin';
+}
+
+function canonicalizeMoodTag(tag: string): 'social' | 'focus' | 'emotional' | 'bold' | 'calm' {
+  const token = normalizeDailyToken(tag);
+  if (token.includes('sosyal') || token.includes('social')) return 'social';
+  if (token.includes('odak') || token.includes('focus')) return 'focus';
+  if (token.includes('duygusal') || token.includes('emotional')) return 'emotional';
+  if (token.includes('cesur') || token.includes('bold')) return 'bold';
+  return 'calm';
+}
+
+function canonicalizeElement(element?: string | null): 'fire' | 'earth' | 'air' | 'water' | 'unknown' {
+  const token = normalizeDailyToken(element);
+  if (token.includes('ates') || token.includes('fire')) return 'fire';
+  if (token.includes('toprak') || token.includes('earth')) return 'earth';
+  if (token.includes('hava') || token.includes('air')) return 'air';
+  if (token.includes('su') || token.includes('water')) return 'water';
+  return 'unknown';
+}
+
+function localizeTransitItem(item: TransitItem, locale: DailyLocale): TransitItem {
+  return {
+    ...item,
+    theme: localizeTheme(item.theme, locale) as TransitItem['theme'],
+    label: localizeTransitLabel(item.label, locale) as TransitItem['label'],
+  };
+}
+
 function formatDateLabel(dateIso: string, locale: string): string {
   const date = new Date(dateIso);
   if (Number.isNaN(date.getTime())) return dateIso;
@@ -65,7 +178,7 @@ function hasTrailingEllipsis(text?: string): boolean {
   return value.endsWith('…') || value.endsWith('...');
 }
 
-const THEME_FOCUS_TEXT: Record<TransitTheme, string> = {
+const THEME_FOCUS_TEXT: Record<string, string> = {
   'İletişim': 'iletişim akışı',
   'Aşk': 'ilişki dengesi',
   'İş': 'iş akışı',
@@ -125,17 +238,19 @@ function buildHeroPersonalization(
     moonSign?: string;
     risingSign?: string;
   } | null,
+  locale: DailyLocale,
 ): HeroPersonalization | null {
   const firstName = toFirstName(user?.firstName) ?? toFirstName(user?.name);
-  const sunInfo = getZodiacInfo(chart?.sunSign ?? user?.zodiacSign);
-  const moonInfo = getZodiacInfo(chart?.moonSign);
-  const risingInfo = getZodiacInfo(chart?.risingSign);
+  const unknownName = locale === 'en' ? 'Unknown' : 'Bilinmiyor';
+  const sunInfo = getZodiacInfo(chart?.sunSign ?? user?.zodiacSign, locale);
+  const moonInfo = getZodiacInfo(chart?.moonSign, locale);
+  const risingInfo = getZodiacInfo(chart?.risingSign, locale);
 
-  const sunSignName = sunInfo.name !== 'Bilinmiyor' ? sunInfo.name : undefined;
-  const moonSignName = moonInfo.name !== 'Bilinmiyor' ? moonInfo.name : undefined;
-  const risingSignName = risingInfo.name !== 'Bilinmiyor' ? risingInfo.name : undefined;
+  const sunSignName = sunInfo.name !== unknownName ? sunInfo.name : undefined;
+  const moonSignName = moonInfo.name !== unknownName ? moonInfo.name : undefined;
+  const risingSignName = risingInfo.name !== unknownName ? risingInfo.name : undefined;
   const dominantElement = resolveDominantElement(
-    [sunInfo.element, moonInfo.element, risingInfo.element].filter((item) => item && item !== 'Bilinmiyor'),
+    [sunInfo.element, moonInfo.element, risingInfo.element].filter((item) => item && item !== unknownName),
   );
 
   const seed = [
@@ -221,6 +336,96 @@ function buildPersonalizedLine(
 
   if (options.length === 0) return '';
   return pickBySeed(options, `${baseSeed}|${personalization.seed}|personal`);
+}
+
+function buildPersonalizedLineLocalized(
+  personalization: HeroPersonalization | null,
+  focusText: string,
+  baseSeed: string,
+  locale: DailyLocale,
+): string {
+  if (!personalization) return '';
+  const namePrefix = personalization.firstName ? `${personalization.firstName}, ` : '';
+  const options: string[] = [];
+
+  if (personalization.sunSignName) {
+    options.push(
+      locale === 'en'
+        ? `${namePrefix}your ${personalization.sunSignName} Sun tone supports visible steps around ${focusText} today.`
+        : `${namePrefix}${personalization.sunSignName} Güneş tonun bugün ${focusText} tarafında görünür adımları destekliyor.`,
+      locale === 'en'
+        ? `${namePrefix}${personalization.sunSignName} energy can make clarity easier to build around ${focusText} today.`
+        : `${namePrefix}${personalization.sunSignName} etkisiyle ${focusText} alanında netlik kazanman daha kolay olabilir.`,
+    );
+  }
+  if (personalization.moonSignName) {
+    options.push(
+      locale === 'en'
+        ? `Your ${personalization.moonSignName} Moon rhythm strengthens ${focusText} when feelings are expressed clearly.`
+        : `${personalization.moonSignName} Ay ritmin duyguyu net ifade ettiğinde ${focusText} akışını güçlendirir.`,
+      locale === 'en'
+        ? `Your ${personalization.moonSignName} Moon placement works better when you trust intuition around ${focusText}.`
+        : `${personalization.moonSignName} Ay yerleşimin, ${focusText} tarafında sezgiyle ilerlediğinde daha iyi çalışır.`,
+    );
+  }
+  if (personalization.risingSignName) {
+    options.push(
+      locale === 'en'
+        ? `When your ${personalization.risingSignName} rising tone keeps the first move simple, ${focusText} opens faster.`
+        : `${personalization.risingSignName} yükselenin ilk teması sade tuttuğunda ${focusText} daha hızlı açılır.`,
+      locale === 'en'
+        ? `With your ${personalization.risingSignName} rising approach, small but steady moves work well around ${focusText}.`
+        : `${personalization.risingSignName} yükselen yaklaşımınla ${focusText} alanında küçük ama kararlı adımlar etkili olur.`,
+    );
+  }
+
+  switch (canonicalizeElement(personalization.dominantElement)) {
+    case 'fire':
+      options.push(
+        locale === 'en'
+          ? 'Your fire emphasis supports quick action today; short pauses will keep the pace balanced.'
+          : 'Ateş elementi baskınlığın hızlı hamleyi destekliyor; kısa duraklarla tempo dengesini koru.',
+        locale === 'en'
+          ? 'Your fire-heavy chart brings momentum; tying energy to one priority will improve efficiency.'
+          : 'Ateş ağırlığın ivme veriyor; enerjiyi tek önceliğe bağlamak verimi artırır.',
+      );
+      break;
+    case 'earth':
+      options.push(
+        locale === 'en'
+          ? 'Your earth emphasis helps make plans tangible; moving step by step works especially well today.'
+          : 'Toprak elementi baskınlığın planı somutlaştırma gücü veriyor; adım adım ilerlemek bugün çok işe yarar.',
+        locale === 'en'
+          ? 'Your earth-heavy chart supports structure; small but steady progress is your advantage today.'
+          : 'Toprak ağırlığın düzen kurmana yardım eder; küçük ama sürekli ilerleme bugün ana avantajın.',
+      );
+      break;
+    case 'air':
+      options.push(
+        locale === 'en'
+          ? 'Your air emphasis speeds up ideas; short and clear communication can amplify the impact.'
+          : 'Hava elementi baskınlığın fikir akışını hızlandırıyor; kısa ve net iletişimle etkiyi büyütebilirsin.',
+        locale === 'en'
+          ? 'Your air-heavy chart keeps thinking flexible; make priorities visible so you do not scatter.'
+          : 'Hava ağırlığın esnek düşünmeni kolaylaştırıyor; dağılmamak için öncelikleri görünür tut.',
+      );
+      break;
+    case 'water':
+      options.push(
+        locale === 'en'
+          ? 'Your water emphasis strengthens intuition; clarifying your feelings improves decision quality today.'
+          : 'Su elementi baskınlığın sezgiyi güçlendiriyor; duygunu netleştirmek karar kalitesini artırır.',
+        locale === 'en'
+          ? 'Your water-heavy chart raises empathy; the day stays steadier when you keep your boundaries clear.'
+          : 'Su ağırlığın empatiyi yükseltiyor; sınırlarını da net tuttuğunda gün daha dengeli ilerler.',
+      );
+      break;
+    default:
+      break;
+  }
+
+  if (options.length === 0) return '';
+  return pickBySeed(options, `${baseSeed}|${personalization.seed}|localized|${locale}`);
 }
 
 function resolvePrimaryTheme(hero: DailyTransitsDTO['hero'], transits: TransitItem[]): TransitTheme {
@@ -385,6 +590,241 @@ function resolveHeroHeadline(
   return buildHeroHeadline(data, personalization);
 }
 
+function resolvePrimaryThemeLocalized(
+  hero: DailyTransitsDTO['hero'],
+  transits: TransitItem[],
+): CanonicalTransitTheme {
+  if (transits.length > 0) {
+    const strongest = transits
+      .slice()
+      .sort((a, b) => b.confidence - a.confidence)[0];
+    return canonicalizeTheme(strongest.theme);
+  }
+
+  switch (hero.icon) {
+    case 'mercury':
+      return 'communication';
+    case 'venus':
+      return 'love';
+    case 'saturn':
+      return 'work';
+    case 'mars':
+      return 'energy';
+    default:
+      return 'mood';
+  }
+}
+
+function buildHeroHeadlineLocalized(
+  data: DailyTransitsDTO,
+  personalization: HeroPersonalization | null,
+  locale: DailyLocale,
+): string {
+  const { hero, transits, retrogrades, date } = data;
+  const primaryTheme = resolvePrimaryThemeLocalized(hero, transits);
+  const focusText = getThemeFocusText(primaryTheme, locale);
+  const hasRetrogrades = retrogrades.length > 0;
+  const supportiveCount = transits.filter((item) => isSupportiveLabel(item.label)).length;
+  const cautionCount = transits.filter((item) => isCautionLabel(item.label)).length;
+  const intensityBand = hero.intensity >= 75 ? 'high' : hero.intensity >= 55 ? 'mid' : 'low';
+  const moodTag = canonicalizeMoodTag(hero.moodTag);
+
+  const baseSeed = [
+    date,
+    hero.moodTag,
+    primaryTheme,
+    String(hero.intensity),
+    transits.slice(0, 3).map((item) => `${item.id}:${item.label}`).join('|'),
+  ].join('|');
+
+  const baseLine = (() => {
+    switch (moodTag) {
+      case 'social':
+        return pickBySeed(
+          locale === 'en'
+            ? [
+                `Today your contact with people grows stronger through ${focusText}.`,
+                `On the social side, ${focusText} is likely to shape today's rhythm.`,
+                `Connections centered on ${focusText} can open doors today.`,
+              ] as const
+            : [
+                `Bugün ${focusText} üzerinden insanlarla temasın güçleniyor.`,
+                `Sosyal tarafta ${focusText} günün ritmini belirleyecek.`,
+                `${focusText} odaklı temaslar bugün kapı açabilir.`,
+              ] as const,
+          `${baseSeed}|base-social|${locale}`,
+        );
+      case 'focus':
+        return pickBySeed(
+          locale === 'en'
+            ? [
+                `You will speed up today if you prioritize ${focusText}.`,
+                `Focusing on one target inside ${focusText} will improve efficiency.`,
+                `A simpler plan around ${focusText} helps you move faster today.`,
+              ] as const
+            : [
+                `Bugün ${focusText} tarafına öncelik verirsen hızlanırsın.`,
+                `${focusText} için tek hedefe odaklanmak verimi artırır.`,
+                `${focusText} ekseninde sade bir planla daha hızlı ilerlersin.`,
+              ] as const,
+          `${baseSeed}|base-focus|${locale}`,
+        );
+      case 'bold':
+        return pickBySeed(
+          locale === 'en'
+            ? [
+                `Bold but measured steps around ${focusText} can work in your favor today.`,
+                `A controlled risk around ${focusText} may pay off today.`,
+                `One clear move for ${focusText} could change the direction of your day.`,
+              ] as const
+            : [
+                `${focusText} alanında cesur ama ölçülü adımlar avantaj sağlar.`,
+                `Bugün ${focusText} tarafında kontrollü risk almak işe yarar.`,
+                `${focusText} için net bir hamle günün yönünü değiştirebilir.`,
+              ] as const,
+          `${baseSeed}|base-bold|${locale}`,
+        );
+      case 'emotional':
+        return pickBySeed(
+          locale === 'en'
+            ? [
+                `Emotions may strongly influence your decisions around ${focusText} today.`,
+                `Sensitivity is high around ${focusText} today, so keep the rhythm slow.`,
+                `Listening to your inner voice around ${focusText} can lead to better choices.`,
+              ] as const
+            : [
+                `${focusText} tarafında duyguların kararlarına güçlü etki edebilir.`,
+                `Bugün ${focusText} alanında hassasiyet yüksek; ritmi yavaş tut.`,
+                `${focusText} gündeminde iç sesini dinlemek daha doğru sonuç verir.`,
+              ] as const,
+          `${baseSeed}|base-emotional|${locale}`,
+        );
+      default:
+        return pickBySeed(
+          locale === 'en'
+            ? [
+                `Staying balanced around ${focusText} makes the day easier.`,
+                `Step-by-step progress is the steadiest option for ${focusText}.`,
+                `A calm pace around ${focusText} supports stability all day.`,
+              ] as const
+            : [
+                `Bugün ${focusText} tarafında dengeli kalmak işleri kolaylaştırır.`,
+                `${focusText} alanında adım adım ilerlemek en sağlam seçenek.`,
+                `${focusText} için sakin tempo gün boyu istikrar sağlar.`,
+              ] as const,
+          `${baseSeed}|base-default|${locale}`,
+        );
+    }
+  })();
+
+  const paceLine = (() => {
+    if (intensityBand === 'high') {
+      return pickBySeed(
+        locale === 'en'
+          ? [
+              'Short blocks work better when your energy is high.',
+              'The day flows better when high tempo is tied to one priority.',
+              'Your momentum is strong, so avoiding too many parallel tasks will help.',
+            ] as const
+          : [
+              'Enerjin yüksekken kısa bloklarla ilerlemek daha iyi sonuç verir.',
+              'Yüksek tempoyu tek önceliğe bağlarsan gün daha verimli akar.',
+              'İvmen güçlü; aynı anda çok işe dağılmamak avantaj sağlar.',
+            ] as const,
+        `${baseSeed}|pace-high|${locale}`,
+      );
+    }
+    if (intensityBand === 'mid') {
+      return pickBySeed(
+        locale === 'en'
+          ? [
+              'Step-by-step progress is more rewarding today.',
+              'Balanced pacing increases both productivity and calm.',
+              'Clear priorities at a moderate tempo can ease the day.',
+            ] as const
+          : [
+              'Ritmini koruyarak adım adım ilerlemek bugün daha kazançlı.',
+              'Dengeli tempo kurduğunda verim ve sakinlik birlikte artar.',
+              'Orta tempoda net önceliklerle gitmek gününü rahatlatır.',
+            ] as const,
+        `${baseSeed}|pace-mid|${locale}`,
+      );
+    }
+    return pickBySeed(
+      locale === 'en'
+        ? [
+            'Open small pauses for yourself and keep the pace sustainable.',
+            'Breaking tasks into smaller parts can protect your energy.',
+            'A calm but steady rhythm is the best strategy today.',
+          ] as const
+        : [
+            'Kendine küçük molalar açarak temponu sürdürülebilir tut.',
+            'Enerjiyi korumak için işleri küçük parçalara bölmek faydalı olur.',
+            'Sakin ama kararlı ilerlemek bugün en doğru strateji olur.',
+          ] as const,
+      `${baseSeed}|pace-low|${locale}`,
+    );
+  })();
+
+  const cautionLine = cautionCount > supportiveCount
+    ? pickBySeed(
+        locale === 'en'
+          ? [
+              'Areas that require caution are heavier today, so avoid rushing decisions.',
+              'Challenging signals are stronger; moving with a clear checklist will reduce risk.',
+            ] as const
+          : [
+              'Dikkat gerektiren başlıklar ağır basıyor; acele karar vermemek iyi olur.',
+              'Zorlayıcı etkiler güçlü; net kontrol listesiyle ilerlemek riski düşürür.',
+            ] as const,
+        `${baseSeed}|caution|${locale}`,
+      )
+    : pickBySeed(
+        locale === 'en'
+          ? [
+              'Supportive signals are leading, so timing can help you build momentum.',
+              'The flow looks more supportive today; small steps can help you use the openings well.',
+            ] as const
+          : [
+              'Destekleyici etkiler baskın; doğru zamanlamayla ivme yakalayabilirsin.',
+              'Akış daha destekleyici görünüyor; fırsatları küçük adımlarla değerlendirebilirsin.',
+            ] as const,
+        `${baseSeed}|supportive|${locale}`,
+      );
+
+  const personalizedLine = buildPersonalizedLineLocalized(personalization, focusText, baseSeed, locale);
+  const retroLine = hasRetrogrades
+    ? pickBySeed(
+        locale === 'en'
+          ? [
+              'Keep messages short and clear while retrograde pressure is active.',
+              'Double-checking details while retrogrades are active can pay off.',
+              'Review messages and plans once more before sending them during retrograde periods.',
+            ] as const
+          : [
+              'Retro etkisinde iletişimde kısa ve net cümleler tercih et.',
+              'Retro varken detay kontrolünü iki kez yapmak kazandırır.',
+              'Retro döneminde mesaj ve planları göndermeden önce bir kez daha gözden geçir.',
+            ] as const,
+        `${baseSeed}|retro|${locale}`,
+      )
+    : '';
+
+  return [baseLine, paceLine, personalizedLine, cautionLine, retroLine].filter(Boolean).join(' ');
+}
+
+function resolveHeroHeadlineLocalized(
+  data: DailyTransitsDTO,
+  personalization: HeroPersonalization | null,
+  locale: DailyLocale,
+): string {
+  const headline = data.hero.headline?.trim();
+  if (!headline || hasTrailingEllipsis(headline)) {
+    return buildHeroHeadlineLocalized(data, personalization, locale);
+  }
+  return headline;
+}
+
 function splitSentences(text: string): string[] {
   return text
     .split(/[.!?]\s+/)
@@ -518,23 +958,24 @@ function compareTransitItems(left: TransitItem, right: TransitItem): number {
   const timeDiff = parseTimeWindowStart(left.timeWindow) - parseTimeWindowStart(right.timeWindow);
   if (timeDiff !== 0) return timeDiff;
   if (left.label !== right.label) {
-    return left.label === 'Dikkat' ? -1 : 1;
+    return isCautionLabel(left.label) ? -1 : 1;
   }
   return left.titlePlain.localeCompare(right.titlePlain, 'tr');
 }
 
-function groupTransits(items: TransitItem[]): TransitThemeGroup[] {
+function groupTransits(items: TransitItem[], locale: DailyLocale): TransitThemeGroup[] {
   const byTheme = new Map<string, TransitItem[]>();
   items.forEach((item) => {
-    const current = byTheme.get(item.theme) ?? [];
+    const localizedTheme = localizeTheme(item.theme, locale);
+    const current = byTheme.get(localizedTheme) ?? [];
     current.push(item);
-    byTheme.set(item.theme, current);
+    byTheme.set(localizedTheme, current);
   });
 
   const orderedThemes = [
-    ...THEME_ORDER.filter((theme) => byTheme.has(theme)),
+    ...THEME_SEQUENCE.map((theme) => THEME_METADATA[theme][locale]).filter((theme) => byTheme.has(theme)),
     ...Array.from(byTheme.keys())
-      .filter((theme) => !THEME_ORDER.includes(theme))
+      .filter((theme) => !THEME_SEQUENCE.map((item) => THEME_METADATA[item][locale]).includes(theme))
       .sort((a, b) => a.localeCompare(b, 'tr')),
   ];
 
@@ -562,6 +1003,10 @@ function LoadingState() {
 
 export default function DailyTransitsScreen() {
   const { t, i18n } = useTranslation();
+  const resolvedLocale = useMemo<DailyLocale>(
+    () => resolveDailyLocale(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
@@ -577,15 +1022,15 @@ export default function DailyTransitsScreen() {
   const [expandedThemes, setExpandedThemes] = useState<Record<string, boolean>>({});
 
   const dailyTransitsQuery = useQuery({
-    queryKey: queryKeys.dailyTransits(date),
-    queryFn: () => getDailyTransits(date),
+    queryKey: queryKeys.dailyTransits(date, resolvedLocale),
+    queryFn: () => getDailyTransits(date, resolvedLocale),
     staleTime: SIX_HOURS,
     gcTime: ONE_DAY,
   });
 
   useEffect(() => {
     let active = true;
-    const key = `${GROUP_STATE_STORAGE_PREFIX}:${date}`;
+    const key = `${GROUP_STATE_STORAGE_PREFIX}:${resolvedLocale}:${date}`;
     const restoreGroupState = async () => {
       try {
         const raw = await AsyncStorage.getItem(key);
@@ -610,51 +1055,57 @@ export default function DailyTransitsScreen() {
     return () => {
       active = false;
     };
-  }, [date]);
+  }, [date, resolvedLocale]);
 
   useEffect(() => {
-    const key = `${GROUP_STATE_STORAGE_PREFIX}:${date}`;
+    const key = `${GROUP_STATE_STORAGE_PREFIX}:${resolvedLocale}:${date}`;
     void AsyncStorage.setItem(key, JSON.stringify(expandedThemes));
-  }, [date, expandedThemes]);
+  }, [date, expandedThemes, resolvedLocale]);
 
   useEffect(() => {
     if (!dailyTransitsQuery.data) return;
-    if (loadEventSentRef.current === dailyTransitsQuery.data.date) return;
-    loadEventSentRef.current = dailyTransitsQuery.data.date;
+    const eventKey = `${dailyTransitsQuery.data.date}:${resolvedLocale}`;
+    if (loadEventSentRef.current === eventKey) return;
+    loadEventSentRef.current = eventKey;
     trackEvent('daily_transits_load', {
       date: dailyTransitsQuery.data.date,
       surface: 'daily_transits',
       destination: 'daily_transits',
       result: dailyTransitsQuery.data.transits.length > 0 ? 'success' : 'fail',
       reason: dailyTransitsQuery.data.transits.length > 0 ? undefined : 'empty_payload',
+      locale: resolvedLocale,
     });
-  }, [dailyTransitsQuery.data]);
+  }, [dailyTransitsQuery.data, resolvedLocale]);
 
   useEffect(() => {
     if (!dailyTransitsQuery.data) return;
     if (dailyTransitsQuery.data.transits.length === 0) return;
-    if (viewedEventSentRef.current === dailyTransitsQuery.data.date) return;
-    viewedEventSentRef.current = dailyTransitsQuery.data.date;
+    const eventKey = `${dailyTransitsQuery.data.date}:${resolvedLocale}`;
+    if (viewedEventSentRef.current === eventKey) return;
+    viewedEventSentRef.current = eventKey;
     trackEvent('daily_transits_viewed', {
       date: dailyTransitsQuery.data.date,
       transit_count: dailyTransitsQuery.data.transits.length,
       surface: 'daily_transits',
       destination: 'daily_transits',
       result: 'success',
+      locale: resolvedLocale,
     });
-  }, [dailyTransitsQuery.data]);
+  }, [dailyTransitsQuery.data, resolvedLocale]);
 
   useEffect(() => {
     if (!dailyTransitsQuery.isError) return;
-    if (errorEventSentRef.current === date) return;
-    errorEventSentRef.current = date;
+    const eventKey = `${date}:${resolvedLocale}`;
+    if (errorEventSentRef.current === eventKey) return;
+    errorEventSentRef.current = eventKey;
     trackEvent('daily_transits_load', {
       date,
       surface: 'daily_transits',
       destination: 'daily_transits',
       result: 'fail',
+      locale: resolvedLocale,
     });
-  }, [dailyTransitsQuery.isError, date]);
+  }, [dailyTransitsQuery.isError, date, resolvedLocale]);
 
   useEffect(() => {
     const scope = user?.id ? String(user.id) : null;
@@ -673,7 +1124,7 @@ export default function DailyTransitsScreen() {
 
   const handleFeedback = async (payload: DailyFeedbackPayload) => {
     try {
-      await sendFeedback(payload);
+      await sendFeedback(payload, resolvedLocale);
       trackEvent('feedback_sent', {
         date: payload.date,
         item_type: payload.itemType,
@@ -682,6 +1133,7 @@ export default function DailyTransitsScreen() {
         surface: 'daily_transits',
         destination: 'daily_transits',
         result: 'success',
+        locale: resolvedLocale,
       });
     } catch (error: any) {
       trackEvent('feedback_sent', {
@@ -692,6 +1144,7 @@ export default function DailyTransitsScreen() {
         surface: 'daily_transits',
         destination: 'daily_transits',
         result: 'fail',
+        locale: resolvedLocale,
       });
       Alert.alert(t('dailyTransits.feedbackFailedTitle'), error?.message ?? t('dailyTransits.feedbackRetryMsg'));
     }
@@ -702,6 +1155,7 @@ export default function DailyTransitsScreen() {
       date,
       surface: 'daily_transits',
       destination: 'daily_transits',
+      locale: resolvedLocale,
     });
     void dailyTransitsQuery.refetch();
   };
@@ -714,16 +1168,17 @@ export default function DailyTransitsScreen() {
   const isEmpty = !!data && data.transits.length === 0;
   const actionsRoute = '/(tabs)/today-actions';
   const heroPersonalization = useMemo(
-    () => buildHeroPersonalization(user, chart),
-    [user, chart],
+    () => buildHeroPersonalization(user, chart, resolvedLocale),
+    [user, chart, resolvedLocale],
   );
   const heroForRender = useMemo(() => {
     if (!data) return null;
     return {
       ...data.hero,
-      headline: resolveHeroHeadline(data, heroPersonalization),
+      moodTag: localizeMoodTag(data.hero.moodTag, resolvedLocale) as DailyTransitsDTO['hero']['moodTag'],
+      headline: resolveHeroHeadlineLocalized(data, heroPersonalization, resolvedLocale),
     };
-  }, [data, heroPersonalization]);
+  }, [data, heroPersonalization, resolvedLocale]);
 
   const processedContent = useMemo(() => {
     if (!data) {
@@ -734,11 +1189,11 @@ export default function DailyTransitsScreen() {
       };
     }
 
-    const uniqueTransits = dedupeTransits(data.transits);
+    const uniqueTransits = dedupeTransits(data.transits).map((item) => localizeTransitItem(item, resolvedLocale));
 
     const todayCandidates = [
       ...splitSentences(data.todayCanDo.body),
-      ...uniqueTransits.filter((item) => item.label === 'Destekleyici').map((item) => item.titlePlain),
+      ...uniqueTransits.filter((item) => isSupportiveLabel(item.label)).map((item) => item.titlePlain),
     ];
     const todayItems = dedupeSentences(todayCandidates).slice(0, MAX_TODAY_ITEMS);
 
@@ -748,9 +1203,9 @@ export default function DailyTransitsScreen() {
     return {
       todayItems,
       focusItems,
-      groupedTransits: groupTransits(uniqueTransits),
+      groupedTransits: groupTransits(uniqueTransits, resolvedLocale),
     };
-  }, [data]);
+  }, [data, resolvedLocale]);
 
   const hasTransitCards = processedContent.groupedTransits.length > 0;
 

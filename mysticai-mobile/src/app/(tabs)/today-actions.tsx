@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppHeader, SafeScreen, Skeleton } from '../../components/ui';
 import { ActionCard, MiniPlanCard, SectionCard } from '../../components/daily';
@@ -17,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
-function formatDateLabel(dateIso: string, locale: string): string {
+function formatDateLabel(dateIso: string, locale: string) {
   const date = new Date(dateIso);
   if (Number.isNaN(date.getTime())) return dateIso;
   return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
@@ -37,52 +36,58 @@ function LoadingState() {
 
 export default function TodayActionsScreen() {
   const { t, i18n } = useTranslation();
+  const resolvedLocale = useMemo<'tr' | 'en'>(
+    () => ((i18n.resolvedLanguage ?? i18n.language).toLowerCase().startsWith('en') ? 'en' : 'tr'),
+    [i18n.language, i18n.resolvedLanguage],
+  );
   const { colors, isDark } = useTheme();
-  const router = useRouter();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const queryClient = useQueryClient();
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const date = useMemo(() => getTodayIsoDate(), []);
-  const queryKey = queryKeys.dailyActions(date);
+  const queryKey = queryKeys.dailyActions(date, resolvedLocale);
   const errorEventSentRef = useRef<string | null>(null);
   const loadEventSentRef = useRef<string | null>(null);
 
   const dailyActionsQuery = useQuery({
     queryKey,
-    queryFn: () => getDailyActions(date),
+    queryFn: () => getDailyActions(date, resolvedLocale),
     staleTime: SIX_HOURS,
     gcTime: ONE_DAY,
   });
 
   useEffect(() => {
     if (!dailyActionsQuery.isError) return;
-    if (errorEventSentRef.current === date) return;
-    errorEventSentRef.current = date;
+    if (errorEventSentRef.current === `${date}:${resolvedLocale}`) return;
+    errorEventSentRef.current = `${date}:${resolvedLocale}`;
     trackEvent('daily_actions_load', {
       date,
       surface: 'today_actions',
       destination: 'today_actions',
       result: 'fail',
+      locale: resolvedLocale,
     });
-  }, [dailyActionsQuery.isError, date]);
+  }, [dailyActionsQuery.isError, date, resolvedLocale]);
 
   useEffect(() => {
     if (!dailyActionsQuery.data) return;
-    if (loadEventSentRef.current === dailyActionsQuery.data.date) return;
-    loadEventSentRef.current = dailyActionsQuery.data.date;
+    const eventKey = `${dailyActionsQuery.data.date}:${resolvedLocale}`;
+    if (loadEventSentRef.current === eventKey) return;
+    loadEventSentRef.current = eventKey;
     trackEvent('daily_actions_load', {
       date: dailyActionsQuery.data.date,
       surface: 'today_actions',
       destination: 'today_actions',
       result: dailyActionsQuery.data.actions.length > 0 ? 'success' : 'fail',
       reason: dailyActionsQuery.data.actions.length > 0 ? undefined : 'empty_payload',
+      locale: resolvedLocale,
     });
-  }, [dailyActionsQuery.data]);
+  }, [dailyActionsQuery.data, resolvedLocale]);
 
   const toggleMutation = useMutation({
     mutationFn: async (input: { actionId: string; isDone: boolean }) => {
       setPendingActionId(input.actionId);
-      return markActionDone(date, input.actionId, input.isDone);
+      return markActionDone(date, input.actionId, input.isDone, resolvedLocale);
     },
     onMutate: async ({ actionId, isDone }) => {
       await queryClient.cancelQueries({ queryKey });
@@ -110,6 +115,7 @@ export default function TodayActionsScreen() {
         optimistic: true,
         surface: 'today_actions',
         destination: 'today_actions',
+        locale: resolvedLocale,
       });
       return { previous };
     },
@@ -125,6 +131,7 @@ export default function TodayActionsScreen() {
         surface: 'today_actions',
         destination: 'today_actions',
         result: 'fail',
+        locale: resolvedLocale,
       });
       Alert.alert(t('todayActions.actionFailedTitle'), error?.message ?? t('todayActions.actionFailedMsg'));
     },
@@ -151,6 +158,7 @@ export default function TodayActionsScreen() {
         surface: 'today_actions',
         destination: 'today_actions',
         result: 'success',
+        locale: resolvedLocale,
       });
     },
     onSettled: () => {
@@ -161,7 +169,7 @@ export default function TodayActionsScreen() {
 
   const sendActionFeedback = async (payload: DailyFeedbackPayload) => {
     try {
-      await sendFeedback(payload);
+      await sendFeedback(payload, resolvedLocale);
       trackEvent('feedback_sent', {
         date: payload.date,
         item_type: payload.itemType,
@@ -170,6 +178,7 @@ export default function TodayActionsScreen() {
         surface: 'today_actions',
         destination: 'today_actions',
         result: 'success',
+        locale: resolvedLocale,
       });
     } catch {
       trackEvent('feedback_sent', {
@@ -180,6 +189,7 @@ export default function TodayActionsScreen() {
         surface: 'today_actions',
         destination: 'today_actions',
         result: 'fail',
+        locale: resolvedLocale,
       });
     }
   };
@@ -189,6 +199,7 @@ export default function TodayActionsScreen() {
       date,
       surface: 'today_actions',
       destination: 'today_actions',
+      locale: resolvedLocale,
     });
     void dailyActionsQuery.refetch();
   };
@@ -251,14 +262,14 @@ export default function TodayActionsScreen() {
                       onPress={() => sendActionFeedback({ date: data.date, itemType: 'action', itemId: action.id, sentiment: 'up' })}
                     >
                       <Ionicons name="thumbs-up-outline" size={13} color={colors.primary} />
-                      <Text style={[styles.feedbackText, { color: colors.primary }]}>Faydalı</Text>
+                      <Text style={[styles.feedbackText, { color: colors.primary }]}>{t('todayActions.feedbackHelpful')}</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.feedbackBtn, { borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#E6DFFF' }]}
                       onPress={() => sendActionFeedback({ date: data.date, itemType: 'action', itemId: action.id, sentiment: 'down' })}
                     >
                       <Ionicons name="thumbs-down-outline" size={13} color={colors.primary} />
-                      <Text style={[styles.feedbackText, { color: colors.primary }]}>Geliştir</Text>
+                      <Text style={[styles.feedbackText, { color: colors.primary }]}>{t('todayActions.feedbackImprove')}</Text>
                     </Pressable>
                   </View>
                 </View>

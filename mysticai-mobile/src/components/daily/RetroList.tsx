@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import type { DailyTransitsDTO } from '../../types/daily.types';
@@ -9,19 +10,28 @@ interface RetroListProps {
   items: DailyTransitsDTO['retrogrades'];
 }
 
+function normalizeRisk(level: DailyTransitsDTO['retrogrades'][number]['riskLevel']): 'high' | 'medium' | 'low' {
+  const token = String(level ?? '').toLowerCase();
+  if (token.includes('high') || token.includes('yüksek')) return 'high';
+  if (token.includes('med') || token.includes('mid') || token.includes('orta')) return 'medium';
+  return 'low';
+}
+
 function riskColor(level: DailyTransitsDTO['retrogrades'][number]['riskLevel']) {
-  if (level === 'High') return { text: '#B42318', bg: '#FEE4E2' };
-  if (level === 'Med') return { text: '#B54708', bg: '#FEF0C7' };
+  const normalized = normalizeRisk(level);
+  if (normalized === 'high') return { text: '#B42318', bg: '#FEE4E2' };
+  if (normalized === 'medium') return { text: '#B54708', bg: '#FEF0C7' };
   return { text: '#027A48', bg: '#D1FADF' };
 }
 
 export function RetroList({ items }: RetroListProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
 
   if (!items.length) {
     return (
       <View style={[styles.empty, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF' }]}>
-        <Text style={[styles.emptyText, { color: colors.subtext }]}>Bugün retro baskısı düşük görünüyor.</Text>
+        <Text style={[styles.emptyText, { color: colors.subtext }]}>{t('dailyTransits.retroEmpty')}</Text>
       </View>
     );
   }
@@ -30,6 +40,12 @@ export function RetroList({ items }: RetroListProps) {
     <View style={styles.listWrap}>
       {items.map((item) => {
         const risk = riskColor(item.riskLevel);
+        const riskLabel = normalizeRisk(item.riskLevel) === 'high'
+          ? t('dailyTransits.riskHigh')
+          : normalizeRisk(item.riskLevel) === 'medium'
+            ? t('dailyTransits.riskMedium')
+            : t('dailyTransits.riskLow');
+
         return (
           <View
             key={`${item.planet}-${item.riskLevel}`}
@@ -47,7 +63,7 @@ export function RetroList({ items }: RetroListProps) {
               </View>
               <Text style={[styles.planet, { color: colors.text }]}>{item.planet}</Text>
               <View style={[styles.riskBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : risk.bg }]}>
-                <Text style={[styles.riskText, { color: isDark ? '#FFF' : risk.text }]}>{item.riskLevel}</Text>
+                <Text style={[styles.riskText, { color: isDark ? '#FFF' : risk.text }]}>{riskLabel}</Text>
               </View>
             </View>
             <Text style={[styles.meaning, { color: colors.subtext }]}>{item.meaningPlain}</Text>

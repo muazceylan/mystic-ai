@@ -4,7 +4,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -13,9 +12,9 @@ import axios from 'axios/dist/browser/axios.cjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
-import { SafeScreen } from '../../components/ui';
+import { AppText, SafeScreen, TextField } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
-import { ActionModal, AuthLegalNotice, PrimaryButton, SecondaryButton, StatusBanner, TextField } from '../../components/auth';
+import { ActionModal, AuthLegalNotice, PrimaryButton, SecondaryButton, StatusBanner } from '../../components/auth';
 import { register, resendVerification } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { trackEvent } from '../../services/analytics';
@@ -130,7 +129,6 @@ export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [banner, setBanner] = useState<{ tone: 'info' | 'success' | 'error'; message: string } | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -250,10 +248,12 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.hero}>
-            <Text style={styles.title}>{t('auth.signup.title')}</Text>
-            <Text style={styles.subtitle}>
+            <AppText variant="H1" style={styles.title}>
+              {t('auth.signup.title')}
+            </AppText>
+            <AppText variant="Body" color="secondary" style={styles.subtitle}>
               {t('auth.signup.subtitle')}
-            </Text>
+            </AppText>
           </View>
 
           <View style={styles.card}>
@@ -281,12 +281,14 @@ export default function SignupScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('auth.signup.passwordPlaceholder')}
-              secureTextEntry={!passwordVisible}
-              passwordToggle={{ visible: passwordVisible, onToggle: () => setPasswordVisible((v) => !v) }}
+              secureTextEntry
+              passwordToggle
               error={passwordError}
             />
 
-            <Text style={styles.passwordHint}>{t('auth.passwordPolicy')}</Text>
+            <AppText variant="Caption" color="secondary" style={styles.passwordHint}>
+              {t('auth.passwordPolicy')}
+            </AppText>
 
             <View style={styles.buttonRow}>
               <PrimaryButton title={t('auth.signup.createAccount')} onPress={handleSignup} loading={loading} />
@@ -300,7 +302,9 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>{t('auth.signup.footer')}</Text>
+            <AppText variant="Small" color="secondary" style={styles.footerText}>
+              {t('auth.signup.footer')}
+            </AppText>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

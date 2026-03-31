@@ -34,6 +34,7 @@ import {
   shareImage,
 } from '../../services/share.service';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
+import { useTranslation } from 'react-i18next';
 
 type CaptureAction = 'share' | 'save' | 'pdf' | null;
 
@@ -58,36 +59,6 @@ type VisualPreset = {
   captureHeight: number;
   canvasWidth: number;
 };
-
-const VISUAL_PRESETS: VisualPreset[] = [
-  {
-    key: 'wheel',
-    label: 'Natal Wheel Poster',
-    sub: 'Sadece dairesel doğum haritası',
-    panels: ['wheel'],
-    captureWidth: 1800,
-    captureHeight: 1800,
-    canvasWidth: 760,
-  },
-  {
-    key: 'matrix',
-    label: 'Açı Matrisi',
-    sub: 'Tam grid export',
-    panels: ['matrix'],
-    captureWidth: 1600,
-    captureHeight: 1320,
-    canvasWidth: 720,
-  },
-  {
-    key: 'balance',
-    label: 'Kozmik Denge',
-    sub: 'Element / nitelik',
-    panels: ['balance'],
-    captureWidth: 1320,
-    captureHeight: 1320,
-    canvasWidth: 560,
-  },
-];
 
 function buildVisualsPdfHtml(imageUri: string, title: string, options?: { bare?: boolean }) {
   if (options?.bare) {
@@ -136,6 +107,7 @@ function buildVisualsPdfHtml(imageUri: string, title: string, options?: { bare?:
 
 export default function NatalVisualsPreviewScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const draft = useNatalVisualsStore((s) => s.draft);
   const clearDraft = useNatalVisualsStore((s) => s.clearDraft);
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
@@ -159,10 +131,42 @@ export default function NatalVisualsPreviewScreen() {
   const startY = useSharedValue(0);
   const previewWidth = useSharedValue(0);
   const previewHeight = useSharedValue(0);
+  const presets = useMemo<VisualPreset[]>(
+    () => [
+      {
+        key: 'wheel',
+        label: t('natalVisualsPreview.presets.wheel.label'),
+        sub: t('natalVisualsPreview.presets.wheel.sub'),
+        panels: ['wheel'],
+        captureWidth: 1800,
+        captureHeight: 1800,
+        canvasWidth: 760,
+      },
+      {
+        key: 'matrix',
+        label: t('natalVisualsPreview.presets.matrix.label'),
+        sub: t('natalVisualsPreview.presets.matrix.sub'),
+        panels: ['matrix'],
+        captureWidth: 1600,
+        captureHeight: 1320,
+        canvasWidth: 720,
+      },
+      {
+        key: 'balance',
+        label: t('natalVisualsPreview.presets.balance.label'),
+        sub: t('natalVisualsPreview.presets.balance.sub'),
+        panels: ['balance'],
+        captureWidth: 1320,
+        captureHeight: 1320,
+        canvasWidth: 560,
+      },
+    ],
+    [t],
+  );
 
   const preset = useMemo(
-    () => VISUAL_PRESETS.find((item) => item.key === presetKey) ?? VISUAL_PRESETS[0],
-    [presetKey],
+    () => presets.find((item) => item.key === presetKey) ?? presets[0],
+    [presetKey, presets],
   );
   const captureCanvasHeight = useMemo(
     () => Math.round((preset.canvasWidth * preset.captureHeight) / preset.captureWidth),
@@ -330,26 +334,29 @@ export default function NatalVisualsPreviewScreen() {
     const error =
       cause instanceof ShareServiceError
         ? cause
-        : new Error((cause as any)?.message ?? 'İşlem tamamlanamadı.');
+        : new Error((cause as any)?.message ?? t('common.operationFailed'));
 
     const openSettings = async () => {
       try {
         await Linking.openSettings();
       } catch {
-        Alert.alert('Ayarlar Açılamadı', 'Lütfen Ayarlar uygulamasını manuel olarak açın.');
+        Alert.alert(
+          t('common.settingsUnavailableTitle'),
+          t('common.settingsUnavailableDescription'),
+        );
       }
     };
 
     if (error instanceof ShareServiceError && error.suggestOpenSettings) {
       Alert.alert(title, error.message, [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Ayarları Aç', onPress: () => void openSettings() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.openSettings'), onPress: () => void openSettings() },
       ]);
       return;
     }
 
     Alert.alert(title, error.message);
-  }, []);
+  }, [t]);
 
   const runAction = useCallback(
     async (action: Exclude<CaptureAction, null>, title: string, fn: () => Promise<void>) => {
@@ -372,26 +379,29 @@ export default function NatalVisualsPreviewScreen() {
     try {
       await retry();
     } catch {
-      await presentShareError('Görsel Oluşturulamadı', new Error('Natal görseller yeniden oluşturulamadı.'));
+      await presentShareError(
+        t('natalVisualsPreview.regenerateErrorTitle'),
+        new Error(t('natalVisualsPreview.regenerateErrorMessage')),
+      );
     }
-  }, [retry, presentShareError]);
+  }, [retry, presentShareError, t]);
 
   const handleShare = useCallback(async () => {
-    await runAction('share', 'Paylaşım Hatası', async () => {
+    await runAction('share', t('natalVisualsPreview.shareErrorTitle'), async () => {
       await shareImage(imageUri!);
-      await notifySuccess('Paylaşım ekranı açıldı');
+      await notifySuccess(t('natalVisualsPreview.successShare'));
     });
-  }, [runAction, imageUri, notifySuccess]);
+  }, [runAction, imageUri, notifySuccess, t]);
 
   const handleSave = useCallback(async () => {
-    await runAction('save', 'Kaydetme Hatası', async () => {
+    await runAction('save', t('natalVisualsPreview.saveErrorTitle'), async () => {
       const result = await saveToGallery(imageUri!);
-      await notifySuccess(result.message ?? 'Görsel galeriye kaydedildi');
+      await notifySuccess(result.message ?? t('natalVisualsPreview.successSave'));
     });
-  }, [runAction, imageUri, notifySuccess]);
+  }, [runAction, imageUri, notifySuccess, t]);
 
   const handleExportPdf = useCallback(async () => {
-    await runAction('pdf', 'PDF Hatası', async () => {
+    await runAction('pdf', t('natalVisualsPreview.pdfErrorTitle'), async () => {
       // expo-print WebView cannot load local file:// URIs — convert to base64 data URI first
       let embedUri = imageUri!;
       try {
@@ -404,7 +414,7 @@ export default function NatalVisualsPreviewScreen() {
 
       const html = buildVisualsPdfHtml(
         embedUri,
-        `${preset.label} • ${draft?.name ?? 'Profil'}`,
+        `${preset.label} • ${draft?.name ?? t('natalVisualsPreview.profileFallback')}`,
         { bare: isWheelPreset },
       );
       const { uri } = await Print.printToFileAsync({ html, base64: false });
@@ -414,21 +424,21 @@ export default function NatalVisualsPreviewScreen() {
           dialogTitle: `${preset.label} (PDF)`,
         });
       }
-      await notifySuccess('PDF hazırlandı');
+      await notifySuccess(t('natalVisualsPreview.successPdf'));
     });
-  }, [runAction, imageUri, draft?.name, notifySuccess, preset.label, isWheelPreset]);
+  }, [runAction, imageUri, draft?.name, notifySuccess, preset.label, isWheelPreset, t]);
 
   if (!draft) {
     return (
       <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={styles.emptyWrap}>
           <Ionicons name="scan-outline" size={28} color={colors.violet} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Natal görsel verisi bulunamadı</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('natalVisualsPreview.emptyTitle')}</Text>
           <Text style={[styles.emptySub, { color: colors.subtext }]}>
-            Önce Haritam ekranındaki "Tam Ekran Gör • İndir" butonunu kullan.
+            {t('natalVisualsPreview.emptySubtitle')}
           </Text>
           <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={goBack}>
-            <Text style={styles.primaryBtnText}>Geri Dön</Text>
+            <Text style={styles.primaryBtnText}>{t('common.back')}</Text>
           </Pressable>
         </View>
       </SafeScreen>
@@ -464,10 +474,11 @@ export default function NatalVisualsPreviewScreen() {
             {!isWheelPreset ? (
               <View style={styles.captureHeader}>
                 <Text style={[styles.captureTitle, { color: colors.text }]}>
-                  {draft.name ?? 'Kozmik Harita'}
+                  {draft.name ?? t('natalVisualsPreview.chartFallback')}
                 </Text>
                 <Text style={[styles.captureMeta, { color: colors.subtext }]}>
-                  {draft.birthDate} • {draft.birthTime?.slice(0, 5) ?? 'Saat bilinmiyor'} • {draft.birthLocation ?? 'Konum'}
+                  {draft.birthDate} • {draft.birthTime?.slice(0, 5) ?? t('natalVisualsPreview.timeUnknown')} •{' '}
+                  {draft.birthLocation ?? t('natalVisualsPreview.locationFallback')}
                 </Text>
               </View>
             ) : null}
@@ -494,8 +505,8 @@ export default function NatalVisualsPreviewScreen() {
       </View>
 
       <AppHeader
-        title={isWheelPreset ? 'Natal Wheel Poster' : preset.label}
-        subtitle={isWheelPreset ? 'Sadece dairesel doğum haritası için premium tam ekran export.' : preset.sub}
+        title={preset.label}
+        subtitle={isWheelPreset ? t('natalVisualsPreview.headerWheelSubtitle') : preset.sub}
         onBack={goBack}
       />
 
@@ -515,14 +526,16 @@ export default function NatalVisualsPreviewScreen() {
           <View style={[styles.posterInfoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{preset.label}</Text>
             <Text style={[styles.sectionSub, { color: colors.subtext }]}>
-              {`${preset.label} için sabit yüksek çözünürlüklü export hazırlanır.`}
+              {t('natalVisualsPreview.posterInfoSubtitle', { preset: preset.label })}
             </Text>
             <View style={styles.posterInfoRow}>
               <View style={[styles.posterInfoPill, { backgroundColor: colors.primaryTint, borderColor: colors.borderLight }]}>
                 <Text style={[styles.posterInfoPillText, { color: colors.violet }]}>PNG {preset.captureWidth}×{preset.captureHeight}</Text>
               </View>
               <View style={[styles.posterInfoPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
-                <Text style={[styles.posterInfoPillText, { color: colors.textMuted }]}>{draft.name ?? 'Profil'}</Text>
+                <Text style={[styles.posterInfoPillText, { color: colors.textMuted }]}>
+                  {draft.name ?? t('natalVisualsPreview.profileFallback')}
+                </Text>
               </View>
             </View>
           </View>
@@ -539,9 +552,9 @@ export default function NatalVisualsPreviewScreen() {
             <View style={styles.loaderWrap}>
               <View style={[styles.loaderGhost, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]} />
               <ActivityIndicator size="large" color={colors.violet} />
-              <Text style={[styles.loaderTitle, { color: colors.text }]}>Görsel hazırlanıyor…</Text>
+              <Text style={[styles.loaderTitle, { color: colors.text }]}>{t('natalVisualsPreview.loaderTitle')}</Text>
               <Text style={[styles.loaderSub, { color: colors.subtext }]}>
-                {preset.label} preset’i için yüksek çözünürlük export hazırlanıyor.
+                {t('natalVisualsPreview.loaderSubtitle', { preset: preset.label })}
               </Text>
             </View>
           ) : imageUri ? (
@@ -601,17 +614,25 @@ export default function NatalVisualsPreviewScreen() {
               </View>
               {!isWheelPreset ? (
                 <Text style={[styles.previewMeta, { color: colors.subtext }]}>
-                  {preset.label} • {draft.name ?? 'Profil'} • {draft.birthDate} • PNG {preset.captureWidth}×{preset.captureHeight}
+                  {t('natalVisualsPreview.previewMeta', {
+                    preset: preset.label,
+                    name: draft.name ?? t('natalVisualsPreview.profileFallback'),
+                    birthDate: draft.birthDate,
+                    width: preset.captureWidth,
+                    height: preset.captureHeight,
+                  })}
                 </Text>
               ) : null}
             </>
           ) : (
             <View style={styles.loaderWrap}>
               <Ionicons name="warning-outline" size={24} color={colors.warning} />
-              <Text style={[styles.loaderTitle, { color: colors.text }]}>Görsel oluşturulamadı</Text>
-              <Text style={[styles.loaderSub, { color: colors.subtext }]}>{error ?? 'Beklenmeyen hata.'}</Text>
+              <Text style={[styles.loaderTitle, { color: colors.text }]}>{t('natalVisualsPreview.errorTitle')}</Text>
+              <Text style={[styles.loaderSub, { color: colors.subtext }]}>
+                {error ?? t('natalVisualsPreview.unexpectedError')}
+              </Text>
               <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={handleRegenerate}>
-                <Text style={styles.primaryBtnText}>Tekrar Dene</Text>
+                <Text style={styles.primaryBtnText}>{t('common.retry')}</Text>
               </Pressable>
             </View>
           )}
@@ -624,7 +645,9 @@ export default function NatalVisualsPreviewScreen() {
             disabled={loading || actionLoading != null}
           >
             <Ionicons name="refresh" size={16} color={colors.text} />
-            <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>Yeniden Oluştur</Text>
+            <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>
+              {t('natalVisualsPreview.regenerate')}
+            </Text>
           </Pressable>
 
           {imageUri && !loading ? (
@@ -639,7 +662,7 @@ export default function NatalVisualsPreviewScreen() {
                 ) : (
                   <Ionicons name="share-social" size={16} color="#FFF" />
                 )}
-                <Text style={styles.primaryBtnText}>Paylaş</Text>
+                <Text style={styles.primaryBtnText}>{t('natalVisualsPreview.share')}</Text>
               </Pressable>
 
               <View style={styles.secondaryRow}>
@@ -653,7 +676,9 @@ export default function NatalVisualsPreviewScreen() {
                   ) : (
                     <Ionicons name="download-outline" size={16} color={colors.text} />
                   )}
-                  <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Galeriye Kaydet</Text>
+                  <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+                    {t('natalVisualsPreview.saveToGallery')}
+                  </Text>
                 </Pressable>
 
                 <Pressable

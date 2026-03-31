@@ -18,6 +18,7 @@ import {
   type LayoutChangeEvent,
   type TextInputChangeEventData,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from '../../utils/haptics';
@@ -43,8 +44,10 @@ import { SafeScreen, TabHeader } from '../../components/ui';
 import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useAppConfigStore } from '../../store/useAppConfigStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useStarMateStore } from '../../store/useStarMateStore';
+import { canOpenViaDeeplink } from '../../services/appConfig.service';
 import {
   suggestCosmicAutoTags,
   type StarMateActionType,
@@ -1318,7 +1321,9 @@ function ChatModal({
 export default function StarMateTabScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const appConfig = useAppConfigStore((s) => s.config);
   const chart = useNatalChartStore((s) => s.chart);
 
   const activeSection = useStarMateStore((s) => s.activeSection);
@@ -1368,6 +1373,20 @@ export default function StarMateTabScreen() {
   const unlockLikesPreview = useStarMateStore((s) => s.unlockLikesPreview);
 
   const tFn = t as TFn;
+  const isStarMateEnabled = useMemo(
+    () => (appConfig ? canOpenViaDeeplink(appConfig, 'star_mate').allowed : false),
+    [appConfig],
+  );
+
+  useEffect(() => {
+    if (appConfig && !isStarMateEnabled) {
+      router.replace('/(tabs)/discover');
+    }
+  }, [appConfig, isStarMateEnabled, router]);
+
+  if (!appConfig || !isStarMateEnabled) {
+    return null;
+  }
 
   const SECTION_ITEMS: Array<{ key: SegmentKey; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
     { key: 'DISCOVER', label: t('starMate.sectionDiscover'), icon: 'sparkles-outline' },

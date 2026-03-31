@@ -22,6 +22,7 @@ import {
   type NightSkyPosterVariant,
   type NightSkyProjectionResponse,
 } from '../../services/astrology.service';
+import { useTranslation } from 'react-i18next';
 
 type ParsedSharePayload = {
   name?: string | null;
@@ -69,6 +70,7 @@ function parsePayload(payload: Record<string, unknown> | null | undefined): Pars
 
 export default function NightSkyPosterPublicShareScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ token?: string | string[] }>();
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
 
@@ -82,7 +84,7 @@ export default function NightSkyPosterPublicShareScreen() {
 
     const load = async () => {
       if (!token) {
-        setError('Geçersiz paylaşım bağlantısı.');
+        setError(t('nightSkyPosterPublicShare.invalidLink'));
         setLoading(false);
         return;
       }
@@ -104,7 +106,7 @@ export default function NightSkyPosterPublicShareScreen() {
 
         const payload = parsePayload(resolvedData.payload as Record<string, unknown>);
         if (!payload) {
-          setError('Paylaşım verisi eksik veya bozuk.');
+          setError(t('nightSkyPosterPublicShare.invalidPayload'));
           setLoading(false);
           return;
         }
@@ -125,11 +127,11 @@ export default function NightSkyPosterPublicShareScreen() {
         if (!active) return;
         const status = e?.response?.status;
         if (status === 404) {
-          setError('Bu paylaşım bağlantısı bulunamadı.');
+          setError(t('nightSkyPosterPublicShare.notFound'));
         } else if (status === 429) {
-          setError('Bu paylaşım bağlantısı için çok fazla istek alındı. Lütfen biraz sonra tekrar dene.');
+          setError(t('nightSkyPosterPublicShare.rateLimited'));
         } else {
-          setError(e?.response?.data?.message ?? e?.message ?? 'Paylaşım yüklenemedi.');
+          setError(e?.response?.data?.message ?? e?.message ?? t('nightSkyPosterPublicShare.loadFailed'));
         }
       } finally {
         if (active) setLoading(false);
@@ -179,7 +181,10 @@ export default function NightSkyPosterPublicShareScreen() {
       }
       await Linking.openURL(shareUrl);
     } catch {
-      Alert.alert('Bağlantı Açılamadı', 'Lütfen bağlantıyı tarayıcıda tekrar deneyin.');
+      Alert.alert(
+        t('nightSkyPosterPublicShare.openLinkFailedTitle'),
+        t('nightSkyPosterPublicShare.openLinkFailedDescription'),
+      );
     }
   };
 
@@ -192,41 +197,51 @@ export default function NightSkyPosterPublicShareScreen() {
         <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.heroHeader}>
             <Ionicons name="moon" size={18} color={colors.violet} />
-            <Text style={[styles.heroEyebrow, { color: colors.violet }]}>THE NIGHT YOU WERE BORN</Text>
+            <Text style={[styles.heroEyebrow, { color: colors.violet }]}>
+              {t('nightSkyPosterPublicShare.heroEyebrow')}
+            </Text>
           </View>
-          <Text style={[styles.heroTitle, { color: colors.text }]}>Bu senin gökyüzün.</Text>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>{t('nightSkyPosterPublicShare.heroTitle')}</Text>
           <Text style={[styles.heroSub, { color: colors.subtext }]}>
-            Paylaşılan poster bağlantısı yüklendi. Gerçek zenith projection ile restore ediliyor.
+            {t('nightSkyPosterPublicShare.heroSubtitle')}
           </Text>
         </View>
 
         {loading ? (
           <View style={[styles.stateCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ActivityIndicator size="large" color={colors.violet} />
-            <Text style={[styles.stateTitle, { color: colors.text }]}>Poster yükleniyor…</Text>
+            <Text style={[styles.stateTitle, { color: colors.text }]}>
+              {t('nightSkyPosterPublicShare.loadingTitle')}
+            </Text>
             <Text style={[styles.stateSub, { color: colors.subtext }]}>
-              Token çözülüyor ve gökyüzü projeksiyonu hazırlanıyor.
+              {t('nightSkyPosterPublicShare.loadingSubtitle')}
             </Text>
           </View>
         ) : error ? (
           <View style={[styles.stateCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="warning-outline" size={22} color={colors.warning} />
-            <Text style={[styles.stateTitle, { color: colors.text }]}>Poster açılamadı</Text>
+            <Text style={[styles.stateTitle, { color: colors.text }]}>
+              {t('nightSkyPosterPublicShare.errorTitle')}
+            </Text>
             <Text style={[styles.stateSub, { color: colors.subtext }]}>{error}</Text>
             <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={() => handleOpenApp()}>
-              <Text style={styles.primaryBtnText}>Uygulamada Aç</Text>
+              <Text style={styles.primaryBtnText}>{t('nightSkyPosterPublicShare.openInApp')}</Text>
             </Pressable>
           </View>
         ) : expired ? (
           <View style={[styles.stateCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="time-outline" size={22} color={colors.warning} />
-            <Text style={[styles.stateTitle, { color: colors.text }]}>Paylaşım Süresi Dolmuş</Text>
+            <Text style={[styles.stateTitle, { color: colors.text }]}>
+              {t('nightSkyPosterPublicShare.expiredTitle')}
+            </Text>
             <Text style={[styles.stateSub, { color: colors.subtext }]}>
-              Bu poster linkinin süresi dolmuş. Gönderen kişiden yeni bağlantı isteyebilirsin.
+              {t('nightSkyPosterPublicShare.expiredSubtitle')}
             </Text>
             <Pressable style={[styles.secondaryBtn, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={handleShareLink}>
               <Ionicons name="share-social-outline" size={16} color={colors.text} />
-              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Bağlantıyı Paylaş</Text>
+              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+                {t('nightSkyPosterPublicShare.shareLink')}
+              </Text>
             </Pressable>
           </View>
         ) : null}
@@ -253,25 +268,35 @@ export default function NightSkyPosterPublicShareScreen() {
 
             <View style={[styles.metaCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.metaRow}>
-                <Text style={[styles.metaLabel, { color: colors.subtext }]}>Varyant</Text>
+                <Text style={[styles.metaLabel, { color: colors.subtext }]}>
+                  {t('nightSkyPosterPublicShare.metaVariant')}
+                </Text>
                 <Text style={[styles.metaValue, { color: colors.text }]}>{variant}</Text>
               </View>
               <View style={styles.metaRow}>
-                <Text style={[styles.metaLabel, { color: colors.subtext }]}>Projection</Text>
+                <Text style={[styles.metaLabel, { color: colors.subtext }]}>
+                  {t('nightSkyPosterPublicShare.metaProjection')}
+                </Text>
                 <Text style={[styles.metaValue, { color: colors.text }]}>{projection.projectionModel}</Text>
               </View>
               <View style={styles.metaRow}>
-                <Text style={[styles.metaLabel, { color: colors.subtext }]}>Star Catalog</Text>
+                <Text style={[styles.metaLabel, { color: colors.subtext }]}>
+                  {t('nightSkyPosterPublicShare.metaCatalog')}
+                </Text>
                 <Text style={[styles.metaValue, { color: colors.text }]} numberOfLines={1}>
                   {projection.starCatalog}
                 </Text>
               </View>
               <View style={styles.metaRow}>
-                <Text style={[styles.metaLabel, { color: colors.subtext }]}>Timezone</Text>
+                <Text style={[styles.metaLabel, { color: colors.subtext }]}>
+                  {t('nightSkyPosterPublicShare.metaTimezone')}
+                </Text>
                 <Text style={[styles.metaValue, { color: colors.text }]}>{projection.timezoneUsed}</Text>
               </View>
               <View style={styles.metaRow}>
-                <Text style={[styles.metaLabel, { color: colors.subtext }]}>Moon Phase</Text>
+                <Text style={[styles.metaLabel, { color: colors.subtext }]}>
+                  {t('nightSkyPosterPublicShare.metaMoonPhase')}
+                </Text>
                 <Text style={[styles.metaValue, { color: colors.text }]}>
                   {projection.moonPhase.phaseLabel} • %{Math.round(projection.moonPhase.illuminationPercent)}
                 </Text>
@@ -281,11 +306,13 @@ export default function NightSkyPosterPublicShareScreen() {
             <View style={styles.actionRow}>
               <Pressable style={[styles.primaryBtn, { backgroundColor: colors.violet }]} onPress={handleOpenApp}>
                 <Ionicons name="phone-portrait-outline" size={16} color="#FFF" />
-                <Text style={styles.primaryBtnText}>Astro Guru'da Aç</Text>
+                <Text style={styles.primaryBtnText}>{t('nightSkyPosterPublicShare.openInAstroGuru')}</Text>
               </Pressable>
               <Pressable style={[styles.secondaryBtn, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleShareLink}>
                 <Ionicons name="share-social-outline" size={16} color={colors.text} />
-                <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Paylaş</Text>
+                <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+                  {t('nightSkyPosterPublicShare.share')}
+                </Text>
               </Pressable>
             </View>
           </>

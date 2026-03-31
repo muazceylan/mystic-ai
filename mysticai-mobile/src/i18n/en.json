@@ -21,7 +21,11 @@
     "settings": "Settings",
     "guest": "Guest",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "operationFailed": "The action could not be completed.",
+    "openSettings": "Open Settings",
+    "settingsUnavailableTitle": "Settings Could Not Be Opened",
+    "settingsUnavailableDescription": "Please open the Settings app manually."
   },
   "accessibility": {
     "retryHint": "Double tap to reload content",
@@ -31,6 +35,15 @@
     "contentLoaded": "Content loaded",
     "loading": "Loading",
     "errorOccurred": "An error occurred"
+  },
+  "ui": {
+    "accordion": {
+      "loading": "Preparing content..."
+    },
+    "textField": {
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    }
   },
   "profile": {
     "title": "Profile",
@@ -135,7 +148,8 @@
     "currentLight": "Light",
     "currentDark": "Dark",
     "manual": "Manually selected",
-    "automatic": "Determined by system preference"
+    "automatic": "Determined by system preference",
+    "selectA11y": "Select {{theme}} theme"
   },
   "security": {
     "title": "Security",
@@ -900,6 +914,7 @@
     "refreshStory": "Refresh story",
     "generateStory": "Create story",
     "reloadMonthlyStory": "Reload monthly story",
+    "monthlyStoryCountBadge": "{{count}} dreams • {{period}}",
     "reloadDreams": "Reload dreams",
     "addFirstDream": "Add my first dream",
     "closeCompose": "Close compose",
@@ -1876,7 +1891,90 @@
     "emptyTitle": "Night sky data could not be found",
     "emptySubtitle": "Create your birth chart first from the My Chart screen.",
     "missingChartMessage": "Your birth chart could not be found. Please create it first from the My Chart screen.",
-    "dragSectionA11y": "Drag {{label}} section"
+    "dragSectionA11y": "Drag {{label}} section",
+    "posterBadgeTitle": "THE NIGHT YOU WERE BORN",
+    "pdfTitle": "The Night You Were Born",
+    "pdfTitleWithName": "The Night You Were Born • {{name}}",
+    "pdfDialogTitle": "The Night You Were Born (PDF)",
+    "projectionError": "The real sky projection could not be loaded. Showing the local composition instead.",
+    "shareLinkError": "A share link could not be generated. Using the default link instead.",
+    "shareErrorTitle": "Share Error",
+    "instagramErrorTitle": "Instagram Story Error",
+    "saveErrorTitle": "Save Error",
+    "pdfErrorTitle": "PDF Error",
+    "regenerateErrorTitle": "Card Could Not Be Created",
+    "regenerateErrorMessage": "The card could not be regenerated.",
+    "unexpectedError": "An unexpected error occurred.",
+    "moonPhaseTitle": "Moon Phase",
+    "moonPhaseSubtitle": "The lunar phase at the moment you were born and all eight phases of the cycle.",
+    "celestialMarkersTitle": "Celestial Markers",
+    "celestialMarkersSubtitle": "To keep the poster large and clean, celestial meanings live here instead of inside the sky disc."
+  },
+  "nightSkyPosterPublicShare": {
+    "invalidLink": "Invalid share link.",
+    "invalidPayload": "The shared poster data is missing or corrupted.",
+    "notFound": "This share link could not be found.",
+    "rateLimited": "Too many requests were made for this share link. Please try again shortly.",
+    "loadFailed": "The shared poster could not be loaded.",
+    "openLinkFailedTitle": "Link Could Not Be Opened",
+    "openLinkFailedDescription": "Please try the link again in your browser.",
+    "heroEyebrow": "THE NIGHT YOU WERE BORN",
+    "heroTitle": "This is your sky.",
+    "heroSubtitle": "The shared poster link is loaded and being restored with the real zenith projection.",
+    "loadingTitle": "Loading poster…",
+    "loadingSubtitle": "Resolving the token and preparing the sky projection.",
+    "errorTitle": "Poster could not be opened",
+    "openInApp": "Open in App",
+    "expiredTitle": "Share Link Expired",
+    "expiredSubtitle": "This poster link has expired. You can ask the sender for a new one.",
+    "shareLink": "Share Link",
+    "openInAstroGuru": "Open in Astro Guru",
+    "share": "Share",
+    "metaVariant": "Variant",
+    "metaProjection": "Projection",
+    "metaCatalog": "Star Catalog",
+    "metaTimezone": "Timezone",
+    "metaMoonPhase": "Moon Phase"
+  },
+  "natalVisualsPreview": {
+    "emptyTitle": "Natal visual data could not be found",
+    "emptySubtitle": "Use the \"Full Screen View • Download\" button on the My Chart screen first.",
+    "chartFallback": "Cosmic Chart",
+    "timeUnknown": "Time unknown",
+    "locationFallback": "Location",
+    "headerWheelSubtitle": "A premium full-screen export for the circular birth chart only.",
+    "posterInfoSubtitle": "A fixed high-resolution export is prepared for {{preset}}.",
+    "profileFallback": "Profile",
+    "loaderTitle": "Preparing visual…",
+    "loaderSubtitle": "Preparing a high-resolution export for the {{preset}} preset.",
+    "previewMeta": "{{preset}} • {{name}} • {{birthDate}} • PNG {{width}}×{{height}}",
+    "errorTitle": "Visual could not be created",
+    "unexpectedError": "An unexpected error occurred.",
+    "shareErrorTitle": "Share Error",
+    "saveErrorTitle": "Save Error",
+    "pdfErrorTitle": "PDF Error",
+    "regenerateErrorTitle": "Visual Could Not Be Created",
+    "regenerateErrorMessage": "The natal visuals could not be regenerated.",
+    "successShare": "Share sheet opened",
+    "successSave": "Visual saved to gallery",
+    "successPdf": "PDF prepared",
+    "regenerate": "Regenerate",
+    "share": "Share",
+    "saveToGallery": "Save to Gallery",
+    "presets": {
+      "wheel": {
+        "label": "Natal Wheel Poster",
+        "sub": "Circular birth chart only"
+      },
+      "matrix": {
+        "label": "Aspect Matrix",
+        "sub": "Full grid export"
+      },
+      "balance": {
+        "label": "Cosmic Balance",
+        "sub": "Elements / qualities"
+      }
+    }
   },
   "shareableCards": {
     "title": "Shareable Cards",
@@ -2066,7 +2164,8 @@
     "accessibilityRestore": "Restore purchases",
     "periodMonth": "/ month",
     "periodYear": "/ year",
-    "discountBadge": "44% Off"
+    "discountBadge": "44% Off",
+    "selectPlanA11y": "Select {{plan}} plan"
   },
   "help": {
     "title": "Help",
@@ -2697,7 +2796,17 @@
       "editItems": "Edit Items",
       "addItems": "Add Items",
       "continuePractice": "Continue",
-      "completedStatus": "Completed"
+      "completedStatus": "Completed",
+      "notFoundTitle": "Set not found",
+      "progressHint": "completed",
+      "completedCount": "{{count}} completed",
+      "remainingCount": "{{count}} remaining",
+      "completedBanner": "Routine completed!",
+      "emptyItemsTitle": "No items added yet",
+      "emptyItemsSub": "Build your routine by adding names, prayers, or surahs",
+      "removeAllFiltered": "Remove All ({{count}})",
+      "addAllFiltered": "Add All ({{count}})",
+      "searchNoResults": "No results found"
     },
     "prayerFlow": {
       "notFound": "Prayer not found.",
@@ -2894,7 +3003,26 @@
     "showLess": "Show Less",
     "showAll": "Show All",
     "feedbackFailedTitle": "Feedback could not be sent",
-    "feedbackRetryMsg": "Please try again."
+    "feedbackRetryMsg": "Please try again.",
+    "feedbackHelpful": "Helpful",
+    "feedbackImprove": "Improve",
+    "badgeSupportive": "Supportive",
+    "badgeCaution": "Caution",
+    "detailsOpen": "Open Details",
+    "detailsClose": "Hide Details",
+    "detailsOpenA11y": "Open technical details",
+    "detailsCloseA11y": "Hide technical details",
+    "technicalTransitPlanet": "Transit Planet",
+    "technicalNatalPoint": "Natal Point",
+    "technicalAspect": "Aspect",
+    "technicalOrb": "Orb",
+    "technicalExactAt": "Exact Time",
+    "technicalHouse": "House",
+    "technicalConfidence": "Confidence Score",
+    "retroEmpty": "Retrograde pressure looks light today.",
+    "riskLow": "Low",
+    "riskMedium": "Medium",
+    "riskHigh": "High"
   },
   "todayActions": {
     "headerFallback": "What Can You Do Today?",
@@ -2905,7 +3033,12 @@
     "emptyBody": "There may be a short delay while the action list is being prepared.",
     "refresh": "Refresh",
     "actionFailedTitle": "Action could not be completed",
-    "actionFailedMsg": "There may be a connection issue. Please try again."
+    "actionFailedMsg": "There may be a connection issue. Please try again.",
+    "feedbackHelpful": "Helpful",
+    "feedbackImprove": "Improve",
+    "etaMinutes": "{{count}} min",
+    "markDone": "Done",
+    "markedDone": "Completed"
   },
   "compare": {
     "technicalAspectToggleA11y": "{{state}} {{aspectName}} detail",
@@ -3129,6 +3262,15 @@
     "labelFallback": "Category"
   },
   "decisionCompassScreen": {
+    "authRequiredTitle": "User not found",
+    "authRequiredBody": "You need to sign in to use the Decision Compass.",
+    "loadingTitle": "Decision Compass is loading…",
+    "loadingBody": "Daily scores are being prepared.",
+    "errorTitle": "Data could not be loaded",
+    "errorBody": "There may be a network or service issue.",
+    "allCategoriesAuthRequiredBody": "You need to sign in to see all categories.",
+    "allCategoriesLoadingTitle": "Categories are loading…",
+    "allCategoriesLoadingBody": "Today's areas are being prepared.",
     "retryBtn": "Try Again",
     "allHiddenTitle": "All categories are hidden",
     "emptyTitle": "Nothing to show",

@@ -263,6 +263,23 @@ public class NotificationController {
         }
     }
 
+    @PostMapping("/dream-reminder/morning-open")
+    public ResponseEntity<Map<String, Object>> triggerMorningDreamReminderOnMorningOpen(
+            @RequestHeader("X-User-Id") Long userId) {
+        return generationService.generateNotification(userId, Notification.NotificationType.DREAM_REMINDER, null)
+                .map(notification -> ResponseEntity.ok(Map.<String, Object>of(
+                        "created", true,
+                        "notificationId", notification.getId().toString(),
+                        "deliveryChannel", notification.getDeliveryChannel().name(),
+                        "pushSent", Boolean.TRUE.equals(notification.getPushSent())
+                )))
+                .orElseGet(() -> ResponseEntity.ok(Map.of(
+                        "created", false,
+                        "reason", "DENIED",
+                        "pushSent", false
+                )));
+    }
+
     @PostMapping("/internal/direct")
     public ResponseEntity<NotificationResponse> sendDirectNotification(
             @RequestHeader("X-User-Id") Long userId,

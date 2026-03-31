@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import type { DailyActionsDTO } from '../../types/daily.types';
@@ -20,7 +21,36 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   'checkmark-done': 'checkmark-done',
 };
 
+function normalizeToken(value?: string | null): string {
+  const trMap: Record<string, string> = {
+    ç: 'c',
+    ğ: 'g',
+    ı: 'i',
+    ö: 'o',
+    ş: 's',
+    ü: 'u',
+  };
+
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .split('')
+    .map((char) => trMap[char] ?? char)
+    .join('')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function localizeActionTag(tag: string, locale: string): string {
+  const resolvedLocale = locale.toLowerCase().startsWith('en') ? 'en' : 'tr';
+  const token = normalizeToken(tag);
+  if (token.includes('kolay') || token.includes('easy')) return resolvedLocale === 'en' ? 'Easy' : 'Kolay';
+  if (token.includes('orta') || token.includes('moderate') || token.includes('medium')) return resolvedLocale === 'en' ? 'Moderate' : 'Orta';
+  return resolvedLocale === 'en' ? 'Bold' : 'Cesur';
+}
+
 export function ActionCard({ action, onToggle, loading = false }: ActionCardProps) {
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const iconName = ICON_MAP[action.icon] ?? 'sparkles';
 
@@ -48,11 +78,15 @@ export function ActionCard({ action, onToggle, loading = false }: ActionCardProp
           <View style={styles.metaRow}>
             {action.tag ? (
               <View style={[styles.metaBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : '#F5F0FF' }]}>
-                <Text style={[styles.metaText, { color: colors.primary }]}>{action.tag}</Text>
+                <Text style={[styles.metaText, { color: colors.primary }]}>
+                  {localizeActionTag(action.tag, i18n.resolvedLanguage ?? i18n.language)}
+                </Text>
               </View>
             ) : null}
             {typeof action.etaMin === 'number' ? (
-              <Text style={[styles.eta, { color: colors.subtext }]}>{action.etaMin} dk</Text>
+              <Text style={[styles.eta, { color: colors.subtext }]}>
+                {t('todayActions.etaMinutes', { count: action.etaMin })}
+              </Text>
             ) : null}
           </View>
         </View>
@@ -81,7 +115,7 @@ export function ActionCard({ action, onToggle, loading = false }: ActionCardProp
               color={action.isDone ? '#047857' : '#FFF'}
             />
             <Text style={[styles.toggleText, { color: action.isDone ? '#047857' : '#FFF' }]}>
-              {action.isDone ? 'Yapıldı' : 'Yaptım'}
+              {action.isDone ? t('todayActions.markedDone') : t('todayActions.markDone')}
             </Text>
           </>
         )}

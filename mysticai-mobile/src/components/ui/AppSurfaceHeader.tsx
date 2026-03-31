@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { isAndroid, platformColor, radius, shadowSubtle, spacing, typography } from '../../theme';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
+import { AppText } from './AppText';
 
 type SurfaceHeaderVariant = 'home' | 'page';
 
@@ -54,7 +55,9 @@ export function SurfaceHeaderIconButton({
       <Ionicons name={iconName} size={spacing.lg} color={resolvedColor} />
       {badgeText ? (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badgeText}</Text>
+          <AppText variant="Caption" color={colors.white} weight="700" style={styles.badgeText}>
+            {badgeText}
+          </AppText>
         </View>
       ) : null}
     </Pressable>
@@ -134,7 +137,7 @@ export function AppSurfaceHeader({
   }, [rightActions]);
 
   const titleNode = title ? (
-    <Text
+    <AppText
       maxFontSizeMultiplier={MAX_FONT_SCALE}
       numberOfLines={usesStackedPageLayout ? 2 : 1}
       adjustsFontSizeToFit={!usesStackedPageLayout && variant === 'page' && allowTitleAutoShrink}
@@ -148,10 +151,11 @@ export function AppSurfaceHeader({
       ]}
     >
       {title}
-    </Text>
+    </AppText>
   ) : null;
   const subtitleNode = subtitle ? (
-    <Text
+    <AppText
+      variant="Caption"
       maxFontSizeMultiplier={MAX_FONT_SCALE}
       numberOfLines={usesStackedPageLayout ? 2 : 1}
       style={[
@@ -161,7 +165,7 @@ export function AppSurfaceHeader({
       ]}
     >
       {subtitle}
-    </Text>
+    </AppText>
   ) : null;
 
   return (

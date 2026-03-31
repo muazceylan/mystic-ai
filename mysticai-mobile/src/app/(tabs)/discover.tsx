@@ -33,12 +33,59 @@ import {
   getDiscoverVisualForModule,
   type DiscoverVisual,
 } from '../../features/discover/discoverVisuals';
+import {
+  getModuleConfig,
+  isModuleInMaintenance,
+  isModuleVisibleInUI,
+  type AppConfig,
+} from '../../services/appConfig.service';
+import { useAppConfigStore } from '../../store/useAppConfigStore';
 
 const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 };
 const VISIBLE_CATEGORY_LIMIT = 5;
 const CATEGORY_TOGGLE_THRESHOLD = 6;
 type DiscoverSurface = 'today_quick_access' | 'category_grid' | 'recommended';
 const DECISION_COMPASS_TAB_ROUTE = '/(tabs)/decision-compass-tab';
+const STAR_MATE_MODULE_KEY = 'star_mate';
+const STAR_MATE_ROUTE = '/(tabs)/star-mate';
+
+function resolveFeatureModuleKey(module: DiscoverModule): string | null {
+  return module.key === 'star_mate' ? STAR_MATE_MODULE_KEY : null;
+}
+
+function resolveFeatureModuleKeyFromRoute(route?: string | null): string | null {
+  if (!route) return null;
+  return route.startsWith(STAR_MATE_ROUTE) ? STAR_MATE_MODULE_KEY : null;
+}
+
+function isExploreModuleAvailable(config: AppConfig | null, moduleKey: string): boolean {
+  if (moduleKey === STAR_MATE_MODULE_KEY && !config) {
+    return false;
+  }
+
+  if (!config) {
+    return true;
+  }
+
+  const moduleConfig = getModuleConfig(config, moduleKey);
+  if (!moduleConfig) {
+    return moduleKey !== STAR_MATE_MODULE_KEY;
+  }
+
+  if (!moduleConfig.showOnExplore) {
+    return false;
+  }
+
+  if (!isModuleVisibleInUI(config, moduleKey)) {
+    return false;
+  }
+
+  if (isModuleInMaintenance(config, moduleKey)) {
+    return false;
+  }
+
+  return true;
+}
 
 function normalizeText(value: string): string {
   const lowered = value.toLocaleLowerCase();
@@ -286,6 +333,7 @@ export function DiscoverScreenContent() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const appConfig = useAppConfigStore((s) => s.config);
   const [query, setQuery] = useState('');
   const [expandedMap, setExpandedMap] = useState<Partial<Record<string, boolean>>>({});
   const [cmsCategories, setCmsCategories] = useState<ExploreCategory[]>([]);
@@ -295,7 +343,13 @@ export function DiscoverScreenContent() {
     [i18n.language, i18n.resolvedLanguage],
   );
   const discoverCategories = useMemo(() => buildDiscoverCategories(t), [t, appLocale]);
-  const discoverModules = useMemo(() => buildDiscoverModules(t), [t, appLocale]);
+  const discoverModules = useMemo(
+    () => buildDiscoverModules(t).filter((module) => {
+      const moduleKey = resolveFeatureModuleKey(module);
+      return moduleKey ? isExploreModuleAvailable(appConfig, moduleKey) : true;
+    }),
+    [appConfig, t, appLocale],
+  );
   const searchSuggestions = useMemo(
     () => [
       t('discover.searchSuggestions.horoscope'),
@@ -368,6 +422,14 @@ export function DiscoverScreenContent() {
       active = false;
     };
   }, [appLocale]);
+
+  const visibleCmsCards = useMemo(
+    () => cmsCards.filter((card) => {
+      const moduleKey = resolveFeatureModuleKeyFromRoute(card.routeKey || card.fallbackRouteKey);
+      return moduleKey ? isExploreModuleAvailable(appConfig, moduleKey) : true;
+    }),
+    [appConfig, cmsCards],
+  );
 
   const handleSearchChange = (text: string) => {
     setQuery(text);
@@ -496,7 +558,7 @@ export function DiscoverScreenContent() {
                   This ensures admin panel changes (reorder, edit, archive) are reflected on mobile. */}
               {!hasSearch && cmsCategories.length > 0
                 ? cmsCategories.map((cat) => {
-                    const catCards = cmsCards.filter((c) => c.categoryKey === cat.categoryKey);
+                    const catCards = visibleCmsCards.filter((c) => c.categoryKey === cat.categoryKey);
                     if (catCards.length === 0) return null;
                     const isExpanded = Boolean(expandedMap[cat.categoryKey]);
                     const hasOverflow = catCards.length >= CATEGORY_TOGGLE_THRESHOLD;

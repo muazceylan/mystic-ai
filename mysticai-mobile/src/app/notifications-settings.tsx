@@ -241,26 +241,6 @@ function makeStyles(C: ThemeColors) {
       padding: 12,
       borderRadius: 10,
     },
-    frequencyHintCard: {
-      marginTop: 10,
-      backgroundColor: C.primarySoftBg,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: C.border,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-    },
-    frequencyHintTitle: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: C.text,
-    },
-    frequencyHintBody: {
-      marginTop: 4,
-      fontSize: 12,
-      lineHeight: 18,
-      color: C.subtext,
-    },
     footnote: {
       fontSize: 12,
       color: C.subtext,
@@ -371,13 +351,6 @@ export default function NotificationsSettingsScreen() {
 
   const selectedFrequency = preferences?.frequencyLevel ?? 'BALANCED';
   const selectedTimeSlot = preferences?.preferredTimeSlot ?? 'MORNING';
-  const frequencyHintKey =
-    selectedFrequency === 'LOW'
-      ? 'notifSettings.freqLowDesc'
-      : selectedFrequency === 'FREQUENT'
-      ? 'notifSettings.freqFrequentDesc'
-      : 'notifSettings.freqBalancedDesc';
-
   useEffect(() => {
     fetchPreferences();
   }, []);
@@ -550,10 +523,6 @@ export default function NotificationsSettingsScreen() {
                 </Pressable>
               );
             })}
-          </View>
-          <View style={styles.frequencyHintCard}>
-            <Text style={styles.frequencyHintTitle}>{t(`notifSettings.${selectedFrequency === 'LOW' ? 'freqLow' : selectedFrequency === 'FREQUENT' ? 'freqFrequent' : 'freqBalanced'}`)}</Text>
-            <Text style={styles.frequencyHintBody}>{t(frequencyHintKey)}</Text>
           </View>
 
           {/* Preferred Time */}

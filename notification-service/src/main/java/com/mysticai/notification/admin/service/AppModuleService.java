@@ -1,8 +1,8 @@
 package com.mysticai.notification.admin.service;
 
 import com.mysticai.notification.admin.spec.AppModuleSpec;
-import com.mysticai.notification.entity.AppModule;
 import com.mysticai.notification.entity.AdminUser;
+import com.mysticai.notification.entity.AppModule;
 import com.mysticai.notification.entity.AuditLog;
 import com.mysticai.notification.repository.AppModuleRepository;
 import lombok.RequiredArgsConstructor;
@@ -149,32 +149,52 @@ public class AppModuleService implements ApplicationRunner {
     /** Seed default modules matching the mobile app's feature set. */
     @Override
     public void run(ApplicationArguments args) {
-        if (moduleRepository.count() == 0) {
-            seed("home",              "Ana Sayfa",          "home",           "home-icon",         true,  false, true,  false, true,  0);
-            seed("daily_transits",    "Günlük Transitler",  "astrology",      "sun-icon",          true,  false, true,  true,  false, 1);
-            seed("weekly_horoscope",  "Haftalık Burç",      "astrology",      "stars-icon",        true,  false, true,  true,  false, 2);
-            seed("dream_analysis",    "Rüya Analizi",       "dream",          "moon-icon",         true,  false, true,  true,  true,  3);
-            seed("spiritual",         "Manevi Alan",        "spiritual",      "heart-icon",        true,  false, true,  true,  true,  4);
-            seed("compatibility",     "Uyumluluk",          "synastry",       "link-icon",         true,  false, true,  true,  true,  5);
-            seed("numerology",        "Numeroloji",         "astrology",      "hash-icon",         true,  true,  false, true,  false, 6);
-            seed("meditation",        "Meditasyon",         "spiritual",      "wind-icon",         true,  false, false, true,  false, 7);
-            seed("prayer_module",     "Dua & Zikir",        "spiritual",      "book-icon",         true,  false, false, true,  false, 8);
-            seed("notifications",     "Bildirimler",        "system",         "bell-icon",         true,  false, false, false, true,  9);
-            seed("profile",           "Profil",             "account",        "user-icon",         true,  false, false, false, true,  10);
-            log.info("[MODULES] Seeded {} default app modules", 11);
+        int created = 0;
+        created += seed("home", "Ana Sayfa", "home", "home-icon", true, false, true, false, true, 0);
+        created += seed("daily_transits", "Günlük Transitler", "astrology", "sun-icon", true, false, true, true, false, 1);
+        created += seed("weekly_horoscope", "Haftalık Burç", "astrology", "stars-icon", true, false, true, true, false, 2);
+        created += seed("dream_analysis", "Rüya Analizi", "dream", "moon-icon", true, false, true, true, true, 3);
+        created += seed("spiritual", "Manevi Alan", "spiritual", "heart-icon", true, false, true, true, true, 4);
+        created += seed("compatibility", "Uyumluluk", "synastry", "link-icon", true, false, true, true, true, 5);
+        created += seed("numerology", "Numeroloji", "astrology", "hash-icon", true, true, false, true, false, 6);
+        created += seed("meditation", "Meditasyon", "spiritual", "wind-icon", true, false, false, true, false, 7);
+        created += seed("prayer_module", "Dua & Zikir", "spiritual", "book-icon", true, false, false, true, false, 8);
+        created += seed("notifications", "Bildirimler", "system", "bell-icon", true, false, false, false, true, 9);
+        created += seed("profile", "Profil", "account", "user-icon", true, false, false, false, true, 10);
+        created += seed("star_mate", "Ruh Eşi", "social", "sparkles-icon", true, false, false, false, false, 11, true, true);
+
+        if (created > 0) {
+            log.info("[MODULES] Added {} missing default app module(s)", created);
+        } else {
+            log.info("[MODULES] Default app module set already present; no missing module added.");
         }
     }
 
-    private void seed(String key, String name, String module, String icon,
-                      boolean active, boolean premium,
-                      boolean showHome, boolean showExplore, boolean showTab, int order) {
-        AppModule m = AppModule.builder()
+    private int seed(String key, String name, String module, String icon,
+                     boolean active, boolean premium,
+                     boolean showHome, boolean showExplore, boolean showTab, int order) {
+        return seed(key, name, module, icon, active, premium, showHome, showExplore, showTab, order, false, false);
+    }
+
+    private int seed(String key, String name, String module, String icon,
+                     boolean active, boolean premium,
+                     boolean showHome, boolean showExplore, boolean showTab, int order,
+                     boolean maintenanceMode, boolean hiddenButDeepLinkable) {
+        if (moduleRepository.existsByModuleKey(key)) {
+            return 0;
+        }
+
+        AppModule moduleEntity = AppModule.builder()
                 .moduleKey(key).displayName(name)
                 .description(module).icon(icon)
                 .isActive(active).isPremium(premium)
                 .showOnHome(showHome).showOnExplore(showExplore).showInTabBar(showTab)
-                .sortOrder(order).build();
-        moduleRepository.save(m);
+                .sortOrder(order)
+                .maintenanceMode(maintenanceMode)
+                .hiddenButDeepLinkable(hiddenButDeepLinkable)
+                .build();
+        moduleRepository.save(moduleEntity);
+        return 1;
     }
 
     private AppModule clone(AppModule m) {

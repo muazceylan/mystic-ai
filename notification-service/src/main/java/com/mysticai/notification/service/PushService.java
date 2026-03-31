@@ -85,34 +85,25 @@ public class PushService {
 
         boolean anySent = false;
         for (PushToken pt : tokens) {
-            boolean sent = sendSingle(pt, notification.getTitle(),
-                    notification.getBody(), notification.getDeeplink());
+            boolean sent = sendSingle(pt, notification);
             if (sent) anySent = true;
         }
         return anySent;
     }
 
-    private boolean sendSingle(PushToken pt, String title, String body, String deeplink) {
+    private boolean sendSingle(PushToken pt, Notification notification) {
         String token = pt.getToken();
         String tokenPrefix = token.substring(0, Math.min(20, token.length()));
 
         if (!pushEnabled) {
-            log.debug("[PUSH-MOCK] to={}... | title={} | body={}", tokenPrefix, title, body);
+            log.debug("[PUSH-MOCK] to={}... | title={} | body={}",
+                    tokenPrefix, notification.getTitle(), notification.getBody());
             return true;
         }
         try {
             RestClient client = RestClient.create(expoPushUrl);
 
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("to", token);
-            payload.put("title", title);
-            payload.put("body", body);
-            payload.put("sound", "default");
-            payload.put("priority", "high");
-            payload.put("channelId", "mysticai-notifications");
-            if (deeplink != null && !deeplink.isBlank()) {
-                payload.put("data", Map.of("deeplink", deeplink));
-            }
+            Map<String, Object> payload = buildExpoPayload(token, notification);
 
             String response = client.post()
                     .contentType(MediaType.APPLICATION_JSON)
@@ -144,6 +135,44 @@ public class PushService {
             log.warn("Failed to send push to {}...: {}", tokenPrefix, e.getMessage());
             return false;
         }
+    }
+
+    Map<String, Object> buildExpoPayload(String token, Notification notification) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("to", token);
+        payload.put("title", notification.getTitle());
+        payload.put("body", notification.getBody());
+        payload.put("sound", "default");
+        payload.put("priority", "high");
+        payload.put("channelId", "mysticai-notifications");
+
+        Map<String, Object> data = new HashMap<>();
+        if (notification.getId() != null) {
+            data.put("notificationId", notification.getId().toString());
+        }
+        if (notification.getDeeplink() != null && !notification.getDeeplink().isBlank()) {
+            data.put("deeplink", notification.getDeeplink());
+        }
+        if (notification.getType() != null) {
+            data.put("type", notification.getType().name());
+        }
+        if (notification.getCategory() != null) {
+            data.put("category", notification.getCategory().name());
+        }
+        if (notification.getSourceModule() != null && !notification.getSourceModule().isBlank()) {
+            data.put("sourceModule", notification.getSourceModule());
+        }
+        if (notification.getTemplateKey() != null && !notification.getTemplateKey().isBlank()) {
+            data.put("templateKey", notification.getTemplateKey());
+        }
+        if (notification.getVariantKey() != null && !notification.getVariantKey().isBlank()) {
+            data.put("variantKey", notification.getVariantKey());
+        }
+
+        if (!data.isEmpty()) {
+            payload.put("data", data);
+        }
+        return payload;
     }
 
     // No @Transactional — always called within sendSingle which runs in caller's transaction

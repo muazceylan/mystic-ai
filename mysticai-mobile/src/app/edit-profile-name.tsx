@@ -1,21 +1,16 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
-  Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { SafeScreen, TabHeader } from '../components/ui';
+import { AppText, Button, SafeScreen, TabHeader, TextField } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
 import { updateProfile } from '../services/auth';
 
@@ -37,47 +32,12 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
     hint: {
-      fontSize: 13,
-      color: C.subtext,
-      lineHeight: 20,
       marginBottom: 20,
       backgroundColor: C.primarySoft,
       padding: 12,
       borderRadius: 12,
     },
-    label: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: C.text,
-      marginBottom: 8,
-      marginTop: 16,
-    },
-    inputRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      backgroundColor: C.surface,
-      borderWidth: 1,
-      borderColor: C.border,
-      borderRadius: 12,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-    },
-    textInput: {
-      flex: 1,
-      fontSize: 15,
-      color: C.text,
-      padding: 0,
-    },
     saveRow: { marginTop: 32 },
-    saveButton: {
-      backgroundColor: C.primary,
-      borderRadius: 999,
-      paddingVertical: 15,
-      alignItems: 'center',
-    },
-    saveButtonDisabled: { opacity: 0.6 },
-    saveButtonText: { color: C.white, fontSize: 15, fontWeight: '700' },
   });
 }
 
@@ -137,46 +97,37 @@ export default function EditProfileNameScreen() {
         <TabHeader title={t('profileName.title')} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.hint}>{t('profileName.hint')}</Text>
+          <AppText variant="Small" color="secondary" style={styles.hint}>
+            {t('profileName.hint')}
+          </AppText>
 
-          <Text style={styles.label}>{t('profileName.firstName')}</Text>
-          <View style={styles.inputRow}>
-            <Ionicons name="person-outline" size={20} color={firstName ? colors.primary : colors.disabledText} />
-            <TextInput
-              style={styles.textInput}
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder={t('profileName.firstNamePlaceholder')}
-              placeholderTextColor={colors.disabledText}
-              autoCapitalize="words"
-            />
-          </View>
+          <TextField
+            label={t('profileName.firstName')}
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder={t('profileName.firstNamePlaceholder')}
+            autoCapitalize="words"
+            leftIcon="person-outline"
+          />
 
-          <Text style={styles.label}>{t('profileName.lastName')}</Text>
-          <View style={styles.inputRow}>
-            <Ionicons name="create-outline" size={20} color={lastName ? colors.primary : colors.disabledText} />
-            <TextInput
-              style={styles.textInput}
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder={t('profileName.lastNamePlaceholder')}
-              placeholderTextColor={colors.disabledText}
-              autoCapitalize="words"
-            />
-          </View>
+          <TextField
+            label={t('profileName.lastName')}
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder={t('profileName.lastNamePlaceholder')}
+            autoCapitalize="words"
+            leftIcon="create-outline"
+            style={{ marginTop: 16 }}
+          />
 
           <View style={styles.saveRow}>
-            <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            <Button
+              title={saving ? t('common.loading') : t('common.save')}
               onPress={handleSave}
               disabled={saving}
-              accessibilityLabel={t('common.save')}
-              accessibilityRole="button"
-            >
-              <Text style={styles.saveButtonText}>
-                {saving ? t('common.loading') : t('common.save')}
-              </Text>
-            </TouchableOpacity>
+              fullWidth
+              size="lg"
+            />
           </View>
         </ScrollView>
       </View>

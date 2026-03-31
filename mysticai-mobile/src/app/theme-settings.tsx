@@ -37,7 +37,7 @@ export default function ThemeSettingsScreen() {
                 <TouchableOpacity
                   key={theme.id}
                   style={[S.row, index > 0 && S.rowBorder]}
-                  accessibilityLabel={`${t(theme.titleKey)} temasını seç`}
+                  accessibilityLabel={t('theme.selectA11y', { theme: t(theme.titleKey) })}
                   accessibilityRole="button"
                   onPress={() => handleSelect(theme.id)}
                   activeOpacity={0.7}

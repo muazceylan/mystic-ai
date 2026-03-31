@@ -67,6 +67,14 @@ export interface UpdatePreferencesPayload {
   timezone?: string;
 }
 
+export interface MorningDreamReminderTriggerResponse {
+  created: boolean;
+  notificationId?: string;
+  deliveryChannel?: string;
+  pushSent: boolean;
+  reason?: string;
+}
+
 const BASE = '/api/v1/notifications';
 
 export const notificationService = {
@@ -118,5 +126,10 @@ export const notificationService = {
 
   async markAllAsSeen(): Promise<void> {
     await api.post(`${BASE}/seen-all`);
+  },
+
+  async triggerMorningDreamReminder(): Promise<MorningDreamReminderTriggerResponse> {
+    const res = await api.post(`${BASE}/dream-reminder/morning-open`);
+    return res.data;
   },
 };

@@ -217,18 +217,18 @@ export default function DecisionCompassAllCategoriesScreen() {
         >
           {!user?.id ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>Kullanıcı bulunamadı</Text>
-              <Text style={S.emptyText}>Tüm kategorileri görmek için giriş yapmanız gerekiyor.</Text>
+              <Text style={S.emptyTitle}>{t('decisionCompassScreen.authRequiredTitle')}</Text>
+              <Text style={S.emptyText}>{t('decisionCompassScreen.allCategoriesAuthRequiredBody')}</Text>
             </View>
           ) : query.isLoading ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>Kategoriler yükleniyor…</Text>
-              <Text style={S.emptyText}>Bugünün tüm alanları hazırlanıyor.</Text>
+              <Text style={S.emptyTitle}>{t('decisionCompassScreen.allCategoriesLoadingTitle')}</Text>
+              <Text style={S.emptyText}>{t('decisionCompassScreen.allCategoriesLoadingBody')}</Text>
             </View>
           ) : query.isError ? (
             <View style={S.emptyCard}>
-              <Text style={S.emptyTitle}>Veri alınamadı</Text>
-              <Text style={S.emptyText}>Ağ veya servis kaynaklı bir sorun olabilir.</Text>
+              <Text style={S.emptyTitle}>{t('decisionCompassScreen.errorTitle')}</Text>
+              <Text style={S.emptyText}>{t('decisionCompassScreen.errorBody')}</Text>
             </View>
           ) : filteredCategories.length === 0 ? (
             <View style={S.emptyCard}>

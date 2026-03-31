@@ -31,7 +31,6 @@ import {
   AppSurfaceHeader,
   SafeScreen,
   SurfaceHeaderIconButton,
-  useBottomTabBarOffset,
 } from '../components/ui';
 import { radius, shadowSubtle, spacing, typography } from '../theme';
 import { useTheme, type ThemeColors } from '../context/ThemeContext';
@@ -273,7 +272,6 @@ export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const router = useRouter();
-  const { tabBarHeight } = useBottomTabBarOffset();
   const user = useAuthStore((state) => state.user);
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.HOME);
@@ -614,7 +612,7 @@ export default function HomeScreen() {
           styles.content,
           {
             paddingTop: spacing.xxs,
-            paddingBottom: tabBarHeight + spacing.xl,
+            paddingBottom: spacing.xl,
           },
         ]}
         showsVerticalScrollIndicator={false}

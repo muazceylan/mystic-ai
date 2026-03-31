@@ -21,7 +21,11 @@
     "settings": "Ayarlar",
     "guest": "Misafir",
     "expand": "Genişlet",
-    "collapse": "Kapat"
+    "collapse": "Kapat",
+    "operationFailed": "İşlem tamamlanamadı.",
+    "openSettings": "Ayarları Aç",
+    "settingsUnavailableTitle": "Ayarlar Açılamadı",
+    "settingsUnavailableDescription": "Lütfen Ayarlar uygulamasını manuel olarak açın."
   },
   "accessibility": {
     "retryHint": "İçeriği yeniden yüklemek için dokunun",
@@ -31,6 +35,15 @@
     "contentLoaded": "İçerik yüklendi",
     "loading": "Yükleniyor",
     "errorOccurred": "Bir hata oluştu"
+  },
+  "ui": {
+    "accordion": {
+      "loading": "Ä°Ã§erik hazÄ±rlanÄ±yor..."
+    },
+    "textField": {
+      "showPassword": "Åifreyi gÃ¶ster",
+      "hidePassword": "Åifreyi gizle"
+    }
   },
   "profile": {
     "title": "Profil",
@@ -135,7 +148,8 @@
     "currentLight": "Açık",
     "currentDark": "Koyu",
     "manual": "Manuel olarak seçildi",
-    "automatic": "Sistem tercihine göre belirlendi"
+    "automatic": "Sistem tercihine göre belirlendi",
+    "selectA11y": "{{theme}} temasını seç"
   },
   "security": {
     "title": "Güvenlik",
@@ -899,6 +913,7 @@
     "refreshStory": "Hikâyeyi yenile",
     "generateStory": "Hikâyeyi oluştur",
     "reloadMonthlyStory": "Aylık hikâyeyi tekrar yükle",
+    "monthlyStoryCountBadge": "{{count}} rüya • {{period}}",
     "reloadDreams": "Rüyaları tekrar yükle",
     "addFirstDream": "İlk rüyamı ekle",
     "closeCompose": "Yazmayı kapat",
@@ -1875,7 +1890,90 @@
     "emptyTitle": "Gece gökyüzü verisi bulunamadı",
     "emptySubtitle": "Önce Haritam ekranından doğum haritanızı oluşturun.",
     "missingChartMessage": "Doğum haritanız bulunamadı. Lütfen önce Haritam ekranından haritanızı oluşturun.",
-    "dragSectionA11y": "{{label}} bölümünü sürükle"
+    "dragSectionA11y": "{{label}} bölümünü sürükle",
+    "posterBadgeTitle": "DOĞDUĞUN GECE GÖKYÜZÜ",
+    "pdfTitle": "Doğduğun Gece Gökyüzü",
+    "pdfTitleWithName": "Doğduğun Gece Gökyüzü • {{name}}",
+    "pdfDialogTitle": "Doğduğun Gece Gökyüzü (PDF)",
+    "projectionError": "Gerçek gökyüzü projeksiyonu alınamadı. Lokal kompozisyon gösteriliyor.",
+    "shareLinkError": "Paylaşım linki üretilemedi. Varsayılan link kullanılıyor.",
+    "shareErrorTitle": "Paylaşım Hatası",
+    "instagramErrorTitle": "Instagram Story Hatası",
+    "saveErrorTitle": "Kaydetme Hatası",
+    "pdfErrorTitle": "PDF Hatası",
+    "regenerateErrorTitle": "Kart Oluşturulamadı",
+    "regenerateErrorMessage": "Kart yeniden oluşturulamadı.",
+    "unexpectedError": "Beklenmeyen hata.",
+    "moonPhaseTitle": "Ay Evresi",
+    "moonPhaseSubtitle": "Doğduğun andaki ay evresi ve döngünün sekiz fazı.",
+    "celestialMarkersTitle": "Göksel İşaretler",
+    "celestialMarkersSubtitle": "Poster büyük ve temiz kalsın diye göksel işaretlerin anlamlarını burada topladık."
+  },
+  "nightSkyPosterPublicShare": {
+    "invalidLink": "Geçersiz paylaşım bağlantısı.",
+    "invalidPayload": "Paylaşım verisi eksik veya bozuk.",
+    "notFound": "Bu paylaşım bağlantısı bulunamadı.",
+    "rateLimited": "Bu paylaşım bağlantısı için çok fazla istek alındı. Lütfen biraz sonra tekrar dene.",
+    "loadFailed": "Paylaşım yüklenemedi.",
+    "openLinkFailedTitle": "Bağlantı Açılamadı",
+    "openLinkFailedDescription": "Lütfen bağlantıyı tarayıcıda tekrar deneyin.",
+    "heroEyebrow": "DOĞDUĞUN GECE GÖKYÜZÜ",
+    "heroTitle": "Bu senin gökyüzün.",
+    "heroSubtitle": "Paylaşılan poster bağlantısı yüklendi. Gerçek zenith projection ile geri yükleniyor.",
+    "loadingTitle": "Poster yükleniyor…",
+    "loadingSubtitle": "Token çözülüyor ve gökyüzü projeksiyonu hazırlanıyor.",
+    "errorTitle": "Poster açılamadı",
+    "openInApp": "Uygulamada Aç",
+    "expiredTitle": "Paylaşım Süresi Dolmuş",
+    "expiredSubtitle": "Bu poster linkinin süresi dolmuş. Gönderen kişiden yeni bağlantı isteyebilirsin.",
+    "shareLink": "Bağlantıyı Paylaş",
+    "openInAstroGuru": "Astro Guru'da Aç",
+    "share": "Paylaş",
+    "metaVariant": "Varyant",
+    "metaProjection": "Projeksiyon",
+    "metaCatalog": "Yıldız Kataloğu",
+    "metaTimezone": "Saat Dilimi",
+    "metaMoonPhase": "Ay Evresi"
+  },
+  "natalVisualsPreview": {
+    "emptyTitle": "Natal görsel verisi bulunamadı",
+    "emptySubtitle": "Önce Haritam ekranındaki \"Tam Ekran Gör • İndir\" butonunu kullan.",
+    "chartFallback": "Kozmik Harita",
+    "timeUnknown": "Saat bilinmiyor",
+    "locationFallback": "Konum",
+    "headerWheelSubtitle": "Sadece dairesel doğum haritası için premium tam ekran export.",
+    "posterInfoSubtitle": "{{preset}} için sabit yüksek çözünürlüklü export hazırlanır.",
+    "profileFallback": "Profil",
+    "loaderTitle": "Görsel hazırlanıyor…",
+    "loaderSubtitle": "{{preset}} preset’i için yüksek çözünürlük export hazırlanıyor.",
+    "previewMeta": "{{preset}} • {{name}} • {{birthDate}} • PNG {{width}}×{{height}}",
+    "errorTitle": "Görsel oluşturulamadı",
+    "unexpectedError": "Beklenmeyen hata.",
+    "shareErrorTitle": "Paylaşım Hatası",
+    "saveErrorTitle": "Kaydetme Hatası",
+    "pdfErrorTitle": "PDF Hatası",
+    "regenerateErrorTitle": "Görsel Oluşturulamadı",
+    "regenerateErrorMessage": "Natal görseller yeniden oluşturulamadı.",
+    "successShare": "Paylaşım ekranı açıldı",
+    "successSave": "Görsel galeriye kaydedildi",
+    "successPdf": "PDF hazırlandı",
+    "regenerate": "Yeniden Oluştur",
+    "share": "Paylaş",
+    "saveToGallery": "Galeriye Kaydet",
+    "presets": {
+      "wheel": {
+        "label": "Natal Wheel Poster",
+        "sub": "Sadece dairesel doğum haritası"
+      },
+      "matrix": {
+        "label": "Açı Matrisi",
+        "sub": "Tam grid export"
+      },
+      "balance": {
+        "label": "Kozmik Denge",
+        "sub": "Element / nitelik"
+      }
+    }
   },
   "shareableCards": {
     "title": "Paylaşılabilir Kartlar",
@@ -2065,7 +2163,8 @@
     "accessibilityRestore": "Satın alımları geri yükle",
     "periodMonth": "/ ay",
     "periodYear": "/ yıl",
-    "discountBadge": "%44 İndirim"
+    "discountBadge": "%44 İndirim",
+    "selectPlanA11y": "{{plan}} planını seç"
   },
   "help": {
     "title": "Yardım",
@@ -2696,7 +2795,17 @@
       "editItems": "Öğe Düzenle",
       "addItems": "Öğe Ekle",
       "continuePractice": "Devam Et",
-      "completedStatus": "Tamamlandı"
+      "completedStatus": "Tamamlandı",
+      "notFoundTitle": "Set bulunamadı",
+      "progressHint": "tamamlandı",
+      "completedCount": "{{count}} tamamlanan",
+      "remainingCount": "{{count}} kalan",
+      "completedBanner": "Rutin tamamlandı!",
+      "emptyItemsTitle": "Henüz öğe eklenmedi",
+      "emptyItemsSub": "Esma, dua veya sure ekleyerek rutininizi oluşturun",
+      "removeAllFiltered": "Hepsini Kaldır ({{count}})",
+      "addAllFiltered": "Hepsini Ekle ({{count}})",
+      "searchNoResults": "Sonuç bulunamadı"
     },
     "prayerFlow": {
       "notFound": "Dua bulunamadı.",
@@ -2893,7 +3002,26 @@
     "showLess": "Daha Az Göster",
     "showAll": "Tümünü Gör",
     "feedbackFailedTitle": "Geri bildirim gönderilemedi",
-    "feedbackRetryMsg": "Lütfen tekrar dene."
+    "feedbackRetryMsg": "Lütfen tekrar dene.",
+    "feedbackHelpful": "Faydalı",
+    "feedbackImprove": "Geliştir",
+    "badgeSupportive": "Destekleyici",
+    "badgeCaution": "Dikkat",
+    "detailsOpen": "Detayları Aç",
+    "detailsClose": "Detayları Gizle",
+    "detailsOpenA11y": "Teknik detayları aç",
+    "detailsCloseA11y": "Teknik detayları gizle",
+    "technicalTransitPlanet": "Transit Gezegen",
+    "technicalNatalPoint": "Natal Nokta",
+    "technicalAspect": "Açı",
+    "technicalOrb": "Orb",
+    "technicalExactAt": "Kesinleşme",
+    "technicalHouse": "Ev",
+    "technicalConfidence": "Güven Skoru",
+    "retroEmpty": "Bugün retro baskısı düşük görünüyor.",
+    "riskLow": "Düşük",
+    "riskMedium": "Orta",
+    "riskHigh": "Yüksek"
   },
   "todayActions": {
     "headerFallback": "Bugün Ne Yapabilirsin?",
@@ -2904,7 +3032,12 @@
     "emptyBody": "Aksiyon listesi hazırlanırken kısa bir gecikme olabilir.",
     "refresh": "Yenile",
     "actionFailedTitle": "İşlem tamamlanamadı",
-    "actionFailedMsg": "Bağlantı sorunu olabilir. Lütfen tekrar dene."
+    "actionFailedMsg": "Bağlantı sorunu olabilir. Lütfen tekrar dene.",
+    "feedbackHelpful": "Faydalı",
+    "feedbackImprove": "Geliştir",
+    "etaMinutes": "{{count}} dk",
+    "markDone": "Yaptım",
+    "markedDone": "Yapıldı"
   },
   "compare": {
     "technicalAspectToggleA11y": "{{aspectName}} detayını {{state}}",
@@ -3128,6 +3261,15 @@
     "labelFallback": "Kategori"
   },
   "decisionCompassScreen": {
+    "authRequiredTitle": "Kullanıcı bulunamadı",
+    "authRequiredBody": "Karar Pusulası için giriş yapmanız gerekiyor.",
+    "loadingTitle": "Karar Pusulası yükleniyor…",
+    "loadingBody": "Günlük skorlar hazırlanıyor.",
+    "errorTitle": "Veri alınamadı",
+    "errorBody": "Ağ veya servis kaynaklı bir sorun olabilir.",
+    "allCategoriesAuthRequiredBody": "Tüm kategorileri görmek için giriş yapmanız gerekiyor.",
+    "allCategoriesLoadingTitle": "Kategoriler yükleniyor…",
+    "allCategoriesLoadingBody": "Bugünün tüm alanları hazırlanıyor.",
     "retryBtn": "Tekrar Dene",
     "allHiddenTitle": "Tüm kategoriler gizli",
     "emptyTitle": "Gösterilecek alan yok",

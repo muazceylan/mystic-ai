@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { InteractionManager, LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import { AppText } from './AppText';
@@ -41,6 +42,7 @@ function AccordionSection({
   placeholder,
   children,
 }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [bodyReady, setBodyReady] = useState(!lazy);
 
@@ -109,7 +111,7 @@ function AccordionSection({
         onPress={() => onToggle(id)}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${title} ${expanded ? 'daralt' : 'genislet'}`}
+        accessibilityLabel={`${title} ${expanded ? t('common.collapse') : t('common.expand')}`}
       >
         <View style={styles.headerLeft}>
           {renderSectionIcon()}
@@ -140,7 +142,9 @@ function AccordionSection({
           {lazy && !bodyReady ? (
             placeholder ?? (
               <View style={[styles.placeholder, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>
-                <AppText variant="Caption" color="muted" weight="600">Icerik hazirlaniyor...</AppText>
+                <AppText variant="Caption" color="muted" weight="600">
+                  {t('ui.accordion.loading')}
+                </AppText>
               </View>
             )
           ) : children}

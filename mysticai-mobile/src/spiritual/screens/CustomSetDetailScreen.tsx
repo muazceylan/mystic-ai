@@ -249,9 +249,9 @@ export default function CustomSetDetailScreen() {
       <SafeScreen>
         <View style={S.emptyScreen}>
           <Ionicons name="alert-circle-outline" size={48} color={accent} />
-          <Text style={S.emptyTitle}>Set bulunamadı</Text>
+          <Text style={S.emptyTitle}>{t('spiritual.customSet.notFoundTitle')}</Text>
           <Pressable style={[S.emptyBtn, { borderColor: accent }]} onPress={() => router.back()}>
-            <Text style={[S.emptyBtnText, { color: accent }]}>Geri Dön</Text>
+            <Text style={[S.emptyBtnText, { color: accent }]}>{t('common.back')}</Text>
           </Pressable>
         </View>
       </SafeScreen>
@@ -472,7 +472,7 @@ export default function CustomSetDetailScreen() {
               <Ionicons name="pencil-outline" size={12} color={colors.muted} />
             </Pressable>
           )}
-          <Text style={S.headerSub}>{totalCount} öğe</Text>
+          <Text style={S.headerSub}>{t('spiritual.customSet.cardItemCount', { count: totalCount })}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Pressable
@@ -504,21 +504,27 @@ export default function CustomSetDetailScreen() {
             <Text style={S.progressPercent}>
               %{Math.round(progress * 100)}
             </Text>
-            <Text style={S.progressHint}>tamamlandı</Text>
+            <Text style={S.progressHint}>{t('spiritual.customSet.progressHint')}</Text>
           </View>
           <View style={S.progressStats}>
             <View style={S.progressStatRow}>
               <View style={[S.progressStatDot, { backgroundColor: doneColor }]} />
-              <Text style={S.progressStatText}>{completedCount} tamamlanan</Text>
+              <Text style={S.progressStatText}>
+                {t('spiritual.customSet.completedCount', { count: completedCount })}
+              </Text>
             </View>
             <View style={S.progressStatRow}>
               <View style={[S.progressStatDot, { backgroundColor: colors.border }]} />
-              <Text style={S.progressStatText}>{totalCount - completedCount} kalan</Text>
+              <Text style={S.progressStatText}>
+                {t('spiritual.customSet.remainingCount', { count: totalCount - completedCount })}
+              </Text>
             </View>
             {progress >= 1 && (
               <View style={[S.allDoneBadge, { backgroundColor: doneColor + '18' }]}>
                 <Ionicons name="checkmark-circle" size={14} color={doneColor} />
-                <Text style={[S.allDoneText, { color: doneColor }]}>Rutin tamamlandı!</Text>
+                <Text style={[S.allDoneText, { color: doneColor }]}>
+                  {t('spiritual.customSet.completedBanner')}
+                </Text>
               </View>
             )}
           </View>
@@ -537,8 +543,8 @@ export default function CustomSetDetailScreen() {
             <View style={[S.emptyItemsIcon, { backgroundColor: accentSoft }]}>
               <Ionicons name="sparkles-outline" size={32} color={accent} />
             </View>
-            <Text style={S.emptyItemsTitle}>Henüz öğe eklenmedi</Text>
-            <Text style={S.emptyItemsSub}>Esma, dua veya sure ekleyerek rutininizi oluşturun</Text>
+            <Text style={S.emptyItemsTitle}>{t('spiritual.customSet.emptyItemsTitle')}</Text>
+            <Text style={S.emptyItemsSub}>{t('spiritual.customSet.emptyItemsSub')}</Text>
           </View>
         }
         ListFooterComponent={bottomBar}
@@ -684,7 +690,9 @@ export default function CustomSetDetailScreen() {
                       color={allAdded ? colors.error ?? '#EF4444' : accent}
                     />
                     <Text style={[S.selectAllText, { color: allAdded ? colors.error ?? '#EF4444' : accent }]}>
-                      {allAdded ? `Hepsini Kaldır (${filtered.length})` : `Hepsini Ekle (${unaddedCount})`}
+                      {allAdded
+                        ? t('spiritual.customSet.removeAllFiltered', { count: filtered.length })
+                        : t('spiritual.customSet.addAllFiltered', { count: unaddedCount })}
                     </Text>
                   </Pressable>
                 );
@@ -809,9 +817,9 @@ export default function CustomSetDetailScreen() {
                   );
                 }}
                 ListEmptyComponent={
-                  <Text style={S.modalEmpty}>Sonuç bulunamadı</Text>
+                  <Text style={S.modalEmpty}>{t('spiritual.customSet.searchNoResults')}</Text>
                 }
-                />
+              />
               </KeyboardAvoidingView>
             </Animated.View>
           </SafeAreaView>

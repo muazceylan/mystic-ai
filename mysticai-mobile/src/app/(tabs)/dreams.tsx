@@ -1344,7 +1344,9 @@ export default function DreamsScreen() {
             )}
             <View style={styles.countBadge}>
               <Ionicons name="moon-outline" size={13} color={colors.goldDark} />
-              <Text style={styles.countText}>{monthlyStory.dreamCount} rüya • {yearMonthLabel}</Text>
+              <Text style={styles.countText}>
+                {t('dreams.monthlyStoryCountBadge', { count: monthlyStory.dreamCount, period: yearMonthLabel })}
+              </Text>
             </View>
             <Text style={styles.storyText}>{monthlyStory.story}</Text>
             <View style={styles.exportRow}>

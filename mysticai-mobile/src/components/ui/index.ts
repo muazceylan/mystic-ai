@@ -42,9 +42,3 @@ export { BrandLogo, BrandMark, BrandBadge } from './BrandLogo';
 export type { BrandLogoProps, BrandMarkProps, BrandBadgeProps, BrandVariant, BrandSize } from './BrandLogo';
 export { PremiumIconBadge } from './PremiumIconBadge';
 export type { PremiumIconTone } from './PremiumIconBadge';
-
-// --- Deprecated ---
-/** @deprecated Replaced by PagerView-based MainTabPager in navigation/ */
-export { TabSwipeGesture } from './TabSwipeGesture';
-/** @deprecated Use SafeScreen with scroll prop instead */
-export { Screen } from './Screen';
