@@ -2,7 +2,7 @@
 # Mystic AI - Makefile
 # ===========================================
 
-.PHONY: help infra infra-down infra-logs build clean
+.PHONY: help infra infra-down infra-logs build clean flyway-auth-repair flyway-astrology-repair db-create-notification db-shell-notification
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -85,6 +85,18 @@ db-shell-vision: ## Connect to Vision database
 
 db-list: ## List all databases
 	docker exec -it mystic-postgres psql -U mystic -c "\l"
+
+db-create-notification: ## Create mystic_notification if missing (notification-service; needs mystic-postgres)
+	bash docker/postgres/ensure-mystic-notification-db.sh
+
+db-shell-notification: ## Connect to Notification database
+	docker exec -it mystic-postgres psql -U mystic -d mystic_notification
+
+flyway-auth-repair: ## Flyway repair for auth DB (checksum mismatch; needs Postgres up)
+	cd auth-service && mvn flyway:repair
+
+flyway-astrology-repair: ## Flyway repair for astrology DB (checksum mismatch; needs Postgres up)
+	cd astrology-service && mvn flyway:repair
 
 # ===========================================
 # Redis Operations

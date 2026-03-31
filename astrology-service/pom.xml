@@ -14,6 +14,13 @@
     <name>Mystic AI - Astrology Service</name>
     <description>Astrology Service - Natal Charts, Horoscopes and Zodiac Signs</description>
 
+    <!-- Defaults for `mvn flyway:repair` — override: -Dflyway.url=... -Dflyway.user=... -Dflyway.password=... -->
+    <properties>
+        <flyway.url>jdbc:postgresql://localhost:5432/mystic_astrology</flyway.url>
+        <flyway.user>mystic</flyway.user>
+        <flyway.password>mystic123</flyway.password>
+    </properties>
+
     <repositories>
         <repository>
             <id>jitpack.io</id>
@@ -105,6 +112,14 @@
 
     <build>
         <plugins>
+            <!-- Windows: stop running astrology-service before clean; retry helps transient locks -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <retryOnError>true</retryOnError>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -115,6 +130,16 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <!-- Flyway CLI: `cd astrology-service` or `mvn -pl astrology-service flyway:repair` -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <configuration>
+                    <url>${flyway.url}</url>
+                    <user>${flyway.user}</user>
+                    <password>${flyway.password}</password>
                 </configuration>
             </plugin>
         </plugins>

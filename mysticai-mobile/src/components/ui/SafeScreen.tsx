@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
-import { usePathname } from 'expo-router';
+import { usePathname, useSegments } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { platformColor } from '../../theme';
@@ -21,6 +21,11 @@ const WEB_MAX_WIDTH = 920;
 const WEB_SIDE_PAD = 24;
 const IOS_TAB_BAR_BASE_HEIGHT = 54;
 const ANDROID_TAB_BAR_BASE_HEIGHT = 64;
+
+/** Expo Router may report pathname as `/dreams` instead of `/(tabs)/dreams`; segments still include `(tabs)`. */
+function isTabLayoutRoute(pathname: string, segments: readonly string[]): boolean {
+  return segments[0] === '(tabs)' || pathname.startsWith('/(tabs)');
+}
 
 type SafeScreenProps = {
   children: React.ReactNode;
@@ -43,9 +48,10 @@ type SafeScreenProps = {
 
 export function useBottomTabBarOffset() {
   const pathname = usePathname();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
   const navigatorTabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
-  const isTabRoute = pathname.startsWith('/(tabs)');
+  const isTabRoute = isTabLayoutRoute(pathname, segments);
 
   return useMemo(() => {
     const fallbackTabBarHeight = isTabRoute
@@ -94,6 +100,7 @@ export function SafeScreen({
 }: SafeScreenProps) {
   const { colors } = useTheme();
   const pathname = usePathname();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
   const { tabBarHeight, bottomTabBarOffset } = useBottomTabBarOffset();
   const { width: windowWidth } = useWindowDimensions();
@@ -113,7 +120,7 @@ export function SafeScreen({
   const resolvedTopInset = hasTopEdge ? Math.max(insets.top, topInsetFallback) : 0;
   const basePaddingTop = typeof containerStyle.paddingTop === 'number' ? containerStyle.paddingTop : 0;
   const basePaddingBottom = typeof containerStyle.paddingBottom === 'number' ? containerStyle.paddingBottom : 0;
-  const isTabRoute = pathname.startsWith('/(tabs)');
+  const isTabRoute = isTabLayoutRoute(pathname, segments);
   const bottomTabCompensation = isTabRoute && tabBarHeight > 0
     ? (hasBottomEdge ? bottomTabBarOffset : tabBarHeight)
     : 0;

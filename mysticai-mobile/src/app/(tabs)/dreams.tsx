@@ -1280,7 +1280,13 @@ export default function DreamsScreen() {
 
   // ─── Dream book tab ───────────────────────────────────────────────
   const renderBook = () => (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.bookScroll}>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.bookScroll}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator
+    >
+      {renderOverviewPanel()}
       <View style={styles.bookHeaderBlock}>
         <Text style={styles.bookMoonGlyph}>📖</Text>
         <Text style={styles.bookHeaderTitle}>{t('dreams.book')}</Text>
@@ -1513,7 +1519,7 @@ export default function DreamsScreen() {
         </SpotlightTarget>
       )}
 
-      {tab !== 'journal' && renderOverviewPanel()}
+      {tab !== 'journal' && tab !== 'dictionary' && tab !== 'book' && renderOverviewPanel()}
 
       {/* ── COMPOSE TAB ── */}
       {tab === 'compose' && renderCompose()}
@@ -1521,9 +1527,15 @@ export default function DreamsScreen() {
       {/* ── BOOK TAB ── */}
       {tab === 'book' && renderBook()}
 
-      {/* ── DICTIONARY TAB ── */}
+      {/* ── DICTIONARY TAB (overview hero + symbol list in one scroll so archive stays reachable) ── */}
       {tab === 'dictionary' && (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32, paddingTop: 12 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 32, paddingTop: 12 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator
+        >
+          {renderOverviewPanel()}
           <DreamDictionary userId={userId} />
         </ScrollView>
       )}

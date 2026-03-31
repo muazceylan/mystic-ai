@@ -14,6 +14,13 @@
     <name>Mystic AI - Auth Service</name>
     <description>Authentication and Authorization Service</description>
 
+    <!-- Defaults for `mvn flyway:repair` — override: -Dflyway.url=... -Dflyway.user=... -Dflyway.password=... -->
+    <properties>
+        <flyway.url>jdbc:postgresql://localhost:5432/mystic_auth</flyway.url>
+        <flyway.user>mystic</flyway.user>
+        <flyway.password>mystic123</flyway.password>
+    </properties>
+
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
@@ -124,6 +131,16 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <!-- Flyway CLI: run from this module (`cd auth-service`) or from repo root: `mvn -pl auth-service flyway:repair` -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <configuration>
+                    <url>${flyway.url}</url>
+                    <user>${flyway.user}</user>
+                    <password>${flyway.password}</password>
                 </configuration>
             </plugin>
         </plugins>
