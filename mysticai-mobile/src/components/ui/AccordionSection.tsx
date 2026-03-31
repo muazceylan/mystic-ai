@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { InteractionManager, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { InteractionManager, LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
+import { AppText } from './AppText';
 import { PremiumIconBadge, type PremiumIconTone } from './PremiumIconBadge';
 
 type Props = {
@@ -107,18 +109,18 @@ function AccordionSection({
         onPress={() => onToggle(id)}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${title} bölümünü ${expanded ? 'daralt' : 'genişlet'}`}
+        accessibilityLabel={`${title} ${expanded ? 'daralt' : 'genislet'}`}
       >
         <View style={styles.headerLeft}>
           {renderSectionIcon()}
           <View style={styles.headerTextCol}>
-            <Text style={[styles.title, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
+            <AppText variant="SmallBold" color="primary" numberOfLines={2} ellipsizeMode="tail" weight="800">
               {title}
-            </Text>
+            </AppText>
             {subtitle ? (
-              <Text style={[styles.subtitle, { color: colors.subtext }]} numberOfLines={2} ellipsizeMode="tail">
+              <AppText variant="CaptionSmall" color="secondary" numberOfLines={2} ellipsizeMode="tail" style={styles.subtitle}>
                 {subtitle}
-              </Text>
+              </AppText>
             ) : null}
             {headerMeta ? <View style={styles.headerMetaWrap}>{headerMeta}</View> : null}
           </View>
@@ -138,7 +140,7 @@ function AccordionSection({
           {lazy && !bodyReady ? (
             placeholder ?? (
               <View style={[styles.placeholder, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>
-                <Text style={[styles.placeholderText, { color: colors.textMuted }]}>İçerik hazırlanıyor…</Text>
+                <AppText variant="Caption" color="muted" weight="600">Icerik hazirlaniyor...</AppText>
               </View>
             )
           ) : children}
@@ -152,29 +154,26 @@ export default React.memo(AccordionSection);
 
 const styles = StyleSheet.create({
   wrap: {
-    borderRadius: 18,
+    borderRadius: RADIUS.xl - 2,
     borderWidth: 1,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 1,
+    ...SHADOW.sm,
   },
   header: {
     minHeight: 62,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.mdLg,
+    paddingVertical: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: SPACING.smMd,
   },
   headerLeft: {
     flex: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACING.smMd,
   },
   headerTextCol: {
     flex: 1,
@@ -183,45 +182,35 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 30,
     height: 30,
-    borderRadius: 999,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
   subtitle: {
-    fontSize: 11.5,
-    lineHeight: 16,
     marginTop: 1,
   },
   headerMetaWrap: {
-    marginTop: 6,
+    marginTop: SPACING.xsSm,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     flexShrink: 0,
     alignSelf: 'flex-start',
     marginTop: 2,
   },
   body: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
+    paddingHorizontal: SPACING.mdLg,
+    paddingBottom: SPACING.mdLg,
   },
   placeholder: {
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     minHeight: 72,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  placeholderText: {
-    fontSize: 12,
-    fontWeight: '600',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.smMd,
   },
 });

@@ -1,14 +1,15 @@
 import React, { useRef } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
+import { SPACING } from '../../constants/tokens';
 import { MonetizationQuickBar } from '../../features/monetization';
 import { AppSurfaceHeader, SurfaceHeaderIconButton } from './AppSurfaceHeader';
 import { resolveSurfaceTitle } from './surfaceUtils';
 
-/* ─── Standalone right-side icons ─── */
+/* --- Standalone right-side icons --- */
 /**
  * Settings + Notifications icon buttons.
  * Drop into any header's right slot to get consistent nav icons.
@@ -30,7 +31,7 @@ export function HeaderRightIcons({ tintColor }: { tintColor?: string }) {
   };
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <View style={headerStyles.iconRow}>
       <SurfaceHeaderIconButton
         iconName="notifications-outline"
         onPress={handleOpenNotifications}
@@ -50,7 +51,7 @@ export function HeaderRightIcons({ tintColor }: { tintColor?: string }) {
   );
 }
 
-/* ─── Full TabHeader ─── */
+/* --- Full TabHeader --- */
 
 interface TabHeaderProps {
   /** Page title (left side, next to avatar) */
@@ -111,7 +112,7 @@ export function TabHeader({
   const shouldShowThemeButton = pathname === '/(tabs)/profile';
 
   const defaultActions = showDefaultRightIcons ? (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+    <View style={headerStyles.actionRow}>
       {rightActions}
       {showMonetizationQuickBar ? <MonetizationQuickBar /> : null}
       <SurfaceHeaderIconButton
@@ -141,3 +142,16 @@ export function TabHeader({
     />
   );
 }
+
+const headerStyles = StyleSheet.create({
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.smMd,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+});

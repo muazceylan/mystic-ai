@@ -12,19 +12,21 @@ import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 import type { IoniconName } from '../../constants/icons';
 
-interface ButtonProps {
+export type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'danger';
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+export interface ButtonProps {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
-  variant?: 'primary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  fullWidth?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
   accessibilityLabel?: string;
-  /** Screen reader için ek açıklama */
   accessibilityHint?: string;
-  /** Optional icon rendered to the left of the button text */
   leftIcon?: IoniconName;
 }
 
@@ -41,6 +43,7 @@ export function Button({
   loading = false,
   variant = 'primary',
   size = 'md',
+  fullWidth = false,
   style,
   textStyle,
   accessibilityLabel,
@@ -51,7 +54,6 @@ export function Button({
   const s = createStyles(colors);
   const isDisabled = disabled || loading;
 
-  // Resolve the text color for the current variant/disabled state
   let iconColor = colors.white;
   if (isDisabled) {
     iconColor = colors.disabledText;
@@ -59,7 +61,14 @@ export function Button({
     iconColor = colors.text;
   } else if (variant === 'ghost') {
     iconColor = colors.primary;
+  } else if (variant === 'danger') {
+    iconColor = colors.white;
   }
+
+  const spinnerColor =
+    variant === 'outline' || variant === 'ghost'
+      ? colors.primary
+      : colors.white;
 
   return (
     <TouchableOpacity
@@ -72,6 +81,8 @@ export function Button({
         variant === 'primary' && s.primary,
         variant === 'outline' && s.outline,
         variant === 'ghost' && s.ghost,
+        variant === 'danger' && s.danger,
+        fullWidth && s.fullWidth,
         isDisabled && s.disabled,
         style,
       ]}
@@ -81,9 +92,7 @@ export function Button({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === 'primary' ? colors.white : colors.primary}
-        />
+        <ActivityIndicator color={spinnerColor} />
       ) : (
         <>
           {leftIcon ? (
@@ -100,6 +109,7 @@ export function Button({
               variant === 'primary' && s.textPrimary,
               variant === 'outline' && s.textOutline,
               variant === 'ghost' && s.textGhost,
+              variant === 'danger' && s.textDanger,
               isDisabled && s.textDisabled,
               textStyle,
             ]}
@@ -137,6 +147,8 @@ function createStyles(C: ThemeColors) {
       borderColor: C.border,
     },
     ghost: { backgroundColor: 'transparent' },
+    danger: { backgroundColor: C.error },
+    fullWidth: { alignSelf: 'stretch' as const },
     disabled: { opacity: 0.5 },
     text: { fontWeight: '600' },
     text_sm: { fontSize: TYPOGRAPHY.Small.fontSize, lineHeight: TYPOGRAPHY.Small.lineHeight },
@@ -145,6 +157,7 @@ function createStyles(C: ThemeColors) {
     textPrimary: { color: C.white },
     textOutline: { color: C.text },
     textGhost: { color: C.primary },
+    textDanger: { color: C.white },
     textDisabled: { color: C.disabledText },
   });
 }

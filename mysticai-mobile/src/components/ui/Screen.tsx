@@ -10,6 +10,12 @@ interface ScreenProps {
   style?: ViewStyle;
 }
 
+/**
+ * @deprecated SafeScreen ile degistirin. SafeScreen ayni API'yi sunar,
+ * ek olarak showStandardBackground, tab bar offset ve web layout destegi saglar.
+ *
+ * Migration: `<Screen ...>` -> `<SafeScreen ...>`
+ */
 export function Screen({
   children,
   scroll = false,
