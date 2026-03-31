@@ -226,7 +226,6 @@ Uygulama sırası aşağıdaki gibi olacaktır:
 ---
 
 ## 15. Bu milestone tamamlanmış sayılmaz eğer
-
 - Form/input primitive hâlâ belirsiz bırakıldıysa.
 - Typography kullanımı hâlâ ekran bazlı dağınıksa.
 - Tab/header contract’ı netleşmediyse.
