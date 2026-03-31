@@ -1,8 +1,13 @@
+import HomeScreen from '../../screens/HomeScreen';
+import { usePagerReady } from '../../navigation/pagerContext';
+
 /**
- * Route shell — content is rendered by MainTabPager (PagerView).
- * Returning null prevents double-mount; the real HomeScreen lives
- * inside the pager at page index 0.
+ * When PagerView is active, the real HomeScreen is rendered inside
+ * MainTabPager.  This shell returns null to avoid double-mount.
+ * Before PagerView is ready, renders HomeScreen as a fallback.
  */
 export default function HomeRoute() {
-  return null;
+  const pagerReady = usePagerReady();
+  if (pagerReady) return null;
+  return <HomeScreen />;
 }

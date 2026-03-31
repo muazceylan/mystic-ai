@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePagerReady } from '../../navigation/pagerContext';
 import {
   View,
   Text,
@@ -551,10 +552,13 @@ export function ProfileScreenContent() {
 }
 
 /**
- * Route shell — content is rendered by MainTabPager (PagerView).
+ * When PagerView is active, content is rendered by MainTabPager.
+ * Before PagerView is ready, renders content as a fallback.
  */
 export default function ProfileRoute() {
-  return null;
+  const pagerReady = usePagerReady();
+  if (pagerReady) return null;
+  return <ProfileScreenContent />;
 }
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {

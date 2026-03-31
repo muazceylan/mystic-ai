@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { usePagerReady } from '../../navigation/pagerContext';
 import {
   Alert,
   Pressable,
@@ -694,10 +695,13 @@ export function DiscoverScreenContent() {
 }
 
 /**
- * Route shell — content is rendered by MainTabPager (PagerView).
+ * When PagerView is active, content is rendered by MainTabPager.
+ * Before PagerView is ready, renders content as a fallback.
  */
 export default function DiscoverRoute() {
-  return null;
+  const pagerReady = usePagerReady();
+  if (pagerReady) return null;
+  return <DiscoverScreenContent />;
 }
 
 const styles = StyleSheet.create({

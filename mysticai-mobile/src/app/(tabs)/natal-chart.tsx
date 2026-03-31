@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePagerReady } from '../../navigation/pagerContext';
 import {
   View,
   Text,
@@ -3346,10 +3347,13 @@ export function NatalChartScreenContent() {
 }
 
 /**
- * Route shell — content is rendered by MainTabPager (PagerView).
+ * When PagerView is active, content is rendered by MainTabPager.
+ * Before PagerView is ready, renders content as a fallback.
  */
 export default function NatalChartRoute() {
-  return null;
+  const pagerReady = usePagerReady();
+  if (pagerReady) return null;
+  return <NatalChartScreenContent />;
 }
 
 // ═══════════════════════════════════════════════════════════════════════

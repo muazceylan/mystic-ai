@@ -52,6 +52,7 @@ export type MainTabPagerHandle = {
 type MainTabPagerProps = {
   initialPage: number;
   onPageSelected: (index: number) => void;
+  onReady?: () => void;
 };
 
 /**
@@ -61,9 +62,10 @@ type MainTabPagerProps = {
  * screen is visible — no screenshots, no gradient placeholders.
  */
 export const MainTabPager = forwardRef<MainTabPagerHandle, MainTabPagerProps>(
-  function MainTabPager({ initialPage, onPageSelected }, ref) {
+  function MainTabPager({ initialPage, onPageSelected, onReady }, ref) {
     const pagerRef = useRef<PagerView>(null);
     const [activePage, setActivePage] = useState(initialPage);
+    const readyFiredRef = useRef(false);
 
     useImperativeHandle(ref, () => ({
       setPage(index: number) {
@@ -83,6 +85,13 @@ export const MainTabPager = forwardRef<MainTabPagerHandle, MainTabPagerProps>(
       [onPageSelected],
     );
 
+    const handleLayout = useCallback(() => {
+      if (!readyFiredRef.current) {
+        readyFiredRef.current = true;
+        onReady?.();
+      }
+    }, [onReady]);
+
     return (
       <PagerActivePageCtx.Provider value={activePage}>
         <PagerView
@@ -92,6 +101,7 @@ export const MainTabPager = forwardRef<MainTabPagerHandle, MainTabPagerProps>(
           offscreenPageLimit={1}
           overdrag={false}
           onPageSelected={handlePageSelected}
+          onLayout={handleLayout}
         >
           {MAIN_TAB_ORDER.map((tab, idx) => (
             <View

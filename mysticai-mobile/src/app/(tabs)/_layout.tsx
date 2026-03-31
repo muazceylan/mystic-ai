@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Tabs, usePathname, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY } from '../../constants/tokens';
@@ -20,6 +20,7 @@ import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope
 import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
 import { MainTabPager, type MainTabPagerHandle } from '../../navigation/MainTabPager';
 import { MAIN_TAB_ORDER, mainTabIndex } from '../../navigation/tabPagerConfig';
+import { PagerReadyProvider } from '../../navigation/pagerContext';
 
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -188,6 +189,7 @@ export default function TabsLayout() {
   }, [user?.id, user?.gender, user?.maritalStatus, chart, plannerLocale]);
 
   const pagerRef = useRef<MainTabPagerHandle>(null);
+  const [isPagerReady, setIsPagerReady] = useState(false);
   const pathname = usePathname();
   const lastPagerIdxRef = useRef(0);
   const lastExplicitNavRef = useRef(0);
@@ -218,10 +220,16 @@ export default function TabsLayout() {
     }
   }, []);
 
+  const handlePagerReady = useCallback(() => {
+    setIsPagerReady(true);
+  }, []);
+
+  const { height: windowHeight } = useWindowDimensions();
   const tabBarHeight =
     Platform.OS === 'ios' ? iosTabBarHeight : 64 + iosBottomInset;
 
   return (
+    <PagerReadyProvider value={isPagerReady}>
     <View style={layoutStyles.root}>
     <Tabs
       screenListeners={{
@@ -579,7 +587,7 @@ export default function TabsLayout() {
     <View
       style={[
         layoutStyles.pagerOverlay,
-        { bottom: tabBarHeight },
+        { height: windowHeight - tabBarHeight },
         !isMainTabActive && layoutStyles.pagerHidden,
       ]}
       pointerEvents={isMainTabActive ? 'auto' : 'none'}
@@ -590,9 +598,11 @@ export default function TabsLayout() {
         ref={pagerRef}
         initialPage={Math.max(0, currentMainIdx)}
         onPageSelected={handlePagerPageSelected}
+        onReady={handlePagerReady}
       />
     </View>
     </View>
+    </PagerReadyProvider>
   );
 }
 

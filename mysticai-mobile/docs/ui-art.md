@@ -68,6 +68,8 @@ Bu dosya **mysticai-mobile** içinde UI katmanının nereden beslendiğini, hang
 | Form alanları (tek TextField primitive) | **Açık** | İhtiyaç oldukça mevcut form pattern’leri veya yeni primitive `components/ui` altında, token ile |
 | Tab bar görünümü | **Kısmen** | Tab layout [`src/app/(tabs)/_layout.tsx`](../src/app/(tabs)/_layout.tsx); görsel tekilleştirme layout + ortak header ile kademeli |
 
+**Milestone notu:** Tablo, **o anki kod tabanının** fotoğrafıdır (“Açık” / “Kısmen” satırları dahil). Bölüm 13–15 ile tanımlanan milestone kapsamında form, tab/header ve tipografi için **ortak contract / primitive** hedeflenir; milestone sonrası güncel durum teslim raporunda netleştirilir (tüm ekranların tek seferde taşınması şart değildir).
+
 ---
 
 ## 5. Klasörleme
@@ -185,4 +187,48 @@ Tek dosyalı, davranışı değiştirmeyen küçük UI düzeltmelerinde tam tabl
 
 ## 12. Özet
 
-Bu proje için UI işi **sıfırdan mimari kurma** değil; **mevcut `theme`, `constants/tokens`, `ThemeContext` ve `components/ui` omurgasını** büyütüp tutarlı hale getirmektir. İyileştirme **küçük, güvenli adımlarla** ve CLAUDE.md’deki minimal değişiklik disipliniyle yapılır. Büyük teslimlerde **eksikler** ve **kalan işler** bölüm 11’deki teslim raporu şablonu ile kapatılmalıdır.
+Bu proje için UI işi **sıfırdan mimari kurma** değil; **mevcut `theme`, `constants/tokens`, `ThemeContext` ve `components/ui` omurgasını** büyütüp tutarlı hale getirmektir. İyileştirme **küçük, güvenli adımlarla** ve CLAUDE.md’deki minimal değişiklik disipliniyle yapılır. Büyük teslimlerde **eksikler** ve **kalan işler** bölüm 11’deki teslim raporu şablonu ile kapatılmalıdır. Milestone’a özel zorunluluklar, çalışma sırası ve tamamlanma koşulları için **bölüm 13–15**’e bakın.
+
+---
+
+## 13. Bu milestone için zorunlu uygulama kapsamı
+
+Bu bölüm, UI iyileştirme **milestone’u** için geçerlidir. Amaç, bölüm 4 envanterinde **Açık** veya **Kısmen** görünen alanları (özellikle form, tab/header, tipografi) ortak **primitive ve contract** ile kapatmaktır. Tüm uygulamanın tek PR’da taşınması beklenmez; ancak söz konusu contract’lar tanımlanmış ve bu milestone’da **dokunulan** yüzeylerde copy-paste / gereksiz inline azaltılmış olmalıdır.
+
+Bu doküman yalnızca yön notu değildir; bu milestone içinde aşağıdakiler uygulanacaktır:
+
+1. `components/ui` altında mevcut foundation ile uyumlu ortak primitive ve pattern’ler güçlendirilecek.
+2. En az şu alanlarda standardizasyon zorunludur:
+   - Button varyantları
+   - Typography/Text primitive veya net typography contract
+   - Input/TextField primitive
+   - Tab/header görünüm contract’ı
+   - Screen container / section layout pattern’i
+3. Yeni bir `ui-v2`, `design-system-v2`, `theme-next`, `shared-styles-new` benzeri paralel yapı açılmayacak.
+4. Üçüncü bir token kaynağı oluşturulmayacak.
+5. Route, API, analytics, state akışı UI refactor bahanesiyle değiştirilmeyecek.
+6. Bu milestone kapsamında **refactor edilen veya bilinçli olarak dokunulan** ekranlarda copy-paste stil blokları ve gereksiz inline stiller temizlenecek; sprint kapsamı dar ise teslim raporunda hangi ekranların bu turda ele alındığı açıkça yazılacak.
+7. Refactor sonunda teslim raporunda “eksikler” ve “kalan işler” zorunlu doldurulacak.
+
+---
+
+## 14. Çalışma sırası
+
+Uygulama sırası aşağıdaki gibi olacaktır:
+
+1. Mevcut ortak foundation kullanımını analiz et.
+2. Reusable pattern tekrarlarını tespit et.
+3. `components/ui` ve mevcut theme hattında eksik primitive’leri tamamla.
+4. Öncelikli ekranları yeni yapıya taşı.
+5. Deprecated kullanımları işaretle veya migrate et.
+6. Teslim raporu ver.
+
+---
+
+## 15. Bu milestone tamamlanmış sayılmaz eğer
+
+- Form/input primitive hâlâ belirsiz bırakıldıysa.
+- Typography kullanımı hâlâ ekran bazlı dağınıksa.
+- Tab/header contract’ı netleşmediyse.
+- Yeni paralel stil/token yapısı açıldıysa.
+- Teslim raporunda eksikler/kalan işler yazılmadıysa.
