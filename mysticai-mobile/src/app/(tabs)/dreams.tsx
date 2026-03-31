@@ -715,13 +715,18 @@ export default function DreamsScreen() {
   }, [userId]);
 
   // ─── Dream book handlers ──────────────────────────────────────────
-  const months = t('calendar.months').split(',');
-  const yearMonthLabel = `${months[bookMonth - 1] || ''} ${bookYear}`;
-  const monthDreams = dreams.filter(d => {
-    if (!d.dreamDate) return false;
-    const [y, m] = d.dreamDate.split('-').map(Number);
-    return y === bookYear && m === bookMonth;
-  });
+  const months = useMemo(() => t('calendar.months').split(','), [t]);
+  const yearMonthLabel = useMemo(
+    () => `${months[bookMonth - 1] || ''} ${bookYear}`,
+    [months, bookMonth, bookYear],
+  );
+  const monthDreams = useMemo(() => {
+    return dreams.filter((d) => {
+      if (!d.dreamDate) return false;
+      const [y, m] = d.dreamDate.split('-').map(Number);
+      return y === bookYear && m === bookMonth;
+    });
+  }, [dreams, bookYear, bookMonth]);
 
   useEffect(() => {
     if (userId && tab === 'book') {
@@ -826,10 +831,16 @@ export default function DreamsScreen() {
   const isPending = monthlyStory?.status === 'PENDING';
   const isCompleted = monthlyStory?.status === 'COMPLETED';
   const isEmpty = !monthlyStory || monthlyStory.status === 'EMPTY';
-  const recurringSymbols = symbols.filter(s => s.recurring);
-  const completedDreamCount = dreams.filter(d => d.interpretationStatus === 'COMPLETED').length;
-  const pendingDreamCount = dreams.filter(d => d.interpretationStatus === 'PENDING').length;
-  const latestDream = dreams[0] ?? null;
+  const recurringSymbols = useMemo(() => symbols.filter((s) => s.recurring), [symbols]);
+  const completedDreamCount = useMemo(
+    () => dreams.filter((d) => d.interpretationStatus === 'COMPLETED').length,
+    [dreams],
+  );
+  const pendingDreamCount = useMemo(
+    () => dreams.filter((d) => d.interpretationStatus === 'PENDING').length,
+    [dreams],
+  );
+  const latestDream = useMemo(() => dreams[0] ?? null, [dreams]);
   const dreamInterpretAction = monetization.getAction(DREAM_INTERPRET_ACTION_KEY);
   const dreamGuruCost = dreamInterpretAction?.guruCost ?? FALLBACK_DREAM_GURU_COST;
   const dreamInterpretUsesMonetization = Boolean(dreamInterpretAction && monetization.guruEnabled);

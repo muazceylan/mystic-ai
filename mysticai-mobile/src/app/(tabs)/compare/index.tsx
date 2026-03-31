@@ -792,24 +792,36 @@ function selectOverviewSource(
   sources: OverviewSource[],
   usedSourceIds: Set<string>,
 ): OverviewSource | null {
-  const rankSource = (source: OverviewSource) => ({
-    source,
-    rank: scoreOverviewSourceMatch(template, source),
-  });
+  // Performance: avoid `.filter().map().sort()` when we only need max.
+  let bestUnusedSource: OverviewSource | null = null;
+  let bestUnusedRank = -Infinity;
 
-  const unusedRanked = sources
-    .filter((source) => !usedSourceIds.has(source.id))
-    .map(rankSource)
-    .sort((left, right) => right.rank - left.rank);
+  for (const source of sources) {
+    if (usedSourceIds.has(source.id)) continue;
+    const rank = scoreOverviewSourceMatch(template, source);
+    if (rank > bestUnusedRank) {
+      bestUnusedRank = rank;
+      bestUnusedSource = source;
+    }
+  }
 
-  if (unusedRanked[0] && unusedRanked[0].rank > 0) return unusedRanked[0].source;
+  if (bestUnusedSource && bestUnusedRank > 0) return bestUnusedSource;
 
-  const sameGroupFallback = sources
-    .filter((source) => !usedSourceIds.has(source.id) && source.themeGroup === template.themeGroup)
-    .sort((left, right) => right.score - left.score)[0];
+  // Same theme group fallback: pick highest `score` among unused.
+  let sameGroupFallback: OverviewSource | null = null;
+  let bestSameGroupScore = -Infinity;
+  for (const source of sources) {
+    if (usedSourceIds.has(source.id)) continue;
+    if (source.themeGroup !== template.themeGroup) continue;
+
+    if (source.score > bestSameGroupScore) {
+      bestSameGroupScore = source.score;
+      sameGroupFallback = source;
+    }
+  }
   if (sameGroupFallback) return sameGroupFallback;
 
-  return unusedRanked[0]?.source ?? sources[0] ?? null;
+  return bestUnusedSource ?? sources[0] ?? null;
 }
 
 function buildOverviewSections(
@@ -1101,7 +1113,7 @@ export default function CompareOverviewScreen() {
       data.topDrivers,
       t,
     );
-  }, [data, leftName, rightName]);
+  }, [data, leftName, rightName, t]);
 
   const signalNotes = useMemo(() => {
     if (!data) return [] as string[];
@@ -1109,7 +1121,7 @@ export default function CompareOverviewScreen() {
     if (data.warningText?.trim()) notes.push(data.warningText.trim());
     if (data.explainability.missingBirthTimeImpact?.trim()) notes.push(data.explainability.missingBirthTimeImpact.trim());
     return notes.slice(0, 2);
-  }, [data]);
+  }, [data?.warningText, data?.explainability.missingBirthTimeImpact]);
 
   const spotlightDrivers = useMemo(() => {
     if (!data) return [] as Array<{ label: string; item: CompareDriverDTO }>;
@@ -1121,7 +1133,7 @@ export default function CompareOverviewScreen() {
       tension ? { label: 'Denge', item: tension } : null,
       growth ? { label: 'Gelişim', item: growth } : null,
     ].filter(Boolean) as Array<{ label: string; item: CompareDriverDTO }>;
-  }, [data]);
+  }, [data?.topDrivers.supportive, data?.topDrivers.challenging, data?.topDrivers.growth]);
 
   useEffect(() => {
     if (hasTypeParam) return;

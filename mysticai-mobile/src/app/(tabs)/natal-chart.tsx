@@ -642,7 +642,7 @@ export function NatalChartScreenContent() {
     };
 
     pollRef.current = setTimeout(poll, POLL_INTERVAL_MS);
-  }, [user, stopPolling, activeProfileIsSaved]);
+  }, [user?.id, resolvedLocale, stopPolling, activeProfileIsSaved]);
 
   const updateCacheIfStable = useCallback((nextChart: NatalChartResponse | null | undefined) => {
     if (nextChart && shouldPersistChartToCache(nextChart)) {
@@ -1318,6 +1318,16 @@ export function NatalChartScreenContent() {
 
   const comparisonSelection = selectedForComparison;
   const comparisonPair = comparisonSelection.length === 2 ? comparisonSelection : null;
+
+  // Performance: avoid repeated `selectedForComparison.some(...)` checks in render.
+  const selectedForComparisonKeys = useMemo(() => {
+    return new Set(
+      selectedForComparison
+        .map((p) => profileKey(p, user?.id))
+        .filter((k): k is string => typeof k === 'string' && k.length > 0),
+    );
+  }, [selectedForComparison, user?.id]);
+
   const comparisonSavedProfiles = useMemo(
     () => (comparisonPair?.filter((p): p is SavedPerson => isSavedPersonProfile(p)) ?? []),
     [comparisonPair]
@@ -1577,22 +1587,29 @@ export function NatalChartScreenContent() {
   const autoFocusNearestAccordion = useCallback((scrollY: number) => {
     if (!autoAccordionFocusEnabledRef.current) return;
     if (manualAccordionControlRef.current) return;
-    const entries = Object.entries(accordionLayoutsRef.current) as Array<[NatalAccordionKey, { y: number; height: number }]>;
-    if (!entries.length) return;
-
     const focusLine = scrollY + 170;
-    const candidates = entries
-      .filter(([, layout]) => Number.isFinite(layout.y))
-      .map(([key, layout]) => {
-        const distance = Math.abs(layout.y - focusLine);
-        return { key, distance, y: layout.y };
-      })
-      .sort((a, b) => a.distance - b.distance);
+    
+    // Performance: scroll-time "nearest section" selection should be a single-pass min search
+    // (avoids allocations from filter/map/sort).
+    let bestKey: NatalAccordionKey | null = null;
+    let bestDistance = Infinity;
 
-    const next = candidates[0]?.key;
-    if (next && next !== openAccordionKey) {
-      setOpenAccordionKey(next);
+    const layouts = accordionLayoutsRef.current;
+    for (const rawKey in layouts) {
+      const key = rawKey as NatalAccordionKey;
+      const layout = layouts[key];
+      if (!layout) continue;
+      const y = layout.y;
+      if (!Number.isFinite(y)) continue;
+
+      const distance = Math.abs(y - focusLine);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestKey = key;
+      }
     }
+
+    if (bestKey && bestKey !== openAccordionKey) setOpenAccordionKey(bestKey);
   }, [openAccordionKey]);
 
   const queueAccordionAutoFocus = useCallback((scrollY?: number, delayMs = 80) => {
@@ -1632,7 +1649,37 @@ export function NatalChartScreenContent() {
   }, [queueAccordionAutoFocus]);
 
   const hotspotAspects = useMemo(
-    () => [...(chart?.aspects ?? [])].sort((a, b) => a.orb - b.orb).slice(0, 2),
+    () => {
+      const aspects = chart?.aspects ?? [];
+      if (!aspects.length) return [];
+
+      // Select 2 smallest orb aspects without sorting the whole list.
+      // For equal orb values, insertion order is preserved by only replacing on strict `<`.
+      let min1: PlanetaryAspect | null = null;
+      let min2: PlanetaryAspect | null = null;
+
+      for (const asp of aspects) {
+        const orb = asp.orb;
+        if (!Number.isFinite(orb)) continue;
+
+        if (!min1 || orb < min1.orb) {
+          min2 = min1;
+          min1 = asp;
+          continue;
+        }
+
+        if (min1 && orb === min1.orb) {
+          if (!min2) min2 = asp; // 2nd item with same min orb
+          continue;
+        }
+
+        if (!min2 || orb < min2.orb) {
+          min2 = asp;
+        }
+      }
+
+      return [min1, min2].filter((x): x is PlanetaryAspect => Boolean(x));
+    },
     [chart?.aspects],
   );
   const visibleDraggableSectionKeys = useMemo<DraggableNatalSectionKey[]>(() => {
@@ -1849,7 +1896,7 @@ export function NatalChartScreenContent() {
       houses: chart.houses ?? [],
       createdAt: Date.now(),
     });
-    router.push('/night-sky-poster-preview' as any);
+    router.push('/(tabs)/night-sky-poster-preview' as any);
   };
 
   const openNatalVisualsPreview = (presetKey: 'wheel' | 'matrix' | 'balance' = 'wheel') => {
@@ -1866,7 +1913,7 @@ export function NatalChartScreenContent() {
       aspects: chart.aspects ?? [],
       createdAt: Date.now(),
     });
-    router.push('/natal-visuals-preview' as any);
+    router.push('/(tabs)/natal-visuals-preview' as any);
   };
 
   const renderSectionDragHandle = (
@@ -1916,140 +1963,154 @@ export function NatalChartScreenContent() {
       ai_interpretation: 'oracle',
     } as const)[key];
 
-    switch (key) {
-      case 'night_poster':
-        if (!chart) return null;
-        return (
-          <AccordionSection
-            id="night_poster"
-            title={t('natalChart.birthNightTitle', 'Doğduğun Gece Gökyüzü')}
-            subtitle={t('natalChart.birthNightSubtitle', 'Kişisel gece haritan')}
-            icon="moon-outline"
-            iconStyle="premium"
-            iconTone={accordionIconTone}
-            expanded={openAccordionKey === 'night_poster'}
-            onToggle={toggleAccordion}
-            onLayout={registerAccordionLayout}
-            lazy
-            deferBodyMount
-            headerRight={headerRight}
-          >
-            <View style={styles.posterAccordionInner}>
-              <View style={styles.posterPreviewShell}>
-                <View style={styles.posterPreviewViewport}>
-                  <View style={styles.posterPreviewScaled}>
-                    <BirthNightSkyPoster
-                      name={chart.name ?? activeProfileName ?? null}
-                      fullName={activePosterFullName}
-                      firstName={activePosterFirstName}
-                      lastName={activePosterLastName}
-                      isGuest={activePosterIsGuest}
-                      birthDate={String(chart.birthDate)}
-                      birthTime={chart.birthTime ?? null}
-                      birthLocation={chart.birthLocation}
-                      latitude={chart.latitude ?? 0}
-                      longitude={chart.longitude ?? 0}
-                      shareUrl={NIGHT_SKY_POSTER_LINK}
-                      planets={chart.planets ?? []}
-                      houses={chart.houses ?? []}
-                      variant="minimal"
-                    />
-                  </View>
+    const renderNightPosterSection = () => {
+      if (!chart) return null;
+      return (
+        <AccordionSection
+          id="night_poster"
+          title={t('natalChart.birthNightTitle', 'Doğduğun Gece Gökyüzü')}
+          subtitle={t('natalChart.birthNightSubtitle', 'Kişisel gece haritan')}
+          icon="moon-outline"
+          iconStyle="premium"
+          iconTone={accordionIconTone}
+          expanded={openAccordionKey === 'night_poster'}
+          onToggle={toggleAccordion}
+          onLayout={registerAccordionLayout}
+          lazy
+          deferBodyMount
+          headerRight={headerRight}
+        >
+          <View style={styles.posterAccordionInner}>
+            <View style={styles.posterPreviewShell}>
+              <View style={styles.posterPreviewViewport}>
+                <View style={styles.posterPreviewScaled}>
+                  <BirthNightSkyPoster
+                    name={chart.name ?? activeProfileName ?? null}
+                    fullName={activePosterFullName}
+                    firstName={activePosterFirstName}
+                    lastName={activePosterLastName}
+                    isGuest={activePosterIsGuest}
+                    birthDate={String(chart.birthDate)}
+                    birthTime={chart.birthTime ?? null}
+                    birthLocation={chart.birthLocation}
+                    latitude={chart.latitude ?? 0}
+                    longitude={chart.longitude ?? 0}
+                    shareUrl={NIGHT_SKY_POSTER_LINK}
+                    planets={chart.planets ?? []}
+                    houses={chart.houses ?? []}
+                    variant="minimal"
+                  />
                 </View>
               </View>
-              <View style={styles.posterModuleActions}>
-                <Pressable
-                  style={styles.posterBtn}
-                  onPress={openNightSkyPosterPreview}
-                  accessibilityLabel={t('natalChart.birthNightOpenPoster', 'Doğduğun gece posterini oluştur')}
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="moon-outline" size={16} color={colors.goldDark} />
-                  <Text style={styles.posterBtnText}>{t('natalChart.birthNightCta', 'Poster Atölyesini Aç')}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
-                </Pressable>
-              </View>
             </View>
-          </AccordionSection>
-        );
+            <View style={styles.posterModuleActions}>
+              <Pressable
+                style={styles.posterBtn}
+                onPress={openNightSkyPosterPreview}
+                accessibilityLabel={t('natalChart.birthNightOpenPoster', 'Doğduğun gece posterini oluştur')}
+                accessibilityRole="button"
+              >
+                <Ionicons name="moon-outline" size={16} color={colors.goldDark} />
+                <Text style={styles.posterBtnText}>{t('natalChart.birthNightCta', 'Poster Atölyesini Aç')}</Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
+              </Pressable>
+            </View>
+          </View>
+        </AccordionSection>
+      );
+    };
 
-      case 'big_three':
-        return (
-          <AccordionSection
-            id="big_three"
-            title={t('natalChart.sectionBigThreeTitle')}
-            subtitle={t('natalChart.sectionBigThreeSub')}
-            icon="planet-outline"
-            iconStyle="premium"
-            iconTone={accordionIconTone}
-            expanded={openAccordionKey === 'big_three'}
-            onToggle={toggleAccordion}
-            onLayout={registerAccordionLayout}
-            headerRight={headerRight}
-          >
-            <View style={styles.trinityRow}>
-              {[
-                { role: 'sun' as const, icon: '☉', label: t('natalChart.sun'), info: sunInfo },
-                { role: 'moon' as const, icon: '☽', label: t('natalChart.moon'), info: moonInfo },
-                { role: 'rising' as const, icon: '↑', label: t('natalChart.rising'), info: risingInfo },
-              ].map((item) => (
-                <Pressable
-                  key={item.label}
-                  style={({ pressed }) => [styles.trinityBubble, pressed && styles.trinityBubblePressed]}
-                  onPress={() => openBigThreeSheet(item.role)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('natalChart.bigThreeOpenA11y', { label: item.label })}
-                >
-                  <View style={styles.trinityIconShell}>
-                    <View style={styles.trinityIconCore}>
-                      <Text style={styles.trinityIcon}>{item.icon}</Text>
-                    </View>
+    const renderBigThreeSection = () => {
+      return (
+        <AccordionSection
+          id="big_three"
+          title={t('natalChart.sectionBigThreeTitle')}
+          subtitle={t('natalChart.sectionBigThreeSub')}
+          icon="planet-outline"
+          iconStyle="premium"
+          iconTone={accordionIconTone}
+          expanded={openAccordionKey === 'big_three'}
+          onToggle={toggleAccordion}
+          onLayout={registerAccordionLayout}
+          headerRight={headerRight}
+        >
+          <View style={styles.trinityRow}>
+            {[
+              { role: 'sun' as const, icon: '☉', label: t('natalChart.sun'), info: sunInfo },
+              { role: 'moon' as const, icon: '☽', label: t('natalChart.moon'), info: moonInfo },
+              { role: 'rising' as const, icon: '↑', label: t('natalChart.rising'), info: risingInfo },
+            ].map((item) => (
+              <Pressable
+                key={item.label}
+                style={({ pressed }) => [styles.trinityBubble, pressed && styles.trinityBubblePressed]}
+                onPress={() => openBigThreeSheet(item.role)}
+                accessibilityRole="button"
+                accessibilityLabel={t('natalChart.bigThreeOpenA11y', { label: item.label })}
+              >
+                <View style={styles.trinityIconShell}>
+                  <View style={styles.trinityIconCore}>
+                    <Text style={styles.trinityIcon}>{item.icon}</Text>
                   </View>
-                  <Text style={styles.trinitySign}>{item.info.symbol} {item.info.name}</Text>
-                  <Text style={styles.trinityLabel}>{item.label}</Text>
-                  <Text style={styles.trinityHint}>{t('natalChart.bigThreeOpenHint')}</Text>
+                </View>
+                <Text style={styles.trinitySign}>
+                  {item.info.symbol} {item.info.name}
+                </Text>
+                <Text style={styles.trinityLabel}>{item.label}</Text>
+                <Text style={styles.trinityHint}>{t('natalChart.bigThreeOpenHint')}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </AccordionSection>
+      );
+    };
+
+    const renderHotspotsSection = () => {
+      if (hotspotAspects.length === 0) return null;
+      return (
+        <AccordionSection
+          id="hotspots"
+          title={t('natalChart.cosmicHotspots')}
+          subtitle={t('natalChart.sectionHotspotsSub')}
+          icon="flash-outline"
+          iconStyle="premium"
+          iconTone={accordionIconTone}
+          expanded={openAccordionKey === 'hotspots'}
+          onToggle={toggleAccordion}
+          onLayout={registerAccordionLayout}
+          headerRight={headerRight}
+        >
+          <View style={styles.section}>
+            <View style={styles.hotspotRow}>
+              {hotspotAspects.map((asp, i) => (
+                <Pressable
+                  key={`hotspot-${i}`}
+                  style={{ flex: 1 }}
+                  onPress={() => openAspectSheet(asp)}
+                  accessibilityLabel={t('natalChart.cosmicHotspotLabel', {
+                    p1: planetNames[asp.planet1] ?? asp.planet1,
+                    type: labelAspectType(asp.type),
+                    p2: planetNames[asp.planet2] ?? asp.planet2,
+                  })}
+                  accessibilityRole="button"
+                >
+                  <CosmicHotspotCard aspect={asp} index={i} />
                 </Pressable>
               ))}
             </View>
-          </AccordionSection>
-        );
+          </View>
+        </AccordionSection>
+      );
+    };
+
+    switch (key) {
+      case 'night_poster':
+        return renderNightPosterSection();
+
+      case 'big_three':
+        return renderBigThreeSection();
 
       case 'hotspots':
-        if (hotspotAspects.length === 0) return null;
-        return (
-          <AccordionSection
-            id="hotspots"
-            title={t('natalChart.cosmicHotspots')}
-            subtitle={t('natalChart.sectionHotspotsSub')}
-            icon="flash-outline"
-            iconStyle="premium"
-            iconTone={accordionIconTone}
-            expanded={openAccordionKey === 'hotspots'}
-            onToggle={toggleAccordion}
-            onLayout={registerAccordionLayout}
-            headerRight={headerRight}
-          >
-            <View style={styles.section}>
-              <View style={styles.hotspotRow}>
-                {hotspotAspects.map((asp, i) => (
-                  <Pressable
-                    key={`hotspot-${i}`}
-                    style={{ flex: 1 }}
-                    onPress={() => openAspectSheet(asp)}
-                    accessibilityLabel={t('natalChart.cosmicHotspotLabel', {
-                      p1: planetNames[asp.planet1] ?? asp.planet1,
-                      type: labelAspectType(asp.type),
-                      p2: planetNames[asp.planet2] ?? asp.planet2,
-                    })}
-                    accessibilityRole="button"
-                  >
-                    <CosmicHotspotCard aspect={asp} index={i} />
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </AccordionSection>
-        );
+        return renderHotspotsSection();
 
       case 'natal_chart_visual':
         if ((chart?.planets?.length ?? 0) === 0) return null;
@@ -2534,7 +2595,7 @@ export function NatalChartScreenContent() {
                   <View style={[
                     styles.avatarCircle,
                     sameProfile(resolvedActiveProfile, user, user.id) && styles.avatarCircleActive,
-                    profileMode === 'compare' && selectedForComparison.some((p) => sameProfile(p, user, user.id)) && styles.avatarCircleCompare,
+                    profileMode === 'compare' && selectedForComparisonKeys.has(profileKey(user, user.id) ?? '') && styles.avatarCircleCompare,
                   ]}>
                     {badgeIndex ? (
                       <View style={styles.compareOrderBadge}>
@@ -2556,7 +2617,7 @@ export function NatalChartScreenContent() {
 
           {savedPeople.map((person) => {
             const isActive = sameProfile(resolvedActiveProfile, person, user?.id);
-            const isSelectedForCompare = selectedForComparison.some((p) => sameProfile(p, person, user?.id));
+            const isSelectedForCompare = selectedForComparisonKeys.has(profileKey(person, user?.id) ?? '');
             const selectionBadge = profileMode === 'compare' ? getComparisonBadgeIndex(person) : null;
 
             return (

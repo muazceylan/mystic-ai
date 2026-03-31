@@ -19,7 +19,7 @@ import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope.service';
 import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
 import { MainTabPager, type MainTabPagerHandle } from '../../navigation/MainTabPager';
-import { MAIN_TAB_ORDER, isMainTab, mainTabIndex } from '../../navigation/tabPagerConfig';
+import { MAIN_TAB_ORDER, mainTabIndex } from '../../navigation/tabPagerConfig';
 
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -565,6 +565,69 @@ export default function TabsLayout() {
         name="today-actions"
         options={{
           title: t('home.transitActionItems'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: t('notifCenter.title'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications-settings"
+        options={{
+          title: t('notifSettings.title'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="theme-settings"
+        options={{
+          title: t('theme.title'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="premium"
+        options={{
+          title: t('premium.title'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="link-account"
+        options={{
+          title: t('linkAccount.title'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="add-person"
+        options={{
+          title: t('addPerson.title'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="decision-compass-detail"
+        options={{
+          title: t('decisionCompassDetail.labelFallback'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="night-sky-poster-preview"
+        options={{
+          title: 'Night Sky Poster',
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="natal-visuals-preview"
+        options={{
+          title: 'Natal Visuals',
           href: null,
         }}
       />

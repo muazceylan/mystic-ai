@@ -1118,11 +1118,33 @@ function strongestAndCautionAxes(traitAxes: TraitAxis[]) {
       caution: 'İletişim zamanlaması',
     };
   }
-  const sorted = [...traitAxes].sort(
-    (a, b) => Math.abs(clampScore(b.score0to100, 50) - 50) - Math.abs(clampScore(a.score0to100, 50) - 50),
-  );
-  const strongest = axisDirection(sorted[0])?.dominant ?? 'Ortak ritim';
-  const caution = axisDirection(sorted[sorted.length - 1])?.balancing ?? 'İletişim zamanlaması';
+
+  // Performance: avoid allocating/copying+sorting. We only need min/max of the
+  // distance metric used by the previous sort.
+  let strongestAxis: TraitAxis = traitAxes[0];
+  let cautionAxis: TraitAxis = traitAxes[0];
+  let minDist = Infinity;
+  let maxDist = -Infinity;
+
+  for (const axis of traitAxes) {
+    const score = clampScore(axis.score0to100, 50);
+    const dist = Math.abs(score - 50);
+
+    // minDist: keep the first axis with the smallest distance (to mimic stable sort).
+    if (dist < minDist) {
+      minDist = dist;
+      strongestAxis = axis;
+    }
+
+    // maxDist: keep the last axis with the largest distance (to mimic stable sort's tail).
+    if (dist > maxDist || dist === maxDist) {
+      maxDist = dist;
+      cautionAxis = axis;
+    }
+  }
+
+  const strongest = axisDirection(strongestAxis)?.dominant ?? 'Ortak ritim';
+  const caution = axisDirection(cautionAxis)?.balancing ?? 'İletişim zamanlaması';
   return { strongest, caution };
 }
 

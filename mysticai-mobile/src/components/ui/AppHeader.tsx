@@ -19,7 +19,6 @@ export function AppHeader({
   transparent = false,
   tintColor,
 }: AppHeaderProps) {
-  void transparent;
   const smartBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
 
   return (
@@ -31,6 +30,7 @@ export function AppHeader({
       onBack={onBack ?? smartBack}
       rightActions={rightActions}
       tintColor={tintColor}
+      transparent={transparent}
     />
   );
 }

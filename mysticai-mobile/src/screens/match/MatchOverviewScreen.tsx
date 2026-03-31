@@ -395,12 +395,39 @@ export default function MatchOverviewScreen(props: MatchOverviewScreenProps) {
       summary: props.fallbackInsight,
     };
     return enrichWithProps(buildMockMatchDTO(seed), props);
-  }, [props]);
+  }, [
+    props.matchId,
+    props.personAName,
+    props.personBName,
+    props.personASignLabel,
+    props.personBSignLabel,
+    props.compatibilityScore,
+    props.fallbackInsight,
+    props.scoreBreakdown,
+    props.displayMetrics,
+    props.crossAspects,
+    props.analysisSections,
+    props.aspectsCount,
+  ]);
 
   const resolvedData = useMemo(() => {
     if (data) return enrichWithProps(data, props);
     return fallbackFromProps;
-  }, [data, fallbackFromProps, props]);
+  }, [
+    data,
+    fallbackFromProps,
+    props.compatibilityScore,
+    props.fallbackInsight,
+    props.scoreBreakdown,
+    props.displayMetrics,
+    props.crossAspects,
+    props.analysisSections,
+    props.aspectsCount,
+    props.personAName,
+    props.personBName,
+    props.personASignLabel,
+    props.personBSignLabel,
+  ]);
 
   const filteredAxes = useMemo(() => {
     const list = resolvedData?.axes ?? [];
@@ -414,14 +441,18 @@ export default function MatchOverviewScreen(props: MatchOverviewScreenProps) {
     return list.filter((aspect) => resolveAspectTheme(aspect) === detailAspectFilter);
   }, [detailAspectFilter, resolvedData?.aspects]);
 
-  const supportiveAspects = useMemo(
-    () => detailFilteredAspects.filter((item) => item.tone === 'DESTEKLEYICI'),
-    [detailFilteredAspects],
-  );
-  const challengingAspects = useMemo(
-    () => detailFilteredAspects.filter((item) => item.tone === 'ZORLAYICI'),
-    [detailFilteredAspects],
-  );
+  const { supportiveAspects, challengingAspects } = useMemo(() => {
+    // Performance: compute both buckets in a single pass.
+    const supportive: AspectDTO[] = [];
+    const challenging: AspectDTO[] = [];
+
+    for (const item of detailFilteredAspects) {
+      if (item.tone === 'DESTEKLEYICI') supportive.push(item);
+      else if (item.tone === 'ZORLAYICI') challenging.push(item);
+    }
+
+    return { supportiveAspects: supportive, challengingAspects: challenging };
+  }, [detailFilteredAspects]);
 
   const leftSignInfo = useMemo(() => parseSignLabel(props.personASignLabel), [props.personASignLabel]);
   const rightSignInfo = useMemo(() => parseSignLabel(props.personBSignLabel), [props.personBSignLabel]);

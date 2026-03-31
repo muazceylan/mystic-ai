@@ -27,6 +27,18 @@ function isTabLayoutRoute(pathname: string, segments: readonly string[]): boolea
   return segments[0] === '(tabs)' || pathname.startsWith('/(tabs)');
 }
 
+function isMainPagerTabRoute(segments: readonly string[]): boolean {
+  // These 5 routes are rendered inside `MainTabPager`, which already reserves space for the tab bar.
+  // Adding extra bottom compensation here creates a visible empty strip above the tab bar.
+  if (segments[0] !== '(tabs)') return false;
+  const tab = segments[1] ?? '';
+  return tab === 'home'
+    || tab === 'discover'
+    || tab === 'calendar'
+    || tab === 'natal-chart'
+    || tab === 'profile';
+}
+
 type SafeScreenProps = {
   children: React.ReactNode;
   /**
@@ -121,7 +133,8 @@ export function SafeScreen({
   const basePaddingTop = typeof containerStyle.paddingTop === 'number' ? containerStyle.paddingTop : 0;
   const basePaddingBottom = typeof containerStyle.paddingBottom === 'number' ? containerStyle.paddingBottom : 0;
   const isTabRoute = isTabLayoutRoute(pathname, segments);
-  const bottomTabCompensation = isTabRoute && tabBarHeight > 0
+  const isMainPagerTab = isMainPagerTabRoute(segments);
+  const bottomTabCompensation = isTabRoute && !isMainPagerTab && tabBarHeight > 0
     ? (hasBottomEdge ? bottomTabBarOffset : tabBarHeight)
     : 0;
   const adjustedContainerStyle: ViewStyle = hasTopEdge

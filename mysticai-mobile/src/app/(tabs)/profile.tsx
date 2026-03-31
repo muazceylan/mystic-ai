@@ -387,7 +387,7 @@ export function ProfileScreenContent() {
               style={S.upgradeButton}
               accessibilityLabel={t('profile.premium.upgrade')}
               accessibilityRole="button"
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/premium' as any); }}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(tabs)/premium' as any); }}
             >
               <Text style={S.upgradeButtonText}>{t('profile.premium.upgradeBtn')}</Text>
             </TouchableOpacity>
@@ -398,7 +398,7 @@ export function ProfileScreenContent() {
         {isGuestUser(user) && (
           <TouchableOpacity
             style={S.guestBanner}
-            onPress={() => router.push('/link-account' as any)}
+            onPress={() => router.push('/(tabs)/link-account' as any)}
             accessibilityRole="button"
             accessibilityLabel={t('guestBanner.linkButton')}
             activeOpacity={0.85}

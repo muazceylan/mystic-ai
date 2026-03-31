@@ -22,9 +22,9 @@ import java.time.ZoneId;
 @Slf4j
 public class NotificationDispatchService {
 
-    private static final int MAX_DAILY_PUSH_LOW = 1;
-    private static final int MAX_DAILY_PUSH_BALANCED = 2;
-    private static final int MAX_DAILY_PUSH_FREQUENT = 4;
+    private static final int MAX_DAILY_PUSH_LOW = 3;
+    private static final int MAX_DAILY_PUSH_BALANCED = 6;
+    private static final int MAX_DAILY_PUSH_FREQUENT = 9;
 
     private final NotificationRepository notificationRepository;
 

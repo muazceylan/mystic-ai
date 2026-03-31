@@ -19,6 +19,11 @@ interface AppSurfaceHeaderProps {
   leftActions?: React.ReactNode;
   rightActions?: React.ReactNode;
   tintColor?: string;
+  /**
+   * When true, the header shell (background/border/shadow) becomes transparent.
+   * Use cases: screens that already render a sticky gradient behind the header.
+   */
+  transparent?: boolean;
   allowTitleAutoShrink?: boolean;
   titleMinimumScale?: number;
 }
@@ -41,7 +46,8 @@ export function SurfaceHeaderIconButton({
   color,
 }: SurfaceHeaderIconButtonProps) {
   const { colors, isDark } = useTheme();
-  const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
+  // Icon button doesn't need the transparent styling; always use default (non-transparent) header shell.
+  const styles = React.useMemo(() => makeStyles(colors, isDark, false), [colors, isDark]);
   const resolvedColor = color ?? colors.text;
 
   return (
@@ -74,21 +80,24 @@ export function AppSurfaceHeader({
   leftActions,
   rightActions,
   tintColor,
+  transparent = false,
   allowTitleAutoShrink = false,
   titleMinimumScale = 0.9,
 }: AppSurfaceHeaderProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
-  const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
+  const styles = React.useMemo(() => makeStyles(colors, isDark, transparent), [colors, isDark, transparent]);
   const [contentWidth, setContentWidth] = React.useState(0);
   const [leadingWidth, setLeadingWidth] = React.useState(0);
   const [rightActionsWidth, setRightActionsWidth] = React.useState(0);
   const [titleWidth, setTitleWidth] = React.useState(0);
   const textColor = tintColor ?? colors.text;
   const subtextColor = tintColor ? `${tintColor}B3` : colors.subtext;
-  const headerGradient: readonly [string, string, ...string[]] = isDark
-    ? (isAndroid ? ['#181626', '#0F1320'] : ['rgba(24,22,40,0.97)', 'rgba(14,14,24,0.90)'])
-    : (isAndroid ? ['#FBF8FF', '#FFFFFF'] : ['rgba(247,241,255,0.95)', 'rgba(255,255,255,0.86)']);
+  const headerGradient: readonly [string, string, ...string[]] = transparent
+    ? ['transparent', 'transparent']
+    : (isDark
+        ? (isAndroid ? ['#181626', '#0F1320'] : ['rgba(24,22,40,0.97)', 'rgba(14,14,24,0.90)'])
+        : (isAndroid ? ['#FBF8FF', '#FFFFFF'] : ['rgba(247,241,255,0.95)', 'rgba(255,255,255,0.86)']));
   const hasLeadingNode = Boolean(leftActions || (variant !== 'home' && showBackButton && onBack));
   const inlineLeadingGap = variant === 'page' ? spacing.xs : spacing.sm;
   const inlineOuterGap = rightActions ? spacing.md : 0;
@@ -281,15 +290,15 @@ export function AppSurfaceHeader({
   );
 }
 
-function makeStyles(C: ThemeColors, isDark: boolean) {
+function makeStyles(C: ThemeColors, isDark: boolean, transparent: boolean) {
   return StyleSheet.create({
     headerShell: {
       borderRadius: radius.card,
-      borderWidth: 1,
-      borderColor: isDark ? platformColor(C.surfaceGlassBorder, C.border) : C.borderLight,
+      borderWidth: transparent ? 0 : 1,
+      borderColor: transparent ? 'transparent' : (isDark ? platformColor(C.surfaceGlassBorder, C.border) : C.borderLight),
       paddingHorizontal: spacing.cardPadding,
       paddingVertical: spacing.md,
-      ...shadowSubtle,
+      ...(transparent ? {} : shadowSubtle),
     },
     headerRow: {
       flexDirection: 'row',

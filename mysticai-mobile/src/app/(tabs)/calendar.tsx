@@ -559,7 +559,17 @@ function buildPlannerInsightFromCosmicDetail(params: {
   const supportingAspects = (categoryDetail.supportingAspects ?? []).filter(Boolean);
   const signalSeed = Math.max(1, supportingAspects.length);
   const topSub = (categoryDetail.subcategories ?? [])[0];
-  const lowSub = (categoryDetail.subcategories ?? []).slice().sort((a, b) => a.score - b.score)[0];
+  const subcategories = categoryDetail.subcategories ?? [];
+  // Performance: replace full sort with a single-pass min.
+  let lowSub: (typeof subcategories)[number] | null = null;
+  let bestScore = Infinity;
+  for (const sub of subcategories) {
+    if (!sub) continue;
+    if (sub.score < bestScore) {
+      bestScore = sub.score;
+      lowSub = sub;
+    }
+  }
 
   return {
     score,
@@ -790,6 +800,15 @@ export function CalendarScreenContent() {
     [interestTagList],
   );
 
+  // Performance: `getInsightForDate` içinde her çağrıda yeni `Set` üretmek pahalı.
+  // `interestKey` değişmediği sürece aynı Set'i yeniden kullanıyoruz.
+  const interestTagSet = useMemo(() => new Set(personalization.interestTags), [interestKey]);
+
+  // Performance: `getDaySummary` için her hücrede `visibleCategories.find(...)` yapmak yerine O(1) lookup.
+  const visibleCategoriesById = useMemo(() => (
+    Object.fromEntries(visibleCategories.map((category) => [category.id, category])) as Record<string, PlannerCategoryDefinition>
+  ), [visibleCategories]);
+
   useEffect(() => {
     const firstVisible = visibleDockCategories[0]?.id ?? visibleCategories[0]?.id;
     if (!firstVisible) return;
@@ -834,7 +853,7 @@ export function CalendarScreenContent() {
     void triggerInitialTutorials();
   }, [triggerInitialTutorials, user?.id]);
 
-  useEffect(() => {
+  const scrollCosmicPlannerTutorialStepIfNeeded = useCallback(() => {
     if (!activeSession || activeSession.definition.screenKey !== TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER) return;
     const step = activeSession.definition.steps[activeSession.stepIndex];
     if (!step) return;
@@ -848,6 +867,10 @@ export function CalendarScreenContent() {
       return () => clearTimeout(timer);
     }
   }, [activeSession?.stepIndex, activeSession?.definition.screenKey, tutorialLayoutVersion]);
+
+  useEffect(() => {
+    return scrollCosmicPlannerTutorialStepIfNeeded();
+  }, [scrollCosmicPlannerTutorialStepIfNeeded]);
 
   const updateTutorialSectionOffset = useCallback((targetKey: string, nextY: number) => {
     const currentY = tutorialSectionOffsetsRef.current[targetKey];
@@ -1292,7 +1315,7 @@ export function CalendarScreenContent() {
 
   const getInsightForDate = useCallback((date: Date, category: PlannerCategoryDefinition): PlannerInsight => {
     const dateKey = toDateKey(date);
-    const interestTags = new Set(personalization.interestTags);
+    const interestTags = interestTagSet;
     const fallbackInsight = buildPlannerInsight({
       date,
       category,
@@ -1346,7 +1369,7 @@ export function CalendarScreenContent() {
     }
 
     return fallbackInsight;
-  }, [backendInsightsByDate, cosmicDayDetailsByDate, user?.id, interestKey, backendWindowEnd, plannerLocale]);
+  }, [backendInsightsByDate, cosmicDayDetailsByDate, user?.id, interestTagSet, backendWindowEnd, plannerLocale]);
 
   const insightsByDate = useMemo<Record<string, InsightByCategory>>(() => {
     const map: Record<string, InsightByCategory> = {};
@@ -1378,7 +1401,7 @@ export function CalendarScreenContent() {
 
     const dateKey = toDateKey(date);
     const dayInsights = insightsByDate[dateKey] ?? {};
-    const category = visibleCategories.find((item) => item.id === filter)
+    const category = (filter ? visibleCategoriesById[filter] : undefined)
       ?? visibleDockCategories[0]
       ?? visibleCategories[0]
       ?? null;
@@ -1405,7 +1428,7 @@ export function CalendarScreenContent() {
       selectedInsight: { ...insight, score: syncedScore, tone: toneFromScore(syncedScore) },
       topCategory: category,
     };
-  }, [visibleCategories, visibleDockCategories, insightsByDate, getInsightForDate, cosmicPlannerDaysByDate]);
+  }, [visibleCategoriesById, visibleDockCategories, insightsByDate, getInsightForDate, cosmicPlannerDaysByDate]);
 
   const cellSummaries = useMemo(() => {
     const now = new Date();
@@ -1437,12 +1460,12 @@ export function CalendarScreenContent() {
   );
 
   const selectedCategory = useMemo(() => {
-    return visibleCategories.find((category) => category.id === activeFilter)
+    return (activeFilter ? visibleCategoriesById[activeFilter] : undefined)
       ?? selectedSummary.topCategory
       ?? visibleDockCategories[0]
       ?? visibleCategories[0]
       ?? null;
-  }, [activeFilter, visibleCategories, visibleDockCategories, selectedSummary.topCategory]);
+  }, [activeFilter, visibleCategories, visibleCategoriesById, visibleDockCategories, selectedSummary.topCategory]);
 
   const selectedCategoryLabel = useMemo(() => {
     if (!selectedCategory) return t('calendar.categoryDock');
@@ -2207,7 +2230,7 @@ export function CalendarScreenContent() {
               transparent
               showDefaultRightIcons={false}
               rightActions={
-                <View style={styles.headerActionsRow}>
+                <>
                   <SurfaceHeaderIconButton
                     iconName="refresh-outline"
                     onPress={fetchPlannerData}
@@ -2216,7 +2239,7 @@ export function CalendarScreenContent() {
                   />
                   <SurfaceHeaderIconButton
                     iconName="notifications-outline"
-                    onPress={() => router.navigate('/notifications' as never)}
+                    onPress={() => router.navigate('/(tabs)/notifications' as never)}
                     accessibilityLabel={t('profile.menu.notifications')}
                     color={colors.text}
                     badgeText={notificationBadgeText}
@@ -2229,7 +2252,7 @@ export function CalendarScreenContent() {
                       color={colors.text}
                     />
                   </SpotlightTarget>
-                </View>
+                </>
               }
             />
 

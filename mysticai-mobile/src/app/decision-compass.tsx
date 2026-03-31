@@ -221,7 +221,7 @@ export default function DecisionCompassScreen() {
   const openDetailScreen = useCallback((category: DecisionCategoryModel) => {
     setDetailSheetOpen(false);
     router.push({
-      pathname: '/decision-compass-detail',
+      pathname: '/(tabs)/decision-compass-detail',
       params: {
         categoryKey: category.cosmicCategoryKey ?? category.id,
         label: category.title,
@@ -259,7 +259,7 @@ export default function DecisionCompassScreen() {
 
         <DecisionCompassHeader
           onBack={goBack}
-          onOpenNotifications={() => router.navigate('/notifications')}
+          onOpenNotifications={() => router.navigate('/(tabs)/notifications')}
           onOpenHelp={handlePressTutorialHelp}
         />
 

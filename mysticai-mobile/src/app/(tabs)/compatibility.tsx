@@ -591,8 +591,8 @@ export default function CompatibilityScreen() {
           title={t('compatibility.title')}
           subtitle={t('compatibility.subtitle')}
           rightActions={(
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              {monetization.guruEnabled && <GuruBalanceBadge />}
+            <>
+              {monetization.guruEnabled ? <GuruBalanceBadge /> : null}
               <SpotlightTarget targetKey={COMPATIBILITY_TUTORIAL_TARGET_KEYS.HELP_ENTRY}>
                 <SurfaceHeaderIconButton
                   iconName="help-circle-outline"
@@ -600,7 +600,7 @@ export default function CompatibilityScreen() {
                   accessibilityLabel={t('compatibility.helpAccessibility')}
                 />
               </SpotlightTarget>
-            </View>
+            </>
           )}
           {...tabHeaderActions}
         />
@@ -614,7 +614,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.sectionTitle}>{t('compatibility.importantPeople')}</Text>
                 <TouchableOpacity
                   style={styles.addButton}
-                  onPress={() => router.push('/add-person')}
+                  onPress={() => router.push('/(tabs)/add-person')}
                   accessibilityLabel={t('compatibility.addPersonAccessibility')}
                   accessibilityRole="button"
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -635,7 +635,7 @@ export default function CompatibilityScreen() {
               ) : savedPeople.length === 0 ? (
                 <TouchableOpacity
                   style={styles.emptyPeopleCard}
-                  onPress={() => router.push('/add-person')}
+                  onPress={() => router.push('/(tabs)/add-person')}
                   accessibilityLabel={t('compatibility.addPersonAccessibility')}
                   accessibilityRole="button"
                 >
@@ -647,7 +647,7 @@ export default function CompatibilityScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.peopleScroll}>
                   <TouchableOpacity
                     style={styles.addPersonCard}
-                    onPress={() => router.push('/add-person')}
+                    onPress={() => router.push('/(tabs)/add-person')}
                     accessibilityLabel={t('compatibility.addPersonAccessibility')}
                     accessibilityRole="button"
                   >

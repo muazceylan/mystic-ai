@@ -430,9 +430,18 @@ function buildPersonalizedLineLocalized(
 
 function resolvePrimaryTheme(hero: DailyTransitsDTO['hero'], transits: TransitItem[]): TransitTheme {
   if (transits.length > 0) {
-    const strongest = transits
-      .slice()
-      .sort((a, b) => b.confidence - a.confidence)[0];
+    // Performance: only need the max confidence element.
+    let strongest = transits[0];
+    let bestConfidence = strongest.confidence;
+
+    for (let i = 1; i < transits.length; i += 1) {
+      const item = transits[i];
+      if (item.confidence > bestConfidence) {
+        bestConfidence = item.confidence;
+        strongest = item;
+      }
+    }
+
     return strongest.theme;
   }
 
@@ -455,8 +464,12 @@ function buildHeroHeadline(data: DailyTransitsDTO, personalization: HeroPersonal
   const primaryTheme = resolvePrimaryTheme(hero, transits);
   const focusText = THEME_FOCUS_TEXT[primaryTheme];
   const hasRetrogrades = retrogrades.length > 0;
-  const supportiveCount = transits.filter((item) => item.label === 'Destekleyici').length;
-  const cautionCount = transits.filter((item) => item.label === 'Dikkat').length;
+  let supportiveCount = 0;
+  let cautionCount = 0;
+  for (const item of transits) {
+    if (item.label === 'Destekleyici') supportiveCount += 1;
+    if (item.label === 'Dikkat') cautionCount += 1;
+  }
   const intensityBand = hero.intensity >= 75 ? 'high' : hero.intensity >= 55 ? 'mid' : 'low';
 
   const baseSeed = [
@@ -595,9 +608,18 @@ function resolvePrimaryThemeLocalized(
   transits: TransitItem[],
 ): CanonicalTransitTheme {
   if (transits.length > 0) {
-    const strongest = transits
-      .slice()
-      .sort((a, b) => b.confidence - a.confidence)[0];
+    // Performance: only need the max confidence element.
+    let strongest = transits[0];
+    let bestConfidence = strongest.confidence;
+
+    for (let i = 1; i < transits.length; i += 1) {
+      const item = transits[i];
+      if (item.confidence > bestConfidence) {
+        bestConfidence = item.confidence;
+        strongest = item;
+      }
+    }
+
     return canonicalizeTheme(strongest.theme);
   }
 
@@ -624,8 +646,12 @@ function buildHeroHeadlineLocalized(
   const primaryTheme = resolvePrimaryThemeLocalized(hero, transits);
   const focusText = getThemeFocusText(primaryTheme, locale);
   const hasRetrogrades = retrogrades.length > 0;
-  const supportiveCount = transits.filter((item) => isSupportiveLabel(item.label)).length;
-  const cautionCount = transits.filter((item) => isCautionLabel(item.label)).length;
+  let supportiveCount = 0;
+  let cautionCount = 0;
+  for (const item of transits) {
+    if (isSupportiveLabel(item.label)) supportiveCount += 1;
+    if (isCautionLabel(item.label)) cautionCount += 1;
+  }
   const intensityBand = hero.intensity >= 75 ? 'high' : hero.intensity >= 55 ? 'mid' : 'low';
   const moodTag = canonicalizeMoodTag(hero.moodTag);
 
@@ -972,10 +998,13 @@ function groupTransits(items: TransitItem[], locale: DailyLocale): TransitThemeG
     byTheme.set(localizedTheme, current);
   });
 
+  const orderedThemeSequence = THEME_SEQUENCE.map((theme) => THEME_METADATA[theme][locale]);
+  const orderedThemeSet = new Set(orderedThemeSequence);
+
   const orderedThemes = [
-    ...THEME_SEQUENCE.map((theme) => THEME_METADATA[theme][locale]).filter((theme) => byTheme.has(theme)),
+    ...orderedThemeSequence.filter((theme) => byTheme.has(theme)),
     ...Array.from(byTheme.keys())
-      .filter((theme) => !THEME_SEQUENCE.map((item) => THEME_METADATA[item][locale]).includes(theme))
+      .filter((theme) => !orderedThemeSet.has(theme))
       .sort((a, b) => a.localeCompare(b, 'tr')),
   ];
 
@@ -1165,11 +1194,29 @@ export default function DailyTransitsScreen() {
   }, [reopenTutorialById]);
 
   const data = dailyTransitsQuery.data;
+  const hasDailyData = Boolean(data);
   const isEmpty = !!data && data.transits.length === 0;
   const actionsRoute = '/(tabs)/today-actions';
   const heroPersonalization = useMemo(
-    () => buildHeroPersonalization(user, chart, resolvedLocale),
-    [user, chart, resolvedLocale],
+    () => {
+      // Avoid derived work until the fetch payload is available.
+      if (!hasDailyData) return null;
+      return buildHeroPersonalization(user, chart, resolvedLocale);
+    },
+    [
+      hasDailyData,
+      user?.id,
+      user?.firstName,
+      user?.name,
+      user?.maritalStatus,
+      user?.relationshipStage,
+      user?.zodiacSign,
+      chart?.calculatedAt,
+      chart?.sunSign,
+      chart?.moonSign,
+      chart?.risingSign,
+      resolvedLocale,
+    ],
   );
   const heroForRender = useMemo(() => {
     if (!data) return null;
@@ -1178,7 +1225,7 @@ export default function DailyTransitsScreen() {
       moodTag: localizeMoodTag(data.hero.moodTag, resolvedLocale) as DailyTransitsDTO['hero']['moodTag'],
       headline: resolveHeroHeadlineLocalized(data, heroPersonalization, resolvedLocale),
     };
-  }, [data, heroPersonalization, resolvedLocale]);
+  }, [data?.hero, data?.transits, data?.retrogrades, data?.date, heroPersonalization, resolvedLocale]);
 
   const processedContent = useMemo(() => {
     if (!data) {
@@ -1191,10 +1238,13 @@ export default function DailyTransitsScreen() {
 
     const uniqueTransits = dedupeTransits(data.transits).map((item) => localizeTransitItem(item, resolvedLocale));
 
-    const todayCandidates = [
-      ...splitSentences(data.todayCanDo.body),
-      ...uniqueTransits.filter((item) => isSupportiveLabel(item.label)).map((item) => item.titlePlain),
-    ];
+    const todayCandidates = splitSentences(data.todayCanDo.body);
+    // Avoid intermediate `filter().map()` allocations.
+    for (const item of uniqueTransits) {
+      if (isSupportiveLabel(item.label)) {
+        todayCandidates.push(item.titlePlain);
+      }
+    }
     const todayItems = dedupeSentences(todayCandidates).slice(0, MAX_TODAY_ITEMS);
 
     const focusCandidates = data.focusPoints.map((point) => point.text);
@@ -1205,7 +1255,7 @@ export default function DailyTransitsScreen() {
       focusItems,
       groupedTransits: groupTransits(uniqueTransits, resolvedLocale),
     };
-  }, [data, resolvedLocale]);
+  }, [data?.transits, data?.todayCanDo.body, data?.focusPoints, resolvedLocale]);
 
   const hasTransitCards = processedContent.groupedTransits.length > 0;
 

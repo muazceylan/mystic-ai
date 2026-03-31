@@ -25,7 +25,7 @@ class NotificationDispatchServiceTest {
     @InjectMocks NotificationDispatchService service;
 
     @Test
-    void shouldLimitLowFrequencyUsersToOnePushPerDay() {
+    void shouldLimitLowFrequencyUsersAfterThirdPush() {
         Long userId = 42L;
         NotificationPreference preference = basePreferenceBuilder(userId)
                 .frequencyLevel(NotificationPreference.FrequencyLevel.LOW)
@@ -34,7 +34,7 @@ class NotificationDispatchServiceTest {
         when(notificationRepository.findByDedupKey(eq("42:DAILY_SUMMARY:" + java.time.LocalDate.now())))
                 .thenReturn(Optional.empty());
         when(notificationRepository.countPushSentSince(eq(userId), any()))
-                .thenReturn(1L);
+                .thenReturn(3L);
 
         NotificationDispatchService.DispatchDecision decision =
                 service.evaluate(userId, Notification.NotificationType.DAILY_SUMMARY, preference);
@@ -43,7 +43,7 @@ class NotificationDispatchServiceTest {
     }
 
     @Test
-    void shouldAllowBalancedFrequencyUsersBeforeDailyLimit() {
+    void shouldAllowBalancedFrequencyUsersBeforeSixthPush() {
         Long userId = 43L;
         NotificationPreference preference = basePreferenceBuilder(userId)
                 .frequencyLevel(NotificationPreference.FrequencyLevel.BALANCED)
@@ -52,7 +52,7 @@ class NotificationDispatchServiceTest {
         when(notificationRepository.findByDedupKey(eq("43:DAILY_SUMMARY:" + java.time.LocalDate.now())))
                 .thenReturn(Optional.empty());
         when(notificationRepository.countPushSentSince(eq(userId), any()))
-                .thenReturn(1L);
+                .thenReturn(5L);
 
         NotificationDispatchService.DispatchDecision decision =
                 service.evaluate(userId, Notification.NotificationType.DAILY_SUMMARY, preference);
@@ -61,7 +61,7 @@ class NotificationDispatchServiceTest {
     }
 
     @Test
-    void shouldLimitFrequentUsersAfterFourthPush() {
+    void shouldLimitFrequentUsersAfterNinthPush() {
         Long userId = 44L;
         NotificationPreference preference = basePreferenceBuilder(userId)
                 .frequencyLevel(NotificationPreference.FrequencyLevel.FREQUENT)
@@ -70,7 +70,7 @@ class NotificationDispatchServiceTest {
         when(notificationRepository.findByDedupKey(eq("44:DAILY_SUMMARY:" + java.time.LocalDate.now())))
                 .thenReturn(Optional.empty());
         when(notificationRepository.countPushSentSince(eq(userId), any()))
-                .thenReturn(4L);
+                .thenReturn(9L);
 
         NotificationDispatchService.DispatchDecision decision =
                 service.evaluate(userId, Notification.NotificationType.DAILY_SUMMARY, preference);

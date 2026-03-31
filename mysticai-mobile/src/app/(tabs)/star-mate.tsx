@@ -718,10 +718,6 @@ const ReanimatedSwipeDeck = React.forwardRef<SwipeDeckHandle, {
       hardReset();
     }, [topCardId, hardReset]);
 
-    const handleCommitAction = useCallback((action: StarMateActionType) => {
-      onCommitAction(action);
-    }, [onCommitAction]);
-
     const flyOut = useCallback((action: StarMateActionType) => {
       if (!topCard || !discoveryEnabled) return;
       if (isAnimatingOut.value) return;
@@ -745,9 +741,9 @@ const ReanimatedSwipeDeck = React.forwardRef<SwipeDeckHandle, {
           isAnimatingOut.value = 0;
           return;
         }
-        runOnJS(handleCommitAction)(action);
+        runOnJS(onCommitAction)(action);
       });
-    }, [topCard, discoveryEnabled, translateX, translateY, isAnimatingOut, handleCommitAction]);
+    }, [topCard, discoveryEnabled, translateX, translateY, isAnimatingOut, onCommitAction]);
 
     React.useImperativeHandle(ref, () => ({
       swipe: flyOut,
@@ -1496,16 +1492,21 @@ export default function StarMateTabScreen() {
   }, [commitAction]);
 
   const summaryCards = useMemo(() => {
-    const avg = deck.length
-      ? Math.round(deck.reduce((sum, p) => sum + p.compatibilityScore, 0) / deck.length)
-      : 0;
-    const high = deck.filter((p) => p.compatibilityScore >= 80).length;
+    // Performance: compute avg + high in one pass.
+    let sum = 0;
+    let high = 0;
+    for (const p of deck) {
+      sum += p.compatibilityScore;
+      if (p.compatibilityScore >= 80) high += 1;
+    }
+
+    const avg = deck.length ? Math.round(sum / deck.length) : 0;
     return [
       { label: t('starMate.metricQueue'), value: String(deck.length), icon: 'layers-outline' as const },
       { label: t('starMate.metricAvgMatch'), value: deck.length ? t('starMate.compatFormat', { score: String(avg) }) : '-', icon: 'pulse-outline' as const },
       { label: t('starMate.metricHigh'), value: String(high), icon: 'star-outline' as const },
     ];
-  }, [deck]);
+  }, [deck, t]);
 
   const onPressAction = useCallback(
     (action: StarMateActionType) => {
