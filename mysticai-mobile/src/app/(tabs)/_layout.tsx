@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Tabs } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Tabs, usePathname, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { TYPOGRAPHY } from '../../constants/tokens';
@@ -18,6 +18,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope.service';
 import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
+import { MainTabPager, type MainTabPagerHandle } from '../../navigation/MainTabPager';
+import { MAIN_TAB_ORDER, isMainTab, mainTabIndex } from '../../navigation/tabPagerConfig';
 
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -185,8 +187,51 @@ export default function TabsLayout() {
     return () => clearTimeout(timer);
   }, [user?.id, user?.gender, user?.maritalStatus, chart, plannerLocale]);
 
+  const pagerRef = useRef<MainTabPagerHandle>(null);
+  const pathname = usePathname();
+  const lastPagerIdxRef = useRef(0);
+
+  const currentMainIdx = useMemo(() => {
+    const cleaned = pathname.replace(/\/+$/, '');
+    const lastSeg = cleaned.split('/').pop() ?? '';
+    return mainTabIndex(lastSeg);
+  }, [pathname]);
+
+  const isMainTabActive = currentMainIdx >= 0;
+
+  useEffect(() => {
+    if (isMainTabActive && currentMainIdx !== lastPagerIdxRef.current) {
+      pagerRef.current?.setPageWithoutAnimation(currentMainIdx);
+      lastPagerIdxRef.current = currentMainIdx;
+    }
+  }, [currentMainIdx, isMainTabActive]);
+
+  const handlePagerPageSelected = useCallback((index: number) => {
+    lastPagerIdxRef.current = index;
+    const targetTab = MAIN_TAB_ORDER[index];
+    if (targetTab) {
+      router.navigate(`/(tabs)/${targetTab}` as any);
+    }
+  }, []);
+
+  const tabBarHeight =
+    Platform.OS === 'ios' ? iosTabBarHeight : 64 + iosBottomInset;
+
   return (
+    <View style={layoutStyles.root}>
     <Tabs
+      screenListeners={{
+        tabPress: (e) => {
+          const target = e.target ?? '';
+          for (let i = 0; i < MAIN_TAB_ORDER.length; i++) {
+            if (target.startsWith(MAIN_TAB_ORDER[i])) {
+              pagerRef.current?.setPageWithoutAnimation(i);
+              lastPagerIdxRef.current = i;
+              break;
+            }
+          }
+        },
+      }}
       screenOptions={{
         headerShown: false,
         freezeOnBlur: true,
@@ -524,5 +569,39 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+
+    {/* PagerView overlay — renders real adjacent screens */}
+    <View
+      style={[
+        layoutStyles.pagerOverlay,
+        { bottom: tabBarHeight },
+        !isMainTabActive && layoutStyles.pagerHidden,
+      ]}
+      pointerEvents={isMainTabActive ? 'auto' : 'none'}
+    >
+      <MainTabPager
+        ref={pagerRef}
+        initialPage={Math.max(0, currentMainIdx)}
+        onPageSelected={handlePagerPageSelected}
+      />
+    </View>
+    </View>
   );
 }
+
+const layoutStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  pagerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  pagerHidden: {
+    opacity: 0,
+    zIndex: -1,
+  },
+});

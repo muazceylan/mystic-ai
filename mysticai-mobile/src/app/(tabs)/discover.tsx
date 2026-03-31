@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen } from '../../components/ui/SafeScreen';
-import { TabSwipePager } from '../../components/navigation/TabSwipePager';
+
 import { TabHeader } from '../../components/ui/TabHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../constants/colors';
@@ -282,7 +282,7 @@ function PremiumModuleBadge({
   );
 }
 
-export default function DiscoverScreen() {
+export function DiscoverScreenContent() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
@@ -428,7 +428,6 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <TabSwipePager tab="discover">
       <SafeScreen edges={['top', 'left', 'right']}>
         <View style={[styles.root, { backgroundColor: colors.bg }]}> 
         <LinearGradient
@@ -691,8 +690,14 @@ export default function DiscoverScreen() {
         </ScrollView>
         </View>
       </SafeScreen>
-    </TabSwipePager>
   );
+}
+
+/**
+ * Route shell — content is rendered by MainTabPager (PagerView).
+ */
+export default function DiscoverRoute() {
+  return null;
 }
 
 const styles = StyleSheet.create({

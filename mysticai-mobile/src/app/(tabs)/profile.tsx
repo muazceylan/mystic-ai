@@ -17,14 +17,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from '../../utils/haptics';
-import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { SETTINGS_ICONS } from '../../constants/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, isGuestUser } from '../../store/useAuthStore';
 import { getZodiacSign } from '../../constants/index';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader, BrandBadge, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
-import { TabSwipePager } from '../../components/navigation/TabSwipePager';
+import { usePagerActivePage } from '../../navigation/MainTabPager';
+import { MAIN_TAB_ORDER } from '../../navigation/tabPagerConfig';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
 import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
@@ -75,7 +75,7 @@ function isPremium(roles?: string[]): boolean {
   return roles?.some((r) => r === 'PREMIUM' || r === 'ROLE_PREMIUM') ?? false;
 }
 
-export default function ProfileScreen() {
+export function ProfileScreenContent() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -134,9 +134,11 @@ export default function ProfileScreen() {
     }
   }, [user?.id]);
 
-  useFocusEffect(
-    useCallback(() => { fetchStats(false); }, [fetchStats])
-  );
+  const pagerPage = usePagerActivePage();
+  const isProfileActive = pagerPage === MAIN_TAB_ORDER.indexOf('profile');
+  useEffect(() => {
+    if (isProfileActive) fetchStats(false);
+  }, [isProfileActive, fetchStats]);
 
   const handleSettingPress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -251,7 +253,6 @@ export default function ProfileScreen() {
   const S = makeStyles(colors);
 
   return (
-    <TabSwipePager tab="profile">
       <SafeScreen edges={['top', 'left', 'right']}>
         <View style={S.container}>
         <TabHeader
@@ -544,8 +545,14 @@ export default function ProfileScreen() {
       </Modal>
 
       </SafeScreen>
-    </TabSwipePager>
   );
+}
+
+/**
+ * Route shell — content is rendered by MainTabPager (PagerView).
+ */
+export default function ProfileRoute() {
+  return null;
 }
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {

@@ -91,7 +91,6 @@ import { posterTokens } from '../../features/nightSkyPoster/poster.tokens';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
-import { TabSwipePager } from '../../components/navigation/TabSwipePager';
 import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import {
@@ -455,7 +454,7 @@ function getAspectInfo(C: ReturnType<typeof useTheme>['colors'], t: (k: string) 
   } as Record<string, { symbol: string; label: string; color: string }>;
 }
 
-export default function NatalChartTab() {
+export function NatalChartScreenContent() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const resolvedLocale = useMemo(
@@ -1678,7 +1677,6 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'loading') {
     return (
-      <TabSwipePager tab="natal-chart">
         <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.violet} />
@@ -1687,7 +1685,6 @@ export default function NatalChartTab() {
             <Text style={styles.loadingText}>{t('natalChart.loadingChart')}</Text>
           </View>
         </SafeScreen>
-      </TabSwipePager>
     );
   }
 
@@ -1696,7 +1693,6 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'calculating') {
     return (
-      <TabSwipePager tab="natal-chart">
         <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
           <View style={styles.center}>
             <Animated.Text
@@ -1724,7 +1720,6 @@ export default function NatalChartTab() {
             <Text style={styles.calcSub}>{t('natalChart.calculatingSub')}</Text>
           </View>
         </SafeScreen>
-      </TabSwipePager>
     );
   }
 
@@ -1733,7 +1728,6 @@ export default function NatalChartTab() {
   // ═══════════════════════════════════════════════════════════════════
   if (state === 'error') {
     return (
-      <TabSwipePager tab="natal-chart">
         <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
           <View style={styles.center}>
             <View style={styles.errorIcon}>
@@ -1751,7 +1745,6 @@ export default function NatalChartTab() {
             </Pressable>
           </View>
         </SafeScreen>
-      </TabSwipePager>
     );
   }
 
@@ -2622,7 +2615,6 @@ export default function NatalChartTab() {
   const stickyHeaderIndices = chart ? [1, 2] : [1];
 
   return (
-    <TabSwipePager tab="natal-chart">
       <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>
         <View style={styles.readyLayout}>
         <MainVerticalScroll
@@ -3350,8 +3342,14 @@ export default function NatalChartTab() {
         onClose={closeBigThreeSheet}
       />
       </SafeScreen>
-    </TabSwipePager>
   );
+}
+
+/**
+ * Route shell — content is rendered by MainTabPager (PagerView).
+ */
+export default function NatalChartRoute() {
+  return null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════

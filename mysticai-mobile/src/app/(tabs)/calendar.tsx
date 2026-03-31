@@ -39,7 +39,6 @@ import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader, PremiumIconBadge, type PremiumIconTone } from '../../components/ui';
-import { TabSwipePager } from '../../components/navigation/TabSwipePager';
 import { ThemeColors, useTheme } from '../../context/ThemeContext';
 import { COSMIC_DOCK_LABEL_OVERRIDE_KEYS, PLANNER_LOCAL_TO_COSMIC_CATEGORY } from '../../constants/CosmicConstants';
 import {
@@ -668,7 +667,7 @@ function TrendLineChart({ points, colors }: { points: TrendPoint[]; colors: Them
   );
 }
 
-export default function CalendarScreen() {
+export function CalendarScreenContent() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -2126,7 +2125,6 @@ export default function CalendarScreen() {
 
   if (!chart && natalChartLoading) {
     return (
-      <TabSwipePager tab="calendar">
         <SafeScreen edges={['top', 'left', 'right']}>
           <View style={styles.container}>
           <LinearGradient
@@ -2140,13 +2138,11 @@ export default function CalendarScreen() {
           </View>
           </View>
         </SafeScreen>
-      </TabSwipePager>
     );
   }
 
   if (!chart) {
     return (
-      <TabSwipePager tab="calendar">
         <SafeScreen edges={['top', 'left', 'right']}>
           <View style={styles.container}>
           <LinearGradient
@@ -2179,12 +2175,10 @@ export default function CalendarScreen() {
           </View>
           </View>
         </SafeScreen>
-      </TabSwipePager>
     );
   }
 
   return (
-    <TabSwipePager tab="calendar">
       <SafeScreen edges={['top', 'left', 'right']}>
         <View style={styles.container}>
         <LinearGradient
@@ -3246,8 +3240,14 @@ export default function CalendarScreen() {
         </Modal>
         </View>
       </SafeScreen>
-    </TabSwipePager>
   );
+}
+
+/**
+ * Route shell — content is rendered by MainTabPager (PagerView).
+ */
+export default function CalendarRoute() {
+  return null;
 }
 
 function makeStyles(C: ThemeColors, isDark: boolean) {
