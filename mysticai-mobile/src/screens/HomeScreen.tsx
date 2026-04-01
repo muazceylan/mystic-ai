@@ -276,6 +276,7 @@ export default function HomeScreen() {
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.HOME);
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+  const [headerHeight, setHeaderHeight] = useState(0);
   const [cmsHeroBanners, setCmsHeroBanners] = useState<CmsBanner[]>([]);
   const [cmsSections, setCmsSections] = useState<HomeSection[]>([]);
   // CMS içeriği dashboard verisiyle aynı anda paralel yüklenir.
@@ -621,12 +622,15 @@ export default function HomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <AppSurfaceHeader
-          title=""
-          variant="home"
-          avatarUri={avatarUrl}
-          leftActions={(
-            avatarUrl ? (
+        <View
+          style={styles.headerWrap}
+          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        >
+          <AppSurfaceHeader
+            title=""
+            variant="home"
+            avatarUri={avatarUrl}
+            leftActions={avatarUrl ? (
               <Pressable
                 onPress={handlePressProfile}
                 accessibilityRole="button"
@@ -641,34 +645,41 @@ export default function HomeScreen() {
                   accessibilityIgnoresInvertColors
                 />
               </Pressable>
-            ) : (
-              <Pressable
-                onPress={handlePressProfile}
-                accessibilityRole="button"
-                accessibilityLabel={t('common.profile')}
-                style={({ pressed }) => [styles.guruBtn, pressed && styles.avatarBtnPressed]}
-              >
-                <Image
-                  source={require('../../assets/guru_transparent.png')}
-                  style={styles.guruImg}
-                  resizeMode="contain"
-                  accessibilityIgnoresInvertColors
+            ) : undefined}
+            rightActions={(
+              <>
+                <MonetizationQuickBar />
+                <SurfaceHeaderIconButton
+                  iconName="notifications-outline"
+                  onPress={handlePressNotifications}
+                  accessibilityLabel={notificationA11y}
+                  badgeText={notificationCount > 0 ? notificationBadgeText : null}
                 />
-              </Pressable>
-            )
-          )}
-          rightActions={(
-            <>
-              <MonetizationQuickBar />
-              <SurfaceHeaderIconButton
-                iconName="notifications-outline"
-                onPress={handlePressNotifications}
-                accessibilityLabel={notificationA11y}
-                badgeText={notificationCount > 0 ? notificationBadgeText : null}
+              </>
+            )}
+          />
+          {!avatarUrl && (
+            <Pressable
+              onPress={handlePressProfile}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.profile')}
+              style={({ pressed }) => [
+                styles.guruBtn,
+                headerHeight > 0 && { top: (headerHeight - 140) / 2 + 7 },
+                pressed && styles.avatarBtnPressed,
+              ]}
+            >
+              <Image
+                source={isDark
+                  ? require('../../assets/guru_transparent_light.png')
+                  : require('../../assets/guru_transparent.png')}
+                style={styles.guruImg}
+                resizeMode="contain"
+                accessibilityIgnoresInvertColors
               />
-            </>
+            </Pressable>
           )}
-        />
+        </View>
 
         <GreetingRow text={greetingText} />
 
@@ -896,11 +907,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       backgroundColor: C.surfaceGlass,
     },
     avatarBtn: {
-      width: 48,
-      height: 48,
+      width: 80,
+      height: 0,
       borderRadius: radius.pill,
       overflow: 'hidden',
-      borderWidth: 1.5,
+      borderWidth: 1,
       borderColor: C.primary,
       backgroundColor: isDark ? C.surfaceGlass : C.primarySoft,
       ...shadowSubtle,
@@ -909,22 +920,22 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       opacity: 0.78,
     },
     avatarImg: {
-      width: 48,
-      height: 48,
+      width: 80,
+      height: 80,
     },
     // Fallback: no circle, bleeds beyond header, shifted left, vertically centered
-    // Fallback: no circle, shifted left, pushed down via transform (no layout impact)
+    headerWrap: {
+      position: 'relative',
+    },
+    // Absolutely positioned over the header — no layout impact
     guruBtn: {
-      marginVertical: -spacing.md - 32,
-      marginLeft: -spacing.cardPadding - 16,
-      height: spacing.chevronHitArea + spacing.md * 2 + 64,
-      alignItems: 'center',
-      justifyContent: 'center',
+      position: 'absolute',
+      left: -spacing.screenPadding,
+      zIndex: 10,
     },
     guruImg: {
-      width: 150,
-      height: spacing.chevronHitArea + spacing.md * 2 + 64,
-      transform: [{ translateY: 10 }],
+      width: 140,
+      height: 140,
     },
     retryWrap: {
       marginTop: spacing.sectionGap,
