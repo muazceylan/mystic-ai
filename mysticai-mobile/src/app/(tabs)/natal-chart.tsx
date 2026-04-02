@@ -1522,12 +1522,11 @@ export function NatalChartScreenContent() {
 
       const targetRef = accordionItemRefsRef.current[targetKey];
       const nativeScrollRef = scrollNode?.getNativeScrollRef?.() ?? scrollNode;
-      const nativeScrollHandle = nativeScrollRef ? findNodeHandle(nativeScrollRef) : null;
 
-      if (targetRef && nativeScrollHandle && typeof targetRef.measureLayout === 'function' && scrollNode?.scrollTo) {
+      if (targetRef && nativeScrollRef && typeof targetRef.measureLayout === 'function' && scrollNode?.scrollTo) {
         try {
           targetRef.measureLayout(
-            nativeScrollHandle,
+            nativeScrollRef,
             (_x: number, yInScrollViewport: number, _w: number, measuredHeight: number) => {
               const contentY = Math.max(0, lastKnownScrollYRef.current + yInScrollViewport);
               scrollToComputedY(contentY, measuredHeight);
