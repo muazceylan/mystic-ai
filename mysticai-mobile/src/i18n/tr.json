@@ -1001,7 +1001,7 @@
     "bonusGuru": "+{{count}} bonus Guru",
     "packageFallbackDescription": "{{count}} Guru paketi",
     "purchaseDisabledTitle": "Satın alma şu anda kapalı",
-    "purchaseDisabledBody": "Guru paketleri şu anda aktif değil. Lütfen biraz sonra tekrar dene.",
+    "purchaseDisabledBody": "Guru paketleri şu anda aktif değil.",
     "emptyPackagesTitle": "Paket bulunamadı",
     "emptyPackagesBody": "Henüz yayınlanmış bir Guru paketi yok.",
     "packageAddedTitle": "Paket eklendi",

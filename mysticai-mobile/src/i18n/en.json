@@ -1002,7 +1002,7 @@
     "bonusGuru": "+{{count}} bonus Guru",
     "packageFallbackDescription": "{{count}} Guru package",
     "purchaseDisabledTitle": "Purchases are currently disabled",
-    "purchaseDisabledBody": "Guru packages are not active right now. Please try again a bit later.",
+    "purchaseDisabledBody": "Guru packages are not active right now.",
     "emptyPackagesTitle": "No packages found",
     "emptyPackagesBody": "There are no published Guru packages yet.",
     "packageAddedTitle": "Package added",
