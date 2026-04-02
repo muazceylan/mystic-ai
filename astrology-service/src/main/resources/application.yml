@@ -23,7 +23,6 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    repair-on-migrate: true
     locations: classpath:db/migration
 
   rabbitmq:
@@ -90,3 +89,7 @@ logging:
 internal:
   gateway:
     key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}
+
+app:
+  flyway:
+    auto-repair-known-checksum-mismatch: ${FLYWAY_AUTO_REPAIR_KNOWN_CHECKSUM_MISMATCH:true}

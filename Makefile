@@ -2,7 +2,7 @@
 # Mystic AI - Makefile
 # ===========================================
 
-.PHONY: help infra infra-down infra-logs build clean flyway-auth-repair flyway-astrology-repair db-create-notification db-shell-notification
+.PHONY: help infra infra-down infra-logs build clean flyway-auth-repair flyway-astrology-repair db-create-notification db-ensure-app-databases db-shell-notification
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -16,6 +16,7 @@ infra: ## Start core infrastructure (PostgreSQL, RabbitMQ, Redis, MailHog)
 	@echo ""
 	@echo "Waiting for services to be healthy..."
 	@sleep 5
+	@bash docker/postgres/ensure-app-databases.sh
 	@docker compose ps
 
 infra-all: ## Start all infrastructure including tools
@@ -88,6 +89,9 @@ db-list: ## List all databases
 
 db-create-notification: ## Create mystic_notification if missing (notification-service; needs mystic-postgres)
 	bash docker/postgres/ensure-mystic-notification-db.sh
+
+db-ensure-app-databases: ## Create any missing app DBs (spiritual, notification, etc.; needs mystic-postgres)
+	bash docker/postgres/ensure-app-databases.sh
 
 db-shell-notification: ## Connect to Notification database
 	docker exec -it mystic-postgres psql -U mystic -d mystic_notification

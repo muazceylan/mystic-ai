@@ -1,64 +1,67 @@
 package com.mysticai.orchestrator.service;
 
-import com.mysticai.orchestrator.config.AiOrchestrationProperties;
-import com.mysticai.orchestrator.provider.AiModelProvider;
+import com.mysticai.orchestrator.config.AiRuntimeConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
 @Service
 public class AiFallbackService {
 
     private static final Logger log = LoggerFactory.getLogger(AiFallbackService.class);
-    private static final String LOCAL_LLM_KEY = "localLlm";
     private static final int RAW_SNIPPET_LIMIT = 500;
 
-    private final Map<String, AiModelProvider> providerRegistry;
-    private final AiOrchestrationProperties properties;
+    private final AiModelConfigService configService;
+    private final AiProviderRuntimeInvoker providerInvoker;
     private final FailureClassifier failureClassifier;
     private final ProviderStateManager stateManager;
     private final MockInterpretationService mockService;
 
     public AiFallbackService(
-            List<AiModelProvider> providers,
-            AiOrchestrationProperties properties,
+            AiModelConfigService configService,
+            AiProviderRuntimeInvoker providerInvoker,
             FailureClassifier failureClassifier,
             ProviderStateManager stateManager,
             MockInterpretationService mockService
     ) {
-        this.properties = properties;
+        this.configService = configService;
+        this.providerInvoker = providerInvoker;
         this.failureClassifier = failureClassifier;
         this.stateManager = stateManager;
         this.mockService = mockService;
-        this.providerRegistry = buildProviderRegistry(providers);
     }
 
     public String generate(String prompt, boolean complex) {
+        AiRuntimeConfig runtimeConfig = configService.getRuntimeConfigSnapshot();
+
         String chainName = complex ? "complex" : "simple";
         List<String> configuredChain = complex
-                ? properties.getFallback().getChains().getComplex()
-                : properties.getFallback().getChains().getSimple();
+                ? runtimeConfig.getComplexChain()
+                : runtimeConfig.getSimpleChain();
 
-        List<AiModelProvider> resolvedChain = resolveChain(chainName, configuredChain);
-        if (resolvedChain.isEmpty()) {
-            log.warn("[AI Chain] Resolved chain={} is empty", chainName);
-            return fallbackOrThrow(prompt);
+        log.info("[AI Chain] Selected chain={} providers={}", chainName, configuredChain);
+
+        if (configuredChain == null || configuredChain.isEmpty()) {
+            log.warn("[AI Chain] Configured chain={} is empty", chainName);
+            return fallbackOrThrow(prompt, runtimeConfig.isAllowMock());
         }
 
-        for (int providerIndex = 0; providerIndex < resolvedChain.size(); providerIndex++) {
-            AiModelProvider provider = resolvedChain.get(providerIndex);
-            String providerKey = provider.providerKey();
-            AiOrchestrationProperties.ProviderProperties providerProperties = properties.provider(providerKey);
+        for (int providerIndex = 0; providerIndex < configuredChain.size(); providerIndex++) {
+            String providerKey = configuredChain.get(providerIndex);
+            AiRuntimeConfig.ProviderConfig providerConfig = runtimeConfig.provider(providerKey);
 
-            if (!providerProperties.isEnabled()) {
-                log.info("[AI Chain] Skipping {} because provider is disabled in config", providerKey);
+            if (providerConfig == null) {
+                log.warn("[AI Chain] Unknown provider key '{}' in chain={} - skipping", providerKey, chainName);
+                continue;
+            }
+
+            if (!providerConfig.isEnabled()) {
+                log.info("[AI Chain] Skipping {} because provider is disabled", providerKey);
                 continue;
             }
 
@@ -68,17 +71,18 @@ public class AiFallbackService {
                 continue;
             }
 
-            int maxAttempt = Math.max(providerProperties.getRetryCount(), 0);
+            int maxAttempt = Math.max(providerConfig.getRetryCount(), 0);
             for (int attempt = 0; attempt <= maxAttempt; attempt++) {
                 long startNanos = System.nanoTime();
                 try {
-                    log.info("[AI Chain] Trying provider [{}/{}]: {} retryAttempt={}",
+                    log.info("[AI Chain] Trying provider [{}/{}]: {} model={} retryAttempt={}",
                             providerIndex + 1,
-                            resolvedChain.size(),
-                            provider.getName(),
+                            configuredChain.size(),
+                            providerConfig.getDisplayName(),
+                            providerConfig.getModel(),
                             attempt);
 
-                    String response = provider.generateResponse(prompt);
+                    String response = providerInvoker.generateResponse(providerConfig, prompt);
                     long elapsedMs = elapsedMs(startNanos);
 
                     if (response == null || response.isBlank()) {
@@ -93,19 +97,19 @@ public class AiFallbackService {
                     }
 
                     stateManager.markSuccess(providerKey);
-                    log.info("[AI Chain] Provider {} succeeded in {}ms model={}", providerKey, elapsedMs, provider.modelId());
+                    log.info("[AI Chain] Provider {} succeeded in {}ms model={}", providerKey, elapsedMs, providerConfig.getModel());
                     return response;
                 } catch (Exception ex) {
                     long elapsedMs = elapsedMs(startNanos);
                     AiFailureType failureType = failureClassifier.classify(ex);
-                    stateManager.markFailure(providerKey, failureType, providerProperties.getCooldownSeconds(), summarizeException(ex));
+                    stateManager.markFailure(providerKey, failureType, providerConfig.getCooldownSeconds(), summarizeException(ex));
                     Instant cooldownUntil = stateManager.stateOf(providerKey).getDisabledUntil();
 
                     FailureLogContext context = extractFailureContext(ex);
                     log.warn("[AI Chain] Provider {} failed: {} model={} retryAttempt={} elapsedMs={} statusCode={} contentType={} rawSnippet={} cooldownUntil={} reason={}",
                             providerKey,
                             failureType,
-                            provider.modelId(),
+                            providerConfig.getModel(),
                             attempt,
                             elapsedMs,
                             context.statusCode(),
@@ -114,10 +118,10 @@ public class AiFallbackService {
                             cooldownUntil,
                             summarizeException(ex));
 
-                    if (LOCAL_LLM_KEY.equals(providerKey)
+                    if (isLocalAdapter(providerConfig)
                             && (failureType == AiFailureType.TIMEOUT || failureType == AiFailureType.CONNECTION_ERROR)) {
                         log.warn("[AI Chain] Local LLM unavailable, falling back to mock");
-                        return fallbackOrThrow(prompt);
+                        return fallbackOrThrow(prompt, runtimeConfig.isAllowMock());
                     }
 
                     boolean shouldRetryAfterEmpty = failureType == AiFailureType.EMPTY_RESPONSE
@@ -137,39 +141,19 @@ public class AiFallbackService {
             }
         }
 
-        return fallbackOrThrow(prompt);
+        return fallbackOrThrow(prompt, runtimeConfig.isAllowMock());
     }
 
-    private Map<String, AiModelProvider> buildProviderRegistry(List<AiModelProvider> providers) {
-        Map<String, AiModelProvider> registry = new LinkedHashMap<>();
-        for (AiModelProvider provider : providers) {
-            AiModelProvider previous = registry.put(provider.providerKey(), provider);
-            if (previous != null) {
-                log.warn("[AI Chain] Duplicate providerKey detected: {}. Last bean wins.", provider.providerKey());
-            }
+    private boolean isLocalAdapter(AiRuntimeConfig.ProviderConfig providerConfig) {
+        String adapter = providerConfig.getAdapter();
+        if (adapter == null) {
+            return false;
         }
-        return registry;
+        return adapter.trim().toLowerCase(Locale.ROOT).equals(AiModelConfigService.ADAPTER_OLLAMA);
     }
 
-    private List<AiModelProvider> resolveChain(String chainName, List<String> configuredChain) {
-        List<String> chainKeys = configuredChain == null ? List.of() : configuredChain;
-        log.info("[AI Chain] Selected chain={} providers={}", chainName, chainKeys);
-
-        List<AiModelProvider> resolved = new ArrayList<>();
-        for (String key : chainKeys) {
-            AiModelProvider provider = providerRegistry.get(key);
-            if (provider == null) {
-                log.warn("[AI Chain] Unknown provider key '{}' in chain={} - skipping", key, chainName);
-                continue;
-            }
-            resolved.add(provider);
-        }
-
-        return resolved;
-    }
-
-    private String fallbackOrThrow(String prompt) {
-        if (properties.getFallback().isAllowMock()) {
+    private String fallbackOrThrow(String prompt, boolean allowMock) {
+        if (allowMock) {
             log.warn("[AI Chain] All providers exhausted, using mock fallback");
             return mockService.generateFallback(prompt);
         }

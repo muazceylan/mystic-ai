@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image, Coins, ScrollText, Wand2, ShoppingBag, Wallet, FlaskConical, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image, Coins, ScrollText, Wand2, ShoppingBag, Wallet, FlaskConical, BarChart3, Bot } from 'lucide-react';
 import { cn, roleColor } from '@/lib/utils';
 import { getUser, removeToken, canViewAudit, canManageRoutes, canManageNotifications, canManageNameSources, isSuperAdmin } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,7 @@ const navItems = [
   { href: '/modules', label: 'Modules', icon: Layers, check: canManageRoutes },
   { href: '/navigation', label: 'Navigation', icon: Navigation, check: canManageRoutes },
   { href: '/routes', label: 'Route Registry', icon: Map, check: canManageRoutes },
+  { href: '/ai-models', label: 'AI Models', icon: Bot, check: canManageRoutes },
   { href: '/names', label: 'Canonical Names', icon: Type, check: canManageNameSources },
   { href: '/name-review-queue', label: 'Name Review Queue', icon: GitMerge, check: canManageNameSources },
   { href: '/monetization/settings', label: 'Monetization', icon: Coins, check: canManageRoutes },

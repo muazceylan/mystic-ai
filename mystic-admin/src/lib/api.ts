@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type {
+  AiModelConfig,
   AppUserStats,
   AppUserSummary,
   IngestStatus,
@@ -70,6 +71,12 @@ export const authApi = {
 // ── Dashboard ─────────────────────────────────────────────
 export const dashboardApi = {
   summary: () => api.get('/api/admin/v1/dashboard/summary'),
+};
+
+export const aiModelsApi = {
+  getConfig: () => api.get<AiModelConfig>('/api/ai-admin/ai-model-config'),
+  updateConfig: (data: AiModelConfig) =>
+    api.put<AiModelConfig>('/api/ai-admin/ai-model-config', data),
 };
 
 export const productAnalyticsApi = {

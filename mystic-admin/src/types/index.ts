@@ -4,6 +4,33 @@ export interface AdminUser {
   role: 'SUPER_ADMIN' | 'PRODUCT_ADMIN' | 'NOTIFICATION_MANAGER';
 }
 
+export type AiProviderAdapter = 'gemini' | 'groq' | 'openrouter' | 'ollama';
+
+export interface AiModelProviderConfig {
+  key: string;
+  displayName: string;
+  adapter: AiProviderAdapter;
+  enabled: boolean;
+  model: string;
+  baseUrl: string;
+  apiKey?: string | null;
+  localProviderType?: string | null;
+  chatEndpoint?: string | null;
+  timeoutMs: number;
+  retryCount: number;
+  cooldownSeconds: number;
+  temperature?: number | null;
+  maxOutputTokens?: number | null;
+  headers: Record<string, string>;
+}
+
+export interface AiModelConfig {
+  allowMock: boolean;
+  complexChain: string[];
+  simpleChain: string[];
+  providers: AiModelProviderConfig[];
+}
+
 export interface AppRoute {
   id: number;
   routeKey: string;

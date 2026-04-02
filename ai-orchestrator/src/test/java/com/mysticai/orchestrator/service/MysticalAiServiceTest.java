@@ -5,8 +5,7 @@ import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.orchestrator.config.AiOrchestrationProperties;
 import com.mysticai.orchestrator.prompt.MysticalPromptTemplates;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -140,8 +139,12 @@ class MysticalAiServiceTest {
 
         private RecordingFallbackService(String response) {
             super(
-                    List.of(),
-                    new AiOrchestrationProperties(),
+                    new AiModelConfigService(
+                            new AiOrchestrationProperties(),
+                            new RedisTemplate<>(),
+                            new ObjectMapper()
+                    ),
+                    new AiProviderRuntimeInvoker(new ObjectMapper()),
                     new FailureClassifier(),
                     new ProviderStateManager(),
                     new MockInterpretationService()

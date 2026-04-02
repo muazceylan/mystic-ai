@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8088';
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:8081';
 const NUMEROLOGY_SERVICE_URL = process.env.NUMEROLOGY_SERVICE_URL || 'http://localhost:8085';
+const AI_ORCHESTRATOR_URL = process.env.AI_ORCHESTRATOR_URL || 'http://localhost:8084';
 
 const nextConfig: NextConfig = {
   async rewrites() {
@@ -36,6 +37,11 @@ const nextConfig: NextConfig = {
       {
         source: '/api/numerology/:path*',
         destination: `${NUMEROLOGY_SERVICE_URL}/:path*`,
+      },
+      // AI Orchestrator admin APIs
+      {
+        source: '/api/ai-admin/:path*',
+        destination: `${AI_ORCHESTRATOR_URL}/api/admin/v1/:path*`,
       },
       // Legacy numerology admin paths (backward compatibility)
       {
