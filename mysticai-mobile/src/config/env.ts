@@ -32,7 +32,25 @@ function normalizeAnalyticsProvider(value: EnvSource): AnalyticsProvider {
 function normalizeBaseUrl(value: EnvSource | null): string | null {
   const raw = (value ?? '').trim();
   if (!raw) return null;
-  return raw.replace(/\/+$/, '');
+
+  if (/^(null|undefined)$/i.test(raw)) {
+    return null;
+  }
+
+  const normalized = raw.replace(/\/+$/, '');
+
+  try {
+    const parsed = new URL(normalized);
+    // Some stage/prod builds have accidentally shipped a placeholder path
+    // like https://astroguru.app/null or /undefined. Treat that as root.
+    if (/^\/(null|undefined)$/i.test(parsed.pathname)) {
+      return parsed.origin;
+    }
+  } catch {
+    // Non-URL values are handled by the existing caller fallbacks.
+  }
+
+  return normalized;
 }
 
 function buildHttpUrl(host: string, port: number): string {
@@ -78,6 +96,19 @@ function resolveWebHost(): string {
   }
 
   return normalizeHostCandidate(window.location.hostname) ?? WEB_FALLBACK_HOST;
+}
+
+function resolveWebOrigin(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const origin = window.location.origin?.trim();
+  if (!origin) {
+    return null;
+  }
+
+  return origin.replace(/\/+$/, '');
 }
 
 function resolveExpoMetroHost(): string | null {
@@ -150,11 +181,11 @@ const legacyBaseUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
 
 function resolveConfiguredBaseUrl(): string | null {
   if (appEnv === 'stage') {
-    return stageBaseUrl ?? legacyBaseUrl;
+    return stageBaseUrl ?? legacyBaseUrl ?? (Platform.OS === 'web' ? resolveWebOrigin() : null);
   }
 
   if (appEnv === 'prod') {
-    return prodBaseUrl ?? legacyBaseUrl;
+    return prodBaseUrl ?? legacyBaseUrl ?? (Platform.OS === 'web' ? resolveWebOrigin() : null);
   }
 
   return resolveDevBaseUrl(API_GATEWAY_PORT, devBaseUrlOverride ?? legacyDevBaseUrl ?? legacyBaseUrl);

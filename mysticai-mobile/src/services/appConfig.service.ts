@@ -36,7 +36,9 @@ export interface AppConfig {
   maintenanceFlags: string[];
 }
 
-const CONFIG_ENDPOINT = `${envConfig.apiBaseUrl}/api/v1/app-config`;
+const CONFIG_ENDPOINT = envConfig.apiBaseUrl
+  ? `${envConfig.apiBaseUrl}/api/v1/app-config`
+  : '/api/v1/app-config';
 
 let cachedConfig: AppConfig | null = null;
 let cacheTimestamp = 0;
