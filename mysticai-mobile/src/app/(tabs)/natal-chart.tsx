@@ -14,7 +14,6 @@ import {
   KeyboardAvoidingView,
   Alert,
   Dimensions,
-  findNodeHandle,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -1523,7 +1522,14 @@ export function NatalChartScreenContent() {
       const targetRef = accordionItemRefsRef.current[targetKey];
       const nativeScrollRef = scrollNode?.getNativeScrollRef?.() ?? scrollNode;
 
-      if (targetRef && nativeScrollRef && typeof targetRef.measureLayout === 'function' && scrollNode?.scrollTo) {
+      const canMeasureAgainstScrollContainer =
+        Platform.OS !== 'web'
+        && targetRef
+        && nativeScrollRef
+        && typeof targetRef.measureLayout === 'function'
+        && scrollNode?.scrollTo;
+
+      if (canMeasureAgainstScrollContainer) {
         try {
           targetRef.measureLayout(
             nativeScrollRef,

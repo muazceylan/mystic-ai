@@ -1,5 +1,6 @@
 import React, { forwardRef, useState } from 'react';
 import {
+  Platform,
   StyleProp,
   StyleSheet,
   TextInput,
@@ -85,6 +86,14 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
+  const webInputReset =
+    Platform.OS === 'web'
+      ? ({
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          boxShadow: 'none',
+        } as any)
+      : null;
   const [focused, setFocused] = useState(false);
   const [passVisible, setPassVisible] = useState(false);
 
@@ -130,7 +139,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 
         <TextInput
           ref={ref}
-          style={[s.input, multiline && s.inputMultiline, inputStyle]}
+          style={[s.input, multiline && s.inputMultiline, webInputReset, inputStyle]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

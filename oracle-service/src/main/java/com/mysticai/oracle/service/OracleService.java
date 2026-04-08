@@ -309,7 +309,7 @@ public class OracleService {
                     null,
                     null,
                     "Bugünün teması: netlik ve hamle",
-                    "Teknik detaya takılmadan bugüne odaklan.",
+                    "Bugün gökyüzü senden tek bir net karar ve cesur bir adım bekliyor.",
                     List.of("Ritmini koru.", "Önceliğini tek başlığa indir.", "Küçük ama net bir adım at."),
                     promptVersion,
                     promptVariant,
@@ -385,7 +385,9 @@ public class OracleService {
                 || normalized.contains("evdeki detaylar")
                 || normalized.contains("genel akış")
                 || normalized.contains("enerji akışı")
-                || normalized.contains("kozmik enerji");
+                || normalized.contains("kozmik enerji")
+                || normalized.contains("teknik detaya takılmadan bugüne odaklan")
+                || normalized.contains("bugün gökyüzü senden tek bir net karar ve cesur bir adım bekliyor");
     }
 
     private String actionFallbackByMaritalStatus(String maritalStatus) {

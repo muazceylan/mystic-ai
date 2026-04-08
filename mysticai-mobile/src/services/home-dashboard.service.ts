@@ -259,7 +259,11 @@ function isWeakDashboardText(value: string | null | undefined): boolean {
     || text.startsWith('{')
     || text.startsWith('{"')
     || text.includes('evdeki detaylar')
-    || text.includes('harekete geçirecek');
+    || text.includes('harekete geçirecek')
+    || text.includes('teknik detaya takılmadan bugüne odaklan')
+    || text.includes('bugün gökyüzü senden tek bir net karar ve cesur bir adım bekliyor')
+    || text.includes("don't get stuck in technical details")
+    || text.includes('today asks for one clear decision and one bold move');
 }
 
 function matchesRequestedLocale(value: string | null | undefined, locale: DashboardLocale): boolean {

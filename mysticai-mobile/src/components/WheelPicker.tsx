@@ -27,6 +27,10 @@ export default function WheelPicker({
   const currentIndexRef = useRef(0);
   const selectedValueRef = useRef(selectedValue);
   const onValueChangeRef = useRef(onValueChange);
+  const dragStartYRef = useRef(0);
+  const dragStartIndexRef = useRef(0);
+  const dragCurrentIndexRef = useRef(0);
+  const isDraggingRef = useRef(false);
   const [ready, setReady] = useState(false);
 
   const selectedIndex = items.findIndex((item) => item.value === selectedValue);
@@ -95,6 +99,12 @@ export default function WheelPicker({
     index,
   });
 
+  const getDragIndex = useCallback((pageY: number) => {
+    const deltaY = pageY - dragStartYRef.current;
+    const stepDelta = Math.round(deltaY / ITEM_HEIGHT);
+    return Math.max(0, Math.min(dragStartIndexRef.current - stepDelta, items.length - 1));
+  }, [items.length]);
+
   const renderItem = ({ item, index }: { item: { label: string; value: number | string }; index: number }) => {
     const isSelected = index === selectedIndex;
     return (
@@ -129,11 +139,49 @@ export default function WheelPicker({
             e?.preventDefault?.();
             commitIndex(selectedIndex + (deltaY > 0 ? 1 : -1));
           },
+          onStartShouldSetResponder: () => true,
+          onMoveShouldSetResponder: () => true,
+          onResponderGrant: (e: any) => {
+            const pageY = Number(e?.nativeEvent?.pageY ?? 0);
+            dragStartYRef.current = pageY;
+            dragStartIndexRef.current = currentIndexRef.current;
+            dragCurrentIndexRef.current = currentIndexRef.current;
+            isDraggingRef.current = false;
+          },
+          onResponderMove: (e: any) => {
+            const pageY = Number(e?.nativeEvent?.pageY ?? 0);
+            if (!Number.isFinite(pageY)) return;
+            const distance = Math.abs(pageY - dragStartYRef.current);
+            if (distance > 4) {
+              isDraggingRef.current = true;
+            }
+            const nextIndex = getDragIndex(pageY);
+            if (nextIndex === dragCurrentIndexRef.current) return;
+            dragCurrentIndexRef.current = nextIndex;
+            scrollToIndex(nextIndex, false);
+          },
+          onResponderRelease: (e: any) => {
+            const pageY = Number(e?.nativeEvent?.pageY ?? dragStartYRef.current);
+            const nextIndex = getDragIndex(pageY);
+            commitIndex(nextIndex, false);
+            isDraggingRef.current = false;
+          },
+          onResponderTerminate: () => {
+            commitIndex(dragCurrentIndexRef.current, false);
+            isDraggingRef.current = false;
+          },
         } as const)
       : {};
 
   return (
-    <View style={[styles.container, { width, height: PICKER_HEIGHT }]} {...(webWheelProps as any)}>
+    <View
+      style={[
+        styles.container,
+        { width, height: PICKER_HEIGHT },
+        Platform.OS === 'web' && styles.webContainer,
+      ]}
+      {...(webWheelProps as any)}
+    >
       {/* Highlight band — behind the list */}
       <View
         style={[
@@ -176,6 +224,7 @@ export default function WheelPicker({
         contentContainerStyle={{
           paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),
         }}
+        scrollEnabled={Platform.OS !== 'web'}
         style={{ zIndex: 2 }}
       />
     </View>
@@ -186,6 +235,10 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
     position: 'relative',
+  },
+  webContainer: {
+    cursor: 'ns-resize',
+    userSelect: 'none',
   },
   selectedOverlay: {
     position: 'absolute',
