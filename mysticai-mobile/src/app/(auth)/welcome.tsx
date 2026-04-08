@@ -30,6 +30,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { trackEvent } from '../../services/analytics';
 import { needsOnboarding } from '../../utils/authOnboarding';
+import { WEB_INPUT_RESET_STYLE } from '../../utils/webInputReset';
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
@@ -644,7 +645,7 @@ export default function WelcomeScreen() {
               <View style={styles.fieldGroup}>
                 <View style={styles.inputContainer}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, WEB_INPUT_RESET_STYLE]}
                     placeholder={t('auth.email')}
                     placeholderTextColor={colors.subtext}
                     value={email}
@@ -660,7 +661,7 @@ export default function WelcomeScreen() {
               <View style={styles.fieldGroup}>
                 <View style={styles.inputContainer}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, WEB_INPUT_RESET_STYLE]}
                     placeholder={t('auth.password')}
                     placeholderTextColor={colors.subtext}
                     value={password}

@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { isStrongPassword } from '../../utils/passwordPolicy';
+import { WEB_INPUT_RESET_STYLE } from '../../utils/webInputReset';
 
 /** Ad/soyad için geçerli karakterler: harfler (Türkçe dahil), boşluk, tire, kesme */
 function maskNameInput(value: string): string {
@@ -307,7 +308,7 @@ export default function EmailRegisterScreen() {
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
-                  style={[styles.input, errors.firstName && styles.inputError]}
+                  style={[styles.input, WEB_INPUT_RESET_STYLE, errors.firstName && styles.inputError]}
                   placeholder={t('emailRegister.firstNamePlaceholder')}
                   placeholderTextColor={colors.disabledText}
                   value={value}
@@ -335,7 +336,7 @@ export default function EmailRegisterScreen() {
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
-                  style={[styles.input, errors.lastName && styles.inputError]}
+                  style={[styles.input, WEB_INPUT_RESET_STYLE, errors.lastName && styles.inputError]}
                   placeholder={t('emailRegister.lastNamePlaceholder')}
                   placeholderTextColor={colors.disabledText}
                   value={value}
@@ -366,7 +367,7 @@ export default function EmailRegisterScreen() {
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
-                  style={[styles.input, errors.email && styles.inputError]}
+                  style={[styles.input, WEB_INPUT_RESET_STYLE, errors.email && styles.inputError]}
                   placeholder={t('emailRegister.emailPlaceholder')}
                   placeholderTextColor={colors.disabledText}
                   keyboardType="email-address"
@@ -397,7 +398,7 @@ export default function EmailRegisterScreen() {
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
-                  style={[styles.input, errors.password && styles.inputError]}
+                  style={[styles.input, WEB_INPUT_RESET_STYLE, errors.password && styles.inputError]}
                   placeholder={t('emailRegister.passwordPlaceholder')}
                   placeholderTextColor={colors.disabledText}
                   secureTextEntry
@@ -426,7 +427,7 @@ export default function EmailRegisterScreen() {
               }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
-                  style={[styles.input, errors.confirmPassword && styles.inputError]}
+                  style={[styles.input, WEB_INPUT_RESET_STYLE, errors.confirmPassword && styles.inputError]}
                   placeholder={t('emailRegister.confirmPasswordPlaceholder')}
                   placeholderTextColor={colors.disabledText}
                   secureTextEntry

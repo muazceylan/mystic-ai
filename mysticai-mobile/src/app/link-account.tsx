@@ -25,6 +25,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { linkAccountWithSocial, linkAccountWithEmail, verifyLinkAccountOtp } from '../services/auth';
 import { trackEvent } from '../services/analytics';
+import { WEB_INPUT_RESET_STYLE } from '../utils/webInputReset';
 
 const GOOGLE_IOS_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
@@ -320,7 +321,7 @@ export default function LinkAccountScreen() {
                 <View style={styles.nameRow}>
                   <View style={[styles.inputContainer, styles.nameInputWrap]}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, WEB_INPUT_RESET_STYLE]}
                       placeholder={t('linkAccount.firstNamePlaceholder')}
                       placeholderTextColor={colors.subtext}
                       value={firstName}
@@ -332,7 +333,7 @@ export default function LinkAccountScreen() {
                   </View>
                   <View style={[styles.inputContainer, styles.nameInputWrap]}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, WEB_INPUT_RESET_STYLE]}
                       placeholder={t('linkAccount.lastNamePlaceholder')}
                       placeholderTextColor={colors.subtext}
                       value={lastName}
@@ -346,7 +347,7 @@ export default function LinkAccountScreen() {
 
                 <View style={styles.inputContainer}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, WEB_INPUT_RESET_STYLE]}
                     placeholder={t('linkAccount.emailPlaceholder')}
                     placeholderTextColor={colors.subtext}
                     value={email}
@@ -361,7 +362,7 @@ export default function LinkAccountScreen() {
 
                 <View style={styles.inputContainer}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, WEB_INPUT_RESET_STYLE]}
                     placeholder={t('linkAccount.passwordPlaceholder')}
                     placeholderTextColor={colors.subtext}
                     value={password}
@@ -404,7 +405,7 @@ export default function LinkAccountScreen() {
                 <View style={styles.otpInputContainer}>
                   <TextInput
                     ref={otpInputRef}
-                    style={styles.otpInput}
+                    style={[styles.otpInput, WEB_INPUT_RESET_STYLE]}
                     placeholder={t('linkAccount.otpPlaceholder')}
                     placeholderTextColor={colors.border}
                     value={otpCode}

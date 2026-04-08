@@ -1,6 +1,5 @@
 import React, { forwardRef, useState } from 'react';
 import {
-  Platform,
   StyleProp,
   StyleSheet,
   TextInput,
@@ -13,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
+import { WEB_INPUT_RESET_STYLE } from '../../utils/webInputReset';
 import { AppText } from './AppText';
 
 export interface TextFieldProps {
@@ -86,14 +86,6 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
-  const webInputReset =
-    Platform.OS === 'web'
-      ? ({
-          outlineStyle: 'none',
-          outlineWidth: 0,
-          boxShadow: 'none',
-        } as any)
-      : null;
   const [focused, setFocused] = useState(false);
   const [passVisible, setPassVisible] = useState(false);
 
@@ -139,7 +131,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 
         <TextInput
           ref={ref}
-          style={[s.input, multiline && s.inputMultiline, webInputReset, inputStyle]}
+          style={[s.input, multiline && s.inputMultiline, WEB_INPUT_RESET_STYLE, inputStyle]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
