@@ -5,7 +5,6 @@ import {
   Linking,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -22,7 +21,9 @@ import {
   type NightSkyPosterVariant,
   type NightSkyProjectionResponse,
 } from '../../services/astrology.service';
+import { shareUrl as sharePublicUrl } from '../../services/share.service';
 import { useTranslation } from 'react-i18next';
+import { getPublicWebBaseUrl } from '../../utils/publicUrl';
 
 type ParsedSharePayload = {
   name?: string | null;
@@ -155,15 +156,14 @@ export default function NightSkyPosterPublicShareScreen() {
     'minimal';
 
   const shareUrl = useMemo(() => {
-    const publicBase = (process.env.EXPO_PUBLIC_PUBLIC_BASE_URL ?? 'https://mysticai.app').replace(/\/+$/, '');
+    const publicBase = getPublicWebBaseUrl();
     return token ? `${publicBase}/share/night-sky/${token}` : publicBase;
   }, [token]);
 
   const handleShareLink = async () => {
     try {
-      await Share.share({
-        message: shareUrl,
-        url: shareUrl,
+      await sharePublicUrl(shareUrl, {
+        message: t('nightSkyPosterPublicShare.heroSubtitle'),
       });
     } catch {
       // no-op

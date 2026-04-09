@@ -97,6 +97,7 @@ export interface TutorialSession {
   definition: TutorialDefinition;
   stepIndex: number;
   reason: TutorialStartReason;
+  originPathname: string;
 }
 
 export interface TutorialTargetLayout {

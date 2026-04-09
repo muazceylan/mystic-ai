@@ -85,7 +85,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/brand/web/astro-guru-favicon-32.png"
+      "favicon": "./assets/brand/logo/astro-guru-app-icon-rounded-preview.png"
     },
     "owner": "mystic-apis-organization"
   }

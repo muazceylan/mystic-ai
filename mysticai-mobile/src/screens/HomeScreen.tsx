@@ -42,6 +42,7 @@ const NOTIFICATIONS_ROUTE = '/notifications';
 const TRANSITS_ROUTE_FALLBACK = '/transits-today';
 const WEEKLY_ANALYSIS_ROUTE_FALLBACK = '/(tabs)/weekly-analysis';
 const HOME_MAX_FONT_SCALE = 1.15;
+const HOME_CONTENT_MAX_WIDTH = 1180;
 const HIDDEN_HOME_SECTION_KEYS = new Set([
   'home_numerology_promo',
   'home_compatibility_promo',
@@ -606,6 +607,7 @@ export default function HomeScreen() {
     () => cmsSections.filter((section) => !HIDDEN_HOME_SECTION_KEYS.has(section.sectionKey)),
     [cmsSections],
   );
+  const featureColumns = 2;
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
@@ -709,45 +711,70 @@ export default function HomeScreen() {
         ) : null}
 
         <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
-          <View style={styles.featureRow}>
-            <Pressable
-              onPress={handlePressNumerologyCard}
-              accessibilityRole="button"
-              accessibilityLabel={t('homeSurface.featureCards.numerology')}
-              style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
+          <View
+            style={[
+              styles.featureRow,
+              { flexDirection: featureColumns === 1 ? 'column' : 'row' },
+            ]}
+          >
+            <View
+              style={[
+                styles.featureCardWrap,
+                featureColumns > 1
+                  ? styles.featureCardWrapHalf
+                  : styles.featureCardWrapFull,
+                featureColumns > 1 ? { marginRight: spacing.sm } : null,
+              ]}
             >
-              <View style={styles.featureCardTop}>
-                <HomePremiumIconBadge iconName="keypad" contextKey="numerology" />
-                <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
-              </View>
-              <View style={styles.featureCardBottom}>
-                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardTitle}>
-                  {t('homeSurface.featureCards.numerology')}
-                </Text>
-                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardSubtitle}>
-                  {t('homeSurface.featureCards.numerologySubtitle')}
-                </Text>
-              </View>
-            </Pressable>
-            <Pressable
-              onPress={handlePressCompatibilityCard}
-              accessibilityRole="button"
-              accessibilityLabel={t('homeSurface.featureCards.compatibility')}
-              style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
+              <Pressable
+                onPress={handlePressNumerologyCard}
+                accessibilityRole="button"
+                accessibilityLabel={t('homeSurface.featureCards.numerology')}
+                style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
+              >
+                <View style={styles.featureCardTop}>
+                  <HomePremiumIconBadge iconName="keypad" contextKey="numerology" />
+                  <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
+                </View>
+                <View style={styles.featureCardBottom}>
+                  <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardTitle}>
+                    {t('homeSurface.featureCards.numerology')}
+                  </Text>
+                  <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardSubtitle}>
+                    {t('homeSurface.featureCards.numerologySubtitle')}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+
+            <View
+              style={[
+                styles.featureCardWrap,
+                featureColumns > 1
+                  ? styles.featureCardWrapHalf
+                  : [styles.featureCardWrapFull, { marginTop: spacing.sm }],
+              ]}
             >
-              <View style={styles.featureCardTop}>
-                <HomePremiumIconBadge iconName="heart-half" contextKey="compatibility" />
-                <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
-              </View>
-              <View style={styles.featureCardBottom}>
-                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardTitle}>
-                  {t('homeSurface.featureCards.compatibility')}
-                </Text>
-                <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardSubtitle}>
-                  {t('homeSurface.featureCards.compatibilitySubtitle')}
-                </Text>
-              </View>
-            </Pressable>
+              <Pressable
+                onPress={handlePressCompatibilityCard}
+                accessibilityRole="button"
+                accessibilityLabel={t('homeSurface.featureCards.compatibility')}
+                style={({ pressed }) => [styles.featureCard, pressed && styles.pressed]}
+              >
+                <View style={styles.featureCardTop}>
+                  <HomePremiumIconBadge iconName="heart-half" contextKey="compatibility" />
+                  <Ionicons name="chevron-forward" size={16} color={colors.primaryLight} />
+                </View>
+                <View style={styles.featureCardBottom}>
+                  <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardTitle}>
+                    {t('homeSurface.featureCards.compatibility')}
+                  </Text>
+                  <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.featureCardSubtitle}>
+                    {t('homeSurface.featureCards.compatibilitySubtitle')}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
           </View>
         </SpotlightTarget>
 
@@ -857,6 +884,10 @@ export default function HomeScreen() {
 function makeStyles(C: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
     content: {
+      flexGrow: 1,
+      width: '100%',
+      maxWidth: HOME_CONTENT_MAX_WIDTH,
+      alignSelf: 'center',
       paddingHorizontal: spacing.screenPadding,
     },
     quickSkeletonGrid: {
@@ -865,11 +896,18 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     },
     featureRow: {
       marginTop: spacing.cardGap,
-      flexDirection: 'row',
-      gap: spacing.sm,
+    },
+    featureCardWrap: {
+      minWidth: 0,
+    },
+    featureCardWrapHalf: {
+      flex: 1,
+    },
+    featureCardWrapFull: {
+      width: '100%',
     },
     featureCard: {
-      flex: 1,
+      width: '100%',
       height: spacing.xxl * 5 + spacing.xs,
       borderRadius: radius.card,
       borderWidth: 1,
@@ -926,6 +964,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     // Fallback: no circle, bleeds beyond header, shifted left, vertically centered
     headerWrap: {
       position: 'relative',
+      width: '100%',
     },
     // Absolutely positioned over the header — no layout impact
     guruBtn: {
@@ -971,6 +1010,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     },
     cmsBannerCard: {
       marginTop: spacing.cardGap,
+      width: '100%',
       borderRadius: radius.card,
       borderWidth: 1,
       borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,
@@ -994,6 +1034,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     },
     cmsSectionCard: {
       marginTop: spacing.cardGap,
+      width: '100%',
       borderRadius: radius.card,
       borderWidth: 1,
       borderColor: isDark ? C.surfaceGlassBorder : C.borderLight,

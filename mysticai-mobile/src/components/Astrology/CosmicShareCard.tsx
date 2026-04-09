@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
+import { getUniversalDownloadUrl } from '../../utils/publicUrl';
 const mysticLogo = require('../../../assets/brand/logo/astro-guru-icon-transparent-1024.png');
 
 type CosmicShareCardProps = {
@@ -80,7 +81,7 @@ export default function CosmicShareCard(props: CosmicShareCardProps) {
     []
   );
 
-  const qrValue = props.downloadUrl ?? 'https://mysticai.app/dl';
+  const qrValue = props.downloadUrl ?? getUniversalDownloadUrl('/dl');
 
   return (
     <View style={styles.frame} collapsable={false}>

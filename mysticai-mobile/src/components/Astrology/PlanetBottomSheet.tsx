@@ -36,6 +36,11 @@ interface PlanetBottomSheetProps {
 
 type TFn = (key: string, opts?: Record<string, string>) => string;
 
+function looksTurkish(text?: string | null): boolean {
+  if (!text) return false;
+  return /[çğıöşüİ]|\b(ev|burç|yönetici|kimlik|beden|duygusal|dikkat|özellikler|gezegen|yerleşim)\b/i.test(text);
+}
+
 function buildLinePack(planet: PlanetPosition, locale: string, t: TFn) {
   const planetName   = getPlanetName(planet.planet, locale);
   const signInfo     = getZodiacInfo(planet.sign, locale);
@@ -109,7 +114,8 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
 
   if (!planet) return null;
 
-  const locale       = i18n.language;
+  const locale       = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
+  const isEnglish    = locale.toLowerCase().startsWith('en');
   const tFn          = t as TFn;
   const linePack     = buildLinePack(planet, locale, tFn);
   const planetName   = linePack.planetName;
@@ -119,9 +125,16 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
   const houseGlossary = linePack.houseGlossary;
   const planetDesc   = linePack.planetDesc;
   const insightStrengths = insight?.strengths?.filter(Boolean).join(', ');
+  const useFallbackInsightText = isEnglish && (
+    looksTurkish(insight?.summary)
+    || looksTurkish(insight?.characterLine)
+    || looksTurkish(insight?.effectLine)
+    || looksTurkish(insight?.cautionLine)
+    || looksTurkish(insightStrengths)
+  );
 
   const personalizedText =
-    insight?.summary ||
+    (!useFallbackInsightText && insight?.summary) ||
     t('planetSheet.personalizedFallback', {
       planet: planetName,
       sign: signInfo.name,
@@ -129,6 +142,12 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
       combo: linePack.tripleCombo,
       houseDesc: houseGlossary?.shortDesc?.toLowerCase() ?? t('planetSheet.personalizedFallbackNoHouse'),
     }) + (planetGloss?.longDesc ? ' ' + planetGloss.longDesc : '');
+  const characterText = !useFallbackInsightText && insight?.characterLine ? insight.characterLine : linePack.character;
+  const effectText = !useFallbackInsightText && insight?.effectLine ? insight.effectLine : linePack.effect;
+  const cautionText = !useFallbackInsightText && insight?.cautionLine ? insight.cautionLine : linePack.caution;
+  const strengthsText = !useFallbackInsightText && insightStrengths
+    ? insightStrengths
+    : (linePack.strengths || t('planetSheet.strengthsFallback'));
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -179,12 +198,12 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
                 </View>
               </GestureDetector>
 
-              <LineInfo title={t('planetSheet.cardCharacter')} text={insight?.characterLine || linePack.character} accent={colors.violet} />
-              <LineInfo title={t('planetSheet.cardEffect')}    text={insight?.effectLine    || linePack.effect}    accent={colors.blue} />
-              <LineInfo title={t('planetSheet.cardCaution')}   text={insight?.cautionLine   || linePack.caution}   accent={colors.warning} />
+              <LineInfo title={t('planetSheet.cardCharacter')} text={characterText} accent={colors.violet} />
+              <LineInfo title={t('planetSheet.cardEffect')}    text={effectText} accent={colors.blue} />
+              <LineInfo title={t('planetSheet.cardCaution')}   text={cautionText} accent={colors.warning} />
               <LineInfo
                 title={t('planetSheet.cardStrengths')}
-                text={insightStrengths || linePack.strengths || t('planetSheet.strengthsFallback')}
+                text={strengthsText}
                 accent={colors.goldDark}
               />
 

@@ -9,6 +9,7 @@ export interface CaptureImageConfig {
   height?: number;
   cacheSubdir?: string;
   filePrefix?: string;
+  result?: 'tmpfile' | 'base64' | 'data-uri';
 }
 
 type ExpoFileSystemModule = {
@@ -42,12 +43,13 @@ function getExpoFileSystem(): ExpoFileSystemModule | null {
 function buildCaptureOptions(mode: CaptureMode, config?: CaptureImageConfig) {
   const width = config?.width;
   const height = config?.height;
+  const result = config?.result ?? 'tmpfile';
   switch (mode) {
     case 'high':
       return {
         format: 'png',
         quality: 1,
-        result: 'tmpfile',
+        result,
         width: width ?? 1080,
         height: height ?? 1350,
       } as const;
@@ -55,7 +57,7 @@ function buildCaptureOptions(mode: CaptureMode, config?: CaptureImageConfig) {
       return {
         format: 'png',
         quality: 0.95,
-        result: 'tmpfile',
+        result,
         width: width ? Math.round(width * 0.78) : 840,
         height: height ? Math.round(height * 0.78) : 1050,
       } as const;
@@ -64,7 +66,7 @@ function buildCaptureOptions(mode: CaptureMode, config?: CaptureImageConfig) {
       return {
         format: 'png',
         quality: 0.9,
-        result: 'tmpfile',
+        result,
         width: width ? Math.round(width * 0.66) : 720,
         height: height ? Math.round(height * 0.66) : 900,
       } as const;

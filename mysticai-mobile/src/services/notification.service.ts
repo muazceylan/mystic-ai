@@ -1,5 +1,7 @@
 import api from './api';
 
+const ISO_DATETIME_WITHOUT_TZ_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/;
+
 export interface NotificationItem {
   id: string;
   type: string;
@@ -75,6 +77,34 @@ export interface MorningDreamReminderTriggerResponse {
   reason?: string;
 }
 
+export function normalizeNotificationTimestamp(value?: string | null): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  // Backward compatibility:
+  // older notification-service responses emitted UTC timestamps without timezone suffix.
+  if (ISO_DATETIME_WITHOUT_TZ_PATTERN.test(trimmed)) {
+    return `${trimmed}Z`;
+  }
+
+  return trimmed;
+}
+
+function normalizeNotificationItem(item: NotificationItem): NotificationItem {
+  return {
+    ...item,
+    createdAt: normalizeNotificationTimestamp(item.createdAt) ?? item.createdAt,
+    readAt: normalizeNotificationTimestamp(item.readAt) ?? item.readAt,
+    seenAt: normalizeNotificationTimestamp(item.seenAt) ?? item.seenAt,
+  };
+}
+
 const BASE = '/api/v1/notifications';
 
 export const notificationService = {
@@ -82,7 +112,12 @@ export const notificationService = {
     const params: Record<string, any> = { page, size };
     if (category) params.category = category;
     const res = await api.get(BASE, { params });
-    return res.data;
+    return {
+      ...res.data,
+      content: Array.isArray(res.data?.content)
+        ? res.data.content.map((item: NotificationItem) => normalizeNotificationItem(item))
+        : [],
+    };
   },
 
   async getUnreadCount(): Promise<number> {

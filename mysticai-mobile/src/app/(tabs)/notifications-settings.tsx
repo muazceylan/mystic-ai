@@ -16,7 +16,7 @@ import * as Notifications from 'expo-notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from '../../utils/haptics';
-import { SafeScreen, TabHeader } from '../../components/ui';
+import { SafeScreen, TabHeader, useBottomTabBarOffset } from '../../components/ui';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { EXPO_PUSH_PROJECT_ID } from '../../utils/pushNotifications';
@@ -204,6 +204,7 @@ export default function NotificationsSettingsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const { bottomTabBarOffset } = useBottomTabBarOffset();
 
   const {
     preferences,
@@ -339,7 +340,7 @@ export default function NotificationsSettingsScreen() {
 
   if (preferencesLoading && !preferences) {
     return (
-      <SafeScreen>
+      <SafeScreen disableBottomTabBarCompensation>
         <View style={styles.container}>
           <TabHeader title={t('notifSettings.title')} />
           <View style={styles.loader}>
@@ -351,11 +352,14 @@ export default function NotificationsSettingsScreen() {
   }
 
   return (
-    <SafeScreen>
+    <SafeScreen disableBottomTabBarCompensation>
       <View style={styles.container}>
         <TabHeader title={t('notifSettings.title')} />
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + bottomTabBarOffset }]}
+        >
           <Text style={styles.hint}>{t('notifSettings.hint')}</Text>
 
           <Text style={styles.sectionTitle}>{t('notifSettings.sectionMain')}</Text>
@@ -505,4 +509,3 @@ export default function NotificationsSettingsScreen() {
     </SafeScreen>
   );
 }
-

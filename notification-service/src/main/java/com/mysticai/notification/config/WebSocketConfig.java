@@ -28,6 +28,7 @@ import java.util.List;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final UserHandshakeInterceptor userHandshakeInterceptor;
+    private final ObjectMapper objectMapper;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -74,7 +75,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         resolver.setDefaultMimeType(MimeTypeUtils.APPLICATION_JSON);
         
         MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
-        converter.setObjectMapper(new ObjectMapper());
+        converter.setObjectMapper(objectMapper);
         converter.setContentTypeResolver(resolver);
         
         messageConverters.add(converter);

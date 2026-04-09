@@ -3,6 +3,8 @@ package com.mysticai.notification.dto;
 import com.mysticai.notification.entity.Notification;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 public record NotificationResponse(
@@ -16,9 +18,9 @@ public record NotificationResponse(
         Notification.NotificationStatus status,
         Notification.Priority priority,
         String sourceModule,
-        LocalDateTime createdAt,
-        LocalDateTime readAt,
-        LocalDateTime seenAt,
+        OffsetDateTime createdAt,
+        OffsetDateTime readAt,
+        OffsetDateTime seenAt,
         String templateKey,
         String variantKey,
         String metadata,
@@ -29,9 +31,18 @@ public record NotificationResponse(
                 n.getId(), n.getType(), n.getCategory(),
                 n.getTitle(), n.getBody(), n.getDeeplink(), n.getImageUrl(),
                 n.getStatus(), n.getPriority(), n.getSourceModule(),
-                n.getCreatedAt(), n.getReadAt(), n.getSeenAt(),
+                toOffsetDateTime(n.getCreatedAt()),
+                toOffsetDateTime(n.getReadAt()),
+                toOffsetDateTime(n.getSeenAt()),
                 n.getTemplateKey(), n.getVariantKey(),
                 n.getMetadata(), Boolean.TRUE.equals(n.getPushSent())
         );
+    }
+
+    private static OffsetDateTime toOffsetDateTime(LocalDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZone(ZoneId.systemDefault()).toOffsetDateTime();
     }
 }

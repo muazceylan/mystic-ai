@@ -56,6 +56,12 @@ type SafeScreenProps = {
   scroll?: boolean;
   /** Force or disable the standard app background. Defaults to auto by route. */
   showStandardBackground?: boolean;
+  /**
+   * Disable root-level bottom tab bar compensation when the screen manages its own
+   * list/scroll/footer spacing. Useful for tab detail screens that otherwise show
+   * a visible empty strip above the bottom tab bar.
+   */
+  disableBottomTabBarCompensation?: boolean;
 };
 
 export function useBottomTabBarOffset() {
@@ -109,6 +115,7 @@ export function SafeScreen({
   style,
   scroll = false,
   showStandardBackground,
+  disableBottomTabBarCompensation = false,
 }: SafeScreenProps) {
   const { colors } = useTheme();
   const pathname = usePathname();
@@ -134,7 +141,7 @@ export function SafeScreen({
   const basePaddingBottom = typeof containerStyle.paddingBottom === 'number' ? containerStyle.paddingBottom : 0;
   const isTabRoute = isTabLayoutRoute(pathname, segments);
   const isMainPagerTab = isMainPagerTabRoute(segments);
-  const bottomTabCompensation = isTabRoute && !isMainPagerTab && tabBarHeight > 0
+  const bottomTabCompensation = !disableBottomTabBarCompensation && isTabRoute && !isMainPagerTab && tabBarHeight > 0
     ? (hasBottomEdge ? bottomTabBarOffset : tabBarHeight)
     : 0;
   const adjustedContainerStyle: ViewStyle = hasTopEdge

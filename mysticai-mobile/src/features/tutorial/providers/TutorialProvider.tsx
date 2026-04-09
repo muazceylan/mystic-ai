@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { usePathname } from 'expo-router';
 import { useAuthStore } from '../../../store/useAuthStore';
 import {
   trackTutorialCompleted,
@@ -97,6 +98,7 @@ function isSameLayout(left: TutorialTargetLayout, right: TutorialTargetLayout): 
 }
 
 export function TutorialProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const userId = useAuthStore((state) => state.user?.id);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const scopeKey = useMemo(() => (userId ? `user:${userId}` : 'guest'), [userId]);
@@ -184,6 +186,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
         definition: normalizedDefinition,
         stepIndex: 0,
         reason,
+        originPathname: pathname,
       };
       activeSessionRef.current = nextSession;
       setActiveSession(nextSession);
@@ -204,7 +207,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       trackTutorialStarted({ tutorial: normalizedDefinition, reason });
       return true;
     },
-    [scopeKey, updateProgress],
+    [pathname, scopeKey, updateProgress],
   );
 
   const requestTutorialForScreen = useCallback(
@@ -554,6 +557,28 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       activeSession.definition.steps.length,
     );
   }, [activeSession]);
+
+  useEffect(() => {
+    if (!activeSession) {
+      return;
+    }
+
+    if (pathname === activeSession.originPathname) {
+      return;
+    }
+
+    tutorialDebugLog('session_closed_on_route_change', {
+      tutorial_id: activeSession.definition.tutorialId,
+      screen_key: activeSession.definition.screenKey,
+      origin_pathname: activeSession.originPathname,
+      next_pathname: pathname,
+      reason: activeSession.reason,
+    });
+
+    viewedStepRef.current = null;
+    activeSessionRef.current = null;
+    setActiveSession(null);
+  }, [activeSession, pathname]);
 
   const dontShowAgain = activeSession
     ? (scopedProgress[activeSession.definition.tutorialId]?.dontShowAgain ?? false)

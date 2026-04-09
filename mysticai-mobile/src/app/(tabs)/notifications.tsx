@@ -11,10 +11,16 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { SafeScreen, Skeleton, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
+import {
+  SafeScreen,
+  Skeleton,
+  SurfaceHeaderIconButton,
+  TabHeader,
+  useBottomTabBarOffset,
+} from '../../components/ui';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useNotificationStore } from '../../store/useNotificationStore';
-import { NotificationItem } from '../../services/notification.service';
+import { normalizeNotificationTimestamp, NotificationItem } from '../../services/notification.service';
 import * as Haptics from '../../utils/haptics';
 import { useAuthStore } from '../../store/useAuthStore';
 import { openNotification } from '../../utils/notificationDeepLink';
@@ -50,7 +56,7 @@ function getRelativeTime(
   dateStr: string,
   t: (k: string, options?: Record<string, unknown>) => string
 ): string {
-  const date = new Date(dateStr);
+  const date = new Date(normalizeNotificationTimestamp(dateStr) ?? dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
@@ -69,7 +75,7 @@ function getDateGroup(
   dateStr: string,
   t: (k: string, options?: Record<string, unknown>) => string
 ): string {
-  const date = new Date(dateStr);
+  const date = new Date(normalizeNotificationTimestamp(dateStr) ?? dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today.getTime() - 86400000);
@@ -308,6 +314,7 @@ export default function NotificationsScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { bottomTabBarOffset } = useBottomTabBarOffset();
 
   const {
     notifications,
@@ -391,7 +398,7 @@ export default function NotificationsScreen() {
   }, [isLoadingMore, colors.primary]);
 
   return (
-    <SafeScreen>
+    <SafeScreen disableBottomTabBarCompensation>
       <View style={[styles.root, { backgroundColor: 'transparent' }]}>
         <TabHeader
           title={t('notifCenter.title')}
@@ -440,7 +447,7 @@ export default function NotificationsScreen() {
             renderSectionHeader={renderSectionHeader}
             keyExtractor={(item) => item.id}
             stickySectionHeadersEnabled
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: 12 + bottomTabBarOffset }]}
             showsVerticalScrollIndicator={false}
             onEndReached={() => {
               if (hasMore) fetchMore();
@@ -450,7 +457,7 @@ export default function NotificationsScreen() {
           />
         )}
 
-        <View style={styles.settingsBtnContainer}>
+        <View style={[styles.settingsBtnContainer, { paddingBottom: 16 + bottomTabBarOffset }]}>
           <Pressable
             onPress={() => router.push('/(tabs)/notifications-settings')}
             style={[styles.settingsBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
@@ -589,4 +596,3 @@ const styles = StyleSheet.create({
   },
   settingsBtnText: { fontSize: 13, lineHeight: 17, fontWeight: '600' },
 });
-

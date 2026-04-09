@@ -88,6 +88,7 @@ import NatalChartHeroCard, {
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
 import { posterTokens } from '../../features/nightSkyPoster/poster.tokens';
 import { useTranslation } from 'react-i18next';
+import { getUniversalDownloadUrl } from '../../utils/publicUrl';
 import { useTheme } from '../../context/ThemeContext';
 import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useBottomSheetDragGesture } from '../../components/ui/useBottomSheetDragGesture';
@@ -119,7 +120,7 @@ const PLANET_SYMBOLS: Record<string, string> = {
 
 
 const ZODIAC_SYMBOLS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
-const NIGHT_SKY_POSTER_LINK = 'https://mysticai.app/dl?utm_source=night_sky_poster';
+const NIGHT_SKY_POSTER_LINK = getUniversalDownloadUrl('/dl?utm_source=night_sky_poster');
 // Safe mode: keep DnD disabled to protect main scroll stability across devices.
 const ENABLE_SECTION_DND = false;
 
@@ -2678,7 +2679,7 @@ export function NatalChartScreenContent() {
   );
 
   const MainVerticalScroll: any = ENABLE_SECTION_DND ? NestableScrollContainer : ScrollView;
-  const stickyHeaderIndices = chart ? [1, 2] : [1];
+  const stickyHeaderIndices = chart ? [2] : [];
 
   return (
       <SafeScreen edges={['top', 'left', 'right']} style={styles.container}>

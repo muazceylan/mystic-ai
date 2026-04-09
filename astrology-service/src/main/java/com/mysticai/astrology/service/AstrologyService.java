@@ -529,8 +529,14 @@ public class AstrologyService {
 
         List<PlanetPosition> safePlanetList = planetList != null ? planetList : List.of();
         List<HousePlacement> safeHouseList = houseList != null ? houseList : List.of();
-        List<NatalPlanetComboInsight> planetComboInsights = buildPlanetComboInsights(safePlanetList);
-        List<NatalHouseComboInsight> houseComboInsights = buildHouseComboInsights(safeHouseList, safePlanetList);
+        String requestedLocale = normalizeStoredLocale(chart.getRequestedLocale());
+        boolean includeGeneratedComboInsights = !"en".equals(requestedLocale);
+        List<NatalPlanetComboInsight> planetComboInsights = includeGeneratedComboInsights
+                ? buildPlanetComboInsights(safePlanetList)
+                : List.of();
+        List<NatalHouseComboInsight> houseComboInsights = includeGeneratedComboInsights
+                ? buildHouseComboInsights(safeHouseList, safePlanetList)
+                : List.of();
 
         return new NatalChartResponse(
                 chart.getId(),

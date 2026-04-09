@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeScreen, TabHeader } from '../components/ui';
+import { SafeScreen, TabHeader, useBottomTabBarOffset } from '../components/ui';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
@@ -56,6 +56,7 @@ export default function TransitDetailScreen() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const onboardingMaritalStatus = useOnboardingStore((s) => s.maritalStatus);
+  const { bottomTabBarOffset } = useBottomTabBarOffset();
   const S = makeStyles(colors, isDark);
 
   const homeBriefParams = useMemo(() => {
@@ -102,11 +103,11 @@ export default function TransitDetailScreen() {
   const accent = isDark ? '#60A5FA' : '#2563EB';
 
   return (
-    <SafeScreen>
+    <SafeScreen disableBottomTabBarCompensation>
       <TabHeader title={t('home.transitTitle')} subtitle={formatTodayTr()} />
 
       <ScrollView
-        contentContainerStyle={S.scrollContent}
+        contentContainerStyle={[S.scrollContent, { paddingBottom: 100 + bottomTabBarOffset }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

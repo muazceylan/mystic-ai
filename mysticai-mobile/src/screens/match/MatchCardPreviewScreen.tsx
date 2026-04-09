@@ -25,10 +25,11 @@ import {
   shareImage,
 } from '../../services/share.service';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
+import { getUniversalDownloadUrl } from '../../utils/publicUrl';
 
 type ShareAction = 'share' | 'instagram' | 'save' | null;
 
-const UNIVERSAL_DOWNLOAD_URL = 'https://mysticai.app/dl';
+const UNIVERSAL_DOWNLOAD_URL = getUniversalDownloadUrl('/dl');
 const META_INSTAGRAM_STORY_APP_ID =
   process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || process.env.EXPO_PUBLIC_META_APP_ID || undefined;
 

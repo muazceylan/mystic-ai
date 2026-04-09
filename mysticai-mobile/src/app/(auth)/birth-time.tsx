@@ -97,7 +97,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
     pickerHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
+      gap: 12,
       paddingHorizontal: 10,
       marginBottom: 8,
     },
@@ -105,13 +106,29 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+      flex: 1,
+      minWidth: 0,
     },
     pickerMetaText: {
       color: C.subtext,
       fontSize: 11,
+      lineHeight: 15,
       letterSpacing: 0.6,
       textTransform: 'uppercase',
       fontFamily: 'MysticInter-SemiBold',
+      flexShrink: 1,
+    },
+    pickerFormatText: {
+      color: C.subtext,
+      fontSize: 11,
+      lineHeight: 15,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      fontFamily: 'MysticInter-SemiBold',
+      flexShrink: 1,
+      minWidth: 0,
+      maxWidth: '54%',
+      textAlign: 'right',
     },
     pickerRow: {
       flexDirection: 'row',
@@ -264,9 +281,13 @@ export default function BirthTimeScreen() {
               <View style={s.pickerHeaderRow}>
                 <View style={s.pickerMeta}>
                   <Ionicons name="time-outline" size={14} color={colors.primary} />
-                  <Text style={s.pickerMetaText}>{t('auth.selectTimeLabel')}</Text>
+                  <Text style={s.pickerMetaText} numberOfLines={1}>
+                    {t('auth.selectTimeLabel')}
+                  </Text>
                 </View>
-                <Text style={s.pickerMetaText}>{t('birthInfo.timeFormat')}</Text>
+                <Text style={s.pickerFormatText}>
+                  {t('birthInfo.timeFormat')}
+                </Text>
               </View>
 
               <View style={s.pickerRow}>

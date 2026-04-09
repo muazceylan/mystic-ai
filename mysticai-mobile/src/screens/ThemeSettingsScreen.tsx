@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { SafeScreen, TabHeader } from '../components/ui';
+import { SafeScreen, TabHeader, useBottomTabBarOffset } from '../components/ui';
 
 const THEMES: { id: ThemeMode; titleKey: string; subtitleKey: string; icon: string }[] = [
   { id: 'light', titleKey: 'theme.light', subtitleKey: 'theme.lightDesc', icon: 'sunny-outline' },
@@ -14,6 +14,7 @@ const THEMES: { id: ThemeMode; titleKey: string; subtitleKey: string; icon: stri
 export default function ThemeSettingsScreen() {
   const { colors, mode, activeTheme, setMode } = useTheme();
   const { t } = useTranslation();
+  const { bottomTabBarOffset } = useBottomTabBarOffset();
 
   const handleSelect = async (theme: ThemeMode) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -23,11 +24,14 @@ export default function ThemeSettingsScreen() {
   const S = makeStyles(colors);
 
   return (
-    <SafeScreen>
+    <SafeScreen disableBottomTabBarCompensation>
       <View style={S.container}>
         <TabHeader title={t('theme.title')} />
 
-        <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent}>
+        <ScrollView
+          style={S.scroll}
+          contentContainerStyle={[S.scrollContent, { paddingBottom: 40 + bottomTabBarOffset }]}
+        >
           <Text style={S.hint}>{t('theme.hint')}</Text>
 
           <View style={S.card}>
@@ -139,4 +143,3 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     previewSub: { fontSize: 12, color: C.subtext, marginTop: 2 },
   });
 }
-
