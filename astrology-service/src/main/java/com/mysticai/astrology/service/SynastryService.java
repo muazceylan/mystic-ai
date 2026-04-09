@@ -245,7 +245,7 @@ public class SynastryService {
         return switch (type) {
             case TRINE, SEXTILE -> true;
             case CONJUNCTION    -> !isMalefic(planet1) || !isMalefic(planet2);
-            case SQUARE, OPPOSITION -> false;
+            case QUINCUNX, SQUARE, OPPOSITION -> false;
         };
     }
 

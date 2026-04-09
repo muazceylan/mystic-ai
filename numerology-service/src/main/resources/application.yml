@@ -52,6 +52,14 @@ logging:
     com.mysticai.numerology: DEBUG
     org.flywaydb: INFO
 
+numerology:
+  premium-enabled: ${NUMEROLOGY_PREMIUM_ENABLED:false}
+
+services:
+  ai-orchestrator:
+    base-url: ${AI_ORCHESTRATOR_URL:http://localhost:8084}
+    guidance-timeout-ms: 5000
+
 name-ingestion:
   enabled: true
   schedule-cron: "0 20 3 * * *"

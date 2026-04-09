@@ -1,7 +1,15 @@
 package com.mysticai.numerology.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mysticai.numerology.config.NumerologyConfig;
 import com.mysticai.numerology.dto.NumerologyResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.text.Normalizer;
 import java.time.Instant;
@@ -19,6 +27,7 @@ import java.util.Objects;
 @Service
 public class NumerologyCalculator {
 
+    private static final Logger logger = LoggerFactory.getLogger(NumerologyCalculator.class);
     private static final String VERSION = "numerology_v3";
     private static final String CONTENT_VERSION = "numerology_content_v3_0";
     private static final String CALCULATION_VERSION = "numerology_calc_v3_0";
@@ -77,6 +86,23 @@ public class NumerologyCalculator {
         }
     }
 
+    private final NumerologyConfig numerologyConfig;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final String aiOrchestratorBaseUrl;
+
+    public NumerologyCalculator(
+            NumerologyConfig numerologyConfig,
+            RestTemplate numerologyRestTemplate,
+            ObjectMapper objectMapper,
+            @Value("${services.ai-orchestrator.base-url:http://localhost:8084}") String aiOrchestratorBaseUrl
+    ) {
+        this.numerologyConfig = numerologyConfig;
+        this.restTemplate = numerologyRestTemplate;
+        this.objectMapper = objectMapper;
+        this.aiOrchestratorBaseUrl = aiOrchestratorBaseUrl;
+    }
+
     public NumerologyResponse calculate(
             String name,
             String birthDateStr,
@@ -118,7 +144,8 @@ public class NumerologyCalculator {
         int personalMonth = calculatePersonalMonth(personalYear, effectiveDate.getMonthValue());
         int personalDay = calculatePersonalDay(personalMonth, effectiveDate.getDayOfMonth());
         int cycleProgress = calculateCycleProgress(effectiveDate);
-        String yearPhase = buildYearPhase(effectiveDate, english);
+        // Year phase is now birthday-relative (4-phase personal year cycle, not calendar quarters)
+        String yearPhase = buildYearPhase(birthDate, effectiveDate, english);
         String shortTheme = describePersonalYearTheme(personalYear, english);
         String currentPeriodFocus = buildCurrentPeriodFocus(personalYear, yearPhase, english);
         String nextRefreshAt = buildNextRefreshAt(effectiveDate, weeklyGuidance);
@@ -180,18 +207,16 @@ public class NumerologyCalculator {
         );
 
         int seed = Math.abs(Objects.hash(normalizedName, birthDateStr, effectiveDate.toString(), VERSION, guidancePeriod));
-        NumerologyResponse.AngelSignal angelSignal = buildAngelSignal(
-                personalDay,
-                effectiveDate,
-                seed,
-                english,
-                weeklyGuidance
-        );
-        NumerologyResponse.MiniGuidance miniGuidance = new NumerologyResponse.MiniGuidance(
-                buildDailyFocus(personalYear, seed, english, weeklyGuidance),
-                buildMiniGuidance(personalYear, dominant.value(), yearPhase, seed, english, weeklyGuidance),
-                buildReflectionPromptOfDay(dominant.value(), seed, english, weeklyGuidance),
-                buildValidFor(effectiveDate, english, weeklyGuidance)
+
+        // Angel Signal: derived from personalDay (genuine numerological daily vibration).
+        // personalDay 1-9 maps to 111-999. Master numbers (11,22) are reduced before mapping.
+        NumerologyResponse.AngelSignal angelSignal = buildAngelSignal(personalDay, effectiveDate, english, weeklyGuidance);
+
+        // MiniGuidance: AI-generated with template fallback.
+        NumerologyResponse.MiniGuidance miniGuidance = generateMiniGuidance(
+                safeName, lifePathNumber, birthdayNumber, destinyNumber, soulUrgeNumber,
+                personalYear, personalMonth, personalDay, dominant.value(), yearPhase,
+                resolvedLocale, guidancePeriod, weeklyGuidance, effectiveDate, seed, english
         );
 
         String headline = buildHeadline(personalYear, dominant.value(), shortTheme, english);
@@ -226,8 +251,10 @@ public class NumerologyCalculator {
                 List.of(
                         t(
                                 english,
-                                "Life Path = doğum tarihindeki tüm rakamların toplamı, sonra indirgeme.",
-                                "Life Path = sum all birth-date digits, then reduce."
+                                "Life Path: Tüm doğum tarihi rakamları tek seferde toplanır (fadic/eklemeli yöntem). " +
+                                "Bileşenleri ayrı ayrı indirgeyen geleneksel yöntemden bazı doğum tarihlerinde farklı sonuç üretebilir.",
+                                "Life Path uses the fadic method — all birth-date digits are summed at once, not component by component. " +
+                                "For some dates this differs from the traditional reduce-each-component method."
                         ),
                         t(
                                 english,
@@ -291,7 +318,9 @@ public class NumerologyCalculator {
     }
 
     private NumerologyResponse.SectionLockState buildSectionLockState() {
-        if (!PREMIUM_FEATURES_ENABLED) {
+        // premiumEnabled is toggled at runtime via NumerologyAdminController
+        // and defaults from NUMEROLOGY_PREMIUM_ENABLED env var (default: false = all free)
+        if (!numerologyConfig.isPremiumEnabled()) {
             return new NumerologyResponse.SectionLockState(ALL_SECTIONS, List.of(), List.of());
         }
         return new NumerologyResponse.SectionLockState(FREE_SECTIONS, PREMIUM_SECTIONS, PREVIEW_SECTIONS);
@@ -573,14 +602,23 @@ public class NumerologyCalculator {
         return new NumerologyResponse.KarmicDebt(debts, sources, summary);
     }
 
+    /**
+     * Angel Signal is derived directly from the personalDay number — a genuine numerological value.
+     * personalDay is the user's daily vibration (1–9, or master number 11/22).
+     * Master numbers are reduced (11→2, 22→4) before mapping to the ×111 angel format.
+     *
+     * Example: personalDay=7 → angelNumber=777 → "İçgüdülerine güven"
+     */
     private NumerologyResponse.AngelSignal buildAngelSignal(
             int personalDay,
             LocalDate effectiveDate,
-            int seed,
             boolean english,
             boolean weeklyGuidance
     ) {
-        int digit = Math.max(1, Math.min(9, Math.floorMod(personalDay + effectiveDate.getDayOfMonth() + seed, 9) + 1));
+        int digit = isMasterNumber(personalDay)
+                ? reduceToSingleDigit(personalDay)
+                : personalDay;
+        digit = Math.max(1, Math.min(9, digit));
         int angelNumber = digit * 111;
         return new NumerologyResponse.AngelSignal(
                 angelNumber,
@@ -589,6 +627,66 @@ public class NumerologyCalculator {
                 weeklyGuidance
                         ? t(english, "Bu hafta", "This week")
                         : effectiveDate.toString()
+        );
+    }
+
+    /**
+     * Attempts AI-generated personalized guidance via ai-orchestrator.
+     * Falls back to the template-based generation if the AI call fails or times out.
+     */
+    private NumerologyResponse.MiniGuidance generateMiniGuidance(
+            String name, int lifePath, int birthday, int destiny, int soulUrge,
+            int personalYear, int personalMonth, int personalDay, int dominantNumber,
+            String yearPhase, String locale, String guidancePeriod,
+            boolean weeklyGuidance, LocalDate effectiveDate, int seed, boolean english
+    ) {
+        try {
+            String url = aiOrchestratorBaseUrl + "/api/ai/numerology/daily-guidance";
+            Map<String, Object> requestBody = Map.ofEntries(
+                    Map.entry("name", name),
+                    Map.entry("lifePathNumber", lifePath),
+                    Map.entry("birthdayNumber", birthday),
+                    Map.entry("destinyNumber", destiny),
+                    Map.entry("soulUrgeNumber", soulUrge),
+                    Map.entry("personalYear", personalYear),
+                    Map.entry("personalMonth", personalMonth),
+                    Map.entry("personalDay", personalDay),
+                    Map.entry("dominantNumber", dominantNumber),
+                    Map.entry("yearPhase", yearPhase),
+                    Map.entry("locale", locale),
+                    Map.entry("guidancePeriod", guidancePeriod)
+            );
+
+            @SuppressWarnings("unchecked")
+            ResponseEntity<String> response = restTemplate.postForEntity(url, requestBody, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<String, String> parsed = objectMapper.readValue(
+                        response.getBody(), new TypeReference<>() {});
+                String dailyFocus = parsed.getOrDefault("dailyFocus", "");
+                String miniGuidance = parsed.getOrDefault("miniGuidance", "");
+                String reflection = parsed.getOrDefault("reflectionPromptOfTheDay", "");
+
+                if (!dailyFocus.isBlank() && !miniGuidance.isBlank() && !reflection.isBlank()) {
+                    logger.debug("AI numerology guidance generated for: {}", name);
+                    return new NumerologyResponse.MiniGuidance(
+                            weeklyGuidance ? t(english, "%s teması", "%s theme").formatted(dailyFocus) : dailyFocus,
+                            weeklyGuidance ? t(english, "Bu hafta: %s", "This week: %s").formatted(miniGuidance) : miniGuidance,
+                            weeklyGuidance ? t(english, "Haftalık düşünme sorusu: %s", "Weekly reflection: %s").formatted(reflection) : reflection,
+                            buildValidFor(effectiveDate, english, weeklyGuidance)
+                    );
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("AI numerology guidance failed for: {}, falling back to template. reason={}", name, e.getMessage());
+        }
+
+        // Template fallback
+        return new NumerologyResponse.MiniGuidance(
+                buildDailyFocus(personalYear, seed, english, weeklyGuidance),
+                buildMiniGuidance(personalYear, dominantNumber, yearPhase, seed, english, weeklyGuidance),
+                buildReflectionPromptOfDay(dominantNumber, seed, english, weeklyGuidance),
+                buildValidFor(effectiveDate, english, weeklyGuidance)
         );
     }
 
@@ -1118,15 +1216,36 @@ public class NumerologyCalculator {
         return growthEdges;
     }
 
-    private String buildYearPhase(LocalDate effectiveDate, boolean english) {
-        int month = effectiveDate.getMonthValue();
-        if (month <= 4) {
+    /**
+     * Calculates the personal year phase based on the user's birthday cycle,
+     * not the calendar quarter. The cycle starts on each birthday and spans ~365 days.
+     *
+     * Phase boundaries (0–100% of cycle):
+     *   0–25%  → Opening Phase  (yeni döngüye giriş)
+     *   25–50% → Deepening Phase (derinleşme ve birikim)
+     *   50–75% → Peak Phase      (zirve ve somutlaşma)
+     *   75–100%→ Integration Phase (toplama ve kapanış)
+     */
+    private String buildYearPhase(LocalDate birthDate, LocalDate effectiveDate, boolean english) {
+        LocalDate lastBirthday = birthDate.withYear(effectiveDate.getYear());
+        if (lastBirthday.isAfter(effectiveDate)) {
+            lastBirthday = lastBirthday.minusYears(1);
+        }
+        LocalDate nextBirthday = lastBirthday.plusYears(1);
+        long daysSinceBirthday = ChronoUnit.DAYS.between(lastBirthday, effectiveDate);
+        long totalDays = ChronoUnit.DAYS.between(lastBirthday, nextBirthday);
+
+        double ratio = totalDays > 0 ? (double) daysSinceBirthday / (double) totalDays : 0.0;
+
+        if (ratio < 0.25) {
             return t(english, "Açılış Fazı", "Opening Phase");
-        }
-        if (month <= 8) {
+        } else if (ratio < 0.50) {
             return t(english, "Derinleşme Fazı", "Deepening Phase");
+        } else if (ratio < 0.75) {
+            return t(english, "Zirve Fazı", "Peak Phase");
+        } else {
+            return t(english, "Toparlama Fazı", "Integration Phase");
         }
-        return t(english, "Toparlama Fazı", "Integration Phase");
     }
 
     private String describePersonalYearTheme(int personalYear, boolean english) {
@@ -1149,11 +1268,20 @@ public class NumerologyCalculator {
 
     private String buildCurrentPeriodFocus(int personalYear, String yearPhase, boolean english) {
         String phaseKey = yearPhase.toLowerCase(Locale.ROOT);
-        if (phaseKey.contains("aç") || phaseKey.contains("opening")) {
+        if (phaseKey.contains("açılış") || phaseKey.contains("opening")) {
             return switch (personalYear) {
                 case 1, 5, 8, 22 -> t(english, "Yön seç, alan aç, cesur ama temiz başla.", "Choose direction, open space, and start with clean courage.");
                 case 2, 6, 9, 33 -> t(english, "İlişkileri ve sorumlulukları sade biçimde düzenle.", "Reorganize relationships and responsibilities with clarity.");
                 default -> t(english, "İç ritmini belirleyip fazla dağılan alanları toparla.", "Set your internal rhythm and gather scattered areas.");
+            };
+        }
+
+        // Peak phase (50-75% of cycle) and Deepening phase (25-50%) both deepen
+        if (phaseKey.contains("zirve") || phaseKey.contains("peak")) {
+            return switch (personalYear) {
+                case 3, 7, 11 -> t(english, "İfadeyi ve içgörüyü dorukta tut; somut çıktı zamanı.", "Keep expression and insight at peak; time for concrete output.");
+                case 4, 6, 8, 22 -> t(english, "Sonuçları topla; yapının meyvelerini al.", "Collect results; harvest what the structure built.");
+                default -> t(english, "Bu faz birikimini görünür kılmak için en doğru zamandır.", "This phase is the best moment to make accumulated work visible.");
             };
         }
 

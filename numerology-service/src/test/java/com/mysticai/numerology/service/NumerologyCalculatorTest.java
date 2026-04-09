@@ -1,7 +1,10 @@
 package com.mysticai.numerology.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mysticai.numerology.config.NumerologyConfig;
 import com.mysticai.numerology.dto.NumerologyResponse;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -11,7 +14,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NumerologyCalculatorTest {
 
-    private final NumerologyCalculator calculator = new NumerologyCalculator();
+    private final NumerologyCalculator calculator = new NumerologyCalculator(
+            new NumerologyConfig(false),
+            new RestTemplate(),
+            new ObjectMapper(),
+            "http://localhost:8084"
+    );
 
     @Test
     void calculate_returnsStructuredResponseV3() {

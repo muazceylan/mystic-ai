@@ -6,6 +6,47 @@ import { getZodiacInfo } from '../../constants/zodiac';
 import { useTheme } from '../../context/ThemeContext';
 import NatalChartProPanels from './NatalChartProPanels';
 
+const CHART_RULER_MAP: Record<string, { planet: string; symbol: string }> = {
+  Aries:       { planet: 'Mars',    symbol: '♂' },
+  Taurus:      { planet: 'Venus',   symbol: '♀' },
+  Gemini:      { planet: 'Mercury', symbol: '☿' },
+  Cancer:      { planet: 'Moon',    symbol: '☽' },
+  Leo:         { planet: 'Sun',     symbol: '☉' },
+  Virgo:       { planet: 'Mercury', symbol: '☿' },
+  Libra:       { planet: 'Venus',   symbol: '♀' },
+  Scorpio:     { planet: 'Pluto',   symbol: '♇' },
+  Sagittarius: { planet: 'Jupiter', symbol: '♃' },
+  Capricorn:   { planet: 'Saturn',  symbol: '♄' },
+  Aquarius:    { planet: 'Uranus',  symbol: '♅' },
+  Pisces:      { planet: 'Neptune', symbol: '♆' },
+};
+
+function getChartRulerInfo(
+  risingSign: string | null | undefined,
+  planets: PlanetPosition[],
+): { label: string; house: number | null } | null {
+  if (!risingSign) return null;
+  const ruler = CHART_RULER_MAP[risingSign];
+  if (!ruler) return null;
+  const rulerPlanet = planets.find((p) => p.planet === ruler.planet);
+  return {
+    label: `${ruler.symbol} ${ruler.planet}`,
+    house: rulerPlanet?.house ?? null,
+  };
+}
+
+function getElementDots(elementDistribution: Record<string, number> | undefined): string {
+  if (!elementDistribution) return '';
+  const ELEMENT_SYMBOLS: Record<string, string> = {
+    Fire: '🔥', Earth: '🌍', Air: '💨', Water: '💧',
+  };
+  return Object.entries(elementDistribution)
+    .filter(([, count]) => count > 0)
+    .sort(([, a], [, b]) => b - a)
+    .map(([el, count]) => `${ELEMENT_SYMBOLS[el] ?? el} ${count}`)
+    .join('  ');
+}
+
 export type HeroBigThreeRole = 'sun' | 'moon' | 'rising';
 export type HeroMetricTarget = 'planet_positions' | 'house_positions' | 'aspect_list';
 
@@ -21,6 +62,9 @@ type Props = {
   houses: HousePlacement[];
   aspects: PlanetaryAspect[];
   planetNames?: Record<string, string>;
+  elementDistribution?: Record<string, number>;
+  modeDistribution?: Record<string, number>;
+  birthTimeKnown?: boolean;
   showWheelPreview?: boolean;
   expanded?: boolean;
   onToggleExpanded?: () => void;
@@ -161,6 +205,9 @@ export default function NatalChartHeroCard({
   houses,
   aspects,
   planetNames,
+  elementDistribution,
+  modeDistribution,
+  birthTimeKnown,
   showWheelPreview = false,
   expanded = true,
   onToggleExpanded,
@@ -172,7 +219,15 @@ export default function NatalChartHeroCard({
   const moon = getZodiacInfo(moonSign);
   const rising = getZodiacInfo(risingSign);
 
-  const dateTimeLine = [birthDate || 'Tarih yok', birthTime || 'Saat yok'].join(' • ');
+  // birthTimeKnown: false when birth time was not provided
+  const isBirthTimeKnown = birthTimeKnown ?? birthTime != null;
+  const chartRulerInfo = getChartRulerInfo(risingSign, planets ?? []);
+  const elementDots = getElementDots(elementDistribution);
+  const dominantMode = modeDistribution
+    ? Object.entries(modeDistribution).sort(([, a], [, b]) => b - a)[0]?.[0]
+    : null;
+
+  const dateTimeLine = [birthDate || 'Tarih yok', birthTime || 'Saat bilinmiyor'].join(' • ');
   const planetCount = planets?.length ?? 0;
   const houseCount = houses?.length ?? 0;
   const aspectCount = aspects?.length ?? 0;
@@ -269,11 +324,63 @@ export default function NatalChartHeroCard({
               <SignatureRow
                 icon="↑"
                 label="Yükselen"
-                signText={`${rising.symbol} ${rising.name}`}
-                element={rising.element}
-                onPress={onBigThreePress ? () => onBigThreePress('rising') : undefined}
+                signText={isBirthTimeKnown ? `${rising.symbol} ${rising.name}` : '? Bilinmiyor'}
+                element={isBirthTimeKnown ? rising.element : '—'}
+                onPress={isBirthTimeKnown && onBigThreePress ? () => onBigThreePress('rising') : undefined}
               />
+              {chartRulerInfo ? (
+                <View
+                  style={[
+                    styles.chartRulerRow,
+                    { backgroundColor: colors.violetBg, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.chartRulerLabel, { color: colors.textMuted }]}>
+                    Harita Yöneticisi
+                  </Text>
+                  <Text style={[styles.chartRulerValue, { color: colors.violet }]}>
+                    {chartRulerInfo.label}
+                    {chartRulerInfo.house ? ` • ${chartRulerInfo.house}. Ev` : ''}
+                  </Text>
+                </View>
+              ) : null}
             </View>
+
+            {!isBirthTimeKnown ? (
+              <View
+                style={[
+                  styles.birthTimeWarning,
+                  { backgroundColor: colors.surfaceAlt, borderColor: colors.border },
+                ]}
+              >
+                <Ionicons name="information-circle-outline" size={13} color={colors.textMuted} />
+                <Text style={[styles.birthTimeWarningText, { color: colors.textMuted }]}>
+                  Doğum saati bilinmiyor — yükselen burç ve ev yerleşimleri yaklaşıktır.
+                </Text>
+              </View>
+            ) : null}
+
+            {elementDots ? (
+              <View
+                style={[
+                  styles.elementBar,
+                  { backgroundColor: colors.surfaceAlt, borderColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.elementBarLabel, { color: colors.textMuted }]}>Element</Text>
+                <Text style={[styles.elementBarValue, { color: colors.text }]}>{elementDots}</Text>
+                {dominantMode ? (
+                  <Text style={[styles.elementBarMode, { color: colors.textMuted }]}>
+                    {'  ·  '}
+                    {dominantMode === 'Cardinal'
+                      ? 'Öncü'
+                      : dominantMode === 'Fixed'
+                      ? 'Sabit'
+                      : 'Değişken'}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.metricsRow}>
@@ -558,5 +665,62 @@ const styles = StyleSheet.create({
   },
   chartWrap: {
     marginTop: 2,
+  },
+  chartRulerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  chartRulerLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  chartRulerValue: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  birthTimeWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  birthTimeWarningText: {
+    flex: 1,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '600',
+  },
+  elementBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 6,
+    gap: 4,
+  },
+  elementBarLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginRight: 4,
+  },
+  elementBarValue: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  elementBarMode: {
+    fontSize: 10,
+    fontWeight: '600',
   },
 });

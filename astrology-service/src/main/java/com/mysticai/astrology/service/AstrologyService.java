@@ -90,20 +90,25 @@ public class AstrologyService {
         }
 
         // Calculate all positions (SwissEph high-precision)
+        boolean birthTimeKnown = request.birthTime() != null;
         List<PlanetPosition> planets = natalChartCalculator.calculatePlanetPositions(
                 request.birthDate(), birthTime, latitude, longitude, timezone);
         List<HousePlacement> houses = natalChartCalculator.calculateHouses(
                 request.birthDate(), birthTime, latitude, longitude, timezone);
         String sunSign = natalChartCalculator.calculateSunSign(request.birthDate(), timezone);
         String moonSign = natalChartCalculator.calculateMoonSign(request.birthDate(), timezone);
-        String risingSign = natalChartCalculator.calculateAscendant(
-                request.birthDate(), birthTime, latitude, longitude, timezone);
+        // Rising sign is unreliable without birth time (changes every ~2 hours).
+        String risingSign = birthTimeKnown
+                ? natalChartCalculator.calculateAscendant(request.birthDate(), birthTime, latitude, longitude, timezone)
+                : null;
 
-        // Get Ascendant and MC degrees for SWOT aspect calculations
-        double ascendantDegree = natalChartCalculator.getAscendantDegree(
-                request.birthDate(), birthTime, latitude, longitude, timezone);
-        double mcDegree = natalChartCalculator.getMcDegree(
-                request.birthDate(), birthTime, latitude, longitude, timezone);
+        // Ascendant/MC degrees only valid when birth time is known.
+        double ascendantDegree = birthTimeKnown
+                ? natalChartCalculator.getAscendantDegree(request.birthDate(), birthTime, latitude, longitude, timezone)
+                : 0.0;
+        double mcDegree = birthTimeKnown
+                ? natalChartCalculator.getMcDegree(request.birthDate(), birthTime, latitude, longitude, timezone)
+                : 0.0;
 
         // Calculate planetary aspects
         List<PlanetaryAspect> aspects = natalChartCalculator.calculateAspects(planets);
@@ -161,13 +166,22 @@ public class AstrologyService {
                             + (t.retrograde() ? " (R)" : ""))
                     .toList();
 
+            boolean birthTimeKnown = chart.getBirthTime() != null;
+            String chartRuler = natalChartCalculator.computeChartRuler(chart.getRisingSign());
+            java.util.Map<String, Integer> elementDist = natalChartCalculator.computeElementDistribution(planets);
+            java.util.Map<String, Integer> modeDist = natalChartCalculator.computeModeDistribution(planets);
+
             String payload = objectMapper.writeValueAsString(new NatalChartAiPayload(
                     chart.getId(),
                     chart.getName(),
                     chart.getSunSign(),
                     chart.getMoonSign(),
                     chart.getRisingSign(),
+                    chartRuler,
                     chart.getAscendantDegree() != null ? chart.getAscendantDegree() : 0.0,
+                    birthTimeKnown,
+                    elementDist,
+                    modeDist,
                     planets,
                     houses,
                     aspects,
@@ -538,6 +552,11 @@ public class AstrologyService {
                 ? buildHouseComboInsights(safeHouseList, safePlanetList)
                 : List.of();
 
+        boolean birthTimeKnown = chart.getBirthTime() != null;
+        String chartRuler = natalChartCalculator.computeChartRuler(chart.getRisingSign());
+        java.util.Map<String, Integer> elementDistribution = natalChartCalculator.computeElementDistribution(safePlanetList);
+        java.util.Map<String, Integer> modeDistribution = natalChartCalculator.computeModeDistribution(safePlanetList);
+
         return new NatalChartResponse(
                 chart.getId(),
                 chart.getUserId() != null ? Long.valueOf(chart.getUserId()) : null,
@@ -557,7 +576,11 @@ public class AstrologyService {
                 houseComboInsights,
                 chart.getAiInterpretation(),
                 chart.getInterpretationStatus(),
-                chart.getCalculatedAt()
+                chart.getCalculatedAt(),
+                chartRuler,
+                elementDistribution,
+                modeDistribution,
+                birthTimeKnown
         );
     }
 
@@ -921,8 +944,17 @@ public class AstrologyService {
             String name,
             String sunSign,
             String moonSign,
+            /** Null when birth time was not provided — include in AI prompt as unknown. */
             String risingSign,
+            /** Name of the Ascendant sign's ruling planet. Null when risingSign is null. */
+            String chartRuler,
             double ascendantDegree,
+            /** False when birth time was unknown — rising sign and house cusps are approximate. */
+            boolean birthTimeKnown,
+            /** Element count for the 10 traditional planets: Fire, Earth, Air, Water. */
+            java.util.Map<String, Integer> elementDistribution,
+            /** Mode count for the 10 traditional planets: Cardinal, Fixed, Mutable. */
+            java.util.Map<String, Integer> modeDistribution,
             List<PlanetPosition> planets,
             List<HousePlacement> houses,
             List<PlanetaryAspect> aspects,

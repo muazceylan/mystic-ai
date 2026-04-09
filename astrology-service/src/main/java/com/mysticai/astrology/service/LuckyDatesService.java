@@ -258,6 +258,7 @@ public class LuckyDatesService {
                             case TRINE -> 20;
                             case SEXTILE -> 15;
                             case CONJUNCTION -> 10;
+                            case QUINCUNX -> -5;
                             case SQUARE -> -10;
                             case OPPOSITION -> -15;
                         };

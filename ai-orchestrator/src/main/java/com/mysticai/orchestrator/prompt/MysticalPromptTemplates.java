@@ -305,6 +305,23 @@ public class MysticalPromptTemplates {
               yarasını ve şifa potansiyelini gösterir.
             - NorthNode (Kuzey Düğümü): Ruhun bu yaşamda öğrenmesi gereken dersi gösterir.
               Kuzey Düğümü'nün burcu ve evi, kadersel yönelimi belirler.
+
+            CHART RULER (Harita Yöneticisi):
+            - chartRuler: Yükselen burcun yönetici gezegeni. Bu gezegen tüm haritanın "sinyal
+              iletcisi"dir; konumu ve açıları kişinin genel yaşam yönelimini güçlendirir ya da
+              zorlaştırır. Harita yöneticisinin evini mutlaka yorumla.
+            - birthTimeKnown=false ise: Yükselen burç ve ev yerleşimleri BİLİNMİYOR.
+              Sadece Güneş ve Ay yorumuna odaklan. Ev bazlı yorum yapma.
+
+            ELEMENT VE MOD DAĞILIMI:
+            - elementDistribution: 10 gezegenin element sayımı (Ateş/Toprak/Hava/Su).
+              Ağırlıklı element kişinin temel enerji tonunu belirler.
+              Örn: Toprak ağırlığı → pratik, somut, güvenlik odaklı; Ateş ağırlığı → girişken,
+              hızlı, yaratıcı; Hava ağırlığı → zihinsel, iletişimci, sosyal;
+              Su ağırlığı → duygusal, sezgisel, derin.
+            - modeDistribution: Öncü (Cardinal) / Sabit (Fixed) / Değişken (Mutable) dağılımı.
+              Öncü ağırlığı → inisiyatif; Sabit → kararlılık ve direnç; Değişken → esneklik.
+            - Bu dağılımları harita yorumunun "karakter zemini" kısmında mutlaka belirt.
             ═══════════════════════════════════════════════════════════
 
             ═══════════════════════════════════════════════════════════
@@ -312,10 +329,15 @@ public class MysticalPromptTemplates {
             ═══════════════════════════════════════════════════════════
             - CONJUNCTION (Kavuşum, ☌, 0°): İki gezegenin enerjisi birleşir, yoğunlaşır.
               Güçlü bir odak noktası yaratır. Ne olumlu ne olumsuz — gezegenlere bağlıdır.
+            - SEXTILE (Altıgen, ⚹, 60°): Fırsat ve işbirliği açısı. İki gezegen kolayca
+              iletişim kurabilir; ancak bu yeteneği aktif kullanmak gerekir.
             - SQUARE (Kare, □, 90°): Gerilim, çatışma, büyüme zorunluluğu.
               İç çatışmalar yaratır ama bunlar kişiyi güçlendirir. Zorlayıcı ama dönüştürücü.
             - TRINE (Üçgen, △, 120°): Doğal uyum, akış, yetenek.
               İki gezegen birbirini destekler. Kolaylık ve doğuştan gelen yetenekler.
+            - QUINCUNX (Yay Açısı, ⚻, 150°): Uyumsuzluk ve süregelen ayar açısı.
+              İki gezegen doğal bağlantı kuramaz; sürekli adaptasyon ve çaba gerektirir.
+              Sağlık, iş ve ilişkilerde kronik gerilim alanlarını işaret eder.
             - OPPOSITION (Karşıt, ☍, 180°): Kutuplaşma, denge arayışı, farkındalık.
               İki karşıt enerji arasında denge kurma dersi. İlişkilerde ve kişilikte ayna etkisi.
             ═══════════════════════════════════════════════════════════

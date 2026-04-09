@@ -32,10 +32,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,9 +56,9 @@ public class DailyTransitsService {
 
     private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Istanbul");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE;
-    private static final int MIN_TRANSITS = 5;
-    private static final int MAX_TRANSITS = 9;
-    private static final String INSIGHT_ENGINE_VERSION = "daily-insight-v2";
+    private static final int MIN_TRANSITS = 3;
+    private static final int MAX_TRANSITS = 7;
+    private static final String INSIGHT_ENGINE_VERSION = "daily-insight-v3";
     private static final Set<String> BENEFIC_PLANETS = Set.of("Sun", "Moon", "Mercury", "Venus", "Jupiter");
     private static final Set<String> ACTIONABLE_TRANSIT_PLANETS = Set.of(
             "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Moon", "Sun"
@@ -276,7 +278,7 @@ public class DailyTransitsService {
                 .toList();
 
         List<DailyTransitsDTO.RetrogradeItem> retroItems = retrograde.stream()
-                .map(this::toRetroItem)
+                .map(position -> toRetroItem(position, natalHouses))
                 .toList();
 
         List<DailyTransitsDTO.TransitItem> transitItems =
@@ -292,7 +294,8 @@ public class DailyTransitsService {
                 new DailyTransitsDTO.QuickFact("retro", "Retro", retroCountValue, "retro")
         );
 
-        String topTheme = transitItems.isEmpty() ? "Ruh Hali" : transitItems.get(0).theme();
+        DailyTransitsDTO.TransitItem topTransit = transitItems.isEmpty() ? null : transitItems.get(0);
+        String topTheme = topTransit == null ? "Ruh Hali" : topTransit.theme();
         String todayBody = focusPoints.stream()
                 .limit(2)
                 .map(DailyTransitsDTO.FocusPoint::text)
@@ -308,7 +311,7 @@ public class DailyTransitsService {
 
         return new DailyTransitsDTO(
                 date.format(DATE_FORMATTER),
-                buildDailyTitle(chart, topTheme, contextKey),
+                buildDailyTitle(chart, topTransit, topTheme, contextKey),
                 hero,
                 quickFacts,
                 todayCanDo,
@@ -342,12 +345,24 @@ public class DailyTransitsService {
                 String.valueOf(retroItems == null ? 0 : retroItems.size()));
     }
 
-    private String buildDailyTitle(NatalChart chart, String topTheme, String contextKey) {
+    private String buildDailyTitle(
+            NatalChart chart,
+            DailyTransitsDTO.TransitItem topTransit,
+            String topTheme,
+            String contextKey
+    ) {
         String sign = chart == null ? "" : translateSign(chart.getSunSign());
         List<String> options = new ArrayList<>();
         options.add("Bugün Seni Neler Etkiliyor");
         options.add("Bugün İçin Rehberin");
         options.add(topTheme + " odaklı günlük akış");
+        if (topTransit != null && topTransit.technical() != null) {
+            if (normalizeToken(topTransit.technical().aspect()).equals("evgecisi")) {
+                options.add(topTransit.technical().transitPlanet() + " " + topTransit.technical().natalPoint() + " alanında");
+            } else {
+                options.add(topTransit.technical().transitPlanet() + " - " + topTransit.technical().natalPoint() + " vurgusu");
+            }
+        }
         if (!sign.isBlank()) {
             options.add(sign + " için bugünlük rehber");
         }
@@ -450,210 +465,272 @@ public class DailyTransitsService {
             Long userId,
             UserAstroProfile userProfile
     ) {
-        Map<String, Integer> themeCount = new HashMap<>();
-        Map<String, Boolean> retrogradeByPlanet = new HashMap<>();
+        Map<String, PlanetPosition> transitByPlanet = new LinkedHashMap<>();
         for (PlanetPosition position : transitPositions) {
-            retrogradeByPlanet.put(cleanPlanet(position.planet()), position.retrograde());
+            transitByPlanet.put(cleanPlanet(position.planet()), position);
         }
-        List<DailyTransitsDTO.TransitItem> items = new ArrayList<>();
+
         AtomicInteger index = new AtomicInteger(0);
+        List<DailyTransitsDTO.TransitItem> rankedAspectItems = aspects.stream()
+                .map(aspect -> buildAspectTransitItem(aspect, transitByPlanet, transitPositions, natalHouses, date, userId, userProfile, index))
+                .filter(Objects::nonNull)
+                .sorted(Comparator
+                        .comparingInt(DailyTransitsDTO.TransitItem::importance).reversed()
+                        .thenComparingInt((DailyTransitsDTO.TransitItem item) -> isCautionLabel(item.label()) ? 0 : 1)
+                        .thenComparingDouble(item -> item.technical() != null ? item.technical().orb() : 99.0))
+                .toList();
 
-        aspects.stream()
-                .sorted(Comparator.comparingDouble(PlanetaryAspect::orb))
-                .forEach(aspect -> {
-                    if (items.size() >= MAX_TRANSITS) {
-                        return;
-                    }
-                    String transitPlanet = cleanPlanet(aspect.planet1());
-                    if (!ACTIONABLE_TRANSIT_PLANETS.contains(transitPlanet)) {
-                        return;
-                    }
+        List<DailyTransitsDTO.TransitItem> items = new ArrayList<>();
+        Map<String, Integer> themeCount = new HashMap<>();
+        Set<String> representedPlanets = new HashSet<>();
+        Set<String> seenIdentities = new HashSet<>();
 
-                    String theme = themeForPlanet(transitPlanet);
-                    int count = themeCount.getOrDefault(theme, 0);
-                    if (count >= 2) {
-                        return;
-                    }
-
-                    boolean supportive = isSupportive(aspect, transitPlanet);
-                    String label = supportive ? "Destekleyici" : "Hassas";
-                    String transitPlanetTr = translatePlanet(transitPlanet);
-                    String natalPointTr = translatePlanet(cleanPlanet(aspect.planet2()));
-                    String house = resolveHouseForTransit(transitPlanet, transitPositions, natalHouses);
-                    String variationKey = buildVariationKey(date, userId, transitPlanet, natalPointTr, aspect.type().name(), house);
-                    String titleBase = supportive ? supportiveTitle(theme, variationKey) : cautionTitle(theme, variationKey);
-                    String title = titleBase + " • " + transitPlanetTr + " odakta";
-                    String impactBase = supportive
-                            ? supportiveImpact(theme, transitPlanet, house, variationKey)
-                            : cautionImpact(theme, transitPlanet, house, variationKey);
-                    int importance = computeImportance(
-                            aspect,
-                            supportive,
-                            house,
-                            retrogradeByPlanet.getOrDefault(transitPlanet, false),
-                            theme,
-                            transitPlanet,
-                            userProfile
-                    );
-                    String status = statusFrom(supportive, importance, retrogradeByPlanet.getOrDefault(transitPlanet, false));
-
-                    String exactAt = date.atTime(9 + (index.get() % 8), (index.get() * 7) % 60)
-                            .atZone(zone)
-                            .withZoneSameInstant(ZoneOffset.UTC)
-                            .toOffsetDateTime()
-                            .toString();
-
-                    DailyTransitsDTO.Technical technical = new DailyTransitsDTO.Technical(
-                            translatePlanet(transitPlanet),
-                            translatePlanet(cleanPlanet(aspect.planet2())),
-                            aspect.type().name(),
-                            round(aspect.orb(), 2),
-                            exactAt,
-                            house
-                    );
-
-                    String action = clamp(actionHint(theme, status), 96);
-                    String avoid = clamp(avoidHint(theme, status), 96);
-                    String summary = clamp(impactBase + " " + avoidSoftener(status), 120);
-                    String technicalReason = buildTechnicalReason(
-                            translatePlanet(transitPlanet),
-                            translatePlanet(cleanPlanet(aspect.planet2())),
-                            aspect.type().name(),
-                            round(aspect.orb(), 2),
-                            house
-                    );
-
-                    DailyTransitsDTO.TransitItem item = new DailyTransitsDTO.TransitItem(
-                            "insight-" + normalizeToken(theme) + "-" + index.incrementAndGet(),
-                            clamp(title, 48),
-                            summary,
-                            status,
-                            theme,
-                            timeWindowForIndex(index.get()),
-                            importance,
-                            technical,
-                            action,
-                            avoid,
-                            importance,
-                            relevanceFromImportance(importance),
-                            clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile), 120),
-                            technicalReason
-                    );
-                    items.add(item);
-                    themeCount.put(theme, count + 1);
-                });
-
-        List<DailyTransitsDTO.TransitItem> deduped = dedupeTransitItems(items);
-        items.clear();
-        items.addAll(deduped);
-        themeCount.clear();
-        themeCount.putAll(rebuildThemeCounts(items));
-
-        int refillAttempts = 0;
-        while (items.size() < MIN_TRANSITS && refillAttempts < 2) {
-            addSyntheticTransitItems(items, themeCount, transitPositions, index, date, userId, userProfile);
-            List<DailyTransitsDTO.TransitItem> dedupedRefill = dedupeTransitItems(items);
-            items.clear();
-            items.addAll(dedupedRefill);
-            themeCount.clear();
-            themeCount.putAll(rebuildThemeCounts(items));
-            refillAttempts += 1;
+        for (DailyTransitsDTO.TransitItem item : rankedAspectItems) {
+            if (items.size() >= MAX_TRANSITS) {
+                break;
+            }
+            if (!canAcceptTransitItem(item, themeCount, seenIdentities)) {
+                continue;
+            }
+            items.add(item);
+            themeCount.merge(item.theme(), 1, Integer::sum);
+            seenIdentities.add(buildTransitIdentity(item));
+            representedPlanets.add(cleanTransitPlanet(item));
         }
-        return items;
+
+        if (items.size() < MIN_TRANSITS) {
+            addHouseTransitItems(
+                    items,
+                    themeCount,
+                    seenIdentities,
+                    representedPlanets,
+                    transitPositions,
+                    natalHouses,
+                    date,
+                    userId,
+                    userProfile,
+                    index
+            );
+        }
+
+        return items.stream()
+                .sorted(Comparator
+                        .comparingInt(DailyTransitsDTO.TransitItem::importance).reversed()
+                        .thenComparingInt((DailyTransitsDTO.TransitItem item) -> isCautionLabel(item.label()) ? 0 : 1)
+                        .thenComparing(DailyTransitsDTO.TransitItem::titlePlain))
+                .limit(MAX_TRANSITS)
+                .toList();
     }
 
-    private void addSyntheticTransitItems(
-            List<DailyTransitsDTO.TransitItem> items,
-            Map<String, Integer> themeCount,
+    private DailyTransitsDTO.TransitItem buildAspectTransitItem(
+            PlanetaryAspect aspect,
+            Map<String, PlanetPosition> transitByPlanet,
             List<PlanetPosition> transitPositions,
-            AtomicInteger index,
+            List<HousePlacement> natalHouses,
             LocalDate date,
             Long userId,
-            UserAstroProfile userProfile
+            UserAstroProfile userProfile,
+            AtomicInteger index
+    ) {
+        String transitPlanet = cleanPlanet(aspect.planet1());
+        if (!ACTIONABLE_TRANSIT_PLANETS.contains(transitPlanet)) {
+            return null;
+        }
+
+        String natalPoint = cleanPlanet(aspect.planet2());
+        String house = resolveHouseForTransit(transitPlanet, transitPositions, natalHouses);
+        boolean retrograde = Optional.ofNullable(transitByPlanet.get(transitPlanet))
+                .map(PlanetPosition::retrograde)
+                .orElse(false);
+        boolean supportive = isSupportive(aspect, transitPlanet);
+        String label = supportive ? "Destekleyici" : "Dikkat";
+        String theme = themeForPlanet(transitPlanet);
+        String transitPlanetTr = translatePlanet(transitPlanet);
+        String natalPointTr = translatePlanet(natalPoint);
+        String variationKey = buildVariationKey(date, userId, transitPlanet, natalPointTr, aspect.type().name(), house);
+        String aspectLabel = translateAspect(aspect.type());
+        String title = supportive
+                ? transitPlanetTr + " - " + natalPointTr + " uyumu"
+                : transitPlanetTr + " - " + natalPointTr + " gerilimi";
+        String baseImpact = supportive
+                ? supportiveImpact(theme, transitPlanet, house, variationKey)
+                : cautionImpact(theme, transitPlanet, house, variationKey);
+        String areaIntro = supportive
+                ? transitPlanetTr + " " + themeFocusArea(theme) + " alanında destek açıyor. "
+                : transitPlanetTr + " " + themeFocusArea(theme) + " alanında denge istiyor. ";
+        String impact = clamp(areaIntro + baseImpact, 160);
+        int importance = computeImportance(
+                aspect,
+                house,
+                retrograde,
+                transitPlanet,
+                natalPoint,
+                userProfile
+        );
+        String action = clamp(actionHint(theme, label), 96);
+        String avoid = clamp(avoidHint(theme, label), 96);
+
+        return new DailyTransitsDTO.TransitItem(
+                "insight-" + normalizeToken(theme) + "-" + index.incrementAndGet(),
+                clamp(title, 48),
+                impact,
+                label,
+                theme,
+                null,
+                importance,
+                new DailyTransitsDTO.Technical(
+                        transitPlanetTr,
+                        natalPointTr,
+                        aspectLabel,
+                        round(aspect.orb(), 2),
+                        null,
+                        house
+                ),
+                action,
+                avoid,
+                importance,
+                relevanceFromImportance(importance),
+                clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile), 120),
+                buildTechnicalReason(transitPlanetTr, natalPointTr, aspectLabel, round(aspect.orb(), 2), house)
+        );
+    }
+
+    private void addHouseTransitItems(
+            List<DailyTransitsDTO.TransitItem> items,
+            Map<String, Integer> themeCount,
+            Set<String> seenIdentities,
+            Set<String> representedPlanets,
+            List<PlanetPosition> transitPositions,
+            List<HousePlacement> natalHouses,
+            LocalDate date,
+            Long userId,
+            UserAstroProfile userProfile,
+            AtomicInteger index
     ) {
         for (PlanetPosition planet : transitPositions) {
             if (items.size() >= MIN_TRANSITS || items.size() >= MAX_TRANSITS) {
                 break;
             }
-            String planetName = planet.planet();
-            if (!ACTIONABLE_TRANSIT_PLANETS.contains(planetName)) {
-                continue;
-            }
-            String theme = themeForPlanet(planetName);
-            int count = themeCount.getOrDefault(theme, 0);
-            if (count >= 2) {
+
+            String transitPlanet = cleanPlanet(planet.planet());
+            if (!ACTIONABLE_TRANSIT_PLANETS.contains(transitPlanet) || representedPlanets.contains(transitPlanet)) {
                 continue;
             }
 
-            boolean supportive = !planet.retrograde() && BENEFIC_PLANETS.contains(planetName);
-            String status = supportive ? "Kolay" : "Hassas";
-            String planetTr = translatePlanet(planetName);
-            String variationKey = buildVariationKey(date, userId, planetName, "Genel Akış", status, null);
-            String titleBase = supportive ? supportiveTitle(theme, variationKey) : cautionTitle(theme, variationKey);
-            String impactBase = supportive
-                    ? supportiveImpact(theme, planetName, null, variationKey)
-                    : cautionImpact(theme, planetName, null, variationKey);
-            int confidenceBase = supportive ? 64 : 56;
-            int confidenceDrift = Math.abs((variationKey + "|confidence").hashCode()) % 12;
-            int importance = clampInt(confidenceBase + confidenceDrift + themePreferenceBonus(userProfile, theme), 45, 86);
-            String action = clamp(actionHint(theme, status), 96);
-            String avoid = clamp(avoidHint(theme, status), 96);
-            String summary = clamp(impactBase + " " + avoidSoftener(status), 120);
-
-            DailyTransitsDTO.TransitItem item = new DailyTransitsDTO.TransitItem(
-                    "insight-" + normalizeToken(theme) + "-" + (index.incrementAndGet()),
-                    clamp(titleBase + " • " + planetTr + " odakta", 48),
-                    summary,
-                    status,
-                    theme,
-                    timeWindowForIndex(index.get()),
-                    importance,
-                    new DailyTransitsDTO.Technical(
-                            translatePlanet(planetName),
-                            "Genel Akış",
-                            supportive ? "FLOW" : "PRESSURE",
-                            supportive ? 1.8 : 2.4,
-                            null,
-                            null
-                    ),
-                    action,
-                    avoid,
-                    importance,
-                    relevanceFromImportance(importance),
-                    clamp(reasonFrom(theme, null, supportive, planetName, userProfile), 120),
-                    buildTechnicalReason(
-                            translatePlanet(planetName),
-                            "Genel Akış",
-                            supportive ? "FLOW" : "PRESSURE",
-                            supportive ? 1.8 : 2.4,
-                            null
-                    )
+            DailyTransitsDTO.TransitItem item = buildHouseTransitItem(
+                    planet,
+                    natalHouses,
+                    date,
+                    userId,
+                    userProfile,
+                    index
             );
-            items.add(item);
-            themeCount.put(theme, count + 1);
-        }
-    }
-
-    private Map<String, Integer> rebuildThemeCounts(List<DailyTransitsDTO.TransitItem> items) {
-        Map<String, Integer> counts = new HashMap<>();
-        for (DailyTransitsDTO.TransitItem item : items) {
-            counts.merge(item.theme(), 1, Integer::sum);
-        }
-        return counts;
-    }
-
-    private List<DailyTransitsDTO.TransitItem> dedupeTransitItems(List<DailyTransitsDTO.TransitItem> items) {
-        Map<String, DailyTransitsDTO.TransitItem> unique = new LinkedHashMap<>();
-
-        for (DailyTransitsDTO.TransitItem item : items) {
-            String key = buildTransitIdentity(item);
-            DailyTransitsDTO.TransitItem existing = unique.get(key);
-            if (existing == null || item.confidence() > existing.confidence()) {
-                unique.put(key, item);
+            if (item == null || !canAcceptTransitItem(item, themeCount, seenIdentities)) {
+                continue;
             }
+
+            items.add(item);
+            themeCount.merge(item.theme(), 1, Integer::sum);
+            seenIdentities.add(buildTransitIdentity(item));
+            representedPlanets.add(transitPlanet);
+        }
+    }
+
+    private DailyTransitsDTO.TransitItem buildHouseTransitItem(
+            PlanetPosition transitPosition,
+            List<HousePlacement> natalHouses,
+            LocalDate date,
+            Long userId,
+            UserAstroProfile userProfile,
+            AtomicInteger index
+    ) {
+        String transitPlanet = cleanPlanet(transitPosition.planet());
+        String house = resolveHouseForTransit(transitPosition, natalHouses);
+        if (house == null || house.isBlank()) {
+            return null;
         }
 
-        return new ArrayList<>(unique.values());
+        boolean supportive = isHouseTransitSupportive(transitPlanet, house, transitPosition.retrograde());
+        String label = supportive ? "Destekleyici" : "Dikkat";
+        String theme = themeForPlanet(transitPlanet);
+        String transitPlanetTr = translatePlanet(transitPlanet);
+        String variationKey = buildVariationKey(date, userId, transitPlanet, houseText(house), "HOUSE_TRANSIT", house);
+        String areaFull = houseAreaText(house);
+        String areaShort = houseAreaShortText(house);
+        String baseImpact = supportive
+                ? supportiveImpact(theme, transitPlanet, house, variationKey)
+                : cautionImpact(theme, transitPlanet, house, variationKey);
+        String houseImpactIntro = supportive
+                ? transitPlanetTr + " " + areaFull + " alanını destekliyor. "
+                : transitPlanetTr + " " + areaFull + " alanında dikkatli ilerlemeyi işaret ediyor. ";
+        String impact = clamp(houseImpactIntro + baseImpact, 160);
+        int importance = computeHouseTransitImportance(transitPlanet, house, transitPosition.retrograde(), userProfile);
+
+        return new DailyTransitsDTO.TransitItem(
+                "insight-" + normalizeToken(theme) + "-" + index.incrementAndGet(),
+                clamp(
+                        supportive
+                                ? transitPlanetTr + " " + areaShort + " alanını destekliyor"
+                                : transitPlanetTr + " " + areaShort + " alanında dikkat istiyor",
+                        48
+                ),
+                impact,
+                label,
+                theme,
+                null,
+                importance,
+                new DailyTransitsDTO.Technical(
+                        transitPlanetTr,
+                        areaShort,
+                        "Ev Geçişi",
+                        0.0,
+                        null,
+                        house
+                ),
+                clamp(actionHint(theme, label), 96),
+                clamp(avoidHint(theme, label), 96),
+                importance,
+                relevanceFromImportance(importance),
+                clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile), 120),
+                transitPlanetTr + " " + areaShort + " geçişi"
+        );
+    }
+
+    private boolean canAcceptTransitItem(
+            DailyTransitsDTO.TransitItem item,
+            Map<String, Integer> themeCount,
+            Set<String> seenIdentities
+    ) {
+        if (item == null) {
+            return false;
+        }
+        if (themeCount.getOrDefault(item.theme(), 0) >= 2) {
+            return false;
+        }
+        return !seenIdentities.contains(buildTransitIdentity(item));
+    }
+
+    private String cleanTransitPlanet(DailyTransitsDTO.TransitItem item) {
+        if (item == null || item.technical() == null) {
+            return "";
+        }
+        return cleanPlanet(item.technical().transitPlanet());
+    }
+
+    private boolean isHouseTransitSupportive(String transitPlanet, String house, boolean retrograde) {
+        if (retrograde) {
+            return false;
+        }
+        return switch (transitPlanet) {
+            case "Mercury" -> !Set.of("8", "12").contains(house);
+            case "Venus" -> !Set.of("6", "8", "12").contains(house);
+            case "Mars" -> Set.of("1", "3", "5", "10", "11").contains(house);
+            case "Jupiter" -> !Set.of("8", "12").contains(house);
+            case "Saturn" -> Set.of("3", "6", "10", "11").contains(house);
+            case "Sun" -> Set.of("1", "5", "9", "10", "11").contains(house);
+            case "Moon" -> !Set.of("8", "12").contains(house);
+            default -> !Set.of("8", "12").contains(house);
+        };
     }
 
     private String buildTransitIdentity(DailyTransitsDTO.TransitItem item) {
@@ -690,8 +767,8 @@ public class DailyTransitsService {
         String theme = top != null ? top.theme() : "Ruh Hali";
         String moodTag = moodTagFromTheme(theme, retrogrades.size());
         int baseIntensity = transits.isEmpty()
-                ? 52
-                : clampInt((int) Math.round(transits.stream().mapToInt(DailyTransitsDTO.TransitItem::confidence).average().orElse(60)), 40, 92);
+                ? 48
+                : clampInt((int) Math.round(transits.stream().mapToInt(DailyTransitsDTO.TransitItem::importance).average().orElse(58)), 38, 90);
         int retroPenalty = Math.min(retrogrades.size() * 3, 8);
         int cautionPenalty = top != null && "Dikkat".equalsIgnoreCase(top.label()) ? 5 : 0;
         int intensity = clampInt(baseIntensity - retroPenalty - cautionPenalty, 38, 92);
@@ -711,9 +788,15 @@ public class DailyTransitsService {
         };
 
         List<String> headlineOptions = new ArrayList<>();
-        headlineOptions.add("Bugün " + focusArea + " tarafında akış hızlanıyor.");
-        headlineOptions.add(focusArea + " alanında planlı kaldığında daha rahat ilerlersin.");
-        if (!topPlanetTr.isBlank()) {
+        headlineOptions.add("Bugün " + focusArea + " tarafında asıl vurgu öne çıkıyor.");
+        headlineOptions.add(focusArea + " alanında gerçek tetikleri takip etmek daha çok işine yarar.");
+        if (top != null && top.technical() != null) {
+            if (normalizeToken(top.technical().aspect()).equals("evgecisi")) {
+                headlineOptions.add(topPlanetTr + " bugün " + houseAreaText(top.technical().house()) + " alanını öne çıkarıyor.");
+            } else {
+                headlineOptions.add(topPlanetTr + " ile " + top.technical().natalPoint() + " teması bugün " + focusArea + " başlığını vurguluyor.");
+            }
+        } else if (!topPlanetTr.isBlank()) {
             headlineOptions.add(topPlanetTr + " etkisi bugün " + focusArea + " başlığını öne taşıyor.");
         }
         if (!signSignature.isBlank()) {
@@ -726,6 +809,10 @@ public class DailyTransitsService {
 
         String topAction = top != null ? actionHint(theme, top.label()) : actionHint(theme, "Nötr");
         List<String> supportOptions = new ArrayList<>();
+        if (top != null) {
+            supportOptions.add(top.impactPlain());
+            supportOptions.add(top.reason());
+        }
         supportOptions.add(topAction + " " + themeSupportDetail(theme));
         supportOptions.add(themeSupportDetail(theme) + " " + topAction);
         if (!signSignature.isBlank()) {
@@ -864,7 +951,10 @@ public class DailyTransitsService {
         }
 
         if (suggestions.size() < 3 && !retrogrades.isEmpty()) {
-            suggestions.add("Önemli kararları aceleye getirmeden önce kısa bir kontrol yapmak iyi olur.");
+            suggestions.add(retrogrades.get(0).meaningPlain());
+        }
+        if (suggestions.size() < 3 && !transits.isEmpty()) {
+            suggestions.add(transits.get(0).reason());
         }
         if (suggestions.size() < 3) {
             suggestions.add("Gün içinde 10 dakikalık bir plan molası vermen odağını toparlar.");
@@ -884,21 +974,31 @@ public class DailyTransitsService {
         return points;
     }
 
-    private DailyTransitsDTO.RetrogradeItem toRetroItem(PlanetPosition position) {
+    private DailyTransitsDTO.RetrogradeItem toRetroItem(PlanetPosition position, List<HousePlacement> natalHouses) {
         String planet = translatePlanet(position.planet());
+        String house = resolveHouseForTransit(position, natalHouses);
+        String area = houseAreaText(house);
         String meaning = switch (position.planet()) {
-            case "Mercury" -> "İletişimde gecikmeler olabilir; mesajlarını net ve kısa tut.";
-            case "Venus" -> "İlişkilerde eski konular gündeme gelebilir; kırıcı dilden kaçın.";
-            case "Mars" -> "Enerjini aceleye değil plana ver; tartışmaları büyütmemeye çalış.";
-            case "Jupiter" -> "Büyük kararları hemen netleştirme; seçenekleri tekrar tart.";
-            case "Saturn" -> "Süreçler yavaş ilerleyebilir; sabır ve disiplin daha çok işe yarar.";
-            default -> "Bu gezegenin retrosu ilgili konuda daha dikkatli ilerlemeni önerir.";
+            case "Mercury" -> house == null
+                    ? "Merkür retrosu mesaj, plan ve detayları iki kez kontrol etmeyi istiyor."
+                    : "Merkür retrosu " + area + " alanında mesaj, plan ve detayları iki kez kontrol etmeyi istiyor.";
+            case "Venus" -> house == null
+                    ? "Venüs retrosu ilişkiler ve beklentilerde eski temaları yeniden düşündürebilir."
+                    : "Venüs retrosu " + area + " alanında ilişkiler ve beklentileri yeniden gözden geçirmeyi istiyor.";
+            case "Mars" -> house == null
+                    ? "Mars retrosu acele çıkışları değil, enerjiyi planlı kullanmayı istiyor."
+                    : "Mars retrosu " + area + " tarafında enerjiyi aceleye değil plana vermeni istiyor.";
+            case "Jupiter" -> house == null
+                    ? "Jüpiter retrosu büyüme planlarını aceleyle değil, yeniden değerlendirmeyle netleştirir."
+                    : "Jüpiter retrosu " + area + " alanında büyük resmi yeniden tartmanı istiyor.";
+            case "Saturn" -> house == null
+                    ? "Satürn retrosu sorumlulukları yeniden yapılandırmayı ve eksikleri sabırla toplamayı ister."
+                    : "Satürn retrosu " + area + " alanında sorumlulukları daha sağlam kurgulamanı istiyor.";
+            default -> house == null
+                    ? "Bu retro ilgili konuda daha yavaş, dikkatli ve bilinçli ilerlemeni önerir."
+                    : "Bu retro " + area + " tarafında daha yavaş, dikkatli ve bilinçli ilerlemeni önerir.";
         };
-        String risk = switch (position.planet()) {
-            case "Mars", "Saturn" -> "High";
-            case "Mercury", "Venus", "Jupiter" -> "Med";
-            default -> "Low";
-        };
+        String risk = retroRiskLevel(position.planet(), house);
         return new DailyTransitsDTO.RetrogradeItem(planet, clamp(meaning, 96), risk);
     }
 
@@ -922,18 +1022,25 @@ public class DailyTransitsService {
             ));
         }
 
-        if (templates.size() < 4) {
-            List<String> relatedIds = related.stream().limit(2).map(DailyTransitsDTO.TransitItem::id).toList();
-            templates.add(new ActionTemplate(
-                    "action-social-lunch",
-                    "Öğle arasında kısa bir yürüyüş yap.",
-                    "10-15 dakikalık yürüyüş hem enerjiyi hem odağı toparlamaya yardımcı olur.",
-                    "walk",
-                    "Kolay",
-                    10,
-                    relatedIds
-            ));
+        if (templates.size() < 4 && dto.retrogrades() != null) {
+            int retroIndex = 0;
+            for (DailyTransitsDTO.RetrogradeItem retro : dto.retrogrades()) {
+                if (templates.size() >= 4) {
+                    break;
+                }
+                retroIndex += 1;
+                templates.add(new ActionTemplate(
+                        "action-retro-" + retroIndex,
+                        clamp(retro.planet() + " retrosu için kontrol listesi hazırla.", 80),
+                        clamp(retro.meaningPlain(), 120),
+                        "repeat",
+                        "Planlı",
+                        6,
+                        related.stream().limit(2).map(DailyTransitsDTO.TransitItem::id).toList()
+                ));
+            }
         }
+
         if (templates.size() < 5) {
             List<String> relatedIds = related.stream().limit(2).map(DailyTransitsDTO.TransitItem::id).toList();
             templates.add(new ActionTemplate(
@@ -1104,31 +1211,9 @@ public class DailyTransitsService {
     private boolean isSupportive(PlanetaryAspect aspect, String transitPlanet) {
         return switch (aspect.type()) {
             case TRINE, SEXTILE -> true;
-            case SQUARE, OPPOSITION -> false;
+            case QUINCUNX, SQUARE, OPPOSITION -> false;
             case CONJUNCTION -> BENEFIC_PLANETS.contains(transitPlanet);
         };
-    }
-
-    private String supportiveTitle(String theme, String variationKey) {
-        List<String> options = switch (theme) {
-            case "İletişim" -> List.of("İletişimde hızlanma", "Sözlerde akış", "Bağlantılarda canlılık");
-            case "Aşk" -> List.of("İlişkilerde sıcak akış", "Yakınlıkta yumuşama", "Duygularda uyum");
-            case "İş" -> List.of("İşlerde toparlanma", "Planlarda netleşme", "Kariyerde akıcı tempo");
-            case "Enerji" -> List.of("Enerjide yükseliş", "Motivasyonda artış", "Ritmini kolay kurma");
-            default -> List.of("Ruh halinde denge", "İç dengede toparlanma", "Zihinde sakin akış");
-        };
-        return pickVariant(options, variationKey + "|title");
-    }
-
-    private String cautionTitle(String theme, String variationKey) {
-        List<String> options = switch (theme) {
-            case "İletişim" -> List.of("Sözlerde netlik ihtiyacı", "İletişimde dikkat eşiği", "Mesajlarda bulanıklık riski");
-            case "Aşk" -> List.of("İlişkilerde hassas eşik", "Yakınlıkta yanlış anlama riski", "Duygusal tepkilerde denge ihtiyacı");
-            case "İş" -> List.of("Planlarda gecikme riski", "Takvimde sıkışma ihtimali", "İş akışında yavaşlama");
-            case "Enerji" -> List.of("Enerjiyi dengede tut", "Tempoyu bölerek ilerle", "Yorgunluk eşiğine dikkat");
-            default -> List.of("Duygularda dalgalanma", "İç ritimde dengesizlik", "Sezgilerde kararsızlık");
-        };
-        return pickVariant(options, variationKey + "|title");
     }
 
     private String supportiveImpact(String theme, String planet, String house, String variationKey) {
@@ -1159,8 +1244,7 @@ public class DailyTransitsService {
                     "Zihinsel akış daha düzenli; küçük adımlarla güvenli biçimde ilerleyebilirsin."
             );
         };
-        String base = pickVariant(options, variationKey + "|impact");
-        return base + " " + houseFocusHint(house, true, variationKey);
+        return pickVariant(options, variationKey + "|impact");
     }
 
     private String cautionImpact(String theme, String planet, String house, String variationKey) {
@@ -1191,48 +1275,30 @@ public class DailyTransitsService {
                     "İç sesin karışabilir; netlik için kararlarını zamana yayman faydalı olur."
             );
         };
-        String base = pickVariant(options, variationKey + "|impact");
-        return base + " " + houseFocusHint(house, false, variationKey);
+        return pickVariant(options, variationKey + "|impact");
     }
 
     private int computeImportance(
             PlanetaryAspect aspect,
-            boolean supportive,
             String house,
             boolean isRetrograde,
-            String theme,
             String transitPlanet,
+            String natalPoint,
             UserAstroProfile userProfile
     ) {
-        // Teknik güç + kullanıcı profili birleşerek kullanıcıya görünen önem skorunu üretir.
-        double orb = Math.max(aspect.orb(), 0);
-        int orbScore = clampInt((int) Math.round(90 - (orb * 9)), 42, 92);
-        int aspectWeight = switch (aspect.type()) {
-            case TRINE -> 7;
-            case SEXTILE -> 5;
-            case CONJUNCTION -> supportive ? 4 : 1;
-            case SQUARE -> -4;
-            case OPPOSITION -> -6;
-        };
-        int houseWeight = switch (house == null ? "" : house) {
-            case "1", "4", "7", "10" -> 6;
-            case "2", "5", "8", "11" -> 4;
-            case "3", "6", "9", "12" -> 2;
-            default -> 0;
-        };
-        int supportiveWeight = supportive ? 3 : 0;
-        int retroPenalty = isRetrograde ? 6 : 0;
-        int themeBonus = themePreferenceBonus(userProfile, theme);
-        int planetBonus = dominantPlanetBonus(userProfile, transitPlanet);
-        int sensitiveHouseBonus = sensitiveHouseBonus(userProfile, house);
-        int score = orbScore + aspectWeight + houseWeight + supportiveWeight - retroPenalty
-                + themeBonus + planetBonus + sensitiveHouseBonus;
-        return clampInt(score, 38, 97);
-    }
-
-    private int themePreferenceBonus(UserAstroProfile userProfile, String theme) {
-        if (userProfile == null || userProfile.themePreference() == null) return 0;
-        return clampInt(userProfile.themePreference().getOrDefault(theme, 0), -8, 8);
+        double orbAllowance = Math.max(aspect.type().getOrbAllowance(), 1.0);
+        double tightness = 1.0 - Math.min(Math.max(aspect.orb(), 0), orbAllowance) / orbAllowance;
+        int orbScore = clampInt((int) Math.round(tightness * 20), 0, 20);
+        int score = 12
+                + aspectStrengthWeight(aspect.type())
+                + orbScore
+                + houseWeight(house)
+                + transitPlanetWeight(transitPlanet)
+                + natalPointWeight(natalPoint)
+                + dominantPlanetBonus(userProfile, transitPlanet)
+                + sensitiveHouseBonus(userProfile, house)
+                + (isRetrograde ? 2 : 0);
+        return clampInt(score, 42, 97);
     }
 
     private int dominantPlanetBonus(UserAstroProfile userProfile, String transitPlanet) {
@@ -1247,14 +1313,66 @@ public class DailyTransitsService {
         return userProfile.sensitiveHouses().contains(house) ? 4 : 0;
     }
 
-    private String statusFrom(boolean supportive, int importance, boolean retrograde) {
-        if (!supportive) {
-            return importance >= 74 ? "Dikkat" : "Hassas";
-        }
-        if (retrograde) {
-            return importance >= 70 ? "Hassas" : "Kolay";
-        }
-        return importance >= 74 ? "Destekleyici" : "Kolay";
+    private int computeHouseTransitImportance(
+            String transitPlanet,
+            String house,
+            boolean retrograde,
+            UserAstroProfile userProfile
+    ) {
+        int score = 42
+                + houseWeight(house)
+                + transitPlanetWeight(transitPlanet)
+                + dominantPlanetBonus(userProfile, transitPlanet)
+                + sensitiveHouseBonus(userProfile, house)
+                + (retrograde ? 2 : 0);
+        return clampInt(score, 46, 84);
+    }
+
+    private int aspectStrengthWeight(PlanetaryAspect.AspectType type) {
+        return switch (type) {
+            case CONJUNCTION -> 18;
+            case OPPOSITION -> 17;
+            case SQUARE -> 16;
+            case TRINE -> 14;
+            case SEXTILE -> 12;
+            case QUINCUNX -> 8;
+        };
+    }
+
+    private int transitPlanetWeight(String transitPlanet) {
+        return switch (cleanPlanet(transitPlanet)) {
+            case "Mercury", "Venus", "Mars", "Saturn", "Jupiter" -> 8;
+            case "Sun" -> 7;
+            case "Moon" -> 6;
+            default -> 4;
+        };
+    }
+
+    private int natalPointWeight(String natalPoint) {
+        return switch (cleanPlanet(natalPoint)) {
+            case "Sun", "Moon" -> 8;
+            case "Mercury", "Venus", "Mars" -> 7;
+            case "Jupiter", "Saturn" -> 6;
+            default -> 4;
+        };
+    }
+
+    private int houseWeight(String house) {
+        return switch (house == null ? "" : house) {
+            case "1", "4", "7", "10" -> 6;
+            case "2", "5", "8", "11" -> 4;
+            case "3", "6", "9", "12" -> 2;
+            default -> 0;
+        };
+    }
+
+    private boolean isCautionLabel(String label) {
+        String normalized = normalizeToken(label);
+        return normalized.contains("dikkat") || normalized.contains("hassas") || normalized.contains("caution");
+    }
+
+    private String translateAspect(PlanetaryAspect.AspectType type) {
+        return type == null ? "" : type.getTurkishName();
     }
 
     private String relevanceFromImportance(int importance) {
@@ -1263,30 +1381,24 @@ public class DailyTransitsService {
         return "Düşük";
     }
 
-    private String avoidSoftener(String status) {
-        return switch (status) {
-            case "Dikkat" -> "Gün içinde acele karar vermekten kaçınmak faydalı olur.";
-            case "Hassas" -> "Temponu dengede tutman ve detayları bir kez daha kontrol etmen iyi olabilir.";
-            case "Destekleyici" -> "Bu akışı korumak için adımlarını sade ve planlı tutman yeterli olur.";
-            default -> "Küçük ama net adımlar seçmen akışı kolaylaştırır.";
-        };
-    }
-
     private String reasonFrom(
             String theme,
             String house,
             boolean supportive,
             String transitPlanet,
             UserAstroProfile userProfile) {
-        String houseHint = houseFocusHint(house, supportive, firstNonBlank(theme, transitPlanet));
-        String signHint = userProfile == null ? "" : userProfile.signatureHint();
+        String area = houseAreaText(house);
+        String areaClause = (house != null && !house.isBlank())
+                ? (supportive
+                        ? area + " konusunda iyi bir pencere açılıyor."
+                        : area + " konusunda ölçülü ilerlemek faydalı olur.")
+                : (supportive
+                        ? "Küçük ve net adımlar akışı korur."
+                        : "Acele karar yerine kısa bir kontrol yapman faydalı olur.");
         String base = supportive
                 ? "Bu temada destekleyici bir akış var."
-                : "Bu temada gün içinde hassas bir eşik oluşabilir.";
-        if (!signHint.isBlank()) {
-            return base + " " + signHint + " " + houseHint;
-        }
-        return base + " " + houseHint;
+                : "Bu temada gün içinde dikkatli bir adım gerekiyor.";
+        return base + " " + areaClause;
     }
 
     private String buildTechnicalReason(
@@ -1296,6 +1408,9 @@ public class DailyTransitsService {
             double orb,
             String house
     ) {
+        if (normalizeToken(aspect).equals("evgecisi")) {
+            return transitPlanet + " • " + natalPoint + " • " + aspect;
+        }
         String houseText = (house == null || house.isBlank()) ? "ev-bilgisi yok" : ("ev " + house);
         return transitPlanet + " / " + natalPoint + " • " + aspect + " • orb " + orb + " • " + houseText;
     }
@@ -1315,47 +1430,6 @@ public class DailyTransitsService {
                 normalizeToken(natalPoint),
                 normalizeToken(aspectType),
                 normalizeToken(house));
-    }
-
-    private String houseFocusHint(String house, boolean supportive, String variationKey) {
-        if (house == null || house.isBlank()) {
-            List<String> defaultHints = supportive
-                    ? List.of("Küçük ve net adımlar akışı korur.", "Önceliğini sade tutman verimi artırır.")
-                    : List.of("Acele karar yerine kısa bir kontrol yapman faydalı olur.", "Ritmi bölmeden ama sakin ilerlemek daha güvenli olur.");
-            return pickVariant(defaultHints, variationKey + "|house");
-        }
-
-        String area = switch (house) {
-            case "1" -> "kişisel ihtiyaçların";
-            case "2" -> "maddi planların";
-            case "3" -> "yakın çevre iletişimin";
-            case "4" -> "ev ve aile düzenin";
-            case "5" -> "yaratıcılık ve keyif alanın";
-            case "6" -> "günlük rutinlerin";
-            case "7" -> "ilişkiler ve ortaklıklar";
-            case "8" -> "paylaşımlar ve derin duygular";
-            case "9" -> "öğrenme ve ufuk genişletme";
-            case "10" -> "kariyer hedeflerin";
-            case "11" -> "sosyal çevre ve projelerin";
-            case "12" -> "dinlenme ve içe dönüş alanın";
-            default -> "günlük akışın";
-        };
-
-        if (supportive) {
-            List<String> options = List.of(
-                    "Bu etki özellikle " + area + " tarafında destekleyici çalışır.",
-                    area + " alanında doğru zamanlamayla ilerlemek kolaylaşır.",
-                    area + " konusunda sade adımlar daha hızlı karşılık bulur."
-            );
-            return pickVariant(options, variationKey + "|house");
-        }
-
-        List<String> options = List.of(
-                area + " tarafında acele etmeden ilerlemek daha güvenli olur.",
-                area + " alanında küçük bir kontrol hataları azaltır.",
-                area + " başlığında netleşmeden büyük adım atmamaya çalış."
-        );
-        return pickVariant(options, variationKey + "|house");
     }
 
     private String pickVariant(List<String> options, String key) {
@@ -1436,6 +1510,13 @@ public class DailyTransitsService {
         return 5;
     }
 
+    private String resolveHouseForTransit(PlanetPosition transitPosition, List<HousePlacement> natalHouses) {
+        if (transitPosition == null || natalHouses == null || natalHouses.isEmpty()) {
+            return null;
+        }
+        return String.valueOf(transitCalculator.getTransitHouse(transitPosition, natalHouses));
+    }
+
     private String resolveHouseForTransit(String transitPlanet, List<PlanetPosition> transitPositions, List<HousePlacement> natalHouses) {
         if (natalHouses == null || natalHouses.isEmpty()) {
             return null;
@@ -1443,16 +1524,57 @@ public class DailyTransitsService {
         return transitPositions.stream()
                 .filter(p -> transitPlanet.equalsIgnoreCase(p.planet()))
                 .findFirst()
-                .map(p -> String.valueOf(transitCalculator.getTransitHouse(p, natalHouses)))
+                .map(p -> resolveHouseForTransit(p, natalHouses))
                 .orElse(null);
     }
 
-    private String timeWindowForIndex(int idx) {
-        return switch (idx % 4) {
-            case 0 -> "09:00–12:00";
-            case 1 -> "12:00–15:00";
-            case 2 -> "15:00–18:00";
-            default -> "18:00–21:00";
+    private String houseText(String house) {
+        return house == null || house.isBlank() ? "ilgili ev" : house + ". ev";
+    }
+
+    private String houseAreaText(String house) {
+        return switch (house == null ? "" : house) {
+            case "1" -> "kişisel duruşun";
+            case "2" -> "maddi güvenlik ve kaynakların";
+            case "3" -> "yakın çevre ve iletişimin";
+            case "4" -> "ev, aile ve iç huzurun";
+            case "5" -> "yaratıcılık, keyif ve romantizm";
+            case "6" -> "günlük düzenin ve sağlık ritmin";
+            case "7" -> "ilişkiler ve ortaklıkların";
+            case "8" -> "paylaşımlar, sınırlar ve derin duygular";
+            case "9" -> "inançlar, eğitim ve ufuk genişletme";
+            case "10" -> "kariyer, hedefler ve görünürlüğün";
+            case "11" -> "sosyal çevre ve gelecek planların";
+            case "12" -> "dinlenme, geri çekilme ve bilinçaltın";
+            default -> "ilgili yaşam alanın";
+        };
+    }
+
+    private String houseAreaShortText(String house) {
+        return switch (house == null ? "" : house) {
+            case "1" -> "kişisel duruş";
+            case "2" -> "maddi alan";
+            case "3" -> "iletişim";
+            case "4" -> "ev ve aile";
+            case "5" -> "yaratıcılık";
+            case "6" -> "günlük düzen";
+            case "7" -> "ilişkiler";
+            case "8" -> "paylaşım ve dönüşüm";
+            case "9" -> "ufuk ve inanç";
+            case "10" -> "kariyer";
+            case "11" -> "sosyal çevre";
+            case "12" -> "dinlenme ve içe çekilme";
+            default -> "günlük akış";
+        };
+    }
+
+    private String retroRiskLevel(String planet, String house) {
+        boolean angular = Set.of("1", "4", "7", "10").contains(house);
+        return switch (cleanPlanet(planet)) {
+            case "Mars", "Saturn" -> angular ? "High" : "Med";
+            case "Mercury" -> Set.of("3", "6", "9").contains(house) ? "High" : "Med";
+            case "Venus", "Jupiter" -> angular ? "Med" : "Low";
+            default -> "Low";
         };
     }
 

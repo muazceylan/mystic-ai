@@ -1,5 +1,6 @@
 package com.mysticai.orchestrator.controller;
 
+import com.mysticai.orchestrator.dto.NumerologyGuidanceRequest;
 import com.mysticai.orchestrator.dto.OracleInterpretationRequest;
 import com.mysticai.orchestrator.service.MysticalAiService;
 import lombok.RequiredArgsConstructor;
@@ -166,6 +167,25 @@ public class InterpretationController {
             return boolValue;
         }
         return Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    /**
+     * POST /api/ai/numerology/daily-guidance
+     *
+     * Synchronous numerology daily/weekly guidance endpoint called by numerology-service.
+     * Uses the fast (simple) model chain — low latency, not a complex task.
+     * Returns JSON: {"dailyFocus":"...","miniGuidance":"...","reflectionPromptOfTheDay":"..."}
+     */
+    @PostMapping(value = "/numerology/daily-guidance",
+                 consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> numerologyDailyGuidance(@RequestBody NumerologyGuidanceRequest request) {
+        try {
+            String result = mysticalAiService.generateNumerologyDailyGuidance(request);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body(null);
+        }
     }
 
     /**

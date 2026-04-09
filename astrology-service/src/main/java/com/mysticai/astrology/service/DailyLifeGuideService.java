@@ -209,6 +209,10 @@ public class DailyLifeGuideService {
                     score += 20;
                     triggerNotes.add(aspectNote(aspect, english, +20));
                 }
+                case QUINCUNX -> {
+                    score -= 10;
+                    triggerNotes.add(aspectNote(aspect, english, -10));
+                }
                 case SQUARE, OPPOSITION -> {
                     score -= 25;
                     triggerNotes.add(aspectNote(aspect, english, -25));
@@ -493,6 +497,7 @@ public class DailyLifeGuideService {
             case SEXTILE -> english ? "sextile" : "sekstil";
             case SQUARE -> english ? "square" : "kare";
             case TRINE -> english ? "trine" : "üçgen";
+            case QUINCUNX -> english ? "quincunx" : "yay açısı";
             case OPPOSITION -> english ? "opposition" : "karşıt";
         };
         return p1 + " " + aspectName + " " + p2;

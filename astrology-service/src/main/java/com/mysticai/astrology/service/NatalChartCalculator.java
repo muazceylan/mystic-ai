@@ -16,8 +16,10 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * High-precision natal chart calculator using Swiss Ephemeris (Moshier ephemeris).
@@ -492,6 +494,90 @@ public class NatalChartCalculator {
         } catch (Exception ignored) {
             return ISTANBUL_ZONE;
         }
+    }
+
+    /**
+     * Chart Ruler: the ruling planet of the Ascendant sign (modern rulership).
+     * Returns null when risingSign is null (birth time unknown).
+     */
+    public String computeChartRuler(String risingSign) {
+        if (risingSign == null) return null;
+        return switch (risingSign.toUpperCase()) {
+            case "ARIES"       -> "Mars";
+            case "TAURUS"      -> "Venus";
+            case "GEMINI"      -> "Mercury";
+            case "CANCER"      -> "Moon";
+            case "LEO"         -> "Sun";
+            case "VIRGO"       -> "Mercury";
+            case "LIBRA"       -> "Venus";
+            case "SCORPIO"     -> "Pluto";
+            case "SAGITTARIUS" -> "Jupiter";
+            case "CAPRICORN"   -> "Saturn";
+            case "AQUARIUS"    -> "Uranus";
+            case "PISCES"      -> "Neptune";
+            default            -> null;
+        };
+    }
+
+    private static final Set<String> COUNTED_PLANETS = Set.of(
+            "Sun", "Moon", "Mercury", "Venus", "Mars",
+            "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"
+    );
+
+    /**
+     * Element distribution across the 10 traditional planets.
+     * Keys: Fire, Earth, Air, Water.
+     */
+    public Map<String, Integer> computeElementDistribution(List<PlanetPosition> planets) {
+        Map<String, Integer> dist = new LinkedHashMap<>();
+        dist.put("Fire", 0);
+        dist.put("Earth", 0);
+        dist.put("Air", 0);
+        dist.put("Water", 0);
+        if (planets == null) return dist;
+        for (PlanetPosition p : planets) {
+            if (!COUNTED_PLANETS.contains(p.planet())) continue;
+            dist.merge(signElement(p.sign()), 1, Integer::sum);
+        }
+        return dist;
+    }
+
+    /**
+     * Mode distribution across the 10 traditional planets.
+     * Keys: Cardinal, Fixed, Mutable.
+     */
+    public Map<String, Integer> computeModeDistribution(List<PlanetPosition> planets) {
+        Map<String, Integer> dist = new LinkedHashMap<>();
+        dist.put("Cardinal", 0);
+        dist.put("Fixed", 0);
+        dist.put("Mutable", 0);
+        if (planets == null) return dist;
+        for (PlanetPosition p : planets) {
+            if (!COUNTED_PLANETS.contains(p.planet())) continue;
+            dist.merge(signMode(p.sign()), 1, Integer::sum);
+        }
+        return dist;
+    }
+
+    private String signElement(String sign) {
+        if (sign == null) return "Fire";
+        return switch (sign.toUpperCase()) {
+            case "ARIES", "LEO", "SAGITTARIUS"          -> "Fire";
+            case "TAURUS", "VIRGO", "CAPRICORN"         -> "Earth";
+            case "GEMINI", "LIBRA", "AQUARIUS"           -> "Air";
+            case "CANCER", "SCORPIO", "PISCES"           -> "Water";
+            default                                       -> "Fire";
+        };
+    }
+
+    private String signMode(String sign) {
+        if (sign == null) return "Cardinal";
+        return switch (sign.toUpperCase()) {
+            case "ARIES", "CANCER", "LIBRA", "CAPRICORN"       -> "Cardinal";
+            case "TAURUS", "LEO", "SCORPIO", "AQUARIUS"        -> "Fixed";
+            case "GEMINI", "VIRGO", "SAGITTARIUS", "PISCES"    -> "Mutable";
+            default                                              -> "Cardinal";
+        };
     }
 
     /**

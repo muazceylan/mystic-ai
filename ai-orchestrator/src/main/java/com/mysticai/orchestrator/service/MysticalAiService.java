@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mysticai.common.event.AiAnalysisEvent;
+import com.mysticai.orchestrator.dto.NumerologyGuidanceRequest;
 import com.mysticai.orchestrator.dto.OracleInterpretationRequest;
 import com.mysticai.orchestrator.prompt.MysticalPromptTemplates;
 import org.slf4j.Logger;
@@ -182,6 +183,97 @@ public class MysticalAiService {
             logger.warn("Symbol meaning generation failed: {}", e.getMessage());
             return "{\"universal\":\"\",\"psychological\":\"\",\"personal\":\"\"}";
         }
+    }
+
+    /**
+     * Generates personalized numerology daily/weekly guidance (simple task — fast chain).
+     * Returns JSON: {"dailyFocus":"...","miniGuidance":"...","reflectionPromptOfTheDay":"..."}
+     */
+    public String generateNumerologyDailyGuidance(NumerologyGuidanceRequest request) {
+        String prompt = buildNumerologyGuidancePrompt(request);
+        logger.info("Generating numerology guidance for: {}, personalYear={}, locale={}",
+                request.name(), request.personalYear(), request.locale());
+        try {
+            String response = callAiModel(prompt, false); // simple chain — fast model
+            response = extractJsonObject(response);
+            if (!request.locale().startsWith("en")) {
+                response = replaceTurkishTerms(response);
+            }
+            logger.info("Numerology guidance generated, length: {}", response.length());
+            return response;
+        } catch (Exception e) {
+            logger.error("Numerology guidance generation failed for: {}", request.name(), e);
+            throw new RuntimeException("Numerology AI guidance failed: " + e.getMessage(), e);
+        }
+    }
+
+    private String buildNumerologyGuidancePrompt(NumerologyGuidanceRequest r) {
+        boolean turkish = !r.locale().startsWith("en");
+        boolean weekly = "week".equalsIgnoreCase(r.guidancePeriod());
+        String period = weekly
+                ? (turkish ? "haftalık" : "weekly")
+                : (turkish ? "günlük" : "daily");
+        String lang = turkish ? "Türkçe" : "English";
+
+        if (turkish) {
+            return """
+                    Sen uzman bir numerolog ve içsel gelişim rehberisin.
+                    Kullanıcının numeroloji haritasına bakarak kısa, kişisel ve aksiyon odaklı %s rehberlik üret.
+
+                    Kullanıcı: %s
+                    Yaşam Yolu: %d | Doğum Günü: %d | Kader: %d | Ruh Güdüsü: %d
+                    Kişisel Yıl: %d | Kişisel Ay: %d | Kişisel Gün: %d
+                    Baskın Sayı: %d | Yıl Fazı: %s
+
+                    KURALLAR:
+                    - Sayıları doğrudan yorumla; genel burç dili kullanma.
+                    - Deterministik kader dili kullanma; "olabilir", "destekler", "işaret eder" gibi olasılık dili kullan.
+                    - miniGuidance 2-3 cümle, kişi adını bir kez kullanabilirsin.
+                    - dailyFocus kısa ifade veya tek kelime (max 4 kelime).
+                    - reflectionPromptOfTheDay 1 soru, sayılarla bağlantılı.
+                    - Sadece JSON döndür, başka hiçbir şey yazma.
+
+                    JSON çıktısı:
+                    {
+                      "dailyFocus": "günün/haftanın odak teması",
+                      "miniGuidance": "kişiye özel öneri",
+                      "reflectionPromptOfTheDay": "düşündürücü soru"
+                    }
+                    """.formatted(
+                    period, r.name(),
+                    r.lifePathNumber(), r.birthdayNumber(), r.destinyNumber(), r.soulUrgeNumber(),
+                    r.personalYear(), r.personalMonth(), r.personalDay(),
+                    r.dominantNumber(), r.yearPhase());
+        }
+
+        return """
+                You are an expert numerologist and personal growth guide.
+                Generate short, personal, action-oriented %s guidance based on the user's numerology chart.
+
+                User: %s
+                Life Path: %d | Birthday: %d | Destiny: %d | Soul Urge: %d
+                Personal Year: %d | Personal Month: %d | Personal Day: %d
+                Dominant Number: %d | Year Phase: %s
+
+                RULES:
+                - Interpret the numbers directly; avoid generic horoscope language.
+                - Use possibility language: "may", "supports", "points toward" — no fatalistic claims.
+                - miniGuidance is 2-3 sentences; you may use the person's name once.
+                - dailyFocus is a short phrase (max 4 words).
+                - reflectionPromptOfTheDay is 1 question connected to the numbers.
+                - Return only JSON, nothing else.
+
+                JSON output:
+                {
+                  "dailyFocus": "today/week focus theme",
+                  "miniGuidance": "personalized suggestion",
+                  "reflectionPromptOfTheDay": "reflective question"
+                }
+                """.formatted(
+                period, r.name(),
+                r.lifePathNumber(), r.birthdayNumber(), r.destinyNumber(), r.soulUrgeNumber(),
+                r.personalYear(), r.personalMonth(), r.personalDay(),
+                r.dominantNumber(), r.yearPhase());
     }
 
     /**

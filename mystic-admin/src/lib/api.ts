@@ -204,6 +204,18 @@ export const prayerApi = {
     api.post(`/api/admin/v1/prayers/${id}/feature`, { featured }),
 };
 
+// ── Numerology Config ─────────────────────────────────────
+// Gateway: /api/numerology/admin/config/** → numerology-service /admin/config/**
+export const numerologyConfigApi = {
+  getConfig: () =>
+    api.get<{ premiumEnabled: boolean; note: string }>('/api/numerology/admin/config'),
+  setPremium: (enabled: boolean) =>
+    api.put<{ premiumEnabled: boolean; applied: boolean }>(
+      '/api/numerology/admin/config/premium',
+      { enabled },
+    ),
+};
+
 // ── Notification Catalog ──────────────────────────────────
 export const notifCatalogApi = {
   list: (params?: Record<string, unknown>) =>

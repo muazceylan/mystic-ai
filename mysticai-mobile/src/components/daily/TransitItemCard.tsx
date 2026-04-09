@@ -18,6 +18,16 @@ function formatTechnicalLabel(value?: string): string {
   return value;
 }
 
+function isHouseTransitAspect(aspect?: string | null): boolean {
+  return normalizeToken(aspect).includes('ev gecisi') || normalizeToken(aspect).includes('house transit');
+}
+
+function formatTechnicalOrb(value?: number, aspect?: string | null): string {
+  if (isHouseTransitAspect(aspect)) return '-';
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return '-';
+  return value.toFixed(1);
+}
+
 function normalizeToken(value?: string | null): string {
   const trMap: Record<string, string> = {
     ç: 'c',
@@ -160,7 +170,7 @@ export function TransitItemCard({ transit, date, onDetailOpened, onFeedback }: T
           <View style={styles.technicalRow}>
             <Text style={[styles.technicalLabel, { color: colors.subtext }]}>{t('dailyTransits.technicalOrb')}</Text>
             <Text style={[styles.technicalValue, { color: colors.text }]}>
-              {typeof transit.technical.orb === 'number' ? transit.technical.orb.toFixed(1) : '-'}
+              {formatTechnicalOrb(transit.technical.orb, transit.technical.aspect)}
             </Text>
           </View>
           <View style={styles.technicalRow}>

@@ -16,6 +16,7 @@ public record PlanetaryAspect(
         SEXTILE("Altıgen", "⚹", 60, 6),
         SQUARE("Kare", "□", 90, 8),
         TRINE("Üçgen", "△", 120, 8),
+        QUINCUNX("Yay Açısı", "⚻", 150, 3),
         OPPOSITION("Karşıt", "☍", 180, 8);
 
         private final String turkishName;

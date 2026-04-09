@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image, Coins, ScrollText, Wand2, ShoppingBag, Wallet, FlaskConical, BarChart3, Bot } from 'lucide-react';
+import { LayoutDashboard, Bell, Map, ClipboardList, LogOut, Star, Layers, Navigation, Users, GitMerge, Sun, CalendarDays, BookOpen, Library, Zap, History, Type, Home, Compass, CreditCard, Image, Coins, ScrollText, Wand2, ShoppingBag, Wallet, FlaskConical, BarChart3, Bot, Hash } from 'lucide-react';
 import { cn, roleColor } from '@/lib/utils';
 import { getUser, removeToken, canViewAudit, canManageRoutes, canManageNotifications, canManageNameSources, isSuperAdmin } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,7 @@ const navItems = [
   { href: '/daily-horoscopes', label: 'Daily Horoscopes', icon: Sun, check: canManageRoutes },
   { href: '/weekly-horoscopes', label: 'Weekly Horoscopes', icon: CalendarDays, check: canManageRoutes },
   { href: '/prayers', label: 'Prayers', icon: BookOpen, check: canManageRoutes },
+  { href: '/numerology-config', label: 'Numerology Config', icon: Hash, check: canManageRoutes },
   { href: '/modules', label: 'Modules', icon: Layers, check: canManageRoutes },
   { href: '/navigation', label: 'Navigation', icon: Navigation, check: canManageRoutes },
   { href: '/routes', label: 'Route Registry', icon: Map, check: canManageRoutes },

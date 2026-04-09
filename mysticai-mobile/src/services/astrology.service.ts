@@ -18,7 +18,7 @@ export interface HousePlacement {
   ruler: string;
 }
 
-export type AspectType = 'CONJUNCTION' | 'SEXTILE' | 'SQUARE' | 'TRINE' | 'OPPOSITION';
+export type AspectType = 'CONJUNCTION' | 'SEXTILE' | 'SQUARE' | 'TRINE' | 'QUINCUNX' | 'OPPOSITION';
 
 export interface PlanetaryAspect {
   planet1: string;
@@ -63,7 +63,8 @@ export interface NatalChartResponse {
   longitude: number;
   sunSign: string;
   moonSign: string;
-  risingSign: string;
+  /** Null when birth time was not provided — rising sign changes every ~2 hours. */
+  risingSign: string | null;
   planets: PlanetPosition[];
   houses: HousePlacement[];
   aspects: PlanetaryAspect[];
@@ -72,6 +73,14 @@ export interface NatalChartResponse {
   aiInterpretation: string | null;
   interpretationStatus: string | null;
   calculatedAt: string;
+  /** Ruling planet of the Ascendant sign (modern rulership). Null when risingSign is null. */
+  chartRuler?: string | null;
+  /** Planet count by element: Fire, Earth, Air, Water. */
+  elementDistribution?: Record<string, number>;
+  /** Planet count by mode: Cardinal, Fixed, Mutable. */
+  modeDistribution?: Record<string, number>;
+  /** False when birth time was not provided. */
+  birthTimeKnown?: boolean;
 }
 
 export interface NatalChartRequest {

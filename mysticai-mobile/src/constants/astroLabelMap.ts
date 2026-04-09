@@ -6,6 +6,7 @@ export const ASPECT_TYPE_LABEL_MAP: Record<AspectType, { short: string; rich: st
   SEXTILE: { short: 'Altıgen', rich: 'Altıgen (Fırsat Akışı)', exact: 60 },
   SQUARE: { short: 'Kare', rich: 'Kare (Gelişim Gerilimi)', exact: 90 },
   TRINE: { short: 'Üçgen', rich: 'Üçgen (Doğal Akış)', exact: 120 },
+  QUINCUNX: { short: 'Yay Açısı', rich: 'Yay Açısı (Süregelen Uyum)', exact: 150 },
   OPPOSITION: { short: 'Karşıt', rich: 'Karşıt (Denge Dersi)', exact: 180 },
 };
 
@@ -72,6 +73,8 @@ export function aspectMeaningFromType(type: AspectType): string {
       return 'gelişim için gerilim üretiyor';
     case 'TRINE':
       return 'enerji doğal akışta';
+    case 'QUINCUNX':
+      return 'süregelen uyum çabası gerektiriyor';
     case 'OPPOSITION':
       return 'denge kurma dersi çalışıyor';
     default:
@@ -105,7 +108,7 @@ export function cleanAstroHeading(raw: string | null | undefined): string {
   if (SECTION_ID_LABELS[idKey]) return SECTION_ID_LABELS[idKey];
 
   const normalized = input.replace(/\s+/g, '_');
-  const aspectMatch = normalized.match(/^([A-Z_]+)_(CONJUNCTION|SEXTILE|SQUARE|TRINE|OPPOSITION)_([A-Z_]+)$/i);
+  const aspectMatch = normalized.match(/^([A-Z_]+)_(CONJUNCTION|SEXTILE|SQUARE|TRINE|QUINCUNX|OPPOSITION)_([A-Z_]+)$/i);
   if (aspectMatch) {
     const [, leftRaw, aspectRaw, rightRaw] = aspectMatch;
     const left = PLANET_ALIASES[leftRaw.toUpperCase()] ?? toHumanWords(leftRaw);

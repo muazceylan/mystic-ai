@@ -2742,6 +2742,9 @@ export function NatalChartScreenContent() {
                   houses={chart.houses ?? []}
                   aspects={chart.aspects ?? []}
                   planetNames={planetNames}
+                  elementDistribution={chart.elementDistribution}
+                  modeDistribution={chart.modeDistribution}
+                  birthTimeKnown={chart.birthTimeKnown}
                   showWheelPreview={false}
                   expanded={heroInfoExpanded}
                   onToggleExpanded={() => setHeroInfoExpanded((prev) => !prev)}
