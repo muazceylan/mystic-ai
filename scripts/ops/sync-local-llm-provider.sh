@@ -42,68 +42,76 @@ curl_json() {
 
 main() {
   require_command curl
-  require_command jq
+  require_command node
 
   local current
   current="$(curl_json GET "${CONFIG_URL}")"
 
   local updated
   updated="$(
-    jq \
-      --arg providerKey "${PROVIDER_KEY}" \
-      --arg displayName "${DISPLAY_NAME}" \
-      --arg model "${MODEL}" \
-      --arg baseUrl "${BASE_URL}" \
-      --arg chatEndpoint "${CHAT_ENDPOINT}" \
-      --argjson timeoutMs "${TIMEOUT_MS}" \
-      --argjson temperature "${TEMPERATURE}" \
-      --argjson maxOutputTokens "${MAX_OUTPUT_TOKENS}" \
-      '
-      def local_provider:
-        {
-          key: $providerKey,
-          displayName: $displayName,
-          adapter: "ollama",
-          enabled: true,
-          model: $model,
-          baseUrl: $baseUrl,
-          apiKey: "",
-          localProviderType: "ollama",
-          chatEndpoint: $chatEndpoint,
-          timeoutMs: $timeoutMs,
-          retryCount: 0,
-          cooldownSeconds: 30,
-          temperature: $temperature,
-          maxOutputTokens: $maxOutputTokens,
-          headers: {}
-        };
-      def append_if_missing(chain):
-        if (chain | index($providerKey)) == null then chain + [$providerKey] else chain end;
-      .providers =
-        (
-          (.providers // [])
-          | if map(.key) | index($providerKey)
-            then map(
-              if .key == $providerKey
-              then . + {
-                adapter: "ollama",
-                model: $model,
-                baseUrl: $baseUrl,
-                localProviderType: "ollama",
-                chatEndpoint: $chatEndpoint,
-                timeoutMs: $timeoutMs,
-                temperature: $temperature,
-                maxOutputTokens: $maxOutputTokens
-              }
-              else .
-              end
-            )
-            else . + [local_provider]
-            end
-        )
-      | .complexChain = append_if_missing(.complexChain // [])
-      | .simpleChain = append_if_missing(.simpleChain // [])
-      ' <<<"${current}"
+    CURRENT_CONFIG="${current}" \
+    PROVIDER_KEY="${PROVIDER_KEY}" \
+    DISPLAY_NAME="${DISPLAY_NAME}" \
+    MODEL="${MODEL}" \
+    BASE_URL="${BASE_URL}" \
+    CHAT_ENDPOINT="${CHAT_ENDPOINT}" \
+    TIMEOUT_MS="${TIMEOUT_MS}" \
+    TEMPERATURE="${TEMPERATURE}" \
+    MAX_OUTPUT_TOKENS="${MAX_OUTPUT_TOKENS}" \
+    node <<'EOF'
+const config = JSON.parse(process.env.CURRENT_CONFIG ?? '{}');
+const providerKey = process.env.PROVIDER_KEY ?? 'localLlm';
+const provider = {
+  key: providerKey,
+  displayName: process.env.DISPLAY_NAME ?? 'Ollama Local',
+  adapter: 'ollama',
+  enabled: true,
+  model: process.env.MODEL ?? 'gemma3:4b',
+  baseUrl: process.env.BASE_URL ?? 'http://127.0.0.1:11434',
+  apiKey: '',
+  localProviderType: 'ollama',
+  chatEndpoint: process.env.CHAT_ENDPOINT ?? '/api/generate',
+  timeoutMs: Number(process.env.TIMEOUT_MS ?? '15000'),
+  retryCount: 0,
+  cooldownSeconds: 30,
+  temperature: Number(process.env.TEMPERATURE ?? '0.7'),
+  maxOutputTokens: Number(process.env.MAX_OUTPUT_TOKENS ?? '1024'),
+  headers: {}
+};
+
+const providers = Array.isArray(config.providers) ? [...config.providers] : [];
+const existingIndex = providers.findIndex((item) => item?.key === providerKey);
+
+if (existingIndex >= 0) {
+  providers[existingIndex] = {
+    ...providers[existingIndex],
+    adapter: provider.adapter,
+    model: provider.model,
+    baseUrl: provider.baseUrl,
+    localProviderType: provider.localProviderType,
+    chatEndpoint: provider.chatEndpoint,
+    timeoutMs: provider.timeoutMs,
+    temperature: provider.temperature,
+    maxOutputTokens: provider.maxOutputTokens,
+  };
+} else {
+  providers.push(provider);
+}
+
+const appendIfMissing = (chain) => {
+  const list = Array.isArray(chain) ? [...chain] : [];
+  if (!list.includes(providerKey)) {
+    list.push(providerKey);
+  }
+  return list;
+};
+
+config.providers = providers;
+config.complexChain = appendIfMissing(config.complexChain);
+config.simpleChain = appendIfMissing(config.simpleChain);
+
+process.stdout.write(JSON.stringify(config));
+EOF
   )"
 
   curl_json PUT "${CONFIG_URL}" "${updated}" >/dev/null
