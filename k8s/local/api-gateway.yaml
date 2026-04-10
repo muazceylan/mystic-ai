@@ -31,7 +31,7 @@ spec:
               value: health,info,metrics
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /api/v1/auth/check-email?email=readiness@mystic.ai
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10

@@ -97,6 +97,8 @@ Script otomatik olarak şunları yapar:
 8. API Gateway'i son olarak başlatır
 9. Gateway üzerinden smoke check çalıştırır
 
+Varsayılan davranışta `auth-service` ve `api-gateway` çekirdek yol olarak korunur; `astrology-service` gibi daha ağır domain servisleri geç açılıyorsa script gateway'i onlar yüzünden bloklamaz. Daha sıkı sıralama gereken ortamlar için `.env` içinde `WAIT_FOR_OPTIONAL_SERVICES_BEFORE_GATEWAY=true` ayarlanabilir. Timeout'lar `*_STARTUP_TIMEOUT_SECONDS` değişkenleri ile override edilebilir.
+
 ---
 
 ## 5. Sağlık Kontrolü
@@ -219,6 +221,36 @@ tail -f logs/oracle.log
 
 # Resilience4j circuit breaker ~30 saniyede resetlenir
 ```
+
+### Gateway / Auth 502 During Restart
+
+```text
+POST /api/v1/auth/quick-start -> 502 Bad Gateway
+```
+
+Sunucuda backend stack'i systemd ile yönetiliyorsa standart restart komutu:
+
+```bash
+sudo systemctl restart mystic-backend
+sudo systemctl status mystic-backend --no-pager
+```
+
+Kontrol sırası:
+1. `curl http://localhost:8080/actuator/health`
+2. `curl http://localhost:8761/eureka/apps/AUTH-SERVICE`
+3. `journalctl -u mystic-backend -n 300 --no-pager`
+
+Sık sebep: ağır bir domain servisi startup timeout'una takılıp orchestration script'inin tüm stack'i kapatması. Yeni startup ayarlarında çekirdek auth/gateway yolu bu tür yavaş açılışlardan korunur. Gerekirse `.env` içinde `ASTROLOGY_STARTUP_TIMEOUT_SECONDS=180` veya daha yüksek bir değer tanımlayın.
+
+Not: Restart sırasında gateway log'unda aşağıdaki desen görülebilir ve tek başına startup hatası anlamına gelmez:
+
+```text
+... [ionShutdownHook] ... de-registration failed
+... Connect to http://localhost:8761 ... Connection refused
+... Completed shut down of DiscoveryClient
+```
+
+Bu durum genelde coordinated shutdown sırasında `service-registry` gateway'den önce kapandığında oluşur. Bu loglar gateway'in kapanış anına aittir; gateway'in yeni prosesinin başarılı açılıp açılmadığını anlamak için sonraki loglarda `Netty started on port 8080`, `Started ApiGatewayApplication` ve auth smoke-check satırlarını kontrol edin.
 
 ---
 

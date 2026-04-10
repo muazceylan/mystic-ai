@@ -38,6 +38,27 @@ error() {
   printf '❌ [start-services][error] %s\n' "$*" >&2
 }
 
+is_truthy() {
+  case "${1,,}" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+read_timeout() {
+  local var_name="$1"
+  local default_value="$2"
+  local raw_value="${!var_name:-$default_value}"
+
+  if [[ "$raw_value" =~ ^[0-9]+$ ]] && (( raw_value > 0 )); then
+    printf '%s' "$raw_value"
+    return 0
+  fi
+
+  warn "$var_name must be a positive integer; using default ${default_value}s."
+  printf '%s' "$default_value"
+}
+
 require_command() {
   local cmd="$1"
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -87,17 +108,37 @@ wait_for_eureka_registration() {
 }
 
 verify_gateway_auth_route() {
-  local status
-  status="$(curl -sS -o /tmp/mystic-start-auth-check.json -w '%{http_code}' \
-    "http://localhost:8080/api/v1/auth/check-email?email=startup-check@mystic.ai" || true)"
+  local attempts="${GATEWAY_AUTH_ROUTE_VERIFY_ATTEMPTS:-8}"
+  local sleep_seconds="${GATEWAY_AUTH_ROUTE_VERIFY_SLEEP_SECONDS:-2}"
+  local status attempt
 
-  if [[ "$status" == "200" ]]; then
-    log "Gateway -> auth-service route is healthy (/api/v1/auth/*)"
-    return 0
+  if [[ ! "$attempts" =~ ^[0-9]+$ ]] || (( attempts < 1 )); then
+    warn "GATEWAY_AUTH_ROUTE_VERIFY_ATTEMPTS must be a positive integer; defaulting to 8."
+    attempts=8
   fi
 
-  error "Gateway auth route check failed with HTTP $status (expected 200)."
-  warn "This usually causes mobile register calls to fail with 503."
+  if [[ ! "$sleep_seconds" =~ ^[0-9]+$ ]] || (( sleep_seconds < 1 )); then
+    warn "GATEWAY_AUTH_ROUTE_VERIFY_SLEEP_SECONDS must be a positive integer; defaulting to 2."
+    sleep_seconds=2
+  fi
+
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    status="$(curl -sS -o /tmp/mystic-start-auth-check.json -w '%{http_code}' \
+      "http://localhost:8080/api/v1/auth/check-email?email=startup-check@mystic.ai" || true)"
+
+    if [[ "$status" == "200" ]]; then
+      log "Gateway -> auth-service route is healthy (/api/v1/auth/*)"
+      return 0
+    fi
+
+    if (( attempt < attempts )); then
+      warn "Gateway auth route check attempt ${attempt}/${attempts} returned HTTP ${status:-000}; retrying in ${sleep_seconds}s..."
+      sleep "$sleep_seconds"
+    fi
+  done
+
+  error "Gateway auth route check failed with HTTP ${status:-000} after ${attempts} attempts (expected 200)."
+  warn "This usually causes register and quick-start calls to fail with 502/503."
   return 1
 }
 
@@ -108,6 +149,24 @@ dump_recent_logs() {
     warn "Last 80 lines from $file:"
     tail -n 80 "$file" >&2 || true
   fi
+}
+
+wait_for_optional_service() {
+  local tag="$1"
+  local port="$2"
+  local timeout_var="$3"
+  local default_timeout="$4"
+  local display_name="${5:-$tag}"
+  local timeout
+  timeout="$(read_timeout "$timeout_var" "$default_timeout")"
+
+  if wait_for_port "$port" "$timeout" "$display_name"; then
+    return 0
+  fi
+
+  warn "$display_name is still not listening on :$port after ${timeout}s. Continuing startup so gateway/auth remain available."
+  dump_recent_logs "$tag"
+  return 1
 }
 
 print_auth_failure_hints() {
@@ -217,6 +276,9 @@ start_service() {
 }
 
 main() {
+  local eureka_timeout auth_timeout gateway_timeout
+  local wait_optional_before_gateway
+
   require_command mvn
   require_command curl
   require_command lsof
@@ -227,6 +289,10 @@ main() {
 
   log "🔮 Mystic AI services are starting..."
   load_env
+  eureka_timeout="$(read_timeout EUREKA_STARTUP_TIMEOUT_SECONDS 60)"
+  auth_timeout="$(read_timeout AUTH_STARTUP_TIMEOUT_SECONDS 90)"
+  gateway_timeout="$(read_timeout GATEWAY_STARTUP_TIMEOUT_SECONDS 90)"
+  wait_optional_before_gateway="${WAIT_FOR_OPTIONAL_SERVICES_BEFORE_GATEWAY:-false}"
   ensure_infra_ports
   stop_existing_processes
   prepare_logs
@@ -240,14 +306,14 @@ main() {
 
   log "📍 Starting Eureka Service Registry..."
   start_service "eureka" "$LOG_DIR/eureka.log" "java -jar service-registry/target/service-registry-*.jar"
-  if ! wait_for_port 8761 60 "service-registry"; then
+  if ! wait_for_port 8761 "$eureka_timeout" "service-registry"; then
     dump_recent_logs "eureka"
     exit 1
   fi
 
   log "🔐 Starting auth-service..."
   start_service "auth" "$LOG_DIR/auth.log" "java -jar auth-service/target/auth-service-*.jar"
-  if ! wait_for_port 8081 90 "auth-service"; then
+  if ! wait_for_port 8081 "$auth_timeout" "auth-service"; then
     dump_recent_logs "auth"
     print_auth_failure_hints
     exit 1
@@ -270,9 +336,22 @@ main() {
   start_service "vision" "$LOG_DIR/vision.log" "java -jar vision-service/target/vision-service-*.jar"
   start_service "spiritual" "$LOG_DIR/spiritual.log" "java -jar spiritual-service/target/spiritual-service-*.jar --spring.profiles.active=local"
 
+  if is_truthy "$wait_optional_before_gateway"; then
+    log "⏳ Waiting for optional domain services before gateway startup..."
+    wait_for_optional_service "astrology" 8083 ASTROLOGY_STARTUP_TIMEOUT_SECONDS 180 "astrology-service" || true
+    wait_for_optional_service "numerology" 8085 NUMEROLOGY_STARTUP_TIMEOUT_SECONDS 120 "numerology-service" || true
+    wait_for_optional_service "dream" 8086 DREAM_STARTUP_TIMEOUT_SECONDS 120 "dream-service" || true
+    wait_for_optional_service "oracle" 8087 ORACLE_STARTUP_TIMEOUT_SECONDS 120 "oracle-service" || true
+    wait_for_optional_service "notification" 8088 NOTIFICATION_STARTUP_TIMEOUT_SECONDS 120 "notification-service" || true
+    wait_for_optional_service "vision" 8089 VISION_STARTUP_TIMEOUT_SECONDS 120 "vision-service" || true
+    wait_for_optional_service "spiritual" 8091 SPIRITUAL_STARTUP_TIMEOUT_SECONDS 120 "spiritual-service" || true
+  else
+    log "↪️  Skipping blocking waits for optional domain services; set WAIT_FOR_OPTIONAL_SERVICES_BEFORE_GATEWAY=true for strict startup ordering."
+  fi
+
   log "🌐 Starting API Gateway..."
   start_service "gateway" "$LOG_DIR/gateway.log" "java -jar api-gateway/target/api-gateway-*.jar --spring.profiles.active=local"
-  if ! wait_for_port 8080 90 "api-gateway"; then
+  if ! wait_for_port 8080 "$gateway_timeout" "api-gateway"; then
     dump_recent_logs "gateway"
     exit 1
   fi
