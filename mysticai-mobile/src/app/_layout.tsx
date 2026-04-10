@@ -16,6 +16,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import * as WebBrowser from 'expo-web-browser';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
@@ -65,6 +66,9 @@ import {
 } from '../utils/pushNotifications';
 import { useMonetizationStore, useGuruWalletStore } from '../features/monetization';
 import { initializeAdProvider } from '../features/monetization/providers/initProvider';
+
+const ADSENSE_CLIENT = 'ca-pub-2868466577339325';
+const ADSENSE_SCRIPT_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
 
 // Expo Go + expo-router native sitemap bug guard:
 // Some generated routes read window.location.origin on native where location can be undefined.
@@ -245,6 +249,12 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
 
   return (
     <>
+      {Platform.OS === 'web' ? (
+        <Head>
+          <meta name="google-adsense-account" content={ADSENSE_CLIENT} />
+          <script async src={ADSENSE_SCRIPT_SRC} crossOrigin="anonymous" />
+        </Head>
+      ) : null}
       <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
       <CompanionBootstrap />
       <NotificationBootstrap />
