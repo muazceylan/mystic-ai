@@ -34,8 +34,6 @@ import { WEB_INPUT_RESET_STYLE } from '../../utils/webInputReset';
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
-const ADSENSE_SCRIPT_ID = 'mystic-adsense-loader';
-const ADSENSE_SCRIPT_SRC = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2868466577339325';
 const HERO_PREMIUM_ICON = require('../../../assets/brand/logo/astro-guru-logo-small-optimized.png');
 const HERO_DISPLAY_FONT = Platform.select({
   ios: 'Georgia',
@@ -392,18 +390,6 @@ export default function WelcomeScreen() {
       setEmail((prev) => prev || prefilledEmail);
     }
   }, [params.email, pendingEmail]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    if (document.getElementById(ADSENSE_SCRIPT_ID)) return;
-
-    const script = document.createElement('script');
-    script.id = ADSENSE_SCRIPT_ID;
-    script.async = true;
-    script.src = ADSENSE_SCRIPT_SRC;
-    script.crossOrigin = 'anonymous';
-    document.head.appendChild(script);
-  }, []);
 
   const redirectUri = makeRedirectUri({
     path: 'oauth2/callback',
