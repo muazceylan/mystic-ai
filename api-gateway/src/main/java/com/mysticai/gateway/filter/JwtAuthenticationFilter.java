@@ -64,7 +64,9 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/v1/analytics/",
             // Monetization config is public (fail-safe: app needs config before login)
             "/api/v1/monetization/config",
-            "/api/v1/monetization/modules/"
+            "/api/v1/monetization/modules/",
+            // Public name search (name analysis feature)
+            "/api/numerology/names"
     );
 
     public JwtAuthenticationFilter(GatewaySecurityMetrics securityMetrics) {

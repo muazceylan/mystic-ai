@@ -231,6 +231,7 @@ mystic-ai/
 
 - [Project Blueprint](docs/project-blueprint.md) — Architecture reference
 - [Usage Guide](docs/USAGE_GUIDE.md) — Setup, troubleshooting, common errors
+- [Local LLM VPS Runbook](docs/LOCAL_LLM_VPS_RUNBOOK.md) — Ollama + ai-orchestrator setup while preserving admin provider order
 - [Local K8s Access Runbook](docs/LOCAL_K8S_ACCESS_RUNBOOK.md) — Same-origin local Kubernetes rollout (phase-1)
 - [Stage K8s Access Runbook](docs/STAGE_K8S_ACCESS_RUNBOOK.md) — Domain/TLS/secrets adaptation guide (phase-2 prep)
 

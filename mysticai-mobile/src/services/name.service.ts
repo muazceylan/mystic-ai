@@ -58,7 +58,7 @@ export interface PageResult<T> {
   size: number;
 }
 
-const NAMES_BASE = '/api/numerology/admin/names';
+const NAMES_BASE = '/api/numerology/names';
 const FAVORITES_KEY = 'name-module:favorites:v1';
 
 function asString(value: unknown, fallback = ''): string {
@@ -174,20 +174,14 @@ export async function searchNames(params: NameSearchParams): Promise<PageResult<
   const size = params.size ?? 20;
   const normalizedQuery = params.q?.trim();
 
-  const query: Record<string, unknown> = {
-    page,
-    size,
-    status: params.status ?? 'ACTIVE',
-  };
+  const query: Record<string, unknown> = { page, size };
 
   if (normalizedQuery) query.q = normalizedQuery;
   if (params.gender) query.gender = params.gender;
   if (params.origin?.trim()) query.origin = params.origin.trim();
   if (params.quranFlag !== undefined) query.quranFlag = params.quranFlag;
 
-  const response = normalizedQuery
-    ? await api.get(`${NAMES_BASE}/search`, { params: query })
-    : await api.get(NAMES_BASE, { params: query });
+  const response = await api.get(NAMES_BASE, { params: query });
 
   const pageResult = mapPage(response.data as Record<string, unknown>, mapNameListItem);
   if (!params.startsWith?.trim()) {

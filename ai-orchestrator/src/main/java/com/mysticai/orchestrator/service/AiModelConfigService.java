@@ -79,26 +79,34 @@ public class AiModelConfigService {
             throw new IllegalArgumentException("Config payload is required");
         }
 
-        AiRuntimeConfig next = fromDto(request);
-        next = normalizeAndValidate(next);
+        AiRuntimeConfig next = normalizeAndValidate(fromDto(request));
+        next = mergeBootstrapProviders(next, propertyDefaults());
         cachedConfig = next;
         writeToRedis(next);
         return toDto(next);
     }
 
     private AiRuntimeConfig refreshFromRedisOrDefaults() {
+        AiRuntimeConfig defaults = propertyDefaults();
         AiRuntimeConfig fromRedis = readFromRedis();
         if (fromRedis != null) {
-            return fromRedis;
+            AiRuntimeConfig merged = mergeBootstrapProviders(fromRedis, defaults);
+            if (!configsEqual(fromRedis, merged)) {
+                writeToRedis(merged);
+            }
+            return merged;
         }
 
         if (cachedConfig != null) {
-            return deepCopy(cachedConfig);
+            return mergeBootstrapProviders(cachedConfig, defaults);
         }
 
-        AiRuntimeConfig defaults = normalizeAndValidate(fromProperties());
         writeToRedis(defaults);
         return defaults;
+    }
+
+    private AiRuntimeConfig propertyDefaults() {
+        return normalizeAndValidate(fromProperties());
     }
 
     private AiRuntimeConfig readFromRedis() {
@@ -464,6 +472,10 @@ public class AiModelConfigService {
         return objectMapper.convertValue(source, AiRuntimeConfig.class);
     }
 
+    private AiRuntimeConfig.ProviderConfig deepCopyProvider(AiRuntimeConfig.ProviderConfig source) {
+        return objectMapper.convertValue(source, AiRuntimeConfig.ProviderConfig.class);
+    }
+
     private List<String> copyList(List<String> source) {
         if (source == null) {
             return new ArrayList<>();
@@ -487,6 +499,83 @@ public class AiModelConfigService {
             return null;
         }
         return value.trim();
+    }
+
+    private AiRuntimeConfig mergeBootstrapProviders(AiRuntimeConfig runtimeConfig, AiRuntimeConfig defaults) {
+        AiRuntimeConfig merged = deepCopy(runtimeConfig);
+        Map<String, AiRuntimeConfig.ProviderConfig> mergedProviders = new LinkedHashMap<>();
+        if (merged.getProviders() != null) {
+            merged.getProviders().forEach((key, value) -> mergedProviders.put(key, deepCopyProvider(value)));
+        }
+
+        if (defaults.getProviders() != null) {
+            for (Map.Entry<String, AiRuntimeConfig.ProviderConfig> entry : defaults.getProviders().entrySet()) {
+                String providerKey = entry.getKey();
+                AiRuntimeConfig.ProviderConfig bootstrapProvider = entry.getValue();
+                if (!shouldBootstrapProvider(bootstrapProvider)) {
+                    continue;
+                }
+                AiRuntimeConfig.ProviderConfig existingProvider = mergedProviders.get(providerKey);
+
+                if (existingProvider == null) {
+                    mergedProviders.put(providerKey, deepCopyProvider(bootstrapProvider));
+                    appendProviderIfMissing(merged.getComplexChain(), providerKey, defaults.getComplexChain(), bootstrapProvider.isEnabled());
+                    appendProviderIfMissing(merged.getSimpleChain(), providerKey, defaults.getSimpleChain(), bootstrapProvider.isEnabled());
+                    log.info("[AI Config] Added bootstrap provider {} to runtime config", providerKey);
+                    continue;
+                }
+
+                if (shouldSyncBootstrapConnection(bootstrapProvider)) {
+                    mergedProviders.put(providerKey, mergeExistingWithBootstrap(existingProvider, bootstrapProvider));
+                }
+            }
+        }
+
+        merged.setProviders(mergedProviders);
+        return normalizeAndValidate(merged);
+    }
+
+    private void appendProviderIfMissing(
+            List<String> runtimeChain,
+            String providerKey,
+            List<String> defaultChain,
+            boolean bootstrapEnabled
+    ) {
+        if (!bootstrapEnabled || runtimeChain == null || providerKey == null || defaultChain == null) {
+            return;
+        }
+        if (runtimeChain.contains(providerKey) || !defaultChain.contains(providerKey)) {
+            return;
+        }
+        runtimeChain.add(providerKey);
+    }
+
+    private boolean shouldSyncBootstrapConnection(AiRuntimeConfig.ProviderConfig bootstrapProvider) {
+        return bootstrapProvider != null && ADAPTER_OLLAMA.equals(bootstrapProvider.getAdapter());
+    }
+
+    private boolean shouldBootstrapProvider(AiRuntimeConfig.ProviderConfig bootstrapProvider) {
+        return shouldSyncBootstrapConnection(bootstrapProvider);
+    }
+
+    private AiRuntimeConfig.ProviderConfig mergeExistingWithBootstrap(
+            AiRuntimeConfig.ProviderConfig existingProvider,
+            AiRuntimeConfig.ProviderConfig bootstrapProvider
+    ) {
+        AiRuntimeConfig.ProviderConfig mergedProvider = deepCopyProvider(existingProvider);
+        mergedProvider.setAdapter(bootstrapProvider.getAdapter());
+        mergedProvider.setModel(bootstrapProvider.getModel());
+        mergedProvider.setBaseUrl(bootstrapProvider.getBaseUrl());
+        mergedProvider.setLocalProviderType(bootstrapProvider.getLocalProviderType());
+        mergedProvider.setChatEndpoint(bootstrapProvider.getChatEndpoint());
+        mergedProvider.setTimeoutMs(bootstrapProvider.getTimeoutMs());
+        mergedProvider.setTemperature(bootstrapProvider.getTemperature());
+        mergedProvider.setMaxOutputTokens(bootstrapProvider.getMaxOutputTokens());
+        return mergedProvider;
+    }
+
+    private boolean configsEqual(AiRuntimeConfig left, AiRuntimeConfig right) {
+        return objectMapper.valueToTree(left).equals(objectMapper.valueToTree(right));
     }
 
     private boolean hasText(String value) {
