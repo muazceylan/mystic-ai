@@ -14,11 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationGenerationService {
+    private static final int MAX_GENERATION_METADATA_LENGTH = 3900;
 
     private final NotificationRepository notificationRepository;
     private final NotificationPreferenceRepository preferenceRepository;
@@ -35,6 +37,13 @@ public class NotificationGenerationService {
     @Transactional
     public Optional<Notification> generateNotification(Long userId, NotificationType type, String locale,
                                                        AnalysisType analysisType) {
+        return generateNotification(userId, type, locale, analysisType, null, null);
+    }
+
+    @Transactional
+    public Optional<Notification> generateNotification(Long userId, NotificationType type, String locale,
+                                                       AnalysisType analysisType, UUID correlationId,
+                                                       String metadata) {
         NotificationPreference pref = preferenceRepository.findById(userId)
                 .orElse(NotificationPreference.builder().userId(userId).build());
 
@@ -49,12 +58,13 @@ public class NotificationGenerationService {
                 ? DeliveryChannel.BOTH
                 : DeliveryChannel.IN_APP;
 
-        return createAndSave(userId, type, locale, pref, channel, dedupKey, analysisType);
+        return createAndSave(userId, type, locale, pref, channel, dedupKey, analysisType, correlationId, metadata);
     }
 
     private Optional<Notification> createAndSave(Long userId, NotificationType type, String locale,
                                                   NotificationPreference pref, DeliveryChannel channel,
-                                                  String dedupKey, AnalysisType analysisType) {
+                                                  String dedupKey, AnalysisType analysisType,
+                                                  UUID correlationId, String metadata) {
         NotificationTemplateService.NotificationTemplate template = templateService.getTemplate(type, locale, userId);
         RouteTarget routeTarget = resolveRouteTarget(type, template, analysisType);
         NotificationCategory category = categorizeType(type);
@@ -62,6 +72,7 @@ public class NotificationGenerationService {
 
         Notification notification = Notification.builder()
                 .userId(userId)
+                .correlationId(correlationId)
                 .type(type)
                 .category(category)
                 .title(template.title())
@@ -73,6 +84,7 @@ public class NotificationGenerationService {
                 .templateKey(template.templateKey())
                 .variantKey(template.variantKey())
                 .analysisType(analysisType)
+                .metadata(trimToLength(metadata, MAX_GENERATION_METADATA_LENGTH))
                 .dedupKey(dedupKey)
                 .expiresAt(calculateExpiry(type))
                 .build();
@@ -109,7 +121,7 @@ public class NotificationGenerationService {
         NotificationPreference pref = preferenceRepository.findById(userId)
                 .orElse(NotificationPreference.builder().userId(userId).build());
         String dedupKey = "test:" + userId + ":" + type + ":" + System.currentTimeMillis();
-        return createAndSave(userId, type, null, pref, DeliveryChannel.BOTH, dedupKey, null);
+        return createAndSave(userId, type, null, pref, DeliveryChannel.BOTH, dedupKey, null, null, null);
     }
 
     /**
@@ -277,6 +289,19 @@ public class NotificationGenerationService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String trimToLength(String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        if (maxLength <= 3) {
+            return value.substring(0, maxLength);
+        }
+        return value.substring(0, maxLength - 3) + "...";
     }
 
     private <E extends Enum<E>> E parseEnum(String raw, Class<E> enumType, E fallback) {

@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -105,5 +106,50 @@ class NotificationGenerationServiceTest {
         assertThat(saved.getDeeplink()).isEqualTo("/(tabs)/calendar");
         assertThat(saved.getSourceModule()).isEqualTo("daily_transits");
         assertThat(saved.getAnalysisType()).isEqualTo(AnalysisType.ASTROLOGY);
+    }
+
+    @Test
+    void shouldPersistCorrelationIdAndMetadataForAiResponses() {
+        Long userId = 91L;
+        UUID correlationId = UUID.randomUUID();
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId(userId)
+                .pushEnabled(false)
+                .build();
+
+        NotificationTemplateService.NotificationTemplate template =
+                new NotificationTemplateService.NotificationTemplate(
+                        "ai_analysis_complete",
+                        "tr",
+                        0,
+                        "notifications",
+                        "AI analizin tamamlandi",
+                        "Rapor hazir.",
+                        "/(tabs)/notifications"
+                );
+
+        when(preferenceRepository.findById(userId)).thenReturn(Optional.of(pref));
+        when(dispatchService.evaluate(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE), eq(pref)))
+                .thenReturn(NotificationDispatchService.DispatchDecision.IN_APP_ONLY);
+        when(dispatchService.buildDedupKey(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE)))
+                .thenReturn("91:AI_ANALYSIS_COMPLETE:test");
+        when(templateService.getTemplate(eq(NotificationType.AI_ANALYSIS_COMPLETE), isNull(), eq(userId)))
+                .thenReturn(template);
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Optional<Notification> result = service.generateNotification(
+                userId,
+                NotificationType.AI_ANALYSIS_COMPLETE,
+                null,
+                AnalysisType.NATAL_CHART,
+                correlationId,
+                "{\"chartId\":91}"
+        );
+
+        assertThat(result).isPresent();
+        Notification saved = result.orElseThrow();
+        assertThat(saved.getCorrelationId()).isEqualTo(correlationId);
+        assertThat(saved.getMetadata()).isEqualTo("{\"chartId\":91}");
+        assertThat(saved.getAnalysisType()).isEqualTo(AnalysisType.NATAL_CHART);
     }
 }

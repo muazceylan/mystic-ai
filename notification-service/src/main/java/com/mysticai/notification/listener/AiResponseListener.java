@@ -3,8 +3,8 @@ package com.mysticai.notification.listener;
 import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.notification.entity.Notification;
 import com.mysticai.notification.entity.Notification.NotificationType;
+import com.mysticai.notification.repository.NotificationRepository;
 import com.mysticai.notification.service.NotificationGenerationService;
-import com.mysticai.notification.service.WebSocketNotificationService;
 import com.mysticai.common.event.AiAnalysisResponseEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AiResponseListener {
 
-    private final WebSocketNotificationService wsService;
     private final NotificationGenerationService generationService;
+    private final NotificationRepository notificationRepository;
 
     @RabbitListener(queues = "ai.responses.notification.queue")
     public void handleAiResponse(AiAnalysisResponseEvent event) {
@@ -25,21 +25,26 @@ public class AiResponseListener {
                 event.userId(), event.analysisType());
 
         try {
+            if (!event.success()) {
+                log.warn("Skipping notification for failed AI response correlationId={}", event.correlationId());
+                return;
+            }
+
+            if (event.correlationId() != null
+                    && notificationRepository.findByCorrelationId(event.correlationId()).isPresent()) {
+                log.info("Skipping duplicate AI response notification correlationId={}", event.correlationId());
+                return;
+            }
+
             Notification.AnalysisType analysisType = mapAnalysisType(event.analysisType());
             NotificationType notifType = mapToNotificationType(analysisType);
 
-            // Generate notification through the central service (creates in-app record + sends push)
-            generationService.generateNotification(event.userId(), notifType, null, analysisType);
-
-            // Also send WebSocket for real-time AI result delivery
-            String title = generateTitle(analysisType);
-            String message = generateMessage(analysisType);
-            wsService.sendNotification(
+            generationService.generateNotification(
                     event.userId(),
-                    event.correlationId(),
+                    notifType,
+                    null,
                     analysisType,
-                    title,
-                    message,
+                    event.correlationId(),
                     event.originalPayload()
             );
 
@@ -69,31 +74,4 @@ public class AiResponseListener {
             case HOROSCOPE_FUSION -> Notification.AnalysisType.HOROSCOPE;
         };
     }
-
-    private String generateTitle(Notification.AnalysisType type) {
-        return switch (type) {
-            case DREAM -> "Ruyaniz Yorumlandi!";
-            case TAROT -> "Tarot Aciliminiz Hazir!";
-            case ASTROLOGY -> "Astroloji Analiziniz Tamamlandi!";
-            case NUMEROLOGY -> "Numeroloji Hesaplamaniz Hazir!";
-            case NATAL_CHART -> "Dogum Haritaniz Olusturuldu!";
-            case ORACLE -> "Gunun Sirri Hazir!";
-            case COMPATIBILITY -> "Uyum Analiziniz Tamamlandi!";
-            case HOROSCOPE -> "Burc Yorumunuz Hazir!";
-        };
-    }
-
-    private String generateMessage(Notification.AnalysisType type) {
-        return switch (type) {
-            case DREAM -> "Ruya yorumunuz hazir. Gizli mesajlari ogrenmek icin tiklayin!";
-            case TAROT -> "Tarot kartlariniz acildi. Geleceginizin sirlarini kesfedin!";
-            case ASTROLOGY -> "Astroloji analiziniz tamamlandi. Yildizlar sizin icin ne diyor?";
-            case NUMEROLOGY -> "Numeroloji hesaplamaniz hazir. Sayilarin gizemini kesfedin!";
-            case NATAL_CHART -> "Dogum haritaniz olusturuldu. Kaderinizi ogrenmek icin tiklayin!";
-            case ORACLE -> "Gunun sirri hazir. Bugun sizin icin ne getiriyor?";
-            case COMPATIBILITY -> "Uyum analiziniz hazir. Kozmik baglantinizi kesfedin!";
-            case HOROSCOPE -> "Burc yorumunuz hazir. Yildizlarin mesajini okumak icin tiklayin!";
-        };
-    }
-
 }
