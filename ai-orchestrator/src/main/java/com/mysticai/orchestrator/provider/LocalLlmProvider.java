@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -97,17 +98,26 @@ public class LocalLlmProvider implements AiModelProvider {
                 body.put("options", options);
             }
 
-            String raw = restClient.post()
+            byte[] rawBytes = restClient.post()
                     .uri(chatEndpoint)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(String.class);
+                    .body(byte[].class);
 
-            JsonNode root = objectMapper.readTree(raw);
-            return root.path("response").asText("");
+            return extractResponse(rawBytes);
         } catch (Exception e) {
             throw new RuntimeException("[" + providerKey + "] request failed: " + e.getMessage(), e);
         }
+    }
+
+    String extractResponse(byte[] rawBytes) throws Exception {
+        if (rawBytes == null || rawBytes.length == 0) {
+            return "";
+        }
+
+        String raw = new String(rawBytes, StandardCharsets.UTF_8);
+        JsonNode root = objectMapper.readTree(raw);
+        return root.path("response").asText("");
     }
 }
