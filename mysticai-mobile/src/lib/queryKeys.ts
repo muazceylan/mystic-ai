@@ -11,7 +11,7 @@ export const queryKeys = {
   homeDashboard: (userId: number | string, sign?: string, locale?: string) =>
     ['oracle', 'home-dashboard', userId, sign ?? '', locale ?? 'tr'] as const,
   skyPulse: () => ['astrology', 'sky-pulse'] as const,
-  weeklySwot: (userId: number) => ['astrology', 'weekly-swot', userId] as const,
+  weeklySwot: (userId: number, locale?: string) => ['astrology', 'weekly-swot', userId, locale ?? 'tr'] as const,
   dailyLifeGuide: (userId: number, locale?: string, date?: string) =>
     ['astrology', 'daily-life-guide', userId, locale ?? 'tr', date ?? 'today'] as const,
   dailyTransits: (date: string, locale?: string) => ['dailyTransits', date, locale ?? 'tr'] as const,

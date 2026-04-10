@@ -143,6 +143,8 @@ const COSMIC_CATEGORY_ICON_TONES: Record<string, PremiumIconTone> = {
   beauty: 'rose',
   health: 'sacred',
   finance: 'insight',
+  career: 'insight',
+  marriage: 'rose',
   activity: 'cosmic',
   official: 'oracle',
   spiritual: 'sacred',
@@ -202,15 +204,19 @@ const COSMIC_CATEGORY_TO_LOCAL_PRIORITY: Record<string, PlannerCategoryId[]> = {
   beauty: ['beauty'],
   health: ['health'],
   finance: ['jointFinance'],
+  career: ['activity'],
+  marriage: ['marriage'],
   activity: ['activity'],
   official: ['official'],
   spiritual: ['spiritual'],
   home: ['family'],
-  social: ['partnerHarmony', 'date', 'marriage'],
+  social: ['partnerHarmony', 'date'],
   color: ['color'],
   recommendations: ['recommendations'],
 };
 const CORE_SYNC_DOCK_ORDER: PlannerCategoryId[] = [
+  'partnerHarmony',
+  'marriage',
   'transit',
   'moon',
   'beauty',
@@ -787,10 +793,7 @@ export function CalendarScreenContent() {
   const visibleCategories = personalization.visible;
   const visibleDockCategories = useMemo(() => orderPlannerCategories(visibleCategories), [visibleCategories]);
   const settingsCategories = useMemo(() => orderPlannerCategories(PLANNER_CATEGORIES), []);
-  const availableCategoryIds = useMemo(
-    () => new Set(availableCategories.map((category) => category.id)),
-    [availableCategories],
-  );
+
   const interestTagList = useMemo(
     () => Array.from(personalization.interestTags),
     [personalization.interestTags],
@@ -2757,18 +2760,17 @@ export function CalendarScreenContent() {
                 keyboardShouldPersistTaps="handled"
               >
                 {settingsCategories.map((category) => {
-                  const isAvailable = availableCategoryIds.has(category.id);
-                  const isVisible = isAvailable && !hiddenCategoryIds.includes(category.id);
+                  const isVisible = !hiddenCategoryIds.includes(category.id);
                   const label = t(COSMIC_DOCK_LABEL_OVERRIDE_KEYS[category.id] ?? category.labelKey);
                   return (
                     <View
                       key={category.id}
-                      style={[styles.settingRow, !isAvailable && styles.settingRowDisabled]}
+                      style={styles.settingRow}
                     >
                       <View style={styles.settingInfo}>
                         <PremiumIconBadge
-                          icon={isAvailable ? (category.icon as any) : 'lock-closed-outline'}
-                          tone={isAvailable ? getPlannerCategoryIconTone(category.id) : 'oracle'}
+                          icon={category.icon as any}
+                          tone={getPlannerCategoryIconTone(category.id)}
                           size={30}
                           iconSize={14}
                           glowSize={38}
@@ -2777,18 +2779,15 @@ export function CalendarScreenContent() {
                         />
                         <View style={styles.settingTextWrap}>
                           <Text style={styles.settingTitle}>{label}</Text>
-                          <Text style={styles.settingDesc}>
-                            {isAvailable ? t(category.descriptionKey) : t('calendar.categoryProfileLocked')}
-                          </Text>
+                          <Text style={styles.settingDesc}>{t(category.descriptionKey)}</Text>
                         </View>
                       </View>
 
                       <Switch
                         value={isVisible}
                         onValueChange={() => onToggleCategory(category.id)}
-                        disabled={!isAvailable}
                         trackColor={{ false: colors.switchTrack, true: colors.primarySoft }}
-                        thumbColor={isAvailable ? (isVisible ? colors.primary : colors.white) : colors.disabled}
+                        thumbColor={isVisible ? colors.primary : colors.white}
                       />
                     </View>
                   );

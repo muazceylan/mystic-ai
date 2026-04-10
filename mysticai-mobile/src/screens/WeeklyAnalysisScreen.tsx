@@ -21,11 +21,12 @@ import { SafeScreen, TabHeader, useBottomTabBarOffset } from '../components/ui';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
-import { useHomeBrief } from '../hooks/useHomeQueries';
+import { useHomeBrief, useWeeklySwot } from '../hooks/useHomeQueries';
 import { queryKeys } from '../lib/queryKeys';
 import { TYPOGRAPHY, SPACING, RADIUS } from '../constants/tokens';
 import type { HomeBrief } from '../services/oracle.service';
 import type { HomeDashboardResponse, HomeDashboardWeeklyHighlightItem } from '../services/home-dashboard.service';
+import type { WeeklySwotResponse, SwotPoint } from '../services/astrology.service';
 
 const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
@@ -65,6 +66,7 @@ function buildCards(
   homeBrief: HomeBrief | null,
   t: (key: string) => string,
   weeklyHighlights?: HomeDashboardWeeklyHighlightItem[] | null,
+  weeklySwot?: WeeklySwotResponse | null,
 ): SwotCardData[] {
   const byKey = new Map(
     (homeBrief?.weeklyCards ?? []).map((c) => [c.key, c]),
@@ -72,6 +74,12 @@ function buildCards(
   const weeklyByKey = new Map(
     (weeklyHighlights ?? []).map((item) => [item.key, item]),
   );
+  const swotByKey = new Map<string, SwotPoint>([
+    ['strength', weeklySwot?.strength],
+    ['opportunity', weeklySwot?.opportunity],
+    ['threat', weeklySwot?.threat],
+    ['weakness', weeklySwot?.weakness],
+  ].filter((entry): entry is [string, SwotPoint] => Boolean(entry[1])));
 
   const items: Array<{
     id: string;
@@ -87,13 +95,14 @@ function buildCards(
   ];
 
   return items.map((item) => {
+    const swotPoint = swotByKey.get(item.id);
     const card = byKey.get(item.id);
     const weeklyFallback = weeklyByKey.get(item.id);
     return {
       ...item,
-      headline: card?.headline ?? weeklyFallback?.title ?? t('home.areaActiveThisWeek'),
-      subtext: card?.subtext ?? weeklyFallback?.desc ?? '',
-      quickTip: card?.quickTip ?? '',
+      headline: swotPoint?.headline ?? card?.headline ?? weeklyFallback?.title ?? t('home.areaActiveThisWeek'),
+      subtext: swotPoint?.subtext ?? card?.subtext ?? weeklyFallback?.desc ?? '',
+      quickTip: swotPoint?.quickTip ?? card?.quickTip ?? '',
     };
   });
 }
@@ -122,6 +131,13 @@ export default function WeeklyAnalysisScreen() {
   }, [user, onboardingMaritalStatus]);
 
   const { data: homeBrief, isLoading, isError, refetch, isRefetching } = useHomeBrief(homeBriefParams);
+  const {
+    data: weeklySwot,
+    isLoading: isWeeklySwotLoading,
+    isError: isWeeklySwotError,
+    refetch: refetchWeeklySwot,
+    isRefetching: isWeeklySwotRefetching,
+  } = useWeeklySwot(user?.id, resolvedLocale);
 
   const cachedDashboard = useMemo(() => {
     const dashboardUserId = user?.id ?? 'guest';
@@ -137,10 +153,12 @@ export default function WeeklyAnalysisScreen() {
   const weekLabel = cachedDashboard?.weeklyHighlights?.rangeText?.trim() || weekRange.label;
   const cachedWeeklyHighlights = cachedDashboard?.weeklyHighlights?.items ?? null;
   const cards = useMemo(
-    () => buildCards(homeBrief ?? null, t, cachedWeeklyHighlights),
-    [cachedWeeklyHighlights, homeBrief, t],
+    () => buildCards(homeBrief ?? null, t, cachedWeeklyHighlights, weeklySwot ?? null),
+    [cachedWeeklyHighlights, homeBrief, t, weeklySwot],
   );
-  const shouldShowFullError = isError && !homeBrief && !(cachedWeeklyHighlights?.length);
+  const shouldShowFullError = isError && isWeeklySwotError && !homeBrief && !weeklySwot && !(cachedWeeklyHighlights?.length);
+  const isInitialLoading = (isLoading || isWeeklySwotLoading) && !homeBrief && !weeklySwot;
+  const isRefreshing = isRefetching || isWeeklySwotRefetching;
 
   return (
     <SafeScreen disableBottomTabBarCompensation>
@@ -151,8 +169,11 @@ export default function WeeklyAnalysisScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => refetch()}
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              refetch();
+              refetchWeeklySwot();
+            }}
             tintColor={colors.primary}
           />
         }
@@ -176,7 +197,7 @@ export default function WeeklyAnalysisScreen() {
           </Text>
         </Animated.View>
 
-        {isLoading && !homeBrief ? (
+        {isInitialLoading ? (
           <View style={S.inlineLoadingWrap}>
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={S.inlineLoadingText}>{t('home.swotLoading')}</Text>
@@ -187,7 +208,13 @@ export default function WeeklyAnalysisScreen() {
           <View style={S.errorWrap}>
             <Ionicons name="cloud-offline-outline" size={40} color={colors.muted} />
             <Text style={S.errorText}>{t('home.swotError')}</Text>
-            <Pressable style={S.retryBtn} onPress={() => refetch()}>
+            <Pressable
+              style={S.retryBtn}
+              onPress={() => {
+                refetch();
+                refetchWeeklySwot();
+              }}
+            >
               <Text style={S.retryBtnText}>{t('home.swotRetryBtn')}</Text>
             </Pressable>
           </View>

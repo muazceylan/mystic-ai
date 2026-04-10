@@ -202,6 +202,12 @@ export function getCosmicSubcategoryIcon(
   if (sub.includes('sport')) return 'fitness-outline';
   if (sub.includes('vacation') || sub.includes('travel')) return 'airplane-outline';
   if (sub.includes('culture_art')) return 'color-palette-outline';
+  if (sub.includes('first_date')) return 'heart-outline';
+  if (sub.includes('flirt')) return 'chatbubble-ellipses-outline';
+  if (sub.includes('reconciliation')) return 'heart-circle-outline';
+  if (sub.includes('anniversary')) return 'gift-outline';
+  if (sub.includes('romantic_night') || sub.includes('romantic')) return 'moon-outline';
+  if (sub.includes('deep_talk')) return 'chatbubbles-outline';
   if (sub.includes('party') || sub.includes('social')) return 'people-outline';
   if (sub.includes('shopping') || sub.includes('big_purchase')) return 'cart-outline';
   if (sub.includes('repair') || sub.includes('renovation')) return 'hammer-outline';
@@ -226,6 +232,8 @@ export function getCosmicSubcategoryIcon(
     sub.includes('entrepreneurship') ||
     sub.includes('resignation')
   ) return 'business-outline';
+  if (sub.includes('marriage') || sub.includes('engagement') || sub.includes('proposal')) return 'diamond-outline';
+  if (sub.includes('divorce')) return 'remove-circle-outline';
   if (
     sub.includes('worship') ||
     sub.includes('prayer') ||
@@ -244,6 +252,7 @@ export function getCosmicSubcategoryIcon(
 
   if (cat === 'transit') return MODULE_ICONS.natal_chart;
   if (cat === 'moon') return NAV_ICONS.dreams.active;
+  if (cat === 'marriage') return 'diamond-outline';
   if (cat === 'color') return 'color-palette-outline';
   return 'ellipse-outline';
 }

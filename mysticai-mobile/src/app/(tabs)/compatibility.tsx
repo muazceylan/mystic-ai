@@ -20,7 +20,6 @@ import {
   AdOfferCard,
   GuruUnlockModal,
   PurchaseCatalogSheet,
-  GuruBalanceBadge,
   MonetizationEvents,
 } from '../../features/monetization';
 import {
@@ -590,9 +589,6 @@ export default function CompatibilityScreen() {
         <TabHeader
           title={t('compatibility.title')}
           subtitle={t('compatibility.subtitle')}
-          rightActions={(
-            monetization.guruEnabled ? <GuruBalanceBadge /> : undefined
-          )}
           {...tabHeaderActions}
         />
       </SpotlightTarget>

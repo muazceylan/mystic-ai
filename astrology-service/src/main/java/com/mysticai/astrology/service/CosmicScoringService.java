@@ -512,7 +512,7 @@ public class CosmicScoringService {
 
     private boolean isCompassCategory(String categoryKey) {
         return switch (categoryKey) {
-            case "beauty", "finance", "career", "social", "health", "home", "spiritual", "activity", "official" -> true;
+            case "beauty", "finance", "career", "marriage", "social", "health", "home", "spiritual", "activity", "official" -> true;
             default -> false;
         };
     }
@@ -555,7 +555,7 @@ public class CosmicScoringService {
 
     private String mapGroupToCategoryKey(String groupKey) {
         return switch (groupKey) {
-            case "beauty", "finance", "career", "social", "health", "home", "spiritual", "activity", "official" -> groupKey;
+            case "beauty", "finance", "career", "marriage", "social", "health", "home", "spiritual", "activity", "official" -> groupKey;
             default -> null;
         };
     }
@@ -581,7 +581,13 @@ public class CosmicScoringService {
             case "ENTREPRENEURSHIP" -> "entrepreneurship";
             case "FIRST_DATE" -> "first_date";
             case "FLIRT" -> "flirt";
-            case "SOCIAL_INVITE" -> "social_invites";
+            case "RECONCILIATION" -> "reconciliation";
+            case "ROMANTIC_NIGHT" -> "romantic_night";
+            case "DEEP_TALK" -> "deep_talk";
+            case "MARRIAGE" -> "marriage";
+            case "ENGAGEMENT" -> "engagement";
+            case "PROPOSAL" -> "proposal";
+            case "DIVORCE" -> "divorce";
             case "CHECKUP" -> "checkup";
             case "DIET_DETOX" -> "diet_detox";
             case "TREATMENT" -> "treatment";
@@ -674,11 +680,20 @@ public class CosmicScoringService {
                 case "job_application" -> "#14B8A6";
                 default -> "#6366F1";
             };
+            case "marriage" -> switch (subCategoryKey) {
+                case "proposal" -> "#F59E0B";
+                case "engagement" -> "#EC4899";
+                case "marriage" -> "#A855F7";
+                case "divorce" -> "#64748B";
+                default -> "#A855F7";
+            };
             case "social" -> switch (subCategoryKey) {
                 case "first_date" -> "#EC4899";
                 case "flirt" -> "#8B5CF6";
-                case "social_invites" -> "#22C55E";
-                default -> "#F97316";
+                case "reconciliation" -> "#F472B6";
+                case "romantic_night" -> "#7C3AED";
+                case "deep_talk" -> "#6366F1";
+                default -> "#EC4899";
             };
             case "moon" -> switch (subCategoryKey) {
                 case "moon_phase" -> "#7BC47F";

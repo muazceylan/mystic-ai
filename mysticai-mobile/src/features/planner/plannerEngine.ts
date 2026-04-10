@@ -126,18 +126,6 @@ export const PLANNER_CATEGORIES: PlannerCategoryDefinition[] = [
     weights: { transit: 0.36, house: 0.28, natal: 0.36 },
   },
   {
-    id: 'date',
-    labelKey: 'calendar.categories.date',
-    descriptionKey: 'calendar.categoryDescriptions.date',
-    icon: 'wine-outline',
-    audience: 'universal',
-    tags: ['romance', 'social'],
-    tone: 'luck',
-    plannerCategory: 'DATE',
-    backendGoal: 'MARRIAGE',
-    weights: { transit: 0.41, house: 0.27, natal: 0.32 },
-  },
-  {
     id: 'marriage',
     labelKey: 'calendar.categories.marriage',
     descriptionKey: 'calendar.categoryDescriptions.marriage',
@@ -383,13 +371,7 @@ const RELATIONSHIP_CATEGORY_BONUS: Record<RelationshipMode, Partial<Record<Plann
   },
 };
 
-const RELATIONSHIP_HIDDEN_CATEGORIES: Partial<Record<RelationshipMode, PlannerCategoryId[]>> = {
-  single_not_looking: ['date'],
-  married: ['date', 'marriage'],
-  separated: ['marriage'],
-  divorced: ['date', 'marriage'],
-  widowed: ['date', 'marriage'],
-};
+const RELATIONSHIP_HIDDEN_CATEGORIES: Partial<Record<RelationshipMode, PlannerCategoryId[]>> = {};
 
 const RELATIONSHIP_PINNED_CATEGORIES: Partial<Record<RelationshipMode, PlannerCategoryId[]>> = {
   single_open: ['date', 'partnerHarmony'],

@@ -21,7 +21,7 @@ public class CosmicPlannerFacadeService {
     private final CosmicScoringService cosmicScoringService;
 
     private static final DateTimeFormatter YM_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
-    private static final List<String> DOCK_ORDER = List.of("transit", "moon", "beauty", "health", "career", "finance", "social");
+    private static final List<String> DOCK_ORDER = List.of("social", "transit", "moon", "beauty", "health", "career", "finance", "marriage");
 
     public CosmicPlannerMonthDTO getMonth(
             Long userId,
@@ -325,6 +325,7 @@ public class CosmicPlannerFacadeService {
         String key = normalize(categoryKey);
         return switch (key) {
             case "social", "career", "official" -> RecommendationActionType.COMMUNICATION;
+            case "marriage" -> RecommendationActionType.PLAN;
             case "finance" -> RecommendationActionType.FINANCE;
             case "health", "moon" -> RecommendationActionType.HEALTH;
             case "beauty", "color" -> RecommendationActionType.BEAUTY;
@@ -341,7 +342,8 @@ public class CosmicPlannerFacadeService {
             case "health" -> "Sağlık";
             case "career" -> "Kariyer";
             case "finance" -> "Para";
-            case "social" -> "Sosyal";
+            case "social" -> "Aşk";
+            case "marriage" -> "Evlilik";
             case "official" -> "Resmi";
             case "activity" -> "Aktivite";
             case "home" -> "Ev";

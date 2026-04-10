@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import api from './api';
 
 export interface DreamEntryResponse {
@@ -98,6 +99,17 @@ const AUDIO_MIME_BY_EXTENSION: Record<string, string> = {
   '.ogg': 'audio/ogg',
 };
 
+const AUDIO_EXTENSION_BY_MIME: Record<string, string> = {
+  'audio/mp4': '.m4a',
+  'audio/aac': '.aac',
+  'audio/3gpp': '.3gp',
+  'audio/wav': '.wav',
+  'audio/mpeg': '.mp3',
+  'audio/x-caf': '.caf',
+  'audio/webm': '.webm',
+  'audio/ogg': '.ogg',
+};
+
 const getAudioUploadMeta = (audioUri: string, requestedFilename?: string) => {
   const normalizedUri = audioUri.split('?')[0] ?? audioUri;
   const uriFilename = normalizedUri.split('/').pop() ?? '';
@@ -110,6 +122,34 @@ const getAudioUploadMeta = (audioUri: string, requestedFilename?: string) => {
   return { filename, mimeType };
 };
 
+const appendAudioToFormData = async (
+  formData: FormData,
+  audioUri: string,
+  requestedFilename?: string,
+) => {
+  const { filename, mimeType } = getAudioUploadMeta(audioUri, requestedFilename);
+
+  if (Platform.OS === 'web') {
+    const response = await fetch(audioUri);
+    if (!response.ok) {
+      throw new Error(`Audio blob could not be loaded (${response.status})`);
+    }
+
+    const sourceBlob = await response.blob();
+    const audioBlob = sourceBlob.type
+      ? sourceBlob
+      : new Blob([sourceBlob], { type: mimeType });
+    const blobExtension = AUDIO_EXTENSION_BY_MIME[audioBlob.type];
+    const finalFilename = requestedFilename
+      ?? (blobExtension ? `recording${blobExtension}` : filename);
+
+    formData.append('audio', audioBlob as any, finalFilename);
+    return;
+  }
+
+  formData.append('audio', { uri: audioUri, name: filename, type: mimeType } as any);
+};
+
 export const dreamService = {
   submitDream: async (request: DreamSubmitRequest): Promise<DreamEntryResponse> => {
     // Longer timeout: backend calls AI orchestrator synchronously for symbol extraction
@@ -119,13 +159,9 @@ export const dreamService = {
 
   /** Transcribe audio → returns text only, does NOT create a dream entry. */
   transcribeAudio: async (audioUri: string, filename?: string): Promise<string> => {
-    const { filename: resolvedFilename, mimeType } = getAudioUploadMeta(audioUri, filename);
     const formData = new FormData();
-    formData.append('audio', { uri: audioUri, name: resolvedFilename, type: mimeType } as any);
-    const res = await api.post<{ text: string }>('/api/v1/dreams/transcribe', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 30000,
-    });
+    await appendAudioToFormData(formData, audioUri, filename);
+    const res = await api.post<{ text: string }>('/api/v1/dreams/transcribe', formData, { timeout: 30000 });
     return res.data.text;
   },
 
@@ -135,14 +171,10 @@ export const dreamService = {
     audioUri: string,
     filename?: string
   ): Promise<DreamEntryResponse> => {
-    const { filename: resolvedFilename, mimeType } = getAudioUploadMeta(audioUri, filename);
     const formData = new FormData();
     formData.append('userId', String(userId));
-    formData.append('audio', { uri: audioUri, name: resolvedFilename, type: mimeType } as any);
-    const res = await api.post<DreamEntryResponse>('/api/v1/dreams/audio', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 45000,
-    });
+    await appendAudioToFormData(formData, audioUri, filename);
+    const res = await api.post<DreamEntryResponse>('/api/v1/dreams/audio', formData, { timeout: 45000 });
     return res.data;
   },
 

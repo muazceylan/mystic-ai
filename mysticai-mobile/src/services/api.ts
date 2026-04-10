@@ -1,4 +1,5 @@
 import axios from 'axios/dist/browser/axios.cjs';
+import { Platform } from 'react-native';
 import { getToken } from '../utils/storage';
 import { useAuthStore } from '../store/useAuthStore';
 import { envConfig } from '../config/env';
@@ -70,7 +71,7 @@ api.interceptors.request.use(async (config: any) => {
   // For FormData (file uploads), explicitly set multipart/form-data so Axios
   // does not override it with application/x-www-form-urlencoded in dispatchRequest.
   // React Native XHR then appends the correct boundary when calling send(formData).
-  if (isFormData) {
+  if (isFormData && Platform.OS !== 'web') {
     config.headers['Content-Type'] = 'multipart/form-data';
   }
 

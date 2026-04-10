@@ -17,7 +17,6 @@ import {
   AdOfferCard,
   GuruUnlockModal,
   PurchaseCatalogSheet,
-  GuruBalanceBadge,
   MonetizationEvents,
 } from '../features/monetization';
 import {
@@ -618,9 +617,6 @@ export default function NumerologyScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             goBack();
           }}
-          rightActions={(
-            monetization.guruEnabled ? <GuruBalanceBadge /> : undefined
-          )}
         />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

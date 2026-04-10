@@ -33,7 +33,7 @@ public class DailyLifeGuideService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    private static final String CACHE_PREFIX = "lifeguide:daily:";
+    private static final String CACHE_PREFIX = "lifeguide:daily:v2:";
     private static final Set<String> BENEFICS = Set.of("Jupiter", "Venus");
     private static final Set<String> MALEFICS = Set.of("Mars", "Saturn", "Pluto");
     private static final Set<String> CAREER_MERCURY_SENSITIVE = Set.of(
@@ -377,6 +377,18 @@ public class DailyLifeGuideService {
             case "LAW" -> {
                 if (sign.equals("libra") || sign.equals("terazi")) delta += 8;
             }
+            case "MARRIAGE", "ENGAGEMENT", "PROPOSAL" -> {
+                if (sign.equals("libra") || sign.equals("taurus") || sign.equals("cancer")
+                        || sign.equals("terazi") || sign.equals("boğa") || sign.equals("yengeç")) delta += 8;
+                if (phase.contains("büyüyen") || phase.contains("waxing") || phase.contains("yeni ay") || phase.contains("new moon")) delta += 6;
+                if (phase.contains("dolunay") || phase.contains("full")) delta -= 6;
+            }
+            case "DIVORCE" -> {
+                if (sign.equals("capricorn") || sign.equals("scorpio") || sign.equals("libra")
+                        || sign.equals("oğlak") || sign.equals("akrep") || sign.equals("terazi")) delta += 6;
+                if (phase.contains("küçülen") || phase.contains("waning") || phase.contains("son dördün") || phase.contains("last quarter")) delta += 5;
+                if (phase.contains("dolunay") || phase.contains("full")) delta -= 8;
+            }
             case "ENTREPRENEURSHIP", "VENTURE" -> {
                 if (sign.equals("aries") || sign.equals("leo") || sign.equals("sagittarius")
                         || sign.equals("koç") || sign.equals("aslan") || sign.equals("yay")) delta += 7;
@@ -404,6 +416,12 @@ public class DailyLifeGuideService {
         if (rule.groupKey().equals("activity")) {
             if (sign.equals("leo") || sign.equals("sagittarius")) delta += 8;
             if (phase.contains("dolunay") || phase.contains("full")) delta -= 4;
+        }
+        if (rule.groupKey().equals("marriage")) {
+            if (sign.equals("libra") || sign.equals("taurus") || sign.equals("cancer")
+                    || sign.equals("terazi") || sign.equals("boğa") || sign.equals("yengeç")) delta += 8;
+            if (phase.contains("büyüyen") || phase.contains("waxing")) delta += 4;
+            if (phase.contains("dolunay") || phase.contains("full")) delta -= 5;
         }
         if (rule.groupKey().equals("official")) {
             if (sign.equals("capricorn") || sign.equals("virgo")) delta += 8;
@@ -516,6 +534,28 @@ public class DailyLifeGuideService {
                 : t(english, "Flört", "Flirt");
 
         List<ActivityRule> rules = new ArrayList<>(List.of(
+                // Aşk & İlişki
+                rule("social", label("social", english),
+                        "FIRST_DATE", t(english, "İlk Buluşma", "First Date"),
+                        "heart", Set.of("Venus", "Mars", "Moon"), Set.of("Venus", "Moon", "Mars"), Set.of(7, 11), Set.of("Venus", "Mars", "Mercury"),
+                        english, userGender),
+                rule("social", label("social", english),
+                        "FLIRT", flirtLabel,
+                        "message-circle", Set.of("Mercury", "Venus", "Moon"), Set.of("Mercury", "Moon", "Venus"), Set.of(7, 11), Set.of("Mercury"),
+                        english, userGender),
+                rule("social", label("social", english),
+                        "RECONCILIATION", t(english, "Barışma", "Reconciliation"),
+                        "heart-handshake", Set.of("Venus", "Moon", "Jupiter"), Set.of("Venus", "Moon"), Set.of(7, 12), Set.of("Mercury", "Mars"),
+                        english, userGender),
+                rule("social", label("social", english),
+                        "ROMANTIC_NIGHT", t(english, "Romantik Gece", "Romantic Night"),
+                        "moon", Set.of("Venus", "Moon", "Neptune"), Set.of("Venus", "Moon", "Neptune"), Set.of(5, 7, 12), Set.of("Mercury"),
+                        english, userGender),
+                rule("social", label("social", english),
+                        "DEEP_TALK", t(english, "Derin Konuşma", "Deep Talk"),
+                        "message-circle", Set.of("Mercury", "Moon", "Venus"), Set.of("Mercury", "Moon"), Set.of(3, 7, 12), Set.of("Mercury"),
+                        english, userGender),
+
                 // Beauty & Care
                 rule("beauty", label("beauty", english),
                         "HAIR_CUT", male
@@ -580,18 +620,23 @@ public class DailyLifeGuideService {
                         "trending-up", Set.of("Mars", "Jupiter", "Sun", "Mercury"), Set.of("Mars", "Jupiter", "Sun"), Set.of(1, 10, 11), Set.of("Mercury"),
                         english, userGender),
 
-                // Social & Love
-                rule("social", label("social", english),
-                        "FIRST_DATE", t(english, "İlk Buluşma", "First Date"),
-                        "heart", Set.of("Venus", "Mars", "Moon"), Set.of("Venus", "Moon", "Mars"), Set.of(7, 11), Set.of("Venus", "Mars", "Mercury"),
+                // Marriage & Commitment
+                rule("marriage", label("marriage", english),
+                        "PROPOSAL", t(english, "Evlilik Teklifi", "Proposal"),
+                        "heart", Set.of("Venus", "Jupiter", "Mars"), Set.of("Venus", "Moon"), Set.of(5, 7), Set.of("Mercury"),
                         english, userGender),
-                rule("social", label("social", english),
-                        "FLIRT", flirtLabel,
-                        "message-circle", Set.of("Mercury", "Venus", "Moon"), Set.of("Mercury", "Moon", "Venus"), Set.of(7, 11), Set.of("Mercury"),
+                rule("marriage", label("marriage", english),
+                        "ENGAGEMENT", t(english, "Nişan Tarihi", "Engagement Date"),
+                        "sparkles", Set.of("Venus", "Jupiter", "Mercury"), Set.of("Venus", "Moon"), Set.of(5, 7, 11), Set.of("Mercury"),
                         english, userGender),
-                rule("social", label("social", english),
-                        "SOCIAL_INVITE", t(english, "Sosyal Davet", "Social Invitations"),
-                        "users", Set.of("Venus", "Jupiter", "Mars"), Set.of("Venus", "Jupiter"), Set.of(7, 11), Set.of("Mercury"),
+                rule("marriage", label("marriage", english),
+                        "MARRIAGE", t(english, "Evlenme Tarihi", "Wedding Date"),
+                        "diamond", Set.of("Venus", "Jupiter", "Moon"), Set.of("Venus", "Moon"), Set.of(4, 7, 8), Set.of("Mercury"),
+                        english, userGender),
+
+                rule("marriage", label("marriage", english),
+                        "DIVORCE", t(english, "Boşanma", "Divorce"),
+                        "git-branch", Set.of("Saturn", "Uranus", "Pluto", "Mars"), Set.of("Venus", "Moon", "Saturn"), Set.of(7, 8, 10), Set.of("Mercury", "Saturn"),
                         english, userGender),
 
                 // Health
@@ -752,7 +797,8 @@ public class DailyLifeGuideService {
             case "beauty" -> t(english, "Güzellik & Bakım", "Beauty & Care");
             case "finance" -> t(english, "Finans & Yatırım", "Finance & Investment");
             case "career" -> t(english, "Kariyer & İş", "Career & Work");
-            case "social" -> t(english, "Sosyal & Aşk", "Social & Love");
+            case "marriage" -> t(english, "Evlilik & Bağlılık", "Marriage & Commitment");
+            case "social" -> t(english, "Aşk", "Love");
             case "health" -> t(english, "Sağlık", "Health");
             case "activity" -> t(english, "Aktivite", "Activity");
             case "official" -> t(english, "Resmi", "Official");

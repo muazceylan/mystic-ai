@@ -100,12 +100,12 @@ export function useSkyPulse() {
   });
 }
 
-export function useWeeklySwot(userId: number | undefined) {
+export function useWeeklySwot(userId: number | undefined, locale?: string) {
   return useQuery({
-    queryKey: queryKeys.weeklySwot(userId ?? 0),
+    queryKey: queryKeys.weeklySwot(userId ?? 0, locale),
     queryFn: async () => {
       if (!userId) throw new Error('userId required');
-      const res = await fetchWeeklySwot(userId);
+      const res = await fetchWeeklySwot(userId, locale);
       return res.data;
     },
     enabled: !!userId,
