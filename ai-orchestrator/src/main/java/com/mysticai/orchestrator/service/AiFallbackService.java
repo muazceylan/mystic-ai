@@ -120,8 +120,8 @@ public class AiFallbackService {
 
                     if (isLocalAdapter(providerConfig)
                             && (failureType == AiFailureType.TIMEOUT || failureType == AiFailureType.CONNECTION_ERROR)) {
-                        log.warn("[AI Chain] Local LLM unavailable, falling back to mock");
-                        return fallbackOrThrow(prompt, runtimeConfig.isAllowMock());
+                        log.warn("[AI Chain] Local LLM unavailable, continuing to next provider");
+                        break;
                     }
 
                     boolean shouldRetryAfterEmpty = failureType == AiFailureType.EMPTY_RESPONSE
