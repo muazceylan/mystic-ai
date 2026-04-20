@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seo:check": "node scripts/locale-seo-check.mjs"
+    "seo:check": "node scripts/locale-seo-check.mjs",
+    "seo:smoke": "node scripts/seo-smoke-check.mjs"
   },
   "dependencies": {
     "next": "16.2.4",

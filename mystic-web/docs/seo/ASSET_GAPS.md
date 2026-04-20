@@ -38,6 +38,7 @@ The store CTA components (`StoreCTA.tsx`) handle the missing-URL case gracefully
 | Search Console property verified | Unknown — check with team |
 | Sitemap submitted | Unknown — submit after go-live |
 | International Targeting configured | Unknown — verify hreflang errors |
+| `GOOGLE_SITE_VERIFICATION` env | **Not set** | Required for metadata-based property verification |
 
 ## CMS
 
@@ -54,6 +55,6 @@ The store CTA components (`StoreCTA.tsx`) handle the missing-URL case gracefully
 1. Set App Store and Play Store URLs in production env
 2. Add apple-touch-icon asset and link
 3. Set GA4 Measurement ID and enable analytics
-4. Verify Search Console ownership
+4. Set `GOOGLE_SITE_VERIFICATION` and verify Search Console ownership
 5. Submit sitemap in Search Console
 6. Set `REVALIDATION_SECRET` for webhook security

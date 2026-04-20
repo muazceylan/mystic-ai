@@ -33,16 +33,8 @@
    ```html
    <meta name="google-site-verification" content="xxxxxxxxxxxx" />
    ```
-2. `mystic-web/src/app/layout.tsx` dosyasindaki metadata'ya ekleyin:
-   ```typescript
-   export const metadata: Metadata = {
-     // ... mevcut metadata
-     verification: {
-       google: 'xxxxxxxxxxxx', // Google'in verdigi kod
-     },
-   };
-   ```
-3. Deploy edin ve Search Console'da "Verify" tiklayin
+2. Production env'e `GOOGLE_SITE_VERIFICATION=xxxxxxxxxxxx` ekleyin.
+3. Deploy edin ve Search Console'da "Verify" tiklayin.
 
 ### Secenek C: HTML Dosyasi
 
@@ -94,6 +86,17 @@ Ikincil URL'ler:
 Yasal sayfalar (dusuk oncelik, sitemap yeterli):
 - `https://astroguru.app/gizlilik`
 - `https://astroguru.app/kullanim-sartlari`
+
+## 4.1 Deploy Sonrasi Teknik Smoke Test
+
+Search Console adimlarina gecmeden once:
+
+```bash
+cd mystic-web
+BASE_URL=https://astroguru.app EXPECTED_SITE_URL=https://astroguru.app pnpm seo:smoke
+```
+
+Bu script, public domainde gercekten `mystic-web` servis edilip edilmedigini ve `robots/sitemap/revalidate` akisinin beklendigi gibi davrandigini kontrol eder.
 
 ## 5. Index Durumu Takibi
 

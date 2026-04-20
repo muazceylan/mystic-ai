@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { DownloadCtaLink } from '@/components/DownloadCtaLink';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
@@ -41,7 +42,7 @@ export function HeaderEn() {
           >
             Blog
           </Link>
-          <LocaleSwitcher />
+          <Suspense fallback={null}><LocaleSwitcher /></Suspense>
           <DownloadCtaLink
             href="/en#download"
             label="Download"
@@ -51,7 +52,7 @@ export function HeaderEn() {
           />
         </nav>
         <div className="flex items-center gap-4 md:hidden">
-          <LocaleSwitcher />
+          <Suspense fallback={null}><LocaleSwitcher /></Suspense>
           <DownloadCtaLink
             href="/en#download"
             label="Download"

@@ -123,7 +123,7 @@ public class ProductAnalyticsService {
                     UNION
                     SELECT user_id
                     FROM push_tokens
-                    WHERE active = true AND last_seen_at >= ?
+                    WHERE is_active = true AND last_seen_at >= ?
                     GROUP BY user_id
                 ) active_users
                 """,
@@ -187,7 +187,7 @@ public class ProductAnalyticsService {
                     UNION
                     SELECT user_id
                     FROM push_tokens
-                    WHERE active = true AND last_seen_at >= ?
+                    WHERE is_active = true AND last_seen_at >= ?
                     GROUP BY user_id
                 ) active_users
                 """,
@@ -211,7 +211,7 @@ public class ProductAnalyticsService {
                         user_id,
                         MAX(last_seen_at) AS push_last_seen_at
                     FROM push_tokens
-                    WHERE active = true AND last_seen_at >= ?
+                    WHERE is_active = true AND last_seen_at >= ?
                     GROUP BY user_id
                 ),
                 combined AS (

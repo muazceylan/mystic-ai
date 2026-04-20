@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
-
-const SITE_URL = 'https://astroguru.app';
+import { SITE_URL } from '@/lib/constants';
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 

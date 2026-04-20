@@ -4,7 +4,7 @@ import './globals.css';
 import { AnalyticsPageTracker } from '@/components/AnalyticsPageTracker';
 import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { HtmlLanguageSync } from '@/components/HtmlLanguageSync';
-import { SITE_NAME, SITE_URL } from '@/lib/constants';
+import { GOOGLE_SITE_VERIFICATION, SITE_NAME, SITE_URL } from '@/lib/constants';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -19,6 +19,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   applicationName: SITE_NAME,
+  verification: GOOGLE_SITE_VERIFICATION
+    ? {
+        google: GOOGLE_SITE_VERIFICATION,
+      }
+    : undefined,
   other: {
     'google-adsense-account': 'ca-pub-2868466577339325',
   },
