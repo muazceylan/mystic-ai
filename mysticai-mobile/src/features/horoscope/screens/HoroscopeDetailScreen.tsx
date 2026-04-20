@@ -18,6 +18,12 @@ import { ZODIAC_MAP, resolveZodiacSign } from '../utils/zodiacData';
 import { ZodiacSign, HoroscopePeriod } from '../types/horoscope.types';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { HoroscopeDetailSkeleton } from '../components/HoroscopeSkeleton';
+import {
+  ActionUnlockSheet,
+  FEATURE_ACTION_KEYS,
+  FEATURE_MODULE_KEYS,
+  useModuleMonetization,
+} from '../../monetization';
 
 export default function HoroscopeDetailScreen() {
   const { sign: signParam, period: periodParam } = useLocalSearchParams<{ sign: string; period?: string }>();
@@ -28,6 +34,10 @@ export default function HoroscopeDetailScreen() {
   const router = useRouter();
   const S = makeStyles(colors, isDark);
   const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase();
+  const monetization = useModuleMonetization(FEATURE_MODULE_KEYS.HOROSCOPE);
+  const horoscopeUnlockState = monetization.getActionUnlockState(FEATURE_ACTION_KEYS.HOROSCOPE_VIEW);
+  const [isUnlocked, setIsUnlocked] = React.useState(false);
+  const [showUnlockSheet, setShowUnlockSheet] = React.useState(false);
 
   const {
     current,
@@ -48,8 +58,19 @@ export default function HoroscopeDetailScreen() {
   const signName = signData ? (lang.startsWith('en') ? signData.nameEn : signData.nameTr) : sign;
 
   useEffect(() => {
+    if (!horoscopeUnlockState.usesMonetization) {
+      setIsUnlocked(true);
+      setShowUnlockSheet(false);
+      return;
+    }
+    setIsUnlocked(false);
+    setShowUnlockSheet(true);
+  }, [horoscopeUnlockState.usesMonetization, sign]);
+
+  useEffect(() => {
+    if (!isUnlocked) return;
     fetchHoroscope(sign, period);
-  }, [sign, period]);
+  }, [fetchHoroscope, isUnlocked, period, sign]);
 
   const handleRetry = useCallback(() => {
     fetchHoroscope(sign, period);
@@ -106,13 +127,19 @@ export default function HoroscopeDetailScreen() {
         />
       </View>
 
-      {loading && (
+      {!isUnlocked && (
+        <View style={S.errorBox}>
+          <Text style={S.errorText}>{t('horoscope.subtitle', 'Burç yorumunu görmek için kilidi aç')}</Text>
+        </View>
+      )}
+
+      {loading && isUnlocked && (
         <ScrollView contentContainerStyle={S.content}>
           <HoroscopeDetailSkeleton />
         </ScrollView>
       )}
 
-      {error && !loading && (
+      {error && !loading && isUnlocked && (
         <View style={S.errorBox}>
           <Text style={S.errorText}>{t('horoscope.error')}</Text>
           <Pressable onPress={handleRetry} style={S.retryBtn}>
@@ -121,7 +148,7 @@ export default function HoroscopeDetailScreen() {
         </View>
       )}
 
-      {current && !loading && !error && (
+      {current && isUnlocked && !loading && !error && (
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={S.scrollContent}
@@ -151,6 +178,21 @@ export default function HoroscopeDetailScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
+
+      <ActionUnlockSheet
+        visible={showUnlockSheet}
+        moduleKey={FEATURE_MODULE_KEYS.HOROSCOPE}
+        actionKey={FEATURE_ACTION_KEYS.HOROSCOPE_VIEW}
+        title={signName}
+        onClose={() => {
+          setShowUnlockSheet(false);
+          router.back();
+        }}
+        onUnlocked={async () => {
+          setIsUnlocked(true);
+          await fetchHoroscope(sign, period);
+        }}
+      />
     </SafeScreen>
   );
 }

@@ -27,6 +27,14 @@ public class MonetizationAction {
 
     private String displayName;
     private String description;
+    private String dialogTitle;
+
+    @Column(columnDefinition = "TEXT")
+    private String dialogDescription;
+
+    private String primaryCtaLabel;
+    private String secondaryCtaLabel;
+    private String analyticsKey;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -37,6 +45,10 @@ public class MonetizationAction {
 
     @Builder.Default
     private int rewardAmount = 0;
+
+    @Builder.Default
+    @JsonProperty("isRewardFallbackEnabled")
+    private boolean isRewardFallbackEnabled = false;
 
     @Builder.Default
     @JsonProperty("isAdRequired")
@@ -56,6 +68,12 @@ public class MonetizationAction {
 
     @Builder.Default
     private int displayPriority = 0;
+
+    @Builder.Default
+    private int dailyLimit = 0;
+
+    @Builder.Default
+    private int weeklyLimit = 0;
 
     private Long createdByAdminId;
     private Long updatedByAdminId;

@@ -103,6 +103,12 @@ import {
 } from '../../features/tutorial';
 import MatchResultScreen from '../../screens/match/MatchResultScreen';
 import SynastryProPanel from '../../components/Astrology/SynastryProPanel';
+import {
+  ActionUnlockSheet,
+  FEATURE_ACTION_KEYS,
+  FEATURE_MODULE_KEYS,
+  useModuleMonetization,
+} from '../../features/monetization';
 
 // ─── Planet Symbols (Unicode astro glyphs) ──────────────────────────────
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -216,6 +222,17 @@ const DEFAULT_NATAL_SECTION_ORDER: DraggableNatalSectionKey[] = [
   'ai_interpretation',
   'night_poster',
 ];
+
+const GATED_NATAL_DETAIL_KEYS = new Set<NatalAccordionKey>([
+  'natal_chart_visual',
+  'aspect_matrix_table',
+  'cosmic_position_details',
+  'cosmic_balance',
+  'planet_positions',
+  'aspect_list',
+  'house_positions',
+  'ai_interpretation',
+]);
 
 function normalizeDraggableSectionOrder(input: unknown): DraggableNatalSectionKey[] {
   const valid = new Set<DraggableNatalSectionKey>(DEFAULT_NATAL_SECTION_ORDER);
@@ -552,6 +569,11 @@ export function NatalChartScreenContent() {
   const [heroInfoExpanded, setHeroInfoExpanded] = useState(false);
   const [profileSwitcherVisible, setProfileSwitcherVisible] = useState(true);
   const [openAccordionKey, setOpenAccordionKey] = useState<NatalAccordionKey | null>(null);
+  const natalMonetization = useModuleMonetization(FEATURE_MODULE_KEYS.NATAL_CHART);
+  const natalDetailUnlockState = natalMonetization.getActionUnlockState(FEATURE_ACTION_KEYS.NATAL_CHART_DETAIL_VIEW);
+  const [showDetailUnlockSheet, setShowDetailUnlockSheet] = useState(false);
+  const [detailSectionsUnlocked, setDetailSectionsUnlocked] = useState(false);
+  const pendingAccordionKeyRef = useRef<NatalAccordionKey | null>(null);
   const [sectionOrder, setSectionOrder] = useState<DraggableNatalSectionKey[]>(DEFAULT_NATAL_SECTION_ORDER);
   const [profileMode, setProfileMode] = useState<ProfileMode>('switch');
   const [companionModalVisible, setCompanionModalVisible] = useState(false);
@@ -1468,10 +1490,31 @@ export function NatalChartScreenContent() {
     };
   }, []);
 
+  const requestAccordionOpen = useCallback((targetKey: NatalAccordionKey) => {
+    if (GATED_NATAL_DETAIL_KEYS.has(targetKey) && !detailSectionsUnlocked && natalDetailUnlockState.usesMonetization) {
+      pendingAccordionKeyRef.current = targetKey;
+      setShowDetailUnlockSheet(true);
+      return false;
+    }
+    setOpenAccordionKey(targetKey);
+    return true;
+  }, [detailSectionsUnlocked, natalDetailUnlockState.usesMonetization]);
+
   const toggleAccordion = useCallback((key: string) => {
+    const typedKey = key as NatalAccordionKey;
     manualAccordionControlRef.current = true;
-    setOpenAccordionKey((prev) => (prev === key ? null : (key as NatalAccordionKey)));
-  }, []);
+    setOpenAccordionKey((prev) => {
+      if (prev === typedKey) {
+        return null;
+      }
+      if (GATED_NATAL_DETAIL_KEYS.has(typedKey) && !detailSectionsUnlocked && natalDetailUnlockState.usesMonetization) {
+        pendingAccordionKeyRef.current = typedKey;
+        setShowDetailUnlockSheet(true);
+        return prev;
+      }
+      return typedKey;
+    });
+  }, [detailSectionsUnlocked, natalDetailUnlockState.usesMonetization]);
 
   const registerAccordionLayout = useCallback((id: string, y: number, height: number) => {
     const key = id as NatalAccordionKey;
@@ -1494,7 +1537,9 @@ export function NatalChartScreenContent() {
     manualAccordionControlRef.current = true;
     setHeroInfoExpanded(false);
     setProfileSwitcherVisible(false);
-    setOpenAccordionKey(targetKey);
+    if (!requestAccordionOpen(targetKey)) {
+      return;
+    }
 
     sectionJumpTimersRef.current.forEach(clearTimeout);
     sectionJumpTimersRef.current = [];
@@ -1570,7 +1615,7 @@ export function NatalChartScreenContent() {
       }, delay);
       sectionJumpTimersRef.current.push(timer);
     });
-  }, [stickyHeroHeight, mainScrollViewportHeight]);
+  }, [mainScrollViewportHeight, requestAccordionOpen, stickyHeroHeight]);
 
   const handleHeroMetricPress = useCallback((target: HeroMetricTarget) => {
     setHeroInfoExpanded(false);
@@ -1615,8 +1660,13 @@ export function NatalChartScreenContent() {
       }
     }
 
-    if (bestKey && bestKey !== openAccordionKey) setOpenAccordionKey(bestKey);
-  }, [openAccordionKey]);
+    if (bestKey && bestKey !== openAccordionKey) {
+      if (GATED_NATAL_DETAIL_KEYS.has(bestKey) && !detailSectionsUnlocked && natalDetailUnlockState.usesMonetization) {
+        return;
+      }
+      setOpenAccordionKey(bestKey);
+    }
+  }, [detailSectionsUnlocked, natalDetailUnlockState.usesMonetization, openAccordionKey]);
 
   const queueAccordionAutoFocus = useCallback((scrollY?: number, delayMs = 80) => {
     if (!autoAccordionFocusEnabledRef.current) return;
@@ -3400,6 +3450,21 @@ export function NatalChartScreenContent() {
         role={selectedBigThreeRole}
         sign={selectedBigThreeRole ? bigThreeSignByRole[selectedBigThreeRole] : null}
         onClose={closeBigThreeSheet}
+      />
+
+      <ActionUnlockSheet
+        visible={showDetailUnlockSheet}
+        moduleKey={FEATURE_MODULE_KEYS.NATAL_CHART}
+        actionKey={FEATURE_ACTION_KEYS.NATAL_CHART_DETAIL_VIEW}
+        title={t('natalChart.title')}
+        onClose={() => setShowDetailUnlockSheet(false)}
+        onUnlocked={async () => {
+          setDetailSectionsUnlocked(true);
+          if (pendingAccordionKeyRef.current) {
+            setOpenAccordionKey(pendingAccordionKeyRef.current);
+            pendingAccordionKeyRef.current = null;
+          }
+        }}
       />
       </SafeScreen>
   );

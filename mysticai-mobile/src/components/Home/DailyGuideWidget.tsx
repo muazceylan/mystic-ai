@@ -907,6 +907,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
     ctaHalf: {
       flex: 1,
     },
+    ctaFull: {
+      flex: 1,
+    },
     plannerBtn: {
       backgroundColor: '#EEF2FF',
       borderColor: '#C7D2FE',

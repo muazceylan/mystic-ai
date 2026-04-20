@@ -57,6 +57,7 @@ class AuthServicePasswordUnitTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private SocialTokenVerifier socialTokenVerifier;
     @Mock private NatalChartProvisioningService natalChartProvisioningService;
+    @Mock private SignupBonusSyncService signupBonusSyncService;
     @Mock private AvatarStorageService avatarStorageService;
     @Mock private PublicUrlProperties publicUrlProperties;
 
@@ -73,7 +74,7 @@ class AuthServicePasswordUnitTest {
                 passwordResetTokenRepository, mailSender, emailVerificationPublisher,
                 passwordResetEmailPublisher, verificationProperties, passwordResetProperties,
                 passwordEncoder, jwtTokenProvider, authenticationManager, socialTokenVerifier,
-                natalChartProvisioningService, avatarStorageService, publicUrlProperties,
+                natalChartProvisioningService, signupBonusSyncService, avatarStorageService, publicUrlProperties,
                 FIXED_CLOCK
         );
     }

@@ -143,6 +143,48 @@ services:
   auth:
     base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
 
+# ── User JWT Configuration ────────────────────────────────────────────────────
+# WHY: UserJwtFilter validates user Bearer tokens for rewarded-ads endpoints,
+# independently of the gateway. Uses the SAME secret as auth-service (JWT_SECRET).
+# This closes the trust gap for direct (non-gateway) calls to notification-service.
+user:
+  jwt:
+    secret: ${JWT_SECRET:bXlzdGljLWFpLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=}
+
+# ── Rewarded Ads Configuration ────────────────────────────────────────────────
+# All amounts in Guru Tokens. Adjust per-environment in application-prod.yml.
+rewarded-ads:
+  enabled: ${REWARDED_ADS_ENABLED:true}
+  # Per-session reward (source of truth — frontend never sets this).
+  default-reward-amount: ${REWARDED_ADS_DEFAULT_AMOUNT:5}
+  # GAM ad unit path: /networkCode/adUnitPath
+  ad-unit-path: ${REWARDED_ADS_AD_UNIT_PATH:/12345/mysticai/rewarded_earn}
+  # Analytics/grouping key for the earn page placement.
+  placement-key: ${REWARDED_ADS_PLACEMENT_KEY:web_earn_page}
+  # Intent TTL in seconds (user has this long to watch the ad after clicking CTA).
+  intent-ttl-seconds: ${REWARDED_ADS_INTENT_TTL_SECONDS:300}
+  # Max claimed intents per user per calendar day (UTC).
+  daily-limit: ${REWARDED_ADS_DAILY_LIMIT:10}
+  # Max claimed intents per user in the last 60 minutes.
+  hourly-limit: ${REWARDED_ADS_HOURLY_LIMIT:3}
+  # Minimum seconds between consecutive claim grants.
+  cooldown-seconds: ${REWARDED_ADS_COOLDOWN_SECONDS:60}
+  # Max simultaneous PENDING/AD_READY intents per user (prevents tab-farming).
+  max-parallel-pending-intents: ${REWARDED_ADS_MAX_PARALLEL:1}
+  # Cleanup scheduler interval in ms.
+  cleanup-interval-ms: ${REWARDED_ADS_CLEANUP_INTERVAL_MS:120000}
+  # ── CSP / Origin / Allowlist ─────────────────────────────────────────────
+  # Allowed Origin header values for claim requests. Empty = no enforcement.
+  # Example: ["https://mysticai.com", "https://www.mysticai.com"]
+  allowed-origins: ${REWARDED_ADS_ALLOWED_ORIGINS:}
+  # Allowed placement keys. Empty = any placement accepted (dev-safe default).
+  allowed-placements: ${REWARDED_ADS_ALLOWED_PLACEMENTS:web_earn_page}
+  # Allowed GAM ad unit paths. Server always uses its own adUnitPath config;
+  # this list governs allowlist logging/blocking only.
+  allowed-ad-unit-paths: ${REWARDED_ADS_ALLOWED_AD_UNIT_PATHS:}
+  # When true, origin mismatch → HTTP 400. When false → warn log only.
+  enforce-origin-check: ${REWARDED_ADS_ENFORCE_ORIGIN:false}
+
 analytics:
   ga4:
     # Use a dedicated GA4 web stream for aggregate server-side exports.

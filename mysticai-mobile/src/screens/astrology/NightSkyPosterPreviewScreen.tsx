@@ -48,6 +48,12 @@ import {
 import CelestialLegendSection from '../../components/nightSkyPoster/CelestialLegendSection';
 import LunarPhasesSection from '../../components/nightSkyPoster/LunarPhasesSection';
 import { getUniversalDownloadUrl, normalizePublicWebUrl } from '../../utils/publicUrl';
+import {
+  ActionUnlockSheet,
+  FEATURE_ACTION_KEYS,
+  FEATURE_MODULE_KEYS,
+  useModuleMonetization,
+} from '../../features/monetization';
 
 type ShareAction = 'share' | 'instagram' | 'save' | 'pdf' | null;
 type VariantOption = { key: NightSkyPosterVariant; label: string; sub: string };
@@ -85,6 +91,10 @@ export default function NightSkyPosterPreviewScreen() {
   const { t, i18n } = useTranslation();
   const isWeb = Platform.OS === 'web';
   const isEnglish = i18n.language?.startsWith('en');
+  const monetization = useModuleMonetization(FEATURE_MODULE_KEYS.NATAL_CHART);
+  const posterUnlockState = monetization.getActionUnlockState(FEATURE_ACTION_KEYS.BIRTH_NIGHT_POSTER_VIEW);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showUnlockSheet, setShowUnlockSheet] = useState(false);
   const draft = useNightSkyPosterStore((s) => s.draft);
   const setDraft = useNightSkyPosterStore((s) => s.setDraft);
   const clearDraft = useNightSkyPosterStore((s) => s.clearDraft);
@@ -272,6 +282,16 @@ export default function NightSkyPosterPreviewScreen() {
     setShareLinkError(null);
     setShareLinkLoading(false);
   }, [draftKey]);
+
+  useEffect(() => {
+    if (!posterUnlockState.usesMonetization) {
+      setIsUnlocked(true);
+      setShowUnlockSheet(false);
+      return;
+    }
+    setIsUnlocked(false);
+    setShowUnlockSheet(true);
+  }, [draftKey, posterUnlockState.usesMonetization]);
 
   const loadBackendPosterData = useCallback(
     async (selectedVariant: NightSkyPosterVariant) => {
@@ -674,6 +694,37 @@ export default function NightSkyPosterPreviewScreen() {
             </>
           )}
         </View>
+      </SafeScreen>
+    );
+  }
+
+  if (!isUnlocked) {
+    return (
+      <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.background }}>
+        <AppHeader
+          title={t('natalChart.birthNightTitle')}
+          subtitle={t('nightSkyPosterPreview.headerSubtitle')}
+          onBack={goBack}
+        />
+        <View style={styles.emptyWrap}>
+          <Ionicons name="moon-outline" size={28} color={colors.violet} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            {t('nightSkyPosterPreview.posterBadgeTitle')}
+          </Text>
+          <Text style={[styles.emptySub, { color: colors.subtext }]}>
+            {t('monetization.useGuruUnlock', { count: posterUnlockState.guruCost || 1 })}
+          </Text>
+        </View>
+        <ActionUnlockSheet
+          visible={showUnlockSheet}
+          moduleKey={FEATURE_MODULE_KEYS.NATAL_CHART}
+          actionKey={FEATURE_ACTION_KEYS.BIRTH_NIGHT_POSTER_VIEW}
+          title={t('natalChart.birthNightTitle')}
+          onClose={goBack}
+          onUnlocked={async () => {
+            setIsUnlocked(true);
+          }}
+        />
       </SafeScreen>
     );
   }

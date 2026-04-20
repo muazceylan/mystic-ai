@@ -10,7 +10,7 @@ export const LANGUAGE_STORAGE_KEY = 'mysticai_language_pref';
 const resources = {
   tr: { translation: tr },
   en: { translation: en },
-};
+} as const;
 
 function resolveDeviceLanguage(): 'tr' | 'en' {
   try {
@@ -51,7 +51,6 @@ export async function initI18n() {
       lng,
       fallbackLng: 'en',
       interpolation: { escapeValue: false },
-      compatibilityJSON: 'v3',
     });
 }
 

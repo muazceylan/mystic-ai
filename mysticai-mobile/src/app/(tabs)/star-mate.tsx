@@ -1939,7 +1939,7 @@ export default function StarMateTabScreen() {
 
         {matchesTab === 'LIKES_YOU' ? (
           <View style={styles.panel}>
-            <Text style={styles.panelTitle}>{t('starMate.likesYouTitle', { count: String(likesYou.length) })}</Text>
+            <Text style={styles.panelTitle}>{t('starMate.likesYouTitle', { count: likesYou.length })}</Text>
             <View style={styles.likesGrid}>
               {likesYou.length ? (
                 likesYou.map((profile) => (

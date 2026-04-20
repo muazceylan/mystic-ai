@@ -13,8 +13,11 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { use, useEffect } from 'react';
+import { getWebAdsEnabled, mergeWebAdsEnabled } from '@/lib/monetizationEnvironmentRules';
 
-type FormData = Omit<MonetizationSettings, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'configVersion' | 'publishedByAdminId' | 'publishedAt' | 'createdByAdminId' | 'updatedByAdminId'>;
+type FormData = Omit<MonetizationSettings, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'configVersion' | 'publishedByAdminId' | 'publishedAt' | 'createdByAdminId' | 'updatedByAdminId'> & {
+  webAdsEnabled: boolean;
+};
 
 function Checkbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -38,10 +41,20 @@ export default function MonetizationSettingsDetailPage({ params }: { params: Pro
   });
 
   const { register, handleSubmit, control, reset } = useForm<FormData>();
-  useEffect(() => { if (settings) reset(settings); }, [settings, reset]);
+  useEffect(() => {
+    if (!settings) return;
+    reset({
+      ...settings,
+      webAdsEnabled: getWebAdsEnabled(settings.environmentRulesJson),
+    });
+  }, [settings, reset]);
 
   const updateMut = useMutation({
-    mutationFn: (data: FormData) => monetizationSettingsApi.update(Number(id), data),
+    mutationFn: ({ webAdsEnabled, ...data }: FormData) =>
+      monetizationSettingsApi.update(Number(id), {
+        ...data,
+        environmentRulesJson: mergeWebAdsEnabled(data.environmentRulesJson, webAdsEnabled),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['monetization-settings'] });
       qc.invalidateQueries({ queryKey: ['monetization-setting', id] });
@@ -97,8 +110,28 @@ export default function MonetizationSettingsDetailPage({ params }: { params: Pro
             <p className="text-xs text-gray-400 uppercase font-semibold">Genel Ayarlar</p>
             <Controller name="isEnabled" control={control} render={({ field }) => <Checkbox label="Monetization Aktif" checked={!!field.value} onChange={field.onChange} />} />
             <Controller name="isAdsEnabled" control={control} render={({ field }) => <Checkbox label="Reklamlar Aktif" checked={!!field.value} onChange={field.onChange} />} />
+            <Controller
+              name="webAdsEnabled"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Web'de Reklamlar Aktif"
+                  checked={!!field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <p className="text-xs text-gray-500">
+              Web tarafında rewarded ads desteklenmiyorsa bu seçeneği kapatıp reklam offer akışını gizleyebilirsiniz.
+            </p>
             <Controller name="isGuruEnabled" control={control} render={({ field }) => <Checkbox label="Guru Sistemi Aktif" checked={!!field.value} onChange={field.onChange} />} />
             <Controller name="isGuruPurchaseEnabled" control={control} render={({ field }) => <Checkbox label="Guru Satın Alma Aktif" checked={!!field.value} onChange={field.onChange} />} />
+          </div>
+
+          <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs text-gray-400 uppercase font-semibold">Signup Bonus</p>
+            <Controller name="isSignupBonusEnabled" control={control} render={({ field }) => <Checkbox label="Signup Bonus Aktif" checked={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isSignupBonusOneTimeOnly" control={control} render={({ field }) => <Checkbox label="Sadece Bir Kez Ver" checked={!!field.value} onChange={field.onChange} />} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -134,10 +167,33 @@ export default function MonetizationSettingsDetailPage({ params }: { params: Pro
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Signup Bonus Token</label>
+              <Input {...register('signupBonusTokenAmount', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Ledger Reason</label>
+              <Input {...register('signupBonusLedgerReason')} className="font-mono" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Registration Source Filter</label>
+              <Input {...register('signupBonusRegistrationSource')} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Helper Text</label>
+              <Input {...register('signupBonusHelperText')} />
+            </div>
+          </div>
+
           {settings && (
             <div className="text-xs text-gray-500 space-y-1">
               <p>Oluşturulma: {formatDate(settings.createdAt)}</p>
               <p>Güncelleme: {formatDate(settings.updatedAt)}</p>
+              <p>Güncelleyen Admin: {settings.updatedByAdminId ?? '—'}</p>
               {settings.publishedAt && <p>Yayınlanma: {formatDate(settings.publishedAt)}</p>}
             </div>
           )}

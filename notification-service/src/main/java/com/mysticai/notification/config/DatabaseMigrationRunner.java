@@ -21,6 +21,7 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         createProductAnalyticsTablesIfNeeded();
+        extendMonetizationTablesIfNeeded();
         dropCheckConstraintIfExists("audit_logs", "action_type");
         dropCheckConstraintIfExists("audit_logs", "entity_type");
         // Notification enums evolve frequently (e.g. new NotificationType values).
@@ -64,6 +65,28 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
             jdbc.execute("CREATE INDEX IF NOT EXISTS idx_app_screen_views_screen_key ON app_screen_views (screen_key)");
         } catch (Exception e) {
             log.warn("Could not initialize app_screen_views table: {}", e.getMessage());
+        }
+    }
+
+    private void extendMonetizationTablesIfNeeded() {
+        try {
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS dialog_title VARCHAR(255)");
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS dialog_description TEXT");
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS primary_cta_label VARCHAR(255)");
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS secondary_cta_label VARCHAR(255)");
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS analytics_key VARCHAR(255)");
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS is_reward_fallback_enabled BOOLEAN NOT NULL DEFAULT FALSE");
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS daily_limit INTEGER NOT NULL DEFAULT 0");
+            jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS weekly_limit INTEGER NOT NULL DEFAULT 0");
+
+            jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS is_signup_bonus_enabled BOOLEAN NOT NULL DEFAULT FALSE");
+            jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_token_amount INTEGER NOT NULL DEFAULT 10");
+            jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_ledger_reason VARCHAR(255)");
+            jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS is_signup_bonus_one_time_only BOOLEAN NOT NULL DEFAULT TRUE");
+            jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_registration_source VARCHAR(255)");
+            jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_helper_text TEXT");
+        } catch (Exception e) {
+            log.warn("Could not extend monetization tables: {}", e.getMessage());
         }
     }
 

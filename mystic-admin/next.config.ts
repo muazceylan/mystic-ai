@@ -6,6 +6,19 @@ const NUMEROLOGY_SERVICE_URL = process.env.NUMEROLOGY_SERVICE_URL || 'http://loc
 const AI_ORCHESTRATOR_URL = process.env.AI_ORCHESTRATOR_URL || 'http://localhost:8084';
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       // Admin API → notification-service

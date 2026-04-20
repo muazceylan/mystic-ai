@@ -84,6 +84,9 @@ class AuthServiceVerificationUnitTest {
     private NatalChartProvisioningService natalChartProvisioningService;
 
     @Mock
+    private SignupBonusSyncService signupBonusSyncService;
+
+    @Mock
     private AvatarStorageService avatarStorageService;
 
     @Mock
@@ -115,6 +118,7 @@ class AuthServiceVerificationUnitTest {
                 authenticationManager,
                 socialTokenVerifier,
                 natalChartProvisioningService,
+                signupBonusSyncService,
                 avatarStorageService,
                 publicUrlProperties,
                 fixedClock

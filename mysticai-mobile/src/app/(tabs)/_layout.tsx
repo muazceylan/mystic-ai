@@ -22,6 +22,7 @@ import { clearHoroscopeCache } from '../../features/horoscope/services/horoscope
 import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
 import { MainTabPager, type MainTabPagerHandle } from '../../navigation/MainTabPager';
 import { MAIN_TAB_ORDER, mainTabIndex } from '../../navigation/tabPagerConfig';
+import { useWebViewportBottomInset } from '../../hooks/useWebViewportBottomInset';
 
 const WEB_SIDEBAR_BREAKPOINT = 900;
 const WEB_SIDEBAR_EXPANDED_BREAKPOINT = 1220;
@@ -147,6 +148,7 @@ export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const webViewportBottomInset = useWebViewportBottomInset();
   const isAndroid = Platform.OS === 'android';
   const isWeb = Platform.OS === 'web';
   const user = useAuthStore((s) => s.user);
@@ -176,9 +178,9 @@ export default function TabsLayout() {
     () => ((i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     [i18n.language, i18n.resolvedLanguage],
   );
-  const iosBottomInset = Math.max(insets.bottom, 0);
-  const iosTabBarHeight = 54 + iosBottomInset;
-  const iosTabBarPaddingBottom = Math.max(4, iosBottomInset - 2);
+  const bottomInset = Math.max(insets.bottom, isWeb ? webViewportBottomInset : 0);
+  const iosTabBarHeight = 54 + bottomInset;
+  const iosTabBarPaddingBottom = Math.max(4, bottomInset - 2);
   const tabBarShellGradient: readonly [string, string] = isDark
     ? (
         isAndroid
@@ -400,7 +402,7 @@ export default function TabsLayout() {
   );
 
   const tabBarHeight =
-    showWebSidebar ? 0 : (Platform.OS === 'ios' ? iosTabBarHeight : 64 + iosBottomInset);
+    showWebSidebar ? 0 : (Platform.OS === 'ios' ? iosTabBarHeight : 64 + bottomInset);
 
   return (
     <View style={layoutStyles.root}>
@@ -453,8 +455,8 @@ export default function TabsLayout() {
               bottom: 0,
               backgroundColor: isAndroid ? colors.tabBarBg : 'transparent',
               borderTopWidth: 0,
-              height: Platform.OS === 'ios' ? iosTabBarHeight : 64 + iosBottomInset,
-              paddingBottom: Platform.OS === 'ios' ? iosTabBarPaddingBottom : Math.max(4, iosBottomInset),
+              height: Platform.OS === 'ios' ? iosTabBarHeight : 64 + bottomInset,
+              paddingBottom: Platform.OS === 'ios' ? iosTabBarPaddingBottom : Math.max(4, bottomInset),
               paddingTop: 6,
               borderRadius: 0,
               overflow: 'hidden',

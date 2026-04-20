@@ -236,7 +236,7 @@ function buildHeroPersonalization(
     calculatedAt?: string;
     sunSign?: string;
     moonSign?: string;
-    risingSign?: string;
+    risingSign?: string | null;
   } | null,
   locale: DailyLocale,
 ): HeroPersonalization | null {

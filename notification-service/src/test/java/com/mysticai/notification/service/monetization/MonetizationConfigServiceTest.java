@@ -1,13 +1,16 @@
 package com.mysticai.notification.service.monetization;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.notification.entity.monetization.*;
 import com.mysticai.notification.repository.*;
 import com.mysticai.notification.service.monetization.MonetizationConfigService.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,10 +27,28 @@ class MonetizationConfigServiceTest {
     @Mock MonetizationActionRepository actionRepository;
     @Mock GuruProductCatalogRepository productRepository;
     @Mock GuruWalletRepository walletRepository;
+    @Mock FeatureAccessService featureAccessService;
+    @Spy ObjectMapper objectMapper = new ObjectMapper();
 
-    @InjectMocks MonetizationConfigService service;
+    private WebRewardedAdsEligibilityResolver webRewardedAdsEligibilityResolver;
+    private MonetizationConfigService service;
 
     private static final Long USER_ID = 42L;
+
+    @BeforeEach
+    void setUp() {
+        webRewardedAdsEligibilityResolver = new WebRewardedAdsEligibilityResolver(settingsRepository, objectMapper);
+        ReflectionTestUtils.setField(webRewardedAdsEligibilityResolver, "rewardedAdsKillSwitchEnabled", true);
+        service = new MonetizationConfigService(
+                settingsRepository,
+                ruleRepository,
+                actionRepository,
+                productRepository,
+                walletRepository,
+                featureAccessService,
+                webRewardedAdsEligibilityResolver
+        );
+    }
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
@@ -102,6 +123,7 @@ class MonetizationConfigServiceTest {
         MonetizationConfigResponse result = service.getActiveConfig(null);
 
         assertThat(result.enabled()).isFalse();
+        assertThat(result.webAdsEnabled()).isFalse();
         assertThat(result.moduleRules()).isEmpty();
         assertThat(result.actions()).isEmpty();
         assertThat(result.products()).isEmpty();
@@ -127,6 +149,7 @@ class MonetizationConfigServiceTest {
 
         assertThat(result.enabled()).isTrue();
         assertThat(result.adsEnabled()).isTrue();
+        assertThat(result.webAdsEnabled()).isTrue();
         assertThat(result.guruEnabled()).isTrue();
         assertThat(result.guruPurchaseEnabled()).isTrue();
         assertThat(result.configVersion()).isEqualTo(1);
@@ -151,6 +174,41 @@ class MonetizationConfigServiceTest {
         MonetizationConfigResponse result = service.getActiveConfig(USER_ID);
 
         assertThat(result.walletBalance()).isEqualTo(25);
+        assertThat(result.webAdsEnabled()).isTrue();
+    }
+
+    @Test
+    void getActiveConfig_environmentRulesDisableWebAds_returnsFalse() {
+        MonetizationSettings settings = publishedSettings(true);
+        settings.setEnvironmentRulesJson("""
+                {"platforms":{"web":{"adsEnabled":false}}}
+                """);
+
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings));
+        when(ruleRepository.findAllByIsEnabledTrueAndConfigVersion(1)).thenReturn(List.of());
+        when(actionRepository.findAllByIsEnabledTrueOrderByModuleKeyAscDisplayPriorityAsc()).thenReturn(List.of());
+        when(productRepository.findAllByIsEnabledTrueAndRolloutStatusOrderBySortOrderAsc(any())).thenReturn(List.of());
+
+        MonetizationConfigResponse result = service.getActiveConfig(null);
+
+        assertThat(result.webAdsEnabled()).isFalse();
+    }
+
+    @Test
+    void getActiveConfig_envKillSwitchDisablesWebAds_returnsFalse() {
+        MonetizationSettings settings = publishedSettings(true);
+
+        ReflectionTestUtils.setField(webRewardedAdsEligibilityResolver, "rewardedAdsKillSwitchEnabled", false);
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings));
+        when(ruleRepository.findAllByIsEnabledTrueAndConfigVersion(1)).thenReturn(List.of());
+        when(actionRepository.findAllByIsEnabledTrueOrderByModuleKeyAscDisplayPriorityAsc()).thenReturn(List.of());
+        when(productRepository.findAllByIsEnabledTrueAndRolloutStatusOrderBySortOrderAsc(any())).thenReturn(List.of());
+
+        MonetizationConfigResponse result = service.getActiveConfig(null);
+
+        assertThat(result.webAdsEnabled()).isFalse();
     }
 
     // ── getModuleRule ─────────────────────────────────────────────────────────
@@ -169,8 +227,23 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_monetizationDisabled_returnsDisabledReason() {
-        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
-                .thenReturn(Optional.empty());
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+                .thenReturn(featureAccessResponse(
+                        false,
+                        false,
+                        false,
+                        0,
+                        0,
+                        false,
+                        0,
+                        "view",
+                        "dreams",
+                        FeatureAccessService.ActionType.NONE.name(),
+                        FeatureAccessService.AccessStatus.MONETIZATION_DISABLED.name(),
+                        "monetization_disabled",
+                        false,
+                        false
+                ));
 
         EligibilityCheckResponse result = service.checkActionEligibility(USER_ID, "dreams", "view", 5);
 
@@ -180,11 +253,23 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_actionNotFound_returnsActionNotFound() {
-        MonetizationSettings settings = publishedSettings(true);
-        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
-                .thenReturn(Optional.of(settings));
-        when(actionRepository.findByActionKeyAndModuleKey("nonexistent", "dreams"))
-                .thenReturn(Optional.empty());
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "nonexistent"))
+                .thenReturn(featureAccessResponse(
+                        false,
+                        true,
+                        false,
+                        0,
+                        0,
+                        false,
+                        0,
+                        "nonexistent",
+                        "dreams",
+                        FeatureAccessService.ActionType.NONE.name(),
+                        FeatureAccessService.AccessStatus.FEATURE_DISABLED.name(),
+                        "action_not_found",
+                        false,
+                        false
+                ));
 
         EligibilityCheckResponse result = service.checkActionEligibility(USER_ID, "dreams", "nonexistent", 5);
 
@@ -194,19 +279,23 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_adEligible_whenEntryCountMeetsThreshold() {
-        MonetizationSettings settings = publishedSettings(true);
-        MonetizationAction action = enabledAction("view", "dreams", 3);
-        ModuleMonetizationRule rule = enabledRule("dreams", 1);
-        // adOfferStartEntry defaults to 2, firstNEntriesWithoutAd defaults to 1
-        GuruWallet wallet = GuruWallet.builder().userId(USER_ID).currentBalance(0).build();
-
-        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
-                .thenReturn(Optional.of(settings));
-        when(actionRepository.findByActionKeyAndModuleKey("view", "dreams"))
-                .thenReturn(Optional.of(action));
-        when(ruleRepository.findByModuleKeyAndConfigVersion("dreams", 1))
-                .thenReturn(Optional.of(rule));
-        when(walletRepository.findByUserId(USER_ID)).thenReturn(Optional.of(wallet));
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+                .thenReturn(featureAccessResponse(
+                        false,
+                        true,
+                        true,
+                        3,
+                        0,
+                        true,
+                        1,
+                        "view",
+                        "dreams",
+                        FeatureAccessService.ActionType.WATCH_REWARDED_AD.name(),
+                        FeatureAccessService.AccessStatus.INSUFFICIENT_BALANCE.name(),
+                        "feature_access_insufficient_balance",
+                        false,
+                        true
+                ));
 
         // entryCount=5 is above adOfferStartEntry=2
         EligibilityCheckResponse result = service.checkActionEligibility(USER_ID, "dreams", "view", 5);
@@ -217,19 +306,23 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_adNotEligible_withinFreeEntries() {
-        MonetizationSettings settings = publishedSettings(true);
-        MonetizationAction action = enabledAction("view", "dreams", 3);
-        ModuleMonetizationRule rule = enabledRule("dreams", 1);
-        // firstNEntriesWithoutAd = 1, so entryCount 0 is within free entries
-        GuruWallet wallet = GuruWallet.builder().userId(USER_ID).currentBalance(0).build();
-
-        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
-                .thenReturn(Optional.of(settings));
-        when(actionRepository.findByActionKeyAndModuleKey("view", "dreams"))
-                .thenReturn(Optional.of(action));
-        when(ruleRepository.findByModuleKeyAndConfigVersion("dreams", 1))
-                .thenReturn(Optional.of(rule));
-        when(walletRepository.findByUserId(USER_ID)).thenReturn(Optional.of(wallet));
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+                .thenReturn(featureAccessResponse(
+                        false,
+                        true,
+                        true,
+                        3,
+                        0,
+                        false,
+                        0,
+                        "view",
+                        "dreams",
+                        FeatureAccessService.ActionType.NONE.name(),
+                        FeatureAccessService.AccessStatus.INSUFFICIENT_BALANCE.name(),
+                        "within_free_entries",
+                        false,
+                        true
+                ));
 
         EligibilityCheckResponse result = service.checkActionEligibility(USER_ID, "dreams", "view", 0);
 
@@ -239,23 +332,71 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_guruUnlockAvailable_whenBalanceSufficient() {
-        MonetizationSettings settings = publishedSettings(true);
-        MonetizationAction action = enabledAction("view", "dreams", 3);
-        ModuleMonetizationRule rule = enabledRule("dreams", 1);
-        GuruWallet wallet = GuruWallet.builder().userId(USER_ID).currentBalance(10).build();
-
-        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
-                .thenReturn(Optional.of(settings));
-        when(actionRepository.findByActionKeyAndModuleKey("view", "dreams"))
-                .thenReturn(Optional.of(action));
-        when(ruleRepository.findByModuleKeyAndConfigVersion("dreams", 1))
-                .thenReturn(Optional.of(rule));
-        when(walletRepository.findByUserId(USER_ID)).thenReturn(Optional.of(wallet));
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+                .thenReturn(featureAccessResponse(
+                        true,
+                        true,
+                        true,
+                        3,
+                        10,
+                        true,
+                        1,
+                        "view",
+                        "dreams",
+                        FeatureAccessService.ActionType.SPEND_TOKEN.name(),
+                        FeatureAccessService.AccessStatus.TOKEN_REQUIRED.name(),
+                        "feature_token_required",
+                        false,
+                        true
+                ));
 
         EligibilityCheckResponse result = service.checkActionEligibility(USER_ID, "dreams", "view", 5);
 
         assertThat(result.guruUnlockAvailable()).isTrue();
         assertThat(result.walletBalance()).isEqualTo(10);
         assertThat(result.requiredGuruCost()).isEqualTo(3);
+    }
+
+    private FeatureAccessService.FeatureAccessResponse featureAccessResponse(
+            boolean allowed,
+            boolean monetizationActive,
+            boolean requiresToken,
+            int tokenCost,
+            int currentBalance,
+            boolean rewardedAdAvailable,
+            int rewardTokenAmount,
+            String featureKey,
+            String moduleKey,
+            String actionType,
+            String status,
+            String message,
+            boolean purchaseFallbackAvailable,
+            boolean guruUnlockAvailable
+    ) {
+        return new FeatureAccessService.FeatureAccessResponse(
+                allowed,
+                monetizationActive,
+                requiresToken,
+                tokenCost,
+                currentBalance,
+                rewardedAdAvailable,
+                rewardTokenAmount,
+                featureKey,
+                moduleKey,
+                actionType,
+                status,
+                message,
+                purchaseFallbackAvailable,
+                guruUnlockAvailable,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                0,
+                0,
+                0
+        );
     }
 }

@@ -10,19 +10,28 @@ import { useForm, Controller } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { mergeWebAdsEnabled } from '@/lib/monetizationEnvironmentRules';
 
 interface FormData {
   settingsKey: string;
   isEnabled: boolean;
   isAdsEnabled: boolean;
+  webAdsEnabled: boolean;
   isGuruEnabled: boolean;
   isGuruPurchaseEnabled: boolean;
+  isSignupBonusEnabled: boolean;
+  signupBonusTokenAmount: number;
+  signupBonusLedgerReason: string;
+  isSignupBonusOneTimeOnly: boolean;
+  signupBonusRegistrationSource: string;
+  signupBonusHelperText: string;
   defaultAdProvider: string;
   defaultCurrency: string;
   globalDailyAdCap: number;
   globalWeeklyAdCap: number;
   globalMinHoursBetweenOffers: number;
   globalMinSessionsBetweenOffers: number;
+  environmentRulesJson?: string;
 }
 
 function Checkbox({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
@@ -43,8 +52,15 @@ export default function NewMonetizationSettingsPage() {
       settingsKey: 'default',
       isEnabled: true,
       isAdsEnabled: true,
+      webAdsEnabled: true,
       isGuruEnabled: true,
       isGuruPurchaseEnabled: false,
+      isSignupBonusEnabled: true,
+      signupBonusTokenAmount: 10,
+      signupBonusLedgerReason: 'SIGNUP_BONUS',
+      isSignupBonusOneTimeOnly: true,
+      signupBonusRegistrationSource: '',
+      signupBonusHelperText: 'Yeni üyeler için tek seferlik hoş geldin bakiyesi.',
       defaultAdProvider: 'admob',
       defaultCurrency: 'TRY',
       globalDailyAdCap: 10,
@@ -55,7 +71,11 @@ export default function NewMonetizationSettingsPage() {
   });
 
   const mutation = useMutation({
-    mutationFn: (data: FormData) => monetizationSettingsApi.create(data),
+    mutationFn: ({ webAdsEnabled, ...data }: FormData) =>
+      monetizationSettingsApi.create({
+        ...data,
+        environmentRulesJson: mergeWebAdsEnabled(data.environmentRulesJson, webAdsEnabled),
+      }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['monetization-settings'] }); toast.success('Ayar oluşturuldu.'); router.push('/monetization/settings'); },
     onError: (e: unknown) => toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Oluşturma başarısız.'),
   });
@@ -79,8 +99,28 @@ export default function NewMonetizationSettingsPage() {
             <p className="text-xs text-gray-400 uppercase font-semibold">Genel Ayarlar</p>
             <Controller name="isEnabled" control={control} render={({ field }) => <Checkbox label="Monetization Aktif" value={!!field.value} onChange={field.onChange} />} />
             <Controller name="isAdsEnabled" control={control} render={({ field }) => <Checkbox label="Reklamlar Aktif" value={!!field.value} onChange={field.onChange} />} />
+            <Controller
+              name="webAdsEnabled"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Web'de Reklamlar Aktif"
+                  value={!!field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <p className="text-xs text-gray-500">
+              Web tarafında rewarded ads desteklenmiyorsa bu seçeneği kapatıp reklam tekliflerini gizleyebilirsiniz.
+            </p>
             <Controller name="isGuruEnabled" control={control} render={({ field }) => <Checkbox label="Guru Sistemi Aktif" value={!!field.value} onChange={field.onChange} />} />
             <Controller name="isGuruPurchaseEnabled" control={control} render={({ field }) => <Checkbox label="Guru Satın Alma Aktif" value={!!field.value} onChange={field.onChange} />} />
+          </div>
+
+          <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs text-gray-400 uppercase font-semibold">Signup Bonus</p>
+            <Controller name="isSignupBonusEnabled" control={control} render={({ field }) => <Checkbox label="Signup Bonus Aktif" value={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isSignupBonusOneTimeOnly" control={control} render={({ field }) => <Checkbox label="Sadece Bir Kez Ver" value={!!field.value} onChange={field.onChange} />} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -113,6 +153,28 @@ export default function NewMonetizationSettingsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Teklifler Arası Min Oturum</label>
               <Input {...register('globalMinSessionsBetweenOffers', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Signup Bonus Token</label>
+              <Input {...register('signupBonusTokenAmount', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Ledger Reason</label>
+              <Input {...register('signupBonusLedgerReason')} className="font-mono" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Registration Source Filter</label>
+              <Input {...register('signupBonusRegistrationSource')} placeholder="SOCIAL_GOOGLE / EMAIL_REGISTER" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Helper Text</label>
+              <Input {...register('signupBonusHelperText')} />
             </div>
           </div>
 

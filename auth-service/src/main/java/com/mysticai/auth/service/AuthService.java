@@ -96,6 +96,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final SocialTokenVerifier socialTokenVerifier;
     private final NatalChartProvisioningService natalChartProvisioningService;
+    private final SignupBonusSyncService signupBonusSyncService;
     private final AvatarStorageService avatarStorageService;
     private final PublicUrlProperties publicUrlProperties;
     private final Clock clock;
@@ -152,6 +153,7 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
+        signupBonusSyncService.scheduleSignupBonus(savedUser, "EMAIL_REGISTER");
         issueVerificationToken(savedUser);
 
         return new RegisterResponse(AccountStatus.PENDING_VERIFICATION.name());
@@ -432,6 +434,7 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(newUser);
+        signupBonusSyncService.scheduleSignupBonus(savedUser, "SOCIAL_" + provider.toUpperCase(Locale.ROOT));
         return buildSocialLoginResponse(savedUser, true);
     }
 
@@ -677,6 +680,7 @@ public class AuthService {
         guestUser.setName(buildName(guestUser.getFirstName(), guestUser.getLastName()));
 
         User saved = userRepository.save(guestUser);
+        signupBonusSyncService.scheduleSignupBonus(saved, "GUEST_LINK_" + provider.toUpperCase(Locale.ROOT));
         log.info("Guest account linked with social: userId={}, provider={}", saved.getId(), provider);
 
         String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
@@ -779,6 +783,7 @@ public class AuthService {
         guestUser.setAccountStatus(AccountStatus.ACTIVE);
         guestUser.setEmailVerifiedAt(now);
         User saved = userRepository.save(guestUser);
+        signupBonusSyncService.scheduleSignupBonus(saved, "GUEST_LINK_EMAIL");
         log.info("Guest account linked with email and verified: userId={}", saved.getId());
 
         String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);

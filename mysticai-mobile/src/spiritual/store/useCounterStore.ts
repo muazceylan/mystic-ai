@@ -33,7 +33,7 @@ export interface CounterState {
   addElapsed: (ms: number) => void;
 }
 
-const INITIAL: Omit<CounterState, keyof { start: unknown; tap: unknown; undo: unknown; reset: unknown; pause: unknown; resume: unknown; finish: unknown; setHaptic: unknown; addElapsed: unknown }> = {
+const INITIAL: Omit<CounterState, keyof { start: unknown; tap: unknown; increment: unknown; undo: unknown; reset: unknown; pause: unknown; resume: unknown; finish: unknown; setHaptic: unknown; addElapsed: unknown }> = {
   itemType: null,
   itemId: null,
   itemName: '',

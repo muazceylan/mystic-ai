@@ -119,6 +119,14 @@ const ASPECT_META: Record<
     colorDark: '#6EE7B7',
     label: 'natalChart.panels.aspectTrine',
   },
+  QUINCUNX: {
+    symbol: '⚻',
+    exact: 150,
+    maxOrb: 3,
+    colorLight: '#0F766E',
+    colorDark: '#5EEAD4',
+    label: 'natalChart.panels.aspectQuincunx',
+  },
   OPPOSITION: {
     symbol: '☍',
     exact: 180,

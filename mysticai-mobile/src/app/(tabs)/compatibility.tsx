@@ -17,10 +17,10 @@ import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useSynastryStore } from '../../store/useSynastryStore';
 import {
   useModuleMonetization,
-  AdOfferCard,
-  GuruUnlockModal,
+  ActionUnlockSheet,
+  FEATURE_ACTION_KEYS,
+  FEATURE_MODULE_KEYS,
   PurchaseCatalogSheet,
-  MonetizationEvents,
 } from '../../features/monetization';
 import {
   RelationshipType,
@@ -295,9 +295,9 @@ export default function CompatibilityScreen() {
   const redirectedSynastryRef = useRef<number | null>(null);
 
   // ── Monetization ──
-  const monetization = useModuleMonetization('compatibility');
-  const [showAdOffer, setShowAdOffer] = useState(false);
-  const [showGuruModal, setShowGuruModal] = useState(false);
+  const monetization = useModuleMonetization(FEATURE_MODULE_KEYS.COMPATIBILITY);
+  const analyzeUnlockState = monetization.getActionUnlockState(FEATURE_ACTION_KEYS.COMPATIBILITY_VIEW);
+  const [showUnlockSheet, setShowUnlockSheet] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
   const focusCountRef = useRef(0);
 
@@ -423,20 +423,12 @@ export default function CompatibilityScreen() {
     if (!selectedPerson || !selectedType || !userId) return;
 
     // Check monetization gate on CTA click
-    const analyzeAction = monetization.getAction('ai_compare');
-    if (analyzeAction && monetization.guruEnabled) {
-      if (monetization.canAffordAction('ai_compare')) {
-        MonetizationEvents.gateSeen('compatibility', 'ai_compare', 'guru_spend');
-        setShowGuruModal(true);
+    if (analyzeUnlockState.usesMonetization) {
+      if (analyzeUnlockState.purchaseEnabled) {
+        setShowPurchaseSheet(true);
         return;
       }
-      if (monetization.shouldShowAd && monetization.adsEnabled) {
-        MonetizationEvents.gateSeen('compatibility', 'ai_compare', 'ad');
-        setShowAdOffer(true);
-        return;
-      }
-      MonetizationEvents.gateSeen('compatibility', 'ai_compare', 'guru_spend');
-      setShowGuruModal(true);
+      setShowUnlockSheet(true);
       return;
     }
 
@@ -772,23 +764,6 @@ export default function CompatibilityScreen() {
           </View>
         ) : null}
 
-        {showAdOffer && monetization.adsEnabled && (
-          <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-            <AdOfferCard
-              moduleKey="compatibility"
-              actionKey="ai_compare"
-              onComplete={() => {
-                setShowAdOffer(false);
-                // Ad completed successfully — user earned Guru, can now afford action
-              }}
-              onDismiss={() => {
-                setShowAdOffer(false);
-                // Dismiss does NOT proceed with the premium action
-              }}
-            />
-          </View>
-        )}
-
         {currentSynastry?.status === 'FAILED' && (
           <View style={styles.errorCard}>
             <ErrorStateCard
@@ -802,21 +777,15 @@ export default function CompatibilityScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      <GuruUnlockModal
-        visible={showGuruModal}
-        moduleKey="compatibility"
-        actionKey="ai_compare"
-        onUnlocked={() => {
-          setShowGuruModal(false);
-          void executeAnalyze();
-        }}
-        onDismiss={() => setShowGuruModal(false)}
-        onShowAdOffer={monetization.adsEnabled ? () => {
-          setShowGuruModal(false);
-          setShowAdOffer(true);
-        } : undefined}
-        onShowPurchase={monetization.isActionPurchaseAllowed('ai_compare') ? () => {
-          setShowGuruModal(false);
+      <ActionUnlockSheet
+        visible={showUnlockSheet}
+        moduleKey={FEATURE_MODULE_KEYS.COMPATIBILITY}
+        actionKey={FEATURE_ACTION_KEYS.COMPATIBILITY_VIEW}
+        title={t('compatibility.aiCompare')}
+        onClose={() => setShowUnlockSheet(false)}
+        onUnlocked={executeAnalyze}
+        onShowPurchase={analyzeUnlockState.purchaseEnabled ? () => {
+          setShowUnlockSheet(false);
           setShowPurchaseSheet(true);
         } : undefined}
       />

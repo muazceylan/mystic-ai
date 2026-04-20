@@ -92,6 +92,12 @@ public class AdminMonetizationSettingsService {
         existing.setGlobalWeeklyAdCap(updates.getGlobalWeeklyAdCap());
         existing.setGlobalMinHoursBetweenOffers(updates.getGlobalMinHoursBetweenOffers());
         existing.setGlobalMinSessionsBetweenOffers(updates.getGlobalMinSessionsBetweenOffers());
+        existing.setSignupBonusEnabled(updates.isSignupBonusEnabled());
+        existing.setSignupBonusTokenAmount(Math.max(0, updates.getSignupBonusTokenAmount()));
+        existing.setSignupBonusLedgerReason(updates.getSignupBonusLedgerReason());
+        existing.setSignupBonusOneTimeOnly(updates.isSignupBonusOneTimeOnly());
+        existing.setSignupBonusRegistrationSource(updates.getSignupBonusRegistrationSource());
+        existing.setSignupBonusHelperText(updates.getSignupBonusHelperText());
         existing.setEnvironmentRulesJson(updates.getEnvironmentRulesJson());
         existing.setRolloutRulesJson(updates.getRolloutRulesJson());
         existing.setUpdatedByAdminId(adminId);
@@ -188,6 +194,12 @@ public class AdminMonetizationSettingsService {
                 .globalWeeklyAdCap(s.getGlobalWeeklyAdCap())
                 .globalMinHoursBetweenOffers(s.getGlobalMinHoursBetweenOffers())
                 .globalMinSessionsBetweenOffers(s.getGlobalMinSessionsBetweenOffers())
+                .isSignupBonusEnabled(s.isSignupBonusEnabled())
+                .signupBonusTokenAmount(s.getSignupBonusTokenAmount())
+                .signupBonusLedgerReason(s.getSignupBonusLedgerReason())
+                .isSignupBonusOneTimeOnly(s.isSignupBonusOneTimeOnly())
+                .signupBonusRegistrationSource(s.getSignupBonusRegistrationSource())
+                .signupBonusHelperText(s.getSignupBonusHelperText())
                 .configVersion(s.getConfigVersion())
                 .status(s.getStatus())
                 .build();

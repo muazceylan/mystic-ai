@@ -17,14 +17,22 @@ interface FormData {
   moduleKey: string;
   displayName: string;
   description: string;
+  dialogTitle: string;
+  dialogDescription: string;
+  primaryCtaLabel: string;
+  secondaryCtaLabel: string;
+  analyticsKey: string;
   unlockType: string;
   guruCost: number;
   rewardAmount: number;
+  isRewardFallbackEnabled: boolean;
   isAdRequired: boolean;
   isPurchaseRequired: boolean;
   isPreviewAllowed: boolean;
   isEnabled: boolean;
   displayPriority: number;
+  dailyLimit: number;
+  weeklyLimit: number;
 }
 
 function Checkbox({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
@@ -46,14 +54,22 @@ export default function NewMonetizationActionPage() {
       moduleKey: '',
       displayName: '',
       description: '',
+      dialogTitle: '',
+      dialogDescription: '',
+      primaryCtaLabel: '',
+      secondaryCtaLabel: '',
+      analyticsKey: '',
       unlockType: 'FREE',
       guruCost: 0,
       rewardAmount: 0,
+      isRewardFallbackEnabled: false,
       isAdRequired: false,
       isPurchaseRequired: false,
       isPreviewAllowed: true,
       isEnabled: true,
       displayPriority: 0,
+      dailyLimit: 0,
+      weeklyLimit: 0,
     },
   });
 
@@ -107,6 +123,27 @@ export default function NewMonetizationActionPage() {
             <Input {...register('description')} placeholder="Aksiyon açıklaması" />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Dialog Title</label>
+              <Input {...register('dialogTitle')} placeholder="1 Guru Token ile aç" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Analytics Key</label>
+              <Input {...register('analyticsKey')} className="font-mono" placeholder="SHAREABLE_CARD_CREATE" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Dialog Description</label>
+            <textarea
+              {...register('dialogDescription')}
+              rows={3}
+              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+              placeholder="Yetersiz bakiyede video izleme fallback metni dahil açıklama"
+            />
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Guru Cost</label>
@@ -122,8 +159,31 @@ export default function NewMonetizationActionPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Primary CTA</label>
+              <Input {...register('primaryCtaLabel')} placeholder="1 Guru Token ile aç" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Secondary CTA</label>
+              <Input {...register('secondaryCtaLabel')} placeholder="Video izle, Guru kazan" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Daily Limit</label>
+              <Input {...register('dailyLimit', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Weekly Limit</label>
+              <Input {...register('weeklyLimit', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+          </div>
+
           <div className="border border-gray-700 rounded-lg p-4 space-y-3">
             <p className="text-xs text-gray-400 uppercase font-semibold">Seçenekler</p>
+            <Controller name="isRewardFallbackEnabled" control={control} render={({ field }) => <Checkbox label="Yetersiz Bakiye Reward Fallback" value={!!field.value} onChange={field.onChange} />} />
             <Controller name="isAdRequired" control={control} render={({ field }) => <Checkbox label="Reklam Zorunlu" value={!!field.value} onChange={field.onChange} />} />
             <Controller name="isPurchaseRequired" control={control} render={({ field }) => <Checkbox label="Satın Alma Zorunlu" value={!!field.value} onChange={field.onChange} />} />
             <Controller name="isPreviewAllowed" control={control} render={({ field }) => <Checkbox label="Önizlemeye İzin Ver" value={!!field.value} onChange={field.onChange} />} />

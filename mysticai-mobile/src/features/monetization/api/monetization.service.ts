@@ -1,5 +1,10 @@
 import api from '../../../services/api';
-import type { MonetizationConfig, GuruWallet, GuruLedgerEntry, EligibilityResult } from '../types';
+import type {
+  MonetizationConfig,
+  GuruWallet,
+  GuruLedgerEntry,
+  EligibilityResult,
+} from '../types';
 
 const CACHE_TTL = 60_000; // 60 seconds
 let cachedConfig: MonetizationConfig | null = null;
@@ -8,6 +13,7 @@ let lastFetchedAt = 0;
 const DEFAULT_CONFIG: MonetizationConfig = {
   enabled: false,
   adsEnabled: false,
+  webAdsEnabled: false,
   guruEnabled: false,
   guruPurchaseEnabled: false,
   defaultAdProvider: 'admob',
@@ -29,9 +35,12 @@ export async function fetchMonetizationConfig(): Promise<MonetizationConfig> {
   }
   try {
     const { data } = await api.get<MonetizationConfig>('/api/v1/monetization/config');
-    cachedConfig = data;
+    cachedConfig = {
+      ...data,
+      webAdsEnabled: data.webAdsEnabled ?? true,
+    };
     lastFetchedAt = Date.now();
-    return data;
+    return cachedConfig;
   } catch (error) {
     console.warn('[Monetization] Config fetch failed, using fallback', error);
     return cachedConfig ?? DEFAULT_CONFIG;
@@ -101,6 +110,101 @@ export async function processSpend(params: {
   idempotencyKey: string;
 }): Promise<GuruLedgerEntry> {
   const { data } = await api.post<GuruLedgerEntry>('/api/v1/monetization/spend', params);
+  return data;
+}
+
+export interface FeatureAccessResponse {
+  allowed: boolean;
+  monetizationActive: boolean;
+  requiresToken: boolean;
+  tokenCost: number;
+  currentBalance: number;
+  rewardedAdAvailable: boolean;
+  rewardTokenAmount: number;
+  featureKey: string;
+  moduleKey: string;
+  actionType: string;
+  status: string;
+  message: string;
+  purchaseFallbackAvailable: boolean;
+  guruUnlockAvailable: boolean;
+  analyticsKey?: string;
+  dialogTitle?: string;
+  dialogDescription?: string;
+  primaryCtaLabel?: string;
+  secondaryCtaLabel?: string;
+  dailyLimit: number;
+  weeklyLimit: number;
+  dailyUsageCount: number;
+  weeklyUsageCount: number;
+}
+
+export interface WebRewardedAdConfig {
+  adUnitPath: string;
+  supported: boolean;
+  placementKey: string;
+}
+
+export interface CreateWebRewardIntentResponse {
+  intentId: string;
+  rewardAmount: number;
+  rewardType: string;
+  expiresAt: string;
+  adConfig: WebRewardedAdConfig;
+}
+
+export interface ClaimWebRewardResponse {
+  success: boolean;
+  walletBalance: number;
+  grantedAmount: number;
+  rewardType: string;
+  ledgerEntryId: string;
+  message: string;
+  idempotentReplay: boolean;
+}
+
+export async function createWebRewardIntent(page = '/earn'): Promise<CreateWebRewardIntentResponse> {
+  const { data } = await api.post<CreateWebRewardIntentResponse>(
+    '/api/v1/monetization/rewarded-ads/intents',
+    null,
+    { params: { page } },
+  );
+  return data;
+}
+
+export async function markWebRewardIntentReady(
+  intentId: string,
+  body: { adSessionId: string; clientEventId: string },
+): Promise<void> {
+  await api.post(`/api/v1/monetization/rewarded-ads/intents/${intentId}/mark-ready`, body);
+}
+
+export async function claimWebReward(
+  intentId: string,
+  body: {
+    adSessionId: string;
+    clientEventId: string;
+    pageContext?: string;
+    userAgentSnapshot?: string;
+    grantedPayloadSummary?: string;
+  },
+): Promise<ClaimWebRewardResponse> {
+  const { data } = await api.post<ClaimWebRewardResponse>(
+    `/api/v1/monetization/rewarded-ads/intents/${intentId}/claim`,
+    body,
+  );
+  return data;
+}
+
+export async function consumeFeatureAccess(params: {
+  moduleKey: string;
+  actionKey: string;
+  platform: string;
+  locale: string;
+  idempotencyKey: string;
+  sourceScreen?: string;
+}): Promise<FeatureAccessResponse> {
+  const { data } = await api.post<FeatureAccessResponse>('/api/v1/monetization/access/consume', params);
   return data;
 }
 

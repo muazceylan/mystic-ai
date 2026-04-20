@@ -66,16 +66,33 @@ public class AdminMonetizationActionService {
                                       Long adminId, String adminEmail, AdminUser.Role role) {
         MonetizationAction existing = findById(id);
 
+        if ((!existing.getActionKey().equals(updates.getActionKey())
+                || !existing.getModuleKey().equals(updates.getModuleKey()))
+                && repository.existsByActionKeyAndModuleKey(updates.getActionKey(), updates.getModuleKey())) {
+            throw new IllegalStateException("Action already exists: "
+                    + updates.getActionKey() + " in module " + updates.getModuleKey());
+        }
+
+        existing.setActionKey(updates.getActionKey());
+        existing.setModuleKey(updates.getModuleKey());
         existing.setDisplayName(updates.getDisplayName());
         existing.setDescription(updates.getDescription());
+        existing.setDialogTitle(updates.getDialogTitle());
+        existing.setDialogDescription(updates.getDialogDescription());
+        existing.setPrimaryCtaLabel(updates.getPrimaryCtaLabel());
+        existing.setSecondaryCtaLabel(updates.getSecondaryCtaLabel());
+        existing.setAnalyticsKey(updates.getAnalyticsKey());
         existing.setUnlockType(updates.getUnlockType());
-        existing.setGuruCost(updates.getGuruCost());
-        existing.setRewardAmount(updates.getRewardAmount());
+        existing.setGuruCost(Math.max(0, updates.getGuruCost()));
+        existing.setRewardAmount(Math.max(0, updates.getRewardAmount()));
+        existing.setRewardFallbackEnabled(updates.isRewardFallbackEnabled());
         existing.setAdRequired(updates.isAdRequired());
         existing.setPurchaseRequired(updates.isPurchaseRequired());
         existing.setPreviewAllowed(updates.isPreviewAllowed());
         existing.setEnabled(updates.isEnabled());
-        existing.setDisplayPriority(updates.getDisplayPriority());
+        existing.setDisplayPriority(Math.max(0, updates.getDisplayPriority()));
+        existing.setDailyLimit(Math.max(0, updates.getDailyLimit()));
+        existing.setWeeklyLimit(Math.max(0, updates.getWeeklyLimit()));
         existing.setUpdatedByAdminId(adminId);
 
         MonetizationAction saved = repository.save(existing);

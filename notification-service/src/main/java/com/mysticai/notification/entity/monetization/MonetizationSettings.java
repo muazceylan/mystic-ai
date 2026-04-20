@@ -55,6 +55,23 @@ public class MonetizationSettings {
     @Builder.Default
     private int globalMinSessionsBetweenOffers = 1;
 
+    @Builder.Default
+    @JsonProperty("isSignupBonusEnabled")
+    private boolean isSignupBonusEnabled = false;
+
+    @Builder.Default
+    private int signupBonusTokenAmount = 10;
+
+    @Builder.Default
+    private String signupBonusLedgerReason = "SIGNUP_BONUS";
+
+    @Builder.Default
+    @JsonProperty("isSignupBonusOneTimeOnly")
+    private boolean isSignupBonusOneTimeOnly = true;
+
+    private String signupBonusRegistrationSource;
+    private String signupBonusHelperText;
+
     @Column(columnDefinition = "TEXT")
     private String environmentRulesJson;
 

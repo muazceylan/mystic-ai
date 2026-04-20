@@ -2,6 +2,7 @@
 export interface MonetizationConfig {
   enabled: boolean;
   adsEnabled: boolean;
+  webAdsEnabled: boolean;
   guruEnabled: boolean;
   guruPurchaseEnabled: boolean;
   defaultAdProvider: string;
@@ -46,13 +47,43 @@ export interface ActionConfig {
   actionKey: string;
   moduleKey: string;
   displayName?: string;
-  unlockType: string;
+  description?: string;
+  dialogTitle?: string;
+  dialogDescription?: string;
+  primaryCtaLabel?: string;
+  secondaryCtaLabel?: string;
+  analyticsKey?: string;
+  unlockType: UnlockType;
   guruCost: number;
   rewardAmount: number;
+  rewardFallbackEnabled: boolean;
   adRequired: boolean;
   purchaseRequired: boolean;
   previewAllowed: boolean;
   displayPriority: number;
+  dailyLimit: number;
+  weeklyLimit: number;
+  updatedByAdminId?: number;
+  updatedAt?: string;
+}
+
+export type UnlockType = 'FREE' | 'AD_WATCH' | 'GURU_SPEND' | 'AD_OR_GURU' | 'PURCHASE_ONLY';
+
+export interface ActionUnlockState {
+  action?: ActionConfig;
+  unlockType: UnlockType | null;
+  isFree: boolean;
+  usesMonetization: boolean;
+  adEnabled: boolean;
+  shouldShowAdOffer: boolean;
+  adReady: boolean;
+  guruEnabled: boolean;
+  canAffordGuru: boolean;
+  purchaseEnabled: boolean;
+  hasAnyUnlockOption: boolean;
+  requiresAdThenGuruSpend: boolean;
+  guruCost: number;
+  rewardAmount: number;
 }
 
 export interface GuruProduct {

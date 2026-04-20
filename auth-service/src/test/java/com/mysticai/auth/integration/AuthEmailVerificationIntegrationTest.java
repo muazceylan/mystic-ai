@@ -2,25 +2,31 @@ package com.mysticai.auth.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mysticai.auth.messaging.EmailVerificationMessage;
+import com.mysticai.auth.service.MonetizationSignupBonusClient;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.core.MessagePostProcessor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -38,10 +44,26 @@ class AuthEmailVerificationIntegrationTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private RabbitTemplate rabbitTemplate;
+    private JavaMailSender mailSender;
+
+    @MockBean
+    private MonetizationSignupBonusClient monetizationSignupBonusClient;
 
     @Test
     void registerThenVerifyEmailThenLoginSuccess() throws Exception {
+        MimeMessage mimeMessage = new MimeMessage(Session.getInstance(new Properties()));
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(monetizationSignupBonusClient.grantSignupBonus(anyLong(), anyString(), anyString()))
+                .thenReturn(new MonetizationSignupBonusClient.SignupBonusResponse(
+                        false,
+                        false,
+                        0,
+                        0,
+                        "signup_bonus_disabled",
+                        "SIGNUP_BONUS",
+                        "EMAIL_REGISTER"
+                ));
+
         String registerPayload = """
                 {
                   "username": "new-user",
@@ -58,19 +80,15 @@ class AuthEmailVerificationIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PENDING_VERIFICATION"));
 
-        org.mockito.ArgumentCaptor<Object> payloadCaptor = org.mockito.ArgumentCaptor.forClass(Object.class);
-        verify(rabbitTemplate, atLeastOnce()).convertAndSend(
-                eq("auth.events"),
-                eq("auth.email.verification.send"),
-                payloadCaptor.capture(),
-                any(MessagePostProcessor.class)
-        );
+        org.mockito.ArgumentCaptor<MimeMessage> mailCaptor = org.mockito.ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(mailCaptor.capture());
+        MimeMessage sentMail = mailCaptor.getValue();
+        assertThat(sentMail.getAllRecipients()[0].toString()).isEqualTo("new-user@example.com");
 
-        Object payload = payloadCaptor.getValue();
-        assertThat(payload).isInstanceOf(EmailVerificationMessage.class);
-        EmailVerificationMessage message = (EmailVerificationMessage) payload;
-        assertThat(message.email()).isEqualTo("new-user@example.com");
-        assertThat(message.rawToken()).isNotBlank();
+        String emailHtml = sentMail.getContent().toString();
+        Matcher codeMatcher = Pattern.compile(">(\\d{6})<").matcher(emailHtml);
+        assertThat(codeMatcher.find()).isTrue();
+        String otpCode = codeMatcher.group(1);
 
         String loginPayload = """
                 {
@@ -85,17 +103,20 @@ class AuthEmailVerificationIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("EMAIL_NOT_VERIFIED"));
 
-        mockMvc.perform(get("/api/v1/auth/verify-email")
-                        .param("token", message.rawToken()))
+        MvcResult verifyOtpResult = mockMvc.perform(post("/api/v1/auth/verify-email-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "new-user@example.com",
+                                  "code": "%s"
+                                }
+                                """.formatted(otpCode)))
                 .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
-                        .string(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0"));
+                .andReturn();
 
-        mockMvc.perform(get("/api/v1/auth/verify-email")
-                        .param("token", message.rawToken()))
-                .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
-                        .string(org.hamcrest.Matchers.containsString("Invalid verification link")));
+        JsonNode verifyOtpJson = objectMapper.readTree(verifyOtpResult.getResponse().getContentAsString());
+        assertThat(verifyOtpJson.get("accessToken").asText()).isNotBlank();
+        assertThat(verifyOtpJson.get("user").get("accountStatus").asText()).isEqualTo("ACTIVE");
 
         MvcResult successLogin = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -109,6 +109,26 @@ export default function MonetizationActionDetailPage({ params }: { params: Promi
             <Input {...register('description')} />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Dialog Title</label>
+              <Input {...register('dialogTitle')} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Analytics Key</label>
+              <Input {...register('analyticsKey')} className="font-mono" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Dialog Description</label>
+            <textarea
+              {...register('dialogDescription')}
+              rows={3}
+              className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+            />
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Guru Cost</label>
@@ -124,8 +144,31 @@ export default function MonetizationActionDetailPage({ params }: { params: Promi
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Primary CTA</label>
+              <Input {...register('primaryCtaLabel')} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Secondary CTA</label>
+              <Input {...register('secondaryCtaLabel')} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Daily Limit</label>
+              <Input {...register('dailyLimit', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Weekly Limit</label>
+              <Input {...register('weeklyLimit', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+          </div>
+
           <div className="border border-gray-700 rounded-lg p-4 space-y-3">
             <p className="text-xs text-gray-400 uppercase font-semibold">Seçenekler</p>
+            <Controller name="isRewardFallbackEnabled" control={control} render={({ field }) => <Checkbox label="Yetersiz Bakiye Reward Fallback" checked={!!field.value} onChange={field.onChange} />} />
             <Controller name="isAdRequired" control={control} render={({ field }) => <Checkbox label="Reklam Zorunlu" checked={!!field.value} onChange={field.onChange} />} />
             <Controller name="isPurchaseRequired" control={control} render={({ field }) => <Checkbox label="Satın Alma Zorunlu" checked={!!field.value} onChange={field.onChange} />} />
             <Controller name="isPreviewAllowed" control={control} render={({ field }) => <Checkbox label="Önizlemeye İzin Ver" checked={!!field.value} onChange={field.onChange} />} />
@@ -136,6 +179,7 @@ export default function MonetizationActionDetailPage({ params }: { params: Promi
             <div className="text-xs text-gray-500 space-y-1">
               <p>Oluşturulma: {formatDate(action.createdAt)}</p>
               <p>Güncelleme: {formatDate(action.updatedAt)}</p>
+              <p>Güncelleyen Admin: {action.updatedByAdminId ?? '—'}</p>
             </div>
           )}
 

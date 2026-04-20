@@ -1,5 +1,6 @@
 package com.mysticai.notification.admin.security;
 
+import com.mysticai.notification.security.UserJwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class AdminSecurityConfig {
 
     private final AdminJwtFilter adminJwtFilter;
+
+    /**
+     * WHY: UserJwtFilter validates the user Bearer token for rewarded-ads endpoints,
+     * independently of the API gateway's X-User-Id injection. This closes the trust
+     * gap when notification-service is called directly (bypassing the gateway).
+     */
+    private final UserJwtFilter userJwtFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -86,7 +94,10 @@ public class AdminSecurityConfig {
                         .requestMatchers("/api/v1/monetization/config").permitAll()
                         .requestMatchers("/api/v1/monetization/modules/**").permitAll()
                         // Authenticated monetization endpoints — protected by gateway JWT
+                        // (X-User-Id injected by gateway; no admin JWT required here)
                         .requestMatchers("/api/v1/monetization/**").permitAll()
+                        // Rewarded ads endpoints — protected by gateway JWT (X-User-Id required)
+                        .requestMatchers("/api/v1/monetization/rewarded-ads/**").permitAll()
                         // Public app config — no auth required
                         .requestMatchers("/api/v1/app-config").permitAll()
                         // Public tutorial config endpoint — no auth required
@@ -97,7 +108,13 @@ public class AdminSecurityConfig {
                         .requestMatchers("/api/v1/notifications/**").permitAll()
                         .anyRequest().denyAll()
                 )
-                .addFilterBefore(adminJwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // AdminJwtFilter handles /api/admin/v1/** paths.
+                // UserJwtFilter handles /api/v1/monetization/rewarded-ads/** paths.
+                // Both run before Spring's UsernamePasswordAuthenticationFilter.
+                // UserJwtFilter is registered first so its SecurityContext set takes effect
+                // before AdminJwtFilter potentially overwrites it on overlapping paths (none exist).
+                .addFilterBefore(userJwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(adminJwtFilter, UserJwtFilter.class)
                 .build();
     }
 

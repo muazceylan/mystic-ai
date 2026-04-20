@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -16,12 +16,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import CalendarPicker from '../components/CalendarPicker';
+import WheelPicker from '../components/WheelPicker';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSynastryStore } from '../store/useSynastryStore';
 import { COUNTRIES, CITIES, DISTRICTS } from '../constants/index';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { AppHeader, SafeScreen } from '../components/ui';
+import {
+  ActionUnlockSheet,
+  FEATURE_ACTION_KEYS,
+  FEATURE_MODULE_KEYS,
+  useModuleMonetization,
+} from '../features/monetization';
 
 function formatDateDisplay(date: Date, months: string[]): string {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
@@ -34,6 +41,10 @@ export default function AddPersonScreen() {
   const months = (t('calendar.months') || '').split(',');
   const { user } = useAuthStore();
   const { addPerson } = useSynastryStore();
+  const monetization = useModuleMonetization(FEATURE_MODULE_KEYS.COMPATIBILITY);
+  const addPersonUnlockState = monetization.getActionUnlockState(FEATURE_ACTION_KEYS.PERSON_ADD);
+  const [showUnlockSheet, setShowUnlockSheet] = useState(false);
+  const [featureUnlocked, setFeatureUnlocked] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -47,10 +58,9 @@ export default function AddPersonScreen() {
   const [birthTime, setBirthTime] = useState('');
   const [birthTimeUnknown, setBirthTimeUnknown] = useState(false);
   const [birthTimeConfirmed, setBirthTimeConfirmed] = useState(false);
-  const [tempHour, setTempHour] = useState('12');
-  const [tempMinute, setTempMinute] = useState('00');
+  const [tempHour, setTempHour] = useState(12);
+  const [tempMinute, setTempMinute] = useState(0);
   const [showTimeModal, setShowTimeModal] = useState(false);
-  const minuteRef = useRef<TextInput>(null);
 
   // Country + City + District
   const [countryCode, setCountryCode] = useState('TR');
@@ -81,17 +91,22 @@ export default function AddPersonScreen() {
     d.toLowerCase().includes(districtSearch.toLowerCase())
   );
 
-  const isTimeValid = () => {
-    const h = parseInt(tempHour, 10);
-    const m = parseInt(tempMinute, 10);
-    return !isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59;
-  };
-
   const displayTime = birthTimeUnknown
     ? t('common.unknown')
     : birthTimeConfirmed
     ? birthTime
     : 'SS:DD';
+
+  const displayPickerTime = `${String(tempHour).padStart(2, '0')}:${String(tempMinute).padStart(2, '0')}`;
+
+  const hourItems = useMemo(
+    () => Array.from({ length: 24 }, (_, index) => ({ value: index, label: String(index).padStart(2, '0') })),
+    [],
+  );
+  const minuteItems = useMemo(
+    () => Array.from({ length: 60 }, (_, index) => ({ value: index, label: String(index).padStart(2, '0') })),
+    [],
+  );
 
   const locationDisplay = city
     ? `${city}${district ? `, ${district}` : ''}`
@@ -113,16 +128,15 @@ export default function AddPersonScreen() {
   const openTimeModal = () => {
     if (birthTime) {
       const [h, m] = birthTime.split(':');
-      setTempHour(h ?? '12');
-      setTempMinute(m ?? '00');
+      const parsedHour = Number.parseInt(h ?? '12', 10);
+      const parsedMinute = Number.parseInt(m ?? '00', 10);
+      setTempHour(Number.isNaN(parsedHour) ? 12 : parsedHour);
+      setTempMinute(Number.isNaN(parsedMinute) ? 0 : parsedMinute);
     }
     setShowTimeModal(true);
   };
   const confirmTime = () => {
-    const h = parseInt(tempHour, 10);
-    const m = parseInt(tempMinute, 10);
-    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return;
-    setBirthTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    setBirthTime(displayPickerTime);
     setBirthTimeUnknown(false);
     setBirthTimeConfirmed(true);
     setShowTimeModal(false);
@@ -130,21 +144,8 @@ export default function AddPersonScreen() {
 
   // ─── Save ──────────────────────────────────────────────────────────────────
 
-  const handleSave = async () => {
-    if (!user?.id) return;
-
-    if (!name.trim()) {
-      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.nameRequired'));
-      return;
-    }
-    if (!birthDate) {
-      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.birthDateRequired'));
-      return;
-    }
-    if (!city) {
-      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.birthLocationRequired'));
-      return;
-    }
+  const performSave = async () => {
+    if (!user?.id || !birthDate) return;
 
     const birthDateStr = `${birthDate.getFullYear()}-${
       String(birthDate.getMonth() + 1).padStart(2, '0')
@@ -170,6 +171,30 @@ export default function AddPersonScreen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+
+    if (!name.trim()) {
+      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.nameRequired'));
+      return;
+    }
+    if (!birthDate) {
+      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.birthDateRequired'));
+      return;
+    }
+    if (!city) {
+      Alert.alert(t('birthInfo.missingInfo'), t('birthInfo.birthLocationRequired'));
+      return;
+    }
+
+    if (addPersonUnlockState.usesMonetization && !featureUnlocked) {
+      setShowUnlockSheet(true);
+      return;
+    }
+
+    await performSave();
   };
 
   const canSave = !isSaving && !!name.trim() && !!birthDate && !!city;
@@ -388,45 +413,32 @@ export default function AddPersonScreen() {
             <View style={modalS.header}>
               <Text style={modalS.headerLabel}>{t('addPerson.selectTime')}</Text>
               <Text style={modalS.headerValue}>
-                {isTimeValid() ? `${tempHour}:${tempMinute}` : '--:--'}
+                {displayPickerTime}
               </Text>
             </View>
             <View style={modalS.divider} />
-            <View style={modalS.timeRow}>
-              <View style={modalS.timeGroup}>
-                <Text style={modalS.timeGroupLabel}>{t('auth.hour')}</Text>
-                <TextInput
-                  style={modalS.timeInput}
-                  value={tempHour}
-                  onChangeText={t => {
-                    const v = t.replace(/[^0-9]/g, '').slice(0, 2);
-                    setTempHour(v);
-                    if (v.length === 2) minuteRef.current?.focus();
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="00"
-                  placeholderTextColor={colors.disabledText}
-                  selectTextOnFocus
-                />
+            <View style={modalS.pickerHeaderRow}>
+              <View style={modalS.pickerMeta}>
+                <Ionicons name="time-outline" size={14} color={colors.primary} />
+                <Text style={modalS.pickerMetaText}>{t('auth.selectTimeLabel')}</Text>
               </View>
-              <Text style={modalS.timeColon}>:</Text>
-              <View style={modalS.timeGroup}>
-                <Text style={modalS.timeGroupLabel}>{t('auth.minute')}</Text>
-                <TextInput
-                  ref={minuteRef}
-                  style={modalS.timeInput}
-                  value={tempMinute}
-                  onChangeText={t => setTempMinute(t.replace(/[^0-9]/g, '').slice(0, 2))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="00"
-                  placeholderTextColor={colors.disabledText}
-                  selectTextOnFocus
-                />
-              </View>
+              <Text style={modalS.pickerFormatText}>{t('birthInfo.timeFormat')}</Text>
             </View>
-            <Text style={modalS.timeHint}>{t('birthInfo.timeFormat')}</Text>
+            <View style={modalS.timeRow}>
+              <WheelPicker
+                items={hourItems}
+                selectedValue={tempHour}
+                onValueChange={(value) => setTempHour(value as number)}
+                width={108}
+              />
+              <Text style={modalS.timeColon}>:</Text>
+              <WheelPicker
+                items={minuteItems}
+                selectedValue={tempMinute}
+                onValueChange={(value) => setTempMinute(value as number)}
+                width={108}
+              />
+            </View>
             <View style={modalS.divider} />
             <View style={modalS.actions}>
               <TouchableOpacity
@@ -438,15 +450,12 @@ export default function AddPersonScreen() {
                 <Text style={modalS.textBtnLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[modalS.textBtn, !isTimeValid() && modalS.textBtnDisabled]}
+                style={modalS.textBtn}
                 accessibilityLabel={t('editBirthInfo.confirmTime')}
                 accessibilityRole="button"
                 onPress={confirmTime}
-                disabled={!isTimeValid()}
               >
-                <Text style={[modalS.textBtnLabel, !isTimeValid() && modalS.textBtnLabelDisabled]}>
-                  {t('common.ok')}
-                </Text>
+                <Text style={modalS.textBtnLabel}>{t('common.ok')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -628,6 +637,18 @@ export default function AddPersonScreen() {
         </View>
       </Modal>
       </KeyboardAvoidingView>
+
+      <ActionUnlockSheet
+        visible={showUnlockSheet}
+        moduleKey={FEATURE_MODULE_KEYS.COMPATIBILITY}
+        actionKey={FEATURE_ACTION_KEYS.PERSON_ADD}
+        title={t('addPerson.title')}
+        onClose={() => setShowUnlockSheet(false)}
+        onUnlocked={async () => {
+          setFeatureUnlocked(true);
+          await performSave();
+        }}
+      />
     </SafeScreen>
   );
 }
@@ -711,32 +732,42 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     textBtnDisabled: { opacity: 0.4 },
     textBtnLabel: { fontSize: 14, fontWeight: '600', color: C.primary },
     textBtnLabelDisabled: { color: C.disabledText },
+    pickerHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: 4,
+    },
+    pickerMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+    },
+    pickerMetaText: {
+      color: C.subtext,
+      fontSize: 11,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    pickerFormatText: {
+      color: C.subtext,
+      fontSize: 11,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      textAlign: 'right',
+    },
     timeRow: {
       flexDirection: 'row',
       justifyContent: 'center',
-      alignItems: 'flex-end',
-      gap: 12,
+      alignItems: 'center',
       paddingHorizontal: 24,
-      paddingTop: 24,
-      paddingBottom: 8,
+      paddingVertical: 12,
     },
-    timeGroup: { alignItems: 'center' },
-    timeGroupLabel: { fontSize: 12, color: C.subtext, marginBottom: 8 },
-    timeInput: {
-      width: 80, height: 64,
-      backgroundColor: C.surfaceAlt,
-      borderRadius: 12,
-      fontSize: 32, fontWeight: '700',
-      color: C.primary,
-      textAlign: 'center',
-      borderWidth: 1.5,
-      borderColor: C.border,
-    },
-    timeColon: { fontSize: 32, fontWeight: '700', color: C.text, marginBottom: 8 },
-    timeHint: {
-      fontSize: 12, color: C.subtext,
-      textAlign: 'center', paddingVertical: 12,
-    },
+    timeColon: { fontSize: 28, fontWeight: '700', color: C.primary, marginHorizontal: 10 },
   });
 
   const pickerS = StyleSheet.create({

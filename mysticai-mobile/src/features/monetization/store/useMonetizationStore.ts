@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import type { MonetizationConfig, ModuleRule, ActionConfig, AdExposureState } from '../types';
 import { fetchMonetizationConfig, clearMonetizationCache } from '../api/monetization.service';
 
@@ -101,6 +102,22 @@ const createDefaultExposure = (moduleKey: string): AdExposureState => ({
   sessionCount: 0,
 });
 
+function isAdsEnabledForCurrentPlatform(config: MonetizationConfig, rule: ModuleRule | undefined): boolean {
+  if (!config.enabled || !config.adsEnabled) {
+    return false;
+  }
+
+  if (!rule?.enabled || !rule.adsEnabled) {
+    return false;
+  }
+
+  if (Platform.OS === 'web' && !config.webAdsEnabled) {
+    return false;
+  }
+
+  return true;
+}
+
 export const useMonetizationStore = create<MonetizationState>((set, get) => ({
   config: null,
   loading: false,
@@ -155,9 +172,9 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
 
   isAdsEnabledForModule: (moduleKey: string) => {
     const config = get().config;
-    if (!config?.enabled || !config.adsEnabled) return false;
+    if (!config) return false;
     const rule = get().getModuleRule(moduleKey);
-    return rule?.enabled === true && rule?.adsEnabled === true;
+    return isAdsEnabledForCurrentPlatform(config, rule);
   },
 
   isGuruEnabledForModule: (moduleKey: string) => {
@@ -214,10 +231,10 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
 
   shouldShowAdOffer: (moduleKey: string) => {
     const config = get().config;
-    if (!config?.enabled || !config.adsEnabled) return false;
+    if (!config) return false;
 
     const rule = get().getModuleRule(moduleKey);
-    if (!rule?.enabled || !rule.adsEnabled) return false;
+    if (!rule || !isAdsEnabledForCurrentPlatform(config, rule)) return false;
 
     const exposure = get().getExposureState(moduleKey);
 

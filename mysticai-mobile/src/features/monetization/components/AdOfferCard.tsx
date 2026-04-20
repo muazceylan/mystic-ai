@@ -82,7 +82,7 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
             style={s.subtitle}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            {t('monetization.adCardSubtitle', { count: String(rewardAmount) })}
+            {t('monetization.adCardSubtitle', { count: rewardAmount })}
           </Text>
         </View>
       </View>

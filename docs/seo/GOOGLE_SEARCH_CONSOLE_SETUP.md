@@ -1,0 +1,134 @@
+# Google Search Console Kurulum Rehberi
+
+**Domain:** `astroguru.app`
+**Proje:** mystic-web
+
+---
+
+## 1. Search Console'a Property Ekleme
+
+1. https://search.google.com/search-console adresine gidin
+2. Sol ust kosedeki "Add property" butonuna tiklayin
+3. "URL prefix" secenegini secin
+4. `https://astroguru.app` girin ve "Continue" tiklayin
+
+## 2. Domain Dogrulama
+
+### Secenek A: DNS TXT Record (Onerilen)
+
+1. Google size bir TXT record verecek, ornek:
+   ```
+   google-site-verification=xxxxxxxxxxxxxxxxxxxx
+   ```
+2. DNS saglayicinizda (Cloudflare, Route53, vb.) TXT record ekleyin:
+   - Type: `TXT`
+   - Name: `@` (veya `astroguru.app`)
+   - Value: Google'in verdigi dogrulama string'i
+3. DNS yayilimini bekleyin (genellikle 5-60 dakika)
+4. Search Console'da "Verify" tiklayin
+
+### Secenek B: HTML Meta Tag
+
+1. Google size bir meta tag verecek:
+   ```html
+   <meta name="google-site-verification" content="xxxxxxxxxxxx" />
+   ```
+2. `mystic-web/src/app/layout.tsx` dosyasindaki metadata'ya ekleyin:
+   ```typescript
+   export const metadata: Metadata = {
+     // ... mevcut metadata
+     verification: {
+       google: 'xxxxxxxxxxxx', // Google'in verdigi kod
+     },
+   };
+   ```
+3. Deploy edin ve Search Console'da "Verify" tiklayin
+
+### Secenek C: HTML Dosyasi
+
+1. Google'in verdigi `googleXXXXXX.html` dosyasini indirin
+2. `mystic-web/public/` klasorune koyun
+3. Deploy edin ve Search Console'da "Verify" tiklayin
+
+## 3. Sitemap Gonderme
+
+Dogrulama tamamlandiktan sonra:
+
+1. Search Console'da sol menuden "Sitemaps" secin
+2. URL kutusuna `sitemap.xml` yazin
+3. "Submit" tiklayin
+4. Status: "Success" gorunene kadar bekleyin
+
+Sitemap'in icerigi (9 URL):
+```
+https://astroguru.app/
+https://astroguru.app/astroloji
+https://astroguru.app/numeroloji
+https://astroguru.app/ruya-yorumu
+https://astroguru.app/uyum-analizi
+https://astroguru.app/spirituel-rehberlik
+https://astroguru.app/gizlilik
+https://astroguru.app/kullanim-sartlari
+https://astroguru.app/iletisim
+```
+
+## 4. URL Inspection
+
+Sitemap gonderdikten sonra kritik URL'leri inspect edin:
+
+1. Search Console ust arama cubuguna URL girin
+2. "Request Indexing" tiklayin
+3. Asagidaki URL'ler icin tekrarlayin:
+
+Oncelikli URL'ler:
+- `https://astroguru.app/`
+- `https://astroguru.app/astroloji`
+- `https://astroguru.app/numeroloji`
+- `https://astroguru.app/ruya-yorumu`
+
+Ikincil URL'ler:
+- `https://astroguru.app/uyum-analizi`
+- `https://astroguru.app/spirituel-rehberlik`
+- `https://astroguru.app/iletisim`
+
+Yasal sayfalar (dusuk oncelik, sitemap yeterli):
+- `https://astroguru.app/gizlilik`
+- `https://astroguru.app/kullanim-sartlari`
+
+## 5. Index Durumu Takibi
+
+### Ilk 7 Gun
+- "Coverage" raporunu gunluk kontrol edin
+- "Valid" URL sayisi 9'a ulasmali
+- "Error" veya "Excluded" varsa nedenini inceleyin
+
+### Ilk 30 Gun
+- "Performance" raporunda ilk query'ler gorunmeli
+- "Impressions" artmali
+- "Average position" izlenmeli
+
+### Olasi Sorunlar ve Cozumleri
+
+| Sorun | Olasi Neden | Cozum |
+|---|---|---|
+| "Discovered - currently not indexed" | Sayfa henuz taranmadi | Bekleyin veya "Request Indexing" |
+| "Crawled - currently not indexed" | Icerik yetersiz goruluyor | Icerik zenginlestirin |
+| "Excluded by robots.txt" | robots.txt yanlis | robots.txt kontrol edin |
+| "Soft 404" | Sayfa bos veya cok az icerik | Icerik ekleyin |
+| "Redirect" | www/non-www redirect sorunu | DNS/hosting redirect kontrolu |
+
+## 6. Ek Yapilandirmalar
+
+### International Targeting
+- Search Console > Legacy tools > International Targeting
+- Country: Turkey secin (eger sadece TR hedefleniyorsa)
+
+### Bing Webmaster Tools (Opsiyonel)
+- https://www.bing.com/webmasters
+- Google Search Console ile senkronize edilebilir (Import)
+- Sitemap gonderme ayni adimlar
+
+### Google Analytics Entegrasyonu (Sprint 5+)
+- GA4 property olusturun
+- `mystic-web/src/app/layout.tsx`'e GA script ekleyin
+- Search Console ile GA4'u baglayin

@@ -1,10 +1,11 @@
 import { useCallback, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
 import { getAdBlockReason } from '../providers/admobUnitIds';
 import { isAdMobAvailable } from '../providers/admobInit';
-import type { ModuleRule, ActionConfig } from '../types';
+import type { ModuleRule, ActionConfig, ActionUnlockState } from '../types';
 
 interface ModuleMonetizationResult {
   isLoading: boolean;
@@ -20,6 +21,7 @@ interface ModuleMonetizationResult {
   walletBalance: number;
   isPurchaseAvailable: boolean;
   getAction: (actionKey: string) => ActionConfig | undefined;
+  getActionUnlockState: (actionKey: string) => ActionUnlockState;
   canAffordAction: (actionKey: string) => boolean;
   isActionPurchaseAllowed: (actionKey: string) => boolean;
   trackEntry: () => void;
@@ -72,13 +74,21 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
   );
 
   const adBlockReason = useMemo(
-    () =>
-      getAdBlockReason({
+    () => {
+      if (Platform.OS === 'web') {
+        if (!configLoaded) return 'config_not_loaded';
+        if (!config?.enabled || !config?.adsEnabled) return 'ads_disabled_globally';
+        if (!adsEnabled) return 'ads_disabled_for_module';
+        return null;
+      }
+
+      return getAdBlockReason({
         configLoaded,
         adsEnabledGlobal: Boolean(config?.enabled && config?.adsEnabled),
         adsEnabledForModule: adsEnabled,
         sdkAvailable: isAdMobAvailable(),
-      }),
+      });
+    },
     [configLoaded, config, adsEnabled],
   );
   const isAdReady = adBlockReason === null;
@@ -111,6 +121,73 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
     [isPurchaseAvailable, getAction, moduleKey],
   );
 
+  const getActionUnlockState = useCallback(
+    (actionKey: string): ActionUnlockState => {
+      const action = getAction(actionKey, moduleKey);
+      const bypassMonetizationForWeb = Boolean(
+        action
+        && Platform.OS === 'web'
+        && config?.enabled
+        && config.webAdsEnabled === false,
+      );
+      const unlockType = bypassMonetizationForWeb ? 'FREE' : (action?.unlockType ?? null);
+      const isFree = unlockType === 'FREE';
+      const supportsGuru = unlockType === 'GURU_SPEND' || unlockType === 'AD_OR_GURU';
+      const guruEnabledForAction = Boolean(action && supportsGuru && guruEnabled);
+      const supportsAd = unlockType === 'AD_WATCH'
+        || unlockType === 'AD_OR_GURU'
+        || (unlockType === 'GURU_SPEND' && Boolean(action?.rewardFallbackEnabled));
+      const supportsPurchase = Boolean(
+        action
+        && (
+          action.purchaseRequired
+          || action.unlockType === 'AD_OR_GURU'
+          || action.unlockType === 'GURU_SPEND'
+          || action.unlockType === 'PURCHASE_ONLY'
+        ),
+      );
+      const adEnabledForAction = Boolean(action && supportsAd && adsEnabled);
+      const purchaseEnabledForAction = Boolean(
+        action
+        && supportsPurchase
+        && isPurchaseAvailable
+        && (unlockType === 'PURCHASE_ONLY' || guruEnabledForAction),
+      );
+      const canAffordGuru = Boolean(action && walletBalance >= action.guruCost);
+      const rewardAmount = action?.rewardAmount && action.rewardAmount > 0
+        ? action.rewardAmount
+        : (rule?.guruRewardAmountPerCompletedAd ?? 0);
+      const resolvedGuruCost = bypassMonetizationForWeb ? 0 : (action?.guruCost ?? 0);
+      const resolvedRewardAmount = bypassMonetizationForWeb ? 0 : rewardAmount;
+
+      return {
+        action,
+        unlockType,
+        isFree,
+        usesMonetization: Boolean(action && !isFree),
+        adEnabled: adEnabledForAction,
+        shouldShowAdOffer: adEnabledForAction && shouldShowAd,
+        adReady: adEnabledForAction && isAdReady,
+        guruEnabled: guruEnabledForAction,
+        canAffordGuru,
+        purchaseEnabled: purchaseEnabledForAction,
+        hasAnyUnlockOption: Boolean(isFree || adEnabledForAction || guruEnabledForAction || purchaseEnabledForAction),
+        requiresAdThenGuruSpend: Boolean(
+          action
+          && guruEnabledForAction
+          && action.guruCost > 0
+          && (
+            unlockType === 'AD_OR_GURU'
+            || (unlockType === 'GURU_SPEND' && action.rewardFallbackEnabled)
+          )
+        ),
+        guruCost: resolvedGuruCost,
+        rewardAmount: resolvedRewardAmount,
+      };
+    },
+    [getAction, moduleKey, adsEnabled, guruEnabled, isPurchaseAvailable, walletBalance, shouldShowAd, isAdReady, rule, config],
+  );
+
   const trackEntry = useCallback(() => {
     trackModuleEntry(moduleKey);
     // Read exposure AFTER store update; Zustand set is synchronous so entryCount is already incremented
@@ -130,6 +207,7 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
     walletBalance,
     isPurchaseAvailable,
     getAction: getActionForModule,
+    getActionUnlockState,
     canAffordAction,
     isActionPurchaseAllowed,
     trackEntry,

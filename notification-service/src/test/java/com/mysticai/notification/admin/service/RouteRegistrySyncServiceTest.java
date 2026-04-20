@@ -109,7 +109,6 @@ class RouteRegistrySyncServiceTest {
                 .syncStatus(AppRouteRegistry.SyncStatus.REGISTERED)
                 .build();
         when(routeRepository.findAll()).thenReturn(List.of(deprecated));
-        when(routeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         RouteRegistrySyncService.SyncResult result = service.apply(
                 List.of(entry("old", "/old")), 1L, "admin@m.com", null);

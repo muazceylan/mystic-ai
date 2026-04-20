@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
+import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from 'react-native';
 import { envConfig } from '../config/env';
 import api from './api';
 
@@ -107,10 +107,10 @@ function hasFirebaseNativeModules(): boolean {
 
   const modules = NativeModules as Record<string, unknown>;
   const appModule =
-    TurboModuleRegistry.get<unknown>(FIREBASE_APP_NATIVE_MODULE)
+    TurboModuleRegistry.get<TurboModule>(FIREBASE_APP_NATIVE_MODULE)
     ?? modules[FIREBASE_APP_NATIVE_MODULE];
   const analyticsModule =
-    TurboModuleRegistry.get<unknown>(FIREBASE_ANALYTICS_NATIVE_MODULE)
+    TurboModuleRegistry.get<TurboModule>(FIREBASE_ANALYTICS_NATIVE_MODULE)
     ?? modules[FIREBASE_ANALYTICS_NATIVE_MODULE];
 
   return Boolean(appModule && analyticsModule);

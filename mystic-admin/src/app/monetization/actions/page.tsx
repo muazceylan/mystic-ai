@@ -66,6 +66,8 @@ export default function MonetizationActionsPage() {
                 <th className="text-left px-4 py-3">Unlock Type</th>
                 <th className="text-left px-4 py-3">Guru Cost</th>
                 <th className="text-left px-4 py-3">Reward</th>
+                <th className="text-left px-4 py-3">Fallback</th>
+                <th className="text-left px-4 py-3">Analytics</th>
                 <th className="text-left px-4 py-3">Enabled</th>
                 <th className="text-left px-4 py-3">Güncellendi</th>
                 <th className="px-4 py-3" />
@@ -84,12 +86,21 @@ export default function MonetizationActionsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{a.guruCost}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{a.rewardAmount}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {a.isRewardFallbackEnabled ? 'Açık' : 'Kapalı'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400 text-xs font-mono">
+                    {a.analyticsKey || '—'}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${a.isEnabled ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
                       {a.isEnabled ? 'Evet' : 'Hayır'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(a.updatedAt)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    <div>{formatDate(a.updatedAt)}</div>
+                    <div>Admin #{a.updatedByAdminId ?? '—'}</div>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
                       <Link href={`/monetization/actions/${a.id}`}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useNatalChartStore } from '../store/useNatalChartStore';
 import { useLuckyDatesStore } from '../store/useLuckyDatesStore';
 import CalendarPicker from '../components/CalendarPicker';
+import WheelPicker from '../components/WheelPicker';
 import { updateProfile } from '../services/auth';
 import { calculateNatalChart } from '../services/astrology.service';
 import { getZodiacSign } from '../constants/index';
@@ -125,31 +126,47 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 },
     modalTextBtnLabel: { fontSize: 14, fontWeight: '600', color: C.primary },
+    pickerHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: 4,
+    },
+    pickerMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+    },
+    pickerMetaText: {
+      color: C.subtext,
+      fontSize: 11,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    pickerFormatText: {
+      color: C.subtext,
+      fontSize: 11,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      textAlign: 'right',
+    },
     timeRow: {
       flexDirection: 'row',
       justifyContent: 'center',
-      alignItems: 'flex-end',
-      gap: 12,
+      alignItems: 'center',
       paddingHorizontal: 24,
-      paddingTop: 24,
-      paddingBottom: 8,
+      paddingVertical: 8,
     },
-    timeGroup: { alignItems: 'center' },
-    timeGroupLabel: { fontSize: 12, color: C.subtext, marginBottom: 8 },
-    timeInput: {
-      width: 80,
-      height: 64,
-      backgroundColor: C.surfaceAlt,
-      borderRadius: 12,
-      fontSize: 32,
-      fontWeight: '700',
-      color: C.primary,
-      textAlign: 'center',
-      borderWidth: 1.5,
-      borderColor: C.border,
+    colonContainer: {
+      width: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    timeColon: { fontSize: 32, fontWeight: '700', color: C.text, marginBottom: 8 },
-    timeHint: { fontSize: 12, color: C.subtext, textAlign: 'center', paddingBottom: 20, paddingTop: 8 },
+    timeColon: { fontSize: 28, fontWeight: '700', color: C.primary },
   });
 }
 
@@ -175,19 +192,24 @@ export default function EditBirthInfoScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date | null>(birthDate);
-  const [tempHour, setTempHour] = useState(
-    birthTime ? birthTime.split(':')[0] : '12'
+  const [tempHour, setTempHour] = useState<number>(
+    birthTime ? parseInt(birthTime.split(':')[0], 10) : 12
   );
-  const [tempMinute, setTempMinute] = useState(
-    birthTime ? birthTime.split(':')[1] : '00'
+  const [tempMinute, setTempMinute] = useState<number>(
+    birthTime ? parseInt(birthTime.split(':')[1], 10) : 0
   );
   const [saving, setSaving] = useState(false);
 
-  const isTimeValid = () => {
-    const h = parseInt(tempHour, 10);
-    const m = parseInt(tempMinute, 10);
-    return !isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59;
-  };
+  const hourItems = useMemo(
+    () => Array.from({ length: 24 }, (_, i) => ({ value: i, label: String(i).padStart(2, '0') })),
+    []
+  );
+  const minuteItems = useMemo(
+    () => Array.from({ length: 60 }, (_, i) => ({ value: i, label: String(i).padStart(2, '0') })),
+    []
+  );
+
+  const displayPickerTime = `${String(tempHour).padStart(2, '0')}:${String(tempMinute).padStart(2, '0')}`;
 
   const handleSave = async () => {
     if (!birthDate || !birthLocation.trim()) {
@@ -386,41 +408,33 @@ export default function EditBirthInfoScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalLabel}>{t('editBirthInfo.selectTimeModal')}</Text>
-              <Text style={styles.modalSelected}>
-                {isTimeValid() ? `${tempHour}:${tempMinute}` : '--:--'}
-              </Text>
+              <Text style={styles.modalSelected}>{displayPickerTime}</Text>
             </View>
             <View style={styles.divider} />
-            <View style={styles.timeRow}>
-              <View style={styles.timeGroup}>
-                <Text style={styles.timeGroupLabel}>{t('auth.hour')}</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  value={tempHour}
-                  onChangeText={(t) => setTempHour(t.replace(/[^0-9]/g, '').slice(0, 2))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="00"
-                  placeholderTextColor={colors.disabledText}
-                  selectTextOnFocus
-                />
+            <View style={styles.pickerHeaderRow}>
+              <View style={styles.pickerMeta}>
+                <Ionicons name="time-outline" size={14} color={colors.primary} />
+                <Text style={styles.pickerMetaText}>{t('auth.selectTimeLabel')}</Text>
               </View>
-              <Text style={styles.timeColon}>:</Text>
-              <View style={styles.timeGroup}>
-                <Text style={styles.timeGroupLabel}>{t('auth.minute')}</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  value={tempMinute}
-                  onChangeText={(t) => setTempMinute(t.replace(/[^0-9]/g, '').slice(0, 2))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="00"
-                  placeholderTextColor={colors.disabledText}
-                  selectTextOnFocus
-                />
-              </View>
+              <Text style={styles.pickerFormatText}>{t('birthInfo.timeFormat')}</Text>
             </View>
-            <Text style={styles.timeHint}>{t('birthInfo.timeFormat')}</Text>
+            <View style={styles.timeRow}>
+              <WheelPicker
+                items={hourItems}
+                selectedValue={tempHour}
+                onValueChange={(v) => setTempHour(v as number)}
+                width={108}
+              />
+              <View style={styles.colonContainer}>
+                <Text style={styles.timeColon}>:</Text>
+              </View>
+              <WheelPicker
+                items={minuteItems}
+                selectedValue={tempMinute}
+                onValueChange={(v) => setTempMinute(v as number)}
+                width={108}
+              />
+            </View>
             <View style={styles.divider} />
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -432,14 +446,11 @@ export default function EditBirthInfoScreen() {
                 <Text style={styles.modalTextBtnLabel}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalTextBtn, !isTimeValid() && { opacity: 0.4 }]}
-                disabled={!isTimeValid()}
+                style={styles.modalTextBtn}
                 accessibilityLabel={t('editBirthInfo.confirmTime')}
                 accessibilityRole="button"
                 onPress={() => {
-                  const h = parseInt(tempHour, 10);
-                  const m = parseInt(tempMinute, 10);
-                  setBirthTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+                  setBirthTime(displayPickerTime);
                   setShowTimePicker(false);
                 }}
               >

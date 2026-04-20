@@ -48,7 +48,7 @@ export function QuickLookWidget() {
   const chart = useNatalChartStore((s) => s.chart);
   const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase();
 
-  const formatSign = (value: string | undefined) => {
+  const formatSign = (value: string | null | undefined) => {
     if (!value) return '—';
     if (lang.startsWith('tr')) {
       return localizeSignName(value, value);

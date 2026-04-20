@@ -1,4 +1,4 @@
-import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
+import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from 'react-native';
 import type { GoogleMobileAdsModule } from './googleMobileAdsRuntime.shared';
 
 const NATIVE_MODULE_NAME = 'RNGoogleMobileAdsModule';
@@ -42,7 +42,7 @@ export function getGoogleMobileAdsModule(reason = 'runtime access'): GoogleMobil
   }
 
   const nativeModule =
-    TurboModuleRegistry.get<unknown>(NATIVE_MODULE_NAME)
+    TurboModuleRegistry.get<TurboModule>(NATIVE_MODULE_NAME)
     ?? (NativeModules as Record<string, unknown>)[NATIVE_MODULE_NAME];
 
   if (!nativeModule) {

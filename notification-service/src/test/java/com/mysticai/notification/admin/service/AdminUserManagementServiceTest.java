@@ -34,7 +34,7 @@ class AdminUserManagementServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(passwordEncoder.encode(anyString())).thenReturn("hashed_password");
+        lenient().when(passwordEncoder.encode(anyString())).thenReturn("hashed_password");
     }
 
     // ── create ──────────────────────────────────────────────────────────────

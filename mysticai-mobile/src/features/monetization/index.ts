@@ -3,6 +3,7 @@ export type {
   MonetizationConfig,
   ModuleRule,
   ActionConfig,
+  ActionUnlockState,
   GuruProduct,
   GuruWallet,
   GuruLedgerEntry,
@@ -40,7 +41,9 @@ export { initializeAdMob, isAdMobInitialized, isAdMobAvailable } from './provide
 // Components
 export { GuruBalanceBadge } from './components/GuruBalanceBadge';
 export { AdOfferCard } from './components/AdOfferCard';
+export { ActionUnlockSheet } from './components/ActionUnlockSheet';
 export { GuruUnlockModal } from './components/GuruUnlockModal';
+export { FEATURE_ACTION_KEYS, FEATURE_MODULE_KEYS } from './featureKeys';
 export { PurchaseCatalogSheet } from './components/PurchaseCatalogSheet';
 export { MonetizationQuickBar } from './components/MonetizationQuickBar';
 

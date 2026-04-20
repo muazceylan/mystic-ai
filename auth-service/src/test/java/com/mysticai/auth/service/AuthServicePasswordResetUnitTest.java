@@ -53,6 +53,7 @@ class AuthServicePasswordResetUnitTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private SocialTokenVerifier socialTokenVerifier;
     @Mock private NatalChartProvisioningService natalChartProvisioningService;
+    @Mock private SignupBonusSyncService signupBonusSyncService;
     @Mock private AvatarStorageService avatarStorageService;
     @Mock private PublicUrlProperties publicUrlProperties;
 
@@ -79,6 +80,7 @@ class AuthServicePasswordResetUnitTest {
                 authenticationManager,
                 socialTokenVerifier,
                 natalChartProvisioningService,
+                signupBonusSyncService,
                 avatarStorageService,
                 publicUrlProperties,
                 fixedClock

@@ -24,6 +24,8 @@ public class MonetizationConfigService {
     private final MonetizationActionRepository actionRepository;
     private final GuruProductCatalogRepository productRepository;
     private final GuruWalletRepository walletRepository;
+    private final FeatureAccessService featureAccessService;
+    private final WebRewardedAdsEligibilityResolver webRewardedAdsEligibilityResolver;
 
     @Transactional(readOnly = true)
     public MonetizationConfigResponse getActiveConfig(Long userId) {
@@ -57,6 +59,7 @@ public class MonetizationConfigService {
         return new MonetizationConfigResponse(
                 true,
                 settings.isAdsEnabled(),
+                webRewardedAdsEligibilityResolver.isWebRewardedAdsEnabled(settings),
                 settings.isGuruEnabled(),
                 settings.isGuruPurchaseEnabled(),
                 settings.getDefaultAdProvider(),
@@ -90,51 +93,30 @@ public class MonetizationConfigService {
     @Transactional(readOnly = true)
     public EligibilityCheckResponse checkActionEligibility(Long userId, String moduleKey,
                                                              String actionKey, int entryCount) {
-        MonetizationSettings settings = settingsRepository
-                .findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED)
-                .orElse(null);
-
-        if (settings == null || !settings.isEnabled()) {
-            return new EligibilityCheckResponse(false, false, false, false, "monetization_disabled", 0, 0);
-        }
-
-        MonetizationAction action = actionRepository
-                .findByActionKeyAndModuleKey(actionKey, moduleKey)
-                .orElse(null);
-
-        if (action == null || !action.isEnabled()) {
-            return new EligibilityCheckResponse(true, false, false, false, "action_not_found", 0, 0);
-        }
-
-        ModuleMonetizationRule rule = ruleRepository
-                .findByModuleKeyAndConfigVersion(moduleKey, settings.getConfigVersion())
-                .orElse(null);
-
-        boolean adEligible = rule != null && rule.isAdsEnabled() && settings.isAdsEnabled()
-                && entryCount >= rule.getAdOfferStartEntry();
-
-        boolean guruUnlockAvailable = rule != null && rule.isGuruEnabled() && settings.isGuruEnabled();
-
-        boolean purchaseFallback = rule != null && rule.isGuruPurchaseEnabled()
-                && settings.isGuruPurchaseEnabled();
-
-        int walletBalance = walletRepository.findByUserId(userId)
-                .map(w -> w.getCurrentBalance())
-                .orElse(0);
-
-        boolean canAfford = walletBalance >= action.getGuruCost();
-
-        String reason = null;
-        if (!adEligible && !canAfford && !purchaseFallback) {
-            reason = "no_unlock_path_available";
-        } else if (entryCount < (rule != null ? rule.getFirstNEntriesWithoutAd() : 1)) {
-            reason = "within_free_entries";
-            adEligible = false;
-        }
-
+        FeatureAccessService.FeatureAccessResponse access = featureAccessService.evaluateAccess(userId, moduleKey, actionKey);
         return new EligibilityCheckResponse(
-                true, adEligible, guruUnlockAvailable && canAfford,
-                purchaseFallback, reason, walletBalance, action.getGuruCost()
+                access.monetizationActive(),
+                access.rewardedAdAvailable(),
+                access.guruUnlockAvailable() && access.currentBalance() >= access.tokenCost(),
+                access.purchaseFallbackAvailable(),
+                access.message(),
+                access.currentBalance(),
+                access.tokenCost(),
+                access.allowed(),
+                access.requiresToken(),
+                access.rewardTokenAmount(),
+                access.featureKey(),
+                access.status(),
+                access.actionType(),
+                access.dialogTitle(),
+                access.dialogDescription(),
+                access.primaryCtaLabel(),
+                access.secondaryCtaLabel(),
+                access.analyticsKey(),
+                access.dailyLimit(),
+                access.weeklyLimit(),
+                access.dailyUsageCount(),
+                access.weeklyUsageCount()
         );
     }
 
@@ -143,6 +125,7 @@ public class MonetizationConfigService {
     public record MonetizationConfigResponse(
             boolean enabled,
             boolean adsEnabled,
+            boolean webAdsEnabled,
             boolean guruEnabled,
             boolean guruPurchaseEnabled,
             String defaultAdProvider,
@@ -159,7 +142,7 @@ public class MonetizationConfigService {
     ) {
         public static MonetizationConfigResponse disabled() {
             return new MonetizationConfigResponse(
-                    false, false, false, false, null,
+                    false, false, false, false, false, null,
                     0, 0, 0, 0, 0,
                     List.of(), List.of(), List.of(), 0,
                     LocalDateTime.now()
@@ -223,26 +206,48 @@ public class MonetizationConfigService {
             String actionKey,
             String moduleKey,
             String displayName,
+            String description,
+            String dialogTitle,
+            String dialogDescription,
             String unlockType,
             int guruCost,
             int rewardAmount,
+            boolean rewardFallbackEnabled,
             boolean adRequired,
             boolean purchaseRequired,
             boolean previewAllowed,
-            int displayPriority
+            int displayPriority,
+            int dailyLimit,
+            int weeklyLimit,
+            String primaryCtaLabel,
+            String secondaryCtaLabel,
+            String analyticsKey,
+            Long updatedByAdminId,
+            LocalDateTime updatedAt
     ) {
         public static ActionResponse from(MonetizationAction a) {
             return new ActionResponse(
                     a.getActionKey(),
                     a.getModuleKey(),
                     a.getDisplayName(),
+                    a.getDescription(),
+                    a.getDialogTitle(),
+                    a.getDialogDescription(),
                     a.getUnlockType().name(),
                     a.getGuruCost(),
                     a.getRewardAmount(),
+                    a.isRewardFallbackEnabled(),
                     a.isAdRequired(),
                     a.isPurchaseRequired(),
                     a.isPreviewAllowed(),
-                    a.getDisplayPriority()
+                    a.getDisplayPriority(),
+                    a.getDailyLimit(),
+                    a.getWeeklyLimit(),
+                    a.getPrimaryCtaLabel(),
+                    a.getSecondaryCtaLabel(),
+                    a.getAnalyticsKey(),
+                    a.getUpdatedByAdminId(),
+                    a.getUpdatedAt()
             );
         }
     }
@@ -288,6 +293,21 @@ public class MonetizationConfigService {
             boolean purchaseFallbackAvailable,
             String reason,
             int walletBalance,
-            int requiredGuruCost
+            int requiredGuruCost,
+            boolean allowed,
+            boolean requiresToken,
+            int rewardTokenAmount,
+            String featureKey,
+            String status,
+            String actionType,
+            String dialogTitle,
+            String dialogDescription,
+            String primaryCtaLabel,
+            String secondaryCtaLabel,
+            String analyticsKey,
+            int dailyLimit,
+            int weeklyLimit,
+            long dailyUsageCount,
+            long weeklyUsageCount
     ) {}
 }

@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Plus, Eye, Send, Archive } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
+import { getWebAdsEnabled } from '@/lib/monetizationEnvironmentRules';
 
 export default function MonetizationSettingsPage() {
   const qc = useQueryClient();
@@ -54,8 +55,10 @@ export default function MonetizationSettingsPage() {
                 <th className="text-left px-4 py-3">Versiyon</th>
                 <th className="text-left px-4 py-3">Enabled</th>
                 <th className="text-left px-4 py-3">Ads</th>
+                <th className="text-left px-4 py-3">Web Ads</th>
                 <th className="text-left px-4 py-3">Guru</th>
                 <th className="text-left px-4 py-3">Guru Purchase</th>
+                <th className="text-left px-4 py-3">Signup Bonus</th>
                 <th className="text-left px-4 py-3">Güncellendi</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -81,6 +84,11 @@ export default function MonetizationSettingsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${getWebAdsEnabled(s.environmentRulesJson) ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
+                      {getWebAdsEnabled(s.environmentRulesJson) ? 'Evet' : 'Hayır'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${s.isGuruEnabled ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
                       {s.isGuruEnabled ? 'Evet' : 'Hayır'}
                     </span>
@@ -90,7 +98,13 @@ export default function MonetizationSettingsPage() {
                       {s.isGuruPurchaseEnabled ? 'Evet' : 'Hayır'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(s.updatedAt)}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {s.isSignupBonusEnabled ? `${s.signupBonusTokenAmount} Guru` : 'Kapalı'}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    <div>{formatDate(s.updatedAt)}</div>
+                    <div>Admin #{s.updatedByAdminId ?? '—'}</div>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
                       <Link href={`/monetization/settings/${s.id}`}>

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import i18n from 'i18next';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
-import { processSpend } from '../api/monetization.service';
+import { consumeFeatureAccess } from '../api/monetization.service';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 
 type SpendStatus = 'idle' | 'processing' | 'success' | 'insufficient' | 'failed';
@@ -44,14 +44,19 @@ export function useGuruUnlock(moduleKey: string, actionKey: string): UseGuruUnlo
 
       const idempotencyKey = `spend_${moduleKey}_${actionKey}_${Date.now()}`;
 
-      await processSpend({
-        cost: action.guruCost,
+      const access = await consumeFeatureAccess({
         moduleKey,
         actionKey,
         platform: Platform.OS,
         locale: i18n.language,
         idempotencyKey,
+        sourceScreen: moduleKey,
       });
+
+      if (!access.allowed || access.status !== 'TOKEN_CONSUMED') {
+        setStatus(access.status === 'INSUFFICIENT_BALANCE' ? 'insufficient' : 'failed');
+        return false;
+      }
 
       await refreshBalance();
 

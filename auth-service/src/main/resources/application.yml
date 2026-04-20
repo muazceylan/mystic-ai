@@ -98,6 +98,13 @@ auth:
     retry:
       max-attempts: ${PASSWORD_RESET_RETRY_MAX_ATTEMPTS:3}
       delay-seconds: ${PASSWORD_RESET_RETRY_DELAY_SECONDS:30}
+  signup-bonus:
+    retry:
+      delay-seconds: ${SIGNUP_BONUS_RETRY_DELAY_SECONDS:60}
+    scheduler:
+      initial-delay-seconds: ${SIGNUP_BONUS_SCHEDULER_INITIAL_DELAY_SECONDS:90}
+      fixed-delay-seconds: ${SIGNUP_BONUS_SCHEDULER_FIXED_DELAY_SECONDS:120}
+      batch-size: ${SIGNUP_BONUS_SCHEDULER_BATCH_SIZE:100}
   mail:
     from: ${MAIL_FROM:no-reply@mysticai.local}
 
@@ -105,13 +112,18 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
 
 services:
   astrology:
     base-url: ${ASTROLOGY_SERVICE_URL:http://localhost:8083}
     connect-timeout: ${ASTROLOGY_SERVICE_CONNECT_TIMEOUT:2s}
     read-timeout: ${ASTROLOGY_SERVICE_READ_TIMEOUT:20s}
+  notification:
+    base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8088}
+    connect-timeout: ${NOTIFICATION_SERVICE_CONNECT_TIMEOUT:2s}
+    read-timeout: ${NOTIFICATION_SERVICE_READ_TIMEOUT:10s}
+    internal-key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}
 
 logging:
   level:

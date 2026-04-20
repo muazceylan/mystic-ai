@@ -24,8 +24,20 @@ public class AppBeansConfig {
             @Value("${services.astrology.read-timeout:20s}") Duration readTimeout
     ) {
         return builder
-                .setConnectTimeout(connectTimeout)
-                .setReadTimeout(readTimeout)
+                .connectTimeout(connectTimeout)
+                .readTimeout(readTimeout)
+                .build();
+    }
+
+    @Bean
+    public RestTemplate notificationRestTemplate(
+            RestTemplateBuilder builder,
+            @Value("${services.notification.connect-timeout:2s}") Duration connectTimeout,
+            @Value("${services.notification.read-timeout:10s}") Duration readTimeout
+    ) {
+        return builder
+                .connectTimeout(connectTimeout)
+                .readTimeout(readTimeout)
                 .build();
     }
 }

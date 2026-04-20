@@ -39,7 +39,10 @@ error() {
 }
 
 is_truthy() {
-  case "${1,,}" in
+  local value="${1:-}"
+  value="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')"
+
+  case "$value" in
     1|true|yes|on) return 0 ;;
     *) return 1 ;;
   esac

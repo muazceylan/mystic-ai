@@ -607,7 +607,7 @@ export default function HomeScreen() {
     () => cmsSections.filter((section) => !HIDDEN_HOME_SECTION_KEYS.has(section.sectionKey)),
     [cmsSections],
   );
-  const featureColumns = 2;
+  const featureColumns: number = 2;
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>

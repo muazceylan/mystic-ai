@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/tokens';
@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/Button';
 import { BrandBadge } from '../../../components/ui/BrandLogo';
 import { PREMIUM_ICONS } from '../../../constants/icons';
 import { useGuruUnlock } from '../hooks/useGuruUnlock';
+import { useModuleMonetization } from '../hooks/useModuleMonetization';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
@@ -35,9 +36,11 @@ export function GuruUnlockModal({
   const { colors } = useTheme();
   const s = createStyles(colors);
   const { status, spendGuru, reset } = useGuruUnlock(moduleKey, actionKey);
+  const monetization = useModuleMonetization(moduleKey);
   const balance = useGuruWalletStore(state => state.getBalance());
   const { getAction } = useMonetizationStore();
   const action = getAction(actionKey, moduleKey);
+  const unlockState = monetization.getActionUnlockState(actionKey);
   const trackedRef = useRef(false);
 
   const guruCost = action?.guruCost ?? 0;
@@ -136,7 +139,7 @@ export function GuruUnlockModal({
               {t('monetization.guruInsufficientWarning')}
             </Text>
             <View style={s.fallbackActions}>
-              {onShowAdOffer && (
+              {onShowAdOffer && unlockState.adEnabled ? (
                 <Button
                   title={t('monetization.guruWatchAdBtn')}
                   onPress={onShowAdOffer}
@@ -144,8 +147,8 @@ export function GuruUnlockModal({
                   leftIcon={PREMIUM_ICONS.ad}
                   size="sm"
                 />
-              )}
-              {onShowPurchase && (
+              ) : null}
+              {onShowPurchase && unlockState.purchaseEnabled ? (
                 <Button
                   title={t('monetization.guruBuyBtn')}
                   onPress={onShowPurchase}
@@ -153,7 +156,7 @@ export function GuruUnlockModal({
                   leftIcon={PREMIUM_ICONS.purchase}
                   size="sm"
                 />
-              )}
+              ) : null}
             </View>
           </View>
         )}

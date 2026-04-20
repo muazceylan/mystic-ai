@@ -180,6 +180,7 @@ export default function NumerologyScreen() {
 
   // ── Monetization ──
   const monetization = useModuleMonetization('numerology');
+  const advancedUnlockState = monetization.getActionUnlockState('advanced_analysis');
   const [showAdOffer, setShowAdOffer] = useState(false);
   const [showGuruModal, setShowGuruModal] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
@@ -467,22 +468,26 @@ export default function NumerologyScreen() {
     if (checkPremiumGated()) return;
 
     // Monetization gate: if guru unlock is configured for this action, gate it
-    const advancedAction = monetization.getAction('advanced_analysis');
-    if (advancedAction && monetization.guruEnabled) {
-      if (monetization.canAffordAction('advanced_analysis')) {
+    if (advancedUnlockState.usesMonetization) {
+      if (advancedUnlockState.guruEnabled && advancedUnlockState.canAffordGuru) {
         MonetizationEvents.gateSeen('numerology', 'advanced_analysis', 'guru_spend');
         setShowGuruModal(true);
         return;
       }
-      // Can't afford — show ad offer if eligible, else show guru modal with insufficient state
-      if (monetization.shouldShowAd && monetization.adsEnabled) {
+      if (advancedUnlockState.shouldShowAdOffer) {
         MonetizationEvents.gateSeen('numerology', 'advanced_analysis', 'ad');
         setShowAdOffer(true);
         return;
       }
-      MonetizationEvents.gateSeen('numerology', 'advanced_analysis', 'guru_spend');
-      setShowGuruModal(true);
-      return;
+      if (advancedUnlockState.guruEnabled) {
+        MonetizationEvents.gateSeen('numerology', 'advanced_analysis', 'guru_spend');
+        setShowGuruModal(true);
+        return;
+      }
+      if (advancedUnlockState.purchaseEnabled) {
+        setShowPurchaseSheet(true);
+        return;
+      }
     }
 
     setAdvancedVisible(true);
@@ -847,11 +852,11 @@ export default function NumerologyScreen() {
           trackEvent('numerology_advanced_opened', commonEventProps);
         }}
         onDismiss={() => setShowGuruModal(false)}
-        onShowAdOffer={monetization.adsEnabled ? () => {
+        onShowAdOffer={advancedUnlockState.adEnabled ? () => {
           setShowGuruModal(false);
           setShowAdOffer(true);
         } : undefined}
-        onShowPurchase={monetization.isActionPurchaseAllowed('advanced_analysis') ? () => {
+        onShowPurchase={advancedUnlockState.purchaseEnabled ? () => {
           setShowGuruModal(false);
           setShowPurchaseSheet(true);
         } : undefined}

@@ -1,6 +1,7 @@
 package com.mysticai.auth.repository;
 
 import com.mysticai.auth.entity.User;
+import com.mysticai.auth.entity.enums.SignupBonusSyncStatus;
 import com.mysticai.auth.entity.enums.UserType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -70,4 +71,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.isAccountLinked = true AND u.updatedAt >= :since")
     long countLinkedAccountsSince(@Param("since") LocalDateTime since);
+
+    @Query("""
+            SELECT u.id
+            FROM User u
+            WHERE u.signupBonusSyncStatus = :status
+              AND u.signupBonusGrantedAt IS NULL
+              AND u.signupBonusRegistrationSource IS NOT NULL
+              AND (
+                u.signupBonusNextRetryAt IS NULL
+                OR u.signupBonusNextRetryAt <= :now
+              )
+            ORDER BY COALESCE(u.signupBonusNextRetryAt, u.createdAt), u.id
+            """)
+    List<Long> findSignupBonusRetryCandidateIds(@Param("status") SignupBonusSyncStatus status,
+                                                @Param("now") LocalDateTime now,
+                                                Pageable pageable);
 }

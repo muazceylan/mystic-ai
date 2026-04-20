@@ -1,6 +1,6 @@
 import axios from 'axios/dist/browser/axios.cjs';
 import { envConfig, resolveDevBaseUrl } from '../config/env';
-import type { EsmaItem, DuaItem, BreathingTechnique } from '../spiritual/types';
+import type { BreathingTechnique, ContentSource, DuaItem, EsmaItem } from '../spiritual/types';
 
 // Spiritual service runs on port 8091 directly (not through gateway)
 const SPIRITUAL_SERVICE_PORT = 8091;
@@ -91,14 +91,16 @@ function transformAsmaToEsmaItem(asma: AsmaApiResponse): EsmaItem {
   }
 
   return {
-    id:asma.orderNo ||asma.id,
-    nameAr:asma.arabicName,
-    nameTr:asma.nameTr || '',
-    transliteration:asma.transliterationTr || '',
-    meaningTr:asma.meaningTr || '',
-    reflectionText:asma.reflectionTextTr || '',
+    id: asma.id,
+    order: asma.orderNo || asma.id,
+    nameAr: asma.arabicName,
+    nameTr: asma.nameTr || '',
+    transliteration: asma.transliterationTr || '',
+    meaningTr: asma.meaningTr || '',
+    shortBenefit: asma.reflectionTextTr || asma.meaningTr || '',
     tags,
-    defaultTargetCount:asma.recommendedDhikrCount || 33,
+    defaultTargetCount: asma.recommendedDhikrCount || 33,
+    sources: buildSources(asma.sourceProvider, asma.sourceNote),
   };
 }
 
@@ -120,9 +122,9 @@ function transformPrayerToDuaItem(prayer: PrayerApiResponse): DuaItem {
     transliteration: prayer.transliterationTr || '',
     meaningTr: prayer.meaningTr || '',
     category: prayer.category,
-    shortBenefit: prayer.shortBenefitTr,
+    shortBenefit: prayer.shortBenefitTr || '',
     tags,
-    sources: prayer.sourceLabel ? [{ provider: prayer.sourceLabel, ref: prayer.sourceNote || '' }] : [],
+    sources: buildSources(prayer.sourceLabel, prayer.sourceNote),
     defaultTargetCount: prayer.recommendedRepeatCount || 1,
   };
 }
@@ -151,12 +153,34 @@ function transformMeditationToBreathing(meditation: MeditationApiResponse): Brea
     id: meditation.slug || String(meditation.id),
     titleTr: meditation.titleTr || meditation.title || '',
     description: meditation.description || '',
-    difficulty: meditation.difficulty || 'BEGINNER',
+    difficulty: normalizeDifficulty(meditation.difficulty),
     icon: meditation.icon || 'wind',
     benefits,
     pattern,
     defaultDurationSec: meditation.durationSec || 60,
   };
+}
+
+function buildSources(provider?: string, note?: string): ContentSource[] {
+  if (!provider) return [];
+  return [
+    {
+      provider,
+      ref: note || '',
+      licenseNote: note || provider,
+    },
+  ];
+}
+
+function normalizeDifficulty(value?: string): BreathingTechnique['difficulty'] {
+  switch (value) {
+    case 'ADVANCED':
+    case 'INTERMEDIATE':
+    case 'BEGINNER':
+      return value;
+    default:
+      return 'BEGINNER';
+  }
 }
 
 // Fetch all Esma (AsmaulHusna) from database

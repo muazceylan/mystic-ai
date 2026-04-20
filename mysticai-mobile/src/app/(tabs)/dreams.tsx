@@ -20,18 +20,15 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import {
   useModuleMonetization,
-  useRewardedUnlock,
-  useGuruUnlock,
+  ActionUnlockSheet,
   AdOfferCard,
   GuruUnlockModal,
   PurchaseCatalogSheet,
-  GuruBalanceBadge,
   MonetizationEvents,
 } from '../../features/monetization';
 import { useDreamStore } from '../../store/useDreamStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { BottomSheet, Button, ErrorStateCard, SafeScreen, TabHeader, SurfaceHeaderIconButton } from '../../components/ui';
-import { PREMIUM_ICONS, ACTION_ICONS } from '../../constants/icons';
+import { Button, ErrorStateCard, SafeScreen, TabHeader, SurfaceHeaderIconButton } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
@@ -77,7 +74,6 @@ const DREAM_WARNING_KEYS = [
 ] as const;
 
 const DREAM_INTERPRET_ACTION_KEY = 'dream_interpret';
-const FALLBACK_DREAM_GURU_COST = 1;
 const MIN_RECORDING_DURATION_MS = 1200;
 const MIN_SPEECH_METERING_DBFS = -58;
 const RECORDING_METERING_INTERVAL_MS = 180;
@@ -346,16 +342,12 @@ export default function DreamsScreen() {
 
   // ── Monetization ─────────────────────────────────────────────────
   const monetization = useModuleMonetization('dreams');
+  const bookUnlockState = monetization.getActionUnlockState('monthly_dream_story');
   const [showAdOffer, setShowAdOffer] = useState(false);
   const [showGuruModal, setShowGuruModal] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
   const [showDreamUnlockSheet, setShowDreamUnlockSheet] = useState(false);
-  const [showDreamGuruFallback, setShowDreamGuruFallback] = useState(false);
   const focusCountRef = useRef(0);
-  const { status: dreamAdUnlockStatus, startRewardedUnlock: startDreamRewardedUnlock, reset: resetDreamRewardedUnlock } =
-    useRewardedUnlock('dreams', DREAM_INTERPRET_ACTION_KEY);
-  const { status: dreamGuruUnlockStatus, spendGuru: spendDreamGuru, reset: resetDreamGuruUnlock } =
-    useGuruUnlock('dreams', DREAM_INTERPRET_ACTION_KEY);
 
   // ── Refs ──────────────────────────────────────────────────────────
   const recordingRef  = useRef<Audio.Recording | null>(null);
@@ -582,12 +574,6 @@ export default function DreamsScreen() {
     } catch { Alert.alert(t('common.error'), t('dreams.saveError')); }
   };
 
-  const closeDreamGuruFallback = () => {
-    setShowDreamGuruFallback(false);
-    resetDreamRewardedUnlock();
-    resetDreamGuruUnlock();
-  };
-
   const closeDreamUnlockSheet = () => {
     setShowDreamUnlockSheet(false);
   };
@@ -595,75 +581,6 @@ export default function DreamsScreen() {
   const handleOpenDreamUnlockSheet = () => {
     if (!dreamText.trim() || isDreamUnlockBusy) return;
     setShowDreamUnlockSheet(true);
-  };
-
-  const handleUnlockWithRewardedVideo = async () => {
-    closeDreamUnlockSheet();
-    await handleSaveWithRewardedVideo();
-  };
-
-  const handleUnlockWithGuru = async () => {
-    closeDreamUnlockSheet();
-    await handleSaveWithGuru();
-  };
-
-  const handleSaveWithGuru = async () => {
-    if (!dreamText.trim() || isDreamUnlockBusy) return;
-
-    if (dreamInterpretGateUnavailable) {
-      Alert.alert(t('dreams.unlockUnavailableTitle'), t('dreams.unlockUnavailableBody'));
-      return;
-    }
-
-    MonetizationEvents.gateSeen('dreams', DREAM_INTERPRET_ACTION_KEY, 'guru_spend');
-
-    if (!monetization.canAffordAction(DREAM_INTERPRET_ACTION_KEY)) {
-      setShowDreamGuruFallback(true);
-      return;
-    }
-
-    const spent = await spendDreamGuru();
-    if (!spent) {
-      if (!monetization.canAffordAction(DREAM_INTERPRET_ACTION_KEY)) {
-        setShowDreamGuruFallback(true);
-        return;
-      }
-      Alert.alert(t('common.error'), t('dreams.unlockFlowError'));
-      return;
-    }
-
-    await submitDreamEntry();
-  };
-
-  const handleSaveWithRewardedVideo = async () => {
-    if (!dreamText.trim() || isDreamUnlockBusy) return;
-
-    if (dreamInterpretGateUnavailable) {
-      Alert.alert(t('dreams.unlockUnavailableTitle'), t('dreams.unlockUnavailableBody'));
-      return;
-    }
-
-    if (!monetization.adsEnabled || !monetization.isAdReady) {
-      Alert.alert(t('dreams.rewardedVideoUnavailableTitle'), t('dreams.rewardedVideoUnavailableBody'));
-      return;
-    }
-
-    MonetizationEvents.gateSeen('dreams', DREAM_INTERPRET_ACTION_KEY, 'ad');
-    const rewarded = await startDreamRewardedUnlock();
-
-    if (!rewarded) {
-      Alert.alert(t('common.error'), t('dreams.rewardedVideoFailed'));
-      return;
-    }
-
-    const spent = await spendDreamGuru();
-    if (!spent) {
-      setShowDreamGuruFallback(true);
-      return;
-    }
-
-    closeDreamGuruFallback();
-    await submitDreamEntry();
   };
 
   // ─── Delete dream ─────────────────────────────────────────────────
@@ -749,25 +666,26 @@ export default function DreamsScreen() {
 
   // Monetization gate for dream book generation (premium action)
   const handleBookGenerate = async () => {
-    const bookAction = monetization.getAction('monthly_dream_story');
-    if (!bookAction) {
-      Alert.alert(t('dreams.unlockUnavailableTitle'), t('dreams.unlockUnavailableBody'));
-      return;
-    }
-    if (bookAction && monetization.guruEnabled) {
-      if (monetization.canAffordAction('monthly_dream_story')) {
+    if (bookUnlockState.usesMonetization) {
+      if (bookUnlockState.guruEnabled && bookUnlockState.canAffordGuru) {
         MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'guru_spend');
         setShowGuruModal(true);
         return;
       }
-      if (monetization.shouldShowAd && monetization.adsEnabled) {
+      if (bookUnlockState.shouldShowAdOffer) {
         MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'ad');
         setShowAdOffer(true);
         return;
       }
-      MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'guru_spend');
-      setShowGuruModal(true);
-      return;
+      if (bookUnlockState.guruEnabled) {
+        MonetizationEvents.gateSeen('dreams', 'monthly_dream_story', 'guru_spend');
+        setShowGuruModal(true);
+        return;
+      }
+      if (bookUnlockState.purchaseEnabled) {
+        setShowPurchaseSheet(true);
+        return;
+      }
     }
 
     await executeBookGenerate();
@@ -841,15 +759,7 @@ export default function DreamsScreen() {
     [dreams],
   );
   const latestDream = useMemo(() => dreams[0] ?? null, [dreams]);
-  const dreamInterpretAction = monetization.getAction(DREAM_INTERPRET_ACTION_KEY);
-  const dreamGuruCost = dreamInterpretAction?.guruCost ?? FALLBACK_DREAM_GURU_COST;
-  const dreamInterpretUsesMonetization = Boolean(dreamInterpretAction && monetization.guruEnabled);
-  const dreamInterpretGateUnavailable = !dreamInterpretUsesMonetization;
-  const isDreamUnlockBusy = submitting
-    || dreamAdUnlockStatus === 'loading_ad'
-    || dreamAdUnlockStatus === 'showing_ad'
-    || dreamAdUnlockStatus === 'processing_reward'
-    || dreamGuruUnlockStatus === 'processing';
+  const isDreamUnlockBusy = submitting;
 
   const renderOverviewMetric = (icon: IoniconName, value: string, label: string) => (
     <View key={`${icon}-${label}-${value}`} style={styles.overviewMetricCard}>
@@ -1626,126 +1536,14 @@ export default function DreamsScreen() {
       )}
     </LinearGradient>
 
-      <BottomSheet
+      <ActionUnlockSheet
         visible={showDreamUnlockSheet}
-        onClose={closeDreamUnlockSheet}
+        moduleKey="dreams"
+        actionKey={DREAM_INTERPRET_ACTION_KEY}
         title={t('dreams.unlockTitle')}
-      >
-        <View style={styles.dreamUnlockSheet}>
-          {dreamInterpretUsesMonetization ? (
-            <View style={styles.dreamUnlockSheetBalanceRow}>
-              <GuruBalanceBadge size="sm" />
-            </View>
-          ) : null}
-
-          {dreamInterpretGateUnavailable ? (
-            <Text style={styles.unlockUnavailableText}>{t('dreams.unlockOptionsUnavailableHint')}</Text>
-          ) : null}
-
-          <View style={styles.dreamUnlockSheetOptions}>
-            <TouchableOpacity
-              style={[
-                styles.unlockOptionCard,
-                styles.unlockSheetOption,
-                (!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable) && styles.saveBtnOff,
-              ]}
-              onPress={() => {
-                void handleUnlockWithRewardedVideo();
-              }}
-              disabled={!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable}
-              accessibilityLabel={t('dreams.watchVideoUnlock')}
-              accessibilityRole="button"
-            >
-              <View style={[styles.unlockOptionIconWrap, styles.unlockSheetOptionIconWrap]}>
-                {(dreamAdUnlockStatus === 'loading_ad'
-                  || dreamAdUnlockStatus === 'showing_ad'
-                  || dreamAdUnlockStatus === 'processing_reward')
-                  ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Ionicons name="play-circle" size={22} color={colors.primary} />}
-              </View>
-              <View style={styles.unlockSheetOptionCopy}>
-                <Text style={styles.unlockOptionTitle}>{t('dreams.watchVideoUnlock')}</Text>
-                <Text style={styles.unlockOptionSubtitle}>{t('dreams.watchVideoUnlockHint')}</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.unlockOptionCard,
-                styles.unlockOptionCardPrimary,
-                styles.unlockSheetOption,
-                (!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable) && styles.saveBtnOff,
-              ]}
-              onPress={() => {
-                void handleUnlockWithGuru();
-              }}
-              disabled={!dreamText.trim() || isDreamUnlockBusy || dreamInterpretGateUnavailable}
-              accessibilityLabel={t('dreams.useGuruUnlock', { count: dreamGuruCost })}
-              accessibilityRole="button"
-            >
-              <View style={[styles.unlockOptionIconWrap, styles.unlockOptionIconWrapPrimary, styles.unlockSheetOptionIconWrap]}>
-                {dreamGuruUnlockStatus === 'processing'
-                  ? <ActivityIndicator size="small" color={colors.white} />
-                  : <Ionicons name="sparkles" size={20} color={colors.white} />}
-              </View>
-              <View style={styles.unlockSheetOptionCopy}>
-                <Text style={styles.unlockOptionTitlePrimary}>
-                  {t('dreams.useGuruUnlock', { count: dreamGuruCost })}
-                </Text>
-                <Text style={styles.unlockOptionSubtitlePrimary}>{t('dreams.useGuruUnlockHint')}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <Button
-            title={t('common.close')}
-            onPress={closeDreamUnlockSheet}
-            variant="ghost"
-            size="sm"
-            disabled={isDreamUnlockBusy}
-          />
-        </View>
-      </BottomSheet>
-
-      <BottomSheet
-        visible={showDreamGuruFallback}
-        onClose={closeDreamGuruFallback}
-        title={t('dreams.insufficientGuruTitle')}
-      >
-        <View style={styles.guruFallbackSheet}>
-          <Text style={styles.guruFallbackBody}>
-            {t('dreams.insufficientGuruBody', {
-              cost: dreamGuruCost,
-              balance: monetization.walletBalance,
-            })}
-          </Text>
-
-          <View style={styles.guruFallbackBadgeRow}>
-            <GuruBalanceBadge />
-          </View>
-
-          <Button
-            title={t('dreams.watchVideoEarnGuru')}
-            onPress={() => {
-              void handleSaveWithRewardedVideo();
-            }}
-            loading={dreamAdUnlockStatus === 'loading_ad'
-              || dreamAdUnlockStatus === 'showing_ad'
-              || dreamAdUnlockStatus === 'processing_reward'}
-            disabled={isDreamUnlockBusy}
-            leftIcon={PREMIUM_ICONS.ad}
-            size="lg"
-          />
-
-          <Button
-            title={t('dreams.cancel')}
-            onPress={closeDreamGuruFallback}
-            variant="ghost"
-            size="sm"
-            disabled={isDreamUnlockBusy}
-          />
-        </View>
-      </BottomSheet>
+        onClose={closeDreamUnlockSheet}
+        onUnlocked={submitDreamEntry}
+      />
 
       {/* Monetization: AdOfferCard for dream book generation */}
       {showAdOffer && monetization.adsEnabled && (
@@ -1774,11 +1572,11 @@ export default function DreamsScreen() {
           void executeBookGenerate();
         }}
         onDismiss={() => setShowGuruModal(false)}
-        onShowAdOffer={monetization.adsEnabled ? () => {
+        onShowAdOffer={bookUnlockState.adEnabled ? () => {
           setShowGuruModal(false);
           setShowAdOffer(true);
         } : undefined}
-        onShowPurchase={monetization.isActionPurchaseAllowed('monthly_dream_story') ? () => {
+        onShowPurchase={bookUnlockState.purchaseEnabled ? () => {
           setShowGuruModal(false);
           setShowPurchaseSheet(true);
         } : undefined}

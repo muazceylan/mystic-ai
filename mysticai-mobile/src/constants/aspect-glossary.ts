@@ -43,6 +43,13 @@ export const ASPECT_GLOSSARY: Record<AspectType, GlossaryEntry> = {
       'Ucgen kadar zahmetsiz olmasa da, biraz caba ile harika sonuclar dogurabilen bir enerji tasir. ' +
       'Altigen acisi, hayatinda yeni kapilar acan ve sosyal baglantilari guclendiren uyumlu bir acidir.',
   },
+  QUINCUNX: {
+    term: 'Quincunx',
+    shortDesc: 'Uyumsuz ayar ve ince dengeleme',
+    longDesc:
+      'Quincunx acisi, iki gezegenin birbirinden 150 derece uzakta olmasi durumudur. Bu aci ilk bakista net bir uyum vermez; bunun yerine seni ayar yapmaya, ince denge kurmaya ve farkli ritimleri uzlastirmaya davet eder. ' +
+      'Quincunx etkisi, hayatinda tam olarak adini koyamadigin huzursuzluklari fark etmeni ve daha rafine secimler yapmani saglar.',
+  },
 };
 
 // ── Hook Text Helpers ──────────────────────────────────────────────────────
@@ -81,6 +88,7 @@ const GENERIC_HOOKS: Record<AspectType, string> = {
   TRINE: 'Bu dogal uyum, senin icin kolay ve akici bir enerji kaynagi olusturuyor.',
   SQUARE: 'Bu gerilim seni surekli gelistiren guclu bir motivasyon kaynagi.',
   SEXTILE: 'Bu firsat acisi, biraz cabayla harika sonuclar doguracak bir enerji tasiyor.',
+  QUINCUNX: 'Bu aci ince ayar ister; farkli ihtiyaclari uyumlu hale getirdikce buyuk fark yaratilabilir.',
 };
 
 function makePairKey(p1: string, p2: string): PlanetPairKey {

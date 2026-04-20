@@ -62,6 +62,7 @@ class AuthServiceQuickStartUnitTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private SocialTokenVerifier socialTokenVerifier;
     @Mock private NatalChartProvisioningService natalChartProvisioningService;
+    @Mock private SignupBonusSyncService signupBonusSyncService;
     @Mock private AvatarStorageService avatarStorageService;
     @Mock private PublicUrlProperties publicUrlProperties;
 
@@ -79,7 +80,7 @@ class AuthServiceQuickStartUnitTest {
                 passwordResetTokenRepository, mailSender, emailVerificationPublisher,
                 passwordResetEmailPublisher, verificationProperties, passwordResetProperties,
                 passwordEncoder, jwtTokenProvider, authenticationManager, socialTokenVerifier,
-                natalChartProvisioningService, avatarStorageService, publicUrlProperties,
+                natalChartProvisioningService, signupBonusSyncService, avatarStorageService, publicUrlProperties,
                 FIXED_CLOCK
         );
         // @Value fields are not injected in pure unit tests; set via reflection

@@ -16,6 +16,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { platformColor } from '../../theme';
 import { AppSurfaceBackground } from './AppSurfaceBackground';
 import { isStandardSurfaceRoute } from './surfaceUtils';
+import { useWebViewportBottomInset } from '../../hooks/useWebViewportBottomInset';
 
 const WEB_MAX_WIDTH = 920;
 const WEB_SIDE_PAD = 24;
@@ -68,29 +69,31 @@ export function useBottomTabBarOffset() {
   const pathname = usePathname();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
+  const webViewportBottomInset = useWebViewportBottomInset();
   const navigatorTabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
   const isTabRoute = isTabLayoutRoute(pathname, segments);
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'web' ? webViewportBottomInset : 0);
 
   return useMemo(() => {
     const fallbackTabBarHeight = isTabRoute
       ? (
           Platform.OS === 'ios'
-            ? IOS_TAB_BAR_BASE_HEIGHT + insets.bottom
-            : Platform.OS === 'android'
-              ? ANDROID_TAB_BAR_BASE_HEIGHT + insets.bottom
+            ? IOS_TAB_BAR_BASE_HEIGHT + bottomInset
+            : Platform.OS === 'android' || Platform.OS === 'web'
+              ? ANDROID_TAB_BAR_BASE_HEIGHT + bottomInset
               : 0
         )
       : 0;
     const tabBarHeight = Math.max(navigatorTabBarHeight, fallbackTabBarHeight);
-    const bottomTabBarOffset = Math.max(0, tabBarHeight - insets.bottom);
+    const bottomTabBarOffset = Math.max(0, tabBarHeight - bottomInset);
 
     return {
       tabBarHeight,
       navigatorTabBarHeight,
-      bottomInset: insets.bottom,
+      bottomInset,
       bottomTabBarOffset,
     };
-  }, [insets.bottom, isTabRoute, navigatorTabBarHeight]);
+  }, [bottomInset, isTabRoute, navigatorTabBarHeight]);
 }
 
 /**

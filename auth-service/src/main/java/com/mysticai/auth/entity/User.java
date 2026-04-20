@@ -1,6 +1,7 @@
 package com.mysticai.auth.entity;
 
 import com.mysticai.auth.entity.enums.AccountStatus;
+import com.mysticai.auth.entity.enums.SignupBonusSyncStatus;
 import com.mysticai.auth.entity.enums.UserType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -124,6 +125,30 @@ public class User {
     @Column(name = "is_account_linked")
     @Builder.Default
     private Boolean isAccountLinked = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "signup_bonus_sync_status", nullable = false, length = 20)
+    @Builder.Default
+    private SignupBonusSyncStatus signupBonusSyncStatus = SignupBonusSyncStatus.NOT_REQUESTED;
+
+    @Column(name = "signup_bonus_registration_source", length = 64)
+    private String signupBonusRegistrationSource;
+
+    @Column(name = "signup_bonus_retry_count", nullable = false)
+    @Builder.Default
+    private int signupBonusRetryCount = 0;
+
+    @Column(name = "signup_bonus_last_attempt_at")
+    private LocalDateTime signupBonusLastAttemptAt;
+
+    @Column(name = "signup_bonus_next_retry_at")
+    private LocalDateTime signupBonusNextRetryAt;
+
+    @Column(name = "signup_bonus_granted_at")
+    private LocalDateTime signupBonusGrantedAt;
+
+    @Column(name = "signup_bonus_last_error", length = 512)
+    private String signupBonusLastError;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

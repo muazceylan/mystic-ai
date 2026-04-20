@@ -2,10 +2,13 @@ package com.mysticai.notification.controller;
 
 import com.mysticai.notification.entity.monetization.GuruLedger;
 import com.mysticai.notification.entity.monetization.GuruWallet;
+import com.mysticai.notification.service.monetization.FeatureAccessService;
 import com.mysticai.notification.service.monetization.GuruWalletService;
 import com.mysticai.notification.service.monetization.MonetizationConfigService;
+import com.mysticai.notification.service.monetization.SignupBonusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -19,8 +22,15 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 public class MonetizationPublicController {
 
+    private static final String INTERNAL_SERVICE_HEADER = "X-Internal-Service-Key";
+
     private final MonetizationConfigService configService;
     private final GuruWalletService walletService;
+    private final FeatureAccessService featureAccessService;
+    private final SignupBonusService signupBonusService;
+
+    @Value("${internal.gateway.key}")
+    private String internalGatewayKey;
 
     // ─── PUBLIC (anonymous OK) ─────────────────────────────────────────
 
@@ -47,6 +57,31 @@ public class MonetizationPublicController {
             @RequestParam(defaultValue = "0") int entryCount) {
         requireUserId(userId);
         return ResponseEntity.ok(configService.checkActionEligibility(userId, moduleKey, actionKey, entryCount));
+    }
+
+    @GetMapping("/access")
+    public ResponseEntity<FeatureAccessService.FeatureAccessResponse> evaluateFeatureAccess(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestParam String moduleKey,
+            @RequestParam String actionKey) {
+        requireUserId(userId);
+        return ResponseEntity.ok(featureAccessService.evaluateAccess(userId, moduleKey, actionKey));
+    }
+
+    @PostMapping("/access/consume")
+    public ResponseEntity<FeatureAccessService.FeatureAccessResponse> consumeFeatureAccess(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestBody FeatureAccessConsumeRequest request) {
+        requireUserId(userId);
+        return ResponseEntity.ok(featureAccessService.consumeAccess(
+                userId,
+                request.moduleKey(),
+                request.actionKey(),
+                request.platform(),
+                request.locale(),
+                request.idempotencyKey(),
+                request.sourceScreen()
+        ));
     }
 
     @GetMapping("/wallet")
@@ -80,8 +115,13 @@ public class MonetizationPublicController {
             @RequestBody RewardRequest request) {
         requireUserId(userId);
         try {
+            int resolvedAmount = featureAccessService.resolveRewardAmount(
+                    request.moduleKey(),
+                    request.actionKey(),
+                    request.amount()
+            );
             GuruLedger entry = walletService.earnReward(
-                    userId, request.amount(), request.sourceKey(),
+                    userId, resolvedAmount, request.sourceKey(),
                     request.moduleKey(), request.actionKey(),
                     request.platform(), request.locale(),
                     request.idempotencyKey());
@@ -127,11 +167,30 @@ public class MonetizationPublicController {
         }
     }
 
+    @PostMapping("/internal/signup-bonus")
+    public ResponseEntity<SignupBonusService.SignupBonusResult> grantSignupBonus(
+            @RequestHeader(INTERNAL_SERVICE_HEADER) String serviceKey,
+            @RequestBody SignupBonusGrantRequest request) {
+        ensureInternalServiceKey(serviceKey);
+        return ResponseEntity.ok(signupBonusService.grantSignupBonus(
+                request.userId(),
+                request.registrationSource(),
+                request.platform(),
+                request.locale()
+        ));
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────
 
     private void requireUserId(Long userId) {
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+    }
+
+    private void ensureInternalServiceKey(String serviceKey) {
+        if (serviceKey == null || !serviceKey.equals(internalGatewayKey)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid internal service key");
         }
     }
 
@@ -150,9 +209,25 @@ public class MonetizationPublicController {
             String platform, String locale, String idempotencyKey
     ) {}
 
+    public record FeatureAccessConsumeRequest(
+            String moduleKey,
+            String actionKey,
+            String platform,
+            String locale,
+            String idempotencyKey,
+            String sourceScreen
+    ) {}
+
     public record PurchaseRequest(
             int guruAmount, String productKey, String platform,
             String locale, String idempotencyKey
+    ) {}
+
+    public record SignupBonusGrantRequest(
+            Long userId,
+            String registrationSource,
+            String platform,
+            String locale
     ) {}
 
     public record ErrorResponse(String error) {}

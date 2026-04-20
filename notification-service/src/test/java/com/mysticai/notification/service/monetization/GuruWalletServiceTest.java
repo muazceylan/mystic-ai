@@ -4,8 +4,10 @@ import com.mysticai.notification.entity.monetization.GuruLedger;
 import com.mysticai.notification.entity.monetization.GuruWallet;
 import com.mysticai.notification.repository.GuruLedgerRepository;
 import com.mysticai.notification.repository.GuruWalletRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,6 +24,7 @@ class GuruWalletServiceTest {
 
     @Mock GuruWalletRepository walletRepository;
     @Mock GuruLedgerRepository ledgerRepository;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS) MeterRegistry meterRegistry;
 
     @InjectMocks GuruWalletService service;
 

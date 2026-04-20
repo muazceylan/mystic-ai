@@ -33,7 +33,8 @@ npx tsc --noEmit       # TypeScript type check (no dedicated script)
 ```bash
 pnpm install
 pnpm dev               # Dev server (default port, verify: may be 3000 or 3001)
-pnpm build             # Production build
+pnpm build             # Production build (webpack-based stable path)
+pnpm exec next build --webpack
 pnpm lint              # ESLint
 pnpm generate:route-manifest    # Generate mobile route manifest
 pnpm sync:routes:dry-run        # Preview route sync changes

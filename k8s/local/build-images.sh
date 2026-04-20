@@ -62,6 +62,7 @@ echo "Building mobile-web image..."
 docker build \
   --build-arg EXPO_PUBLIC_APP_ENV=stage \
   --build-arg EXPO_PUBLIC_API_BASE_URL_STAGE=http://app.localhost \
+  --build-arg EXPO_PUBLIC_API_BASE_URL_PROD=http://app.localhost \
   -t mystic/mobile-web:local \
   "$ROOT_DIR/mysticai-mobile"
 
