@@ -1,5 +1,10 @@
 interface GoogleTag {
   cmd: Array<() => void>;
+  enums: {
+    OutOfPageFormat: {
+      REWARDED: string;
+    };
+  };
   defineOutOfPageSlot(adUnitPath: string, format: string): Slot | null;
   display(divOrSlot: string | Element | Slot): void;
   destroySlots(slots?: Slot[]): boolean;
@@ -48,12 +53,6 @@ interface RewardedSlotVideoCompletedEvent extends SlotEventData {}
 
 interface SlotRenderEndedEvent extends SlotEventData {
   isEmpty: boolean;
-}
-
-declare namespace googletag {
-  const OutOfPageFormat: {
-    REWARDED: string;
-  };
 }
 
 interface Window {

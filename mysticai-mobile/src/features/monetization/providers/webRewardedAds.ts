@@ -34,7 +34,7 @@ export async function requestWebRewardedAd(
         return;
       }
 
-      const slot = gt.defineOutOfPageSlot(adUnitPath, googletag.OutOfPageFormat.REWARDED);
+      const slot = gt.defineOutOfPageSlot(adUnitPath, gt.enums.OutOfPageFormat.REWARDED);
       if (!slot) {
         emitRewardedEvent({ type: 'SLOT_ERROR', error: 'Rewarded format not supported.' });
         resolve('unsupported');
