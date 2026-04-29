@@ -25,6 +25,7 @@ import { SpiritualBarChart } from '../components/SpiritualBarChart';
 import { SpiritualListItem } from '../components/SpiritualListItem';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../constants/tokens';
 import type { DuaItem, BarChartDataPoint } from '../types';
 
@@ -42,6 +43,7 @@ function arabicSnippet(arabic: string): string {
 }
 
 export default function SureListScreen() {
+  const goBack = useBackNavigation();
   const { sureList } = useContentStore();
   const journal = useJournalStore();
   const { isDark } = useTheme();
@@ -131,7 +133,7 @@ export default function SureListScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel={tl('common.back')}>
+          <Pressable onPress={goBack} style={styles.backBtn} hitSlop={12} accessibilityLabel={tl('common.back')}>
             <Ionicons name="chevron-back" size={24} color={TEXT} />
           </Pressable>
         <Text

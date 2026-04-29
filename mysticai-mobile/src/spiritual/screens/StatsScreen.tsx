@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 import { useTheme } from '../../context/ThemeContext';
 import { useJournalStore } from '../store/useJournalStore';
 import { SpiritualBarChart } from '../components/SpiritualBarChart';
@@ -26,6 +27,7 @@ type Period = '7d' | '30d' | 'all';
 
 export default function StatsScreen() {
   const { t, i18n } = useTranslation();
+  const goBack = useBackNavigation();
   const journal = useJournalStore();
   const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
@@ -120,7 +122,7 @@ export default function StatsScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <Pressable onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={TEXT} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: TEXT }]}>{t('statsScreen.headerTitle')}</Text>

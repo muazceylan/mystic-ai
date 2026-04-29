@@ -9,7 +9,7 @@ Bu runbook, `mystic-web` deploy edildikten sonra iki seyi dogrulamak icin kullan
 
 Production env'de en az su degiskenler dogrulanmis olmali:
 
-- `NEXT_PUBLIC_SITE_URL=https://astroguru.app`
+- `NEXT_PUBLIC_SITE_URL=https://info.astroguru.app`
 - `GOOGLE_SITE_VERIFICATION=<google-code>`
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID=<optional>`
 - `NEXT_PUBLIC_ENABLE_ANALYTICS=true|false`
@@ -23,15 +23,15 @@ Deploy sonrasi:
 
 ```bash
 cd mystic-web
-BASE_URL=https://astroguru.app EXPECTED_SITE_URL=https://astroguru.app pnpm seo:smoke
+BASE_URL=https://info.astroguru.app EXPECTED_SITE_URL=https://info.astroguru.app pnpm seo:smoke
 ```
 
 `REVALIDATION_SECRET` biliniyorsa success-path testi de acilir:
 
 ```bash
 cd mystic-web
-BASE_URL=https://astroguru.app \
-EXPECTED_SITE_URL=https://astroguru.app \
+BASE_URL=https://info.astroguru.app \
+EXPECTED_SITE_URL=https://info.astroguru.app \
 REVALIDATION_SECRET=<secret> \
 pnpm seo:smoke
 ```
@@ -52,12 +52,12 @@ Script su kontrolleri yapar:
 ## 3. Hizli Manuel HTTP Kontrolleri
 
 ```bash
-curl -I https://astroguru.app/
-curl -I https://astroguru.app/en
-curl -I https://astroguru.app/robots.txt
-curl -I https://astroguru.app/sitemap.xml
-curl -s https://astroguru.app/ | head -40
-curl -i -X POST https://astroguru.app/api/revalidate
+curl -I https://info.astroguru.app/
+curl -I https://info.astroguru.app/en
+curl -I https://info.astroguru.app/robots.txt
+curl -I https://info.astroguru.app/sitemap.xml
+curl -s https://info.astroguru.app/ | head -40
+curl -i -X POST https://info.astroguru.app/api/revalidate
 ```
 
 Beklenen:
@@ -73,19 +73,19 @@ Yanlis deploy sinyalleri:
 - HTML kaynakta `react-native-web` reset'i varsa
 - `/api/revalidate` `404` ise
 
-Bu durumda root domainde `mystic-web` yerine baska bir surface servis ediliyor olabilir.
+Bu durumda `info.astroguru.app` host'unda `mystic-web` yerine baska bir surface servis ediliyor olabilir.
 
 ## 4. Search Console Kurulumu
 
-1. [Google Search Console](https://search.google.com/search-console)'da `https://astroguru.app` property acin.
+1. [Google Search Console](https://search.google.com/search-console)'da `https://info.astroguru.app` property acin.
 2. DNS TXT ile verify edin.
 3. `sitemap.xml` gonderin.
 4. Su URL'leri tek tek inspect edin:
-   - `https://astroguru.app/`
-   - `https://astroguru.app/astroloji`
-   - `https://astroguru.app/numeroloji`
-   - `https://astroguru.app/ruya-yorumu`
-   - `https://astroguru.app/en`
+   - `https://info.astroguru.app/`
+   - `https://info.astroguru.app/astroloji`
+   - `https://info.astroguru.app/numeroloji`
+   - `https://info.astroguru.app/ruya-yorumu`
+   - `https://info.astroguru.app/en`
    - gerekiyorsa `/blog` ve son blog URL'leri
 5. Her kritik URL icin `Request Indexing` gonderin.
 
@@ -99,7 +99,7 @@ Yardimci sinyaller:
 
 - Pages/Coverage raporunda indexed/valid durumu
 - Performance raporunda impression gorulmesi
-- `site:astroguru.app` aramasi
+- `site:info.astroguru.app` aramasi
 
 Not:
 `site:` aramasi sonuc vermiyorsa bu tek basina "index yok" kaniti degildir. Esas karar Search Console verisine gore alinmali.
@@ -110,7 +110,7 @@ Sunucu tarafi:
 
 - `/`, `/en`, `/robots.txt`, `/sitemap.xml` beklenen icerikle donuyor
 - public sayfalarda 500 yok
-- canonical/hreflang `astroguru.app` uzerinden uretiliyor
+- canonical/hreflang `info.astroguru.app` uzerinden uretiliyor
 - `/api/revalidate` auth davranisi dogru
 
 SEO/index tarafi:

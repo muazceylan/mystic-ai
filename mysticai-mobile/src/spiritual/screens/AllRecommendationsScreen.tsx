@@ -113,7 +113,7 @@ export default function AllRecommendationsScreen() {
         colors={isDark ? ['#0B1A12', '#0F2318', '#0B1A12'] : ['#ECFDF5', '#F0FDF4', '#ECFDF5']}
         style={s.container}
       >
-        <AppHeader title={t('spiritual.allRecommendations.title')} onBack={() => router.back()} transparent rightActions={<HeaderRightIcons />} />
+        <AppHeader title={t('spiritual.allRecommendations.title')} transparent rightActions={<HeaderRightIcons />} />
 
       <View style={s.tabRow}>
         {tabs.map((tab) => {

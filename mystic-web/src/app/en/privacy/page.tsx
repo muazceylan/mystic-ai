@@ -12,33 +12,36 @@ export default function PrivacyPage() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-zinc-500">Last updated: April 17, 2026</p>
+      <p className="mt-2 text-sm text-zinc-500">Last updated: April 23, 2026</p>
 
       <div className="prose prose-zinc mt-8 dark:prose-invert max-w-none">
         <h2>1. Data We Collect</h2>
         <p>The AstroGuru application collects the following data:</p>
         <ul>
-          <li>Email address (account creation and communication)</li>
-          <li>Birth date, time and place (astrology and numerology calculations)</li>
-          <li>Gender and marital status (personalized content)</li>
-          <li>Dream texts (dream interpretation service)</li>
-          <li>App usage data (service improvement)</li>
+          <li>Account data such as email address, display name, and login provider</li>
+          <li>Birth date, time, and place for astrology and numerology calculations</li>
+          <li>Profile details such as gender, marital status, language, and profile photo</li>
+          <li>User content such as dream entries and related voice recordings or transcripts</li>
+          <li>Notification preferences, push tokens, rewarded ad events, wallet/token activity, and app usage analytics</li>
         </ul>
 
         <h2>2. How We Use Data</h2>
         <p>Collected data is used for the following purposes:</p>
         <ul>
-          <li>Providing personal astrology, numerology and dream interpretation services</li>
-          <li>Personalizing the app experience</li>
-          <li>Improving service quality</li>
-          <li>Detecting and resolving technical issues</li>
+          <li>Providing personal astrology, numerology, dream interpretation, and spiritual guidance features</li>
+          <li>Personalizing the app experience and keeping your profile in sync across sessions</li>
+          <li>Sending notifications you explicitly enable and granting rewarded-token flows you initiate</li>
+          <li>Improving service quality, preventing abuse, and detecting or resolving technical issues</li>
         </ul>
 
         <h2>3. Data Sharing</h2>
         <p>
           Your personal data is not shared with third parties for marketing purposes.
-          Data may only be shared with technical infrastructure providers necessary
-          for service delivery.
+          Data may be processed by technical infrastructure and service providers only
+          as needed to deliver authentication, analytics, notifications, storage,
+          and rewarded advertising features. This can include Apple Sign In, Google
+          Sign In, Firebase Analytics, Expo notification infrastructure, and Google
+          AdMob rewarded ads.
         </p>
 
         <h2>4. Data Security</h2>
@@ -49,16 +52,18 @@ export default function PrivacyPage() {
 
         <h2>5. Data Deletion</h2>
         <p>
-          You can delete your account and all your data at any time. For data deletion
-          requests, you can send an email to{' '}
-          <a href="mailto:support@astroguru.app">support@astroguru.app</a> with the
-          subject &quot;Account Deletion Request&quot;.
+          You can delete your account inside the mobile app at any time from
+          Profile → Permanently Delete Account. If you cannot access the app, you
+          can send an email to <a href="mailto:support@astroguru.app">support@astroguru.app</a>{' '}
+          with the subject &quot;Account Deletion Request&quot;.
         </p>
 
-        <h2>6. Cookies</h2>
+        <h2>6. Children and Sensitive Topics</h2>
         <p>
-          Our website may use cookies for essential functionality. Information about
-          third-party advertising cookies is governed by Google AdSense policies.
+          AstroGuru is not designed for children. Astrology, numerology, dream, and
+          spiritual guidance content is provided for informational and entertainment
+          purposes only and does not replace medical, legal, financial, or mental
+          health advice.
         </p>
 
         <h2>7. Contact</h2>

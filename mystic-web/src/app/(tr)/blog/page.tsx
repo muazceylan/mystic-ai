@@ -21,7 +21,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default async function BlogPage() {
-  const posts = await fetchAllPosts();
+  const posts = await fetchAllPosts('tr');
 
   return (
     <>

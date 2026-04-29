@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { navigateWithOrigin } from '../../navigation';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
@@ -86,7 +87,7 @@ export default function NameFavoritesScreen() {
                 title={t('nameAnalysis.favorites.emptyTitle')}
                 description={t('nameAnalysis.favorites.emptyDescription')}
                 actionLabel={t('surfaceTitles.nameSearch')}
-                onAction={() => router.push('/(tabs)/name-search')}
+                onAction={() => navigateWithOrigin({ pathname: '/(tabs)/name-search', from: '/(tabs)/name-favorites' })}
               />
             </View>
           ) : (
@@ -116,9 +117,10 @@ export default function NameFavoritesScreen() {
                       quran_flag: item.quranFlag === true,
                       source_screen: 'name_favorites',
                     });
-                    router.push({
+                    navigateWithOrigin({
                       pathname: '/(tabs)/name-detail/[id]',
-                      params: { id: String(item.id), source: 'favorites', position: String(index) },
+                      from: '/(tabs)/name-favorites',
+                      extraParams: { id: String(item.id), source: 'favorites', position: String(index) },
                     });
                   }}
                 />

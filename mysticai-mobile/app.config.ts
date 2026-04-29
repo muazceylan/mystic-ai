@@ -16,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       ...config.ios?.infoPlist,
       NSUserTrackingUsageDescription:
-        'Sana daha uygun içerik ve reklamlar sunabilmemiz için izleme izni istiyoruz.',
+        'Odullu video deneyimini iyilestirmek ve reklam olcumunu desteklemek icin izin istiyoruz.',
     },
   },
   plugins: [
@@ -28,7 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         iosAppId: ADMOB_IOS_APP_ID,
         delayAppMeasurementInit: false,
         userTrackingUsageDescription:
-          'Sana daha uygun içerik ve reklamlar sunabilmemiz için izleme izni istiyoruz.',
+          'Odullu video deneyimini iyilestirmek ve reklam olcumunu desteklemek icin izin istiyoruz.',
       },
     ],
   ],

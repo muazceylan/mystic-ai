@@ -18,12 +18,14 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
 import { useContentStore } from '../store/useContentStore';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 
 export default function EsmaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const { getEsmaById } = useContentStore();
+  const goBack = useBackNavigation();
   const esma = getEsmaById(parseInt(id ?? '0', 10));
 
   const [target, setTarget] = useState(esma?.defaultTargetCount ?? 33);
@@ -43,7 +45,7 @@ export default function EsmaDetailScreen() {
         <LinearGradient colors={GRAD} style={styles.container}>
           <View style={styles.center}>
             <Text style={{ color: TEXT, fontSize: 15 }}>{t('spiritual.detail.notFound')}</Text>
-            <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+            <Pressable onPress={goBack} style={{ marginTop: 16 }}>
               <Text style={{ color: ACCENT, fontWeight: '700' }}>{t('spiritual.detail.goBack')}</Text>
             </Pressable>
           </View>
@@ -72,7 +74,7 @@ export default function EsmaDetailScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <Pressable onPress={goBack} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={TEXT} />
           </Pressable>
         <View style={styles.headerCenter}>

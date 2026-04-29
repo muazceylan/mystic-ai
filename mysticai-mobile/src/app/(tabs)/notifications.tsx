@@ -346,7 +346,7 @@ export default function NotificationsScreen() {
     (item: NotificationItem) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       trackNotificationEvent(NotificationEvent.ITEM_OPENED, notifEventPayload(item));
-      void openNotification(item, isAuthenticated);
+      void openNotification(item, isAuthenticated, { originRoute: '/(tabs)/notifications' });
     },
     [isAuthenticated],
   );

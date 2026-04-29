@@ -153,6 +153,12 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
         && isPurchaseAvailable
         && (unlockType === 'PURCHASE_ONLY' || guruEnabledForAction),
       );
+      const hasAnyUnlockOption = Boolean(
+        isFree
+        || adEnabledForAction
+        || guruEnabledForAction
+        || purchaseEnabledForAction
+      );
       const canAffordGuru = Boolean(action && walletBalance >= action.guruCost);
       const rewardAmount = action?.rewardAmount && action.rewardAmount > 0
         ? action.rewardAmount
@@ -164,14 +170,16 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
         action,
         unlockType,
         isFree,
-        usesMonetization: Boolean(action && !isFree),
+        // An action can remain configured as monetized while module-level rules disable
+        // every unlock path. In that case the feature should behave as freely accessible.
+        usesMonetization: Boolean(action && !isFree && hasAnyUnlockOption),
         adEnabled: adEnabledForAction,
         shouldShowAdOffer: adEnabledForAction && shouldShowAd,
         adReady: adEnabledForAction && isAdReady,
         guruEnabled: guruEnabledForAction,
         canAffordGuru,
         purchaseEnabled: purchaseEnabledForAction,
-        hasAnyUnlockOption: Boolean(isFree || adEnabledForAction || guruEnabledForAction || purchaseEnabledForAction),
+        hasAnyUnlockOption,
         requiresAdThenGuruSpend: Boolean(
           action
           && guruEnabledForAction

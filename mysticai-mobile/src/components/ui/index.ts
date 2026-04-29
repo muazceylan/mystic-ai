@@ -28,6 +28,7 @@ export { ErrorStateCard } from './ErrorStateCard';
 
 // --- Navigation & Header ---
 export { AppHeader } from './AppHeader';
+export { AppBackButton } from './AppBackButton';
 export { TabHeader, HeaderRightIcons } from './TabHeader';
 export { AppSurfaceBackground } from './AppSurfaceBackground';
 export { AppSurfaceHeader, SurfaceHeaderIconButton } from './AppSurfaceHeader';

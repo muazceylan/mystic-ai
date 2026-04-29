@@ -85,7 +85,7 @@ Body: `{ path?, slug?, locale?, translationGroup? }` — `translationGroup` reva
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | No | Canonical base URL (default: `https://astroguru.app`) |
+| `NEXT_PUBLIC_SITE_URL` | No | Canonical base URL (default: `https://info.astroguru.app`) |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | For analytics | GA4 ID |
 | `NEXT_PUBLIC_ENABLE_ANALYTICS` | For analytics | Must be `"true"` to activate |
 | `NEXT_PUBLIC_APP_STORE_URL` | For store CTAs | If unset, buttons show "Coming Soon" |

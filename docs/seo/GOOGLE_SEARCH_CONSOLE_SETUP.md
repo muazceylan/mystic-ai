@@ -1,6 +1,6 @@
 # Google Search Console Kurulum Rehberi
 
-**Domain:** `astroguru.app`
+**Domain:** `info.astroguru.app`
 **Proje:** mystic-web
 
 ---
@@ -10,7 +10,7 @@
 1. https://search.google.com/search-console adresine gidin
 2. Sol ust kosedeki "Add property" butonuna tiklayin
 3. "URL prefix" secenegini secin
-4. `https://astroguru.app` girin ve "Continue" tiklayin
+4. `https://info.astroguru.app` girin ve "Continue" tiklayin
 
 ## 2. Domain Dogrulama
 
@@ -22,7 +22,7 @@
    ```
 2. DNS saglayicinizda (Cloudflare, Route53, vb.) TXT record ekleyin:
    - Type: `TXT`
-   - Name: `@` (veya `astroguru.app`)
+   - Name: `info` (veya `info.astroguru.app`)
    - Value: Google'in verdigi dogrulama string'i
 3. DNS yayilimini bekleyin (genellikle 5-60 dakika)
 4. Search Console'da "Verify" tiklayin
@@ -53,15 +53,15 @@ Dogrulama tamamlandiktan sonra:
 
 Sitemap'in icerigi (9 URL):
 ```
-https://astroguru.app/
-https://astroguru.app/astroloji
-https://astroguru.app/numeroloji
-https://astroguru.app/ruya-yorumu
-https://astroguru.app/uyum-analizi
-https://astroguru.app/spirituel-rehberlik
-https://astroguru.app/gizlilik
-https://astroguru.app/kullanim-sartlari
-https://astroguru.app/iletisim
+https://info.astroguru.app/
+https://info.astroguru.app/astroloji
+https://info.astroguru.app/numeroloji
+https://info.astroguru.app/ruya-yorumu
+https://info.astroguru.app/uyum-analizi
+https://info.astroguru.app/spirituel-rehberlik
+https://info.astroguru.app/gizlilik
+https://info.astroguru.app/kullanim-sartlari
+https://info.astroguru.app/iletisim
 ```
 
 ## 4. URL Inspection
@@ -73,19 +73,19 @@ Sitemap gonderdikten sonra kritik URL'leri inspect edin:
 3. Asagidaki URL'ler icin tekrarlayin:
 
 Oncelikli URL'ler:
-- `https://astroguru.app/`
-- `https://astroguru.app/astroloji`
-- `https://astroguru.app/numeroloji`
-- `https://astroguru.app/ruya-yorumu`
+- `https://info.astroguru.app/`
+- `https://info.astroguru.app/astroloji`
+- `https://info.astroguru.app/numeroloji`
+- `https://info.astroguru.app/ruya-yorumu`
 
 Ikincil URL'ler:
-- `https://astroguru.app/uyum-analizi`
-- `https://astroguru.app/spirituel-rehberlik`
-- `https://astroguru.app/iletisim`
+- `https://info.astroguru.app/uyum-analizi`
+- `https://info.astroguru.app/spirituel-rehberlik`
+- `https://info.astroguru.app/iletisim`
 
 Yasal sayfalar (dusuk oncelik, sitemap yeterli):
-- `https://astroguru.app/gizlilik`
-- `https://astroguru.app/kullanim-sartlari`
+- `https://info.astroguru.app/gizlilik`
+- `https://info.astroguru.app/kullanim-sartlari`
 
 ## 4.1 Deploy Sonrasi Teknik Smoke Test
 
@@ -93,7 +93,7 @@ Search Console adimlarina gecmeden once:
 
 ```bash
 cd mystic-web
-BASE_URL=https://astroguru.app EXPECTED_SITE_URL=https://astroguru.app pnpm seo:smoke
+BASE_URL=https://info.astroguru.app EXPECTED_SITE_URL=https://info.astroguru.app pnpm seo:smoke
 ```
 
 Bu script, public domainde gercekten `mystic-web` servis edilip edilmedigini ve `robots/sitemap/revalidate` akisinin beklendigi gibi davrandigini kontrol eder.

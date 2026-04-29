@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import * as Haptics from '../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { SafeScreen, TabHeader } from '../components/ui';
+import { openSupportEmail } from '../utils/supportEmail';
 
 export default function HelpScreen() {
   const { t } = useTranslation();
@@ -20,7 +22,16 @@ export default function HelpScreen() {
   const supportEmail = 'support@astroguru.app';
 
   const QUICK_ACTIONS = [
-    { id: 'email', titleKey: 'help.supportEmail', icon: 'mail-outline', action: () => Linking.openURL(`mailto:${supportEmail}`) },
+    {
+      id: 'email',
+      titleKey: 'help.supportEmail',
+      icon: 'mail-outline',
+      action: () => {
+        void openSupportEmail({ email: supportEmail, t });
+      },
+    },
+    { id: 'privacy', titleKey: 'help.privacyPolicy', icon: 'shield-checkmark-outline', action: () => router.push('/privacy') },
+    { id: 'terms', titleKey: 'help.termsOfUse', icon: 'document-text-outline', action: () => router.push('/terms') },
     { id: 'feedback', titleKey: 'help.sendFeedback', icon: 'chatbubble-outline', action: () => Alert.alert(t('help.thanks'), t('help.feedbackComingSoon')) },
     { id: 'rate', titleKey: 'help.rateApp', icon: 'star-outline', action: () => Alert.alert(t('help.comingSoon'), t('help.appStoreComingSoon')) },
   ];
@@ -83,6 +94,11 @@ export default function HelpScreen() {
             ))}
           </View>
 
+          <View style={styles.deleteHintCard}>
+            <Ionicons name="trash-outline" size={16} color={colors.primary} />
+            <Text style={styles.deleteHintText}>{t('help.deleteAccountHint')}</Text>
+          </View>
+
           <Text style={styles.version}>{t('profile.version')} · {supportEmail}</Text>
         </ScrollView>
       </View>
@@ -130,6 +146,23 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     faqQ: { flex: 1, fontSize: 13, fontWeight: '600', color: C.text },
     faqA: { fontSize: 13, color: C.subtext, lineHeight: 20, paddingHorizontal: 16, paddingBottom: 14 },
+    deleteHintCard: {
+      marginTop: 18,
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: C.primarySoft,
+      backgroundColor: C.primarySoftBg,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    deleteHintText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 18,
+      color: C.text,
+    },
     version: { fontSize: 12, color: C.subtext, textAlign: 'center', marginTop: 24 },
   });
 }

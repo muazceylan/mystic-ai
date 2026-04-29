@@ -6,7 +6,7 @@
  * Or point at a local server: BASE_URL=http://localhost:3000 pnpm seo:check
  */
 
-const BASE_URL = process.env.BASE_URL || 'https://astroguru.app';
+const BASE_URL = process.env.BASE_URL || 'https://info.astroguru.app';
 
 const CHECKS = [
   { url: '/', desc: 'TR home' },
@@ -51,6 +51,10 @@ async function checkPage({ url, desc }) {
 
   if (status === 0) {
     fail(`Could not fetch (network error)`);
+    return;
+  }
+  if (url === '/en/blog/natal-harita-nedir-nasil-yorumlanir' && status === 404) {
+    pass('Untranslated EN article is correctly omitted');
     return;
   }
   if (status !== 200) {

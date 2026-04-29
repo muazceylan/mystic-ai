@@ -17,6 +17,12 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class NotificationPreference {
 
+    public static final FrequencyLevel DEFAULT_FREQUENCY_LEVEL = FrequencyLevel.BALANCED;
+    public static final TimeSlot DEFAULT_PREFERRED_TIME_SLOT = TimeSlot.MORNING;
+    public static final LocalTime DEFAULT_QUIET_HOURS_START = LocalTime.of(22, 30);
+    public static final LocalTime DEFAULT_QUIET_HOURS_END = LocalTime.of(8, 0);
+    public static final String DEFAULT_TIMEZONE = "Europe/Istanbul";
+
     @Id
     @Column(name = "user_id")
     private Long userId;
@@ -60,20 +66,20 @@ public class NotificationPreference {
     @Column(name = "frequency_level")
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private FrequencyLevel frequencyLevel = FrequencyLevel.BALANCED;
+    private FrequencyLevel frequencyLevel = DEFAULT_FREQUENCY_LEVEL;
 
     @Column(name = "preferred_time_slot")
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private TimeSlot preferredTimeSlot = TimeSlot.MORNING;
+    private TimeSlot preferredTimeSlot = DEFAULT_PREFERRED_TIME_SLOT;
 
     @Column(name = "quiet_hours_start")
     @Builder.Default
-    private LocalTime quietHoursStart = LocalTime.of(22, 30);
+    private LocalTime quietHoursStart = DEFAULT_QUIET_HOURS_START;
 
     @Column(name = "quiet_hours_end")
     @Builder.Default
-    private LocalTime quietHoursEnd = LocalTime.of(8, 0);
+    private LocalTime quietHoursEnd = DEFAULT_QUIET_HOURS_END;
 
     @Column(name = "push_enabled")
     @Builder.Default
@@ -81,7 +87,7 @@ public class NotificationPreference {
 
     @Column(name = "timezone")
     @Builder.Default
-    private String timezone = "Europe/Istanbul";
+    private String timezone = DEFAULT_TIMEZONE;
 
     @Column(name = "updated_at")
     @Builder.Default
@@ -99,8 +105,46 @@ public class NotificationPreference {
         EVENING
     }
 
+    public boolean applyDefaults() {
+        boolean changed = false;
+
+        if (frequencyLevel == null) {
+            frequencyLevel = DEFAULT_FREQUENCY_LEVEL;
+            changed = true;
+        }
+        if (preferredTimeSlot == null) {
+            preferredTimeSlot = DEFAULT_PREFERRED_TIME_SLOT;
+            changed = true;
+        }
+        if (quietHoursStart == null) {
+            quietHoursStart = DEFAULT_QUIET_HOURS_START;
+            changed = true;
+        }
+        if (quietHoursEnd == null) {
+            quietHoursEnd = DEFAULT_QUIET_HOURS_END;
+            changed = true;
+        }
+        if (timezone == null || timezone.isBlank()) {
+            timezone = DEFAULT_TIMEZONE;
+            changed = true;
+        }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        applyDefaults();
+        this.updatedAt = LocalDateTime.now();
+    }
+
     @PreUpdate
     protected void onUpdate() {
+        applyDefaults();
         this.updatedAt = LocalDateTime.now();
     }
 }

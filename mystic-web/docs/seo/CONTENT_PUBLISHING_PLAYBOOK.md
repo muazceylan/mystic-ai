@@ -35,8 +35,8 @@
 ## Post-Publish Checklist
 
 ### Immediate (0–1 hour)
-- [ ] Article is accessible at `https://astroguru.app/blog/[slug]`
-- [ ] Article is accessible at `https://astroguru.app/en/blog/[slug]` (if EN exists)
+- [ ] Article is accessible at `https://info.astroguru.app/blog/[slug]`
+- [ ] Article is accessible at `https://info.astroguru.app/en/blog/[slug]` (if EN exists)
 - [ ] Article appears on `/blog` listing page
 - [ ] `sitemap.xml` includes the new URL (check manually or via seo:check script)
 
@@ -69,13 +69,13 @@
 After publishing, verify sitemap includes the new URL:
 
 ```bash
-curl -s https://astroguru.app/sitemap.xml | grep "my-new-slug"
+curl -s https://info.astroguru.app/sitemap.xml | grep "my-new-slug"
 ```
 
 Or run the SEO check script against production:
 
 ```bash
-BASE_URL=https://astroguru.app pnpm seo:check
+BASE_URL=https://info.astroguru.app pnpm seo:check
 ```
 
 ---

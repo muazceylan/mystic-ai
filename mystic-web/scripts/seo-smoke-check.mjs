@@ -8,11 +8,11 @@
  * Examples:
  *   pnpm seo:smoke
  *   BASE_URL=http://localhost:3000 pnpm seo:smoke
- *   BASE_URL=https://astroguru.app EXPECTED_SITE_URL=https://astroguru.app pnpm seo:smoke
- *   BASE_URL=https://astroguru.app REVALIDATION_SECRET=... pnpm seo:smoke
+ *   BASE_URL=https://info.astroguru.app EXPECTED_SITE_URL=https://info.astroguru.app pnpm seo:smoke
+ *   BASE_URL=https://info.astroguru.app REVALIDATION_SECRET=... pnpm seo:smoke
  */
 
-const BASE_URL = (process.env.BASE_URL || 'https://astroguru.app').replace(/\/+$/, '');
+const BASE_URL = (process.env.BASE_URL || 'https://info.astroguru.app').replace(/\/+$/, '');
 const EXPECTED_SITE_URL = (process.env.EXPECTED_SITE_URL || BASE_URL).replace(/\/+$/, '');
 const REVALIDATION_SECRET = process.env.REVALIDATION_SECRET || '';
 
@@ -194,7 +194,24 @@ async function checkBlogListing(path, seedSlug) {
   expectStatus(response, 200, label);
   expectHeaderIncludes(response, 'content-type', 'text/html', label);
   expectContains(response.text, /blog/i, `${label}: blog heading present`);
-  expectContains(response.text, seedSlug, `${label}: seed/fallback content reachable`);
+  if (seedSlug) {
+    expectContains(response.text, seedSlug, `${label}: localized content reachable`);
+  }
+  expectNotContains(response.text, /internal server error/i, `${label}: no server error text`);
+}
+
+async function checkOptionalLocalizedArticle(path) {
+  const response = await request(path);
+  const label = `Localized article ${path}`;
+
+  if (response.status === 404) {
+    pass(`${label}: untranslated locale variant correctly returns 404`);
+    return;
+  }
+
+  expectStatus(response, 200, label);
+  expectHeaderIncludes(response, 'content-type', 'text/html', label);
+  expectContains(response.text, /application\/ld\+json/i, `${label}: structured data present`);
   expectNotContains(response.text, /internal server error/i, `${label}: no server error text`);
 }
 
@@ -250,7 +267,8 @@ async function main() {
   await checkImage('/logo.png', 'image/png', 'logo.png');
   await checkImage('/opengraph-image', 'image/png', 'opengraph-image');
   await checkBlogListing('/blog', 'natal-harita-nedir-nasil-yorumlanir');
-  await checkBlogListing('/en/blog', 'natal-harita-nedir-nasil-yorumlanir');
+  await checkBlogListing('/en/blog', null);
+  await checkOptionalLocalizedArticle('/en/blog/natal-harita-nedir-nasil-yorumlanir');
   await checkRevalidateRoute();
 
   console.log('');

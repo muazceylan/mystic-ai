@@ -118,7 +118,7 @@ export default function EsmaListScreen() {
 
         <AppHeader
           title={tl('spiritual.esma.title')}
-          onBack={() => router.back()}
+         
           rightActions={<HeaderRightIcons tintColor={TEXT} />}
           tintColor={TEXT}
         />

@@ -55,8 +55,10 @@ const FEATURE_PATHS = new Set([
 const LEGAL_PATHS = new Set([
   '/gizlilik',
   '/kullanim-sartlari',
+  '/account-deletion',
   '/en/privacy',
   '/en/terms',
+  '/en/account-deletion',
 ]);
 
 const SUPPORT_PATHS = new Set(['/iletisim', '/en/contact']);

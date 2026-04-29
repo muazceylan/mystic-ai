@@ -47,10 +47,10 @@
 ## After Publishing a New Blog Post
 
 1. Go to Search Console → URL Inspection
-2. Enter full URL (e.g. `https://astroguru.app/blog/my-new-post`)
+2. Enter full URL (e.g. `https://info.astroguru.app/blog/my-new-post`)
 3. Click "Request Indexing"
 4. Wait 24–72h, re-inspect
-5. Also request the EN counterpart: `https://astroguru.app/en/blog/my-new-post`
+5. Also request the EN counterpart: `https://info.astroguru.app/en/blog/my-new-post`
 
 ## Sitemap Resubmission
 

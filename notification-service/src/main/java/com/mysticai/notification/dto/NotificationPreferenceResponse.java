@@ -32,12 +32,42 @@ public record NotificationPreferenceResponse(
                 p.isDreamReminderEnabled(),
                 p.isEveningCheckinEnabled(),
                 p.isProductUpdatesEnabled(),
-                p.getFrequencyLevel().name(),
-                p.getPreferredTimeSlot().name(),
-                p.getQuietHoursStart().toString(),
-                p.getQuietHoursEnd().toString(),
+                frequencyLevel(p).name(),
+                preferredTimeSlot(p).name(),
+                quietHoursStart(p),
+                quietHoursEnd(p),
                 p.isPushEnabled(),
-                p.getTimezone()
+                timezone(p)
         );
+    }
+
+    private static NotificationPreference.FrequencyLevel frequencyLevel(NotificationPreference p) {
+        return p.getFrequencyLevel() != null
+                ? p.getFrequencyLevel()
+                : NotificationPreference.DEFAULT_FREQUENCY_LEVEL;
+    }
+
+    private static NotificationPreference.TimeSlot preferredTimeSlot(NotificationPreference p) {
+        return p.getPreferredTimeSlot() != null
+                ? p.getPreferredTimeSlot()
+                : NotificationPreference.DEFAULT_PREFERRED_TIME_SLOT;
+    }
+
+    private static String quietHoursStart(NotificationPreference p) {
+        return (p.getQuietHoursStart() != null
+                ? p.getQuietHoursStart()
+                : NotificationPreference.DEFAULT_QUIET_HOURS_START).toString();
+    }
+
+    private static String quietHoursEnd(NotificationPreference p) {
+        return (p.getQuietHoursEnd() != null
+                ? p.getQuietHoursEnd()
+                : NotificationPreference.DEFAULT_QUIET_HOURS_END).toString();
+    }
+
+    private static String timezone(NotificationPreference p) {
+        return p.getTimezone() != null && !p.getTimezone().isBlank()
+                ? p.getTimezone()
+                : NotificationPreference.DEFAULT_TIMEZONE;
     }
 }

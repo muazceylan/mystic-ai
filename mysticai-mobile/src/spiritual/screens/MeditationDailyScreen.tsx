@@ -53,7 +53,7 @@ export default function MeditationDailyScreen() {
 
   return (
     <SafeScreen scroll>
-      <AppHeader title={t('spiritual.meditationDaily.title')} onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
+      <AppHeader title={t('spiritual.meditationDaily.title')} rightActions={<HeaderRightIcons />} />
 
       <Card variant="elevated">
         <View style={s.titleRow}>

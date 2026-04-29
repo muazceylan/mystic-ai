@@ -1,6 +1,6 @@
 # Production SEO QA Checklist
 
-**Proje:** mystic-web (astroguru.app)
+**Proje:** mystic-web (info.astroguru.app)
 **Tarih:** 2026-04-18
 **Durum:** Deploy oncesi QA tamamlandi
 
@@ -67,62 +67,65 @@
 
 ## 2. Post-Deploy Checklist
 
-Deploy sonrasi asagidaki kontrolleri production URL uzerinden yapin.
+Deploy sonrasi asagidaki kontrolleri `info.astroguru.app` uzerinden yapin. Root host `astroguru.app` uygulama shell'i oldugu icin SEO kontrolleri oradan yapilmamali.
 
 ### 2.1 URL Erisilebilirlik
 
 ```bash
 # Her sayfa 200 donmeli
-curl -sI https://astroguru.app/ | head -1
-curl -sI https://astroguru.app/astroloji | head -1
-curl -sI https://astroguru.app/numeroloji | head -1
-curl -sI https://astroguru.app/ruya-yorumu | head -1
-curl -sI https://astroguru.app/uyum-analizi | head -1
-curl -sI https://astroguru.app/spirituel-rehberlik | head -1
-curl -sI https://astroguru.app/gizlilik | head -1
-curl -sI https://astroguru.app/kullanim-sartlari | head -1
-curl -sI https://astroguru.app/iletisim | head -1
+curl -sI https://info.astroguru.app/ | head -1
+curl -sI https://info.astroguru.app/astroloji | head -1
+curl -sI https://info.astroguru.app/numeroloji | head -1
+curl -sI https://info.astroguru.app/ruya-yorumu | head -1
+curl -sI https://info.astroguru.app/uyum-analizi | head -1
+curl -sI https://info.astroguru.app/spirituel-rehberlik | head -1
+curl -sI https://info.astroguru.app/gizlilik | head -1
+curl -sI https://info.astroguru.app/kullanim-sartlari | head -1
+curl -sI https://info.astroguru.app/iletisim | head -1
 ```
 
 ### 2.2 SEO Dosya Dogrulama
 
 ```bash
 # robots.txt dogru mu
-curl -s https://astroguru.app/robots.txt
+curl -s https://info.astroguru.app/robots.txt
 
 # sitemap.xml dogru mu
-curl -s https://astroguru.app/sitemap.xml
+curl -s https://info.astroguru.app/sitemap.xml
 
 # ads.txt dogru mu
-curl -s https://astroguru.app/ads.txt
+curl -s https://info.astroguru.app/ads.txt
 
 # OG image render ediyor mu
-curl -sI https://astroguru.app/opengraph-image | head -5
+curl -sI https://info.astroguru.app/opengraph-image | head -5
 ```
 
 ### 2.3 Redirect Kontrolleri
 
 ```bash
-# www → non-www redirect (301 beklenir)
+# www → root host redirect (301 beklenir)
 curl -sI https://www.astroguru.app/ | grep -i location
 
 # HTTP → HTTPS redirect (301 beklenir)
 curl -sI http://astroguru.app/ | grep -i location
+
+# legacy SEO path → info subdomain redirect (301 beklenir)
+curl -sI https://astroguru.app/astroloji | grep -i location
 ```
 
 ### 2.4 Meta Tag Kontrolleri
 
 ```bash
 # Landing page meta taglari
-curl -s https://astroguru.app/ | grep -oE '<title>[^<]+</title>'
-curl -s https://astroguru.app/ | grep -oE '<link rel="canonical" href="[^"]+"'
-curl -s https://astroguru.app/ | grep -oE '<meta property="og:image" content="[^"]+"'
+curl -s https://info.astroguru.app/ | grep -oE '<title>[^<]+</title>'
+curl -s https://info.astroguru.app/ | grep -oE '<link rel="canonical" href="[^"]+"'
+curl -s https://info.astroguru.app/ | grep -oE '<meta property="og:image" content="[^"]+"'
 ```
 
 ### 2.5 Security Header Kontrolleri
 
 ```bash
-curl -sI https://astroguru.app/ | grep -iE 'x-content-type|x-frame|referrer-policy'
+curl -sI https://info.astroguru.app/ | grep -iE 'x-content-type|x-frame|referrer-policy'
 ```
 
 ### 2.6 Arac Dogrulama

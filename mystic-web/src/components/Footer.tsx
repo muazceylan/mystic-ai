@@ -77,6 +77,11 @@ export function Footer() {
                   Kullanim Sartlari
                 </Link>
               </li>
+              <li>
+                <Link href="/account-deletion" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+                  Hesap Silme
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

@@ -5,7 +5,6 @@ import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions
 import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 import { COLORS } from '../../constants/colors';
-import { TYPOGRAPHY } from '../../constants/tokens';
 import { NAV_ICONS, type IoniconName } from '../../constants/icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -28,6 +27,8 @@ const WEB_SIDEBAR_BREAKPOINT = 900;
 const WEB_SIDEBAR_EXPANDED_BREAKPOINT = 1220;
 const WEB_SIDEBAR_GAP = 20;
 const WEB_BRAND_ICON = require('../../../assets/icon.png');
+const IOS_TAB_BAR_BASE_HEIGHT = 68;
+const ANDROID_TAB_BAR_BASE_HEIGHT = 76;
 
 type WebSidebarItemKey = 'home' | 'discover' | 'calendar' | 'natal-chart' | 'notifications';
 type WebSidebarVisualKey = WebSidebarItemKey | 'profile';
@@ -143,6 +144,97 @@ function getInitials(displayName: string): string {
     .join('');
 }
 
+function PremiumTabItemVisual({
+  activeIcon,
+  color,
+  focused,
+  inactiveIcon,
+  isDark,
+  label,
+  itemOffsetX = 0,
+}: {
+  activeIcon: IoniconName;
+  color: string;
+  focused: boolean;
+  inactiveIcon: IoniconName;
+  isDark: boolean;
+  label: string;
+  itemOffsetX?: number;
+}) {
+  const iconName = focused ? activeIcon : inactiveIcon;
+  const activeChipGradient: readonly [string, string] = isDark
+    ? ['rgba(192,132,252,0.20)', 'rgba(168,85,247,0.07)']
+    : ['rgba(255,255,255,0.95)', 'rgba(247,243,252,0.76)'];
+  const activeChipBorder = isDark ? 'rgba(192,132,252,0.24)' : 'rgba(157,78,221,0.14)';
+  const activeChipInnerBorder = isDark ? 'rgba(233,213,255,0.12)' : 'rgba(255,255,255,0.72)';
+  const activeGlow = isDark ? 'rgba(168,85,247,0.14)' : 'rgba(157,78,221,0.08)';
+  const indicatorColor = isDark ? 'rgba(192,132,252,0.92)' : 'rgba(157,78,221,0.88)';
+  const inactiveLabelColor = isDark ? 'rgba(212,220,236,0.72)' : 'rgba(91,98,120,0.78)';
+  const iconShellBackground = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.12)';
+  const iconSize = focused ? 18 : 21;
+
+  return (
+    <View
+      style={[
+        layoutStyles.premiumTabItem,
+        focused && layoutStyles.premiumTabItemFocused,
+        itemOffsetX !== 0 && { transform: [{ translateX: itemOffsetX }] },
+      ]}
+    >
+      <View style={[layoutStyles.premiumTabIconWrap, focused && layoutStyles.premiumTabIconWrapFocused]}>
+        {focused ? (
+          <>
+            <View style={[layoutStyles.premiumTabIconGlow, { backgroundColor: activeGlow }]} />
+            <LinearGradient
+              colors={activeChipGradient}
+              start={{ x: 0.15, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={[
+                layoutStyles.premiumTabIconChip,
+                {
+                  borderColor: activeChipBorder,
+                  shadowColor: isDark ? COLORS.themeDarkPrimary700 : COLORS.primary700,
+                },
+              ]}
+            >
+              <View
+                pointerEvents="none"
+                style={[
+                  layoutStyles.premiumTabIconChipInnerBorder,
+                  { borderColor: activeChipInnerBorder },
+                ]}
+              />
+              <Ionicons name={iconName} size={iconSize} color={color} />
+            </LinearGradient>
+          </>
+        ) : (
+          <View style={[layoutStyles.premiumTabIconPlain, { backgroundColor: iconShellBackground }]}>
+            <Ionicons name={iconName} size={iconSize} color={color} />
+          </View>
+        )}
+      </View>
+
+      <Text
+        numberOfLines={1}
+        style={[
+          layoutStyles.premiumTabLabel,
+          { color: focused ? color : inactiveLabelColor },
+          focused && layoutStyles.premiumTabLabelFocused,
+        ]}
+      >
+        {label}
+      </Text>
+
+      <View
+        style={[
+          layoutStyles.premiumTabIndicator,
+          { backgroundColor: indicatorColor, opacity: focused ? 1 : 0 },
+        ]}
+      />
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -179,31 +271,38 @@ export default function TabsLayout() {
     [i18n.language, i18n.resolvedLanguage],
   );
   const bottomInset = Math.max(insets.bottom, isWeb ? webViewportBottomInset : 0);
-  const iosTabBarHeight = 54 + bottomInset;
+  const iosTabBarHeight = IOS_TAB_BAR_BASE_HEIGHT + bottomInset;
   const iosTabBarPaddingBottom = Math.max(4, bottomInset - 2);
+  const androidTabBarHeight = ANDROID_TAB_BAR_BASE_HEIGHT + bottomInset;
   const tabBarShellGradient: readonly [string, string] = isDark
     ? (
         isAndroid
-          ? ['#161A27', '#0F1320']
+          ? ['rgba(16,20,31,0.98)', 'rgba(11,15,25,0.96)']
           : [
-              Platform.OS === 'web' ? 'rgba(17,22,33,0.88)' : 'rgba(20,18,40,0.36)',
-              Platform.OS === 'web' ? 'rgba(17,22,33,0.72)' : 'rgba(20,18,40,0.14)',
+              Platform.OS === 'web' ? 'rgba(17,22,33,0.94)' : 'rgba(13,18,30,0.82)',
+              Platform.OS === 'web' ? 'rgba(9,13,23,0.88)' : 'rgba(10,14,24,0.72)',
             ]
       )
     : (
         isAndroid
-          ? ['#FFFFFF', '#F5F1FF']
+          ? ['rgba(255,255,255,0.99)', 'rgba(245,240,251,0.98)']
           : [
-              Platform.OS === 'web' ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.72)',
-              Platform.OS === 'web' ? 'rgba(249,247,255,0.82)' : 'rgba(248,244,255,0.38)',
+              Platform.OS === 'web' ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.88)',
+              Platform.OS === 'web' ? 'rgba(248,244,255,0.92)' : 'rgba(245,241,251,0.78)',
             ]
       );
-  const tabBarAccentTint = isDark
-    ? (isAndroid ? 'rgba(117,98,199,0.02)' : (Platform.OS === 'ios' ? 'rgba(138,118,220,0.062)' : 'rgba(117,98,199,0.05)'))
-    : (isAndroid ? 'rgba(145,108,234,0.02)' : (Platform.OS === 'ios' ? 'rgba(172,148,252,0.072)' : 'rgba(145,108,234,0.040)'));
-  const tabBarTopLine = isDark
-    ? (isAndroid ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)')
-    : (isAndroid ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.82)');
+  const tabBarTopLine = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.58)';
+  const tabBarSurfaceStroke = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(157,78,221,0.05)';
+  const tabBarSurfaceShadow = isDark ? '#020617' : '#5B3BB4';
+  const tabBarSheenGradient: readonly [string, string, string] = isDark
+    ? ['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.01)', 'rgba(255,255,255,0.00)']
+    : ['rgba(255,255,255,0.44)', 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.00)'];
+  const tabBarBackplateGradient: readonly [string, string] = isDark
+    ? ['#09111E', '#060B16']
+    : ['rgba(255,255,255,0.00)', 'rgba(255,255,255,0.00)'];
+  const tabBarSurfaceInset = Platform.OS === 'ios' ? 12 : 10;
+  const tabBarSurfaceTopInset = 12;
+  const tabBarSurfaceBottomInset = Platform.OS === 'ios' ? Math.max(8, bottomInset * 0.32 + 4) : Math.max(6, bottomInset * 0.18 + 4);
   const showWebSidebar = isWeb && windowWidth >= WEB_SIDEBAR_BREAKPOINT;
   const isExpandedWebSidebar = showWebSidebar && windowWidth >= WEB_SIDEBAR_EXPANDED_BREAKPOINT;
   const webSidebarWidth = showWebSidebar ? (isExpandedWebSidebar ? 286 : 96) : 0;
@@ -402,7 +501,22 @@ export default function TabsLayout() {
   );
 
   const tabBarHeight =
-    showWebSidebar ? 0 : (Platform.OS === 'ios' ? iosTabBarHeight : 64 + bottomInset);
+    showWebSidebar ? 0 : (Platform.OS === 'ios' ? iosTabBarHeight : androidTabBarHeight);
+
+  const renderTabBarVisual = useCallback(
+    (label: string, activeIcon: IoniconName, inactiveIcon: IoniconName, itemOffsetX = 0) => ({ color, focused }: { color: string; focused: boolean }) => (
+      <PremiumTabItemVisual
+        activeIcon={activeIcon}
+        color={color}
+        focused={focused}
+        inactiveIcon={inactiveIcon}
+        isDark={isDark}
+        label={label}
+        itemOffsetX={itemOffsetX}
+      />
+    ),
+    [isDark],
+  );
 
   return (
     <View style={layoutStyles.root}>
@@ -453,170 +567,118 @@ export default function TabsLayout() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: isAndroid ? colors.tabBarBg : 'transparent',
+              backgroundColor: isAndroid ? colors.tabBarBg : (isDark ? colors.bg : 'transparent'),
               borderTopWidth: 0,
-              height: Platform.OS === 'ios' ? iosTabBarHeight : 64 + bottomInset,
+              height: Platform.OS === 'ios' ? iosTabBarHeight : androidTabBarHeight,
               paddingBottom: Platform.OS === 'ios' ? iosTabBarPaddingBottom : Math.max(4, bottomInset),
-              paddingTop: 6,
+              paddingTop: 14,
               borderRadius: 0,
               overflow: 'hidden',
               elevation: Platform.OS === 'android' ? 4 : 0,
             },
-        tabBarItemStyle: { flex: 1, minWidth: 0 },
+        tabBarItemStyle: {
+          flex: 1,
+          minWidth: 0,
+          justifyContent: 'center',
+          paddingTop: Platform.OS === 'ios' ? 6 : 4,
+          paddingBottom: 4,
+        },
         tabBarBackground: () => (showWebSidebar ? null : (
           <View
             pointerEvents="none"
             style={{
               flex: 1,
-              overflow: 'hidden',
-              borderTopWidth: 1,
-              borderColor: colors.tabBarBorder,
-              backgroundColor: isAndroid ? colors.tabBarBg : 'transparent',
+              overflow: 'visible',
+              backgroundColor: isDark ? colors.bg : 'transparent',
             }}
           >
-            {Platform.OS !== 'web' && !isAndroid ? (
-              <BlurView
-                intensity={Platform.OS === 'ios' ? (isDark ? 78 : 110) : 38}
-                tint={isDark ? 'dark' : 'light'}
-                experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-                style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-              />
-            ) : null}
-            {Platform.OS === 'ios' ? (
+            {isDark ? (
               <LinearGradient
-                colors={
-                  isDark
-                    ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.03)', 'rgba(255,255,255,0.00)']
-                    : ['rgba(255,255,255,0.96)', 'rgba(255,255,255,0.54)', 'rgba(255,255,255,0.00)']
-                }
+                colors={tabBarBackplateGradient}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 28 }}
-              />
-            ) : null}
-            <LinearGradient
-              colors={tabBarShellGradient}
-              style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-            />
-            <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-                backgroundColor: tabBarAccentTint,
-              }}
-            />
-            {Platform.OS === 'ios' ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -10,
-                  left: 24,
-                  width: 150,
-                  height: 48,
-                  borderRadius: 28,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.34)',
-                }}
+                style={layoutStyles.tabBarAbsoluteFill}
               />
             ) : null}
             <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 14,
-                right: 14,
-                height: 1,
-                backgroundColor: tabBarTopLine,
-              }}
+              style={[
+                layoutStyles.tabBarSurfaceShadow,
+                {
+                  top: tabBarSurfaceTopInset + 4,
+                  left: tabBarSurfaceInset,
+                  right: tabBarSurfaceInset,
+                  bottom: tabBarSurfaceBottomInset - 1,
+                  shadowColor: tabBarSurfaceShadow,
+                },
+              ]}
             />
-            {Platform.OS === 'ios' ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 10,
-                  right: 10,
-                  top: 6,
-                  height: 12,
-                  borderRadius: 10,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.44)',
-                }}
+            <View
+              style={[
+                layoutStyles.tabBarSurface,
+                {
+                  top: tabBarSurfaceTopInset,
+                  left: tabBarSurfaceInset,
+                  right: tabBarSurfaceInset,
+                  bottom: tabBarSurfaceBottomInset,
+                  borderColor: colors.tabBarBorder,
+                  backgroundColor: isAndroid ? colors.tabBarBg : (isDark ? 'rgba(10,16,28,0.76)' : 'transparent'),
+                },
+              ]}
+            >
+              {Platform.OS !== 'web' && !isAndroid ? (
+                <BlurView
+                  intensity={Platform.OS === 'ios' ? (isDark ? 80 : 112) : 40}
+                  tint={isDark ? 'dark' : 'light'}
+                  experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+                  style={layoutStyles.tabBarAbsoluteFill}
+                />
+              ) : null}
+              <LinearGradient
+                colors={tabBarShellGradient}
+                style={layoutStyles.tabBarAbsoluteFill}
               />
-            ) : null}
-            {Platform.OS === 'ios' ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 12,
-                  right: 12,
-                  bottom: 8,
-                  height: 18,
-                  borderRadius: 12,
-                  backgroundColor: isDark ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.18)',
-                }}
+              <LinearGradient
+                colors={tabBarSheenGradient}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={layoutStyles.tabBarSheen}
               />
-            ) : null}
+              <View style={[layoutStyles.tabBarTopRim, { backgroundColor: tabBarTopLine }]} />
+              <View style={[layoutStyles.tabBarInnerStroke, { borderColor: tabBarSurfaceStroke }]} />
+            </View>
           </View>
         )),
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
-        tabBarLabelStyle: {
-          ...TYPOGRAPHY.CaptionSmall,
-          marginTop: Platform.OS === 'ios' ? -2 : 0,
-        },
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: t('tabs.home'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? NAV_ICONS.home.active : NAV_ICONS.home.inactive}
-              size={24}
-              color={color}
-            />
-          ),
+          tabBarIcon: renderTabBarVisual(t('tabs.home'), NAV_ICONS.home.active, NAV_ICONS.home.inactive, 4),
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
           title: t('tabs.discover'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? NAV_ICONS.discover.active : NAV_ICONS.discover.inactive}
-              size={24}
-              color={color}
-            />
-          ),
+          tabBarIcon: renderTabBarVisual(t('tabs.discover'), NAV_ICONS.discover.active, NAV_ICONS.discover.inactive),
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
           title: t('tabs.calendar'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? NAV_ICONS.calendar.active : NAV_ICONS.calendar.inactive}
-              size={24}
-              color={color}
-            />
-          ),
+          tabBarIcon: renderTabBarVisual(t('tabs.calendar'), NAV_ICONS.calendar.active, NAV_ICONS.calendar.inactive),
         }}
       />
       <Tabs.Screen
         name="natal-chart"
         options={{
           title: t('tabs.natalChart'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? NAV_ICONS.natalChart.active : NAV_ICONS.natalChart.inactive}
-              size={24}
-              color={color}
-            />
-          ),
+          tabBarIcon: renderTabBarVisual(t('tabs.natalChart'), NAV_ICONS.natalChart.active, NAV_ICONS.natalChart.inactive),
         }}
       />
       <Tabs.Screen
@@ -693,13 +755,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: t('tabs.profile'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? NAV_ICONS.profile.active : NAV_ICONS.profile.inactive}
-              size={24}
-              color={color}
-            />
-          ),
+          tabBarIcon: renderTabBarVisual(t('tabs.profile'), NAV_ICONS.profile.active, NAV_ICONS.profile.inactive),
         }}
       />
       <Tabs.Screen
@@ -1209,8 +1265,123 @@ const layoutStyles = StyleSheet.create({
     opacity: 0,
     zIndex: -1,
   },
+  premiumTabItem: {
+    width: 70,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 10,
+  },
+  premiumTabItemFocused: {
+    transform: [{ translateY: 0 }],
+  },
+  premiumTabIconWrap: {
+    width: 48,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumTabIconWrapFocused: {
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  premiumTabIconGlow: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+  },
+  premiumTabIconChip: {
+    width: 34,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  premiumTabIconChipInnerBorder: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    bottom: 1,
+    left: 1,
+    borderRadius: 13,
+    borderWidth: 1,
+  },
+  premiumTabIconPlain: {
+    width: 34,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumTabLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 14,
+    letterSpacing: 0.1,
+    marginTop: 2,
+  },
+  premiumTabLabelFocused: {
+    fontWeight: '800',
+  },
+  premiumTabIndicator: {
+    width: 18,
+    height: 3,
+    borderRadius: 999,
+    marginTop: 6,
+  },
   webTabBarHidden: {
     display: 'none',
+  },
+  tabBarAbsoluteFill: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  tabBarSurfaceShadow: {
+    position: 'absolute',
+    borderRadius: 28,
+    backgroundColor: 'transparent',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  tabBarSurface: {
+    position: 'absolute',
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  tabBarSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 18,
+  },
+  tabBarTopRim: {
+    position: 'absolute',
+    top: 0,
+    left: 18,
+    right: 18,
+    height: 1,
+  },
+  tabBarInnerStroke: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    bottom: 1,
+    left: 1,
+    borderRadius: 27,
+    borderWidth: 1,
   },
   webSidebarFrame: {
     position: 'absolute',

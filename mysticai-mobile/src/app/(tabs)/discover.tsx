@@ -8,7 +8,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +39,7 @@ import {
   type AppConfig,
 } from '../../services/appConfig.service';
 import { useAppConfigStore } from '../../store/useAppConfigStore';
+import { navigateWithOrigin } from '../../navigation';
 
 const HIT_SLOP = { top: 8, right: 8, bottom: 8, left: 8 };
 const VISIBLE_CATEGORY_LIMIT = 5;
@@ -332,7 +332,6 @@ function PremiumModuleBadge({
 export function DiscoverScreenContent() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
-  const router = useRouter();
   const appConfig = useAppConfigStore((s) => s.config);
   const [query, setQuery] = useState('');
   const [expandedMap, setExpandedMap] = useState<Partial<Record<string, boolean>>>({});
@@ -438,14 +437,7 @@ export function DiscoverScreenContent() {
 
   const openRoute = (route: string) => {
     const normalizedRoute = route === '/decision-compass' ? DECISION_COMPASS_TAB_ROUTE : route;
-    if (normalizedRoute.startsWith('/') && !normalizedRoute.includes('?') && !normalizedRoute.includes('#')) {
-      router.push({
-        pathname: normalizedRoute as never,
-        params: { from: '/(tabs)/discover' },
-      } as never);
-      return;
-    }
-    router.push(normalizedRoute as never);
+    navigateWithOrigin({ pathname: normalizedRoute, from: '/(tabs)/discover' });
   };
 
   const handleModuleClick = (module: DiscoverModule, surface: DiscoverSurface) => {

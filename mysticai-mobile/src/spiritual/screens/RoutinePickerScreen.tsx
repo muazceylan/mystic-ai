@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import { platformColor } from '../../theme';
@@ -15,6 +16,7 @@ import type { CustomSet, SpiritualItemType } from '../types';
 
 export default function RoutinePickerScreen() {
   const { t } = useTranslation();
+  const goBack = useBackNavigation();
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark);
 
@@ -94,7 +96,7 @@ export default function RoutinePickerScreen() {
     <SafeScreen>
       {/* Header */}
       <View style={S.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={S.backBtn}>
+        <Pressable onPress={goBack} hitSlop={12} style={S.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
         <Text style={S.headerTitle}>{t('spiritual.routinePicker.headerTitle')}</Text>

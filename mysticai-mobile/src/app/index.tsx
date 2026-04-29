@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuthStore } from '../store/useAuthStore';
 import { needsOnboarding } from '../utils/authOnboarding';
+import BrandHomeWebScreen from '../screens/BrandHomeWebScreen';
 
 export default function Index() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -14,6 +16,10 @@ export default function Index() {
     });
     return unsubscribe;
   }, []);
+
+  if (Platform.OS === 'web') {
+    return <BrandHomeWebScreen />;
+  }
 
   if (!isHydrated) {
     return null;

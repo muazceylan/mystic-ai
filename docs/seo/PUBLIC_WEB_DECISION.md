@@ -1,14 +1,21 @@
 # Public Web SEO Mimari Karar Dokumani
 
 **Tarih:** 2026-04-17
-**Durum:** Karar bekliyor
-**Domain:** `https://astroguru.app`
+**Durum:** Uygulandi
+**SEO Domain:** `https://info.astroguru.app`
+**App Domain:** `https://astroguru.app`
 
 ---
 
 ## Problem
 
-`astroguru.app` domain'i icin Google'da gorunecek public SEO web varligi henuz mevcut degil. Mobil uygulama app store'lardan indiriliyor, ancak organik arama trafigi icin web yuzeyi gerekli.
+Ana uygulama root host'ta kalirken, Google'da gorunecek public SEO web yuzeyinin ayri bir host'ta yasamasi gerekiyor. Bu repo icinde SEO web `mystic-web` ile sunuluyor; root domain ise mobile web shell / app girisi olarak kullaniliyor.
+
+## Guncel Karar
+
+- `astroguru.app` -> ana uygulama / mobile web shell
+- `info.astroguru.app` -> `mystic-web` SEO/public web
+- legacy SEO URL'leri `301` ile `info.astroguru.app`'a tasinir
 
 ## Secenekler
 
@@ -107,7 +114,7 @@ Gerekce:
 ## Sonraki Adimlar (Karar sonrasi)
 
 1. `mystic-web/` Next.js App Router projesi olustur
-2. `metadataBase: 'https://astroguru.app'` ayarla
+2. `metadataBase: 'https://info.astroguru.app'` ayarla
 3. `robots.ts` — public route'lar index, private route'lar noindex
 4. `sitemap.ts` — CMS icerik URL'leri dahil dynamic sitemap
 5. Landing page + burc/numeroloji SEO sayfalari

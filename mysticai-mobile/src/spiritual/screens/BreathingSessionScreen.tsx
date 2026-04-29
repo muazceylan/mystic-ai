@@ -8,6 +8,7 @@ import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { SafeScreen, AppHeader, HeaderRightIcons } from '../../components/ui';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 import { BreathTimer } from '../components/BreathTimer';
 import { platformColor } from '../../theme';
 
@@ -23,6 +24,7 @@ export default function BreathingSessionScreen() {
   const technique = useContentStore().getBreathingById(id ?? '');
   const addEntry = useJournalStore((s) => s.addEntry);
   const s = makeStyles(colors, isDark);
+  const goBack = useBackNavigation();
 
   const [duration, setDuration] = useState(
     technique?.defaultDurationSec ?? 240,
@@ -64,14 +66,14 @@ export default function BreathingSessionScreen() {
         >
           <AppHeader
             title={t('spiritual.breathing.title')}
-            onBack={() => router.back()}
+           
             transparent
             rightActions={<HeaderRightIcons />}
           />
           <View style={s.errorWrap}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
             <Text style={s.errorText}>{t('spiritual.breathing.notFound')}</Text>
-            <Pressable style={s.backBtn} onPress={() => router.back()}>
+            <Pressable style={s.backBtn} onPress={goBack}>
               <Text style={s.backBtnText}>{t('spiritual.breathing.goBack')}</Text>
             </Pressable>
           </View>
@@ -97,7 +99,7 @@ export default function BreathingSessionScreen() {
             </Text>
             <Pressable
               style={s.doneBtn}
-              onPress={() => router.back()}
+              onPress={goBack}
             >
               <Text style={s.doneBtnText}>{t('spiritual.breathing.done')}</Text>
             </Pressable>
@@ -115,7 +117,7 @@ export default function BreathingSessionScreen() {
       >
         <AppHeader
           title={technique.titleTr}
-          onBack={() => router.back()}
+         
           transparent
           rightActions={<HeaderRightIcons />}
         />

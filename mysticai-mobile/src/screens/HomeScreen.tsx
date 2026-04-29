@@ -35,6 +35,7 @@ import {
 import { radius, shadowSubtle, spacing, typography } from '../theme';
 import { useTheme, type ThemeColors } from '../context/ThemeContext';
 import { MODULE_ICONS, ACTION_ICONS } from '../constants/icons';
+import { navigateWithOrigin } from '../navigation';
 
 const HOME_VARIANT = 'premium_v3';
 const NIGHT_SKY_ROUTE = '/night-sky';
@@ -482,18 +483,22 @@ export default function HomeScreen() {
 
   const pushRoute = useCallback(
     (route: string) => {
-      router.push(route as never);
+      navigateWithOrigin({ pathname: route, from: '/(tabs)/home' });
     },
-    [router],
+    [],
   );
 
   const notifNavigatingRef = useRef(false);
   const handlePressNotifications = useCallback(() => {
     if (notifNavigatingRef.current) return;
     notifNavigatingRef.current = true;
-    router.navigate(NOTIFICATIONS_ROUTE as never);
+    navigateWithOrigin({
+      pathname: NOTIFICATIONS_ROUTE,
+      from: '/(tabs)/home',
+      method: 'navigate',
+    });
     setTimeout(() => { notifNavigatingRef.current = false; }, 600);
-  }, [router]);
+  }, []);
 
   const handlePressTutorialHelp = useCallback(() => {
     void reopenTutorialById(TUTORIAL_IDS.HOME_FOUNDATION, 'home');

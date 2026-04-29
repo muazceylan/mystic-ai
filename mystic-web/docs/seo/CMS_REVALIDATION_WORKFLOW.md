@@ -4,7 +4,7 @@
 
 This site uses Next.js ISR (Incremental Static Regeneration). Pages are cached and served statically, with on-demand revalidation via webhook.
 
-**Endpoint:** `POST https://astroguru.app/api/revalidate`
+**Endpoint:** `POST https://info.astroguru.app/api/revalidate`
 
 **Authentication:** `x-revalidation-secret` header must match `REVALIDATION_SECRET` env var.
 
@@ -88,7 +88,7 @@ x-revalidation-secret: <secret>
 Configure your CMS (Strapi, Contentful, custom) to call:
 
 ```
-POST https://astroguru.app/api/revalidate
+POST https://info.astroguru.app/api/revalidate
 Content-Type: application/json
 x-revalidation-secret: <your-secret>
 

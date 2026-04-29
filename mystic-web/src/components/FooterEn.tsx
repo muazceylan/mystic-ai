@@ -77,6 +77,11 @@ export function FooterEn() {
                   Terms of Use
                 </Link>
               </li>
+              <li>
+                <Link href="/en/account-deletion" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+                  Account Deletion
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

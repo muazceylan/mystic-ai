@@ -216,6 +216,11 @@ const numerologyForceUnlockAllSections = asBool(process.env.EXPO_PUBLIC_NUMEROLO
 const admobUseTestIds = asBool(process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS) || __DEV__;
 const admobAndroidRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_UNIT_ID ?? '').trim();
 const admobIosRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_IOS_REWARDED_UNIT_ID ?? '').trim();
+const webGtmContainerId = (process.env.EXPO_PUBLIC_GTM_WEB_CONTAINER_ID ?? 'GTM-P48FMPJB').trim();
+const iosGtmContainerId = (process.env.EXPO_PUBLIC_GTM_IOS_CONTAINER_ID ?? 'GTM-5V22DPD4').trim();
+const androidGtmContainerId = (process.env.EXPO_PUBLIC_GTM_ANDROID_CONTAINER_ID ?? 'GTM-NNVXTDZB').trim();
+const webRewardedAdUnitPath = (process.env.EXPO_PUBLIC_GAM_REWARDED_AD_UNIT_PATH ?? '').trim();
+const webRewardedPlacementKey = (process.env.EXPO_PUBLIC_GAM_REWARDED_PLACEMENT_KEY ?? '').trim();
 
 export const envConfig = {
   appEnv,
@@ -240,5 +245,14 @@ export const envConfig = {
     useTestIds: admobUseTestIds,
     androidRewardedUnitId: admobAndroidRewardedUnitId,
     iosRewardedUnitId: admobIosRewardedUnitId,
+  },
+  gtm: {
+    webContainerId: webGtmContainerId,
+    iosContainerId: iosGtmContainerId,
+    androidContainerId: androidGtmContainerId,
+  },
+  webRewarded: {
+    adUnitPath: webRewardedAdUnitPath,
+    placementKey: webRewardedPlacementKey,
   },
 } as const;

@@ -1,5 +1,6 @@
 import { fetchSkyPulse, fetchWeeklySwot, type SkyPulseResponse, type WeeklySwotResponse } from './astrology.service';
 import { fetchHomeBrief, type HomeBrief } from './oracle.service';
+import { fetchDailyHoroscopeFromCms, type CmsDailyHoroscope } from './cmsContent.service';
 import type { UserProfile } from '../store/useAuthStore';
 import { envConfig } from '../config/env';
 import { logApiError, logWarnOnce } from './observability';
@@ -87,30 +88,231 @@ export interface FetchHomeDashboardParams {
 const TR_MONTHS_SHORT = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'] as const;
 const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 const TURKISH_TEXT_PATTERN = /[çğıöşüÇĞİÖŞÜ]|\b(bugün|günün|hafta|için|ve|ile|sen|seni|gökyüzü|yorum|fırsat|enerji|detay|ay|retrosu|haritan)\b/i;
-const RETRO_HERO_TEMPLATES_TR_SINGLE = [
-  '{{planet}} retroda; bugün en güçlü hamlen hızlanmak değil, planını bir tur daha netleştirmek.',
-  '{{planet}} retroda; kritik adım atmadan önce detayları ikinci kez kontrol etmek sana avantaj sağlar.',
-  '{{planet}} retroda; kısa bir geri adım bugün gereksiz bir yanlışı baştan kapatır.',
-  '{{planet}} retroda; iletişimde netlik ve sakin tempo bugün oyunun kurallarını değiştirir.',
+
+const SIGN_ORDER = [
+  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
 ] as const;
-const RETRO_HERO_TEMPLATES_TR_MULTI = [
-  '{{planets}} retroda; bugün hız yerine strateji seçen kazanır.',
-  '{{planets}} retroda; büyük kararları ağırdan alıp iki kontrol yapmak günü kurtarır.',
-  '{{planets}} retroda; temponu sadeleştirip önceliğini daraltman en güvenli rota olur.',
-  '{{planets}} retroda; net plan ve sakin iletişim bugün seni hatadan uzak tutar.',
-] as const;
-const RETRO_HERO_TEMPLATES_EN_SINGLE = [
-  '{{planet}} is retrograde; your best move today is to slow down and tighten the plan.',
-  '{{planet}} is retrograde; double-checking details before the next step gives you the edge.',
-  '{{planet}} is retrograde; one deliberate pause can prevent an avoidable mistake today.',
-  '{{planet}} is retrograde; clear communication and calm pacing will carry you further.',
-] as const;
-const RETRO_HERO_TEMPLATES_EN_MULTI = [
-  '{{planets}} are retrograde; strategy beats speed today.',
-  '{{planets}} are retrograde; take major decisions slower and verify key details twice.',
-  '{{planets}} are retrograde; simplify your pace and narrow focus before making a move.',
-  '{{planets}} are retrograde; a clear plan and calm communication keep you ahead.',
-] as const;
+type SignSlug = (typeof SIGN_ORDER)[number];
+
+const SIGN_LABEL_TR: Record<SignSlug, string> = {
+  aries: 'Koç', taurus: 'Boğa', gemini: 'İkizler', cancer: 'Yengeç',
+  leo: 'Aslan', virgo: 'Başak', libra: 'Terazi', scorpio: 'Akrep',
+  sagittarius: 'Yay', capricorn: 'Oğlak', aquarius: 'Kova', pisces: 'Balık',
+};
+const SIGN_LABEL_EN: Record<SignSlug, string> = {
+  aries: 'Aries', taurus: 'Taurus', gemini: 'Gemini', cancer: 'Cancer',
+  leo: 'Leo', virgo: 'Virgo', libra: 'Libra', scorpio: 'Scorpio',
+  sagittarius: 'Sagittarius', capricorn: 'Capricorn', aquarius: 'Aquarius', pisces: 'Pisces',
+};
+
+type RetroPlanetKey = 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn' | 'uranus' | 'neptune' | 'pluto';
+
+const RETRO_TEMPLATES_TR: Record<RetroPlanetKey | 'multi', readonly string[]> = {
+  mercury: [
+    '{name}Merkür retroda — yeni imza yerine eski yazışmaları açmanın günü.',
+    '{name}Merkür geri yönlü; sözleşmeden önce ikinci okuma şart.',
+    '{name}Merkür retrosu mesajları geri çağırıyor — ertelenen yanıtlar gündeme dönüyor.',
+  ],
+  venus: [
+    '{name}Venüs retroda — değer/gelir kalemini yeniden tartmanın zamanı.',
+    '{name}Venüs geri yönde; eski bir bağ veya harcama kalemi gündeme dönüyor.',
+    '{name}Venüs retrosu ilişkide tarafları sorgulatır — mevcut bağı gözden geçirin.',
+  ],
+  mars: [
+    '{name}Mars retroda — yeni başlangıç değil, revizyon günü.',
+    '{name}Mars geri yönlü; bugün hız değil, kararlılık kazandırır.',
+    '{name}Mars retrosu enerjiyi içe çevirir — strateji dış değil iç.',
+  ],
+  jupiter: [
+    '{name}Jüpiter retroda — büyüme planını yeniden gözden geçirmenin haftası.',
+    '{name}Jüpiter geri yönde; fırsatları artırmadan önce mevcudu derinleştirin.',
+  ],
+  saturn: [
+    '{name}Satürn retrosu yapıyı sınıyor — ertelenen sorumluluk bugün masada.',
+    '{name}Satürn geri yönde; yapısal kararı bir hafta beklemek lehinize.',
+    '{name}Satürn retrosu disiplini yeniden çizer — sınırı tazelemek bugünün işi.',
+  ],
+  uranus: [
+    '{name}Uranüs retroda — ani değişim yerine içsel uyanışa alan açın.',
+    '{name}Uranüs geri yönde; özgürleşme planını sessizce olgunlaştırın.',
+  ],
+  neptune: [
+    '{name}Neptün retroda — sezgi süzülüyor, hayalle gerçeği bugün ayırın.',
+    '{name}Neptün geri yönde; idealize edilen bir konuyu olduğu gibi görme zamanı.',
+  ],
+  pluto: [
+    '{name}Plüton retroda — derinde kaynayan bir konu yüzeye yaklaşıyor.',
+    '{name}Plüton geri yönde; gücünüzü yeniden sahiplenmenin haftası.',
+  ],
+  multi: [
+    '{name}İki gezegen retroda; yeni proje değil, yarım kalanı bitirmek bu haftanın işi.',
+    '{name}Birden fazla gezegen geri yönlü — ileri gitmeden önce geriye bakmak akıllıca.',
+    '{name}Çoklu retro penceresinde; bu hafta yeniyi değil, eskiyi onarmak ödül getirir.',
+  ],
+};
+
+const RETRO_TEMPLATES_EN: Record<RetroPlanetKey | 'multi', readonly string[]> = {
+  mercury: [
+    '{name}Mercury is retrograde — review old messages before signing anything new.',
+    '{name}Mercury reverses; every contract deserves a second read today.',
+    '{name}Mercury retrograde brings replies back — old threads return to the table.',
+  ],
+  venus: [
+    '{name}Venus is retrograde — revisit the value of what you spend or commit to.',
+    '{name}Venus reverses; an old bond or expense returns for review.',
+    '{name}Venus retrograde questions partnerships — refine the existing, not the new.',
+  ],
+  mars: [
+    '{name}Mars is retrograde — today is for revision, not new launches.',
+    '{name}Mars reverses; persistence beats speed this week.',
+    '{name}Mars retrograde turns energy inward — refine the strategy, not the action.',
+  ],
+  jupiter: [
+    '{name}Jupiter is retrograde — review your growth plan before expanding further.',
+    '{name}Jupiter reverses; deepen what you have before reaching for more.',
+  ],
+  saturn: [
+    '{name}Saturn retrograde tests the structure — postponed duties land on the table.',
+    '{name}Saturn reverses; delaying a structural call by a week works in your favor.',
+    '{name}Saturn retrograde redraws boundaries — refresh the lines you set.',
+  ],
+  uranus: [
+    '{name}Uranus is retrograde — make space for inner awakening over outer disruption.',
+    '{name}Uranus reverses; ripen the freedom plan quietly.',
+  ],
+  neptune: [
+    "{name}Neptune is retrograde — separate fact from fantasy in today's decisions.",
+    '{name}Neptune reverses; see an idealized matter as it actually is.',
+  ],
+  pluto: [
+    '{name}Pluto is retrograde — a deep current is approaching the surface.',
+    '{name}Pluto reverses; this is the week to reclaim your power.',
+  ],
+  multi: [
+    '{name}Multiple planets are retrograde — finishing the unfinished beats starting new this week.',
+    '{name}With more than one retrograde, looking back is the smart way forward.',
+    '{name}A multi-retrograde window — repair before you reach.',
+  ],
+};
+
+type Aspect = 'conj' | 'sext' | 'square' | 'trine' | 'opp' | 'none';
+
+const ASPECT_TEMPLATES_TR: Record<Aspect, readonly string[]> = {
+  conj: [
+    "{name}Ay {sun}'ınızla birleşiyor — kişisel niyet bugün belirgin, sahne sizden yana.",
+    "{name}Ay {sun}'a denk geldi; görünürlük yüksek, kararı kendi sesinizle verin.",
+  ],
+  trine: [
+    "{name}Ay {moon}'da {sun}'ınıza üçgen yapıyor — sezgisel kararlar 24 saat destekli.",
+    '{name}{moon}–{sun} üçgeni açık akış veriyor — planlanan hamleler bugün ilerler.',
+  ],
+  square: [
+    "{name}Ay {moon}'da {sun}'ınızla kare açıda — hızlı karardan kaçının.",
+    '{name}{sun}–{moon} karesi gerilim getiriyor — önemli görüşmeleri öğleden sonraya alın.',
+  ],
+  opp: [
+    "{name}Ay {moon}'da {sun}'ınıza karşıt — denge dış sesle kuruluyor, dinleyin.",
+    '{name}{sun}–{moon} ekseni açık; ilişki/karar dengesi gün ortasında netleşir.',
+  ],
+  sext: [
+    "{name}Ay {moon}'da {sun}'ınıza sekstil — küçük hamleler bugün çok verimli.",
+    "{name}{moon} Ay'ı {sun} Güneş'inize destek veriyor — iletişim için uygun pencere.",
+  ],
+  none: [
+    "{name}Ay {moon}'da geziniyor — {sun} odağınızı dingin tutarsanız fark eder.",
+    "{name}{moon} Ay'ı nötr açı verir; rutin işlerde ilerleme bugün gerçekçi.",
+  ],
+};
+
+const ASPECT_TEMPLATES_EN: Record<Aspect, readonly string[]> = {
+  conj: [
+    '{name}Moon meets your {sun} Sun — intent is clear today, take the stage.',
+    '{name}Moon conjuncts {sun}; visibility peaks, decide in your own voice.',
+  ],
+  trine: [
+    '{name}Moon in {moon} trines your {sun} Sun — intuitive decisions are supported all day.',
+    '{name}{moon}–{sun} trine opens flow — planned moves advance today.',
+  ],
+  square: [
+    '{name}Moon in {moon} squares your {sun} Sun — avoid hasty calls.',
+    '{name}{sun}–{moon} square brings tension — push key talks to the afternoon.',
+  ],
+  opp: [
+    '{name}Moon in {moon} opposes your {sun} Sun — balance arrives through another voice; listen.',
+    '{name}{sun}–{moon} axis is live; relationship/decision balance settles by midday.',
+  ],
+  sext: [
+    '{name}Moon in {moon} sextiles your {sun} Sun — small moves carry far today.',
+    '{name}{moon} Moon supports your {sun} Sun — a good window for outreach.',
+  ],
+  none: [
+    '{name}Moon in {moon} drifts neutrally — your {sun} focus rewards a calm pace.',
+    '{name}{moon} Moon is neutral; routine work moves realistically today.',
+  ],
+};
+
+type PhaseKey =
+  | 'new-moon' | 'full-moon' | 'first-quarter' | 'last-quarter'
+  | 'waxing-crescent' | 'waxing-gibbous' | 'waning-gibbous' | 'waning-crescent';
+
+const PHASE_TEMPLATES_TR: Record<PhaseKey, readonly string[]> = {
+  'new-moon': [
+    "Yeni Ay {moon}'da; niyet tohumlarının 6 aylık etkisi bugünden başlıyor.",
+    "Yeni Ay {moon}'da; bu burcun temasında temiz bir başlangıç penceresi açık.",
+  ],
+  'full-moon': [
+    "Dolunay {moon}'da; gizli kalan bir konu yüzeye çıkıyor, hazırlıklı olun.",
+    "Dolunay {moon}'da kuluçkayı bitiriyor — sonuç ve berraklık günü.",
+  ],
+  'first-quarter': [
+    'İlk Dördün gerilimi; iki yön arasında kararı ertelemek yarın daha pahalıya gelir.',
+  ],
+  'last-quarter': [
+    'Son Dördün fazında; bitmemiş bir bağlantıyı kapatmak bugün alan açar.',
+  ],
+  'waxing-crescent': [
+    'Büyüyen Hilal; yeni başlatılan bir niyet bu hafta ilk filizini veriyor.',
+  ],
+  'waxing-gibbous': [
+    'Büyüyen Şişkin Ay; bekleyen iş kıvamına yaklaşıyor — son rötuşları yapın.',
+  ],
+  'waning-gibbous': [
+    'Küçülen Şişkin Ay; öğrenileni paylaşma günü, çevreye değer geri dönüyor.',
+  ],
+  'waning-crescent': [
+    'Küçülen Hilal; yeni döngü öncesi içe dönmek için doğal pencere.',
+  ],
+};
+
+const PHASE_TEMPLATES_EN: Record<PhaseKey, readonly string[]> = {
+  'new-moon': [
+    "New Moon in {moon}; today's seed of intention shapes the next six months.",
+    "New Moon in {moon}; a clean opening in this sign's theme.",
+  ],
+  'full-moon': [
+    'Full Moon in {moon}; hidden matters surface — come prepared.',
+    'Full Moon in {moon} closes a chapter — clarity is the gift.',
+  ],
+  'first-quarter': [
+    'First Quarter tension; deferring the call between two directions costs more tomorrow.',
+  ],
+  'last-quarter': [
+    'Last Quarter; closing an unfinished thread frees real space today.',
+  ],
+  'waxing-crescent': [
+    'Waxing Crescent; the intention you set is showing its first sprout.',
+  ],
+  'waxing-gibbous': [
+    'Waxing Gibbous; pending work nears its form — refine the final touches.',
+  ],
+  'waning-gibbous': [
+    'Waning Gibbous; share what you learned — value flows back from your circle.',
+  ],
+  'waning-crescent': [
+    'Waning Crescent; a natural window to turn inward before the next cycle.',
+  ],
+};
 
 function normalizeLocale(locale?: string | null): DashboardLocale {
   return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
@@ -305,67 +507,75 @@ function matchPlanetToken(token: string, aliases: readonly string[]): boolean {
   return aliases.some((alias) => token === alias || token.startsWith(alias));
 }
 
-function localizeRetroPlanetName(value: string | null | undefined, locale: DashboardLocale): string {
+function classifyRetroPlanet(value: string | null | undefined): RetroPlanetKey | null {
   const token = normalizePlanetToken(value);
-  const aliases: Array<{ keys: readonly string[]; tr: string; en: string }> = [
-    { keys: ['mercury', 'merkur'], tr: 'Merkür', en: 'Mercury' },
-    { keys: ['venus', 'venusu', 'venuz'], tr: 'Venüs', en: 'Venus' },
-    { keys: ['mars'], tr: 'Mars', en: 'Mars' },
-    { keys: ['jupiter'], tr: 'Jüpiter', en: 'Jupiter' },
-    { keys: ['saturn', 'saturnu', 'saturnus'], tr: 'Satürn', en: 'Saturn' },
-    { keys: ['uranus', 'uranusu'], tr: 'Uranüs', en: 'Uranus' },
-    { keys: ['neptune', 'neptun'], tr: 'Neptün', en: 'Neptune' },
-    { keys: ['pluto', 'pluton'], tr: 'Plüton', en: 'Pluto' },
+  const map: Array<{ key: RetroPlanetKey; aliases: readonly string[] }> = [
+    { key: 'mercury', aliases: ['mercury', 'merkur'] },
+    { key: 'venus', aliases: ['venus', 'venusu', 'venuz'] },
+    { key: 'mars', aliases: ['mars'] },
+    { key: 'jupiter', aliases: ['jupiter'] },
+    { key: 'saturn', aliases: ['saturn', 'saturnu', 'saturnus'] },
+    { key: 'uranus', aliases: ['uranus', 'uranusu'] },
+    { key: 'neptune', aliases: ['neptune', 'neptun'] },
+    { key: 'pluto', aliases: ['pluto', 'pluton'] },
   ];
-  const matched = aliases.find((entry) => matchPlanetToken(token, entry.keys));
-  if (matched) {
-    return isEnglish(locale) ? matched.en : matched.tr;
+  for (const entry of map) {
+    if (matchPlanetToken(token, entry.aliases)) return entry.key;
   }
-
-  const fallback = compactWhitespace(value);
-  if (!fallback) {
-    return isEnglish(locale) ? 'a retrograde planet' : 'bir retro gezegen';
-  }
-
-  return fallback;
+  return null;
 }
 
-function dedupeRetroPlanets(planets: string[] | null | undefined, locale: DashboardLocale): string[] {
-  if (!Array.isArray(planets)) {
-    return [];
-  }
-
-  const unique = new Set<string>();
-  const result: string[] = [];
-  for (const rawPlanet of planets) {
-    const localized = localizeRetroPlanetName(rawPlanet, locale);
-    const key = normalizePlanetToken(localized) || localized.toLowerCase();
-    if (!key || unique.has(key)) {
-      continue;
-    }
-    unique.add(key);
-    result.push(localized);
-  }
-
-  return result;
+function strictSignSlug(value: string | null | undefined): SignSlug | null {
+  if (!value) return null;
+  const trMap: Record<string, SignSlug> = {
+    koc: 'aries', boga: 'taurus', ikizler: 'gemini', yengec: 'cancer',
+    aslan: 'leo', basak: 'virgo', terazi: 'libra', akrep: 'scorpio',
+    yay: 'sagittarius', oglak: 'capricorn', kova: 'aquarius', balik: 'pisces',
+  };
+  const key = slugify(value);
+  if (trMap[key]) return trMap[key];
+  if ((SIGN_ORDER as readonly string[]).includes(key)) return key as SignSlug;
+  return null;
 }
 
-function formatRetroPlanetLabel(planets: string[], locale: DashboardLocale): string {
-  if (!planets.length) {
-    return isEnglish(locale) ? 'retrograde motion' : 'retro hareketi';
-  }
+function moonSignToSlug(skyPulse: SkyPulseResponse | null): SignSlug | null {
+  if (!skyPulse) return null;
+  return strictSignSlug(skyPulse.moonSign) ?? strictSignSlug(skyPulse.moonSignTurkish);
+}
 
-  if (planets.length === 1) {
-    return planets[0];
-  }
+function localizeSignLabel(slug: SignSlug | null, locale: DashboardLocale): string {
+  if (!slug) return '';
+  return isEnglish(locale) ? SIGN_LABEL_EN[slug] : SIGN_LABEL_TR[slug];
+}
 
-  if (planets.length === 2) {
-    return isEnglish(locale) ? `${planets[0]} and ${planets[1]}` : `${planets[0]} ve ${planets[1]}`;
-  }
+function signIndex(slug: SignSlug | null): number {
+  return slug ? SIGN_ORDER.indexOf(slug) : -1;
+}
 
-  return isEnglish(locale)
-    ? `${planets[0]}, ${planets[1]}, and others`
-    : `${planets[0]}, ${planets[1]} ve diğerleri`;
+function computeAspect(sunIdx: number, moonIdx: number): Aspect {
+  if (sunIdx < 0 || moonIdx < 0) return 'none';
+  const diff = Math.abs(sunIdx - moonIdx) % 12;
+  const norm = diff > 6 ? 12 - diff : diff;
+  if (norm === 0) return 'conj';
+  if (norm === 2) return 'sext';
+  if (norm === 3) return 'square';
+  if (norm === 4) return 'trine';
+  if (norm === 6) return 'opp';
+  return 'none';
+}
+
+function moonPhaseKey(phase: string | null | undefined): PhaseKey | null {
+  const norm = slugify(phase ?? '').replace(/-/g, ' ');
+  if (!norm) return null;
+  if (norm.includes('new moon') || norm.includes('yeni ay')) return 'new-moon';
+  if (norm.includes('full moon') || norm.includes('dolunay')) return 'full-moon';
+  if (norm.includes('first quarter') || norm.includes('ilk dordun')) return 'first-quarter';
+  if (norm.includes('last quarter') || norm.includes('third quarter') || norm.includes('son dordun')) return 'last-quarter';
+  if (norm.includes('waxing crescent') || norm.includes('buyuyen hilal')) return 'waxing-crescent';
+  if (norm.includes('waxing gibbous') || norm.includes('buyuyen siskin')) return 'waxing-gibbous';
+  if (norm.includes('waning gibbous') || norm.includes('kuculen siskin')) return 'waning-gibbous';
+  if (norm.includes('waning crescent') || norm.includes('kuculen hilal')) return 'waning-crescent';
+  return null;
 }
 
 function hashSeed(value: string): number {
@@ -396,29 +606,177 @@ function ensureSingleSentence(value: string, max = 108): string {
   return clampText(withPunctuation, max);
 }
 
-function buildRetroHeroInsight(retrogradePlanets: string[] | null | undefined, locale: DashboardLocale): string {
-  const localizedPlanets = dedupeRetroPlanets(retrogradePlanets, locale);
-  const retroCount = Array.isArray(retrogradePlanets) && retrogradePlanets.length > 0
-    ? retrogradePlanets.length
-    : localizedPlanets.length;
-  const primaryPlanet = localizedPlanets[0] ?? (isEnglish(locale) ? 'A retrograde planet' : 'Bir retro gezegen');
-  const planetLabel = localizedPlanets.length > 0
-    ? formatRetroPlanetLabel(localizedPlanets, locale)
-    : (isEnglish(locale) ? 'Multiple planets' : 'Birden fazla gezegen');
+function extractFirstName(user: UserProfile | null): string {
+  const raw = (user?.firstName ?? user?.name ?? '').trim();
+  if (!raw) return '';
+  return raw.split(/\s+/)[0] ?? '';
+}
+
+function lowercaseFirstChar(value: string): string {
+  if (!value) return value;
+  const first = value.charAt(0);
+  const lower = first.toLocaleLowerCase('tr-TR');
+  if (lower === first) return value;
+  return lower + value.slice(1);
+}
+
+const PROPER_NOUN_FIRST_WORDS: ReadonlySet<string> = new Set([
+  ...Object.values(SIGN_LABEL_TR),
+  ...Object.values(SIGN_LABEL_EN),
+  'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
+  'Merkür', 'Venüs', 'Jüpiter', 'Satürn', 'Uranüs', 'Neptün', 'Plüton',
+]);
+
+function startsWithProperNoun(text: string): boolean {
+  const firstWord = compactWhitespace(text).split(/\s+/u)[0]?.replace(/[,;:.!?]+$/u, '') ?? '';
+  if (!firstWord) return false;
+  return PROPER_NOUN_FIRST_WORDS.has(firstWord);
+}
+
+function getTodayLocalDate(): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function splitIntoSentences(text: string): string[] {
+  const matches = text.match(/[^.!?]+[.!?]+/gu);
+  if (matches && matches.length > 0) {
+    return matches.map((s) => compactWhitespace(s)).filter((s) => s.length > 0);
+  }
+  const single = compactWhitespace(text);
+  return single ? [single] : [];
+}
+
+function extractCmsTheme(cms: CmsDailyHoroscope | null, locale: DashboardLocale): string {
+  if (!cms) return '';
+  const summary = compactWhitespace(cms.shortSummary ?? cms.fullContent ?? '');
+  if (summary && matchesRequestedLocale(summary, locale)) {
+    const sentences = splitIntoSentences(summary);
+    const first = sentences[0];
+    if (first && first.length >= 24) return first;
+  }
+  const title = compactWhitespace(cms.title ?? '');
+  if (title.length >= 16 && matchesRequestedLocale(title, locale)) return title;
+  return '';
+}
+
+function extractCmsAdvice(cms: CmsDailyHoroscope | null, locale: DashboardLocale): string {
+  if (!cms) return '';
+  const summary = compactWhitespace(cms.shortSummary ?? cms.fullContent ?? '');
+  if (!summary || !matchesRequestedLocale(summary, locale)) return '';
+  const sentences = splitIntoSentences(summary);
+  const second = sentences[1];
+  if (second && second.length >= 24) return second;
+  return '';
+}
+
+function withTrailingPeriod(value: string): string {
+  const cleaned = compactWhitespace(value).replace(/[,;:—–\s]+$/u, '').trim();
+  if (!cleaned) return '';
+  return /[.!?]$/u.test(cleaned) ? cleaned : `${cleaned}.`;
+}
+
+/**
+ * CMS gibi uzun yorum metninden hero için tek cümle çıkarır.
+ * Yalnızca cümle sonunda (nokta/!/?) keser; virgül/em-tire gibi clause'larda asla kesmez.
+ * Cümle uzunsa hero UI font/line sayısını responsive olarak küçültür — burada üst sınır yok.
+ * Anlamlı bir cümle (>=24 karakter) bulunamazsa boş döner.
+ */
+function summarizeForHero(text: string | null | undefined): string {
+  const trimmed = compactWhitespace(text);
+  if (!trimmed) return '';
+
+  const sentences = trimmed.match(/[^.!?]+[.!?]+/gu) ?? [trimmed];
+  for (const raw of sentences) {
+    const sentence = compactWhitespace(raw);
+    if (sentence.length >= 24) {
+      return withTrailingPeriod(sentence);
+    }
+  }
+  return '';
+}
+
+function buildHeroInsightFromDaily(
+  user: UserProfile | null,
+  cmsDaily: CmsDailyHoroscope | null,
+  homeBrief: HomeBrief | null,
+  skyPulse: SkyPulseResponse | null,
+  fallbackInsight: string,
+  locale: DashboardLocale,
+): string {
   const todayKey = new Date().toISOString().slice(0, 10);
-  const seed = `${todayKey}|${locale}|${localizedPlanets.join('|')}|${retroCount}`;
+  const userKey = user?.id ?? user?.username ?? 'guest';
+  const seedBase = `${todayKey}|${locale}|${userKey}`;
+  const firstName = extractFirstName(user);
+  const namePrefix = firstName ? `${firstName}, ` : '';
 
-  const templates = isEnglish(locale)
-    ? (retroCount >= 2 ? RETRO_HERO_TEMPLATES_EN_MULTI : RETRO_HERO_TEMPLATES_EN_SINGLE)
-    : (retroCount >= 2 ? RETRO_HERO_TEMPLATES_TR_MULTI : RETRO_HERO_TEMPLATES_TR_SINGLE);
-  const selected = pickTemplate(templates, seed);
-
-  return ensureSingleSentence(
-    selected
-      .replace('{{planet}}', primaryPlanet)
-      .replace('{{planets}}', planetLabel),
-    108,
+  // 1) Retro priority — per-planet, expert-toned templates.
+  const retroPlanets = Array.isArray(skyPulse?.retrogradePlanets) ? skyPulse!.retrogradePlanets : [];
+  const retroKeys = Array.from(
+    new Set(retroPlanets.map(classifyRetroPlanet).filter((key): key is RetroPlanetKey => key !== null)),
   );
+  if (retroKeys.length >= 2) {
+    const pool = isEnglish(locale) ? RETRO_TEMPLATES_EN.multi : RETRO_TEMPLATES_TR.multi;
+    const tmpl = pickTemplate(pool, `${seedBase}|multi`);
+    return ensureSingleSentence(tmpl.replace('{name}', namePrefix), 110);
+  }
+  if (retroKeys.length === 1) {
+    const key = retroKeys[0];
+    const pool = isEnglish(locale) ? RETRO_TEMPLATES_EN[key] : RETRO_TEMPLATES_TR[key];
+    const tmpl = pickTemplate(pool, `${seedBase}|${key}`);
+    return ensureSingleSentence(tmpl.replace('{name}', namePrefix), 110);
+  }
+
+  // 2) CMS daily horoscope — first sentence is returned as-is (no length cap).
+  // Hero UI shrinks font / lifts numberOfLines responsively if the sentence is long.
+  const cmsRaw = compactWhitespace(cmsDaily?.shortSummary ?? cmsDaily?.fullContent);
+  if (cmsRaw && !isWeakDashboardText(cmsRaw) && matchesRequestedLocale(cmsRaw, locale)) {
+    const cmsSummary = summarizeForHero(cmsRaw);
+    if (cmsSummary) {
+      const body = namePrefix ? lowercaseFirstChar(cmsSummary) : cmsSummary;
+      return `${namePrefix}${body}`;
+    }
+  }
+
+  // 3) Sun-Moon aspect — needs both signs known.
+  const sunSlug = strictSignSlug(user?.zodiacSign);
+  const moonSlug = moonSignToSlug(skyPulse);
+  if (sunSlug && moonSlug) {
+    const aspect = computeAspect(signIndex(sunSlug), signIndex(moonSlug));
+    if (aspect !== 'none') {
+      const pool = isEnglish(locale) ? ASPECT_TEMPLATES_EN[aspect] : ASPECT_TEMPLATES_TR[aspect];
+      const tmpl = pickTemplate(pool, `${seedBase}|${aspect}|${sunSlug}|${moonSlug}`);
+      const sunLabel = localizeSignLabel(sunSlug, locale);
+      const moonLabel = localizeSignLabel(moonSlug, locale);
+      return ensureSingleSentence(
+        tmpl.replace('{name}', namePrefix).replace(/\{moon}/g, moonLabel).replace(/\{sun}/g, sunLabel),
+        110,
+      );
+    }
+  }
+
+  // 4) Moon phase fallback — luminary-driven when sign data is partial.
+  const phaseKey = moonPhaseKey(skyPulse?.moonPhase);
+  if (phaseKey) {
+    const pool = isEnglish(locale) ? PHASE_TEMPLATES_EN[phaseKey] : PHASE_TEMPLATES_TR[phaseKey];
+    if (pool && pool.length) {
+      const tmpl = pickTemplate(pool, `${seedBase}|${phaseKey}`);
+      const moonLabel = localizeSignLabel(moonSlug, locale) || (isEnglish(locale) ? 'this sign' : 'bu burç');
+      return ensureSingleSentence(tmpl.replace(/\{moon}/g, moonLabel), 110);
+    }
+  }
+
+  // 5) HomeBrief headline as a last expert-voice fallback.
+  const oracleHeadline = firstStrongText(locale, 96, homeBrief?.transitHeadline, homeBrief?.dailyEnergy);
+  if (oracleHeadline && !isWeakDashboardText(oracleHeadline)) {
+    const body = namePrefix ? lowercaseFirstChar(oracleHeadline) : oracleHeadline;
+    return ensureSingleSentence(`${namePrefix}${body}`, 110);
+  }
+
+  return ensureSingleSentence(`${namePrefix}${fallbackInsight}`, 110);
 }
 
 function localizeMoonPhase(value: string | null | undefined, locale: DashboardLocale): string {
@@ -482,27 +840,27 @@ function buildFallbackAdvice(retroCount: number, locale: DashboardLocale): strin
 function buildFallbackInsight(moonSign: string, moonPhase: string, retroCount: number, locale: DashboardLocale): string {
   if (retroCount >= 2) {
     return isEnglish(locale)
-      ? 'Keep the pace calm today and review important messages once more before sending them.'
-      : 'Bugün tempoyu sakin tutup önemli mesajları göndermeden önce tekrar kontrol etmen iyi olabilir.';
+      ? 'Trust your intuition over speed today, and give important messages one more careful pass.'
+      : 'Bugün hızdan çok sezgine güven; önemli mesajları bir kez daha süzmek iyi gelebilir.';
   }
   if (retroCount === 1) {
     return isEnglish(locale)
-      ? 'You will move more smoothly today if you keep communication clear and the plan simple.'
-      : 'Bugün iletişimde net kalıp planını sade tuttuğunda daha rahat ilerleyebilirsin.';
+      ? 'Today flows better when your words are clear and your plan stays simple.'
+      : 'Bugün en rahat akış, net cümleler ve sade bir planla kuruluyor.';
   }
   if (moonSign) {
     return isEnglish(locale)
-      ? `${moonSign} energy supports emotional balance and a tighter focus on one priority today.`
-      : `${moonSign} etkisiyle duygusal dengeyi koruman ve tek bir önceliğe odaklanman iyi gelebilir.`;
+      ? `${moonSign} energy strengthens your inner balance and helps you gather focus around one intention.`
+      : `${moonSign} bugün iç dengeni güçlendiriyor; odağını tek bir niyette toplaman kolaylaşabilir.`;
   }
   if (moonPhase) {
     return isEnglish(locale)
-      ? `Small but steady steps can make the day easier under the ${moonPhase}.`
-      : `${moonPhase} fazında küçük ama kararlı adımlar gününü kolaylaştırabilir.`;
+      ? `Under the ${moonPhase}, one small but clear step can shift the direction of your day.`
+      : `${moonPhase} altında küçük ama net bir adım, günün akışını değiştirebilir.`;
   }
   return isEnglish(locale)
-    ? 'Choosing one priority and finishing it can make the rest of the day much clearer.'
-    : 'Bugün tek bir öncelik seçip onu tamamlaman günün akışını daha net hale getirebilir.';
+    ? 'When you gather your energy around one intention today, everything else can feel clearer.'
+    : 'Bugün enerjini tek bir odakta toplaman, günün geri kalanını daha berrak kılabilir.';
 }
 
 function slugify(value: string | undefined): string {
@@ -637,6 +995,7 @@ function buildDashboardFromSources(
   homeBrief: HomeBrief | null,
   skyPulse: SkyPulseResponse | null,
   weeklySwot: WeeklySwotResponse | null,
+  cmsDaily: CmsDailyHoroscope | null,
   locale: DashboardLocale,
 ): HomeDashboardResponse {
   const userName = user?.firstName?.trim() || user?.name?.trim() || user?.username?.trim() || (isEnglish(locale) ? 'Guest' : 'Misafir');
@@ -651,9 +1010,12 @@ function buildDashboardFromSources(
   const fallbackHeadline = buildFallbackHeadline(moonSign, moonPhase, locale);
   const fallbackAdvice = buildFallbackAdvice(retroCount, locale);
   const fallbackInsight = buildFallbackInsight(moonSign, moonPhase, retroCount, locale);
+  const cmsTheme = extractCmsTheme(cmsDaily, locale);
+  const cmsAdvice = extractCmsAdvice(cmsDaily, locale);
   const transitHeadline = firstStrongText(
     locale,
     88,
+    cmsTheme,
     homeBrief?.transitHeadline,
     homeBrief?.dailyEnergy,
     fallbackHeadline,
@@ -661,22 +1023,19 @@ function buildDashboardFromSources(
   const transitAdvice = firstStrongText(
     locale,
     88,
+    cmsAdvice,
     homeBrief?.actionMessage,
     homeBrief?.transitPoints?.[0],
     fallbackAdvice,
   );
-  const transitSummary = firstStrongText(
-    locale,
-    88,
-    homeBrief?.transitSummary,
-    homeBrief?.actionMessage,
-    homeBrief?.dailyEnergy,
+  const heroInsight = buildHeroInsightFromDaily(
+    user,
+    cmsDaily,
+    homeBrief,
+    skyPulse,
     fallbackInsight,
+    locale,
   );
-  const retroHeroInsight = retroCount > 0 ? buildRetroHeroInsight(skyPulse?.retrogradePlanets, locale) : '';
-  const heroInsight = retroCount > 0
-    ? (retroHeroInsight || fallbackInsight)
-    : (transitSummary || fallbackInsight);
 
   return {
     user: {
@@ -689,7 +1048,7 @@ function buildDashboardFromSources(
       title: isEnglish(locale) ? 'Your Birth Night Sky' : 'Doğduğun Gece Gökyüzü',
       subtitle: moonPhase ? (isEnglish(locale) ? `Moon Phase: ${moonPhase}` : `Ay Fazı: ${moonPhase}`) : '',
       insightText: heroInsight,
-      ctaText: isEnglish(locale) ? 'See the sky' : 'Gökyüzünü gör',
+      ctaText: isEnglish(locale) ? 'See your sky' : 'Haritanı gör',
     },
     quickActions: getStaticQuickActions(locale),
     horoscopeSummary: {
@@ -732,16 +1091,33 @@ function buildDashboardFromSources(
  * Oracle AI synthesis beklenmiyor; dashboard fallback içerikle anında render edilir.
  * Oracle verisi ayrı sorguda gelince üst katar olarak uygulanır.
  */
+function buildCmsDailyPromise(
+  user: UserProfile | null,
+  locale: DashboardLocale,
+): Promise<CmsDailyHoroscope | null> {
+  const sunSlug = strictSignSlug(user?.zodiacSign);
+  if (!sunSlug) return Promise.resolve(null);
+  const today = new Date().toISOString().slice(0, 10);
+  return fetchDailyHoroscopeFromCms(sunSlug, today, locale).catch(() => null);
+}
+
+function selectPublishedCmsDaily(value: CmsDailyHoroscope | null | undefined): CmsDailyHoroscope | null {
+  if (!value || value.status !== 'PUBLISHED') return null;
+  const hasContent = compactWhitespace(value.shortSummary).length > 0 || compactWhitespace(value.fullContent).length > 0;
+  return hasContent ? value : null;
+}
+
 export async function fetchHomeDashboardFast({ user, locale }: FetchHomeDashboardParams): Promise<HomeDashboardResponse> {
   const resolvedLocale = normalizeLocale(locale ?? user?.preferredLanguage ?? 'tr');
 
   if (!envConfig.isApiConfigured) {
-    return buildDashboardFromSources(user, null, null, null, resolvedLocale);
+    return buildDashboardFromSources(user, null, null, null, null, resolvedLocale);
   }
 
-  const [skyPulseResult, weeklySwotResult] = await Promise.allSettled([
+  const [skyPulseResult, weeklySwotResult, cmsDailyResult] = await Promise.allSettled([
     fetchSkyPulse(resolvedLocale),
     (user?.id && user?.birthDate) ? fetchWeeklySwot(user.id, resolvedLocale) : Promise.resolve(null),
+    buildCmsDailyPromise(user, resolvedLocale),
   ]);
 
   const skyPulse = skyPulseResult.status === 'fulfilled' ? skyPulseResult.value.data : null;
@@ -749,13 +1125,14 @@ export async function fetchHomeDashboardFast({ user, locale }: FetchHomeDashboar
     weeklySwotResult.status === 'fulfilled'
       ? (weeklySwotResult.value && 'data' in weeklySwotResult.value ? weeklySwotResult.value.data : null)
       : null;
+  const cmsDaily = cmsDailyResult.status === 'fulfilled' ? selectPublishedCmsDaily(cmsDailyResult.value) : null;
 
   if (skyPulseResult.status === 'rejected') {
     logApiError('home-dashboard-fast', skyPulseResult.reason, { source: 'sky-pulse' });
   }
 
   // skyPulse yoksa minimal dashboard; en kötü durumda statik quick actions gösterilir.
-  return buildDashboardFromSources(user, null, skyPulse, weeklySwot, resolvedLocale);
+  return buildDashboardFromSources(user, null, skyPulse, weeklySwot, cmsDaily, resolvedLocale);
 }
 
 export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardParams): Promise<HomeDashboardResponse> {
@@ -767,10 +1144,10 @@ export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardPar
       'Home dashboard service is not configured. Returning sparse dashboard model.',
       { appEnv: envConfig.appEnv },
     );
-    return buildDashboardFromSources(user, null, null, null, resolvedLocale);
+    return buildDashboardFromSources(user, null, null, null, null, resolvedLocale);
   }
 
-  const [homeBriefResult, skyPulseResult, weeklySwotResult] = await Promise.allSettled([
+  const [homeBriefResult, skyPulseResult, weeklySwotResult, cmsDailyResult] = await Promise.allSettled([
     fetchHomeBrief({
       name: user?.firstName || user?.name,
       birthDate: user?.birthDate,
@@ -779,10 +1156,12 @@ export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardPar
     }),
     fetchSkyPulse(resolvedLocale),
     (user?.id && user?.birthDate) ? fetchWeeklySwot(user.id, resolvedLocale) : Promise.resolve(null),
+    buildCmsDailyPromise(user, resolvedLocale),
   ]);
 
   const homeBrief = homeBriefResult.status === 'fulfilled' ? homeBriefResult.value.data : null;
   const skyPulse = skyPulseResult.status === 'fulfilled' ? skyPulseResult.value.data : null;
+  const cmsDaily = cmsDailyResult.status === 'fulfilled' ? selectPublishedCmsDaily(cmsDailyResult.value) : null;
   const weeklySwot =
     weeklySwotResult.status === 'fulfilled'
       ? (weeklySwotResult.value && 'data' in weeklySwotResult.value ? weeklySwotResult.value.data : null)
@@ -805,5 +1184,5 @@ export async function fetchHomeDashboard({ user, locale }: FetchHomeDashboardPar
     throw new Error('HOME_DASHBOARD_UPSTREAM_UNAVAILABLE');
   }
 
-  return buildDashboardFromSources(user, homeBrief, skyPulse, weeklySwot, resolvedLocale);
+  return buildDashboardFromSources(user, homeBrief, skyPulse, weeklySwot, cmsDaily, resolvedLocale);
 }

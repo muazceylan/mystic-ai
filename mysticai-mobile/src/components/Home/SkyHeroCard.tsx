@@ -84,6 +84,17 @@ export function SkyHeroCard({
       : t('homeSurface.skyHero.phaseSubtitle', { phase: phaseText, illumination: illuminationValue });
   const safeTextWidth = Math.max(200, Math.min(312, Math.floor(width * 0.68)));
 
+  const insightLength = isLoading ? 0 : insightText.length;
+  const insightDensity: 'regular' | 'dense' | 'compact' =
+    insightLength > 140 ? 'compact' : insightLength > 90 ? 'dense' : 'regular';
+  const descriptionStyle =
+    insightDensity === 'compact'
+      ? styles.descriptionCompact
+      : insightDensity === 'dense'
+        ? styles.descriptionDense
+        : styles.description;
+  const descriptionLines = insightDensity === 'compact' ? 8 : insightDensity === 'dense' ? 6 : 5;
+
   return (
     <Pressable
       onPress={onPress}
@@ -145,7 +156,7 @@ export function SkyHeroCard({
                 {subtitle || fallbackSubtitle}
               </Text>
             )}
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={4} style={styles.description}>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={descriptionLines} style={descriptionStyle}>
               {isLoading ? t('homeSurface.skyHero.loadingInsight') : insightText}
             </Text>
           </View>
@@ -301,6 +312,22 @@ const styles = StyleSheet.create({
     ...(HERO_FONT_REGULAR ? { fontFamily: HERO_FONT_REGULAR } : {}),
     fontSize: 15,
     lineHeight: 22,
+    marginTop: spacing.sm,
+    color: colors.heroBody,
+  },
+  descriptionDense: {
+    ...typography.Body,
+    ...(HERO_FONT_REGULAR ? { fontFamily: HERO_FONT_REGULAR } : {}),
+    fontSize: 13.5,
+    lineHeight: 19,
+    marginTop: spacing.sm,
+    color: colors.heroBody,
+  },
+  descriptionCompact: {
+    ...typography.Body,
+    ...(HERO_FONT_REGULAR ? { fontFamily: HERO_FONT_REGULAR } : {}),
+    fontSize: 12.5,
+    lineHeight: 17,
     marginTop: spacing.sm,
     color: colors.heroBody,
   },

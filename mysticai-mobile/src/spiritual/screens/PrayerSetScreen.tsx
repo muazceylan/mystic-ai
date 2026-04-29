@@ -78,7 +78,7 @@ export default function PrayerSetScreen() {
 
     return (
       <SafeScreen scroll>
-        <AppHeader title={shortTitle} subtitle={t('spiritual.prayerSet.shortSubtitle')} onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
+        <AppHeader title={shortTitle} subtitle={t('spiritual.prayerSet.shortSubtitle')} rightActions={<HeaderRightIcons />} />
         {shortPrayersQuery.data.map((item, index) => (
           <ListRow
             key={item.id}
@@ -132,7 +132,7 @@ export default function PrayerSetScreen() {
       <AppHeader
         title={t('spiritual.prayerSet.todayTitle')}
         subtitle={`${date} · ${variant}`}
-        onBack={() => router.back()}
+       
         rightActions={<HeaderRightIcons />}
       />
 

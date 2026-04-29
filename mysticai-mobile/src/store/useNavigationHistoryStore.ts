@@ -1,4 +1,8 @@
 import { create } from 'zustand';
+import {
+  normalizeComparablePath,
+  ROOT_TAB_PATHS,
+} from '../navigation/navigationOrigin';
 
 type NavigationHistoryState = {
   currentPath: string | null;
@@ -8,15 +12,9 @@ type NavigationHistoryState = {
   reset: () => void;
 };
 
-const ROOT_TAB_PATHS = new Set([
-  '/(tabs)/home',
-  '/(tabs)/discover',
-  '/(tabs)/calendar',
-  '/(tabs)/natal-chart',
-  '/(tabs)/profile',
-]);
+const ROOT_TAB_SET = new Set(ROOT_TAB_PATHS);
 
-function normalizePath(path: string): string {
+function normalizePathForStorage(path: string): string {
   if (!path) return '/';
   return path.startsWith('/') ? path : `/${path}`;
 }
@@ -26,10 +24,13 @@ export const useNavigationHistoryStore = create<NavigationHistoryState>((set, ge
   previousPath: null,
   lastTabPath: null,
   updatePath: (rawPath: string) => {
-    const nextPath = normalizePath(rawPath);
+    const nextPath = normalizePathForStorage(rawPath);
     const { currentPath } = get();
     if (currentPath === nextPath) return;
-    const shouldTrackAsLastTab = ROOT_TAB_PATHS.has(nextPath);
+    // Root-tab detection uses the group-stripped canonical form so it works
+    // regardless of whether the runtime pathname includes `(tabs)` or not.
+    const comparable = normalizeComparablePath(nextPath);
+    const shouldTrackAsLastTab = !!comparable && ROOT_TAB_SET.has(comparable);
     set({
       previousPath: currentPath,
       currentPath: nextPath,

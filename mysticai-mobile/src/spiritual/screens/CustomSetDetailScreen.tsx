@@ -26,6 +26,7 @@ import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, HeaderRightIcons, useBottomTabBarOffset } from '../../components/ui';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 import { ProgressRing } from '../components/ProgressRing';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import { platformColor } from '../../theme';
@@ -48,6 +49,7 @@ export default function CustomSetDetailScreen() {
   const { colors, isDark } = useTheme();
   const { bottomTabBarOffset } = useBottomTabBarOffset();
   const S = makeStyles(colors, isDark);
+  const goBack = useBackNavigation();
 
   const {
     getSetById, renameSet, removeItem,
@@ -250,7 +252,7 @@ export default function CustomSetDetailScreen() {
         <View style={S.emptyScreen}>
           <Ionicons name="alert-circle-outline" size={48} color={accent} />
           <Text style={S.emptyTitle}>{t('spiritual.customSet.notFoundTitle')}</Text>
-          <Pressable style={[S.emptyBtn, { borderColor: accent }]} onPress={() => router.back()}>
+          <Pressable style={[S.emptyBtn, { borderColor: accent }]} onPress={goBack}>
             <Text style={[S.emptyBtnText, { color: accent }]}>{t('common.back')}</Text>
           </Pressable>
         </View>
@@ -451,7 +453,7 @@ export default function CustomSetDetailScreen() {
     <SafeScreen>
       {/* ─── Header ─── */}
       <View style={S.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={S.backBtn}>
+        <Pressable onPress={goBack} hitSlop={12} style={S.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
         <View style={S.headerCenter}>

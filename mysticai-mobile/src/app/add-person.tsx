@@ -23,6 +23,7 @@ import { COUNTRIES, CITIES, DISTRICTS } from '../constants/index';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { AppHeader, SafeScreen } from '../components/ui';
+import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 import {
   ActionUnlockSheet,
   FEATURE_ACTION_KEYS,
@@ -45,6 +46,7 @@ export default function AddPersonScreen() {
   const addPersonUnlockState = monetization.getActionUnlockState(FEATURE_ACTION_KEYS.PERSON_ADD);
   const [showUnlockSheet, setShowUnlockSheet] = useState(false);
   const [featureUnlocked, setFeatureUnlocked] = useState(false);
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/compatibility' });
 
   // Form state
   const [name, setName] = useState('');
@@ -209,7 +211,7 @@ export default function AddPersonScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <AppHeader title={t('addPerson.title')} subtitle={t('addPerson.subtitle')} />
+        <AppHeader title={t('addPerson.title')} subtitle={t('addPerson.subtitle')} onBack={goBack} />
 
         <ScrollView
           style={styles.scroll}

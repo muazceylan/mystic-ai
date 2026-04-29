@@ -16,6 +16,7 @@ const ROUTE_PAIRS: Array<{ tr: string; en: string }> = [
   { tr: '/gizlilik', en: '/en/privacy' },
   { tr: '/kullanim-sartlari', en: '/en/terms' },
   { tr: '/iletisim', en: '/en/contact' },
+  { tr: '/account-deletion', en: '/en/account-deletion' },
 ];
 
 /** Get the counterpart URL for a given path in the target locale */

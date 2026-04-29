@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { navigateWithOrigin } from '../../navigation';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
@@ -315,7 +316,7 @@ export default function NameSearchScreen() {
           rightActions={(
             <SurfaceHeaderIconButton
               iconName="heart-outline"
-              onPress={() => router.push('/(tabs)/name-favorites')}
+              onPress={() => navigateWithOrigin({ pathname: '/(tabs)/name-favorites', from: '/(tabs)/name-search' })}
               accessibilityLabel={t('nameAnalysis.search.favoritesAccessibility')}
             />
           )}
@@ -398,7 +399,11 @@ export default function NameSearchScreen() {
                     });
                   }}
                   onPress={() => {
-                    router.push({ pathname: '/(tabs)/name-detail/[id]', params: { id: String(item.id), source: 'search' } });
+                    navigateWithOrigin({
+                      pathname: '/(tabs)/name-detail/[id]',
+                      from: '/(tabs)/name-search',
+                      extraParams: { id: String(item.id), source: 'search' },
+                    });
                   }}
                 />
               ))}

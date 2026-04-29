@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from 'react-native';
 import { envConfig } from '../config/env';
-import api from './api';
+import api, { withSuppressedGlobalApiErrorLog } from './api';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -217,7 +217,7 @@ function mirrorScreenView(screenName: string, screenClass?: string): void {
     routePath: screenClass ?? screenName,
     platform: Platform.OS,
     sessionId: String(sessionId),
-  }).catch((error) => {
+  }, withSuppressedGlobalApiErrorLog()).catch((error) => {
     debugLog('Internal screen tracking failed', error);
   });
 }
@@ -578,11 +578,17 @@ export function getAnalyticsDebugState(): {
   collectionEnabled: boolean;
   amplitudeEnabled: boolean;
   firebaseEnabled: boolean;
+  gtmWebContainerId: string | null;
+  gtmIosContainerId: string | null;
+  gtmAndroidContainerId: string | null;
 } {
   return {
     collectionEnabled,
     amplitudeEnabled,
     firebaseEnabled: hasFirebaseProvider(),
+    gtmWebContainerId: envConfig.gtm.webContainerId || null,
+    gtmIosContainerId: envConfig.gtm.iosContainerId || null,
+    gtmAndroidContainerId: envConfig.gtm.androidContainerId || null,
   };
 }
 

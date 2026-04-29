@@ -4,7 +4,7 @@
 
 1. Go to analytics.google.com → Admin → Create Property
 2. Select "Web" as platform
-3. Enter site URL: `https://astroguru.app`
+3. Enter site URL: `https://info.astroguru.app`
 4. Enable "Enhanced Measurement" (page views, scrolls, outbound clicks, file downloads)
 
 ## 2. Get Measurement ID

@@ -251,7 +251,7 @@ export default function CustomSetListScreen() {
 
   return (
     <SafeScreen>
-      <AppHeader title={t('spiritual.customSet.listTitle')} onBack={() => router.back()} rightActions={<HeaderRightIcons />} />
+      <AppHeader title={t('spiritual.customSet.listTitle')} rightActions={<HeaderRightIcons />} />
 
       {/* ─── Stats strip ─── */}
       {sets.length > 0 && (

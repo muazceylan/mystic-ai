@@ -21,6 +21,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mysticai.app",
+      "buildNumber": "1",
+      "usesNonExemptEncryption": false,
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "icon": "./assets/brand/app-icons/ios/astro-guru-ios-app-store-1024.png",
@@ -31,7 +33,16 @@
     },
     "android": {
       "package": "com.mysticai.app",
+      "versionCode": 1,
       "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "INTERNET",
+        "MODIFY_AUDIO_SETTINGS",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VISUAL_USER_SELECTED",
+        "RECORD_AUDIO",
+        "VIBRATE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/app-icons/android/astro-guru-icon-adaptive-foreground.png",
         "backgroundImage": "./assets/brand/app-icons/android/astro-guru-icon-adaptive-background.png"
@@ -42,7 +53,13 @@
       [
         "expo-build-properties",
         {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          },
           "ios": {
+            "deploymentTarget": "15.1",
             "useFrameworks": "static",
             "extraPods": [
               {
@@ -68,7 +85,7 @@
         {
           "photosPermission": "Yıldız kartlarını galeriye kaydedebilmen için fotoğraf kütüphanene erişim izni istiyoruz.",
           "savePhotosPermission": "Oluşturduğun yıldız kartlarını galeriye kaydetmek için fotoğraf kütüphanene yazma izni istiyoruz.",
-          "isAccessMediaLocationEnabled": true
+          "isAccessMediaLocationEnabled": false
         }
       ]
     ],

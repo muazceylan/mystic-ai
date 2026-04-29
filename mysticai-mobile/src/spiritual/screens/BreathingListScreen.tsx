@@ -106,7 +106,7 @@ export default function BreathingListScreen() {
       >
         <AppHeader
         title={t('spiritual.breathingList.title')}
-        onBack={() => router.back()}
+       
         transparent
         rightActions={<HeaderRightIcons />}
       />

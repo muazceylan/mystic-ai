@@ -1,4 +1,4 @@
-import api from './api';
+import api, { withSuppressedGlobalApiErrorLog } from './api';
 
 const ISO_DATETIME_WITHOUT_TZ_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/;
 
@@ -121,7 +121,10 @@ export const notificationService = {
   },
 
   async getUnreadCount(): Promise<number> {
-    const res = await api.get(`${BASE}/unread-count`);
+    const res = await api.get(
+      `${BASE}/unread-count`,
+      withSuppressedGlobalApiErrorLog()
+    );
     return res.data.unreadCount;
   },
 
@@ -138,21 +141,35 @@ export const notificationService = {
   },
 
   async getPreferences(): Promise<NotificationPreferences> {
-    const res = await api.get(`${BASE}/preferences`);
+    const res = await api.get(
+      `${BASE}/preferences`,
+      withSuppressedGlobalApiErrorLog()
+    );
     return res.data;
   },
 
   async updatePreferences(payload: UpdatePreferencesPayload): Promise<NotificationPreferences> {
-    const res = await api.put(`${BASE}/preferences`, payload);
+    const res = await api.put(
+      `${BASE}/preferences`,
+      payload,
+      withSuppressedGlobalApiErrorLog()
+    );
     return res.data;
   },
 
   async registerPushToken(token: string, platform: string): Promise<void> {
-    await api.post(`${BASE}/push-tokens`, { token, platform });
+    await api.post(
+      `${BASE}/push-tokens`,
+      { token, platform },
+      withSuppressedGlobalApiErrorLog()
+    );
   },
 
   async deactivatePushToken(token: string): Promise<void> {
-    await api.delete(`${BASE}/push-tokens`, { data: { token } });
+    await api.delete(
+      `${BASE}/push-tokens`,
+      withSuppressedGlobalApiErrorLog({ data: { token } })
+    );
   },
 
   async markAsSeen(notificationId: string): Promise<void> {

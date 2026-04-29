@@ -10,6 +10,10 @@ import {
   logWarnOnce,
 } from './observability';
 
+type ApiRequestConfig = {
+  suppressGlobalErrorLog?: boolean;
+};
+
 const api = axios.create({
   baseURL: envConfig.apiBaseUrl ?? undefined,
   timeout: 15000,
@@ -31,6 +35,21 @@ function toHeaderUserId(value: unknown): string | null {
 function resolveRequestLocale(preferredLanguage?: string | null): 'tr' | 'en' {
   const source = i18n.resolvedLanguage ?? i18n.language ?? preferredLanguage ?? 'tr';
   return source.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
+function shouldSuppressGlobalErrorLog(error: unknown): boolean {
+  if (!error || typeof error !== 'object' || !('config' in error)) {
+    return false;
+  }
+
+  return Boolean((error.config as ApiRequestConfig | undefined)?.suppressGlobalErrorLog);
+}
+
+export function withSuppressedGlobalApiErrorLog<T extends Record<string, unknown>>(config?: T): T & ApiRequestConfig {
+  return {
+    ...(config ?? {}),
+    suppressGlobalErrorLog: true,
+  };
 }
 
 // Attach token to every request
@@ -90,7 +109,7 @@ api.interceptors.response.use(
           logout();
         }
       }
-      if (status !== 401) {
+      if (status !== 401 && !shouldSuppressGlobalErrorLog(error)) {
         logApiError('api', error);
       }
     }

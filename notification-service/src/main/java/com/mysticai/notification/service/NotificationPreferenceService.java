@@ -5,10 +5,12 @@ import com.mysticai.notification.entity.NotificationPreference;
 import com.mysticai.notification.repository.NotificationPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -17,14 +19,16 @@ public class NotificationPreferenceService {
 
     private final NotificationPreferenceRepository preferenceRepository;
 
+    @Transactional
     public NotificationPreference getOrCreate(Long userId) {
-        return preferenceRepository.findById(userId)
-                .orElseGet(() -> {
-                    NotificationPreference pref = NotificationPreference.builder()
-                            .userId(userId)
-                            .build();
-                    return preferenceRepository.save(pref);
-                });
+        NotificationPreference preference = preferenceRepository.findById(userId)
+                .orElseGet(() -> createDefaultPreference(userId));
+
+        if (preference.applyDefaults()) {
+            return preferenceRepository.save(preference);
+        }
+
+        return preference;
     }
 
     @Transactional
@@ -41,16 +45,16 @@ public class NotificationPreferenceService {
         if (request.eveningCheckinEnabled() != null) pref.setEveningCheckinEnabled(request.eveningCheckinEnabled());
         if (request.productUpdatesEnabled() != null) pref.setProductUpdatesEnabled(request.productUpdatesEnabled());
         if (request.pushEnabled() != null) pref.setPushEnabled(request.pushEnabled());
-        if (request.timezone() != null) pref.setTimezone(request.timezone());
+        if (request.timezone() != null && !request.timezone().isBlank()) pref.setTimezone(request.timezone().trim());
 
         if (request.frequencyLevel() != null) {
             try {
-                pref.setFrequencyLevel(NotificationPreference.FrequencyLevel.valueOf(request.frequencyLevel()));
+                pref.setFrequencyLevel(NotificationPreference.FrequencyLevel.valueOf(normalizeEnumValue(request.frequencyLevel())));
             } catch (IllegalArgumentException ignored) {}
         }
         if (request.preferredTimeSlot() != null) {
             try {
-                pref.setPreferredTimeSlot(NotificationPreference.TimeSlot.valueOf(request.preferredTimeSlot()));
+                pref.setPreferredTimeSlot(NotificationPreference.TimeSlot.valueOf(normalizeEnumValue(request.preferredTimeSlot())));
             } catch (IllegalArgumentException ignored) {}
         }
         if (request.quietHoursStart() != null) {
@@ -62,6 +66,24 @@ public class NotificationPreferenceService {
             catch (Exception ignored) {}
         }
 
+        pref.applyDefaults();
         return preferenceRepository.save(pref);
+    }
+
+    private String normalizeEnumValue(String value) {
+        return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private NotificationPreference createDefaultPreference(Long userId) {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId(userId)
+                .build();
+        try {
+            return preferenceRepository.saveAndFlush(pref);
+        } catch (DataIntegrityViolationException ex) {
+            log.info("Notification preference already exists for user {}. Reloading persisted row.", userId);
+            return preferenceRepository.findById(userId)
+                    .orElseThrow(() -> ex);
+        }
     }
 }

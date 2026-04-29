@@ -1,4 +1,5 @@
-import { SITE_URL, SITE_NAME } from './constants';
+import { SITE_URL, SITE_NAME, SUPPORTED_LOCALES } from './constants';
+import type { Locale } from './constants';
 import { fetchPostsFromCms, fetchPostBySlugFromCms } from './cms';
 
 export interface BlogPost {
@@ -30,6 +31,8 @@ const seedPosts: BlogPost[] = [
     category: 'astroloji',
     publishedAt: '2026-04-10',
     readingTime: 8,
+    locale: 'tr',
+    translationGroup: 'natal-harita-nedir-nasil-yorumlanir',
     content: `Natal harita, dogum aninizdaki gokyuzunun bir fotografidir. Gunes, Ay ve diger gezegenlerin hangi burcta ve hangi evde bulundugunu gosterir.
 
 ## Natal Haritanin Temel Bilesenleri
@@ -68,6 +71,8 @@ AstroGuru uygulamasiyla natal haritanizi ucretsiz hesaplayabilir ve detayli AI d
     category: 'numeroloji',
     publishedAt: '2026-04-12',
     readingTime: 6,
+    locale: 'tr',
+    translationGroup: 'yasam-yolu-sayisi-hesaplama',
     content: `Yasam yolu sayisi, numerolojideki en temel ve onemli sayidir. Dogum tarihinizden hesaplanir ve yasam amacini, dogal yeteneklerinizi ve karsiniza cikacak temalari ortaya koyar.
 
 ## Hesaplama Yontemi
@@ -114,6 +119,8 @@ AstroGuru uygulamasiyla yasam yolu sayinizi otomatik hesaplayabilir ve detayli y
     category: 'ruya',
     publishedAt: '2026-04-14',
     readingTime: 7,
+    locale: 'tr',
+    translationGroup: 'ruya-sembolleri-rehberi',
     content: `Ruyalar, bilincdisimizin bize mesaj gonderdigi guclu bir aractir. Bazi semboller evrensel anlamlar tasirken, bazilari kisisel deneyimlerinize bagli olarak farkli anlamlar kazanabilir.
 
 ## 1. Su
@@ -156,6 +163,8 @@ AstroGuru uygulamasindaki ruya gunlugu ile ruyalarinizi kaydedebilir ve yapay ze
     category: 'astroloji',
     publishedAt: '2026-04-16',
     readingTime: 5,
+    locale: 'tr',
+    translationGroup: 'gunluk-transit-nedir',
     content: `Gunluk transitler, su anki gezegen konumlarinin natal haritanizla nasil etkilestigini gosterir. Gunun enerjisini anlamaniza ve buna gore adimlar atmaniza yardimci olur.
 
 ## Transit Nedir?
@@ -189,6 +198,8 @@ AstroGuru uygulamasinda gunluk transit analizlerinizi takip edebilir ve kisisell
     category: 'spirituel',
     publishedAt: '2026-04-18',
     readingTime: 6,
+    locale: 'tr',
+    translationGroup: 'meditasyon-ve-astroloji-baglantisi',
     content: `Astroloji ve meditasyon, ilk bakista farkli disiplinler gibi gorunse de, her ikisi de ic dunyanizi anlamaniza ve yasam dengenizi bulmaniza yardimci olur.
 
 ## Astroloji Meditasyona Nasil Rehberlik Eder?
@@ -227,35 +238,107 @@ AstroGuru uygulamasinda natal haritaniza ve gunun transit enerjisine gore kisise
   },
 ];
 
-/** Sync access to seed data (for build-time SSG fallback) */
-export function getPostBySlug(slug: string): BlogPost | undefined {
-  return seedPosts.find((p) => p.slug === slug);
+const DEFAULT_POST_LOCALE: Locale = 'tr';
+
+function withNormalizedLocale(post: BlogPost): BlogPost {
+  return {
+    ...post,
+    locale: post.locale ?? DEFAULT_POST_LOCALE,
+    translationGroup: post.translationGroup ?? post.slug,
+  };
 }
 
-/** Sync access to seed data (for build-time SSG fallback) */
-export function getAllPosts(): BlogPost[] {
-  return [...seedPosts].sort(
-    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
-  );
+function matchesLocale(post: BlogPost, locale?: Locale): boolean {
+  if (!locale) return true;
+  return (post.locale ?? DEFAULT_POST_LOCALE) === locale;
 }
 
-/** Async CMS-first fetch with local seed fallback */
-export async function fetchAllPosts(): Promise<BlogPost[]> {
-  const cmsPosts = await fetchPostsFromCms();
-  const posts = cmsPosts && cmsPosts.length > 0 ? cmsPosts : seedPosts;
+function sortPosts(posts: BlogPost[]): BlogPost[] {
   return [...posts].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
   );
 }
 
-/** Async CMS-first fetch with local seed fallback */
-export async function fetchPostBySlug(slug: string): Promise<BlogPost | undefined> {
-  const cmsPost = await fetchPostBySlugFromCms(slug);
-  if (cmsPost) return cmsPost;
-  return seedPosts.find((p) => p.slug === slug);
+function getSeedPosts(locale?: Locale): BlogPost[] {
+  return seedPosts
+    .map(withNormalizedLocale)
+    .filter((post) => matchesLocale(post, locale));
 }
 
-export function articleJsonLd(post: BlogPost) {
+export function getLocalizedPostPath(locale: Locale, slug: string): string {
+  return locale === 'en' ? `/en/blog/${slug}` : `/blog/${slug}`;
+}
+
+export function getPostMetadataAlternates(
+  slug: string,
+  locale: Locale,
+  availableLocales: Locale[],
+) {
+  const languages = Object.fromEntries(
+    availableLocales.map((availableLocale) => [
+      availableLocale,
+      `${SITE_URL}${getLocalizedPostPath(availableLocale, slug)}`,
+    ]),
+  );
+
+  if (availableLocales.includes('tr')) {
+    languages['x-default'] = `${SITE_URL}${getLocalizedPostPath('tr', slug)}`;
+  }
+
+  return {
+    canonical: getLocalizedPostPath(locale, slug),
+    languages,
+  };
+}
+
+/** Sync access to seed data (for build-time SSG fallback) */
+export function getPostBySlug(slug: string, locale?: Locale): BlogPost | undefined {
+  return getSeedPosts(locale).find((post) => post.slug === slug);
+}
+
+/** Sync access to seed data (for build-time SSG fallback) */
+export function getAllPosts(locale?: Locale): BlogPost[] {
+  return sortPosts(getSeedPosts(locale));
+}
+
+/** Async CMS-first fetch with local seed fallback */
+export async function fetchAllPosts(locale?: Locale): Promise<BlogPost[]> {
+  const cmsPosts = await fetchPostsFromCms(locale);
+  const localizedCmsPosts = cmsPosts?.map(withNormalizedLocale) ?? [];
+
+  if (localizedCmsPosts.length > 0) {
+    return sortPosts(localizedCmsPosts);
+  }
+
+  return sortPosts(getSeedPosts(locale));
+}
+
+/** Async CMS-first fetch with local seed fallback */
+export async function fetchPostBySlug(slug: string, locale?: Locale): Promise<BlogPost | undefined> {
+  const cmsPost = await fetchPostBySlugFromCms(slug, locale);
+  if (cmsPost) return withNormalizedLocale(cmsPost);
+  return getPostBySlug(slug, locale);
+}
+
+export async function getAvailablePostLocales(slug: string): Promise<Locale[]> {
+  const cmsLocaleChecks = await Promise.all(
+    SUPPORTED_LOCALES.map(async (locale) => {
+      const post = await fetchPostBySlugFromCms(slug, locale);
+      return post ? locale : null;
+    }),
+  );
+
+  const cmsLocales = cmsLocaleChecks.filter((locale): locale is Locale => locale !== null);
+  if (cmsLocales.length > 0) {
+    return cmsLocales;
+  }
+
+  return SUPPORTED_LOCALES.filter((locale) => Boolean(getPostBySlug(slug, locale)));
+}
+
+export function articleJsonLd(post: BlogPost, locale: Locale = 'tr') {
+  const postPath = getLocalizedPostPath(locale, post.slug);
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -277,10 +360,11 @@ export function articleJsonLd(post: BlogPost) {
         url: `${SITE_URL}/logo.png`,
       },
     },
+    inLanguage: locale,
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${SITE_URL}/blog/${post.slug}`,
+      '@id': `${SITE_URL}${postPath}`,
     },
-    url: `${SITE_URL}/blog/${post.slug}`,
+    url: `${SITE_URL}${postPath}`,
   };
 }

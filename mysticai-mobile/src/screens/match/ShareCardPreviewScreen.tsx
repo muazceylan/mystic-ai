@@ -17,7 +17,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppHeader, AccessibleText, SafeScreen } from '../../components/ui';
+import { AppHeader, AccessibleText, SafeScreen, SurfaceHeaderIconButton } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import { useMatchTraits } from '../../hooks/useMatchTraits';
@@ -74,10 +74,12 @@ import {
   ActionUnlockSheet,
   FEATURE_ACTION_KEYS,
   FEATURE_MODULE_KEYS,
+  MonetizationQuickBar,
   PurchaseCatalogSheet,
-  GuruBalanceBadge,
 } from '../../features/monetization';
 import { trackEvent } from '../../services/analytics';
+import { useNotificationStore } from '../../store/useNotificationStore';
+import { useSurfaceNavigationActions } from '../../hooks/useSurfaceNavigationActions';
 
 type ShareAction = 'share' | 'save' | 'download' | 'generate' | null;
 
@@ -308,11 +310,14 @@ export default function ShareCardPreviewScreen() {
   // ── Monetization ──
   const monetization = useModuleMonetization(MODULE_KEY);
   const exportUnlockState = monetization.getActionUnlockState(ACTION_KEY_EXPORT);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const { onOpenNotifications } = useSurfaceNavigationActions();
   const [showUnlockSheet, setShowUnlockSheet] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
   const [featureUnlocked, setFeatureUnlocked] = useState(false);
   const pendingProtectedActionRef = useRef<'share' | 'save' | 'download' | null>(null);
   const screenTrackedRef = useRef(false);
+  const notificationBadgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
 
   // ── User data ──
   const user = useAuthStore((s) => s.user);
@@ -1356,9 +1361,17 @@ export default function ShareCardPreviewScreen() {
           title={t('shareableCards.title')}
           subtitle={t('shareableCards.subtitle')}
           onBack={goBack}
-          rightActions={monetization.guruEnabled ? (
-            <GuruBalanceBadge />
-          ) : undefined}
+          rightActions={(
+            <>
+              <MonetizationQuickBar />
+              <SurfaceHeaderIconButton
+                iconName="notifications-outline"
+                onPress={onOpenNotifications}
+                accessibilityLabel={t('profile.menu.notifications')}
+                badgeText={notificationBadgeText}
+              />
+            </>
+          )}
         />
 
         {successText ? (

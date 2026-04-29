@@ -19,6 +19,7 @@ import {
   destroyWebRewardedSlot,
   makeWebRewardedVisible,
   requestWebRewardedAd,
+  resolveWebRewardedAdUnitPath,
 } from '../providers/webRewardedAds';
 
 type UnlockStatus = 'idle' | 'loading_ad' | 'showing_ad' | 'processing_reward' | 'success' | 'failed';
@@ -201,7 +202,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
         });
 
         const requestResult = await requestWebRewardedAd(
-          intent.adConfig.adUnitPath,
+          resolveWebRewardedAdUnitPath(intent.adConfig.adUnitPath) ?? '',
           createClientEventId(),
         );
 

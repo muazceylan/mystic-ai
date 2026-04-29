@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, HeaderRightIcons } from '../../components/ui';
+import { useBackNavigation } from '../../hooks/useBackNavigation';
 import { useTheme } from '../../context/ThemeContext';
 import { useJournalStore } from '../store/useJournalStore';
 import type { JournalEntry } from '../types';
@@ -42,6 +43,7 @@ function formatDateLabel(dateISO: string, todayLabel: string, yesterdayLabel: st
 
 export default function JournalScreen() {
   const { t, i18n } = useTranslation();
+  const goBack = useBackNavigation();
   const journal = useJournalStore();
   const { colors, isDark } = useTheme();
   const [filter, setFilter] = useState<FilterType>('all');
@@ -103,7 +105,7 @@ export default function JournalScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <Pressable onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={TEXT} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: TEXT }]}>{t('journalScreen.headerTitle')}</Text>

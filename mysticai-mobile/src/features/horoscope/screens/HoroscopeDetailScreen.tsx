@@ -13,6 +13,7 @@ import * as Sharing from 'expo-sharing';
 import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS } from '../../../constants/tokens';
 import { SafeScreen } from '../../../components/ui/SafeScreen';
+import { useBackNavigation } from '../../../hooks/useBackNavigation';
 import { useHoroscopeStore } from '../store/useHoroscopeStore';
 import { ZODIAC_MAP, resolveZodiacSign } from '../utils/zodiacData';
 import { ZodiacSign, HoroscopePeriod } from '../types/horoscope.types';
@@ -32,6 +33,7 @@ export default function HoroscopeDetailScreen() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const goBack = useBackNavigation();
   const S = makeStyles(colors, isDark);
   const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase();
   const monetization = useModuleMonetization(FEATURE_MODULE_KEYS.HOROSCOPE);
@@ -102,7 +104,7 @@ export default function HoroscopeDetailScreen() {
     <SafeScreen>
       {/* Header */}
       <View style={S.header}>
-        <Pressable onPress={() => router.back()} style={S.backBtn}>
+        <Pressable onPress={goBack} style={S.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={S.emoji}>{signData?.emoji}</Text>

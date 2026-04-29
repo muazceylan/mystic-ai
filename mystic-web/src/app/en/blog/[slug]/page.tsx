@@ -1,12 +1,17 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { fetchPostBySlug, getAllPosts, articleJsonLd } from '@/lib/blog';
+import {
+  articleJsonLd,
+  fetchPostBySlug,
+  getAllPosts,
+  getAvailablePostLocales,
+  getPostMetadataAlternates,
+} from '@/lib/blog';
 import { ArticleOpenTracker } from '@/components/ArticleOpenTracker';
 import { DownloadCtaLink } from '@/components/DownloadCtaLink';
 import { JsonLd } from '@/components/JsonLd';
 import { SITE_URL } from '@/lib/constants';
-import { getMetadataAlternates } from '@/lib/i18n';
 import { TrackedLink } from '@/components/TrackedLink';
 
 export const revalidate = 3600;
@@ -16,18 +21,20 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  return getAllPosts().map((post) => ({ slug: post.slug }));
+  return getAllPosts('en').map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = await fetchPostBySlug(slug);
+  const post = await fetchPostBySlug(slug, 'en');
   if (!post) return {};
+
+  const availableLocales = await getAvailablePostLocales(slug);
 
   return {
     title: post.title,
     description: post.description,
-    alternates: getMetadataAlternates('en', `/blog/${post.slug}`),
+    alternates: getPostMetadataAlternates(post.slug, 'en', availableLocales),
     openGraph: {
       title: `${post.title} | AstroGuru`,
       description: post.description,
@@ -49,7 +56,7 @@ const categoryLinks: Record<string, { href: string; label: string; featureName: 
 
 export default async function BlogPostPageEn({ params }: Props) {
   const { slug } = await params;
-  const post = await fetchPostBySlug(slug);
+  const post = await fetchPostBySlug(slug, 'en');
   if (!post) notFound();
 
   const relatedLink = categoryLinks[post.category];
@@ -86,7 +93,7 @@ export default async function BlogPostPageEn({ params }: Props) {
 
   return (
     <>
-      <JsonLd data={articleJsonLd(post)} />
+      <JsonLd data={articleJsonLd(post, 'en')} />
       <ArticleOpenTracker
         slug={post.slug}
         title={post.title}

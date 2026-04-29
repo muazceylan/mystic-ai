@@ -32,6 +32,7 @@ import i18n from '../../i18n';
 import { ErrorStateCard, SafeScreen, TabHeader, SurfaceHeaderIconButton } from '../../components/ui';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import type { RelationshipType as CompareRelationshipType } from '../../types/compare';
+import { navigateWithOrigin } from '../../navigation';
 import {
   COMPATIBILITY_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
@@ -40,6 +41,7 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
+import { getSignName, resolveZodiacSign } from '../../features/horoscope/utils/zodiacData';
 
 interface RelationshipTypeOption {
   key: RelationshipType;
@@ -95,6 +97,14 @@ function mapToCompareRelationshipType(value: RelationshipType): CompareRelations
   return 'friend';
 }
 
+function formatLocalizedSignLabel(signLabel: string | null | undefined, lang: string): string {
+  const normalized = signLabel?.trim();
+  if (!normalized) return '–';
+
+  const resolved = resolveZodiacSign(normalized);
+  return resolved ? getSignName(resolved, lang) : normalized;
+}
+
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
@@ -122,8 +132,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     emptyPeopleHint: { fontSize: 12, color: C.subtext, textAlign: 'center' },
     peopleScroll: { marginHorizontal: -20, paddingHorizontal: 20 },
     addPersonCard: {
-      width: 76,
-      height: 96,
+      width: 88,
+      minHeight: 108,
       backgroundColor: C.surface,
       borderRadius: 14,
       borderWidth: 1.5,
@@ -132,6 +142,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 10,
       gap: 6,
     },
     addPersonIcon: {
@@ -144,14 +156,14 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     addPersonLabel: { fontSize: 11, color: C.primary, fontWeight: '600' },
     personCard: {
-      width: 76,
-      height: 96,
+      width: 88,
+      minHeight: 108,
       backgroundColor: C.surface,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: C.border,
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       marginRight: 10,
       padding: 8,
       gap: 4,
@@ -168,8 +180,21 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     personAvatarSelected: { backgroundColor: C.primary },
     personAvatarText: { fontSize: 17, fontWeight: '700', color: C.primary },
     personAvatarTextSelected: { color: C.white },
-    personName: { fontSize: 11, color: C.text, fontWeight: '600', textAlign: 'center' },
-    personSign: { fontSize: 10, color: C.subtext },
+    personName: {
+      fontSize: 11,
+      lineHeight: 14,
+      color: C.text,
+      fontWeight: '600',
+      textAlign: 'center',
+      minHeight: 28,
+      width: '100%',
+    },
+    personSign: {
+      fontSize: 10,
+      color: C.subtext,
+      textAlign: 'center',
+      width: '100%',
+    },
     typeGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -503,10 +528,16 @@ export default function CompatibilityScreen() {
     ((selectedPerson as any)?.avatarUri ?? null);
 
   const personASignLabel =
-    firstParam(params.personASignLabel) ?? personAFromSaved?.sunSign ?? natalChart?.sunSign ?? '—';
+    formatLocalizedSignLabel(
+      firstParam(params.personASignLabel) ?? personAFromSaved?.sunSign ?? natalChart?.sunSign,
+      locale,
+    );
 
   const personBSignLabel =
-    firstParam(params.personBSignLabel) ?? personBFromSaved?.sunSign ?? selectedPerson?.sunSign ?? '—';
+    formatLocalizedSignLabel(
+      firstParam(params.personBSignLabel) ?? personBFromSaved?.sunSign ?? selectedPerson?.sunSign,
+      locale,
+    );
 
   const showResultMode = showResults && Boolean(currentSynastry);
   const shouldShowRedirectLoader =
@@ -514,6 +545,14 @@ export default function CompatibilityScreen() {
     currentSynastry !== null &&
     currentSynastry !== undefined &&
     redirectedSynastryRef.current !== currentSynastry.id;
+
+  const openAddPerson = useCallback(() => {
+    navigateWithOrigin({
+      pathname: '/add-person',
+      from: '/(tabs)/compatibility',
+      fallbackRoute: '/(tabs)/compatibility',
+    });
+  }, []);
 
   useEffect(() => {
     if (!showResultMode || !currentSynastry) {
@@ -593,7 +632,7 @@ export default function CompatibilityScreen() {
                 <Text style={styles.sectionTitle}>{t('compatibility.importantPeople')}</Text>
                 <TouchableOpacity
                   style={styles.addButton}
-                  onPress={() => router.push('/(tabs)/add-person')}
+                  onPress={openAddPerson}
                   accessibilityLabel={t('compatibility.addPersonAccessibility')}
                   accessibilityRole="button"
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -614,7 +653,7 @@ export default function CompatibilityScreen() {
               ) : savedPeople.length === 0 ? (
                 <TouchableOpacity
                   style={styles.emptyPeopleCard}
-                  onPress={() => router.push('/(tabs)/add-person')}
+                  onPress={openAddPerson}
                   accessibilityLabel={t('compatibility.addPersonAccessibility')}
                   accessibilityRole="button"
                 >
@@ -626,7 +665,7 @@ export default function CompatibilityScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.peopleScroll}>
                   <TouchableOpacity
                     style={styles.addPersonCard}
-                    onPress={() => router.push('/(tabs)/add-person')}
+                    onPress={openAddPerson}
                     accessibilityLabel={t('compatibility.addPersonAccessibility')}
                     accessibilityRole="button"
                   >
@@ -682,10 +721,12 @@ export default function CompatibilityScreen() {
                           {person.name.charAt(0).toUpperCase()}
                         </Text>
                       </View>
-                      <Text style={styles.personName} numberOfLines={1}>
+                      <Text style={styles.personName} numberOfLines={2}>
                         {person.name}
                       </Text>
-                      <Text style={styles.personSign}>{person.sunSign ?? '–'}</Text>
+                      <Text style={styles.personSign} numberOfLines={1}>
+                        {formatLocalizedSignLabel(person.sunSign, locale)}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>

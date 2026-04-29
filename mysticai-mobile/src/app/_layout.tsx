@@ -210,6 +210,11 @@ function useProtectedRoute(i18nReady: boolean) {
     // Must wait for both conditions before attempting any navigation
     if (!isHydrated || !i18nReady) return;
 
+    const isWebMarketingHome = Platform.OS === 'web' && pathname === '/';
+    if (isWebMarketingHome) {
+      return;
+    }
+
     const currentRoute = topLevelRoute(pathname);
     const inAuthRoute = AUTH_ROUTES.has(currentRoute);
     const inPublicInfoRoute = PUBLIC_INFO_ROUTES.has(currentRoute);
@@ -539,6 +544,9 @@ function AnalyticsDebugBootstrap() {
       collection_enabled: debugState.collectionEnabled,
       firebase_enabled: debugState.firebaseEnabled,
       amplitude_enabled: debugState.amplitudeEnabled,
+      gtm_web_container_id: debugState.gtmWebContainerId,
+      gtm_ios_container_id: debugState.gtmIosContainerId,
+      gtm_android_container_id: debugState.gtmAndroidContainerId,
       auth_state: isAuthenticated ? 'authenticated' : 'anonymous',
       platform: Platform.OS,
     });

@@ -20,8 +20,8 @@ import { useWebViewportBottomInset } from '../../hooks/useWebViewportBottomInset
 
 const WEB_MAX_WIDTH = 920;
 const WEB_SIDE_PAD = 24;
-const IOS_TAB_BAR_BASE_HEIGHT = 54;
-const ANDROID_TAB_BAR_BASE_HEIGHT = 64;
+const IOS_TAB_BAR_BASE_HEIGHT = 68;
+const ANDROID_TAB_BAR_BASE_HEIGHT = 76;
 
 /** Expo Router may report pathname as `/dreams` instead of `/(tabs)/dreams`; segments still include `(tabs)`. */
 function isTabLayoutRoute(pathname: string, segments: readonly string[]): boolean {

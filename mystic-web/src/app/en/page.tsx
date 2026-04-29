@@ -47,7 +47,7 @@ const features = [
 export const revalidate = 3600;
 
 export default async function HomePageEn() {
-  const recentPosts = (await fetchAllPosts()).slice(0, 3);
+  const recentPosts = (await fetchAllPosts('en')).slice(0, 3);
 
   return (
     <>
@@ -112,41 +112,48 @@ export default async function HomePageEn() {
               All posts &rarr;
             </Link>
           </div>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {recentPosts.map((post) => (
-              <TrackedLink
-                key={post.slug}
-                href={`/en/blog/${post.slug}`}
-                analyticsEvent={{
-                  type: 'blog_card_click',
-                  params: {
-                    slug: post.slug,
-                    title: post.title,
-                    category: post.category,
-                    source: 'home_blog_preview',
-                    translation_group: post.translationGroup,
-                  },
-                }}
-                className="group rounded-2xl border border-zinc-200 p-5 transition-shadow hover:shadow-lg dark:border-zinc-800"
-              >
-                <time
-                  dateTime={post.publishedAt}
-                  className="text-xs text-zinc-400"
+          {recentPosts.length > 0 ? (
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {recentPosts.map((post) => (
+                <TrackedLink
+                  key={post.slug}
+                  href={`/en/blog/${post.slug}`}
+                  analyticsEvent={{
+                    type: 'blog_card_click',
+                    params: {
+                      slug: post.slug,
+                      title: post.title,
+                      category: post.category,
+                      source: 'home_blog_preview',
+                      translation_group: post.translationGroup,
+                    },
+                  }}
+                  className="group rounded-2xl border border-zinc-200 p-5 transition-shadow hover:shadow-lg dark:border-zinc-800"
                 >
-                  {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                    day: 'numeric',
-                    month: 'long',
-                  })}
-                </time>
-                <h3 className="mt-2 font-semibold leading-snug group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                  {post.title}
-                </h3>
-                <p className="mt-2 text-sm text-zinc-600 line-clamp-2 dark:text-zinc-400">
-                  {post.description}
-                </p>
-              </TrackedLink>
-            ))}
-          </div>
+                  <time
+                    dateTime={post.publishedAt}
+                    className="text-xs text-zinc-400"
+                  >
+                    {new Date(post.publishedAt).toLocaleDateString('en-US', {
+                      day: 'numeric',
+                      month: 'long',
+                    })}
+                  </time>
+                  <h3 className="mt-2 font-semibold leading-snug group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                    {post.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-zinc-600 line-clamp-2 dark:text-zinc-400">
+                    {post.description}
+                  </p>
+                </TrackedLink>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-8 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              English articles are being prepared. In the meantime, you can explore
+              our astrology, numerology, dream interpretation and spiritual guidance pages.
+            </p>
+          )}
         </div>
       </section>
 

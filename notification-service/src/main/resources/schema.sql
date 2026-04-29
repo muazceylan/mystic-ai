@@ -3,6 +3,51 @@
 -- Use plain PostgreSQL DDL because Spring's SQL initializer splits on ';' and
 -- does not safely handle anonymous DO $$ ... $$ blocks here.
 
+CREATE TABLE IF NOT EXISTS notification_preferences (
+    user_id BIGINT NOT NULL,
+    daily_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    intraday_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    weekly_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    planner_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    prayer_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    meditation_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    dream_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    evening_checkin_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    product_updates_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    frequency_level VARCHAR(255) DEFAULT 'BALANCED',
+    preferred_time_slot VARCHAR(255) DEFAULT 'MORNING',
+    quiet_hours_start TIME DEFAULT '22:30:00',
+    quiet_hours_end TIME DEFAULT '08:00:00',
+    push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    timezone VARCHAR(255) DEFAULT 'Europe/Istanbul',
+    updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_notification_preferences PRIMARY KEY (user_id)
+);
+
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS daily_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS intraday_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS weekly_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS planner_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS prayer_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS meditation_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS dream_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS evening_checkin_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS product_updates_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS frequency_level VARCHAR(255) DEFAULT 'BALANCED';
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS preferred_time_slot VARCHAR(255) DEFAULT 'MORNING';
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS quiet_hours_start TIME DEFAULT '22:30:00';
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS quiet_hours_end TIME DEFAULT '08:00:00';
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS timezone VARCHAR(255) DEFAULT 'Europe/Istanbul';
+ALTER TABLE IF EXISTS notification_preferences ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP;
+
+UPDATE notification_preferences SET frequency_level = 'BALANCED' WHERE frequency_level IS NULL;
+UPDATE notification_preferences SET preferred_time_slot = 'MORNING' WHERE preferred_time_slot IS NULL;
+UPDATE notification_preferences SET quiet_hours_start = '22:30:00' WHERE quiet_hours_start IS NULL;
+UPDATE notification_preferences SET quiet_hours_end = '08:00:00' WHERE quiet_hours_end IS NULL;
+UPDATE notification_preferences SET timezone = 'Europe/Istanbul' WHERE timezone IS NULL OR btrim(timezone) = '';
+UPDATE notification_preferences SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL;
+
 CREATE TABLE IF NOT EXISTS reward_intent (
     id UUID NOT NULL,
     user_id BIGINT NOT NULL,

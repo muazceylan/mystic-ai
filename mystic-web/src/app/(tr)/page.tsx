@@ -47,7 +47,7 @@ const features = [
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const recentPosts = (await fetchAllPosts()).slice(0, 3);
+  const recentPosts = (await fetchAllPosts('tr')).slice(0, 3);
 
   return (
     <>
@@ -58,14 +58,15 @@ export default async function HomePage() {
       <section className="relative overflow-hidden bg-gradient-to-b from-purple-950 via-indigo-950 to-zinc-950 py-24 text-white sm:py-32">
         <div className="mx-auto max-w-5xl px-4 text-center sm:px-6">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Yildizlarin Isiginda
+            Senin Icin Yazilmis
             <br />
-            Hayatina Yon Ver
+            Kozmik Bir Yol Haritasi
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-purple-200">
-            Kisisel astroloji, numeroloji, ruya yorumu ve spirituel rehberlik.
-            Natal haritani kesfet, gunluk transitlerini takip et, kozmik
-            rehberligini al.
+            Dogum haritandan gunluk transitlerine, sayilarindan ruyalarina
+            kadar tum isaretleri tek yerde bul. Hazir yorumlar degil, sana
+            dokunan kisisel astroloji, numeroloji ve spirituel rehberlik
+            deneyimini kesfet.
           </p>
           <div id="indir">
             <StoreCTA locale="tr" variant="hero" />

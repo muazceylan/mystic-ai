@@ -9,6 +9,8 @@
 import { router } from 'expo-router';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useAppConfigStore } from '../store/useAppConfigStore';
+import { navigateWithOrigin } from '../navigation';
+import type { NavigationEntryType } from '../navigation';
 import {
   trackNotificationEvent,
   notifEventPayload,
@@ -24,6 +26,11 @@ interface NotificationRef {
   sourceModule?: string;
   templateKey?: string;
   variantKey?: string;
+  /**
+   * How this notification was opened. Defaults to `deeplink` (in-app center).
+   * `push` is used when a tap comes in via `expo-notifications` response.
+   */
+  entryType?: NavigationEntryType;
 }
 
 const SAFE_FALLBACK = '/(tabs)/home' as const;
@@ -55,16 +62,27 @@ function withNumerologyEntryPoint(deeplink?: string): string | undefined {
     : `${deeplink}?entry_point=push_numerology_checkin`;
 }
 
+export interface OpenNotificationOptions {
+  /**
+   * Origin route to attach to the deeplink target. When set, back from the
+   * target returns here. Typical value for in-app notification center is
+   * `/(tabs)/notifications`.
+   */
+  originRoute?: string;
+}
+
 /**
  * Open a notification: marks as read, tracks analytics, navigates.
  * Safe to call multiple times for the same notification — deduplicates.
  *
  * @param notif  notification reference (id + deeplink + status)
  * @param isAuthenticated  whether the user is currently logged in
+ * @param options  optional origin hint for back resolution
  */
 export async function openNotification(
   notif: NotificationRef,
-  isAuthenticated: boolean
+  isAuthenticated: boolean,
+  options?: OpenNotificationOptions,
 ): Promise<void> {
   const normalizedId = normalizeId(notif.id);
   const dedupeKey = normalizedId || `anon:${notif.deeplink ?? 'empty'}`;
@@ -123,7 +141,12 @@ export async function openNotification(
     }
 
     try {
-      router.push(deeplink as any);
+      navigateWithOrigin({
+        pathname: deeplink,
+        from: options?.originRoute,
+        entryType: notif.entryType ?? 'deeplink',
+        fallbackRoute: SAFE_FALLBACK,
+      });
       trackNotificationEvent(NotificationEvent.DEEPLINK_OPENED, { ...payload, deeplink });
     } catch {
       trackNotificationEvent(NotificationEvent.DEEPLINK_FALLBACK, { ...payload, deeplink, reason: 'route_error' });
@@ -184,6 +207,7 @@ export async function handlePushNotificationOpen(
       sourceModule,
       templateKey,
       variantKey,
+      entryType: 'push',
     },
     isAuthenticated
   );

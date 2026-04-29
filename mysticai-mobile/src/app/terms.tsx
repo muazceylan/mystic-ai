@@ -1,8 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { SafeScreen, TabHeader } from '../components/ui';
+import { openSupportEmail } from '../utils/supportEmail';
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -74,7 +75,9 @@ export default function TermsScreen() {
 
           <TouchableOpacity
             style={styles.linkBtn}
-            onPress={() => Linking.openURL(`mailto:${contactEmail}`)}
+            onPress={() => {
+              void openSupportEmail({ email: contactEmail, t });
+            }}
             accessibilityLabel={t('terms.contactAccessibility')}
             accessibilityRole="link"
           >

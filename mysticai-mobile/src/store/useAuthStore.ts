@@ -154,6 +154,10 @@ export const useAuthStore = create<AuthState>()(
           const { useGuruWalletStore } = require('../features/monetization');
           useGuruWalletStore.getState().clearWallet();
         } catch {}
+        try {
+          const { clearAllNavigationIntents } = require('../navigation/navigationIntentStore');
+          clearAllNavigationIntents();
+        } catch {}
 
         set({
           token: null,

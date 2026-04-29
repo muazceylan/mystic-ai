@@ -224,7 +224,6 @@ const CORE_SYNC_DOCK_ORDER: PlannerCategoryId[] = [
   'jointFinance',
   'activity',
   'official',
-  'partnerHarmony',
   'family',
   'spiritual',
 ];
@@ -288,12 +287,33 @@ function buildPlannerDeeplink(date: string, cosmicCategoryKey: string | null, pl
 }
 
 function orderPlannerCategories<T extends { id: PlannerCategoryId }>(categories: readonly T[]): T[] {
-  const categoryById = new Map(categories.map((category) => [category.id, category] as const));
-  const ordered = CORE_SYNC_DOCK_ORDER
-    .map((id) => categoryById.get(id))
-    .filter((category): category is T => !!category);
-  const orderedIds = new Set(ordered.map((category) => category.id));
-  const extras = categories.filter((category) => !orderedIds.has(category.id));
+  const categoryById = new Map<PlannerCategoryId, T>();
+  for (const category of categories) {
+    if (!categoryById.has(category.id)) {
+      categoryById.set(category.id, category);
+    }
+  }
+
+  const orderedIds = new Set<PlannerCategoryId>();
+  const ordered = CORE_SYNC_DOCK_ORDER.reduce<T[]>((result, id) => {
+    const category = categoryById.get(id);
+    if (!category || orderedIds.has(category.id)) {
+      return result;
+    }
+
+    orderedIds.add(category.id);
+    result.push(category);
+    return result;
+  }, []);
+
+  const extras = categories.filter((category) => {
+    if (orderedIds.has(category.id)) {
+      return false;
+    }
+
+    orderedIds.add(category.id);
+    return true;
+  });
   return [...ordered, ...extras];
 }
 

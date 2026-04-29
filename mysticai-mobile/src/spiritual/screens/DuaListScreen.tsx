@@ -145,7 +145,7 @@ export default function DuaListScreen() {
 
         <AppHeader
           title={tl('spiritual.dua.title')}
-          onBack={() => router.back()}
+         
           rightActions={<HeaderRightIcons tintColor={TEXT} />}
           tintColor={TEXT}
         />

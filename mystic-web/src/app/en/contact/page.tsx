@@ -13,7 +13,7 @@ export default function ContactPage() {
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold tracking-tight">Contact</h1>
       <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-        You can reach us for your questions, suggestions or support requests.
+        You can reach us for your questions, suggestions, review access, or support requests.
       </p>
 
       <div className="mt-12 grid gap-8 sm:grid-cols-2">
@@ -33,7 +33,8 @@ export default function ContactPage() {
         <div className="rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
           <h2 className="text-lg font-semibold">Account Deletion</h2>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            To delete your account and all your data, send an email with the subject
+            You can delete your account inside the mobile app from Profile → Permanently
+            Delete Account. If you cannot access the app, send an email with the subject
             &quot;Account Deletion Request&quot;:
           </p>
           <a

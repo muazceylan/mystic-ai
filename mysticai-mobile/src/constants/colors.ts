@@ -196,7 +196,7 @@ export const COLORS = {
   themeDarkPulseBorder: 'rgba(167,139,250,0.35)',
   themeDarkPulseTitle: '#E2E8FF',
   themeDarkPulseSub: '#94A3B8',
-  themeDarkTabBarActive: '#FCD34D',
+  themeDarkTabBarActive: '#C084FC',
   themeDarkTabBarInactive: '#94A3B8',
   themeDarkSwitchTrack: '#334155',
   themeDarkSwitchThumbActive: '#A855F7',

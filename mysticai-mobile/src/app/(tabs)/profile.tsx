@@ -27,9 +27,11 @@ import { usePagerActivePage } from '../../navigation/MainTabPager';
 import { MAIN_TAB_ORDER } from '../../navigation/tabPagerConfig';
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
+import { navigateWithOrigin } from '../../navigation';
 import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
+import { openSupportEmail } from '../../utils/supportEmail';
 import {
   PROFILE_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
@@ -71,10 +73,6 @@ function getZodiacFromBirthDate(birthDate?: string): string {
   }
 }
 
-function isPremium(roles?: string[]): boolean {
-  return roles?.some((r) => r === 'PREMIUM' || r === 'ROLE_PREMIUM') ?? false;
-}
-
 export function ProfileScreenContent() {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -100,7 +98,6 @@ export function ProfileScreenContent() {
     : `${user?.firstName ? user.firstName[0] : '?'}${user?.lastName ? user.lastName[0] : ''}`.toUpperCase();
 
   const zodiac = user?.zodiacSign || getZodiacFromBirthDate(user?.birthDate);
-  const premium = isPremium(user?.roles);
   const avatarUri = user?.avatarUri || user?.avatarUrl || null;
 
   useEffect(() => {
@@ -142,8 +139,19 @@ export function ProfileScreenContent() {
 
   const handleSettingPress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(route as any);
+    navigateWithOrigin({ pathname: route, from: '/(tabs)/profile' });
   };
+
+  const openDeleteAccountModal = useCallback(() => {
+    setDeletePassword('');
+    setDeleteError(null);
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleOpenSupport = useCallback(() => {
+    const supportEmail = t('profile.compliance.supportEmail');
+    void openSupportEmail({ email: supportEmail, t });
+  }, [t]);
 
   const requiresPassword = Boolean(user?.hasPassword);
 
@@ -353,43 +361,11 @@ export function ProfileScreenContent() {
           </View>
         </View>
 
-        {/* ── Premium Card ── */}
-        {premium ? (
-          <View style={[S.premiumCard, S.premiumCardActive]}>
-            <View style={[S.premiumIcon, S.premiumIconActive]}>
-              <Ionicons name="sparkles" size={18} color={colors.gold} />
-            </View>
-            <View style={S.premiumContent}>
-              <Text style={S.premiumTitle}>{t('profile.premium.active')}</Text>
-              <Text style={S.premiumDescription}>{t('profile.premium.activeDesc')}</Text>
-            </View>
-            <Ionicons name="checkmark-circle" size={22} color={colors.gold} />
-          </View>
-        ) : (
-          <View style={S.premiumCard}>
-            <View style={S.premiumIcon}>
-              <Ionicons name="sparkles" size={18} color={colors.gold} />
-            </View>
-            <View style={S.premiumContent}>
-              <Text style={S.premiumTitle}>{t('profile.premium.upgrade')}</Text>
-              <Text style={S.premiumDescription}>{t('profile.premium.upgradeDesc')}</Text>
-            </View>
-            <TouchableOpacity
-              style={S.upgradeButton}
-              accessibilityLabel={t('profile.premium.upgrade')}
-              accessibilityRole="button"
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(tabs)/premium' as any); }}
-            >
-              <Text style={S.upgradeButtonText}>{t('profile.premium.upgradeBtn')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* ── Guest Banner ── */}
         {isGuestUser(user) && (
           <TouchableOpacity
             style={S.guestBanner}
-            onPress={() => router.push('/(tabs)/link-account' as any)}
+            onPress={() => navigateWithOrigin({ pathname: '/(tabs)/link-account', from: '/(tabs)/profile' })}
             accessibilityRole="button"
             accessibilityLabel={t('guestBanner.linkButton')}
             activeOpacity={0.85}
@@ -444,6 +420,66 @@ export function ProfileScreenContent() {
           </View>
         </SpotlightTarget>
 
+        <Text style={S.sectionTitle}>{t('profile.compliance.title')}</Text>
+        <Text style={S.sectionSubtitle}>{t('profile.compliance.description')}</Text>
+        <View style={S.complianceCard}>
+          <TouchableOpacity
+            style={S.complianceItem}
+            onPress={() => handleSettingPress('/privacy')}
+            accessibilityRole="button"
+            accessibilityLabel={t('privacy.title')}
+            activeOpacity={0.75}
+          >
+            <View style={S.complianceItemCopy}>
+              <Text style={S.complianceItemTitle}>{t('privacy.title')}</Text>
+              <Text style={S.complianceItemSubtitle}>{t('profile.compliance.privacySubtitle')}</Text>
+            </View>
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[S.complianceItem, S.complianceItemBorder]}
+            onPress={() => handleSettingPress('/terms')}
+            accessibilityRole="button"
+            accessibilityLabel={t('terms.title')}
+            activeOpacity={0.75}
+          >
+            <View style={S.complianceItemCopy}>
+              <Text style={S.complianceItemTitle}>{t('terms.title')}</Text>
+              <Text style={S.complianceItemSubtitle}>{t('profile.compliance.termsSubtitle')}</Text>
+            </View>
+            <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[S.complianceItem, S.complianceItemBorder]}
+            onPress={handleOpenSupport}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.compliance.supportTitle')}
+            activeOpacity={0.75}
+          >
+            <View style={S.complianceItemCopy}>
+              <Text style={S.complianceItemTitle}>{t('profile.compliance.supportTitle')}</Text>
+              <Text style={S.complianceItemSubtitle}>{t('profile.compliance.supportSubtitle')}</Text>
+            </View>
+            <Ionicons name="mail-outline" size={18} color={colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[S.complianceItem, S.complianceItemBorder]}
+            onPress={openDeleteAccountModal}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.deleteAccount.button')}
+            activeOpacity={0.75}
+          >
+            <View style={S.complianceItemCopy}>
+              <Text style={S.complianceItemTitle}>{t('profile.deleteAccount.button')}</Text>
+              <Text style={S.complianceItemSubtitle}>{t('profile.compliance.deleteSubtitle')}</Text>
+            </View>
+            <Ionicons name="trash-outline" size={18} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
+
         {/* ── Logout ── */}
         <TouchableOpacity
           style={S.logoutButton}
@@ -454,18 +490,6 @@ export function ProfileScreenContent() {
         >
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />
           <Text style={S.logoutText}>{t('profile.logout')}</Text>
-        </TouchableOpacity>
-
-        {/* ── Delete Account ── */}
-        <TouchableOpacity
-          style={S.deleteAccountButton}
-          onPress={() => { setDeletePassword(''); setDeleteError(null); setShowDeleteModal(true); }}
-          activeOpacity={0.8}
-          accessibilityLabel={t('profile.deleteAccount.button')}
-          accessibilityRole="button"
-        >
-          <Ionicons name="trash-outline" size={16} color={colors.subtext} />
-          <Text style={S.deleteAccountText}>{t('profile.deleteAccount.button')}</Text>
         </TouchableOpacity>
 
         <Text style={S.versionText}>{t('profile.version')}</Text>
@@ -639,6 +663,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     statLabel: { color: C.subtext, fontSize: 10, textAlign: 'center' },
     // Settings
     sectionTitle: { color: C.text, fontSize: 16, fontWeight: '700', marginBottom: 12 },
+    sectionSubtitle: { color: C.subtext, fontSize: 12, lineHeight: 18, marginBottom: 12, marginTop: -4 },
     settingsCard: {
       backgroundColor: C.surface, borderRadius: 16,
       borderWidth: 1, borderColor: C.border, marginBottom: 20, overflow: 'hidden',
@@ -654,27 +679,40 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       marginVertical: -4,
     },
     settingsTitle: { color: C.text, fontSize: 14, fontWeight: '500' },
-    // Premium
-    premiumCard: {
-      flexDirection: 'row', alignItems: 'center',
-      backgroundColor: C.surface, borderRadius: 16, padding: 14,
-      borderWidth: 1, borderColor: C.border, marginBottom: 20,
+    complianceCard: {
+      backgroundColor: C.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: C.border,
+      marginBottom: 20,
+      overflow: 'hidden',
     },
-    premiumCardActive: { backgroundColor: C.surfaceAlt },
-    premiumIcon: {
-      width: 40, height: 40, borderRadius: 20,
-      backgroundColor: C.surfaceAlt,
-      alignItems: 'center', justifyContent: 'center', marginRight: 10,
+    complianceItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
     },
-    premiumIconActive: { backgroundColor: C.surfaceAlt },
-    premiumContent: { flex: 1 },
-    premiumTitle: { color: C.text, fontSize: 14, fontWeight: '700' },
-    premiumDescription: { color: C.subtext, fontSize: 12, marginTop: 2 },
-    upgradeButton: {
-      backgroundColor: C.gold, borderRadius: 10,
-      paddingHorizontal: 14, paddingVertical: 8,
+    complianceItemBorder: {
+      borderTopWidth: 1,
+      borderTopColor: C.border,
     },
-    upgradeButtonText: { color: C.text, fontSize: 12, fontWeight: '700' },
+    complianceItemCopy: {
+      flex: 1,
+      gap: 4,
+    },
+    complianceItemTitle: {
+      color: C.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    complianceItemSubtitle: {
+      color: C.subtext,
+      fontSize: 12,
+      lineHeight: 18,
+    },
     // Guest banner
     guestBanner: {
       backgroundColor: C.primarySoft,
@@ -710,11 +748,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       borderColor: C.border, backgroundColor: C.surface, marginBottom: 10,
     },
     logoutText: { color: C.danger, fontSize: 14, fontWeight: '600' },
-    deleteAccountButton: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      paddingVertical: 12, marginBottom: 16,
-    },
-    deleteAccountText: { color: C.subtext, fontSize: 13, fontWeight: '500' },
     versionText: { color: C.subtext, fontSize: 11, textAlign: 'center', marginTop: 4 },
     // Delete modal
     modalOverlay: {

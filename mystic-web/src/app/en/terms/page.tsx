@@ -12,7 +12,7 @@ export default function TermsPage() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold tracking-tight">Terms of Use</h1>
-      <p className="mt-2 text-sm text-zinc-500">Last updated: April 17, 2026</p>
+      <p className="mt-2 text-sm text-zinc-500">Last updated: April 23, 2026</p>
 
       <div className="prose prose-zinc mt-8 dark:prose-invert max-w-none">
         <h2>1. Service Description</h2>
@@ -55,13 +55,21 @@ export default function TermsPage() {
           terminated without notice.
         </p>
 
-        <h2>7. Changes</h2>
+        <h2>7. Age and Content Disclaimer</h2>
+        <p>
+          AstroGuru is not positioned as a children&apos;s app. Astrology, numerology,
+          dream, and spiritual guidance content is provided for informational and
+          entertainment purposes only and should not be used as a substitute for
+          medical, legal, financial, or mental health advice.
+        </p>
+
+        <h2>8. Changes</h2>
         <p>
           These terms of use may be updated without prior notice. Updated terms take
           effect on the date of publication.
         </p>
 
-        <h2>8. Contact</h2>
+        <h2>9. Contact</h2>
         <p>
           For questions about the terms of use, you can reach us at{' '}
           <a href="mailto:support@astroguru.app">support@astroguru.app</a>.

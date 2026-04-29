@@ -12,7 +12,7 @@ export default function KullanimSartlariPage() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold tracking-tight">Kullanim Sartlari</h1>
-      <p className="mt-2 text-sm text-zinc-500">Son guncelleme: 17 Nisan 2026</p>
+      <p className="mt-2 text-sm text-zinc-500">Son guncelleme: 23 Nisan 2026</p>
 
       <div className="prose prose-zinc mt-8 dark:prose-invert max-w-none">
         <h2>1. Hizmet Tanimi</h2>
@@ -56,13 +56,20 @@ export default function KullanimSartlariPage() {
           askiya alinabilir veya sonlandirilabilir.
         </p>
 
-        <h2>7. Degisiklikler</h2>
+        <h2>7. Yas ve Icerik Uyarisi</h2>
+        <p>
+          AstroGuru cocuk uygulamasi olarak konumlandirilmamistir. Astroloji, numeroloji,
+          ruya ve spirituel rehberlik icerikleri yalnizca bilgilendirme ve eglence
+          amaciyla sunulur; tip, hukuk, finans veya ruh sagligi desteginin yerine gecmez.
+        </p>
+
+        <h2>8. Degisiklikler</h2>
         <p>
           Bu kullanim sartlari onceden bildirimde bulunmaksizin guncellenebilir.
           Guncellenmis sartlar yayinlandigi tarihte yururluge girer.
         </p>
 
-        <h2>8. Iletisim</h2>
+        <h2>9. Iletisim</h2>
         <p>
           Kullanim sartlari hakkinda sorulariniz icin{' '}
           <a href="mailto:support@astroguru.app">support@astroguru.app</a> adresinden
