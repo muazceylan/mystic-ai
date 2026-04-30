@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../context/ThemeContext';
 import { SafeScreen } from '../components/ui';
+import { ActionModal } from '../components/auth';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { linkAccountWithSocial, linkAccountWithEmail, verifyLinkAccountOtp } from '../services/auth';
@@ -136,6 +137,7 @@ export default function LinkAccountScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // OTP step state
   const [step, setStep] = useState<'form' | 'otp'>('form');
@@ -155,6 +157,11 @@ export default function LinkAccountScreen() {
   const isFormValid = firstName.trim().length > 0 && email.trim().length > 0 && STRONG_PASSWORD_RE.test(password);
   const isOtpValid = otpCode.length === 6;
 
+  const navigateToHome = () => {
+    setShowSuccessModal(false);
+    router.replace('/(tabs)/home');
+  };
+
   // ─── Social linking (unchanged) ────────────────────────────────────────────
 
   const handleSocialLink = async (provider: string, idToken: string) => {
@@ -168,9 +175,7 @@ export default function LinkAccountScreen() {
       void queryClient.invalidateQueries({ queryKey: ['astrology'] });
       trackEvent('link_account_completed', { user_type: 'REGISTERED', auth_provider: provider.toUpperCase(), linked_account: true });
       trackEvent('quick_to_registered_converted', { auth_provider: provider.toUpperCase() });
-      Alert.alert(t('common.success'), t('linkAccount.success'), [
-        { text: t('common.ok'), onPress: () => router.back() },
-      ]);
+      setShowSuccessModal(true);
     } catch (error: any) {
       const message = error?.response?.data?.message ?? '';
       if (message === 'SOCIAL_ACCOUNT_ALREADY_LINKED') Alert.alert(t('common.error'), t('linkAccount.socialConflict'));
@@ -247,9 +252,7 @@ export default function LinkAccountScreen() {
       void queryClient.invalidateQueries({ queryKey: ['astrology'] });
       trackEvent('link_account_completed', { user_type: 'REGISTERED', auth_provider: 'EMAIL', linked_account: true });
       trackEvent('quick_to_registered_converted', { auth_provider: 'EMAIL' });
-      Alert.alert(t('common.success'), t('linkAccount.success'), [
-        { text: t('common.ok'), onPress: () => router.back() },
-      ]);
+      setShowSuccessModal(true);
     } catch (error: any) {
       const message = error?.response?.data?.message ?? '';
       if (message === 'OTP_EXPIRED') Alert.alert(t('common.error'), t('linkAccount.otpExpired'));
@@ -281,6 +284,18 @@ export default function LinkAccountScreen() {
 
   return (
     <SafeScreen>
+      <ActionModal
+        visible={showSuccessModal}
+        title={t('common.success')}
+        description={t('linkAccount.success')}
+        onRequestClose={navigateToHome}
+        actions={[
+          {
+            label: t('linkAccount.goHome'),
+            onPress: navigateToHome,
+          },
+        ]}
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           style={styles.container}

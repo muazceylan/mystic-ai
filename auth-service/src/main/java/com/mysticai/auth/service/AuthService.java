@@ -315,6 +315,7 @@ public class AuthService {
 
         verificationTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
         userRepository.save(user);
+        retrySignupBonusForEmailVerification(user);
 
         return VerificationOutcome.SUCCESS;
     }
@@ -825,12 +826,25 @@ public class AuthService {
         verificationTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
         User saved = userRepository.save(user);
         log.info("Email OTP verified, account activated: userId={}", saved.getId());
+        retrySignupBonusForEmailVerification(saved);
 
         natalChartProvisioningService.ensureNatalChartIfEligible(saved);
 
         String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
         String refreshToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
         return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(saved));
+    }
+
+    private void retrySignupBonusForEmailVerification(User user) {
+        if (user == null) {
+            return;
+        }
+
+        String registrationSource = trimToNull(user.getSignupBonusRegistrationSource());
+        signupBonusSyncService.scheduleSignupBonus(
+                user,
+                registrationSource != null ? registrationSource : "EMAIL_REGISTER"
+        );
     }
 
     private void sendOtpEmail(String toEmail, String code, String locale) {

@@ -2689,6 +2689,7 @@
     "otpInvalid": "Hatalı kod. Lütfen tekrar dene.",
     "verificationSent": "Doğrulama e-postası gönderildi. Lütfen e-postanı kontrol et.",
     "success": "Hesabın başarıyla bağlandı!",
+    "goHome": "Anasayfaya Git",
     "emailConflict": "Bu e-posta adresi zaten kayıtlı. Mevcut hesabınla giriş yap.",
     "socialConflict": "Bu sosyal hesap zaten başka bir kullanıcıya bağlı.",
     "alreadyLinked": "Hesabın zaten bağlı.",

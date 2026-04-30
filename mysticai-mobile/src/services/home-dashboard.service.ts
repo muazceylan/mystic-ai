@@ -707,7 +707,7 @@ function buildHeroInsightFromDaily(
   fallbackInsight: string,
   locale: DashboardLocale,
 ): string {
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = getTodayLocalDate();
   const userKey = user?.id ?? user?.username ?? 'guest';
   const seedBase = `${todayKey}|${locale}|${userKey}`;
   const firstName = extractFirstName(user);
@@ -736,7 +736,9 @@ function buildHeroInsightFromDaily(
   if (cmsRaw && !isWeakDashboardText(cmsRaw) && matchesRequestedLocale(cmsRaw, locale)) {
     const cmsSummary = summarizeForHero(cmsRaw);
     if (cmsSummary) {
-      const body = namePrefix ? lowercaseFirstChar(cmsSummary) : cmsSummary;
+      const body = namePrefix && !startsWithProperNoun(cmsSummary)
+        ? lowercaseFirstChar(cmsSummary)
+        : cmsSummary;
       return `${namePrefix}${body}`;
     }
   }
@@ -772,7 +774,9 @@ function buildHeroInsightFromDaily(
   // 5) HomeBrief headline as a last expert-voice fallback.
   const oracleHeadline = firstStrongText(locale, 96, homeBrief?.transitHeadline, homeBrief?.dailyEnergy);
   if (oracleHeadline && !isWeakDashboardText(oracleHeadline)) {
-    const body = namePrefix ? lowercaseFirstChar(oracleHeadline) : oracleHeadline;
+    const body = namePrefix && !startsWithProperNoun(oracleHeadline)
+      ? lowercaseFirstChar(oracleHeadline)
+      : oracleHeadline;
     return ensureSingleSentence(`${namePrefix}${body}`, 110);
   }
 
@@ -1097,8 +1101,7 @@ function buildCmsDailyPromise(
 ): Promise<CmsDailyHoroscope | null> {
   const sunSlug = strictSignSlug(user?.zodiacSign);
   if (!sunSlug) return Promise.resolve(null);
-  const today = new Date().toISOString().slice(0, 10);
-  return fetchDailyHoroscopeFromCms(sunSlug, today, locale).catch(() => null);
+  return fetchDailyHoroscopeFromCms(sunSlug, getTodayLocalDate(), locale).catch(() => null);
 }
 
 function selectPublishedCmsDaily(value: CmsDailyHoroscope | null | undefined): CmsDailyHoroscope | null {

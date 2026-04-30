@@ -2690,6 +2690,7 @@
     "otpInvalid": "Invalid code. Please try again.",
     "verificationSent": "Verification email sent. Please check your inbox.",
     "success": "Account linked successfully!",
+    "goHome": "Go to Home",
     "emailConflict": "This email is already registered. Sign in with your existing account.",
     "socialConflict": "This social account is already linked to another user.",
     "alreadyLinked": "Your account is already linked.",

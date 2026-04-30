@@ -196,6 +196,7 @@ class AuthServiceVerificationUnitTest {
 
         verify(tokenRepository).revokeActiveTokensByUserId(42L, now);
         verify(userRepository).save(user);
+        verify(signupBonusSyncService).scheduleSignupBonus(user, "EMAIL_REGISTER");
     }
 
     @Test
@@ -317,6 +318,7 @@ class AuthServiceVerificationUnitTest {
         assertThat(response.accessToken()).isEqualTo("jwt-token");
         verify(tokenRepository).revokeActiveTokensByUserId(10L, now);
         verify(userRepository).save(user);
+        verify(signupBonusSyncService).scheduleSignupBonus(user, "EMAIL_REGISTER");
     }
 
     @Test

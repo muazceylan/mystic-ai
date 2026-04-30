@@ -23,6 +23,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -40,6 +41,11 @@ public class OracleService {
 
     private static final String ORACLE_CACHE_PREFIX = "oracle:daily:";
     private static final String ORACLE_PROMPT_VERSION = "oracle-home-v2";
+    private static final Duration HOME_BRIEF_TIMEOUT = Duration.ofSeconds(18);
+    private static final Duration HOME_BRIEF_ORACLE_TIMEOUT = HOME_BRIEF_TIMEOUT.minusSeconds(1);
+    private static final Duration AI_ORCHESTRATOR_TIMEOUT = Duration.ofSeconds(14);
+    private static final Duration RETRY_VARIANT_TIMEOUT = Duration.ofSeconds(6);
+    private static final Duration UPSTREAM_CALL_TIMEOUT = Duration.ofSeconds(6);
 
     /**
      * Main entry point. Checks Redis cache first (key = oracle:daily:{userId}:{date}:{maritalStatus}).
@@ -52,9 +58,6 @@ public class OracleService {
                 .switchIfEmpty(computeDailySecret(userId, name, birthDate, maritalStatus, cacheKey));
     }
 
-    private static final Duration HOME_BRIEF_TIMEOUT = Duration.ofSeconds(18);
-    private static final Duration UPSTREAM_CALL_TIMEOUT = Duration.ofSeconds(6);
-
     public Mono<HomeBriefResponse> getHomeBrief(
             Long userId,
             String username,
@@ -62,51 +65,76 @@ public class OracleService {
             String birthDate,
             String maritalStatus) {
 
-        Mono<OracleResponse> oracleMono = getDailySecret(userId, name, birthDate, maritalStatus);
+        String displayName = firstNonBlank(name, username, "Kullanici");
+        Mono<OracleResponse> oracleMono = getDailySecret(userId, name, birthDate, maritalStatus)
+                .timeout(HOME_BRIEF_ORACLE_TIMEOUT)
+                .onErrorResume(TimeoutException.class, error -> {
+                    log.warn("Home brief oracle synthesis timed out for user {}, returning fallback", userId);
+                    return Mono.just(createFallbackResponse());
+                })
+                .onErrorResume(error -> {
+                    log.warn("Home brief oracle synthesis failed for user {}, returning fallback: {}", userId, error.getMessage());
+                    return Mono.just(createFallbackResponse());
+                });
         Mono<List<HomeBriefResponse.WeeklyCard>> weeklyCardsMono = fetchWeeklyCards(userId);
 
         return Mono.zip(oracleMono, weeklyCardsMono)
+                .map(tuple -> buildHomeBriefResponse(tuple.getT1(), tuple.getT2(), displayName, maritalStatus))
                 .timeout(HOME_BRIEF_TIMEOUT)
-                .map(tuple -> {
-                    OracleResponse oracle = tuple.getT1();
-                    List<HomeBriefResponse.WeeklyCard> weeklyCards = tuple.getT2();
-                    String displayName = firstNonBlank(name, username, "Kullanici");
-                    String dailyEnergy = normalizeHomeCopy(
-                            firstNonBlank(oracle.dailyVibe(), oracle.message(), "Bugün ritmini sakin tut, netlik geliyor."),
-                            "Bugün ritmini sakin tut, netlik geliyor.",
-                            120);
-                    String transitHeadline = normalizeHomeCopy(
-                            firstNonBlank(oracle.transitHeadline(), oracle.astrologyInsight(), "Günün akışı bugün lehine dönüyor."),
-                            "Günün akışı bugün lehine dönüyor.",
-                            96);
-                    String actionMessage = normalizeHomeAction(
-                            firstNonBlank(oracle.message(), "Küçük ama net bir adım at."),
-                            maritalStatus);
-                    String transitSummary = normalizeHomeSummary(
-                            firstNonBlank(oracle.transitSummary(), oracle.numerologyInsight(), "Dengeyi korudukça hızlanacaksın."),
-                            actionMessage,
-                            transitHeadline,
-                            dailyEnergy,
-                            maritalStatus);
-
-                    return new HomeBriefResponse(
-                            "Merhaba " + displayName + ", bugün haritanda neler var bakalım.",
-                            dailyEnergy,
-                            transitHeadline,
-                            transitSummary,
-                            oracle.transitPoints(),
-                            toSingleSentence(oracle.secret(), "Bugün sezgine güven.", 110),
-                            actionMessage,
-                            weeklyCards,
-                            new HomeBriefResponse.Meta(
-                                    firstNonBlank(oracle.promptVersion(), ORACLE_PROMPT_VERSION),
-                                    firstNonBlank(oracle.promptVariant(), "A"),
-                                    oracle.readabilityScore(),
-                                    oracle.impactScore()
-                            ),
-                            oracle.generatedAt()
-                    );
+                .onErrorResume(TimeoutException.class, error -> {
+                    log.warn("Home brief request timed out for user {}, returning fallback payload", userId);
+                    return Mono.just(buildFallbackHomeBrief(displayName, maritalStatus));
+                })
+                .onErrorResume(error -> {
+                    log.error("Home brief request failed for user {}, returning fallback payload", userId, error);
+                    return Mono.just(buildFallbackHomeBrief(displayName, maritalStatus));
                 });
+    }
+
+    private HomeBriefResponse buildHomeBriefResponse(
+            OracleResponse oracle,
+            List<HomeBriefResponse.WeeklyCard> weeklyCards,
+            String displayName,
+            String maritalStatus) {
+        String dailyEnergy = normalizeHomeCopy(
+                firstNonBlank(oracle.dailyVibe(), oracle.message(), "Bugün ritmini sakin tut, netlik geliyor."),
+                "Bugün ritmini sakin tut, netlik geliyor.",
+                120);
+        String transitHeadline = normalizeHomeCopy(
+                firstNonBlank(oracle.transitHeadline(), oracle.astrologyInsight(), "Günün akışı bugün lehine dönüyor."),
+                "Günün akışı bugün lehine dönüyor.",
+                96);
+        String actionMessage = normalizeHomeAction(
+                firstNonBlank(oracle.message(), "Küçük ama net bir adım at."),
+                maritalStatus);
+        String transitSummary = normalizeHomeSummary(
+                firstNonBlank(oracle.transitSummary(), oracle.numerologyInsight(), "Dengeyi korudukça hızlanacaksın."),
+                actionMessage,
+                transitHeadline,
+                dailyEnergy,
+                maritalStatus);
+
+        return new HomeBriefResponse(
+                "Merhaba " + displayName + ", bugün haritanda neler var bakalım.",
+                dailyEnergy,
+                transitHeadline,
+                transitSummary,
+                oracle.transitPoints(),
+                toSingleSentence(oracle.secret(), "Bugün sezgine güven.", 110),
+                actionMessage,
+                weeklyCards,
+                new HomeBriefResponse.Meta(
+                        firstNonBlank(oracle.promptVersion(), ORACLE_PROMPT_VERSION),
+                        firstNonBlank(oracle.promptVariant(), "A"),
+                        oracle.readabilityScore(),
+                        oracle.impactScore()
+                ),
+                oracle.generatedAt()
+        );
+    }
+
+    private HomeBriefResponse buildFallbackHomeBrief(String displayName, String maritalStatus) {
+        return buildHomeBriefResponse(createFallbackResponse(), List.of(), displayName, maritalStatus);
     }
 
     private String buildDailyCacheKey(Long userId, String maritalStatus) {
@@ -224,6 +252,7 @@ public class OracleService {
                 .retrieve()
                 .bodyToMono(String.class)
                 .map(raw -> parseAiResponse(raw, aiRequest.promptVersion(), aiRequest.promptVariant()))
+                .timeout(AI_ORCHESTRATOR_TIMEOUT)
                 .doOnSuccess(r -> log.info("AI oracle response received successfully"));
 
         return cb.run(remoteCall, throwable -> {
@@ -509,8 +538,6 @@ public class OracleService {
         boolean contentMissing = (weakSecret || weakMessage) && points < 1;
         return scoreTooLow || contentMissing;
     }
-
-    private static final Duration RETRY_VARIANT_TIMEOUT = Duration.ofSeconds(12);
 
     private Mono<OracleResponse> retryWithAlternateVariant(AiSynthesisRequest request, OracleResponse primary) {
         String alternateVariant = "A".equalsIgnoreCase(request.promptVariant()) ? "B" : "A";
