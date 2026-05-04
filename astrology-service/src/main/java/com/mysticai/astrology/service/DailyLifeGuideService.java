@@ -555,6 +555,10 @@ public class DailyLifeGuideService {
                         "DEEP_TALK", t(english, "Derin Konuşma", "Deep Talk"),
                         "message-circle", Set.of("Mercury", "Moon", "Venus"), Set.of("Mercury", "Moon"), Set.of(3, 7, 12), Set.of("Mercury"),
                         english, userGender),
+                rule("social", label("social", english),
+                        "SOCIAL_INVITE", t(english, "Sosyal Davet", "Social Invite"),
+                        "users", Set.of("Mercury", "Venus", "Jupiter"), Set.of("Mercury", "Venus"), Set.of(7, 11), Set.of("Mercury"),
+                        english, userGender),
 
                 // Beauty & Care
                 rule("beauty", label("beauty", english),

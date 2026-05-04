@@ -581,6 +581,7 @@ public class CosmicScoringService {
             case "ENTREPRENEURSHIP" -> "entrepreneurship";
             case "FIRST_DATE" -> "first_date";
             case "FLIRT" -> "flirt";
+            case "SOCIAL_INVITE" -> "social_invites";
             case "RECONCILIATION" -> "reconciliation";
             case "ROMANTIC_NIGHT" -> "romantic_night";
             case "DEEP_TALK" -> "deep_talk";
