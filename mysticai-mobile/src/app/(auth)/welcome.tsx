@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
@@ -383,6 +383,14 @@ export default function WelcomeScreen() {
   const authTransitionRef = useRef(false);
   const styles = makeStyles(colors);
   const isFormValid = email.trim().length > 0 && password.length > 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      authTransitionRef.current = false;
+      setLoading(false);
+      setQuickStartLoading(false);
+    }, [])
+  );
 
   useEffect(() => {
     const prefilledEmail = (firstParam(params.email || undefined) || pendingEmail || '').trim().toLowerCase();

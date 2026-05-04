@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +53,10 @@ public class AdminMonetizationSettingsService {
         if (settings.getSettingsKey() == null || settings.getSettingsKey().isBlank()) {
             settings.setSettingsKey("default");
         }
+
+        settings.setRevenueCatIosApiKey(normalizeOptionalValue(settings.getRevenueCatIosApiKey()));
+        settings.setRevenueCatAndroidApiKey(normalizeOptionalValue(settings.getRevenueCatAndroidApiKey()));
+        settings.setRevenueCatEnvironment(normalizeRevenueCatEnvironment(settings.getRevenueCatEnvironment()));
 
         MonetizationSettings latest = findLatest();
         int nextVersion = (latest != null) ? latest.getConfigVersion() + 1 : 1;
@@ -103,6 +108,9 @@ public class AdminMonetizationSettingsService {
         existing.setDefaultTrialDays(Math.max(0, updates.getDefaultTrialDays()));
         existing.setTokenPurchaseEnabled(updates.isTokenPurchaseEnabled());
         existing.setRevenueCatEnabled(updates.isRevenueCatEnabled());
+        existing.setRevenueCatIosApiKey(normalizeOptionalValue(updates.getRevenueCatIosApiKey()));
+        existing.setRevenueCatAndroidApiKey(normalizeOptionalValue(updates.getRevenueCatAndroidApiKey()));
+        existing.setRevenueCatEnvironment(normalizeRevenueCatEnvironment(updates.getRevenueCatEnvironment()));
         existing.setHideAdsForPremiumUsers(updates.isHideAdsForPremiumUsers());
         existing.setAllowPremiumAndTokenTogether(updates.isAllowPremiumAndTokenTogether());
         existing.setEnvironmentRulesJson(updates.getEnvironmentRulesJson());
@@ -212,10 +220,35 @@ public class AdminMonetizationSettingsService {
                 .defaultTrialDays(s.getDefaultTrialDays())
                 .tokenPurchaseEnabled(s.isTokenPurchaseEnabled())
                 .revenueCatEnabled(s.isRevenueCatEnabled())
+                .revenueCatIosApiKey(s.getRevenueCatIosApiKey())
+                .revenueCatAndroidApiKey(s.getRevenueCatAndroidApiKey())
+                .revenueCatEnvironment(s.getRevenueCatEnvironment())
                 .hideAdsForPremiumUsers(s.isHideAdsForPremiumUsers())
                 .allowPremiumAndTokenTogether(s.isAllowPremiumAndTokenTogether())
                 .configVersion(s.getConfigVersion())
                 .status(s.getStatus())
                 .build();
+    }
+
+    private String normalizeOptionalValue(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeRevenueCatEnvironment(String value) {
+        String normalized = normalizeOptionalValue(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        String token = normalized.toLowerCase(Locale.ROOT);
+        return switch (token) {
+            case "prod" -> "production";
+            case "sandbox", "production" -> token;
+            default -> normalized;
+        };
     }
 }

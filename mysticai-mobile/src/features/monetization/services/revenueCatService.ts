@@ -7,29 +7,73 @@ import Purchases, {
   type PurchasesPackage,
 } from 'react-native-purchases';
 import { envConfig } from '../../../config/env';
-import type { PaywallProduct } from '../types';
+import type { MonetizationConfig, PaywallProduct } from '../types';
 import type {
   ResolvedPaywallProduct,
   RevenueCatOfferingSnapshot,
+  RevenueCatSdkConfig,
   RevenueCatRuntimeState,
   RevenueCatSyncPayload,
 } from '../types/billing';
 
 let configuredAppUserId: string | null = null;
 
-function getPlatformRevenueCatApiKey(): string | null {
+interface RevenueCatInitialStateOptions {
+  remoteConfigResolved?: boolean;
+}
+
+function normalizeOptionalValue(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function normalizeRevenueCatEnvironment(value: string | null | undefined): string {
+  const token = value?.trim().toLowerCase();
+  return token === 'production' || token === 'prod' ? 'production' : 'sandbox';
+}
+
+function getEnvRevenueCatConfig(): RevenueCatSdkConfig {
+  return {
+    iosApiKey: envConfig.revenueCat.iosApiKey || null,
+    androidApiKey: envConfig.revenueCat.androidApiKey || null,
+    environment: envConfig.revenueCat.env,
+  };
+}
+
+export function getRevenueCatSdkConfigFromMonetizationConfig(
+  config: Pick<MonetizationConfig, 'revenueCatIosApiKey' | 'revenueCatAndroidApiKey' | 'revenueCatEnvironment'> | null | undefined,
+): RevenueCatSdkConfig | null {
+  if (!config) {
+    return null;
+  }
+
+  return {
+    iosApiKey: normalizeOptionalValue(config.revenueCatIosApiKey),
+    androidApiKey: normalizeOptionalValue(config.revenueCatAndroidApiKey),
+    environment: normalizeOptionalValue(config.revenueCatEnvironment),
+  };
+}
+
+function getPlatformRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): string | null {
+  const runtimeIosApiKey = normalizeOptionalValue(runtimeConfig?.iosApiKey);
+  const runtimeAndroidApiKey = normalizeOptionalValue(runtimeConfig?.androidApiKey);
+  const envApiKey = getEnvRevenueCatConfig();
+
   if (Platform.OS === 'ios') {
-    return envConfig.revenueCat.iosApiKey || null;
+    return runtimeIosApiKey ?? normalizeOptionalValue(envApiKey.iosApiKey);
   }
 
   if (Platform.OS === 'android') {
-    return envConfig.revenueCat.androidApiKey || null;
+    return runtimeAndroidApiKey ?? normalizeOptionalValue(envApiKey.androidApiKey);
   }
 
   return null;
 }
 
-export function getRevenueCatInitialState(): RevenueCatRuntimeState {
+export function getRevenueCatInitialState(
+  runtimeConfig?: RevenueCatSdkConfig | null,
+  options?: RevenueCatInitialStateOptions,
+): RevenueCatRuntimeState {
   if (Platform.OS === 'web') {
     return {
       supported: false,
@@ -39,12 +83,12 @@ export function getRevenueCatInitialState(): RevenueCatRuntimeState {
     };
   }
 
-  if (!getPlatformRevenueCatApiKey()) {
+  if (!getPlatformRevenueCatApiKey(runtimeConfig)) {
     return {
       supported: true,
       configured: false,
       ready: false,
-      disabledReason: 'missing_api_key',
+      disabledReason: options?.remoteConfigResolved ? 'missing_api_key' : 'not_initialized',
     };
   }
 
@@ -76,8 +120,11 @@ export function getConfiguredRevenueCatUserId(): string | null {
   return configuredAppUserId;
 }
 
-export async function configureRevenueCat(appUserId: string): Promise<void> {
-  const apiKey = getPlatformRevenueCatApiKey();
+export async function configureRevenueCat(
+  appUserId: string,
+  runtimeConfig?: RevenueCatSdkConfig | null,
+): Promise<void> {
+  const apiKey = getPlatformRevenueCatApiKey(runtimeConfig);
   if (!isRevenueCatSupportedPlatform()) {
     throw new Error('RevenueCat is only supported on native mobile builds.');
   }
@@ -158,13 +205,16 @@ export function isRevenueCatPurchaseCancelled(error: unknown): boolean {
   );
 }
 
-export function toRevenueCatSyncPayload(customerInfo: CustomerInfo): RevenueCatSyncPayload {
+export function toRevenueCatSyncPayload(
+  customerInfo: CustomerInfo,
+  runtimeConfig?: RevenueCatSdkConfig | null,
+): RevenueCatSyncPayload {
   return {
     appUserId: getConfiguredRevenueCatUserId(),
     originalAppUserId: customerInfo.originalAppUserId,
     activeEntitlements: Object.keys(customerInfo.entitlements.active ?? {}),
     activeProductIds: customerInfo.activeSubscriptions ?? [],
-    environment: envConfig.revenueCat.env,
+    environment: normalizeRevenueCatEnvironment(runtimeConfig?.environment ?? getEnvRevenueCatConfig().environment),
     fetchedAt: customerInfo.requestDate ?? new Date().toISOString(),
   };
 }

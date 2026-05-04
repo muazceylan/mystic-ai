@@ -119,6 +119,9 @@ ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS trial_enabl
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS default_trial_days INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS token_purchase_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS revenue_cat_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS revenue_cat_ios_api_key VARCHAR(255);
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS revenue_cat_android_api_key VARCHAR(255);
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS revenue_cat_environment VARCHAR(40);
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS hide_ads_for_premium_users BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS allow_premium_and_token_together BOOLEAN NOT NULL DEFAULT TRUE;
 

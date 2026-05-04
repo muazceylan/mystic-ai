@@ -60,6 +60,10 @@ class MonetizationConfigServiceTest {
                 .isAdsEnabled(true)
                 .isGuruEnabled(true)
                 .isGuruPurchaseEnabled(true)
+                .revenueCatEnabled(true)
+                .revenueCatIosApiKey("appl_test_key")
+                .revenueCatAndroidApiKey("goog_test_key")
+                .revenueCatEnvironment("sandbox")
                 .defaultAdProvider("admob")
                 .globalDailyAdCap(10)
                 .globalWeeklyAdCap(50)
@@ -127,6 +131,8 @@ class MonetizationConfigServiceTest {
         assertThat(result.moduleRules()).isEmpty();
         assertThat(result.actions()).isEmpty();
         assertThat(result.products()).isEmpty();
+        assertThat(result.revenueCatEnabled()).isFalse();
+        assertThat(result.revenueCatIosApiKey()).isNull();
     }
 
     @Test
@@ -152,6 +158,10 @@ class MonetizationConfigServiceTest {
         assertThat(result.webAdsEnabled()).isTrue();
         assertThat(result.guruEnabled()).isTrue();
         assertThat(result.guruPurchaseEnabled()).isTrue();
+        assertThat(result.revenueCatEnabled()).isTrue();
+        assertThat(result.revenueCatIosApiKey()).isEqualTo("appl_test_key");
+        assertThat(result.revenueCatAndroidApiKey()).isEqualTo("goog_test_key");
+        assertThat(result.revenueCatEnvironment()).isEqualTo("sandbox");
         assertThat(result.configVersion()).isEqualTo(1);
         assertThat(result.moduleRules()).hasSize(1);
         assertThat(result.moduleRules().get(0).moduleKey()).isEqualTo("dreams");

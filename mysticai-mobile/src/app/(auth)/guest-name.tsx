@@ -5,12 +5,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Text,
+  TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import OnboardingBackground from '../../components/OnboardingBackground';
 import { useTheme } from '../../context/ThemeContext';
-import { AppText, Button, SafeScreen, TextField } from '../../components/ui';
+import { AppText, SafeScreen, TextField } from '../../components/ui';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePendingGuestStore } from '../../store/usePendingGuestStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
@@ -24,12 +28,18 @@ const HERO_DISPLAY_FONT = Platform.select({
   default: 'Georgia',
 });
 
-function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+function makeStyles(colors: ReturnType<typeof useTheme>['colors'], isDark: boolean) {
   return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
     container: {
       flex: 1,
       paddingHorizontal: 28,
       justifyContent: 'center',
+      paddingTop: 24,
+      paddingBottom: 168,
     },
     brand: {
       alignItems: 'center',
@@ -88,17 +98,74 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     sub: {
       marginBottom: 32,
     },
-    buttonColumn: {
+    skipButton: {
+      alignSelf: 'center',
+      marginTop: 24,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    skipText: {
+      color: colors.primary,
+      fontSize: 16,
+      lineHeight: 22,
+      fontFamily: 'MysticInter-SemiBold',
+    },
+    footer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flexDirection: 'row',
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 28,
+      backgroundColor: isDark ? 'rgba(2, 6, 23, 0.9)' : 'rgba(248, 250, 252, 0.98)',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    outlineButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.surfaceGlassBorder,
+      borderRadius: 999,
+      paddingVertical: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+    },
+    outlineText: {
+      color: colors.text,
+      fontSize: 15,
+      fontFamily: 'MysticInter-SemiBold',
+    },
+    primaryButton: {
+      flex: 1.08,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    primaryDisabled: {
+      opacity: 0.5,
+    },
+    primaryFill: {
+      paddingVertical: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
       gap: 8,
-      marginTop: 8,
+    },
+    primaryText: {
+      color: colors.white,
+      fontSize: 15,
+      fontFamily: 'MysticInter-SemiBold',
     },
   });
 }
 
 export default function GuestNameScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, activeTheme } = useTheme();
+  const styles = makeStyles(colors, activeTheme === 'dark');
 
   const session = usePendingGuestStore((s) => s.session);
   const clearPending = usePendingGuestStore((s) => s.clear);
@@ -108,6 +175,7 @@ export default function GuestNameScreen() {
 
   const [firstName, setFirstNameLocal] = useState('');
   const trimmed = firstName.trim();
+  const accentGradient = [colors.primary, colors.primary700] as const;
 
   const completeLogin = async (name: string) => {
     if (!session) {
@@ -144,67 +212,96 @@ export default function GuestNameScreen() {
     void completeLogin('');
   };
 
+  const handleBack = () => {
+    if (session) {
+      clearPending();
+    }
+    router.replace('/(auth)/welcome');
+  };
+
   return (
     <SafeScreen>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.container}>
-          <View style={styles.brand}>
-            <View style={styles.brandWrap}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.98)', 'rgba(230,218,255,0.92)', 'rgba(186,141,255,0.55)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.brandFrame}
-              >
-                <View style={styles.brandCore}>
-                  <View style={styles.brandGlow} />
-                  <View style={styles.brandViewport}>
-                    <Image
-                      source={HERO_PREMIUM_ICON}
-                      style={styles.brandImage}
-                      accessibilityLabel={t('appBrand.logoA11y')}
-                      accessibilityRole="image"
-                    />
+        <View style={styles.screen}>
+          <OnboardingBackground />
+
+          <View style={styles.container}>
+            <View style={styles.brand}>
+              <View style={styles.brandWrap}>
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.98)', 'rgba(230,218,255,0.92)', 'rgba(186,141,255,0.55)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.brandFrame}
+                >
+                  <View style={styles.brandCore}>
+                    <View style={styles.brandGlow} />
+                    <View style={styles.brandViewport}>
+                      <Image
+                        source={HERO_PREMIUM_ICON}
+                        style={styles.brandImage}
+                        accessibilityLabel={t('appBrand.logoA11y')}
+                        accessibilityRole="image"
+                      />
+                    </View>
                   </View>
-                </View>
-              </LinearGradient>
+                </LinearGradient>
+              </View>
             </View>
+
+            <AppText variant="Display" align="center" style={styles.heading}>
+              {t('guestName.heading')}
+            </AppText>
+            <AppText variant="Body" color="secondary" align="center" style={styles.sub}>
+              {t('guestName.sub')}
+            </AppText>
+
+            <TextField
+              value={firstName}
+              onChangeText={setFirstNameLocal}
+              placeholder={t('guestName.placeholder')}
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={handleContinue}
+            />
+
+            <TouchableOpacity
+              style={styles.skipButton}
+              onPress={handleSkip}
+              accessibilityLabel={t('guestName.skip')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.skipText}>{t('guestName.skip')}</Text>
+            </TouchableOpacity>
           </View>
 
-          <AppText variant="Display" align="center" style={styles.heading}>
-            {t('guestName.heading')}
-          </AppText>
-          <AppText variant="Body" color="secondary" align="center" style={styles.sub}>
-            {t('guestName.sub')}
-          </AppText>
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.outlineButton}
+              onPress={handleBack}
+              accessibilityLabel={t('editBirthInfo.accessibilityBack')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.outlineText}>{t('common.back')}</Text>
+            </TouchableOpacity>
 
-          <TextField
-            value={firstName}
-            onChangeText={setFirstNameLocal}
-            placeholder={t('guestName.placeholder')}
-            autoCapitalize="words"
-            autoCorrect={false}
-            returnKeyType="done"
-            onSubmitEditing={handleContinue}
-          />
-
-          <View style={styles.buttonColumn}>
-            <Button
-              title={t('guestName.continue')}
+            <TouchableOpacity
+              style={[styles.primaryButton, !trimmed && styles.primaryDisabled]}
               onPress={handleContinue}
               disabled={!trimmed}
-              fullWidth
-              size="lg"
-            />
-            <Button
-              title={t('guestName.skip')}
-              onPress={handleSkip}
-              variant="ghost"
-              fullWidth
-            />
+              accessibilityLabel={t('guestName.continue')}
+              accessibilityRole="button"
+              activeOpacity={0.92}
+            >
+              <LinearGradient colors={accentGradient} style={styles.primaryFill}>
+                <Text style={styles.primaryText}>{t('guestName.continue')}</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.white} />
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>

@@ -233,8 +233,10 @@ public class AstrologyController {
      * Get weekly SWOT analysis based on user's natal chart and current transits
      */
     @GetMapping("/weekly-swot")
-    public ResponseEntity<WeeklySwotResponse> getWeeklySwot(@RequestParam Long userId) {
-        return ResponseEntity.ok(weeklySwotService.getWeeklySwot(userId));
+    public ResponseEntity<WeeklySwotResponse> getWeeklySwot(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "tr") String locale) {
+        return ResponseEntity.ok(weeklySwotService.getWeeklySwot(userId, locale));
     }
 
     /**

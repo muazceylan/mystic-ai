@@ -62,6 +62,10 @@ public class MonetizationConfigService {
                 webRewardedAdsEligibilityResolver.isWebRewardedAdsEnabled(settings),
                 settings.isGuruEnabled(),
                 settings.isGuruPurchaseEnabled(),
+                settings.isRevenueCatEnabled(),
+                settings.getRevenueCatIosApiKey(),
+                settings.getRevenueCatAndroidApiKey(),
+                settings.getRevenueCatEnvironment(),
                 settings.getDefaultAdProvider(),
                 settings.getGlobalDailyAdCap(),
                 settings.getGlobalWeeklyAdCap(),
@@ -136,6 +140,10 @@ public class MonetizationConfigService {
             boolean webAdsEnabled,
             boolean guruEnabled,
             boolean guruPurchaseEnabled,
+            boolean revenueCatEnabled,
+            String revenueCatIosApiKey,
+            String revenueCatAndroidApiKey,
+            String revenueCatEnvironment,
             String defaultAdProvider,
             int globalDailyAdCap,
             int globalWeeklyAdCap,
@@ -150,7 +158,8 @@ public class MonetizationConfigService {
     ) {
         public static MonetizationConfigResponse disabled() {
             return new MonetizationConfigResponse(
-                    false, false, false, false, false, null,
+                    false, false, false, false, false, false,
+                    null, null, null, null,
                     0, 0, 0, 0, 0,
                     List.of(), List.of(), List.of(), 0,
                     LocalDateTime.now()

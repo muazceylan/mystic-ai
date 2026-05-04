@@ -22,6 +22,12 @@ export interface RevenueCatRuntimeState {
   lastCustomerInfoAt?: string | null;
 }
 
+export interface RevenueCatSdkConfig {
+  iosApiKey?: string | null;
+  androidApiKey?: string | null;
+  environment?: string | null;
+}
+
 export interface RevenueCatSyncPayload {
   appUserId?: string | null;
   originalAppUserId?: string | null;

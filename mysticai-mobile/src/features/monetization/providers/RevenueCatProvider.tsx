@@ -10,6 +10,7 @@ import {
   getRevenueCatAppUserId,
   getRevenueCatCustomerInfo,
   getRevenueCatInitialState,
+  getRevenueCatSdkConfigFromMonetizationConfig,
   isRevenueCatSupportedPlatform,
   logoutRevenueCat,
   toRevenueCatSyncPayload,
@@ -18,8 +19,12 @@ import {
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 
-async function syncCustomerInfo(customerInfo: CustomerInfo, userId: string | number): Promise<void> {
-  const response = await syncRevenueCatBilling(toRevenueCatSyncPayload(customerInfo));
+async function syncCustomerInfo(
+  customerInfo: CustomerInfo,
+  userId: string | number,
+  runtimeConfig: Parameters<typeof toRevenueCatSyncPayload>[1],
+): Promise<void> {
+  const response = await syncRevenueCatBilling(toRevenueCatSyncPayload(customerInfo, runtimeConfig));
   useGuruWalletStore.getState().setBalance(response.tokenBalance);
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.monetizationEntitlements(userId) }),
@@ -31,6 +36,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const userId = useAuthStore((state) => state.user?.id);
+  const monetizationConfig = useMonetizationStore((state) => state.config);
   const setRevenueCatState = useMonetizationStore((state) => state.setRevenueCatState);
   const resetBillingState = useMonetizationStore((state) => state.resetBillingState);
   const lastSyncedRequestDateRef = useRef<string | null>(null);
@@ -46,7 +52,14 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const initialRevenueCatState = getRevenueCatInitialState();
+    const runtimeConfig = getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig);
+    const initialRevenueCatState = getRevenueCatInitialState(runtimeConfig, {
+      remoteConfigResolved: monetizationConfig !== null,
+    });
+    if (initialRevenueCatState.disabledReason === 'not_initialized') {
+      setRevenueCatState(initialRevenueCatState);
+      return;
+    }
     if (initialRevenueCatState.disabledReason === 'missing_api_key') {
       setRevenueCatState(initialRevenueCatState);
       return;
@@ -67,7 +80,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
 
     const initialize = async () => {
       try {
-        await configureRevenueCat(appUserId);
+        await configureRevenueCat(appUserId, runtimeConfig);
         const customerInfo = await getRevenueCatCustomerInfo();
         if (cancelled) {
           return;
@@ -86,7 +99,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
           lastCustomerInfoAt: customerInfo.requestDate ?? new Date().toISOString(),
         });
 
-        await syncCustomerInfo(customerInfo, appUserId);
+        await syncCustomerInfo(customerInfo, appUserId, runtimeConfig);
       } catch (error) {
         if (cancelled) {
           return;
@@ -108,7 +121,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, isHydrated, resetBillingState, setRevenueCatState, userId]);
+  }, [isAuthenticated, isHydrated, monetizationConfig, resetBillingState, setRevenueCatState, userId]);
 
   useEffect(() => {
     const appUserId = getRevenueCatAppUserId(isAuthenticated ? userId : null);
@@ -116,6 +129,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const runtimeConfig = getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig);
     const removeListener = addRevenueCatCustomerInfoListener((customerInfo) => {
       const requestDate = customerInfo.requestDate ?? null;
       setRevenueCatState({
@@ -127,7 +141,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
       }
 
       lastSyncedRequestDateRef.current = requestDate;
-      void syncCustomerInfo(customerInfo, appUserId).catch((error) => {
+      void syncCustomerInfo(customerInfo, appUserId, runtimeConfig).catch((error) => {
         setRevenueCatState({
           error: toSafeRevenueCatErrorMessage(error),
         });
@@ -135,7 +149,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     });
 
     return removeListener;
-  }, [isAuthenticated, isHydrated, setRevenueCatState, userId]);
+  }, [isAuthenticated, isHydrated, monetizationConfig, setRevenueCatState, userId]);
 
   return <>{children}</>;
 }

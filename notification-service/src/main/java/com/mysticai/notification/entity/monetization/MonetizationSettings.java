@@ -96,6 +96,10 @@ public class MonetizationSettings {
     @JsonProperty("isRevenueCatEnabled")
     private boolean revenueCatEnabled = false;
 
+    private String revenueCatIosApiKey;
+    private String revenueCatAndroidApiKey;
+    private String revenueCatEnvironment;
+
     @Builder.Default
     @JsonProperty("isHideAdsForPremiumUsers")
     private boolean hideAdsForPremiumUsers = false;

@@ -42,6 +42,20 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
     [tokenProducts],
   );
   const isPurchaseEnabled = canPurchaseTokens && Boolean(paywall?.tokenPurchaseEnabled);
+  const disabledMessage = useMemo(() => {
+    switch (revenueCatDisabledReason) {
+      case 'backend_disabled':
+        return t('premium.backendDisabledMessage');
+      case 'missing_api_key':
+        return t('premium.apiKeyMissingMessage');
+      case 'unsupported_platform':
+        return t('premium.buildRequiredMessage');
+      case 'offerings_unavailable':
+        return t('premium.offeringsUnavailableMessage');
+      default:
+        return t('monetization.purchaseDisabledBody');
+    }
+  }, [revenueCatDisabledReason, t]);
 
   useEffect(() => {
     if (visible && !trackedRef.current) {
@@ -232,7 +246,7 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
 
   return (
     <BottomSheet visible={visible} onClose={onDismiss} title={t('monetization.storeTitle')}>
-      {!isPurchaseEnabled ? (
+      {!isPurchaseEnabled && products.length === 0 ? (
         <View style={s.noticeCard}>
           <Text
             style={s.noticeTitle}
@@ -244,9 +258,7 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
             style={s.noticeText}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            {revenueCatDisabledReason === 'offerings_unavailable'
-              ? t('premium.offeringsUnavailableMessage')
-              : t('monetization.purchaseDisabledBody')}
+            {disabledMessage}
           </Text>
         </View>
       ) : products.length === 0 ? (
@@ -269,7 +281,27 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
           data={products}
           keyExtractor={(item) => item.productKey}
           renderItem={renderProduct}
-          ListHeaderComponent={renderHeader()}
+          ListHeaderComponent={(
+            <>
+              {renderHeader()}
+              {!isPurchaseEnabled ? (
+                <View style={s.noticeCard}>
+                  <Text
+                    style={s.noticeTitle}
+                    maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                  >
+                    {t('monetization.purchaseDisabledTitle')}
+                  </Text>
+                  <Text
+                    style={s.noticeText}
+                    maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                  >
+                    {disabledMessage}
+                  </Text>
+                </View>
+              ) : null}
+            </>
+          )}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
         />

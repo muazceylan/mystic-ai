@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.dto.HousePlacement;
 import com.mysticai.astrology.dto.PlanetPosition;
 import com.mysticai.astrology.dto.PlanetaryAspect;
+import com.mysticai.astrology.dto.daily.DailyActionsDTO;
 import com.mysticai.astrology.dto.daily.DailyTransitsDTO;
 import com.mysticai.astrology.entity.NatalChart;
 import com.mysticai.astrology.repository.DailyActionStateRepository;
@@ -86,7 +87,7 @@ class DailyTransitsServiceTest {
         ));
         when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
 
-        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul");
+        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul", "tr");
 
         assertEquals(3, response.transits().size());
         assertTrue(response.transits().stream().anyMatch(item -> item.technical() != null && "Ev Geçişi".equals(item.technical().aspect())));
@@ -110,7 +111,7 @@ class DailyTransitsServiceTest {
                 new PlanetaryAspect("T-Mercury", "N-Sun", PlanetaryAspect.AspectType.CONJUNCTION, 0.0, 0.4)
         ));
 
-        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul");
+        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul", "tr");
 
         DailyTransitsDTO.TransitItem aspectItem = response.transits().stream()
                 .filter(item -> item.technical() != null && "Kavuşum".equals(item.technical().aspect()))
@@ -136,7 +137,7 @@ class DailyTransitsServiceTest {
                 new PlanetaryAspect("T-Venus", "N-Saturn", PlanetaryAspect.AspectType.SEXTILE, 60.0, 4.5)
         ));
 
-        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul");
+        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul", "tr");
 
         assertTrue(response.transits().size() >= 2);
         DailyTransitsDTO.TransitItem first = response.transits().get(0);
@@ -155,7 +156,7 @@ class DailyTransitsServiceTest {
         ));
         when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
 
-        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul");
+        DailyTransitsDTO response = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul", "tr");
 
         assertEquals(1, response.retrogrades().size());
         DailyTransitsDTO.RetrogradeItem retro = response.retrogrades().get(0);
@@ -176,7 +177,7 @@ class DailyTransitsServiceTest {
         ));
         when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
 
-        service.getDailyTransits(42L, date, "Europe/Istanbul");
+        service.getDailyTransits(42L, date, "Europe/Istanbul", "tr");
 
         ArgumentCaptor<String> lookupVersionCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<com.mysticai.astrology.entity.DailyTransitsCache> cacheCaptor = ArgumentCaptor.forClass(com.mysticai.astrology.entity.DailyTransitsCache.class);
@@ -193,6 +194,41 @@ class DailyTransitsServiceTest {
         assertEquals(lookupVersion, savedVersion);
         assertTrue(savedVersion.length() <= 64);
         assertTrue(savedVersion.startsWith("dtc-v2:"));
+    }
+
+    @Test
+    void shouldLocalizeDailyTransitsAndActionsToEnglishWhenRequested() throws Exception {
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("42"))
+                .thenReturn(Optional.of(baseChart(baseNatalPlanets(), baseHouses())));
+        when(transitCalculator.calculateTransitPositions(any(LocalDate.class))).thenReturn(List.of(
+                planet("Mercury", true, 3),
+                planet("Venus", false, 7),
+                planet("Mars", false, 10)
+        ));
+        when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of(
+                new PlanetaryAspect("T-Mercury", "N-Sun", PlanetaryAspect.AspectType.CONJUNCTION, 0.0, 0.4)
+        ));
+
+        DailyTransitsDTO transits = service.getDailyTransits(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul", "en");
+        DailyActionsDTO actions = service.getDailyActions(42L, LocalDate.of(2026, 4, 9), "Europe/Istanbul", "en");
+
+        assertFalse(transits.title().matches(".*(Bugün|İçin|Rehberin|Günlük|akış|vurgusu|[ÇĞİÖŞÜçğıöşü]).*"));
+        assertEquals("Moon Phase", transits.quickFacts().get(0).label());
+        assertEquals("Moon Sign", transits.quickFacts().get(1).label());
+        assertEquals("Retro", transits.quickFacts().get(2).label());
+        assertTrue(transits.todayCanDo().headline().contains("Today") || transits.todayCanDo().headline().contains("steps"));
+        assertTrue(transits.retrogrades().stream().allMatch(item -> item.planet().matches(".*[A-Za-z].*")));
+        assertTrue(transits.transits().stream().allMatch(item ->
+                item.theme().matches("Mood|Energy|Communication|Love|Work")
+                        && item.label().matches("Supportive|Caution")));
+
+        assertEquals("What Can You Do Today?", actions.header().title());
+        assertEquals("Mini Plan", actions.miniPlan().title());
+        assertFalse(actions.actions().isEmpty());
+        assertTrue(actions.actions().stream().allMatch(action ->
+                !action.title().contains("Bugün")
+                        && !action.detail().contains("Bugün")
+                        && !action.tag().matches(".*[çğıöşüÇĞİÖŞÜ].*")));
     }
 
     private NatalChart baseChart(List<PlanetPosition> planets, List<HousePlacement> houses) throws Exception {

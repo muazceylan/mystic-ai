@@ -52,7 +52,7 @@ function makeStyles(
     scrollContent: {
       paddingHorizontal: 12,
       paddingTop: 6,
-      paddingBottom: 112,
+      paddingBottom: 156,
       gap: 6,
     },
     selectionCard: {
@@ -150,8 +150,8 @@ function makeStyles(
       flexDirection: 'row',
       gap: 12,
       paddingHorizontal: 20,
-      paddingTop: 10,
-      paddingBottom: 16,
+      paddingTop: 16,
+      paddingBottom: 28,
       backgroundColor: isDark ? 'rgba(2, 6, 23, 0.9)' : 'rgba(248, 250, 252, 0.98)',
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: C.border,
@@ -161,7 +161,7 @@ function makeStyles(
       borderWidth: 1,
       borderColor: C.surfaceGlassBorder,
       borderRadius: 999,
-      paddingVertical: 12,
+      paddingVertical: 16,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: C.surface,
@@ -172,12 +172,12 @@ function makeStyles(
       fontFamily: 'MysticInter-SemiBold',
     },
     primaryButton: {
-      flex: 1.12,
+      flex: 1.08,
       borderRadius: 999,
       overflow: 'hidden',
     },
     primaryFill: {
-      paddingVertical: 12,
+      paddingVertical: 16,
       alignItems: 'center',
       justifyContent: 'center',
       flexDirection: 'row',

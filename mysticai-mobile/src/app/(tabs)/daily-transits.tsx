@@ -38,12 +38,9 @@ const MAX_TODAY_ITEMS = 2;
 const MAX_FOCUS_ITEMS = 3;
 const MAX_TRANSITS_PER_THEME = 2;
 const GROUP_STATE_STORAGE_PREFIX = 'dailyTransits:expandedThemes';
-const THEME_ORDER: string[] = ['Ruh Hali', 'Enerji', 'İletişim', 'Aşk', 'İş'];
-
 
 type TransitItem = DailyTransitsDTO['transits'][number];
 type TransitThemeGroup = { theme: string; items: TransitItem[] };
-type TransitTheme = TransitItem['theme'];
 type HeroPersonalization = {
   seed: string;
   firstName?: string;
@@ -178,14 +175,6 @@ function hasTrailingEllipsis(text?: string): boolean {
   return value.endsWith('…') || value.endsWith('...');
 }
 
-const THEME_FOCUS_TEXT: Record<string, string> = {
-  'İletişim': 'iletişim akışı',
-  'Aşk': 'ilişki dengesi',
-  'İş': 'iş akışı',
-  'Enerji': 'enerji yönetimi',
-  'Ruh Hali': 'duygu dengesi',
-};
-
 function hashString(input: string): number {
   let hash = 0;
   for (let i = 0; i < input.length; i += 1) {
@@ -278,66 +267,6 @@ function buildHeroPersonalization(
   };
 }
 
-function buildPersonalizedLine(
-  personalization: HeroPersonalization | null,
-  focusText: string,
-  baseSeed: string,
-): string {
-  if (!personalization) return '';
-  const namePrefix = personalization.firstName ? `${personalization.firstName}, ` : '';
-  const options: string[] = [];
-
-  if (personalization.sunSignName) {
-    options.push(
-      `${namePrefix}${personalization.sunSignName} Güneş tonun bugün ${focusText} tarafında görünür adımları destekliyor.`,
-      `${namePrefix}${personalization.sunSignName} etkisiyle ${focusText} alanında netlik kazanman daha kolay olabilir.`,
-    );
-  }
-  if (personalization.moonSignName) {
-    options.push(
-      `${personalization.moonSignName} Ay ritmin duyguyu net ifade ettiğinde ${focusText} akışını güçlendirir.`,
-      `${personalization.moonSignName} Ay yerleşimin, ${focusText} tarafında sezgiyle ilerlediğinde daha iyi çalışır.`,
-    );
-  }
-  if (personalization.risingSignName) {
-    options.push(
-      `${personalization.risingSignName} yükselenin ilk teması sade tuttuğunda ${focusText} daha hızlı açılır.`,
-      `${personalization.risingSignName} yükselen yaklaşımınla ${focusText} alanında küçük ama kararlı adımlar etkili olur.`,
-    );
-  }
-  switch (personalization.dominantElement) {
-    case 'Ateş':
-      options.push(
-        'Ateş elementi baskınlığın hızlı hamleyi destekliyor; kısa duraklarla tempo dengesini koru.',
-        'Ateş ağırlığın ivme veriyor; enerjiyi tek önceliğe bağlamak verimi artırır.',
-      );
-      break;
-    case 'Toprak':
-      options.push(
-        'Toprak elementi baskınlığın planı somutlaştırma gücü veriyor; adım adım ilerlemek bugün çok işe yarar.',
-        'Toprak ağırlığın düzen kurmana yardım eder; küçük ama sürekli ilerleme bugün ana avantajın.',
-      );
-      break;
-    case 'Hava':
-      options.push(
-        'Hava elementi baskınlığın fikir akışını hızlandırıyor; kısa ve net iletişimle etkiyi büyütebilirsin.',
-        'Hava ağırlığın esnek düşünmeni kolaylaştırıyor; dağılmamak için öncelikleri görünür tut.',
-      );
-      break;
-    case 'Su':
-      options.push(
-        'Su elementi baskınlığın sezgiyi güçlendiriyor; duygunu netleştirmek karar kalitesini artırır.',
-        'Su ağırlığın empatiyi yükseltiyor; sınırlarını da net tuttuğunda gün daha dengeli ilerler.',
-      );
-      break;
-    default:
-      break;
-  }
-
-  if (options.length === 0) return '';
-  return pickBySeed(options, `${baseSeed}|${personalization.seed}|personal`);
-}
-
 function buildPersonalizedLineLocalized(
   personalization: HeroPersonalization | null,
   focusText: string,
@@ -426,181 +355,6 @@ function buildPersonalizedLineLocalized(
 
   if (options.length === 0) return '';
   return pickBySeed(options, `${baseSeed}|${personalization.seed}|localized|${locale}`);
-}
-
-function resolvePrimaryTheme(hero: DailyTransitsDTO['hero'], transits: TransitItem[]): TransitTheme {
-  if (transits.length > 0) {
-    // Performance: only need the max confidence element.
-    let strongest = transits[0];
-    let bestConfidence = strongest.confidence;
-
-    for (let i = 1; i < transits.length; i += 1) {
-      const item = transits[i];
-      if (item.confidence > bestConfidence) {
-        bestConfidence = item.confidence;
-        strongest = item;
-      }
-    }
-
-    return strongest.theme;
-  }
-
-  switch (hero.icon) {
-    case 'mercury':
-      return 'İletişim';
-    case 'venus':
-      return 'Aşk';
-    case 'saturn':
-      return 'İş';
-    case 'mars':
-      return 'Enerji';
-    default:
-      return 'Ruh Hali';
-  }
-}
-
-function buildHeroHeadline(data: DailyTransitsDTO, personalization: HeroPersonalization | null): string {
-  const { hero, transits, retrogrades, date } = data;
-  const primaryTheme = resolvePrimaryTheme(hero, transits);
-  const focusText = THEME_FOCUS_TEXT[primaryTheme];
-  const hasRetrogrades = retrogrades.length > 0;
-  let supportiveCount = 0;
-  let cautionCount = 0;
-  for (const item of transits) {
-    if (item.label === 'Destekleyici') supportiveCount += 1;
-    if (item.label === 'Dikkat') cautionCount += 1;
-  }
-  const intensityBand = hero.intensity >= 75 ? 'high' : hero.intensity >= 55 ? 'mid' : 'low';
-
-  const baseSeed = [
-    date,
-    hero.moodTag,
-    primaryTheme,
-    String(hero.intensity),
-    transits.slice(0, 3).map((item) => `${item.id}:${item.label}`).join('|'),
-  ].join('|');
-
-  const baseLine = (() => {
-    switch (hero.moodTag) {
-      case 'Sosyal':
-        return pickBySeed(
-          [
-            `Bugün ${focusText} üzerinden insanlarla temasın güçleniyor.`,
-            `Sosyal tarafta ${focusText} günün ritmini belirleyecek.`,
-            `${focusText} odaklı temaslar bugün kapı açabilir.`,
-          ] as const,
-          `${baseSeed}|base-social`,
-        );
-      case 'Odak':
-        return pickBySeed(
-          [
-            `Bugün ${focusText} tarafına öncelik verirsen hızlanırsın.`,
-            `${focusText} için tek hedefe odaklanmak verimi artırır.`,
-            `${focusText} ekseninde sade bir planla daha hızlı ilerlersin.`,
-          ] as const,
-          `${baseSeed}|base-focus`,
-        );
-      case 'Cesur':
-        return pickBySeed(
-          [
-            `${focusText} alanında cesur ama ölçülü adımlar avantaj sağlar.`,
-            `Bugün ${focusText} tarafında kontrollü risk almak işe yarar.`,
-            `${focusText} için net bir hamle günün yönünü değiştirebilir.`,
-          ] as const,
-          `${baseSeed}|base-bold`,
-        );
-      case 'Duygusal':
-        return pickBySeed(
-          [
-            `${focusText} tarafında duyguların kararlarına güçlü etki edebilir.`,
-            `Bugün ${focusText} alanında hassasiyet yüksek; ritmi yavaş tut.`,
-            `${focusText} gündeminde iç sesini dinlemek daha doğru sonuç verir.`,
-          ] as const,
-          `${baseSeed}|base-emotional`,
-        );
-      default:
-        return pickBySeed(
-          [
-            `Bugün ${focusText} tarafında dengeli kalmak işleri kolaylaştırır.`,
-            `${focusText} alanında adım adım ilerlemek en sağlam seçenek.`,
-            `${focusText} için sakin tempo gün boyu istikrar sağlar.`,
-          ] as const,
-          `${baseSeed}|base-default`,
-        );
-    }
-  })();
-
-  const paceLine = (() => {
-    if (intensityBand === 'high') {
-      return pickBySeed(
-        [
-          'Enerjin yüksekken kısa bloklarla ilerlemek daha iyi sonuç verir.',
-          'Yüksek tempoyu tek önceliğe bağlarsan gün daha verimli akar.',
-          'İvmen güçlü; aynı anda çok işe dağılmamak avantaj sağlar.',
-        ] as const,
-        `${baseSeed}|pace-high`,
-      );
-    }
-    if (intensityBand === 'mid') {
-      return pickBySeed(
-        [
-          'Ritmini koruyarak adım adım ilerlemek bugün daha kazançlı.',
-          'Dengeli tempo kurduğunda verim ve sakinlik birlikte artar.',
-          'Orta tempoda net önceliklerle gitmek gününü rahatlatır.',
-        ] as const,
-        `${baseSeed}|pace-mid`,
-      );
-    }
-    return pickBySeed(
-      [
-        'Kendine küçük molalar açarak temponu sürdürülebilir tut.',
-        'Enerjiyi korumak için işleri küçük parçalara bölmek faydalı olur.',
-        'Sakin ama kararlı ilerlemek bugün en doğru strateji olur.',
-      ] as const,
-      `${baseSeed}|pace-low`,
-    );
-  })();
-
-  const cautionLine = cautionCount > supportiveCount
-    ? pickBySeed(
-      [
-        'Dikkat gerektiren başlıklar ağır basıyor; acele karar vermemek iyi olur.',
-        'Zorlayıcı etkiler güçlü; net kontrol listesiyle ilerlemek riski düşürür.',
-      ] as const,
-      `${baseSeed}|caution`,
-    )
-    : pickBySeed(
-      [
-        'Destekleyici etkiler baskın; doğru zamanlamayla ivme yakalayabilirsin.',
-        'Akış daha destekleyici görünüyor; fırsatları küçük adımlarla değerlendirebilirsin.',
-      ] as const,
-      `${baseSeed}|supportive`,
-    );
-  const personalizedLine = buildPersonalizedLine(personalization, focusText, baseSeed);
-
-  const retroLine = hasRetrogrades
-    ? pickBySeed(
-      [
-        'Retro etkisinde iletişimde kısa ve net cümleler tercih et.',
-        'Retro varken detay kontrolünü iki kez yapmak kazandırır.',
-        'Retro döneminde mesaj ve planları göndermeden önce bir kez daha gözden geçir.',
-      ] as const,
-      `${baseSeed}|retro`,
-    )
-    : '';
-
-  return [baseLine, paceLine, personalizedLine, cautionLine, retroLine].filter(Boolean).join(' ');
-}
-
-function resolveHeroHeadline(
-  data: DailyTransitsDTO,
-  personalization: HeroPersonalization | null,
-): string {
-  const hero = data.hero;
-  const headline = hero.headline?.trim();
-  if (!headline) return buildHeroHeadline(data, personalization);
-  if (!hasTrailingEllipsis(headline)) return headline;
-  return buildHeroHeadline(data, personalization);
 }
 
 function resolvePrimaryThemeLocalized(

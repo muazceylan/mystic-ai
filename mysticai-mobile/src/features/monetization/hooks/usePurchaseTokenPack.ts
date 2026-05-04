@@ -5,6 +5,7 @@ import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { syncRevenueCatBilling } from '../api/monetization.service';
 import { refreshMonetizationState } from '../services/monetizationRefresh';
 import {
+  getRevenueCatSdkConfigFromMonetizationConfig,
   isRevenueCatPurchaseCancelled,
   purchaseRevenueCatPackage,
   toRevenueCatSyncPayload,
@@ -26,6 +27,7 @@ export function usePurchaseTokenPack() {
   const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.user?.id);
   const revenueCatState = useMonetizationStore((state) => state.revenueCat);
+  const monetizationConfig = useMonetizationStore((state) => state.config);
   const currentBalance = useGuruWalletStore((state) => state.getBalance());
   const [status, setStatus] = useState<PurchaseTokenStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,12 @@ export function usePurchaseTokenPack() {
       });
 
       const result = await purchaseRevenueCatPackage(product.revenueCatPackage);
-      await syncRevenueCatBilling(toRevenueCatSyncPayload(result.customerInfo));
+      await syncRevenueCatBilling(
+        toRevenueCatSyncPayload(
+          result.customerInfo,
+          getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig),
+        ),
+      );
       const refreshed = await refreshMonetizationState(queryClient, userId);
       const nextBalance = refreshed.entitlements?.tokenBalance ?? currentBalance;
 
@@ -83,7 +90,7 @@ export function usePurchaseTokenPack() {
       setError(message);
       return { status: 'failed' as const, error: message };
     }
-  }, [currentBalance, queryClient, revenueCatState.ready, userId]);
+  }, [currentBalance, monetizationConfig, queryClient, revenueCatState.ready, userId]);
 
   const reset = useCallback(() => {
     setStatus('idle');

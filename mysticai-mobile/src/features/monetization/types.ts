@@ -24,6 +24,10 @@ export interface MonetizationConfig {
   webAdsEnabled: boolean;
   guruEnabled: boolean;
   guruPurchaseEnabled: boolean;
+  revenueCatEnabled?: boolean;
+  revenueCatIosApiKey?: string | null;
+  revenueCatAndroidApiKey?: string | null;
+  revenueCatEnvironment?: string | null;
   defaultAdProvider: string;
   globalDailyAdCap: number;
   globalWeeklyAdCap: number;

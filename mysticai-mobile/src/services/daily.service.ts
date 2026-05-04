@@ -16,6 +16,7 @@ import type {
 const DAILY_TRANSITS_BASE = '/api/v1/daily/transits';
 const FEEDBACK_BASE = '/api/v1/feedback';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const DAILY_CACHE_VERSION = 'v2';
 
 type DailyLocale = 'tr' | 'en';
 
@@ -25,11 +26,161 @@ interface CacheEnvelope<T> {
   expiresAt: number;
 }
 
-const transitsCacheKey = (date: string, locale: DailyLocale) => `dailyTransits:${locale}:${date}`;
-const actionsCacheKey = (date: string, locale: DailyLocale) => `dailyActions:${locale}:${date}`;
+const transitsCacheKey = (date: string, locale: DailyLocale) => `dailyTransits:${DAILY_CACHE_VERSION}:${locale}:${date}`;
+const actionsCacheKey = (date: string, locale: DailyLocale) => `dailyActions:${DAILY_CACHE_VERSION}:${locale}:${date}`;
 
 function normalizeLocale(locale?: string | null): DailyLocale {
   return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
+function normalizeDailyToken(value?: string | null): string {
+  const trMap: Record<string, string> = {
+    ç: 'c',
+    ğ: 'g',
+    ı: 'i',
+    ö: 'o',
+    ş: 's',
+    ü: 'u',
+  };
+
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .split('')
+    .map((char) => trMap[char] ?? char)
+    .join('')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function localizeDailyThemeEn(value?: string | null): string {
+  const token = normalizeDailyToken(value);
+  if (token.includes('iletisim') || token.includes('communication')) return 'Communication';
+  if (token.includes('ask') || token.includes('love') || token.includes('relationship')) return 'Love';
+  if (token === 'is' || token.includes('work') || token.includes('career')) return 'Work';
+  if (token.includes('enerji') || token.includes('energy')) return 'Energy';
+  return 'Mood';
+}
+
+function localizeDailyMoodEn(value?: string | null): string {
+  const token = normalizeDailyToken(value);
+  if (token.includes('odak') || token.includes('focus')) return 'focus';
+  if (token.includes('sosyal') || token.includes('social')) return 'social';
+  if (token.includes('cesur') || token.includes('bold')) return 'bold';
+  if (token.includes('duygusal') || token.includes('emotional')) return 'emotional';
+  return 'calm';
+}
+
+function localizeActionSentenceEn(value?: string | null): string {
+  const text = (value ?? '').trim();
+  if (!text) return '';
+
+  const normalized = text.endsWith('.') ? text.slice(0, -1) : text;
+  const token = normalizeDailyToken(normalized);
+
+  const exactMap: Record<string, string> = {
+    'bugun ne yapabilirsin': 'What Can You Do Today?',
+    'bugun yapabileceklerin': 'What You Can Do Today',
+    'mesajlarini gondermeden once iki kez kontrol et': 'Double-check your messages before sending.',
+    'uzun suredir yazmadigin bir kisiye kisa bir mesaj at': 'Send a short message to someone you have not written to in a while.',
+    'iliskinde kucuk ama samimi bir jest yap': 'Make a small but sincere gesture in your relationship.',
+    'duygusal konusmalarda savunmaya gecmeden once dinle': 'Listen before going defensive in emotional conversations.',
+    'tek ise odaklanip bitirmeden yeni is acma': 'Do not open a new task before finishing the one in front of you.',
+    'erteledigin bir isi 15 dakikalik blokla baslat': 'Start a delayed task with a focused 15-minute block.',
+    'gunun temposunu molalarla dengele': "Balance the day's pace with short breaks.",
+    'kisa bir yuruyusle enerjini tazele': 'Refresh your energy with a short walk.',
+    'karar almadan once bir adim geri cekilip planini netlestir': 'Step back and clarify your plan before making a decision.',
+    'sezgini dinleyip kucuk bir adim at': 'Listen to intuition and take one small step.',
+    'ani tepkiyle mesaj gondermekten kacinmak faydali olur': 'Avoid sending messages from a reactive state.',
+    'kirici veya kesin yargili cumlelerden kacinmak iliskiyi korur': 'Avoid harsh or final-sounding sentences to protect the relationship.',
+    'netlesmeden yeni gorev acmaktan kacinmak stresi dusurur': 'Avoid opening new tasks before priorities are clear to lower stress.',
+    'gunu tek tempoda zorlamaktan kacinmak daha surdurulebilir olur': 'Avoid forcing the whole day at one speed to keep things sustainable.',
+    'kesin kararlari anlik duygu ile vermekten kacinmak daha guvenli olur': 'Avoid making final decisions from a passing emotion.',
+    'aksam icin 1 mini plan yaz': 'Write 1 mini plan for tonight.',
+    'yarin icin tek bir oncelik belirleyip not alman yeterli': 'Naming one priority for tomorrow and writing it down is enough.',
+    'aksiyon listesi hazirlaniyor': 'The action list is being prepared.',
+  };
+
+  if (exactMap[token]) {
+    return exactMap[token];
+  }
+
+  const retroMatch = normalized.match(/^(.+?) retrosu icin kontrol listesi hazirla\.?$/i)
+    ?? normalized.match(/^(.+?) retrosu için kontrol listesi hazırla\.?$/i);
+  if (retroMatch?.[1]) {
+    return `Prepare a checklist for ${retroMatch[1].trim()} retrograde.`;
+  }
+
+  const moodSubtitleMatch = normalized.match(/^(.+?) akisi icin 3 kucuk adim planla\.?$/i)
+    ?? normalized.match(/^(.+?) akışı için 3 küçük adım planla\.?$/i);
+  if (moodSubtitleMatch?.[1]) {
+    const mood = localizeDailyMoodEn(moodSubtitleMatch[1]);
+    return `Plan 3 small steps for a ${mood} flow.`;
+  }
+
+  return text;
+}
+
+function localizeActionTitleEn(value?: string | null): string {
+  const localized = localizeActionSentenceEn(value);
+  if (!localized) return '';
+  return /[.!?]$/.test(localized) ? localized : `${localized}.`;
+}
+
+function localizeActionStepEn(value?: string | null): string {
+  const localized = localizeActionSentenceEn(value);
+  if (!localized) return '';
+  return localized.endsWith('.') ? localized.slice(0, -1) : localized;
+}
+
+function localizeActionHeaderTitleEn(value?: string | null): string {
+  const localized = localizeActionSentenceEn(value);
+  if (!localized) return 'What Can You Do Today?';
+  return localized.endsWith('?') ? localized : localized.replace(/[.]$/, '?');
+}
+
+function localizeActionDetailEn(value?: string | null): string {
+  const text = (value ?? '').trim();
+  if (!text) return '';
+  const parts = text.split('•').map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 0) return text;
+  if (parts.length === 1) return localizeActionSentenceEn(parts[0]);
+
+  const [theme, ...rest] = parts;
+  const localizedTheme = localizeDailyThemeEn(theme);
+  const localizedRest = rest.map((part) => localizeActionSentenceEn(part));
+  return [localizedTheme, ...localizedRest].join(' • ');
+}
+
+function localizeActionTagEn(tag?: DailyActionsDTO['actions'][number]['tag'] | string): DailyActionsDTO['actions'][number]['tag'] | undefined {
+  if (!tag) return undefined;
+  const token = normalizeDailyToken(tag);
+  if (token.includes('kolay') || token.includes('easy')) return 'Easy';
+  if (token.includes('orta') || token.includes('moderate') || token.includes('medium')) return 'Moderate';
+  return 'Bold';
+}
+
+function localizeDailyActionsPayload(payload: DailyActionsDTO, locale: DailyLocale): DailyActionsDTO {
+  if (locale !== 'en') return payload;
+
+  return {
+    ...payload,
+    header: {
+      title: localizeActionHeaderTitleEn(payload.header.title),
+      subtitle: localizeActionSentenceEn(payload.header.subtitle),
+    },
+    actions: payload.actions.map((action) => ({
+      ...action,
+      title: localizeActionTitleEn(action.title),
+      detail: localizeActionDetailEn(action.detail),
+      tag: localizeActionTagEn(action.tag),
+    })),
+    miniPlan: {
+      ...payload.miniPlan,
+      title: 'Mini Plan',
+      steps: payload.miniPlan.steps.map((step) => localizeActionStepEn(step)),
+    },
+  };
 }
 
 function toIsoDate(value: Date): string {
@@ -110,7 +261,7 @@ async function patchLocalActionState(
     actions: existing.actions.map((action) =>
       action.id === actionId ? { ...action, isDone, doneAt: isDone ? doneAt : undefined } : action),
   };
-  await writeCache(key, updated);
+  await writeCache(key, localizeDailyActionsPayload(updated, locale));
 }
 
 function buildEmptyDailyTransits(date: string, locale: DailyLocale): DailyTransitsDTO {
@@ -201,19 +352,20 @@ export async function getDailyActions(date: string, locale?: string): Promise<Da
       { appEnv: envConfig.appEnv, date: normalizedDate, locale: resolvedLocale },
     );
     const cached = await readCache<DailyActionsDTO>(cacheKey);
-    return cached ?? buildEmptyDailyActions(normalizedDate, resolvedLocale);
+    return cached ? localizeDailyActionsPayload(cached, resolvedLocale) : buildEmptyDailyActions(normalizedDate, resolvedLocale);
   }
 
   try {
     const { data } = await api.get<DailyActionsDTO>(`${DAILY_TRANSITS_BASE}/actions`, {
       params: { date: normalizedDate, locale: resolvedLocale },
     });
-    await writeCache(cacheKey, data);
-    return data;
+    const localized = localizeDailyActionsPayload(data, resolvedLocale);
+    await writeCache(cacheKey, localized);
+    return localized;
   } catch (error) {
     logApiError('daily_actions_fetch', error, { date: normalizedDate, locale: resolvedLocale });
     const fallback = await readCache<DailyActionsDTO>(cacheKey);
-    return fallback ?? buildEmptyDailyActions(normalizedDate, resolvedLocale);
+    return fallback ? localizeDailyActionsPayload(fallback, resolvedLocale) : buildEmptyDailyActions(normalizedDate, resolvedLocale);
   }
 }
 

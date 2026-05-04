@@ -30,6 +30,9 @@ interface FormData {
   defaultTrialDays: number;
   isTokenPurchaseEnabled: boolean;
   isRevenueCatEnabled: boolean;
+  revenueCatIosApiKey: string;
+  revenueCatAndroidApiKey: string;
+  revenueCatEnvironment: string;
   isHideAdsForPremiumUsers: boolean;
   isAllowPremiumAndTokenTogether: boolean;
   defaultAdProvider: string;
@@ -73,6 +76,9 @@ export default function NewMonetizationSettingsPage() {
       defaultTrialDays: 0,
       isTokenPurchaseEnabled: false,
       isRevenueCatEnabled: false,
+      revenueCatIosApiKey: '',
+      revenueCatAndroidApiKey: '',
+      revenueCatEnvironment: 'sandbox',
       isHideAdsForPremiumUsers: false,
       isAllowPremiumAndTokenTogether: true,
       defaultAdProvider: 'admob',
@@ -151,6 +157,27 @@ export default function NewMonetizationSettingsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Varsayılan Trial Süresi (gün)</label>
               <Input {...register('defaultTrialDays', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+          </div>
+
+          <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs text-gray-400 uppercase font-semibold">RevenueCat SDK Ayarları</p>
+            <p className="text-xs text-gray-500">
+              Buraya RevenueCat dashboard’daki public SDK key’lerini girin. Secret API key veya webhook secret kullanmayın.
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">iOS Public API Key</label>
+                <Input {...register('revenueCatIosApiKey')} className="font-mono" placeholder="appl_... veya test_..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Android Public API Key</label>
+                <Input {...register('revenueCatAndroidApiKey')} className="font-mono" placeholder="goog_... veya test_..." />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">RevenueCat Environment</label>
+              <Input {...register('revenueCatEnvironment')} className="font-mono" placeholder="sandbox veya production" />
             </div>
           </div>
 

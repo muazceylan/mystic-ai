@@ -43,46 +43,6 @@ public class WeeklySwotService {
 
     private static final String CACHE_PREFIX = "weekly-swot:";
 
-    private static final Map<String, String> PLANET_TR = Map.ofEntries(
-            Map.entry("Sun", "Güneş"),
-            Map.entry("Moon", "Ay"),
-            Map.entry("Mercury", "Merkür"),
-            Map.entry("Venus", "Venüs"),
-            Map.entry("Mars", "Mars"),
-            Map.entry("Jupiter", "Jüpiter"),
-            Map.entry("Saturn", "Satürn"),
-            Map.entry("Uranus", "Uranüs"),
-            Map.entry("Neptune", "Neptün"),
-            Map.entry("Pluto", "Plüton"),
-            Map.entry("Chiron", "Kiron"),
-            Map.entry("NorthNode", "Kuzey Düğümü"),
-            Map.entry("Ascendant", "Yükselen"),
-            Map.entry("MC", "MC")
-    );
-
-    private static final Map<String, String> SIGN_TR = Map.ofEntries(
-            Map.entry("Aries", "Koç"),
-            Map.entry("Taurus", "Boğa"),
-            Map.entry("Gemini", "İkizler"),
-            Map.entry("Cancer", "Yengeç"),
-            Map.entry("Leo", "Aslan"),
-            Map.entry("Virgo", "Başak"),
-            Map.entry("Libra", "Terazi"),
-            Map.entry("Scorpio", "Akrep"),
-            Map.entry("Sagittarius", "Yay"),
-            Map.entry("Capricorn", "Oğlak"),
-            Map.entry("Aquarius", "Kova"),
-            Map.entry("Pisces", "Balık")
-    );
-
-    private static final Map<String, String> ASPECT_TR = Map.of(
-            "TRINE", "üçgen",
-            "SEXTILE", "altıgen",
-            "CONJUNCTION", "kavuşum",
-            "SQUARE", "kare",
-            "OPPOSITION", "karşıt"
-    );
-
     private static final String[] SIGNS = {
             "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
             "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
@@ -189,10 +149,11 @@ public class WeeklySwotService {
         }
     }
 
-    public WeeklySwotResponse getWeeklySwot(Long userId) {
+    public WeeklySwotResponse getWeeklySwot(Long userId, String locale) {
+        String lang = (locale != null && locale.toLowerCase().startsWith("en")) ? "en" : "tr";
         LocalDate today = LocalDate.now();
         LocalDate weekStart = today.with(DayOfWeek.MONDAY);
-        String cacheKey = CACHE_PREFIX + userId + ":" + weekStart;
+        String cacheKey = CACHE_PREFIX + userId + ":" + weekStart + ":" + lang;
 
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey);
@@ -281,10 +242,11 @@ public class WeeklySwotService {
         int opportunityScore = clampScore(opportunity.score);
         int threatScore = clampScore(threat.score);
 
-        SwotPoint strengthPoint = buildStrengthPoint(strengthScore, strength, profile, weekStart);
-        SwotPoint weaknessPoint = buildWeaknessPoint(weaknessScore, weakness, profile, weekStart);
-        SwotPoint opportunityPoint = buildOpportunityPoint(opportunityScore, opportunity, profile, weekStart);
-        SwotPoint threatPoint = buildThreatPoint(threatScore, threat, profile, weekStart, mercuryRetro, mercuryRetroHouse, mercuryRetroDay);
+        SwotText text = new SwotText(lang);
+        SwotPoint strengthPoint = buildStrengthPoint(strengthScore, strength, profile, weekStart, text);
+        SwotPoint weaknessPoint = buildWeaknessPoint(weaknessScore, weakness, profile, weekStart, text);
+        SwotPoint opportunityPoint = buildOpportunityPoint(opportunityScore, opportunity, profile, weekStart, text);
+        SwotPoint threatPoint = buildThreatPoint(threatScore, threat, profile, weekStart, mercuryRetro, mercuryRetroHouse, mercuryRetroDay, text);
         FlashInsight flashInsight = buildFlashInsight(
                 strength,
                 weakness,
@@ -295,7 +257,8 @@ public class WeeklySwotService {
                 weekPhases,
                 mercuryRetro,
                 mercuryRetroHouse,
-                mercuryRetroDay
+                mercuryRetroDay,
+                text
         );
 
         WeeklySwotResponse response = new WeeklySwotResponse(
@@ -370,57 +333,57 @@ public class WeeklySwotService {
         }
     }
 
-    private SwotPoint buildStrengthPoint(int score, SwotAccumulator acc, WeeklyProfile profile, LocalDate weekStart) {
+    private SwotPoint buildStrengthPoint(int score, SwotAccumulator acc, WeeklyProfile profile, LocalDate weekStart, SwotText text) {
         AspectEvidence primary = findPrimarySupportAspect(acc.uniqueAspects());
         if (primary != null) {
             return new SwotPoint(
                     "STRENGTH",
-                    supportiveHeadline(primary, weekStart),
-                    supportiveSubtext(primary),
+                    text.supportiveHeadline(primary, weekStart),
+                    text.supportiveSubtext(primary),
                     score,
-                    supportiveTip(primary, profile)
+                    text.supportiveTip(primary, profile)
             );
         }
 
         return new SwotPoint(
                 "STRENGTH",
-                signTr(profile.sunSign()) + " Güneşin için hafta daha dengeli akıyor",
-                signTr(profile.risingSign()) + " yükseleninin kurduğu denge, büyük ataktan çok istikrarlı ilerlemeyi destekliyor.",
+                text.strengthFallbackHeadline(profile),
+                text.strengthFallbackSubtext(profile),
                 score,
-                "Gücünü birden çok işe yaymak yerine tek bir hedefi net biçimde ilerlet."
+                text.strengthFallbackTip()
         );
     }
 
-    private SwotPoint buildWeaknessPoint(int score, SwotAccumulator acc, WeeklyProfile profile, LocalDate weekStart) {
+    private SwotPoint buildWeaknessPoint(int score, SwotAccumulator acc, WeeklyProfile profile, LocalDate weekStart, SwotText text) {
         AspectEvidence primary = findPrimaryChallengeAspect(acc.uniqueAspects());
         if (primary != null) {
             return new SwotPoint(
                     "WEAKNESS",
-                    challengingHeadline(primary, weekStart),
-                    challengingSubtext(primary),
+                    text.challengingHeadline(primary, weekStart),
+                    text.challengingSubtext(primary),
                     score,
-                    challengingTip(primary)
+                    text.challengingTip(primary)
             );
         }
 
         return new SwotPoint(
                 "WEAKNESS",
-                signTr(profile.moonSign()) + " Ayının hassasiyetini iyi yönetmek gerekecek",
-                "Sert bir transit baskısı olmasa da duygusal eşiğin dolduğunu fark ettiğinde temponu düşürmek daha doğru olur.",
+                text.weaknessFallbackHeadline(profile),
+                text.weaknessFallbackSubtext(),
                 score,
-                "Aşırı yüklenmeden önce durup enerji seviyeni kontrol et; haftayı sakin ritim kazanır."
+                text.weaknessFallbackTip()
         );
     }
 
-    private SwotPoint buildOpportunityPoint(int score, SwotAccumulator acc, WeeklyProfile profile, LocalDate weekStart) {
+    private SwotPoint buildOpportunityPoint(int score, SwotAccumulator acc, WeeklyProfile profile, LocalDate weekStart, SwotText text) {
         AspectEvidence primaryAspect = findPrimaryOpportunityAspect(acc.uniqueAspects());
         if (primaryAspect != null) {
             return new SwotPoint(
                     "OPPORTUNITY",
-                    opportunityHeadline(primaryAspect, weekStart),
-                    opportunitySubtext(primaryAspect),
+                    text.opportunityHeadline(primaryAspect, weekStart),
+                    text.opportunitySubtext(primaryAspect),
                     score,
-                    opportunityTip(primaryAspect)
+                    text.opportunityTip(primaryAspect)
             );
         }
 
@@ -428,19 +391,19 @@ public class WeeklySwotService {
         if (houseEvidence != null) {
             return new SwotPoint(
                     "OPPORTUNITY",
-                    weekTiming(houseEvidence.date(), weekStart) + " Venüs " + houseEvidence.house() + ". ev temalarını canlandırıyor",
-                    houseOpportunitySubtext(houseEvidence.house()),
+                    text.houseOpportunityHeadline(houseEvidence, weekStart),
+                    text.houseOpportunitySubtext(houseEvidence.house()),
                     score,
-                    houseOpportunityTip(houseEvidence.house())
+                    text.houseOpportunityTip(houseEvidence.house())
             );
         }
 
         return new SwotPoint(
                 "OPPORTUNITY",
-                signTr(profile.risingSign()) + " yükselenin sayesinde kapılar ilişkiyle açılabilir",
-                "Majör bir fırsat açısı görünmese de doğru kişiyle temas kurmak ve niyeti netleştirmek haftayı büyütebilir.",
+                text.opportunityFallbackHeadline(profile),
+                text.opportunityFallbackSubtext(),
                 score,
-                "Sonuç zorlamak yerine bağlantı kur; fırsat bu hafta akıştan gelebilir."
+                text.opportunityFallbackTip()
         );
     }
 
@@ -451,45 +414,46 @@ public class WeeklySwotService {
             LocalDate weekStart,
             boolean mercuryRetro,
             Integer mercuryRetroHouse,
-            LocalDate mercuryRetroDay
+            LocalDate mercuryRetroDay,
+            SwotText text
     ) {
         AspectEvidence primary = findPrimaryThreatAspect(acc.uniqueAspects());
         if (mercuryRetro && primary != null) {
             return new SwotPoint(
                     "THREAT",
-                    retroThreatHeadline(primary, weekStart),
-                    retroThreatSubtext(primary, mercuryRetroHouse),
+                    text.retroThreatHeadline(primary, weekStart),
+                    text.retroThreatSubtext(primary, mercuryRetroHouse),
                     score,
-                    retroThreatTip(primary)
+                    text.retroThreatTip(primary)
             );
         }
 
         if (mercuryRetro) {
             return new SwotPoint(
                     "THREAT",
-                    retroOnlyHeadline(profile, weekStart, mercuryRetroDay),
-                    retroOnlySubtext(mercuryRetroHouse),
+                    text.retroOnlyHeadline(profile, weekStart, mercuryRetroDay),
+                    text.retroOnlySubtext(mercuryRetroHouse),
                     score,
-                    "Mesaj, mail ve plan detaylarını iki kez kontrol et; acele cevap verme."
+                    text.retroOnlyTip()
             );
         }
 
         if (primary != null) {
             return new SwotPoint(
                     "THREAT",
-                    challengingHeadline(primary, weekStart),
-                    threatSubtext(primary),
+                    text.challengingHeadline(primary, weekStart),
+                    text.threatSubtext(primary),
                     score,
-                    threatTip(primary)
+                    text.threatTip(primary)
             );
         }
 
         return new SwotPoint(
                 "THREAT",
-                signTr(profile.sunSign()) + " Güneşin için asıl risk aşırı yüklenmek",
-                "Büyük bir sert açı görünmüyor; bu yüzden haftanın tehdidi dış etkiden çok gereksiz baskı yaratmak olabilir.",
+                text.threatFallbackHeadline(profile),
+                text.threatFallbackSubtext(),
                 score,
-                "Planına boşluk bırak; küçük gecikmelerin tüm haftayı bozmasına izin verme."
+                text.threatFallbackTip()
         );
     }
 
@@ -503,7 +467,8 @@ public class WeeklySwotService {
             Set<String> weekPhases,
             boolean mercuryRetro,
             Integer mercuryRetroHouse,
-            LocalDate mercuryRetroDay
+            LocalDate mercuryRetroDay,
+            SwotText text
     ) {
         AspectEvidence topThreat = findPrimaryThreatAspect(threat.uniqueAspects());
         AspectEvidence topOpportunity = findPrimaryOpportunityAspect(opportunity.uniqueAspects());
@@ -511,13 +476,13 @@ public class WeeklySwotService {
         AspectEvidence topWeakness = findPrimaryChallengeAspect(weakness.uniqueAspects());
 
         if (mercuryRetro) {
-            String timing = mercuryRetroDay != null ? weekTiming(mercuryRetroDay, weekStart) + " " : "";
+            String timing = mercuryRetroDay != null ? text.weekTiming(mercuryRetroDay, weekStart) + " " : "";
             String detail = mercuryRetroHouse != null
-                    ? houseAreaLabel(mercuryRetroHouse) + " alanında iletişim, zamanlama ve yanlış anlama payı artabilir."
-                    : "İletişim, teknoloji ve plan revizyonları hafta boyunca daha fazla dikkat isteyebilir.";
+                    ? text.flashMercuryRetroHouseDetail(mercuryRetroHouse)
+                    : text.flashMercuryRetroDetail();
             return new FlashInsight(
                     "ALERT",
-                    timing + "Merkür retrosu hız yerine kontrol istiyor",
+                    timing + text.flashMercuryRetroTitle(),
                     detail
             );
         }
@@ -525,55 +490,55 @@ public class WeeklySwotService {
         if (topThreat != null && threat.score >= Math.max(opportunity.score, strength.score)) {
             return new FlashInsight(
                     "ALERT",
-                    shortAspectFlash(topThreat, weekStart, false),
-                    threatSubtext(topThreat)
+                    text.shortAspectFlash(topThreat, weekStart, false),
+                    text.threatSubtext(topThreat)
             );
         }
 
         if (topOpportunity != null && opportunity.score >= strength.score) {
             return new FlashInsight(
                     "FORTUNE",
-                    shortAspectFlash(topOpportunity, weekStart, true),
-                    opportunitySubtext(topOpportunity)
+                    text.shortAspectFlash(topOpportunity, weekStart, true),
+                    text.opportunitySubtext(topOpportunity)
             );
         }
 
         if (topStrength != null) {
             return new FlashInsight(
                     "FORTUNE",
-                    shortAspectFlash(topStrength, weekStart, true),
-                    supportiveSubtext(topStrength)
+                    text.shortAspectFlash(topStrength, weekStart, true),
+                    text.supportiveSubtext(topStrength)
             );
         }
 
         if (topWeakness != null) {
             return new FlashInsight(
                     "ALERT",
-                    shortAspectFlash(topWeakness, weekStart, false),
-                    challengingSubtext(topWeakness)
+                    text.shortAspectFlash(topWeakness, weekStart, false),
+                    text.challengingSubtext(topWeakness)
             );
         }
 
         if (weekPhases.contains("Dolunay")) {
             return new FlashInsight(
                     "FORTUNE",
-                    "Bu hafta Dolunay görünürlüğü artırıyor",
-                    signTr(profile.moonSign()) + " Ayının duygusal temasında tamamlanma ve fark edişler öne çıkabilir."
+                    text.flashFullMoonTitle(),
+                    text.flashFullMoonDetail(profile)
             );
         }
 
         if (weekPhases.contains("Yeni Ay")) {
             return new FlashInsight(
                     "FORTUNE",
-                    "Bu hafta Yeni Ay taze niyetler için alan açıyor",
-                    signTr(profile.sunSign()) + " Güneşin için yeni başlangıçlardan çok doğru niyeti kurmak kazandırır."
+                    text.flashNewMoonTitle(),
+                    text.flashNewMoonDetail(profile)
             );
         }
 
         return new FlashInsight(
                 "FORTUNE",
-                signTr(profile.sunSign()) + " için hafta düşük ama dengeli yoğunlukta",
-                signTr(profile.risingSign()) + " yükseleninle ritmi koruduğunda sonuçlar daha temiz toplanır."
+                text.flashDefaultTitle(profile),
+                text.flashDefaultDetail(profile)
         );
     }
 
@@ -779,194 +744,465 @@ public class WeeklySwotService {
         };
     }
 
-    private String supportiveHeadline(AspectEvidence evidence, LocalDate weekStart) {
-        return weekTiming(evidence.date(), weekStart) + " " + aspectSentence(evidence.aspect(), "kuruyor");
-    }
+    private static final class SwotText {
+        private final boolean en;
 
-    private String opportunityHeadline(AspectEvidence evidence, LocalDate weekStart) {
-        return weekTiming(evidence.date(), weekStart) + " " + aspectSentence(evidence.aspect(), "açıyor");
-    }
-
-    private String challengingHeadline(AspectEvidence evidence, LocalDate weekStart) {
-        return weekTiming(evidence.date(), weekStart) + " " + aspectSentence(evidence.aspect(), "baskı yaratıyor");
-    }
-
-    private String retroThreatHeadline(AspectEvidence evidence, LocalDate weekStart) {
-        return weekTiming(evidence.date(), weekStart) + " Merkür retrosu ile " + aspectSentence(evidence.aspect(), "geriyor");
-    }
-
-    private String retroOnlyHeadline(WeeklyProfile profile, LocalDate weekStart, LocalDate mercuryRetroDay) {
-        String timing = mercuryRetroDay != null ? weekTiming(mercuryRetroDay, weekStart) + " " : "";
-        return timing + "Merkür retrosu " + signTr(profile.sunSign()) + " için planları yavaşlatıyor";
-    }
-
-    private String supportiveSubtext(AspectEvidence evidence) {
-        return crossAreaSupportText(evidence, "destekleyebilir", "daha akışkan çalışabilir");
-    }
-
-    private String opportunitySubtext(AspectEvidence evidence) {
-        return crossAreaSupportText(evidence, "için fırsat üretebilir", "daha görünür hale gelebilir");
-    }
-
-    private String challengingSubtext(AspectEvidence evidence) {
-        return crossAreaPressureText(evidence, "baskı oluşturabilir", "hassaslaşabilir");
-    }
-
-    private String threatSubtext(AspectEvidence evidence) {
-        return crossAreaPressureText(evidence, "hata payını artırabilir", "daha çabuk gerilebilir");
-    }
-
-    private String retroThreatSubtext(AspectEvidence evidence, Integer mercuryRetroHouse) {
-        String base = threatSubtext(evidence);
-        if (mercuryRetroHouse == null) return base;
-        return houseAreaLabel(mercuryRetroHouse) + " alanında iletişim yavaşlarken " + base.substring(0, 1).toLowerCase(Locale.ROOT) + base.substring(1);
-    }
-
-    private String retroOnlySubtext(Integer mercuryRetroHouse) {
-        if (mercuryRetroHouse == null) {
-            return "İletişim, teknoloji ve plan revizyonları bu hafta normalden daha fazla dikkat isteyebilir.";
+        SwotText(String lang) {
+            this.en = "en".equalsIgnoreCase(lang);
         }
-        return houseAreaLabel(mercuryRetroHouse) + " alanında revizyon, gecikme ve yanlış anlaşılma ihtimali artabilir.";
-    }
 
-    private String supportiveTip(AspectEvidence evidence, WeeklyProfile profile) {
-        return switch (evidence.transitPlanet()) {
-            case "Jupiter" -> "Ufku genişleten kararı küçültme; başvuru, paylaşım veya görünürlük isteyen adımı öne al.";
-            case "Sun" -> signTr(profile.risingSign()) + " yükseleninin görünürlüğünü kullan; geri planda kalmak yerine niyetini açık söyle.";
-            default -> "Akış varken küçük ama somut bir ilerleme seç; destek enerjisi sonuç üretmek için daha uygun.";
-        };
-    }
+        // ── vocabulary ───────────────────────────────────────────────────────────
 
-    private String opportunityTip(AspectEvidence evidence) {
-        return switch (evidence.transitPlanet()) {
-            case "Venus" -> "İlişki, iş birliği ve estetik kararlar için yumuşak ama net bir adım at.";
-            case "Jupiter" -> "Büyük düşün ama plansız büyüme değil; alanı açan fırsatı takvime bağla.";
-            case "Uranus" -> "Yeni yönteme direnme; küçük bir yenilik beklenmedik açılım getirebilir.";
-            default -> "Açılan kapıyı erteleme; kısa bir temas bu hafta zincir etkisi yaratabilir.";
-        };
-    }
+        private static final Map<String, String> PLANET_TR = Map.ofEntries(
+                Map.entry("Sun", "Güneş"), Map.entry("Moon", "Ay"), Map.entry("Mercury", "Merkür"),
+                Map.entry("Venus", "Venüs"), Map.entry("Mars", "Mars"), Map.entry("Jupiter", "Jüpiter"),
+                Map.entry("Saturn", "Satürn"), Map.entry("Uranus", "Uranüs"), Map.entry("Neptune", "Neptün"),
+                Map.entry("Pluto", "Plüton"), Map.entry("Chiron", "Kiron"),
+                Map.entry("NorthNode", "Kuzey Düğümü"), Map.entry("Ascendant", "Yükselen"), Map.entry("MC", "MC"));
+        private static final Map<String, String> SIGN_TR = Map.ofEntries(
+                Map.entry("Aries", "Koç"), Map.entry("Taurus", "Boğa"), Map.entry("Gemini", "İkizler"),
+                Map.entry("Cancer", "Yengeç"), Map.entry("Leo", "Aslan"), Map.entry("Virgo", "Başak"),
+                Map.entry("Libra", "Terazi"), Map.entry("Scorpio", "Akrep"), Map.entry("Sagittarius", "Yay"),
+                Map.entry("Capricorn", "Oğlak"), Map.entry("Aquarius", "Kova"), Map.entry("Pisces", "Balık"));
+        private static final Map<String, String> ASPECT_TR = Map.of(
+                "TRINE", "üçgen", "SEXTILE", "altıgen", "CONJUNCTION", "kavuşum",
+                "SQUARE", "kare", "OPPOSITION", "karşıt", "QUINCUNX", "yay-dördün");
+        private static final Map<String, String> ASPECT_EN = Map.of(
+                "TRINE", "trine", "SEXTILE", "sextile", "CONJUNCTION", "conjunction",
+                "SQUARE", "square", "OPPOSITION", "opposition", "QUINCUNX", "quincunx");
 
-    private String challengingTip(AspectEvidence evidence) {
-        return switch (evidence.transitPlanet()) {
-            case "Saturn" -> "Kendini suçlamak yerine yükü sadeleştir; az ama gerçekçi hedef seç.";
-            case "Neptune" -> "Belirsiz vaatleri somutlaştırmadan kabul etme; netlik istemek bu hafta şart.";
-            case "Chiron" -> "Hassas olduğun yerde sertleşmek yerine savunmanı düşürmeden sınır koy.";
-            default -> "Baskıyı büyütmeden ritmi düşür; bu hafta esneklik güçten daha işlevsel.";
-        };
-    }
-
-    private String threatTip(AspectEvidence evidence) {
-        return switch (evidence.transitPlanet()) {
-            case "Mars" -> "Tepki verme hızını düşür; öfke yerine zaman kazanmak bu haftanın akıllı hamlesi.";
-            case "Mercury" -> "Yanlış anlama riskini azaltmak için kısa, sade ve tekrar kontrol edilmiş iletişim kullan.";
-            default -> "Hızlı karar yerine kısa bekleme alanı yarat; risk çoğu zaman aceleden büyür.";
-        };
-    }
-
-    private String retroThreatTip(AspectEvidence evidence) {
-        return switch (evidence.natalPoint()) {
-            case "Mercury" -> "Mesaj, mail ve randevu detaylarını iki kez kontrol et; yanlış anlaşılmayı şansa bırakma.";
-            case "Mars" -> "Sinirle cevap vermek yerine kısa ara ver; retro altında tepki maliyeti büyür.";
-            default -> "Retro etkisinde planları sadeleştir; aynı anda çok şeyi çözmeye çalışma.";
-        };
-    }
-
-    private String houseOpportunitySubtext(int house) {
-        return switch (house) {
-            case 2 -> "Gelir, kaynaklar ve özdeğer başlıklarında daha yumuşak ama verimli bir akış yakalanabilir.";
-            case 7 -> "İlişkiler, ortaklıklar ve karşılıklı uyum gerektiren konular daha kolay açılabilir.";
-            case 10 -> "Kariyer, görünürlük ve itibar alanında dikkat çeken bir pencere aralanabilir.";
-            case 11 -> "Sosyal çevre, ekipler ve gelecek planları üzerinden faydalı bağlantılar kurulabilir.";
-            default -> "Bu evin temaları hafta içinde daha görünür hale gelebilir.";
-        };
-    }
-
-    private String houseOpportunityTip(int house) {
-        return switch (house) {
-            case 2 -> "Bütçe, ücret veya değer üretimiyle ilgili konuşmaları erteleme; somutlaştırmak kolaylaşır.";
-            case 7 -> "İş birliği gerektiren konuda ilk adımı yumuşak ama açık biçimde sen at.";
-            case 10 -> "Emeğini görünür kıl; geri planda bırakılan sonuç şimdi daha iyi karşılık bulabilir.";
-            case 11 -> "Doğru çevreye görünmek için bir mesaj, davet ya da paylaşım yap.";
-            default -> "Gelen teması küçümseme; küçük bir açılım hafta boyunca büyüyebilir.";
-        };
-    }
-
-    private String shortAspectFlash(AspectEvidence evidence, LocalDate weekStart, boolean supportive) {
-        String timing = weekTiming(evidence.date(), weekStart);
-        String transitPlanet = planetTr(evidence.transitPlanet());
-        String natalPoint = planetTr(evidence.natalPoint());
-        String action = supportive ? "açılıyor" : "dikkat istiyor";
-        return timing + " " + transitPlanet + " - " + natalPoint + " hattı " + action;
-    }
-
-    private String aspectSentence(PlanetaryAspect aspect, String ending) {
-        return planetTr(aspect.planet1().replace("T-", ""))
-                + " natal "
-                + planetTr(aspect.planet2().replace("N-", ""))
-                + " ile "
-                + aspectTr(aspect.type().name())
-                + " açı "
-                + ending;
-    }
-
-    private String crossAreaSupportText(AspectEvidence evidence, String dualAreaVerb, String singleAreaVerb) {
-        String natalArea = pointAreaLabel(evidence.natalPoint(), evidence.natalHouse());
-        if (evidence.transitHouse() != null && !evidence.transitHouse().equals(evidence.natalHouse())) {
-            String transitArea = houseAreaLabel(evidence.transitHouse());
-            return transitArea + " alanı, " + natalArea + " alanını " + dualAreaVerb + ".";
+        private static String normalizeSign(String sign) {
+            if (sign == null || sign.isBlank()) return "";
+            String t = sign.trim().toLowerCase(Locale.ROOT);
+            return t.substring(0, 1).toUpperCase(Locale.ROOT) + t.substring(1);
         }
-        return natalArea + " bu hafta " + singleAreaVerb + ".";
-    }
 
-    private String crossAreaPressureText(AspectEvidence evidence, String dualAreaVerb, String singleAreaVerb) {
-        String natalArea = pointAreaLabel(evidence.natalPoint(), evidence.natalHouse());
-        if (evidence.transitHouse() != null && !evidence.transitHouse().equals(evidence.natalHouse())) {
-            String transitArea = houseAreaLabel(evidence.transitHouse());
-            return transitArea + " alanındaki baskı, " + natalArea + " alanında " + dualAreaVerb + ".";
+        private String planetName(String planet) {
+            return en ? planet : PLANET_TR.getOrDefault(planet, planet);
         }
-        return natalArea + " bu hafta " + singleAreaVerb + ".";
-    }
 
-    private String pointAreaLabel(String point, Integer house) {
-        if (house != null && house > 0) {
-            return houseAreaLabel(house);
+        private String signName(String sign) {
+            String n = normalizeSign(sign);
+            if (n.isEmpty()) return en ? "your sign" : "burç";
+            return en ? n : SIGN_TR.getOrDefault(n, n);
         }
-        return switch (point) {
-            case "Sun", "Ascendant" -> "kimlik, yön ve görünürlük alanın";
-            case "MC" -> "kariyer ve görünürlük alanın";
-            case "Moon" -> "duygusal güvenlik alanın";
-            case "Mercury" -> "iletişim ve zihinsel akış alanın";
-            case "Venus" -> "ilişkiler ve değerler alanın";
-            case "Mars" -> "motivasyon ve mücadele alanın";
-            default -> "ilgili yaşam alanın";
-        };
-    }
 
-    private String weekTiming(LocalDate date, LocalDate weekStart) {
-        if (date == null) return "Bu hafta";
-        long diff = ChronoUnit.DAYS.between(weekStart, date);
-        if (diff <= 1) return "Hafta başında";
-        if (diff <= 4) return "Hafta ortasında";
-        return "Hafta sonuna doğru";
-    }
+        private String aspectName(String type) {
+            return en ? ASPECT_EN.getOrDefault(type, type.toLowerCase(Locale.ROOT))
+                      : ASPECT_TR.getOrDefault(type, type);
+        }
 
-    private String houseAreaLabel(Integer house) {
-        if (house == null) return "ilgili yaşam alanı";
-        return switch (house) {
-            case 1 -> "kişisel duruş ve kimlik";
-            case 2 -> "maddi alan ve kaynaklar";
-            case 3 -> "iletişim ve yakın çevre";
-            case 4 -> "ev ve aile";
-            case 5 -> "yaratıcılık ve keyif";
-            case 6 -> "günlük düzen ve sağlık";
-            case 7 -> "ilişkiler ve ortaklıklar";
-            case 8 -> "paylaşım ve dönüşüm";
-            case 9 -> "inanç ve ufuk genişletme";
-            case 10 -> "kariyer ve hedefler";
-            case 11 -> "sosyal çevre ve projeler";
-            case 12 -> "dinlenme ve içe çekilme";
-            default -> "ilgili yaşam alanı";
-        };
+        // ── timing ───────────────────────────────────────────────────────────────
+
+        String weekTiming(LocalDate date, LocalDate weekStart) {
+            if (date == null) return en ? "This week" : "Bu hafta";
+            long diff = ChronoUnit.DAYS.between(weekStart, date);
+            if (diff <= 1) return en ? "Early in the week" : "Hafta başında";
+            if (diff <= 4) return en ? "Mid-week" : "Hafta ortasında";
+            return en ? "Later this week" : "Hafta sonuna doğru";
+        }
+
+        // ── area labels ──────────────────────────────────────────────────────────
+
+        String houseAreaLabel(Integer house) {
+            if (house == null) return en ? "your relevant life area" : "ilgili yaşam alanı";
+            if (en) return switch (house) {
+                case 1 -> "identity and presence";
+                case 2 -> "finances and resources";
+                case 3 -> "communication and close connections";
+                case 4 -> "home and family";
+                case 5 -> "creativity and enjoyment";
+                case 6 -> "daily routines and health";
+                case 7 -> "relationships and partnerships";
+                case 8 -> "shared resources and transformation";
+                case 9 -> "beliefs and expanding horizons";
+                case 10 -> "career and ambitions";
+                case 11 -> "social circle and projects";
+                case 12 -> "rest and withdrawal";
+                default -> "your relevant life area";
+            };
+            return switch (house) {
+                case 1 -> "kişisel duruş ve kimlik";
+                case 2 -> "maddi alan ve kaynaklar";
+                case 3 -> "iletişim ve yakın çevre";
+                case 4 -> "ev ve aile";
+                case 5 -> "yaratıcılık ve keyif";
+                case 6 -> "günlük düzen ve sağlık";
+                case 7 -> "ilişkiler ve ortaklıklar";
+                case 8 -> "paylaşım ve dönüşüm";
+                case 9 -> "inanç ve ufuk genişletme";
+                case 10 -> "kariyer ve hedefler";
+                case 11 -> "sosyal çevre ve projeler";
+                case 12 -> "dinlenme ve içe çekilme";
+                default -> "ilgili yaşam alanı";
+            };
+        }
+
+        private String pointAreaLabel(String point, Integer house) {
+            if (house != null && house > 0) return houseAreaLabel(house);
+            if (en) return switch (point) {
+                case "Sun", "Ascendant" -> "your identity and visibility";
+                case "MC" -> "your career and public image";
+                case "Moon" -> "your emotional security";
+                case "Mercury" -> "your communication and mental flow";
+                case "Venus" -> "your relationships and values";
+                case "Mars" -> "your motivation and drive";
+                default -> "your relevant life area";
+            };
+            return switch (point) {
+                case "Sun", "Ascendant" -> "kimlik, yön ve görünürlük alanın";
+                case "MC" -> "kariyer ve görünürlük alanın";
+                case "Moon" -> "duygusal güvenlik alanın";
+                case "Mercury" -> "iletişim ve zihinsel akış alanın";
+                case "Venus" -> "ilişkiler ve değerler alanın";
+                case "Mars" -> "motivasyon ve mücadele alanın";
+                default -> "ilgili yaşam alanın";
+            };
+        }
+
+        // ── cross-area templates ─────────────────────────────────────────────────
+
+        private String crossAreaSupportText(AspectEvidence evidence,
+                String trDualVerb, String trSingleVerb,
+                String enDualVerb, String enSingleVerb) {
+            String natalArea = pointAreaLabel(evidence.natalPoint(), evidence.natalHouse());
+            if (evidence.transitHouse() != null && !evidence.transitHouse().equals(evidence.natalHouse())) {
+                String transitArea = houseAreaLabel(evidence.transitHouse());
+                return en ? transitArea + " " + enDualVerb + " " + natalArea + "."
+                          : transitArea + " alanı, " + natalArea + " alanını " + trDualVerb + ".";
+            }
+            return en ? natalArea + " " + enSingleVerb + "."
+                      : natalArea + " bu hafta " + trSingleVerb + ".";
+        }
+
+        private String crossAreaPressureText(AspectEvidence evidence,
+                String trDualVerb, String trSingleVerb,
+                String enDualVerb, String enSingleVerb) {
+            String natalArea = pointAreaLabel(evidence.natalPoint(), evidence.natalHouse());
+            if (evidence.transitHouse() != null && !evidence.transitHouse().equals(evidence.natalHouse())) {
+                String transitArea = houseAreaLabel(evidence.transitHouse());
+                return en ? "Pressure in " + transitArea + " " + enDualVerb + " " + natalArea + "."
+                          : transitArea + " alanındaki baskı, " + natalArea + " alanında " + trDualVerb + ".";
+            }
+            return en ? natalArea + " " + enSingleVerb + " this week."
+                      : natalArea + " bu hafta " + trSingleVerb + ".";
+        }
+
+        // ── subtexts ─────────────────────────────────────────────────────────────
+
+        String supportiveSubtext(AspectEvidence evidence) {
+            return crossAreaSupportText(evidence,
+                    "destekleyebilir", "daha akışkan çalışabilir",
+                    "supports", "flows more smoothly this week");
+        }
+
+        String opportunitySubtext(AspectEvidence evidence) {
+            return crossAreaSupportText(evidence,
+                    "için fırsat üretebilir", "daha görünür hale gelebilir",
+                    "can generate opportunities for", "becomes more visible this week");
+        }
+
+        String challengingSubtext(AspectEvidence evidence) {
+            return crossAreaPressureText(evidence,
+                    "baskı oluşturabilir", "hassaslaşabilir",
+                    "may strain", "becomes more sensitive");
+        }
+
+        String threatSubtext(AspectEvidence evidence) {
+            return crossAreaPressureText(evidence,
+                    "hata payını artırabilir", "daha çabuk gerilebilir",
+                    "increases the margin for error in", "is more prone to friction");
+        }
+
+        String retroThreatSubtext(AspectEvidence evidence, Integer mercuryRetroHouse) {
+            String base = threatSubtext(evidence);
+            if (mercuryRetroHouse == null) return base;
+            String lower = base.substring(0, 1).toLowerCase(Locale.ROOT) + base.substring(1);
+            return en ? "With communication slowing in " + houseAreaLabel(mercuryRetroHouse) + ", " + lower
+                      : houseAreaLabel(mercuryRetroHouse) + " alanında iletişim yavaşlarken " + lower;
+        }
+
+        String retroOnlySubtext(Integer mercuryRetroHouse) {
+            if (mercuryRetroHouse == null) {
+                return en ? "Communication, technology, and plan revisions may need extra attention this week."
+                          : "İletişim, teknoloji ve plan revizyonları bu hafta normalden daha fazla dikkat isteyebilir.";
+            }
+            return en ? "In " + houseAreaLabel(mercuryRetroHouse) + ", the risk of revisions, delays, and misunderstandings increases."
+                      : houseAreaLabel(mercuryRetroHouse) + " alanında revizyon, gecikme ve yanlış anlaşılma ihtimali artabilir.";
+        }
+
+        // ── headlines ────────────────────────────────────────────────────────────
+
+        private String aspectSentenceTr(PlanetaryAspect aspect, String ending) {
+            return planetName(aspect.planet1().replace("T-", ""))
+                    + " natal " + planetName(aspect.planet2().replace("N-", ""))
+                    + " ile " + aspectName(aspect.type().name()) + " açı " + ending;
+        }
+
+        private String aspectSentenceEn(PlanetaryAspect aspect, String ending) {
+            return "transit " + aspect.planet1().replace("T-", "")
+                    + " " + aspectName(aspect.type().name())
+                    + " natal " + aspect.planet2().replace("N-", "")
+                    + " — " + ending;
+        }
+
+        String supportiveHeadline(AspectEvidence evidence, LocalDate weekStart) {
+            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectSentenceEn(evidence.aspect(), "building strength")
+                      : weekTiming(evidence.date(), weekStart) + " " + aspectSentenceTr(evidence.aspect(), "kuruyor");
+        }
+
+        String opportunityHeadline(AspectEvidence evidence, LocalDate weekStart) {
+            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectSentenceEn(evidence.aspect(), "opening opportunity")
+                      : weekTiming(evidence.date(), weekStart) + " " + aspectSentenceTr(evidence.aspect(), "açıyor");
+        }
+
+        String challengingHeadline(AspectEvidence evidence, LocalDate weekStart) {
+            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectSentenceEn(evidence.aspect(), "creating tension")
+                      : weekTiming(evidence.date(), weekStart) + " " + aspectSentenceTr(evidence.aspect(), "baskı yaratıyor");
+        }
+
+        String retroThreatHeadline(AspectEvidence evidence, LocalDate weekStart) {
+            return en ? weekTiming(evidence.date(), weekStart) + ": Mercury Rx + " + aspectSentenceEn(evidence.aspect(), "pulling back")
+                      : weekTiming(evidence.date(), weekStart) + " Merkür retrosu ile " + aspectSentenceTr(evidence.aspect(), "geriyor");
+        }
+
+        String retroOnlyHeadline(WeeklyProfile profile, LocalDate weekStart, LocalDate mercuryRetroDay) {
+            String timing = mercuryRetroDay != null ? weekTiming(mercuryRetroDay, weekStart) + " " : "";
+            return en ? timing + "Mercury Retrograde slows plans for " + signName(profile.sunSign()) + " Sun"
+                      : timing + "Merkür retrosu " + signName(profile.sunSign()) + " için planları yavaşlatıyor";
+        }
+
+        String shortAspectFlash(AspectEvidence evidence, LocalDate weekStart, boolean supportive) {
+            String timing = weekTiming(evidence.date(), weekStart);
+            String tp = planetName(evidence.transitPlanet());
+            String np = planetName(evidence.natalPoint());
+            return en ? timing + ": " + tp + " – " + np + " line " + (supportive ? "opens up" : "needs attention")
+                      : timing + " " + tp + " - " + np + " hattı " + (supportive ? "açılıyor" : "dikkat istiyor");
+        }
+
+        String houseOpportunityHeadline(HouseEvidence houseEvidence, LocalDate weekStart) {
+            return en ? weekTiming(houseEvidence.date(), weekStart) + ": Venus activates " + houseEvidence.house() + "th house themes"
+                      : weekTiming(houseEvidence.date(), weekStart) + " Venüs " + houseEvidence.house() + ". ev temalarını canlandırıyor";
+        }
+
+        // ── tips ─────────────────────────────────────────────────────────────────
+
+        String supportiveTip(AspectEvidence evidence, WeeklyProfile profile) {
+            if (en) return switch (evidence.transitPlanet()) {
+                case "Jupiter" -> "Don't shrink a horizon-expanding decision; move forward with the application, share, or visibility step.";
+                case "Sun" -> "Use your " + signName(profile.risingSign()) + " Ascendant's visibility; state your intention openly instead of staying in the background.";
+                default -> "While the energy flows, choose a small but concrete step forward; supportive energy is best for producing results.";
+            };
+            return switch (evidence.transitPlanet()) {
+                case "Jupiter" -> "Ufku genişleten kararı küçültme; başvuru, paylaşım veya görünürlük isteyen adımı öne al.";
+                case "Sun" -> signName(profile.risingSign()) + " yükseleninin görünürlüğünü kullan; geri planda kalmak yerine niyetini açık söyle.";
+                default -> "Akış varken küçük ama somut bir ilerleme seç; destek enerjisi sonuç üretmek için daha uygun.";
+            };
+        }
+
+        String opportunityTip(AspectEvidence evidence) {
+            if (en) return switch (evidence.transitPlanet()) {
+                case "Venus" -> "Take a soft but clear step in relationship, collaboration, or aesthetic decisions.";
+                case "Jupiter" -> "Think big, but not without a plan; lock the opportunity into your calendar.";
+                case "Uranus" -> "Don't resist the new method; a small innovation can bring unexpected openings.";
+                default -> "Don't delay the opening door; a brief connection this week can create a chain effect.";
+            };
+            return switch (evidence.transitPlanet()) {
+                case "Venus" -> "İlişki, iş birliği ve estetik kararlar için yumuşak ama net bir adım at.";
+                case "Jupiter" -> "Büyük düşün ama plansız büyüme değil; alanı açan fırsatı takvime bağla.";
+                case "Uranus" -> "Yeni yönteme direnme; küçük bir yenilik beklenmedik açılım getirebilir.";
+                default -> "Açılan kapıyı erteleme; kısa bir temas bu hafta zincir etkisi yaratabilir.";
+            };
+        }
+
+        String challengingTip(AspectEvidence evidence) {
+            if (en) return switch (evidence.transitPlanet()) {
+                case "Saturn" -> "Instead of self-blame, simplify the load; choose fewer but realistic goals.";
+                case "Neptune" -> "Don't accept vague promises without clarifying them; asking for clarity is essential this week.";
+                case "Chiron" -> "Rather than hardening where you're sensitive, set boundaries without lowering your defenses.";
+                default -> "Reduce the pace without amplifying the pressure; flexibility is more functional than force this week.";
+            };
+            return switch (evidence.transitPlanet()) {
+                case "Saturn" -> "Kendini suçlamak yerine yükü sadeleştir; az ama gerçekçi hedef seç.";
+                case "Neptune" -> "Belirsiz vaatleri somutlaştırmadan kabul etme; netlik istemek bu hafta şart.";
+                case "Chiron" -> "Hassas olduğun yerde sertleşmek yerine savunmanı düşürmeden sınır koy.";
+                default -> "Baskıyı büyütmeden ritmi düşür; bu hafta esneklik güçten daha işlevsel.";
+            };
+        }
+
+        String threatTip(AspectEvidence evidence) {
+            if (en) return switch (evidence.transitPlanet()) {
+                case "Mars" -> "Slow your reaction speed; buying time instead of acting in anger is the smart move this week.";
+                case "Mercury" -> "Use short, simple, and double-checked communication to reduce the risk of misunderstanding.";
+                default -> "Create a brief waiting space instead of a quick decision; risk often grows from haste.";
+            };
+            return switch (evidence.transitPlanet()) {
+                case "Mars" -> "Tepki verme hızını düşür; öfke yerine zaman kazanmak bu haftanın akıllı hamlesi.";
+                case "Mercury" -> "Yanlış anlama riskini azaltmak için kısa, sade ve tekrar kontrol edilmiş iletişim kullan.";
+                default -> "Hızlı karar yerine kısa bekleme alanı yarat; risk çoğu zaman aceleden büyür.";
+            };
+        }
+
+        String retroThreatTip(AspectEvidence evidence) {
+            if (en) return switch (evidence.natalPoint()) {
+                case "Mercury" -> "Double-check messages, emails, and appointment details; don't leave misunderstandings to chance.";
+                case "Mars" -> "Instead of responding in anger, take a brief pause; the cost of reacting under retrograde grows.";
+                default -> "Simplify plans under retrograde influence; don't try to solve too many things at once.";
+            };
+            return switch (evidence.natalPoint()) {
+                case "Mercury" -> "Mesaj, mail ve randevu detaylarını iki kez kontrol et; yanlış anlaşılmayı şansa bırakma.";
+                case "Mars" -> "Sinirle cevap vermek yerine kısa ara ver; retro altında tepki maliyeti büyür.";
+                default -> "Retro etkisinde planları sadeleştir; aynı anda çok şeyi çözmeye çalışma.";
+            };
+        }
+
+        String retroOnlyTip() {
+            return en ? "Double-check messages, emails, and plan details; don't rush responses."
+                      : "Mesaj, mail ve plan detaylarını iki kez kontrol et; acele cevap verme.";
+        }
+
+        // ── house opportunity ────────────────────────────────────────────────────
+
+        String houseOpportunitySubtext(int house) {
+            if (en) return switch (house) {
+                case 2 -> "A smoother but more productive flow can be found in income, resources, and self-worth matters.";
+                case 7 -> "Relationships, partnerships, and topics requiring mutual understanding may open up more easily.";
+                case 10 -> "A noticeable window in career, visibility, and reputation may open.";
+                case 11 -> "Useful connections can be made through social circle, teams, and future plans.";
+                default -> "The themes of this house may become more visible during the week.";
+            };
+            return switch (house) {
+                case 2 -> "Gelir, kaynaklar ve özdeğer başlıklarında daha yumuşak ama verimli bir akış yakalanabilir.";
+                case 7 -> "İlişkiler, ortaklıklar ve karşılıklı uyum gerektiren konular daha kolay açılabilir.";
+                case 10 -> "Kariyer, görünürlük ve itibar alanında dikkat çeken bir pencere aralanabilir.";
+                case 11 -> "Sosyal çevre, ekipler ve gelecek planları üzerinden faydalı bağlantılar kurulabilir.";
+                default -> "Bu evin temaları hafta içinde daha görünür hale gelebilir.";
+            };
+        }
+
+        String houseOpportunityTip(int house) {
+            if (en) return switch (house) {
+                case 2 -> "Don't delay conversations about budget, salary, or value creation; it gets easier to make them concrete.";
+                case 7 -> "Take the first step softly but openly in matters requiring collaboration.";
+                case 10 -> "Make your effort visible; a result left in the background may now receive better recognition.";
+                case 11 -> "Send a message, invitation, or share to become visible to the right circle.";
+                default -> "Don't underestimate the incoming theme; a small opening can grow throughout the week.";
+            };
+            return switch (house) {
+                case 2 -> "Bütçe, ücret veya değer üretimiyle ilgili konuşmaları erteleme; somutlaştırmak kolaylaşır.";
+                case 7 -> "İş birliği gerektiren konuda ilk adımı yumuşak ama açık biçimde sen at.";
+                case 10 -> "Emeğini görünür kıl; geri planda bırakılan sonuç şimdi daha iyi karşılık bulabilir.";
+                case 11 -> "Doğru çevreye görünmek için bir mesaj, davet ya da paylaşım yap.";
+                default -> "Gelen teması küçümseme; küçük bir açılım hafta boyunca büyüyebilir.";
+            };
+        }
+
+        // ── strength/weakness/opportunity/threat fallbacks ───────────────────────
+
+        String strengthFallbackHeadline(WeeklyProfile profile) {
+            return en ? "A balanced week for your " + signName(profile.sunSign()) + " Sun"
+                      : signName(profile.sunSign()) + " Güneşin için hafta daha dengeli akıyor";
+        }
+
+        String strengthFallbackSubtext(WeeklyProfile profile) {
+            return en ? "Your " + signName(profile.risingSign()) + " Ascendant supports steady progress over big breakthroughs."
+                      : signName(profile.risingSign()) + " yükseleninin kurduğu denge, büyük ataktan çok istikrarlı ilerlemeyi destekliyor.";
+        }
+
+        String strengthFallbackTip() {
+            return en ? "Instead of spreading your energy across multiple tasks, move one goal clearly forward."
+                      : "Gücünü birden çok işe yaymak yerine tek bir hedefi net biçimde ilerlet.";
+        }
+
+        String weaknessFallbackHeadline(WeeklyProfile profile) {
+            return en ? "Manage your " + signName(profile.moonSign()) + " Moon's sensitivity with care"
+                      : signName(profile.moonSign()) + " Ayının hassasiyetini iyi yönetmek gerekecek";
+        }
+
+        String weaknessFallbackSubtext() {
+            return en ? "Even without a harsh transit, when you sense your emotional threshold rising, it's better to slow down."
+                      : "Sert bir transit baskısı olmasa da duygusal eşiğin dolduğunu fark ettiğinde temponu düşürmek daha doğru olur.";
+        }
+
+        String weaknessFallbackTip() {
+            return en ? "Before overloading, pause and check your energy level; the week is won with a calm rhythm."
+                      : "Aşırı yüklenmeden önce durup enerji seviyeni kontrol et; haftayı sakin ritim kazanır.";
+        }
+
+        String opportunityFallbackHeadline(WeeklyProfile profile) {
+            return en ? "Your " + signName(profile.risingSign()) + " Ascendant may open doors through connection"
+                      : signName(profile.risingSign()) + " yükselenin sayesinde kapılar ilişkiyle açılabilir";
+        }
+
+        String opportunityFallbackSubtext() {
+            return en ? "Even without a major opportunity aspect, connecting with the right person and clarifying your intent can expand the week."
+                      : "Majör bir fırsat açısı görünmese de doğru kişiyle temas kurmak ve niyeti netleştirmek haftayı büyütebilir.";
+        }
+
+        String opportunityFallbackTip() {
+            return en ? "Build connection rather than force results; opportunity this week may come from the flow."
+                      : "Sonuç zorlamak yerine bağlantı kur; fırsat bu hafta akıştan gelebilir.";
+        }
+
+        String threatFallbackHeadline(WeeklyProfile profile) {
+            return en ? "The main risk for your " + signName(profile.sunSign()) + " Sun is overloading"
+                      : signName(profile.sunSign()) + " Güneşin için asıl risk aşırı yüklenmek";
+        }
+
+        String threatFallbackSubtext() {
+            return en ? "No major challenging aspect is visible; the week's threat may be self-imposed pressure rather than external forces."
+                      : "Büyük bir sert açı görünmüyor; bu yüzden haftanın tehdidi dış etkiden çok gereksiz baskı yaratmak olabilir.";
+        }
+
+        String threatFallbackTip() {
+            return en ? "Leave room in your plan; don't let small delays derail the whole week."
+                      : "Planına boşluk bırak; küçük gecikmelerin tüm haftayı bozmasına izin verme.";
+        }
+
+        // ── flash insight ────────────────────────────────────────────────────────
+
+        String flashMercuryRetroTitle() {
+            return en ? "Mercury Retrograde calls for control over speed"
+                      : "Merkür retrosu hız yerine kontrol istiyor";
+        }
+
+        String flashMercuryRetroDetail() {
+            return en ? "Communication, technology, and plan revisions may need more attention throughout the week."
+                      : "İletişim, teknoloji ve plan revizyonları hafta boyunca daha fazla dikkat isteyebilir.";
+        }
+
+        String flashMercuryRetroHouseDetail(Integer house) {
+            return en ? "In " + houseAreaLabel(house) + ", communication, timing, and misunderstandings may increase."
+                      : houseAreaLabel(house) + " alanında iletişim, zamanlama ve yanlış anlama payı artabilir.";
+        }
+
+        String flashFullMoonTitle() {
+            return en ? "This week's Full Moon boosts visibility" : "Bu hafta Dolunay görünürlüğü artırıyor";
+        }
+
+        String flashFullMoonDetail(WeeklyProfile profile) {
+            return en ? "Completions and realizations may emerge through your " + signName(profile.moonSign()) + " Moon's emotional themes."
+                      : signName(profile.moonSign()) + " Ayının duygusal temasında tamamlanma ve fark edişler öne çıkabilir.";
+        }
+
+        String flashNewMoonTitle() {
+            return en ? "This week's New Moon opens space for fresh intentions" : "Bu hafta Yeni Ay taze niyetler için alan açıyor";
+        }
+
+        String flashNewMoonDetail(WeeklyProfile profile) {
+            return en ? "For your " + signName(profile.sunSign()) + " Sun, setting the right intention matters more than new beginnings."
+                      : signName(profile.sunSign()) + " Güneşin için yeni başlangıçlardan çok doğru niyeti kurmak kazandırır.";
+        }
+
+        String flashDefaultTitle(WeeklyProfile profile) {
+            return en ? "A low but balanced week for your " + signName(profile.sunSign()) + " Sun"
+                      : signName(profile.sunSign()) + " için hafta düşük ama dengeli yoğunlukta";
+        }
+
+        String flashDefaultDetail(WeeklyProfile profile) {
+            return en ? "When you maintain the rhythm with your " + signName(profile.risingSign()) + " Ascendant, results come together more cleanly."
+                      : signName(profile.risingSign()) + " yükseleninle ritmi koruduğunda sonuçlar daha temiz toplanır.";
+        }
     }
 
     private int getAspectPriority(PlanetaryAspect.AspectType type, boolean harmonious) {
@@ -988,25 +1224,6 @@ public class WeeklySwotService {
             case TRINE -> 11;
             case SEXTILE -> 12;
         };
-    }
-
-    private String planetTr(String planet) {
-        return PLANET_TR.getOrDefault(planet, planet);
-    }
-
-    private String signTr(String sign) {
-        String normalized = normalizeSign(sign);
-        return SIGN_TR.getOrDefault(normalized, normalized);
-    }
-
-    private String aspectTr(String aspectType) {
-        return ASPECT_TR.getOrDefault(aspectType, aspectType);
-    }
-
-    private String normalizeSign(String sign) {
-        if (sign == null || sign.isBlank()) return "burç";
-        String trimmed = sign.trim().toLowerCase(Locale.ROOT);
-        return trimmed.substring(0, 1).toUpperCase(Locale.ROOT) + trimmed.substring(1);
     }
 
     private static int orbBonus(double orb) {

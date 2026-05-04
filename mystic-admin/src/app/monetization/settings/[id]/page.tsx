@@ -151,6 +151,27 @@ export default function MonetizationSettingsDetailPage({ params }: { params: Pro
             </div>
           </div>
 
+          <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs text-gray-400 uppercase font-semibold">RevenueCat SDK Ayarları</p>
+            <p className="text-xs text-gray-500">
+              RevenueCat public SDK key’lerini buradan güncelleyebilirsiniz. Secret API key veya backend webhook secret bu alana yazılmamalı.
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">iOS Public API Key</label>
+                <Input {...register('revenueCatIosApiKey')} className="font-mono" placeholder="appl_... veya test_..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Android Public API Key</label>
+                <Input {...register('revenueCatAndroidApiKey')} className="font-mono" placeholder="goog_... veya test_..." />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">RevenueCat Environment</label>
+              <Input {...register('revenueCatEnvironment')} className="font-mono" placeholder="sandbox veya production" />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Default Ad Provider</label>

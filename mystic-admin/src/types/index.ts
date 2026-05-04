@@ -812,6 +812,9 @@ export interface MonetizationSettings {
   defaultTrialDays: number;
   isTokenPurchaseEnabled: boolean;
   isRevenueCatEnabled: boolean;
+  revenueCatIosApiKey?: string;
+  revenueCatAndroidApiKey?: string;
+  revenueCatEnvironment?: string;
   isHideAdsForPremiumUsers: boolean;
   isAllowPremiumAndTokenTogether: boolean;
   defaultAdProvider: string;

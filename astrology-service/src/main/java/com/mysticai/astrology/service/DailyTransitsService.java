@@ -84,6 +84,21 @@ public class DailyTransitsService {
             Map.entry("Chiron", "Kiron")
     );
 
+    private static final Map<String, String> PLANET_EN = Map.ofEntries(
+            Map.entry("Sun", "Sun"),
+            Map.entry("Moon", "Moon"),
+            Map.entry("Mercury", "Mercury"),
+            Map.entry("Venus", "Venus"),
+            Map.entry("Mars", "Mars"),
+            Map.entry("Jupiter", "Jupiter"),
+            Map.entry("Saturn", "Saturn"),
+            Map.entry("Uranus", "Uranus"),
+            Map.entry("Neptune", "Neptune"),
+            Map.entry("Pluto", "Pluto"),
+            Map.entry("NorthNode", "North Node"),
+            Map.entry("Chiron", "Chiron")
+    );
+
     private static final Map<String, String> SIGN_TR = Map.ofEntries(
             Map.entry("Aries", "Koç"),
             Map.entry("Taurus", "Boğa"),
@@ -99,16 +114,17 @@ public class DailyTransitsService {
             Map.entry("Pisces", "Balık")
     );
 
-    public DailyTransitsDTO getDailyTransits(Long userId, LocalDate requestedDate, String timezoneHint) {
+    public DailyTransitsDTO getDailyTransits(Long userId, LocalDate requestedDate, String timezoneHint, String locale) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("Geçerli kullanıcı bulunamadı.");
         }
 
+        String resolvedLocale = normalizeLocale(locale);
         ZoneId zone = resolveZone(timezoneHint);
         LocalDate date = requestedDate != null ? requestedDate : LocalDate.now(zone);
         NatalChart chart = findLatestChart(userId);
         UserAstroProfile profile = buildUserAstroProfile(userId, chart);
-        String locationVersion = buildCacheVersion(chart, profile.profileVersion());
+        String locationVersion = buildCacheVersion(chart, profile.profileVersion(), resolvedLocale);
 
         LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
         Optional<DailyTransitsCache> cached = dailyTransitsCacheRepository
@@ -123,16 +139,18 @@ public class DailyTransitsService {
             }
         }
 
-        DailyTransitsDTO fresh = buildDailyTransitsDto(userId, date, zone, chart, profile);
+        DailyTransitsDTO fresh = buildDailyTransitsDto(userId, date, zone, chart, profile, resolvedLocale);
         persistCache(userId, date, zone.getId(), locationVersion, fresh);
         return fresh;
     }
 
-    public DailyActionsDTO getDailyActions(Long userId, LocalDate requestedDate, String timezoneHint) {
-        DailyTransitsDTO transitsDTO = getDailyTransits(userId, requestedDate, timezoneHint);
+    public DailyActionsDTO getDailyActions(Long userId, LocalDate requestedDate, String timezoneHint, String locale) {
+        String resolvedLocale = normalizeLocale(locale);
+        boolean english = isEnglishLocale(resolvedLocale);
+        DailyTransitsDTO transitsDTO = getDailyTransits(userId, requestedDate, timezoneHint, resolvedLocale);
         LocalDate date = LocalDate.parse(transitsDTO.date(), DATE_FORMATTER);
 
-        List<ActionTemplate> templates = buildActionTemplates(transitsDTO);
+        List<ActionTemplate> templates = buildActionTemplates(transitsDTO, english);
         Map<String, DailyActionState> stateMap = dailyActionStateRepository.findByUserIdAndActionDate(userId, date).stream()
                 .collect(LinkedHashMap::new, (acc, item) -> acc.put(item.getActionId(), item), Map::putAll);
 
@@ -163,17 +181,21 @@ public class DailyTransitsService {
                 .map(title -> clamp(title.replace(".", ""), 64))
                 .toList();
 
-        String mood = transitsDTO.hero() != null ? transitsDTO.hero().moodTag() : "Sakin";
+        String mood = transitsDTO.hero() != null ? transitsDTO.hero().moodTag() : t(english, "Sakin", "Calm");
         DailyActionsDTO.Header header = new DailyActionsDTO.Header(
-                "Bugün Ne Yapabilirsin?",
-                clamp(mood + " akışı için 3 küçük adım planla.", 64)
+                t(english, "Bugün Ne Yapabilirsin?", "What Can You Do Today?"),
+                clamp(
+                        english
+                                ? "Plan 3 small steps for a " + mood.toLowerCase(Locale.ROOT) + " flow."
+                                : mood + " akışı için 3 küçük adım planla.",
+                        64)
         );
 
         return new DailyActionsDTO(
                 transitsDTO.date(),
                 header,
                 actions,
-                new DailyActionsDTO.MiniPlan("Mini Plan", planSteps)
+                new DailyActionsDTO.MiniPlan(t(english, "Mini Plan", "Mini Plan"), planSteps)
         );
     }
 
@@ -262,8 +284,10 @@ public class DailyTransitsService {
             LocalDate date,
             ZoneId zone,
             NatalChart chart,
-            UserAstroProfile userProfile
+            UserAstroProfile userProfile,
+            String locale
     ) {
+        boolean english = isEnglishLocale(locale);
         List<PlanetPosition> transits = transitCalculator.calculateTransitPositions(date);
         List<PlanetPosition> natalPlanets = parseJsonList(chart != null ? chart.getPlanetPositionsJson() : null, PlanetPosition.class);
         List<HousePlacement> natalHouses = parseJsonList(chart != null ? chart.getHousePlacementsJson() : null, HousePlacement.class);
@@ -275,48 +299,48 @@ public class DailyTransitsService {
                 .filter(p -> "Moon".equalsIgnoreCase(p.planet()))
                 .findFirst()
                 .orElse(null);
-        String moonSign = moon != null ? translateSign(moon.sign()) : "Başak";
-        String moonPhase = transitCalculator.getMoonPhase(date);
+        String moonSign = moon != null ? translateSign(moon.sign(), english) : t(english, "Başak", "Virgo");
+        String moonPhase = translateMoonPhase(transitCalculator.getMoonPhase(date), english);
 
         List<PlanetPosition> retrograde = transits.stream()
                 .filter(p -> p.retrograde() && !"Sun".equalsIgnoreCase(p.planet()) && !"Moon".equalsIgnoreCase(p.planet()))
                 .toList();
 
         List<DailyTransitsDTO.RetrogradeItem> retroItems = retrograde.stream()
-                .map(position -> toRetroItem(position, natalHouses))
+                .map(position -> toRetroItem(position, natalHouses, english))
                 .toList();
 
         List<DailyTransitsDTO.TransitItem> transitItems =
-                buildTransitItems(aspects, transits, natalHouses, date, zone, userId, userProfile);
-        List<DailyTransitsDTO.FocusPoint> focusPoints = buildFocusPoints(transitItems, retroItems);
-        DailyTransitsDTO.Hero hero = buildHero(transitItems, retroItems, chart, date, userId);
+                buildTransitItems(aspects, transits, natalHouses, date, zone, userId, userProfile, english);
+        List<DailyTransitsDTO.FocusPoint> focusPoints = buildFocusPoints(transitItems, retroItems, english);
+        DailyTransitsDTO.Hero hero = buildHero(transitItems, retroItems, chart, date, userId, english);
         String contextKey = buildDailyContextKey(userId, date, chart, transitItems, retroItems, moonPhase, moonSign);
 
-        String retroCountValue = buildRetroCountText(retroItems, contextKey);
+        String retroCountValue = buildRetroCountText(retroItems, contextKey, english);
         List<DailyTransitsDTO.QuickFact> quickFacts = List.of(
-                new DailyTransitsDTO.QuickFact("moon-phase", "Ay Fazı", moonPhase, "moonPhase"),
-                new DailyTransitsDTO.QuickFact("moon-sign", "Ay Burcu", moonSign, "zodiacSign"),
+                new DailyTransitsDTO.QuickFact("moon-phase", t(english, "Ay Fazı", "Moon Phase"), moonPhase, "moonPhase"),
+                new DailyTransitsDTO.QuickFact("moon-sign", t(english, "Ay Burcu", "Moon Sign"), moonSign, "zodiacSign"),
                 new DailyTransitsDTO.QuickFact("retro", "Retro", retroCountValue, "retro")
         );
 
         DailyTransitsDTO.TransitItem topTransit = transitItems.isEmpty() ? null : transitItems.get(0);
-        String topTheme = topTransit == null ? "Ruh Hali" : topTransit.theme();
+        String topTheme = topTransit == null ? localizeThemeKey("mood", english) : topTransit.theme();
         String todayBody = focusPoints.stream()
                 .limit(2)
                 .map(DailyTransitsDTO.FocusPoint::text)
                 .reduce((a, b) -> clamp(a, 64) + " " + clamp(b, 64))
-                .orElseGet(() -> fallbackTodayBody(topTheme, hero.moodTag(), contextKey));
+                .orElseGet(() -> fallbackTodayBody(topTheme, hero.moodTag(), contextKey, english));
 
         DailyTransitsDTO.TodayCanDo todayCanDo = new DailyTransitsDTO.TodayCanDo(
-                buildTodayCanDoHeadline(topTheme, hero.moodTag(), contextKey),
+                buildTodayCanDoHeadline(topTheme, hero.moodTag(), contextKey, english),
                 clamp(todayBody, 108),
-                buildTodayCtaText(topTheme, contextKey),
+                buildTodayCtaText(topTheme, contextKey, english),
                 "TodayActions"
         );
 
         return new DailyTransitsDTO(
                 date.format(DATE_FORMATTER),
-                buildDailyTitle(chart, topTransit, topTheme, contextKey),
+                buildDailyTitle(chart, topTransit, topTheme, contextKey, english),
                 hero,
                 quickFacts,
                 todayCanDo,
@@ -354,90 +378,133 @@ public class DailyTransitsService {
             NatalChart chart,
             DailyTransitsDTO.TransitItem topTransit,
             String topTheme,
-            String contextKey
+            String contextKey,
+            boolean english
     ) {
-        String sign = chart == null ? "" : translateSign(chart.getSunSign());
+        String sign = chart == null ? "" : translateSign(chart.getSunSign(), english);
         List<String> options = new ArrayList<>();
-        options.add("Bugün Seni Neler Etkiliyor");
-        options.add("Bugün İçin Rehberin");
-        options.add(topTheme + " odaklı günlük akış");
+        options.add(t(english, "Bugün Seni Neler Etkiliyor", "What Is Influencing You Today"));
+        options.add(t(english, "Bugün İçin Rehberin", "Your Guide for Today"));
+        options.add(english ? "Today's " + topTheme + " flow" : topTheme + " odaklı günlük akış");
         if (topTransit != null && topTransit.technical() != null) {
-            if (normalizeToken(topTransit.technical().aspect()).equals("evgecisi")) {
-                options.add(topTransit.technical().transitPlanet() + " " + topTransit.technical().natalPoint() + " alanında");
+            if (isHouseTransitAspect(topTransit.technical().aspect())) {
+                options.add(english
+                        ? topTransit.technical().transitPlanet() + " in " + topTransit.technical().natalPoint()
+                        : topTransit.technical().transitPlanet() + " " + topTransit.technical().natalPoint() + " alanında");
             } else {
-                options.add(topTransit.technical().transitPlanet() + " - " + topTransit.technical().natalPoint() + " vurgusu");
+                options.add(english
+                        ? topTransit.technical().transitPlanet() + " - " + topTransit.technical().natalPoint() + " focus"
+                        : topTransit.technical().transitPlanet() + " - " + topTransit.technical().natalPoint() + " vurgusu");
             }
         }
         if (!sign.isBlank()) {
-            options.add(sign + " için bugünlük rehber");
+            options.add(english ? sign + " guide for today" : sign + " için bugünlük rehber");
         }
         return clamp(pickVariant(options, contextKey + "|title"), 42);
     }
 
-    private String buildRetroCountText(List<DailyTransitsDTO.RetrogradeItem> retroItems, String contextKey) {
+    private String buildRetroCountText(List<DailyTransitsDTO.RetrogradeItem> retroItems, String contextKey, boolean english) {
         if (retroItems == null || retroItems.isEmpty()) {
-            return pickVariant(List.of("Yok", "Düşük baskı", "Sakin akış"), contextKey + "|retro-none");
+            return pickVariant(
+                    english ? List.of("None", "Light pressure", "Calm flow") : List.of("Yok", "Düşük baskı", "Sakin akış"),
+                    contextKey + "|retro-none");
         }
 
         int count = retroItems.size();
         if (count == 1) {
             return pickVariant(
-                    List.of("1 gezegen", "1 aktif retro", "1 retro etkisi"),
+                    english ? List.of("1 planet", "1 active retrograde", "1 retro influence") : List.of("1 gezegen", "1 aktif retro", "1 retro etkisi"),
                     contextKey + "|retro-one");
         }
         return pickVariant(
-                List.of(count + " gezegen", count + " aktif retro", count + " retro etkisi"),
+                english
+                        ? List.of(count + " planets", count + " active retrogrades", count + " retro influences")
+                        : List.of(count + " gezegen", count + " aktif retro", count + " retro etkisi"),
                 contextKey + "|retro-many");
     }
 
-    private String buildTodayCanDoHeadline(String topTheme, String moodTag, String contextKey) {
+    private String buildTodayCanDoHeadline(String topTheme, String moodTag, String contextKey, boolean english) {
         List<String> options = new ArrayList<>();
-        options.add("Bugün Yapabileceklerin");
-        options.add("Bugün için net adımlar");
-        options.add(topTheme + " odaklı mini plan");
-        if ("Odak".equalsIgnoreCase(moodTag)) {
-            options.add("Bugün odak planı");
-        } else if ("Sosyal".equalsIgnoreCase(moodTag)) {
-            options.add("Bugün sosyal denge planı");
-        } else if ("Cesur".equalsIgnoreCase(moodTag)) {
-            options.add("Bugün cesur ama kontrollü adımlar");
+        options.add(t(english, "Bugün Yapabileceklerin", "What You Can Do Today"));
+        options.add(t(english, "Bugün için net adımlar", "Clear steps for today"));
+        options.add(english ? topTheme + " mini plan" : topTheme + " odaklı mini plan");
+        switch (canonicalMoodTag(moodTag)) {
+            case "focus" -> options.add(t(english, "Bugün odak planı", "Today's focus plan"));
+            case "social" -> options.add(t(english, "Bugün sosyal denge planı", "Today's social balance plan"));
+            case "bold" -> options.add(t(english, "Bugün cesur ama kontrollü adımlar", "Bold but measured steps for today"));
+            default -> {
+            }
         }
         return clamp(pickVariant(options, contextKey + "|today-headline"), 46);
     }
 
-    private String buildTodayCtaText(String topTheme, String contextKey) {
-        List<String> options = switch (topTheme) {
-            case "İletişim" -> List.of("İletişim adımlarını aç", "Bugün nasıl ilerlersin?", "Mesaj planını gör");
-            case "Aşk" -> List.of("İlişki adımlarını aç", "Bugün nasıl ilerlersin?", "Denge adımlarını gör");
-            case "İş" -> List.of("İş planını aç", "Bugün nasıl ilerlersin?", "Öncelik adımlarını gör");
-            case "Enerji" -> List.of("Enerji planını aç", "Bugün nasıl ilerlersin?", "Tempo adımlarını gör");
-            default -> List.of("Bugün Ne Yapabilirsin?", "Bugün nasıl ilerlersin?", "Günün adımlarını gör");
+    private String buildTodayCtaText(String topTheme, String contextKey, boolean english) {
+        List<String> options = switch (canonicalTheme(topTheme)) {
+            case "communication" -> english
+                    ? List.of("Open communication steps", "How do you move today?", "See your message plan")
+                    : List.of("İletişim adımlarını aç", "Bugün nasıl ilerlersin?", "Mesaj planını gör");
+            case "love" -> english
+                    ? List.of("Open relationship steps", "How do you move today?", "See balance steps")
+                    : List.of("İlişki adımlarını aç", "Bugün nasıl ilerlersin?", "Denge adımlarını gör");
+            case "work" -> english
+                    ? List.of("Open your work plan", "How do you move today?", "See priority steps")
+                    : List.of("İş planını aç", "Bugün nasıl ilerlersin?", "Öncelik adımlarını gör");
+            case "energy" -> english
+                    ? List.of("Open your energy plan", "How do you move today?", "See pacing steps")
+                    : List.of("Enerji planını aç", "Bugün nasıl ilerlersin?", "Tempo adımlarını gör");
+            default -> english
+                    ? List.of("What Can You Do Today?", "How do you move today?", "See today's steps")
+                    : List.of("Bugün Ne Yapabilirsin?", "Bugün nasıl ilerlersin?", "Günün adımlarını gör");
         };
         return clamp(pickVariant(options, contextKey + "|today-cta"), 34);
     }
 
-    private String fallbackTodayBody(String topTheme, String moodTag, String contextKey) {
-        List<String> options = switch (topTheme) {
-            case "İletişim" -> List.of(
-                    "Bir konuşmayı net bir cümleyle başlat; kısa ve açık kalman gününü kolaylaştırır.",
-                    "Önemli mesajları tek ekranda toparlayıp sırayla cevaplaman zihnini rahatlatır.");
-            case "Aşk" -> List.of(
-                    "İlişkilerde beklentini sakin bir dille söylemek bugün gereksiz gerilimi azaltır.",
-                    "Küçük ama samimi bir jest, gün içindeki duygusal dengeyi güçlendirir.");
-            case "İş" -> List.of(
-                    "Tek bir işi bitirmeye odaklanıp sonra diğerine geçmen verimini belirgin artırır.",
-                    "Günü iki kısa blokta planlayıp dikkat dağıtan işleri ertelemek tempoyu korur.");
-            case "Enerji" -> List.of(
-                    "Kısa molalarla ilerleyip su tüketimini artırman gün sonu yorgunluğunu düşürür.",
-                    "Tempoyu sabit tutup ani hızlanmalardan kaçınman zihinsel berraklığı korur.");
-            default -> List.of(
-                    "Bugün tek bir öncelik seçip onu tamamlaman günün geri kalanını netleştirir.",
-                    "Küçük ama kararlı adımlar atman gün içinde kontrol hissini güçlendirir.");
+    private String fallbackTodayBody(String topTheme, String moodTag, String contextKey, boolean english) {
+        List<String> options = switch (canonicalTheme(topTheme)) {
+            case "communication" -> english
+                    ? List.of(
+                            "Start one conversation with a clear sentence; staying short and direct makes the day easier.",
+                            "Gather important messages in one place and answer them in order to calm your mind.")
+                    : List.of(
+                            "Bir konuşmayı net bir cümleyle başlat; kısa ve açık kalman gününü kolaylaştırır.",
+                            "Önemli mesajları tek ekranda toparlayıp sırayla cevaplaman zihnini rahatlatır.");
+            case "love" -> english
+                    ? List.of(
+                            "Stating your expectations calmly in relationships reduces unnecessary tension today.",
+                            "A small but sincere gesture strengthens emotional balance during the day.")
+                    : List.of(
+                            "İlişkilerde beklentini sakin bir dille söylemek bugün gereksiz gerilimi azaltır.",
+                            "Küçük ama samimi bir jest, gün içindeki duygusal dengeyi güçlendirir.");
+            case "work" -> english
+                    ? List.of(
+                            "Finishing one task before moving to the next will noticeably improve your efficiency.",
+                            "Planning the day in two short blocks and delaying distractions protects your pace.")
+                    : List.of(
+                            "Tek bir işi bitirmeye odaklanıp sonra diğerine geçmen verimini belirgin artırır.",
+                            "Günü iki kısa blokta planlayıp dikkat dağıtan işleri ertelemek tempoyu korur.");
+            case "energy" -> english
+                    ? List.of(
+                            "Moving forward with short breaks and drinking more water lowers end-of-day fatigue.",
+                            "Keeping a steady pace and avoiding sudden accelerations protects mental clarity.")
+                    : List.of(
+                            "Kısa molalarla ilerleyip su tüketimini artırman gün sonu yorgunluğunu düşürür.",
+                            "Tempoyu sabit tutup ani hızlanmalardan kaçınman zihinsel berraklığı korur.");
+            default -> english
+                    ? List.of(
+                            "Choosing one priority today and completing it will clarify the rest of your day.",
+                            "Taking small but steady steps strengthens your sense of control.")
+                    : List.of(
+                            "Bugün tek bir öncelik seçip onu tamamlaman günün geri kalanını netleştirir.",
+                            "Küçük ama kararlı adımlar atman gün içinde kontrol hissini güçlendirir.");
         };
 
-        if ("Duygusal".equalsIgnoreCase(moodTag)) {
+        if ("emotional".equals(canonicalMoodTag(moodTag))) {
             options = new ArrayList<>(options);
-            options.add("Duygusal yoğunluk artarsa kararlarını kısa bir mola sonrası vermek daha sağlıklı olur.");
+            options.add(t(
+                    english,
+                    "Duygusal yoğunluk artarsa kararlarını kısa bir mola sonrası vermek daha sağlıklı olur.",
+                    "If emotions intensify, making decisions after a short pause will be healthier."
+            ));
         }
         return clamp(pickVariant(options, contextKey + "|today-body"), 108);
     }
@@ -468,7 +535,8 @@ public class DailyTransitsService {
             LocalDate date,
             ZoneId zone,
             Long userId,
-            UserAstroProfile userProfile
+            UserAstroProfile userProfile,
+            boolean english
     ) {
         Map<String, PlanetPosition> transitByPlanet = new LinkedHashMap<>();
         for (PlanetPosition position : transitPositions) {
@@ -477,7 +545,7 @@ public class DailyTransitsService {
 
         AtomicInteger index = new AtomicInteger(0);
         List<DailyTransitsDTO.TransitItem> rankedAspectItems = aspects.stream()
-                .map(aspect -> buildAspectTransitItem(aspect, transitByPlanet, transitPositions, natalHouses, date, userId, userProfile, index))
+                .map(aspect -> buildAspectTransitItem(aspect, transitByPlanet, transitPositions, natalHouses, date, userId, userProfile, index, english))
                 .filter(Objects::nonNull)
                 .sorted(Comparator
                         .comparingInt(DailyTransitsDTO.TransitItem::importance).reversed()
@@ -514,7 +582,8 @@ public class DailyTransitsService {
                     date,
                     userId,
                     userProfile,
-                    index
+                    index,
+                    english
             );
         }
 
@@ -535,7 +604,8 @@ public class DailyTransitsService {
             LocalDate date,
             Long userId,
             UserAstroProfile userProfile,
-            AtomicInteger index
+            AtomicInteger index,
+            boolean english
     ) {
         String transitPlanet = cleanPlanet(aspect.planet1());
         if (!ACTIONABLE_TRANSIT_PLANETS.contains(transitPlanet)) {
@@ -548,21 +618,25 @@ public class DailyTransitsService {
                 .map(PlanetPosition::retrograde)
                 .orElse(false);
         boolean supportive = isSupportive(aspect, transitPlanet);
-        String label = supportive ? "Destekleyici" : "Dikkat";
-        String theme = themeForPlanet(transitPlanet);
-        String transitPlanetTr = translatePlanet(transitPlanet);
-        String natalPointTr = translatePlanet(natalPoint);
+        String label = supportive ? t(english, "Destekleyici", "Supportive") : t(english, "Dikkat", "Caution");
+        String theme = themeForPlanet(transitPlanet, english);
+        String transitPlanetTr = translatePlanet(transitPlanet, english);
+        String natalPointTr = translatePlanet(natalPoint, english);
         String variationKey = buildVariationKey(date, userId, transitPlanet, natalPointTr, aspect.type().name(), house);
-        String aspectLabel = translateAspect(aspect.type());
+        String aspectLabel = translateAspect(aspect.type(), english);
         String title = supportive
-                ? transitPlanetTr + " - " + natalPointTr + " uyumu"
-                : transitPlanetTr + " - " + natalPointTr + " gerilimi";
+                ? transitPlanetTr + " - " + natalPointTr + t(english, " uyumu", " harmony")
+                : transitPlanetTr + " - " + natalPointTr + t(english, " gerilimi", " tension");
         String baseImpact = supportive
-                ? supportiveImpact(theme, transitPlanet, house, variationKey)
-                : cautionImpact(theme, transitPlanet, house, variationKey);
+                ? supportiveImpact(theme, transitPlanet, house, variationKey, english)
+                : cautionImpact(theme, transitPlanet, house, variationKey, english);
         String areaIntro = supportive
-                ? transitPlanetTr + " " + themeFocusArea(theme) + " alanında destek açıyor. "
-                : transitPlanetTr + " " + themeFocusArea(theme) + " alanında denge istiyor. ";
+                ? (english
+                    ? transitPlanetTr + " opens support around " + themeFocusArea(theme, true) + ". "
+                    : transitPlanetTr + " " + themeFocusArea(theme, false) + " alanında destek açıyor. ")
+                : (english
+                    ? transitPlanetTr + " asks for balance around " + themeFocusArea(theme, true) + ". "
+                    : transitPlanetTr + " " + themeFocusArea(theme, false) + " alanında denge istiyor. ");
         String impact = clamp(areaIntro + baseImpact, 160);
         int importance = computeImportance(
                 aspect,
@@ -572,9 +646,6 @@ public class DailyTransitsService {
                 natalPoint,
                 userProfile
         );
-        String action = clamp(actionHint(theme, label), 96);
-        String avoid = clamp(avoidHint(theme, label), 96);
-
         return new DailyTransitsDTO.TransitItem(
                 "insight-" + normalizeToken(theme) + "-" + index.incrementAndGet(),
                 clamp(title, 48),
@@ -591,12 +662,12 @@ public class DailyTransitsService {
                         null,
                         house
                 ),
-                action,
-                avoid,
+                clamp(actionHint(theme, label, english), 96),
+                clamp(avoidHint(theme, label, english), 96),
                 importance,
-                relevanceFromImportance(importance),
-                clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile), 120),
-                buildTechnicalReason(transitPlanetTr, natalPointTr, aspectLabel, round(aspect.orb(), 2), house)
+                relevanceFromImportance(importance, english),
+                clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile, english), 120),
+                buildTechnicalReason(transitPlanetTr, natalPointTr, aspectLabel, round(aspect.orb(), 2), house, english)
         );
     }
 
@@ -610,7 +681,8 @@ public class DailyTransitsService {
             LocalDate date,
             Long userId,
             UserAstroProfile userProfile,
-            AtomicInteger index
+            AtomicInteger index,
+            boolean english
     ) {
         for (PlanetPosition planet : transitPositions) {
             if (items.size() >= MIN_TRANSITS || items.size() >= MAX_TRANSITS) {
@@ -628,7 +700,8 @@ public class DailyTransitsService {
                     date,
                     userId,
                     userProfile,
-                    index
+                    index,
+                    english
             );
             if (item == null || !canAcceptTransitItem(item, themeCount, seenIdentities)) {
                 continue;
@@ -647,7 +720,8 @@ public class DailyTransitsService {
             LocalDate date,
             Long userId,
             UserAstroProfile userProfile,
-            AtomicInteger index
+            AtomicInteger index,
+            boolean english
     ) {
         String transitPlanet = cleanPlanet(transitPosition.planet());
         String house = resolveHouseForTransit(transitPosition, natalHouses);
@@ -656,18 +730,22 @@ public class DailyTransitsService {
         }
 
         boolean supportive = isHouseTransitSupportive(transitPlanet, house, transitPosition.retrograde());
-        String label = supportive ? "Destekleyici" : "Dikkat";
-        String theme = themeForPlanet(transitPlanet);
-        String transitPlanetTr = translatePlanet(transitPlanet);
+        String label = supportive ? t(english, "Destekleyici", "Supportive") : t(english, "Dikkat", "Caution");
+        String theme = themeForPlanet(transitPlanet, english);
+        String transitPlanetTr = translatePlanet(transitPlanet, english);
         String variationKey = buildVariationKey(date, userId, transitPlanet, houseText(house), "HOUSE_TRANSIT", house);
-        String areaFull = houseAreaText(house);
-        String areaShort = houseAreaShortText(house);
+        String areaFull = houseAreaText(house, english);
+        String areaShort = houseAreaShortText(house, english);
         String baseImpact = supportive
-                ? supportiveImpact(theme, transitPlanet, house, variationKey)
-                : cautionImpact(theme, transitPlanet, house, variationKey);
+                ? supportiveImpact(theme, transitPlanet, house, variationKey, english)
+                : cautionImpact(theme, transitPlanet, house, variationKey, english);
         String houseImpactIntro = supportive
-                ? transitPlanetTr + " " + areaFull + " alanını destekliyor. "
-                : transitPlanetTr + " " + areaFull + " alanında dikkatli ilerlemeyi işaret ediyor. ";
+                ? (english
+                    ? transitPlanetTr + " supports your " + areaFull + ". "
+                    : transitPlanetTr + " " + areaFull + " alanını destekliyor. ")
+                : (english
+                    ? transitPlanetTr + " points to careful progress in your " + areaFull + ". "
+                    : transitPlanetTr + " " + areaFull + " alanında dikkatli ilerlemeyi işaret ediyor. ");
         String impact = clamp(houseImpactIntro + baseImpact, 160);
         int importance = computeHouseTransitImportance(transitPlanet, house, transitPosition.retrograde(), userProfile);
 
@@ -675,8 +753,8 @@ public class DailyTransitsService {
                 "insight-" + normalizeToken(theme) + "-" + index.incrementAndGet(),
                 clamp(
                         supportive
-                                ? transitPlanetTr + " " + areaShort + " alanını destekliyor"
-                                : transitPlanetTr + " " + areaShort + " alanında dikkat istiyor",
+                                ? (english ? transitPlanetTr + " supports your " + areaShort : transitPlanetTr + " " + areaShort + " alanını destekliyor")
+                                : (english ? transitPlanetTr + " asks for care in " + areaShort : transitPlanetTr + " " + areaShort + " alanında dikkat istiyor"),
                         48
                 ),
                 impact,
@@ -687,17 +765,17 @@ public class DailyTransitsService {
                 new DailyTransitsDTO.Technical(
                         transitPlanetTr,
                         areaShort,
-                        "Ev Geçişi",
+                        t(english, "Ev Geçişi", "House Transit"),
                         0.0,
                         null,
                         house
                 ),
-                clamp(actionHint(theme, label), 96),
-                clamp(avoidHint(theme, label), 96),
+                clamp(actionHint(theme, label, english), 96),
+                clamp(avoidHint(theme, label, english), 96),
                 importance,
-                relevanceFromImportance(importance),
-                clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile), 120),
-                transitPlanetTr + " " + areaShort + " geçişi"
+                relevanceFromImportance(importance, english),
+                clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile, english), 120),
+                english ? transitPlanetTr + " transit through " + areaShort : transitPlanetTr + " " + areaShort + " geçişi"
         );
     }
 
@@ -766,65 +844,82 @@ public class DailyTransitsService {
             List<DailyTransitsDTO.RetrogradeItem> retrogrades,
             NatalChart chart,
             LocalDate date,
-            Long userId
+            Long userId,
+            boolean english
     ) {
         DailyTransitsDTO.TransitItem top = transits.isEmpty() ? null : transits.get(0);
-        String theme = top != null ? top.theme() : "Ruh Hali";
-        String moodTag = moodTagFromTheme(theme, retrogrades.size());
+        String theme = top != null ? top.theme() : localizeThemeKey("mood", english);
+        String moodTag = moodTagFromTheme(theme, retrogrades.size(), english);
         int baseIntensity = transits.isEmpty()
                 ? 48
                 : clampInt((int) Math.round(transits.stream().mapToInt(DailyTransitsDTO.TransitItem::importance).average().orElse(58)), 38, 90);
         int retroPenalty = Math.min(retrogrades.size() * 3, 8);
-        int cautionPenalty = top != null && "Dikkat".equalsIgnoreCase(top.label()) ? 5 : 0;
+        int cautionPenalty = top != null && isCautionLabel(top.label()) ? 5 : 0;
         int intensity = clampInt(baseIntensity - retroPenalty - cautionPenalty, 38, 92);
 
         String heroSeed = buildHeroSeed(top, chart, date, userId, retrogrades.size());
-        String signSignature = buildSignSignature(chart);
+        String signSignature = buildSignSignature(chart, english);
         String topPlanet = top != null && top.technical() != null
                 ? firstNonBlank(top.technical().transitPlanet(), top.technical().natalPoint())
                 : null;
-        String topPlanetTr = topPlanet == null ? "" : translatePlanet(cleanPlanet(topPlanet));
-        String focusArea = themeFocusArea(theme);
+        String topPlanetTr = topPlanet == null ? "" : translatePlanet(cleanPlanet(topPlanet), english);
+        String focusArea = themeFocusArea(theme, english);
 
         String retroHint = switch (retrogrades.size()) {
             case 0 -> "";
-            case 1 -> " Retro nedeniyle hızdan çok netlik kazandırır.";
-            default -> " Retrolar yüzünden kararlarını iki kez kontrol etmek iyi olur.";
+            case 1 -> t(english, " Retro nedeniyle hızdan çok netlik kazandırır.", " Retrograde pressure favors clarity over speed.");
+            default -> t(english, " Retrolar yüzünden kararlarını iki kez kontrol etmek iyi olur.", " Multiple retrogrades make double-checking worthwhile.");
         };
 
         List<String> headlineOptions = new ArrayList<>();
-        headlineOptions.add("Bugün " + focusArea + " tarafında asıl vurgu öne çıkıyor.");
-        headlineOptions.add(focusArea + " alanında gerçek tetikleri takip etmek daha çok işine yarar.");
+        headlineOptions.add(english
+                ? "Today's main emphasis lands on " + focusArea + "."
+                : "Bugün " + focusArea + " tarafında asıl vurgu öne çıkıyor.");
+        headlineOptions.add(english
+                ? "Following the real triggers in " + focusArea + " will help more."
+                : focusArea + " alanında gerçek tetikleri takip etmek daha çok işine yarar.");
         if (top != null && top.technical() != null) {
-            if (normalizeToken(top.technical().aspect()).equals("evgecisi")) {
-                headlineOptions.add(topPlanetTr + " bugün " + houseAreaText(top.technical().house()) + " alanını öne çıkarıyor.");
+            if (isHouseTransitAspect(top.technical().aspect())) {
+                headlineOptions.add(english
+                        ? topPlanetTr + " highlights your " + houseAreaText(top.technical().house(), true) + " today."
+                        : topPlanetTr + " bugün " + houseAreaText(top.technical().house(), false) + " alanını öne çıkarıyor.");
             } else {
-                headlineOptions.add(topPlanetTr + " ile " + top.technical().natalPoint() + " teması bugün " + focusArea + " başlığını vurguluyor.");
+                headlineOptions.add(english
+                        ? topPlanetTr + " with " + top.technical().natalPoint() + " highlights " + focusArea + " today."
+                        : topPlanetTr + " ile " + top.technical().natalPoint() + " teması bugün " + focusArea + " başlığını vurguluyor.");
             }
         } else if (!topPlanetTr.isBlank()) {
-            headlineOptions.add(topPlanetTr + " etkisi bugün " + focusArea + " başlığını öne taşıyor.");
+            headlineOptions.add(english
+                    ? topPlanetTr + " energy pushes " + focusArea + " to the front today."
+                    : topPlanetTr + " etkisi bugün " + focusArea + " başlığını öne taşıyor.");
         }
         if (!signSignature.isBlank()) {
-            headlineOptions.add(signSignature + " bu temada ekstra hassasiyet veriyor.");
+            headlineOptions.add(english
+                    ? signSignature + " adds extra sensitivity to this theme."
+                    : signSignature + " bu temada ekstra hassasiyet veriyor.");
         }
         String headline = pickVariant(headlineOptions, heroSeed + "|headline");
         if (!retroHint.isBlank()) {
             headline = clamp(headline + retroHint, 50);
         }
 
-        String topAction = top != null ? actionHint(theme, top.label()) : actionHint(theme, "Nötr");
+        String topAction = top != null ? actionHint(theme, top.label(), english) : actionHint(theme, t(english, "Nötr", "Neutral"), english);
         List<String> supportOptions = new ArrayList<>();
         if (top != null) {
             supportOptions.add(top.impactPlain());
             supportOptions.add(top.reason());
         }
-        supportOptions.add(topAction + " " + themeSupportDetail(theme));
-        supportOptions.add(themeSupportDetail(theme) + " " + topAction);
+        supportOptions.add(topAction + " " + themeSupportDetail(theme, english));
+        supportOptions.add(themeSupportDetail(theme, english) + " " + topAction);
         if (!signSignature.isBlank()) {
-            supportOptions.add(signSignature + " etkisini dengelemek için " + topAction.toLowerCase(Locale.ROOT));
+            supportOptions.add(english
+                    ? "To balance " + signSignature.toLowerCase(Locale.ROOT) + ", " + topAction.toLowerCase(Locale.ROOT)
+                    : signSignature + " etkisini dengelemek için " + topAction.toLowerCase(Locale.ROOT));
         }
         if (!topPlanetTr.isBlank()) {
-            supportOptions.add(topPlanetTr + " vurgusu varken " + topAction.toLowerCase(Locale.ROOT));
+            supportOptions.add(english
+                    ? "With " + topPlanetTr + " emphasized, " + topAction.toLowerCase(Locale.ROOT)
+                    : topPlanetTr + " vurgusu varken " + topAction.toLowerCase(Locale.ROOT));
         }
         String supporting = pickVariant(supportOptions, heroSeed + "|support");
 
@@ -859,39 +954,39 @@ public class DailyTransitsService {
                 normalizeToken(signKey));
     }
 
-    private String buildSignSignature(NatalChart chart) {
+    private String buildSignSignature(NatalChart chart, boolean english) {
         if (chart == null) return "";
-        String sun = translateSign(chart.getSunSign());
-        String rising = translateSign(chart.getRisingSign());
+        String sun = translateSign(chart.getSunSign(), english);
+        String rising = translateSign(chart.getRisingSign(), english);
         if (!sun.isBlank() && !rising.isBlank()) {
-            return sun + " - " + rising + " imzan";
+            return english ? "Your " + sun + "-" + rising + " signature" : sun + " - " + rising + " imzan";
         }
         if (!sun.isBlank()) {
-            return sun + " etkisi";
+            return english ? sun + " emphasis" : sun + " etkisi";
         }
         if (!rising.isBlank()) {
-            return rising + " yükseleni";
+            return english ? rising + " rising" : rising + " yükseleni";
         }
         return "";
     }
 
-    private String themeFocusArea(String theme) {
-        return switch (theme) {
-            case "İletişim" -> "iletişim ve yakın çevre";
-            case "Aşk" -> "ilişkiler";
-            case "İş" -> "iş ve sorumluluklar";
-            case "Enerji" -> "kişisel tempo";
-            default -> "günlük düzen";
+    private String themeFocusArea(String theme, boolean english) {
+        return switch (canonicalTheme(theme)) {
+            case "communication" -> t(english, "iletişim ve yakın çevre", "communication and nearby connections");
+            case "love" -> t(english, "ilişkiler", "relationships");
+            case "work" -> t(english, "iş ve sorumluluklar", "work and responsibilities");
+            case "energy" -> t(english, "kişisel tempo", "personal pacing");
+            default -> t(english, "günlük düzen", "daily rhythm");
         };
     }
 
-    private String themeSupportDetail(String theme) {
-        return switch (theme) {
-            case "İletişim" -> "Kısa cümleler yanlış anlaşılmayı azaltır.";
-            case "Aşk" -> "Beklentini açık söylemen gerilimi düşürür.";
-            case "İş" -> "Tek işe odaklanmak bugün daha hızlı sonuç verir.";
-            case "Enerji" -> "Kısa molalar gün sonu yorgunluğunu azaltır.";
-            default -> "Önceliğini tek bir başlıkta tutmak günü rahatlatır.";
+    private String themeSupportDetail(String theme, boolean english) {
+        return switch (canonicalTheme(theme)) {
+            case "communication" -> t(english, "Kısa cümleler yanlış anlaşılmayı azaltır.", "Short sentences reduce misunderstandings.");
+            case "love" -> t(english, "Beklentini açık söylemen gerilimi düşürür.", "Stating expectations clearly lowers tension.");
+            case "work" -> t(english, "Tek işe odaklanmak bugün daha hızlı sonuç verir.", "Focusing on one task brings faster results today.");
+            case "energy" -> t(english, "Kısa molalar gün sonu yorgunluğunu azaltır.", "Short breaks lower end-of-day fatigue.");
+            default -> t(english, "Önceliğini tek bir başlıkta tutmak günü rahatlatır.", "Keeping one clear priority makes the day easier.");
         };
     }
 
@@ -907,24 +1002,24 @@ public class DailyTransitsService {
                 default -> "moon";
             };
         }
-        if ("Cesur".equalsIgnoreCase(moodTag)) return "mars";
-        return switch (theme) {
-            case "İletişim" -> "mercury";
-            case "Aşk" -> "venus";
-            case "İş" -> "saturn";
-            case "Enerji" -> "mars";
+        if ("bold".equals(canonicalMoodTag(moodTag))) return "mars";
+        return switch (canonicalTheme(theme)) {
+            case "communication" -> "mercury";
+            case "love" -> "venus";
+            case "work" -> "saturn";
+            case "energy" -> "mars";
             default -> "moon";
         };
     }
 
     private String resolveHeroGradient(String moodTag, int retroCount, String label) {
-        if (retroCount >= 2 || "Dikkat".equalsIgnoreCase(label)) {
+        if (retroCount >= 2 || isCautionLabel(label)) {
             return "nightSky";
         }
-        if ("Cesur".equalsIgnoreCase(moodTag)) {
+        if ("bold".equals(canonicalMoodTag(moodTag))) {
             return "sunrise";
         }
-        if ("Sosyal".equalsIgnoreCase(moodTag)) {
+        if ("social".equals(canonicalMoodTag(moodTag))) {
             return "purpleMist";
         }
         return "purpleMist";
@@ -942,16 +1037,17 @@ public class DailyTransitsService {
 
     private List<DailyTransitsDTO.FocusPoint> buildFocusPoints(
             List<DailyTransitsDTO.TransitItem> transits,
-            List<DailyTransitsDTO.RetrogradeItem> retrogrades
+            List<DailyTransitsDTO.RetrogradeItem> retrogrades,
+            boolean english
     ) {
         List<String> suggestions = new ArrayList<>();
         for (DailyTransitsDTO.TransitItem item : transits) {
             if (suggestions.size() >= 3) break;
-            String action = firstNonBlank(item.action(), actionHint(item.theme(), item.label()));
+            String action = firstNonBlank(item.action(), actionHint(item.theme(), item.label(), english));
             suggestions.add(action);
             if (suggestions.size() >= 3) break;
-            if ("Dikkat".equalsIgnoreCase(item.label()) || "Hassas".equalsIgnoreCase(item.label())) {
-                suggestions.add(firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label())));
+            if (isCautionLabel(item.label()) || normalizeToken(item.label()).contains("hassas")) {
+                suggestions.add(firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label(), english)));
             }
         }
 
@@ -962,10 +1058,10 @@ public class DailyTransitsService {
             suggestions.add(transits.get(0).reason());
         }
         if (suggestions.size() < 3) {
-            suggestions.add("Gün içinde 10 dakikalık bir plan molası vermen odağını toparlar.");
+            suggestions.add(t(english, "Gün içinde 10 dakikalık bir plan molası vermen odağını toparlar.", "A 10-minute planning pause during the day can restore focus."));
         }
         if (suggestions.size() < 3) {
-            suggestions.add("Akşam için tek bir dinlendirici aktivite seçmek enerjini dengeler.");
+            suggestions.add(t(english, "Akşam için tek bir dinlendirici aktivite seçmek enerjini dengeler.", "Choosing one restorative activity for the evening helps balance your energy."));
         }
 
         List<DailyTransitsDTO.FocusPoint> points = new ArrayList<>();
@@ -979,49 +1075,49 @@ public class DailyTransitsService {
         return points;
     }
 
-    private DailyTransitsDTO.RetrogradeItem toRetroItem(PlanetPosition position, List<HousePlacement> natalHouses) {
-        String planet = translatePlanet(position.planet());
+    private DailyTransitsDTO.RetrogradeItem toRetroItem(PlanetPosition position, List<HousePlacement> natalHouses, boolean english) {
+        String planet = translatePlanet(position.planet(), english);
         String house = resolveHouseForTransit(position, natalHouses);
-        String area = houseAreaText(house);
+        String area = houseAreaText(house, english);
         String meaning = switch (position.planet()) {
             case "Mercury" -> house == null
-                    ? "Merkür retrosu mesaj, plan ve detayları iki kez kontrol etmeyi istiyor."
-                    : "Merkür retrosu " + area + " alanında mesaj, plan ve detayları iki kez kontrol etmeyi istiyor.";
+                    ? t(english, "Merkür retrosu mesaj, plan ve detayları iki kez kontrol etmeyi istiyor.", "Mercury retrograde asks you to double-check messages, plans, and details.")
+                    : t(english, "Merkür retrosu " + area + " alanında mesaj, plan ve detayları iki kez kontrol etmeyi istiyor.", "Mercury retrograde asks you to double-check messages, plans, and details around " + area + ".");
             case "Venus" -> house == null
-                    ? "Venüs retrosu ilişkiler ve beklentilerde eski temaları yeniden düşündürebilir."
-                    : "Venüs retrosu " + area + " alanında ilişkiler ve beklentileri yeniden gözden geçirmeyi istiyor.";
+                    ? t(english, "Venüs retrosu ilişkiler ve beklentilerde eski temaları yeniden düşündürebilir.", "Venus retrograde can bring old themes back in relationships and expectations.")
+                    : t(english, "Venüs retrosu " + area + " alanında ilişkiler ve beklentileri yeniden gözden geçirmeyi istiyor.", "Venus retrograde asks you to review relationships and expectations around " + area + ".");
             case "Mars" -> house == null
-                    ? "Mars retrosu acele çıkışları değil, enerjiyi planlı kullanmayı istiyor."
-                    : "Mars retrosu " + area + " tarafında enerjiyi aceleye değil plana vermeni istiyor.";
+                    ? t(english, "Mars retrosu acele çıkışları değil, enerjiyi planlı kullanmayı istiyor.", "Mars retrograde favors planned energy over rushed reactions.")
+                    : t(english, "Mars retrosu " + area + " tarafında enerjiyi aceleye değil plana vermeni istiyor.", "Mars retrograde asks you to direct energy toward planning rather than rushing in " + area + ".");
             case "Jupiter" -> house == null
-                    ? "Jüpiter retrosu büyüme planlarını aceleyle değil, yeniden değerlendirmeyle netleştirir."
-                    : "Jüpiter retrosu " + area + " alanında büyük resmi yeniden tartmanı istiyor.";
+                    ? t(english, "Jüpiter retrosu büyüme planlarını aceleyle değil, yeniden değerlendirmeyle netleştirir.", "Jupiter retrograde clarifies growth plans through review rather than haste.")
+                    : t(english, "Jüpiter retrosu " + area + " alanında büyük resmi yeniden tartmanı istiyor.", "Jupiter retrograde asks you to reconsider the bigger picture around " + area + ".");
             case "Saturn" -> house == null
-                    ? "Satürn retrosu sorumlulukları yeniden yapılandırmayı ve eksikleri sabırla toplamayı ister."
-                    : "Satürn retrosu " + area + " alanında sorumlulukları daha sağlam kurgulamanı istiyor.";
+                    ? t(english, "Satürn retrosu sorumlulukları yeniden yapılandırmayı ve eksikleri sabırla toplamayı ister.", "Saturn retrograde asks you to rebuild responsibilities and gather loose ends with patience.")
+                    : t(english, "Satürn retrosu " + area + " alanında sorumlulukları daha sağlam kurgulamanı istiyor.", "Saturn retrograde asks you to structure responsibilities more solidly around " + area + ".");
             default -> house == null
-                    ? "Bu retro ilgili konuda daha yavaş, dikkatli ve bilinçli ilerlemeni önerir."
-                    : "Bu retro " + area + " tarafında daha yavaş, dikkatli ve bilinçli ilerlemeni önerir.";
+                    ? t(english, "Bu retro ilgili konuda daha yavaş, dikkatli ve bilinçli ilerlemeni önerir.", "This retrograde suggests moving more slowly, carefully, and consciously in the related area.")
+                    : t(english, "Bu retro " + area + " tarafında daha yavaş, dikkatli ve bilinçli ilerlemeni önerir.", "This retrograde suggests moving more slowly, carefully, and consciously around " + area + ".");
         };
         String risk = retroRiskLevel(position.planet(), house);
         return new DailyTransitsDTO.RetrogradeItem(planet, clamp(meaning, 96), risk);
     }
 
-    private List<ActionTemplate> buildActionTemplates(DailyTransitsDTO dto) {
+    private List<ActionTemplate> buildActionTemplates(DailyTransitsDTO dto, boolean english) {
         List<ActionTemplate> templates = new ArrayList<>();
         List<DailyTransitsDTO.TransitItem> related = dto.transits() == null ? List.of() : dto.transits();
         for (int i = 0; i < Math.min(4, related.size()); i++) {
             DailyTransitsDTO.TransitItem item = related.get(i);
             List<String> relatedIds = List.of(item.id());
-            String task = firstNonBlank(item.action(), actionHint(item.theme(), item.label()));
-            String caution = firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label()));
+            String task = firstNonBlank(item.action(), actionHint(item.theme(), item.label(), english));
+            String caution = firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label(), english));
             String detail = clamp(item.theme() + " • " + task + " " + caution, 120);
             templates.add(new ActionTemplate(
                     "action-insight-" + (i + 1),
                     toActionTitle(task),
                     detail,
                     iconForTheme(item.theme()),
-                    actionTagFromStatus(item.label()),
+                    actionTagFromStatus(item.label(), english),
                     etaFromImportance(item.importance()),
                     relatedIds
             ));
@@ -1036,10 +1132,10 @@ public class DailyTransitsService {
                 retroIndex += 1;
                 templates.add(new ActionTemplate(
                         "action-retro-" + retroIndex,
-                        clamp(retro.planet() + " retrosu için kontrol listesi hazırla.", 80),
+                        clamp(english ? "Prepare a checklist for " + retro.planet() + " retrograde." : retro.planet() + " retrosu için kontrol listesi hazırla.", 80),
                         clamp(retro.meaningPlain(), 120),
                         "repeat",
-                        "Planlı",
+                        english ? "Bold" : "Planlı",
                         6,
                         related.stream().limit(2).map(DailyTransitsDTO.TransitItem::id).toList()
                 ));
@@ -1050,10 +1146,10 @@ public class DailyTransitsService {
             List<String> relatedIds = related.stream().limit(2).map(DailyTransitsDTO.TransitItem::id).toList();
             templates.add(new ActionTemplate(
                     "action-evening-check",
-                    "Akşam için 1 mini plan yaz.",
-                    "Yarın için tek bir öncelik belirleyip not alman yeterli.",
+                    t(english, "Akşam için 1 mini plan yaz.", "Write 1 mini plan for tonight."),
+                    t(english, "Yarın için tek bir öncelik belirleyip not alman yeterli.", "Naming one priority for tomorrow and writing it down is enough."),
                     "checkmark-done",
-                    "Kolay",
+                    t(english, "Kolay", "Easy"),
                     4,
                     relatedIds
             ));
@@ -1073,7 +1169,7 @@ public class DailyTransitsService {
         return natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc(String.valueOf(userId)).orElse(null);
     }
 
-    private String buildCacheVersion(NatalChart chart, String profileVersion) {
+    private String buildCacheVersion(NatalChart chart, String profileVersion, String locale) {
         String locationVersion;
         if (chart == null || chart.getLatitude() == null || chart.getLongitude() == null) {
             locationVersion = "na";
@@ -1081,7 +1177,10 @@ public class DailyTransitsService {
             locationVersion = round(chart.getLatitude(), 3) + ":" + round(chart.getLongitude(), 3);
         }
         // Cache lookup key DB'de VARCHAR(64); raw profile signature zamanla bu limiti asabiliyor.
-        String rawVersion = locationVersion + "|pv:" + firstNonBlank(profileVersion, "na") + "|iv:" + INSIGHT_ENGINE_VERSION;
+        String rawVersion = locationVersion
+                + "|pv:" + firstNonBlank(profileVersion, "na")
+                + "|locale:" + normalizeLocale(locale)
+                + "|iv:" + INSIGHT_ENGINE_VERSION;
         return DAILY_TRANSITS_CACHE_KEY_PREFIX + sha256Base64Url(rawVersion);
     }
 
@@ -1126,7 +1225,7 @@ public class DailyTransitsService {
 
         // Dominant gezegen + geri bildirim tercihleri aynı transit için kullanıcı farkı üretir.
         String dominantPlanet = dominantPlanetFromChart(chart, natalPlanets);
-        String signHint = buildSignSignature(chart);
+        String signHint = buildSignSignature(chart, false);
 
         UserFeedback latestFeedback = userFeedbackRepository.findFirstByUserIdOrderByCreatedAtDesc(userId).orElse(null);
         String profileVersion = String.join("|",
@@ -1201,26 +1300,96 @@ public class DailyTransitsService {
         }
     }
 
+    private String normalizeLocale(String locale) {
+        return locale != null && locale.toLowerCase(Locale.ROOT).startsWith("en") ? "en" : "tr";
+    }
+
+    private boolean isEnglishLocale(String locale) {
+        return "en".equals(normalizeLocale(locale));
+    }
+
+    private String t(boolean english, String tr, String en) {
+        return english ? en : tr;
+    }
+
+    private String canonicalTheme(String theme) {
+        String token = normalizeToken(theme);
+        if (token.contains("iletisim") || token.contains("communication")) return "communication";
+        if (token.contains("ask") || token.contains("love") || token.contains("relationship")) return "love";
+        if (token.equals("is") || token.contains("work") || token.contains("career")) return "work";
+        if (token.contains("enerji") || token.contains("energy")) return "energy";
+        return "mood";
+    }
+
+    private String localizeThemeKey(String canonicalTheme, boolean english) {
+        return switch (canonicalTheme) {
+            case "communication" -> t(english, "İletişim", "Communication");
+            case "love" -> t(english, "Aşk", "Love");
+            case "work" -> t(english, "İş", "Work");
+            case "energy" -> t(english, "Enerji", "Energy");
+            default -> t(english, "Ruh Hali", "Mood");
+        };
+    }
+
+    private String canonicalMoodTag(String moodTag) {
+        String token = normalizeToken(moodTag);
+        if (token.contains("odak") || token.contains("focus")) return "focus";
+        if (token.contains("sosyal") || token.contains("social")) return "social";
+        if (token.contains("cesur") || token.contains("bold")) return "bold";
+        if (token.contains("duygusal") || token.contains("emotional")) return "emotional";
+        return "calm";
+    }
+
+    private String localizeMoodTag(String canonicalMoodTag, boolean english) {
+        return switch (canonicalMoodTag) {
+            case "focus" -> t(english, "Odak", "Focus");
+            case "social" -> t(english, "Sosyal", "Social");
+            case "bold" -> t(english, "Cesur", "Bold");
+            case "emotional" -> t(english, "Duygusal", "Emotional");
+            default -> t(english, "Sakin", "Calm");
+        };
+    }
+
+    private boolean isHouseTransitAspect(String aspect) {
+        String token = normalizeToken(aspect);
+        return "evgecisi".equals(token) || "housetransit".equals(token);
+    }
+
+    private String translateMoonPhase(String phase, boolean english) {
+        if (!english) return firstNonBlank(phase, "Yeni Ay");
+        return switch (firstNonBlank(phase, "Yeni Ay")) {
+            case "Yeni Ay" -> "New Moon";
+            case "Hilal (Büyüyen)" -> "Waxing Crescent";
+            case "İlk Dördün" -> "First Quarter";
+            case "Şişkin Ay (Büyüyen)" -> "Waxing Gibbous";
+            case "Dolunay" -> "Full Moon";
+            case "Şişkin Ay (Küçülen)" -> "Waning Gibbous";
+            case "Son Dördün" -> "Last Quarter";
+            case "Hilal (Küçülen)" -> "Waning Crescent";
+            default -> phase;
+        };
+    }
+
     private String cleanPlanet(String value) {
         if (value == null) return "";
         return value.replace("T-", "").replace("N-", "").trim();
     }
 
-    private String translatePlanet(String english) {
-        return PLANET_TR.getOrDefault(english, english);
+    private String translatePlanet(String english, boolean englishLocale) {
+        return englishLocale ? PLANET_EN.getOrDefault(english, english) : PLANET_TR.getOrDefault(english, english);
     }
 
-    private String translateSign(String english) {
-        return SIGN_TR.getOrDefault(english, english);
+    private String translateSign(String english, boolean englishLocale) {
+        return englishLocale ? english : SIGN_TR.getOrDefault(english, english);
     }
 
-    private String themeForPlanet(String transitPlanet) {
+    private String themeForPlanet(String transitPlanet, boolean english) {
         return switch (transitPlanet) {
-            case "Mercury" -> "İletişim";
-            case "Venus" -> "Aşk";
-            case "Jupiter", "Saturn", "Sun" -> "İş";
-            case "Mars" -> "Enerji";
-            default -> "Ruh Hali";
+            case "Mercury" -> localizeThemeKey("communication", english);
+            case "Venus" -> localizeThemeKey("love", english);
+            case "Jupiter", "Saturn", "Sun" -> localizeThemeKey("work", english);
+            case "Mars" -> localizeThemeKey("energy", english);
+            default -> localizeThemeKey("mood", english);
         };
     }
 
@@ -1232,64 +1401,124 @@ public class DailyTransitsService {
         };
     }
 
-    private String supportiveImpact(String theme, String planet, String house, String variationKey) {
-        List<String> options = switch (theme) {
-            case "İletişim" -> List.of(
-                    "Konuşmalar akıcı olur; doğru kişiye yazacağın kısa mesaj hızlı dönüş getirebilir.",
-                    "Net cümleler hızlı sonuç verir; kısa bir görüşme işini kolaylaştırabilir.",
-                    "Yeni temaslar için uygun bir akış var; açık ve sade iletişim avantaj sağlar."
-            );
-            case "Aşk" -> List.of(
-                    "Küçük jestler ilişkine iyi gelir; kırıcı olmadan net kalman yeterli olur.",
-                    "Empati kurduğunda bağ güçlenir; sakin bir konuşma uzaklığı azaltabilir.",
-                    "İlişkilerde sıcak bir zemin var; abartmadan samimi kalmak olumlu ilerletir."
-            );
-            case "İş" -> List.of(
-                    "Önceliklerini doğru sıralarsan işlerini beklediğinden daha hızlı toparlayabilirsin.",
-                    "Net bir planla başladığında dağınıklık azalır; verim gün içinde yükselir.",
-                    "Zaman bloklarıyla ilerlemek bugün daha çok sonuç getirir."
-            );
-            case "Enerji" -> List.of(
-                    "Hareket etmek motivasyonunu artırır; kısa bir yürüyüş zihnini açar.",
-                    "Bedensel ritim yükseliyor; küçük molalarla bu akışı daha iyi korursun.",
-                    "Günün enerjisi artıyor; kısa bir aktivite odaklanmanı güçlendirir."
-            );
-            default -> List.of(
-                    translatePlanet(planet) + " etkisi sezgini güçlendirir; gün içinde iç sesini duyman kolaylaşır.",
-                    "Duygusal zeminde yumuşama var; sakin kaldığında kararların netleşir.",
-                    "Zihinsel akış daha düzenli; küçük adımlarla güvenli biçimde ilerleyebilirsin."
-            );
+    private String supportiveImpact(String theme, String planet, String house, String variationKey, boolean english) {
+        List<String> options = switch (canonicalTheme(theme)) {
+            case "communication" -> english
+                    ? List.of(
+                            "Conversations can flow well; a short message to the right person may bring a quick response.",
+                            "Clear sentences bring faster results; a short conversation may make work easier.",
+                            "The flow supports new connections; open and simple communication is an advantage."
+                    )
+                    : List.of(
+                            "Konuşmalar akıcı olur; doğru kişiye yazacağın kısa mesaj hızlı dönüş getirebilir.",
+                            "Net cümleler hızlı sonuç verir; kısa bir görüşme işini kolaylaştırabilir.",
+                            "Yeni temaslar için uygun bir akış var; açık ve sade iletişim avantaj sağlar."
+                    );
+            case "love" -> english
+                    ? List.of(
+                            "Small gestures support your relationship; being clear without being sharp is enough.",
+                            "Empathy strengthens the bond; a calm conversation can reduce distance.",
+                            "There is a warm tone in relationships; staying sincere without exaggeration helps."
+                    )
+                    : List.of(
+                            "Küçük jestler ilişkine iyi gelir; kırıcı olmadan net kalman yeterli olur.",
+                            "Empati kurduğunda bağ güçlenir; sakin bir konuşma uzaklığı azaltabilir.",
+                            "İlişkilerde sıcak bir zemin var; abartmadan samimi kalmak olumlu ilerletir."
+                    );
+            case "work" -> english
+                    ? List.of(
+                            "If you sort priorities well, you can recover your workflow faster than expected.",
+                            "Starting with a clear plan reduces scatter and lifts productivity during the day.",
+                            "Working in time blocks will bring better results today."
+                    )
+                    : List.of(
+                            "Önceliklerini doğru sıralarsan işlerini beklediğinden daha hızlı toparlayabilirsin.",
+                            "Net bir planla başladığında dağınıklık azalır; verim gün içinde yükselir.",
+                            "Zaman bloklarıyla ilerlemek bugün daha çok sonuç getirir."
+                    );
+            case "energy" -> english
+                    ? List.of(
+                            "Movement can raise motivation; a short walk may clear your mind.",
+                            "Your physical rhythm is rising; short breaks help you sustain it.",
+                            "The day's energy is climbing; a short activity can strengthen focus."
+                    )
+                    : List.of(
+                            "Hareket etmek motivasyonunu artırır; kısa bir yürüyüş zihnini açar.",
+                            "Bedensel ritim yükseliyor; küçük molalarla bu akışı daha iyi korursun.",
+                            "Günün enerjisi artıyor; kısa bir aktivite odaklanmanı güçlendirir."
+                    );
+            default -> english
+                    ? List.of(
+                            translatePlanet(planet, true) + " strengthens intuition, making your inner voice easier to hear today.",
+                            "The emotional ground is softer; staying calm helps decisions become clearer.",
+                            "Your mental flow is more orderly, so small steps can move things safely forward."
+                    )
+                    : List.of(
+                            translatePlanet(planet, false) + " etkisi sezgini güçlendirir; gün içinde iç sesini duyman kolaylaşır.",
+                            "Duygusal zeminde yumuşama var; sakin kaldığında kararların netleşir.",
+                            "Zihinsel akış daha düzenli; küçük adımlarla güvenli biçimde ilerleyebilirsin."
+                    );
         };
         return pickVariant(options, variationKey + "|impact");
     }
 
-    private String cautionImpact(String theme, String planet, String house, String variationKey) {
-        List<String> options = switch (theme) {
-            case "İletişim" -> List.of(
-                    "Yanlış anlaşılmalar olabilir; mesajları göndermeden önce bir kez daha kontrol et.",
-                    "Acele cevaplar gerilim yaratabilir; kısa bir duraklama iletişimi korur.",
-                    "İletişimde ton kolay sertleşebilir; net ama yumuşak bir dil daha iyi sonuç verir."
-            );
-            case "Aşk" -> List.of(
-                    "Duygusal tepkiler büyüyebilir; önce dinleyip sonra yanıt vermek daha iyi sonuç verir.",
-                    "İlişkilerde hassasiyet artabilir; kırıcı cümlelerden kaçınmak dengeyi korur.",
-                    "Beklentiler çabuk yükseliyor; konuşmayı açık ve sakin tutmak daha güvenli olur."
-            );
-            case "İş" -> List.of(
-                    "Takvimde sıkışma olabilir; tek işe odaklanıp kalanını sıralamak stresi azaltır.",
-                    "Aynı anda çok başlık açmak yorabilir; tek görev yaklaşımı bugünü kurtarır.",
-                    "İş akışı gecikebilir; öncelik listesiyle ilerlemek kontrol duygusunu artırır."
-            );
-            case "Enerji" -> List.of(
-                    "Yorgunluk birikebilir; küçük molalar vermek performansını korur.",
-                    "Enerji dalgalanması yaşayabilirsin; tempoyu gün içine yaymak daha doğru olur.",
-                    "Hızlı başlamak kolay, sürdürmek zor olabilir; ritmini aşama aşama kur."
-            );
-            default -> List.of(
-                    translatePlanet(planet) + " etkisi duygusal dalgalanma yaratabilir; kararlarını aceleye getirme.",
-                    "Duygusal tepkiler artabilir; kısa bir değerlendirme arası daha sağlıklı olur.",
-                    "İç sesin karışabilir; netlik için kararlarını zamana yayman faydalı olur."
-            );
+    private String cautionImpact(String theme, String planet, String house, String variationKey, boolean english) {
+        List<String> options = switch (canonicalTheme(theme)) {
+            case "communication" -> english
+                    ? List.of(
+                            "Misunderstandings are possible, so review messages once before sending.",
+                            "Rushed replies can create tension; a short pause protects communication.",
+                            "Tone can harden quickly, so a clear but soft style works better."
+                    )
+                    : List.of(
+                            "Yanlış anlaşılmalar olabilir; mesajları göndermeden önce bir kez daha kontrol et.",
+                            "Acele cevaplar gerilim yaratabilir; kısa bir duraklama iletişimi korur.",
+                            "İletişimde ton kolay sertleşebilir; net ama yumuşak bir dil daha iyi sonuç verir."
+                    );
+            case "love" -> english
+                    ? List.of(
+                            "Emotional reactions may intensify; listening before responding will work better.",
+                            "Sensitivity can rise in relationships; avoiding cutting words keeps balance.",
+                            "Expectations can climb quickly, so keeping the conversation open and calm is safer."
+                    )
+                    : List.of(
+                            "Duygusal tepkiler büyüyebilir; önce dinleyip sonra yanıt vermek daha iyi sonuç verir.",
+                            "İlişkilerde hassasiyet artabilir; kırıcı cümlelerden kaçınmak dengeyi korur.",
+                            "Beklentiler çabuk yükseliyor; konuşmayı açık ve sakin tutmak daha güvenli olur."
+                    );
+            case "work" -> english
+                    ? List.of(
+                            "The calendar may tighten, so focusing on one task and sequencing the rest reduces stress.",
+                            "Opening too many threads at once can drain you; a one-task approach may save the day.",
+                            "Workflow can slow down; moving with a priority list increases your sense of control."
+                    )
+                    : List.of(
+                            "Takvimde sıkışma olabilir; tek işe odaklanıp kalanını sıralamak stresi azaltır.",
+                            "Aynı anda çok başlık açmak yorabilir; tek görev yaklaşımı bugünü kurtarır.",
+                            "İş akışı gecikebilir; öncelik listesiyle ilerlemek kontrol duygusunu artırır."
+                    );
+            case "energy" -> english
+                    ? List.of(
+                            "Fatigue may accumulate, so taking short breaks protects performance.",
+                            "Energy may fluctuate, so spreading pace through the day works better.",
+                            "Starting fast is easy but sustaining it may be hard; build your rhythm in stages."
+                    )
+                    : List.of(
+                            "Yorgunluk birikebilir; küçük molalar vermek performansını korur.",
+                            "Enerji dalgalanması yaşayabilirsin; tempoyu gün içine yaymak daha doğru olur.",
+                            "Hızlı başlamak kolay, sürdürmek zor olabilir; ritmini aşama aşama kur."
+                    );
+            default -> english
+                    ? List.of(
+                            translatePlanet(planet, true) + " may create emotional fluctuations, so avoid rushing decisions.",
+                            "Emotional reactions may rise; a short review break will be healthier.",
+                            "Your inner voice may feel mixed, so giving decisions more time can help."
+                    )
+                    : List.of(
+                            translatePlanet(planet, false) + " etkisi duygusal dalgalanma yaratabilir; kararlarını aceleye getirme.",
+                            "Duygusal tepkiler artabilir; kısa bir değerlendirme arası daha sağlıklı olur.",
+                            "İç sesin karışabilir; netlik için kararlarını zamana yayman faydalı olur."
+                    );
         };
         return pickVariant(options, variationKey + "|impact");
     }
@@ -1387,14 +1616,23 @@ public class DailyTransitsService {
         return normalized.contains("dikkat") || normalized.contains("hassas") || normalized.contains("caution");
     }
 
-    private String translateAspect(PlanetaryAspect.AspectType type) {
-        return type == null ? "" : type.getTurkishName();
+    private String translateAspect(PlanetaryAspect.AspectType type, boolean english) {
+        if (type == null) return "";
+        if (!english) return type.getTurkishName();
+        return switch (type) {
+            case CONJUNCTION -> "Conjunction";
+            case SEXTILE -> "Sextile";
+            case SQUARE -> "Square";
+            case TRINE -> "Trine";
+            case QUINCUNX -> "Quincunx";
+            case OPPOSITION -> "Opposition";
+        };
     }
 
-    private String relevanceFromImportance(int importance) {
-        if (importance >= 82) return "Yüksek";
-        if (importance >= 64) return "Orta";
-        return "Düşük";
+    private String relevanceFromImportance(int importance, boolean english) {
+        if (importance >= 82) return t(english, "Yüksek", "High");
+        if (importance >= 64) return t(english, "Orta", "Medium");
+        return t(english, "Düşük", "Low");
     }
 
     private String reasonFrom(
@@ -1402,18 +1640,19 @@ public class DailyTransitsService {
             String house,
             boolean supportive,
             String transitPlanet,
-            UserAstroProfile userProfile) {
-        String area = houseAreaText(house);
+            UserAstroProfile userProfile,
+            boolean english) {
+        String area = houseAreaText(house, english);
         String areaClause = (house != null && !house.isBlank())
                 ? (supportive
-                        ? area + " konusunda iyi bir pencere açılıyor."
-                        : area + " konusunda ölçülü ilerlemek faydalı olur.")
+                        ? t(english, area + " konusunda iyi bir pencere açılıyor.", "A useful window is opening around " + area + ".")
+                        : t(english, area + " konusunda ölçülü ilerlemek faydalı olur.", "Measured progress will help around " + area + "."))
                 : (supportive
-                        ? "Küçük ve net adımlar akışı korur."
-                        : "Acele karar yerine kısa bir kontrol yapman faydalı olur.");
+                        ? t(english, "Küçük ve net adımlar akışı korur.", "Small and clear steps protect the flow.")
+                        : t(english, "Acele karar yerine kısa bir kontrol yapman faydalı olur.", "A quick review is better than a rushed decision."));
         String base = supportive
-                ? "Bu temada destekleyici bir akış var."
-                : "Bu temada gün içinde dikkatli bir adım gerekiyor.";
+                ? t(english, "Bu temada destekleyici bir akış var.", "There is a supportive flow in this theme.")
+                : t(english, "Bu temada gün içinde dikkatli bir adım gerekiyor.", "This theme calls for a careful move today.");
         return base + " " + areaClause;
     }
 
@@ -1422,12 +1661,15 @@ public class DailyTransitsService {
             String natalPoint,
             String aspect,
             double orb,
-            String house
+            String house,
+            boolean english
     ) {
-        if (normalizeToken(aspect).equals("evgecisi")) {
+        if (isHouseTransitAspect(aspect)) {
             return transitPlanet + " • " + natalPoint + " • " + aspect;
         }
-        String houseText = (house == null || house.isBlank()) ? "ev-bilgisi yok" : ("ev " + house);
+        String houseText = (house == null || house.isBlank())
+                ? t(english, "ev-bilgisi yok", "no house data")
+                : (english ? "house " + house : "ev " + house);
         return transitPlanet + " / " + natalPoint + " • " + aspect + " • orb " + orb + " • " + houseText;
     }
 
@@ -1456,68 +1698,69 @@ public class DailyTransitsService {
         return options.get(index);
     }
 
-    private String moodTagFromTheme(String theme, int retroCount) {
-        if (retroCount >= 2) return "Odak";
-        return switch (theme) {
-            case "İletişim", "Aşk" -> "Sosyal";
-            case "İş" -> "Odak";
-            case "Enerji" -> "Cesur";
-            default -> "Duygusal";
+    private String moodTagFromTheme(String theme, int retroCount, boolean english) {
+        if (retroCount >= 2) return localizeMoodTag("focus", english);
+        return switch (canonicalTheme(theme)) {
+            case "communication", "love" -> localizeMoodTag("social", english);
+            case "work" -> localizeMoodTag("focus", english);
+            case "energy" -> localizeMoodTag("bold", english);
+            default -> localizeMoodTag("emotional", english);
         };
     }
 
-    private String actionHint(String theme, String label) {
-        boolean caution = "Dikkat".equalsIgnoreCase(label) || "Hassas".equalsIgnoreCase(label);
-        return switch (theme) {
-            case "İletişim" -> caution
-                    ? "Mesajlarını göndermeden önce iki kez kontrol et."
-                    : "Uzun süredir yazmadığın bir kişiye kısa bir mesaj at.";
-            case "Aşk" -> caution
-                    ? "Duygusal konuşmalarda savunmaya geçmeden önce dinle."
-                    : "İlişkinde küçük ama samimi bir jest yap.";
-            case "İş" -> caution
-                    ? "Tek işe odaklanıp bitirmeden yeni iş açma."
-                    : "Ertelediğin bir işi 15 dakikalık blokla başlat.";
-            case "Enerji" -> caution
-                    ? "Günün temposunu molalarla dengele."
-                    : "Kısa bir yürüyüşle enerjini tazele.";
+    private String actionHint(String theme, String label, boolean english) {
+        boolean caution = isCautionLabel(label) || normalizeToken(label).contains("hassas");
+        return switch (canonicalTheme(theme)) {
+            case "communication" -> caution
+                    ? t(english, "Mesajlarını göndermeden önce iki kez kontrol et.", "Double-check your messages before sending.")
+                    : t(english, "Uzun süredir yazmadığın bir kişiye kısa bir mesaj at.", "Send a short message to someone you have not written to in a while.");
+            case "love" -> caution
+                    ? t(english, "Duygusal konuşmalarda savunmaya geçmeden önce dinle.", "Listen before going defensive in emotional conversations.")
+                    : t(english, "İlişkinde küçük ama samimi bir jest yap.", "Make a small but sincere gesture in your relationship.");
+            case "work" -> caution
+                    ? t(english, "Tek işe odaklanıp bitirmeden yeni iş açma.", "Do not open a new task before finishing the one in front of you.")
+                    : t(english, "Ertelediğin bir işi 15 dakikalık blokla başlat.", "Start a delayed task with a focused 15-minute block.");
+            case "energy" -> caution
+                    ? t(english, "Günün temposunu molalarla dengele.", "Balance the day's pace with short breaks.")
+                    : t(english, "Kısa bir yürüyüşle enerjini tazele.", "Refresh your energy with a short walk.");
             default -> caution
-                    ? "Karar almadan önce bir adım geri çekilip planını netleştir."
-                    : "Sezgini dinleyip küçük bir adım at.";
+                    ? t(english, "Karar almadan önce bir adım geri çekilip planını netleştir.", "Step back and clarify your plan before making a decision.")
+                    : t(english, "Sezgini dinleyip küçük bir adım at.", "Listen to intuition and take one small step.");
         };
     }
 
-    private String avoidHint(String theme, String label) {
-        boolean caution = "Dikkat".equalsIgnoreCase(label) || "Hassas".equalsIgnoreCase(label);
+    private String avoidHint(String theme, String label, boolean english) {
+        boolean caution = isCautionLabel(label) || normalizeToken(label).contains("hassas");
         if (!caution) {
-            return "Aynı anda çok fazla işi paralel yürütmekten kaçınman iyi olur.";
+            return t(english, "Aynı anda çok fazla işi paralel yürütmekten kaçınman iyi olur.", "It helps to avoid running too many things in parallel.");
         }
-        return switch (theme) {
-            case "İletişim" -> "Ani tepkiyle mesaj göndermekten kaçınmak faydalı olur.";
-            case "Aşk" -> "Kırıcı veya kesin yargılı cümlelerden kaçınmak ilişkiyi korur.";
-            case "İş" -> "Netleşmeden yeni görev açmaktan kaçınmak stresi düşürür.";
-            case "Enerji" -> "Günü tek tempoda zorlamaktan kaçınmak daha sürdürülebilir olur.";
-            default -> "Kesin kararları anlık duygu ile vermekten kaçınmak daha güvenli olur.";
+        return switch (canonicalTheme(theme)) {
+            case "communication" -> t(english, "Ani tepkiyle mesaj göndermekten kaçınmak faydalı olur.", "Avoid sending messages from a reactive state.");
+            case "love" -> t(english, "Kırıcı veya kesin yargılı cümlelerden kaçınmak ilişkiyi korur.", "Avoid harsh or final-sounding sentences to protect the relationship.");
+            case "work" -> t(english, "Netleşmeden yeni görev açmaktan kaçınmak stresi düşürür.", "Avoid opening new tasks before priorities are clear to lower stress.");
+            case "energy" -> t(english, "Günü tek tempoda zorlamaktan kaçınmak daha sürdürülebilir olur.", "Avoid forcing the whole day at one speed to keep things sustainable.");
+            default -> t(english, "Kesin kararları anlık duygu ile vermekten kaçınmak daha güvenli olur.", "Avoid making final decisions from a passing emotion.");
         };
     }
 
     private String iconForTheme(String theme) {
-        return switch (theme) {
-            case "İletişim" -> "chatbubble-ellipses";
-            case "Aşk" -> "heart";
-            case "İş" -> "briefcase";
-            case "Enerji" -> "walk";
+        return switch (canonicalTheme(theme)) {
+            case "communication" -> "chatbubble-ellipses";
+            case "love" -> "heart";
+            case "work" -> "briefcase";
+            case "energy" -> "walk";
             default -> "sparkles";
         };
     }
 
-    private String actionTagFromStatus(String status) {
-        return switch (status) {
-            case "Dikkat" -> "Dikkat";
-            case "Hassas" -> "Planlı";
-            case "Destekleyici" -> "Fırsat";
-            default -> "Kolay";
-        };
+    private String actionTagFromStatus(String status, boolean english) {
+        if (isCautionLabel(status) || normalizeToken(status).contains("hassas")) {
+            return t(english, "Cesur", "Bold");
+        }
+        if (normalizeToken(status).contains("destekleyici") || normalizeToken(status).contains("supportive")) {
+            return t(english, "Cesur", "Bold");
+        }
+        return t(english, "Kolay", "Easy");
     }
 
     private Integer etaFromImportance(int importance) {
@@ -1545,42 +1788,42 @@ public class DailyTransitsService {
     }
 
     private String houseText(String house) {
-        return house == null || house.isBlank() ? "ilgili ev" : house + ". ev";
+        return house == null || house.isBlank() ? "related house" : house + ". house";
     }
 
-    private String houseAreaText(String house) {
+    private String houseAreaText(String house, boolean english) {
         return switch (house == null ? "" : house) {
-            case "1" -> "kişisel duruşun";
-            case "2" -> "maddi güvenlik ve kaynakların";
-            case "3" -> "yakın çevre ve iletişimin";
-            case "4" -> "ev, aile ve iç huzurun";
-            case "5" -> "yaratıcılık, keyif ve romantizm";
-            case "6" -> "günlük düzenin ve sağlık ritmin";
-            case "7" -> "ilişkiler ve ortaklıkların";
-            case "8" -> "paylaşımlar, sınırlar ve derin duygular";
-            case "9" -> "inançlar, eğitim ve ufuk genişletme";
-            case "10" -> "kariyer, hedefler ve görünürlüğün";
-            case "11" -> "sosyal çevre ve gelecek planların";
-            case "12" -> "dinlenme, geri çekilme ve bilinçaltın";
-            default -> "ilgili yaşam alanın";
+            case "1" -> t(english, "kişisel duruşun", "personal stance");
+            case "2" -> t(english, "maddi güvenlik ve kaynakların", "material security and resources");
+            case "3" -> t(english, "yakın çevre ve iletişimin", "nearby connections and communication");
+            case "4" -> t(english, "ev, aile ve iç huzurun", "home, family, and inner calm");
+            case "5" -> t(english, "yaratıcılık, keyif ve romantizm", "creativity, pleasure, and romance");
+            case "6" -> t(english, "günlük düzenin ve sağlık ritmin", "daily rhythm and health routines");
+            case "7" -> t(english, "ilişkiler ve ortaklıkların", "relationships and partnerships");
+            case "8" -> t(english, "paylaşımlar, sınırlar ve derin duygular", "shared matters, boundaries, and deep emotions");
+            case "9" -> t(english, "inançlar, eğitim ve ufuk genişletme", "beliefs, education, and widening horizons");
+            case "10" -> t(english, "kariyer, hedefler ve görünürlüğün", "career, goals, and visibility");
+            case "11" -> t(english, "sosyal çevre ve gelecek planların", "social circle and future plans");
+            case "12" -> t(english, "dinlenme, geri çekilme ve bilinçaltın", "rest, retreat, and the subconscious");
+            default -> t(english, "ilgili yaşam alanın", "the related life area");
         };
     }
 
-    private String houseAreaShortText(String house) {
+    private String houseAreaShortText(String house, boolean english) {
         return switch (house == null ? "" : house) {
-            case "1" -> "kişisel duruş";
-            case "2" -> "maddi alan";
-            case "3" -> "iletişim";
-            case "4" -> "ev ve aile";
-            case "5" -> "yaratıcılık";
-            case "6" -> "günlük düzen";
-            case "7" -> "ilişkiler";
-            case "8" -> "paylaşım ve dönüşüm";
-            case "9" -> "ufuk ve inanç";
-            case "10" -> "kariyer";
-            case "11" -> "sosyal çevre";
-            case "12" -> "dinlenme ve içe çekilme";
-            default -> "günlük akış";
+            case "1" -> t(english, "kişisel duruş", "personal stance");
+            case "2" -> t(english, "maddi alan", "material matters");
+            case "3" -> t(english, "iletişim", "communication");
+            case "4" -> t(english, "ev ve aile", "home and family");
+            case "5" -> t(english, "yaratıcılık", "creativity");
+            case "6" -> t(english, "günlük düzen", "daily routine");
+            case "7" -> t(english, "ilişkiler", "relationships");
+            case "8" -> t(english, "paylaşım ve dönüşüm", "sharing and transformation");
+            case "9" -> t(english, "ufuk ve inanç", "horizons and belief");
+            case "10" -> t(english, "kariyer", "career");
+            case "11" -> t(english, "sosyal çevre", "social circle");
+            case "12" -> t(english, "dinlenme ve içe çekilme", "rest and retreat");
+            default -> t(english, "günlük akış", "daily flow");
         };
     }
 

@@ -64,7 +64,7 @@ class WeeklySwotServiceTest {
                 ));
         when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
 
-        WeeklySwotResponse response = service.getWeeklySwot(42L);
+        WeeklySwotResponse response = service.getWeeklySwot(42L, "tr");
 
         assertEquals(5, response.strength().intensity());
         assertEquals(5, response.opportunity().intensity());
@@ -86,7 +86,7 @@ class WeeklySwotServiceTest {
         when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
         when(transitCalculator.getTransitHouse(any(PlanetPosition.class), anyList())).thenReturn(7);
 
-        WeeklySwotResponse response = service.getWeeklySwot(42L);
+        WeeklySwotResponse response = service.getWeeklySwot(42L, "tr");
 
         assertEquals(12, response.opportunity().intensity());
         assertTrue(response.opportunity().headline().contains("Venüs 7. ev"));
@@ -102,7 +102,7 @@ class WeeklySwotServiceTest {
                 .thenReturn(List.of(planet("Mercury", true)));
         when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
 
-        WeeklySwotResponse response = service.getWeeklySwot(42L);
+        WeeklySwotResponse response = service.getWeeklySwot(42L, "tr");
 
         assertEquals(8, response.threat().intensity());
         assertTrue(response.threat().headline().contains("Merkür retrosu"));
@@ -119,7 +119,7 @@ class WeeklySwotServiceTest {
         when(transitCalculator.calculateTransitAspects(anyList(), anyList()))
                 .thenReturn(List.of(new PlanetaryAspect("T-Jupiter", "N-MC", PlanetaryAspect.AspectType.TRINE, 120.0, 0.8)));
 
-        WeeklySwotResponse response = service.getWeeklySwot(42L);
+        WeeklySwotResponse response = service.getWeeklySwot(42L, "tr");
 
         assertTrue(response.strength().subtext().contains("kariyer ve hedefler"));
     }

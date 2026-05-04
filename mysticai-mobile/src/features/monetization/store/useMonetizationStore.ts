@@ -11,7 +11,10 @@ import type {
 } from '../types';
 import { fetchMonetizationConfig, clearMonetizationCache } from '../api/monetization.service';
 import type { RevenueCatRuntimeState } from '../types/billing';
-import { getRevenueCatInitialState } from '../services/revenueCatService';
+import {
+  getRevenueCatInitialState,
+  getRevenueCatSdkConfigFromMonetizationConfig,
+} from '../services/revenueCatService';
 
 const EXPOSURE_STORAGE_KEY = 'monetization_exposure_state';
 
@@ -138,7 +141,7 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
   config: null,
   paywall: null,
   entitlements: null,
-  revenueCat: getRevenueCatInitialState(),
+  revenueCat: getRevenueCatInitialState(null, { remoteConfigResolved: false }),
   loading: false,
   lastFetchedAt: 0,
   exposureState: {},
@@ -190,11 +193,14 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
     })),
 
   resetBillingState: () =>
-    set({
+    set((state) => ({
       paywall: null,
       entitlements: null,
-      revenueCat: getRevenueCatInitialState(),
-    }),
+      revenueCat: getRevenueCatInitialState(
+        getRevenueCatSdkConfigFromMonetizationConfig(state.config),
+        { remoteConfigResolved: state.config !== null },
+      ),
+    })),
 
   getModuleRule: (moduleKey: string) => {
     return get().config?.moduleRules.find(r => r.moduleKey === moduleKey);

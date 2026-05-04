@@ -5,6 +5,7 @@ import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { syncRevenueCatBilling } from '../api/monetization.service';
 import { refreshMonetizationState } from '../services/monetizationRefresh';
 import {
+  getRevenueCatSdkConfigFromMonetizationConfig,
   isRevenueCatPurchaseCancelled,
   purchaseRevenueCatPackage,
   toRevenueCatSyncPayload,
@@ -25,6 +26,7 @@ export function usePurchasePremium() {
   const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.user?.id);
   const revenueCatState = useMonetizationStore((state) => state.revenueCat);
+  const monetizationConfig = useMonetizationStore((state) => state.config);
   const [status, setStatus] = useState<PurchasePremiumStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +54,12 @@ export function usePurchasePremium() {
       }
 
       const result = await purchaseRevenueCatPackage(product.revenueCatPackage);
-      await syncRevenueCatBilling(toRevenueCatSyncPayload(result.customerInfo));
+      await syncRevenueCatBilling(
+        toRevenueCatSyncPayload(
+          result.customerInfo,
+          getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig),
+        ),
+      );
       const refreshed = await refreshMonetizationState(queryClient, userId);
 
       if (refreshed.entitlements?.premiumActive) {
@@ -94,7 +101,7 @@ export function usePurchasePremium() {
       setError(message);
       return { status: 'failed' as const, error: message };
     }
-  }, [queryClient, revenueCatState.ready, userId]);
+  }, [monetizationConfig, queryClient, revenueCatState.ready, userId]);
 
   const reset = useCallback(() => {
     setStatus('idle');

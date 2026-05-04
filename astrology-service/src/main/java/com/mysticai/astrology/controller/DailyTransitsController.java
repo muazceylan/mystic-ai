@@ -26,18 +26,20 @@ public class DailyTransitsController {
     public ResponseEntity<DailyTransitsDTO> getDailyTransits(
             @RequestHeader("X-User-Id") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) String timezone
+            @RequestParam(required = false) String timezone,
+            @RequestParam(defaultValue = "tr") String locale
     ) {
-        return ResponseEntity.ok(dailyTransitsService.getDailyTransits(userId, date, timezone));
+        return ResponseEntity.ok(dailyTransitsService.getDailyTransits(userId, date, timezone, locale));
     }
 
     @GetMapping("/daily/transits/actions")
     public ResponseEntity<DailyActionsDTO> getDailyActions(
             @RequestHeader("X-User-Id") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) String timezone
+            @RequestParam(required = false) String timezone,
+            @RequestParam(defaultValue = "tr") String locale
     ) {
-        return ResponseEntity.ok(dailyTransitsService.getDailyActions(userId, date, timezone));
+        return ResponseEntity.ok(dailyTransitsService.getDailyActions(userId, date, timezone, locale));
     }
 
     @PostMapping("/daily/transits/actions/{actionId}/done")
