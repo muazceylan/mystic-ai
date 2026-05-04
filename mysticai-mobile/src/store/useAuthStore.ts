@@ -148,6 +148,7 @@ export const useAuthStore = create<AuthState>()(
           const { useMonetizationStore, clearMonetizationCache } = require('../features/monetization');
           clearMonetizationCache();
           useMonetizationStore.setState({ config: null, lastFetchedAt: 0 });
+          useMonetizationStore.getState().resetBillingState();
           useMonetizationStore.getState().clearExposure();
         } catch {}
         try {

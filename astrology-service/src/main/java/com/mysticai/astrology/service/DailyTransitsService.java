@@ -22,6 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -29,6 +32,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -59,6 +63,7 @@ public class DailyTransitsService {
     private static final int MIN_TRANSITS = 3;
     private static final int MAX_TRANSITS = 7;
     private static final String INSIGHT_ENGINE_VERSION = "daily-insight-v3";
+    private static final String DAILY_TRANSITS_CACHE_KEY_PREFIX = "dtc-v2:";
     private static final Set<String> BENEFIC_PLANETS = Set.of("Sun", "Moon", "Mercury", "Venus", "Jupiter");
     private static final Set<String> ACTIONABLE_TRANSIT_PLANETS = Set.of(
             "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Moon", "Sun"
@@ -1075,8 +1080,19 @@ public class DailyTransitsService {
         } else {
             locationVersion = round(chart.getLatitude(), 3) + ":" + round(chart.getLongitude(), 3);
         }
-        // Cache'i teknik hesap + kişiselleştirme sürümü birlikte belirlesin.
-        return locationVersion + "|pv:" + firstNonBlank(profileVersion, "na") + "|iv:" + INSIGHT_ENGINE_VERSION;
+        // Cache lookup key DB'de VARCHAR(64); raw profile signature zamanla bu limiti asabiliyor.
+        String rawVersion = locationVersion + "|pv:" + firstNonBlank(profileVersion, "na") + "|iv:" + INSIGHT_ENGINE_VERSION;
+        return DAILY_TRANSITS_CACHE_KEY_PREFIX + sha256Base64Url(rawVersion);
+    }
+
+    private String sha256Base64Url(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(firstNonBlank(value, "na").getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 kullanılamadı.", e);
+        }
     }
 
     private UserAstroProfile buildUserAstroProfile(Long userId, NatalChart chart) {

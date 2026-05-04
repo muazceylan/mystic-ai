@@ -25,6 +25,13 @@ interface FormData {
   isSignupBonusOneTimeOnly: boolean;
   signupBonusRegistrationSource: string;
   signupBonusHelperText: string;
+  isPremiumEnabled: boolean;
+  isTrialEnabled: boolean;
+  defaultTrialDays: number;
+  isTokenPurchaseEnabled: boolean;
+  isRevenueCatEnabled: boolean;
+  isHideAdsForPremiumUsers: boolean;
+  isAllowPremiumAndTokenTogether: boolean;
   defaultAdProvider: string;
   defaultCurrency: string;
   globalDailyAdCap: number;
@@ -61,6 +68,13 @@ export default function NewMonetizationSettingsPage() {
       isSignupBonusOneTimeOnly: true,
       signupBonusRegistrationSource: '',
       signupBonusHelperText: 'Yeni üyeler için tek seferlik hoş geldin bakiyesi.',
+      isPremiumEnabled: false,
+      isTrialEnabled: false,
+      defaultTrialDays: 0,
+      isTokenPurchaseEnabled: false,
+      isRevenueCatEnabled: false,
+      isHideAdsForPremiumUsers: false,
+      isAllowPremiumAndTokenTogether: true,
       defaultAdProvider: 'admob',
       defaultCurrency: 'TRY',
       globalDailyAdCap: 10,
@@ -121,6 +135,23 @@ export default function NewMonetizationSettingsPage() {
             <p className="text-xs text-gray-400 uppercase font-semibold">Signup Bonus</p>
             <Controller name="isSignupBonusEnabled" control={control} render={({ field }) => <Checkbox label="Signup Bonus Aktif" value={!!field.value} onChange={field.onChange} />} />
             <Controller name="isSignupBonusOneTimeOnly" control={control} render={({ field }) => <Checkbox label="Sadece Bir Kez Ver" value={!!field.value} onChange={field.onChange} />} />
+          </div>
+
+          <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs text-gray-400 uppercase font-semibold">Premium &amp; Trial</p>
+            <p className="text-xs text-gray-500">
+              RevenueCat + entitlement akışı canlı hale gelmiştir. Bu ayarlar paywall görünürlüğünü, free trial politikasını ve premium kullanıcıların reklam davranışını belirler.
+            </p>
+            <Controller name="isPremiumEnabled" control={control} render={({ field }) => <Checkbox label="Premium Aboneliği Aktif" value={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isTrialEnabled" control={control} render={({ field }) => <Checkbox label="Ücretsiz Deneme Aktif" value={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isTokenPurchaseEnabled" control={control} render={({ field }) => <Checkbox label="Token Satın Alma Aktif" value={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isRevenueCatEnabled" control={control} render={({ field }) => <Checkbox label="RevenueCat Entegrasyonu Aktif" value={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isHideAdsForPremiumUsers" control={control} render={({ field }) => <Checkbox label="Premium Kullanıcılarda Reklamları Gizle" value={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isAllowPremiumAndTokenTogether" control={control} render={({ field }) => <Checkbox label="Premium + Token Birlikte Satın Alınabilir" value={!!field.value} onChange={field.onChange} />} />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Varsayılan Trial Süresi (gün)</label>
+              <Input {...register('defaultTrialDays', { valueAsNumber: true })} type="number" min={0} />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

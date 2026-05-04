@@ -109,3 +109,87 @@ ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS signup_bonu
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS is_signup_bonus_one_time_only BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_registration_source VARCHAR(255);
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_helper_text TEXT;
+
+-- ─── Premium / Trial / Billing foundation (Phase 1 + Phase 2) ────────────
+-- Defaults preserve the existing rewarded-ad + token gate behaviour: every
+-- premium / trial flag is OFF until an admin explicitly turns it on.
+
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS premium_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS trial_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS default_trial_days INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS token_purchase_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS revenue_cat_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS hide_ads_for_premium_users BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS allow_premium_and_token_together BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS premium_behavior VARCHAR(60) NOT NULL DEFAULT 'NO_CHANGE';
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS premium_token_cost INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS premium_ad_free BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS trial_unlock_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE IF EXISTS guru_product_catalog ADD COLUMN IF NOT EXISTS revenue_cat_product_id VARCHAR(255);
+ALTER TABLE IF EXISTS guru_product_catalog ADD COLUMN IF NOT EXISTS entitlement_key VARCHAR(120);
+ALTER TABLE IF EXISTS guru_product_catalog ADD COLUMN IF NOT EXISTS trial_duration_days INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS subscription_entitlement (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    entitlement_key VARCHAR(120) NOT NULL,
+    provider VARCHAR(40) NOT NULL DEFAULT 'REVENUECAT',
+    store VARCHAR(40),
+    product_id VARCHAR(255),
+    revenue_cat_customer_id VARCHAR(255),
+    original_transaction_id VARCHAR(255),
+    transaction_id VARCHAR(255),
+    purchase_token TEXT,
+    status VARCHAR(40) NOT NULL DEFAULT 'EXPIRED',
+    trial_start_at TIMESTAMP(6),
+    trial_end_at TIMESTAMP(6),
+    current_period_start_at TIMESTAMP(6),
+    current_period_end_at TIMESTAMP(6),
+    auto_renew_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    cancelled_at TIMESTAMP(6),
+    expired_at TIMESTAMP(6),
+    last_event_at TIMESTAMP(6),
+    raw_payload TEXT,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6),
+    version BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_subent_user ON subscription_entitlement (user_id);
+CREATE INDEX IF NOT EXISTS idx_subent_user_entitlement ON subscription_entitlement (user_id, entitlement_key);
+CREATE INDEX IF NOT EXISTS idx_subent_status ON subscription_entitlement (status);
+CREATE INDEX IF NOT EXISTS idx_subent_period_end ON subscription_entitlement (current_period_end_at);
+CREATE INDEX IF NOT EXISTS idx_subent_original_tx ON subscription_entitlement (original_transaction_id);
+
+CREATE TABLE IF NOT EXISTS purchase_event (
+    id UUID PRIMARY KEY,
+    user_id BIGINT,
+    provider VARCHAR(40) NOT NULL,
+    store VARCHAR(40),
+    event_id VARCHAR(255) NOT NULL,
+    transaction_id VARCHAR(255),
+    original_transaction_id VARCHAR(255),
+    purchase_token TEXT,
+    product_id VARCHAR(255),
+    product_type VARCHAR(60),
+    event_type VARCHAR(60) NOT NULL,
+    token_amount_granted INTEGER,
+    ledger_entry_id VARCHAR(255),
+    entitlement_id BIGINT,
+    processed_status VARCHAR(40) NOT NULL DEFAULT 'PENDING',
+    failure_reason TEXT,
+    raw_payload TEXT,
+    created_at TIMESTAMP(6) NOT NULL,
+    processed_at TIMESTAMP(6),
+    CONSTRAINT uk_pe_provider_event UNIQUE (provider, event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pe_user ON purchase_event (user_id);
+CREATE INDEX IF NOT EXISTS idx_pe_provider ON purchase_event (provider);
+CREATE INDEX IF NOT EXISTS idx_pe_event_type ON purchase_event (event_type);
+CREATE INDEX IF NOT EXISTS idx_pe_processed ON purchase_event (processed_status);
+CREATE INDEX IF NOT EXISTS idx_pe_product ON purchase_event (product_id);
+CREATE INDEX IF NOT EXISTS idx_pe_original_tx ON purchase_event (original_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_pe_user_created ON purchase_event (user_id, created_at DESC);

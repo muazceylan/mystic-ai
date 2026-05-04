@@ -1,8 +1,17 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import type { MonetizationConfig, ModuleRule, ActionConfig, AdExposureState } from '../types';
+import type {
+  MonetizationConfig,
+  ModuleRule,
+  ActionConfig,
+  AdExposureState,
+  EntitlementSnapshot,
+  PaywallResponse,
+} from '../types';
 import { fetchMonetizationConfig, clearMonetizationCache } from '../api/monetization.service';
+import type { RevenueCatRuntimeState } from '../types/billing';
+import { getRevenueCatInitialState } from '../services/revenueCatService';
 
 const EXPOSURE_STORAGE_KEY = 'monetization_exposure_state';
 
@@ -70,12 +79,19 @@ async function restoreExposure(): Promise<Record<string, AdExposureState> | null
 
 interface MonetizationState {
   config: MonetizationConfig | null;
+  paywall: PaywallResponse | null;
+  entitlements: EntitlementSnapshot | null;
+  revenueCat: RevenueCatRuntimeState;
   loading: boolean;
   lastFetchedAt: number;
   exposureState: Record<string, AdExposureState>;
 
   loadConfig: () => Promise<void>;
   refresh: () => Promise<void>;
+  setPaywall: (paywall: PaywallResponse | null) => void;
+  setEntitlements: (snapshot: EntitlementSnapshot | null) => void;
+  setRevenueCatState: (patch: Partial<RevenueCatRuntimeState>) => void;
+  resetBillingState: () => void;
 
   getModuleRule: (moduleKey: string) => ModuleRule | undefined;
   getAction: (actionKey: string, moduleKey: string) => ActionConfig | undefined;
@@ -120,6 +136,9 @@ function isAdsEnabledForCurrentPlatform(config: MonetizationConfig, rule: Module
 
 export const useMonetizationStore = create<MonetizationState>((set, get) => ({
   config: null,
+  paywall: null,
+  entitlements: null,
+  revenueCat: getRevenueCatInitialState(),
   loading: false,
   lastFetchedAt: 0,
   exposureState: {},
@@ -157,6 +176,25 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
       set({ loading: false });
     }
   },
+
+  setPaywall: (paywall) => set({ paywall }),
+
+  setEntitlements: (entitlements) => set({ entitlements }),
+
+  setRevenueCatState: (patch) =>
+    set((state) => ({
+      revenueCat: {
+        ...state.revenueCat,
+        ...patch,
+      },
+    })),
+
+  resetBillingState: () =>
+    set({
+      paywall: null,
+      entitlements: null,
+      revenueCat: getRevenueCatInitialState(),
+    }),
 
   getModuleRule: (moduleKey: string) => {
     return get().config?.moduleRules.find(r => r.moduleKey === moduleKey);

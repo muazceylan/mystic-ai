@@ -38,4 +38,10 @@ export const queryKeys = {
     guidancePeriod?: string,
   ) => ['numerology', name, birthDate, effectiveDate ?? 'today', locale ?? 'tr', guidancePeriod ?? 'day'] as const,
   profileStats: (userId: number) => ['profile', 'stats', userId] as const,
+  monetizationPaywall: (userId?: number | string | null) =>
+    ['monetization', 'paywall', userId ?? 'anonymous'] as const,
+  monetizationEntitlements: (userId?: number | string | null) =>
+    ['monetization', 'entitlements', userId ?? 'anonymous'] as const,
+  monetizationOfferings: (userId?: number | string | null) =>
+    ['monetization', 'offerings', userId ?? 'anonymous'] as const,
 };

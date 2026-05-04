@@ -1109,19 +1109,29 @@ public class AuthService {
         user.setAccountStatus(AccountStatus.DELETED);
         user.setEnabled(false);
 
-        // Anonymize email and username to free them for potential re-registration
-        if (user.getEmail() != null && !user.getEmail().startsWith("deleted_")) {
-            user.setEmail("deleted_" + userId + "_" + user.getEmail());
-        }
-        if (user.getUsername() != null && !user.getUsername().startsWith("deleted_")) {
-            user.setUsername("deleted_" + userId + "_" + user.getUsername());
-        }
+        // Keep the historical record, but sever all login identifiers so a later
+        // sign-in creates a brand-new account instead of reviving the deleted one.
+        user.setEmail(anonymizeDeletedIdentifier(userId, user.getEmail()));
+        user.setUsername(anonymizeDeletedIdentifier(userId, user.getUsername()));
+        user.setProvider(null);
+        user.setSocialId(null);
+        user.setAvatarPath(null);
 
         userRepository.save(user);
 
         try { linkAccountOtpRepository.deleteAllByUserId(userId); } catch (Exception ignored) {}
 
         log.info("Account permanently deleted (soft) for userId={}", userId);
+    }
+
+    private String anonymizeDeletedIdentifier(Long userId, String currentValue) {
+        if (currentValue == null || currentValue.isBlank()) {
+            return currentValue;
+        }
+        if (currentValue.startsWith("deleted_")) {
+            return currentValue;
+        }
+        return "deleted_" + userId + "_" + currentValue;
     }
 
     private UserDTO toUserDTO(User user) {

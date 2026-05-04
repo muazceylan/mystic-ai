@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.mysticai.app</string>
+	<string>com.astroguru.mmc</string>
 	<key>PROJECT_ID</key>
 	<string>astro-guru-57921</string>
 	<key>STORAGE_BUCKET</key>
@@ -17,7 +17,7 @@
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
-	<true></true>
+	<false></false>
 	<key>IS_APPINVITE_ENABLED</key>
 	<true></true>
 	<key>IS_GCM_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:699117630000:ios:fd1eec0772b8af56a4b3f5</string>
+	<string>1:699117630000:ios:c725c6235fc55c92a4b3f5</string>
 </dict>
 </plist>

@@ -58,7 +58,8 @@ numerology:
 services:
   ai-orchestrator:
     base-url: ${AI_ORCHESTRATOR_URL:http://localhost:8084}
-    guidance-timeout-ms: 5000
+    guidance-connect-timeout-ms: 500
+    guidance-timeout-ms: 1500
 
 name-ingestion:
   enabled: true

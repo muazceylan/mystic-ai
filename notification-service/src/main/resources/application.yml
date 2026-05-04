@@ -154,6 +154,16 @@ user:
   jwt:
     secret: ${JWT_SECRET:bXlzdGljLWFpLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=}
 
+# ── RevenueCat Webhook (Phase 2 billing integration) ─────────────────────────
+# REVENUECAT_WEBHOOK_SECRET must match the value configured in the RevenueCat
+# dashboard's Webhook Authorization Header. Empty in local dev; allowEmptySecret
+# must be explicitly true to accept unsigned requests in non-prod profiles.
+revenuecat:
+  webhook:
+    secret: ${REVENUECAT_WEBHOOK_SECRET:}
+    allow-empty-secret: ${REVENUECAT_WEBHOOK_ALLOW_EMPTY_SECRET:false}
+    max-raw-payload-bytes: ${REVENUECAT_WEBHOOK_MAX_PAYLOAD_BYTES:8192}
+
 # ── Rewarded Ads Configuration ────────────────────────────────────────────────
 # All amounts in Guru Tokens. Adjust per-environment in application-prod.yml.
 rewarded-ads:

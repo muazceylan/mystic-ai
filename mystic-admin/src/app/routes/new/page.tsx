@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,11 +29,11 @@ export default function NewRoutePage() {
   const router = useRouter();
   const qc = useQueryClient();
   const toast = useToast();
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<FormData>({
     defaultValues: { requiresAuth: true, isActive: true, isDeprecated: false, supportedPlatforms: 'BOTH' },
   });
 
-  const path = watch('path');
+  const path = useWatch({ control, name: 'path' });
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => routesApi.create({

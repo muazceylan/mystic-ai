@@ -5,6 +5,7 @@ import { useMonetizationStore } from '../store/useMonetizationStore';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { consumeFeatureAccess } from '../api/monetization.service';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
+import { useModuleMonetization } from './useModuleMonetization';
 
 type SpendStatus = 'idle' | 'processing' | 'success' | 'insufficient' | 'failed';
 
@@ -18,22 +19,24 @@ export function useGuruUnlock(moduleKey: string, actionKey: string): UseGuruUnlo
   const [status, setStatus] = useState<SpendStatus>('idle');
   const { getAction } = useMonetizationStore();
   const { getBalance, refreshBalance } = useGuruWalletStore();
+  const monetization = useModuleMonetization(moduleKey);
 
   const spendGuru = useCallback(async (): Promise<boolean> => {
     const action = getAction(actionKey, moduleKey);
+    const unlockState = monetization.getActionUnlockState(actionKey);
     if (!action) {
       setStatus('failed');
       return false;
     }
 
     const balance = getBalance();
-    if (balance < action.guruCost) {
+    if (balance < unlockState.guruCost) {
       trackMonetizationEvent('token_unlock_failed', {
         module_key: moduleKey,
         action_key: actionKey,
         reason: 'insufficient_balance',
         balance_before: balance,
-        token_cost: action.guruCost,
+        token_cost: unlockState.guruCost,
       });
       setStatus('insufficient');
       return false;
@@ -63,9 +66,9 @@ export function useGuruUnlock(moduleKey: string, actionKey: string): UseGuruUnlo
       trackMonetizationEvent('token_unlock_success', {
         module_key: moduleKey,
         action_key: actionKey,
-        token_cost: action.guruCost,
+        token_cost: access.chargedTokenAmount ?? unlockState.guruCost,
         balance_before: balance,
-        balance_after: balance - action.guruCost,
+        balance_after: access.currentBalance,
       });
 
       setStatus('success');
@@ -79,7 +82,7 @@ export function useGuruUnlock(moduleKey: string, actionKey: string): UseGuruUnlo
       setStatus('failed');
       return false;
     }
-  }, [moduleKey, actionKey, getAction, getBalance, refreshBalance]);
+  }, [actionKey, getAction, getBalance, moduleKey, monetization, refreshBalance]);
 
   const reset = useCallback(() => setStatus('idle'), []);
 

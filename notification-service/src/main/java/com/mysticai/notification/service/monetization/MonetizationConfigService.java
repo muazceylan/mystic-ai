@@ -116,7 +116,15 @@ public class MonetizationConfigService {
                 access.dailyLimit(),
                 access.weeklyLimit(),
                 access.dailyUsageCount(),
-                access.weeklyUsageCount()
+                access.weeklyUsageCount(),
+                access.premiumActive(),
+                access.trialing(),
+                access.entitlementStatus(),
+                access.premiumApplied(),
+                access.premiumBehavior(),
+                access.originalTokenCost(),
+                access.discountedTokenCost(),
+                access.chargedTokenAmount()
         );
     }
 
@@ -172,6 +180,10 @@ public class MonetizationConfigService {
             int guruRewardAmountPerCompletedAd,
             boolean allowFreePreview,
             String previewDepthMode,
+            String premiumBehavior,
+            int premiumTokenCost,
+            boolean premiumAdFree,
+            boolean trialUnlockEnabled,
             String rolloutStatus
     ) {
         public static ModuleRuleResponse from(ModuleMonetizationRule r) {
@@ -197,6 +209,10 @@ public class MonetizationConfigService {
                     r.getGuruRewardAmountPerCompletedAd(),
                     r.isAllowFreePreview(),
                     r.getPreviewDepthMode().name(),
+                    r.getPremiumBehavior().name(),
+                    r.getPremiumTokenCost(),
+                    r.isPremiumAdFree(),
+                    r.isTrialUnlockEnabled(),
                     r.getRolloutStatus().name()
             );
         }
@@ -263,6 +279,9 @@ public class MonetizationConfigService {
             String currency,
             String iosProductId,
             String androidProductId,
+            String revenueCatProductId,
+            String entitlementKey,
+            int trialDurationDays,
             int sortOrder,
             String badge,
             String campaignLabel
@@ -279,6 +298,9 @@ public class MonetizationConfigService {
                     p.getCurrency(),
                     p.getIosProductId(),
                     p.getAndroidProductId(),
+                    p.getRevenueCatProductId(),
+                    p.getEntitlementKey(),
+                    p.getTrialDurationDays(),
                     p.getSortOrder(),
                     p.getBadge(),
                     p.getCampaignLabel()
@@ -308,6 +330,14 @@ public class MonetizationConfigService {
             int dailyLimit,
             int weeklyLimit,
             long dailyUsageCount,
-            long weeklyUsageCount
+            long weeklyUsageCount,
+            boolean premiumActive,
+            boolean trialing,
+            String entitlementStatus,
+            boolean premiumApplied,
+            String premiumBehavior,
+            int originalTokenCost,
+            int discountedTokenCost,
+            int chargedTokenAmount
     ) {}
 }

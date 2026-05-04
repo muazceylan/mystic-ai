@@ -72,6 +72,38 @@ public class MonetizationSettings {
     private String signupBonusRegistrationSource;
     private String signupBonusHelperText;
 
+    // ─── Premium / Trial / Billing (Phase 1: foundation only) ─────────
+    // Defaults are intentionally false / safe so the existing rewarded-ad +
+    // guru-token flow keeps working unchanged when these fields are added
+    // to currently-published settings rows.
+
+    @Builder.Default
+    @JsonProperty("isPremiumEnabled")
+    private boolean premiumEnabled = false;
+
+    @Builder.Default
+    @JsonProperty("isTrialEnabled")
+    private boolean trialEnabled = false;
+
+    @Builder.Default
+    private int defaultTrialDays = 0;
+
+    @Builder.Default
+    @JsonProperty("isTokenPurchaseEnabled")
+    private boolean tokenPurchaseEnabled = false;
+
+    @Builder.Default
+    @JsonProperty("isRevenueCatEnabled")
+    private boolean revenueCatEnabled = false;
+
+    @Builder.Default
+    @JsonProperty("isHideAdsForPremiumUsers")
+    private boolean hideAdsForPremiumUsers = false;
+
+    @Builder.Default
+    @JsonProperty("isAllowPremiumAndTokenTogether")
+    private boolean allowPremiumAndTokenTogether = true;
+
     @Column(columnDefinition = "TEXT")
     private String environmentRulesJson;
 

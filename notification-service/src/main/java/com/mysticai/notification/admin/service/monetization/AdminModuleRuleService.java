@@ -86,6 +86,12 @@ public class AdminModuleRuleService {
         existing.setGuruCostsByActionJson(updates.getGuruCostsByActionJson());
         existing.setAllowFreePreview(updates.isAllowFreePreview());
         existing.setPreviewDepthMode(updates.getPreviewDepthMode());
+        existing.setPremiumBehavior(updates.getPremiumBehavior() != null
+                ? updates.getPremiumBehavior()
+                : com.mysticai.notification.entity.monetization.ModuleMonetizationRule.PremiumBehavior.NO_CHANGE);
+        existing.setPremiumTokenCost(Math.max(0, updates.getPremiumTokenCost()));
+        existing.setPremiumAdFree(updates.isPremiumAdFree());
+        existing.setTrialUnlockEnabled(updates.isTrialUnlockEnabled());
         existing.setRolloutStatus(updates.getRolloutStatus());
         existing.setPlatformOverridesJson(updates.getPlatformOverridesJson());
         existing.setLocaleOverridesJson(updates.getLocaleOverridesJson());

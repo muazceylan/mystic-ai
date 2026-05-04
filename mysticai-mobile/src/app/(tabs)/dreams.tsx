@@ -353,6 +353,7 @@ export default function DreamsScreen() {
   const recordingRef  = useRef<Audio.Recording | null>(null);
   const recordingUri  = useRef<string | null>(null);
   const peakMeteringRef = useRef(-160);
+  const hasMeteringSampleRef = useRef(false);
   const durationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const journalAutoExpandedRef = useRef(false);
 
@@ -457,6 +458,7 @@ export default function DreamsScreen() {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) { Alert.alert(t('dreams.micPermissionTitle'), t('dreams.micPermissionRequired')); return; }
       peakMeteringRef.current = -160;
+      hasMeteringSampleRef.current = false;
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -469,6 +471,7 @@ export default function DreamsScreen() {
       recording.setProgressUpdateInterval(RECORDING_METERING_INTERVAL_MS);
       recording.setOnRecordingStatusUpdate((status) => {
         if (typeof status.metering === 'number') {
+          hasMeteringSampleRef.current = true;
           peakMeteringRef.current = Math.max(peakMeteringRef.current, status.metering);
         }
       });
@@ -506,7 +509,8 @@ export default function DreamsScreen() {
         return;
       }
 
-      if (peakMeteringRef.current <= MIN_SPEECH_METERING_DBFS) {
+      const canValidateSpeechLevel = Platform.OS !== 'web' || hasMeteringSampleRef.current;
+      if (canValidateSpeechLevel && peakMeteringRef.current <= MIN_SPEECH_METERING_DBFS) {
         setRecState('idle');
         recordingUri.current = null;
         Alert.alert(t('dreams.voiceNotDetectedTitle'), t('dreams.voiceNotDetectedMessage'));

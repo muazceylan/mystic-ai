@@ -44,6 +44,7 @@ import { createAppStackScreenOptions } from '../navigation/stackOptions';
 import { TutorialProvider, TUTORIAL_SCREEN_KEYS, useTutorialTrigger } from '../features/tutorial';
 import { initI18n } from '../i18n';
 import { queryClient } from '../lib/queryClient';
+import { queryKeys } from '../lib/queryKeys';
 import { needsOnboarding } from '../utils/authOnboarding';
 import { isGuestUser } from '../store/useAuthStore';
 import {
@@ -64,7 +65,7 @@ import {
   setupNotificationResponseHandler,
   setupNotificationChannel,
 } from '../utils/pushNotifications';
-import { useMonetizationStore, useGuruWalletStore } from '../features/monetization';
+import { RevenueCatProvider, useMonetizationStore, useGuruWalletStore } from '../features/monetization';
 import { initializeAdProvider } from '../features/monetization/providers/initProvider';
 
 const ADSENSE_CLIENT = 'ca-pub-2868466577339325';
@@ -117,9 +118,11 @@ const AUTH_ROUTES = new Set([
   ...ONBOARDING_AUTH_ROUTES,
 ]);
 
-const PUBLIC_INFO_ROUTES = new Set([
-  'privacy',
-  'terms',
+const PUBLIC_INFO_PATHS = new Set([
+  '/privacy',
+  '/terms',
+  '/account-deletion',
+  '/en/account-deletion',
 ]);
 
 /**
@@ -217,7 +220,7 @@ function useProtectedRoute(i18nReady: boolean) {
 
     const currentRoute = topLevelRoute(pathname);
     const inAuthRoute = AUTH_ROUTES.has(currentRoute);
-    const inPublicInfoRoute = PUBLIC_INFO_ROUTES.has(currentRoute);
+    const inPublicInfoRoute = PUBLIC_INFO_PATHS.has(pathname);
     const inOnboardingFlow = ONBOARDING_AUTH_ROUTES.has(currentRoute);
     const onboardingRequired = needsOnboarding(user);
 
@@ -254,28 +257,30 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
 
   return (
     <>
-      {Platform.OS === 'web' ? (
-        <Head>
-          <meta name="google-adsense-account" content={ADSENSE_CLIENT} />
-          <script async src={ADSENSE_SCRIPT_SRC} crossOrigin="anonymous" />
-        </Head>
-      ) : null}
-      <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
-      <CompanionBootstrap />
-      <NotificationBootstrap />
-      <AppConfigBootstrap />
-      <MonetizationBootstrap />
-      <TutorialBootstrap />
-      <GuestSessionBootstrap />
-      <ScreenTracker />
-      <AnalyticsDebugBootstrap />
-      <AnalyticsIdentityBootstrap />
-      <Stack
-        screenOptions={createAppStackScreenOptions({
-          backgroundColor: colors.bg,
-          headerShown: false,
-        })}
-      />
+      <RevenueCatProvider>
+        {Platform.OS === 'web' ? (
+          <Head>
+            <meta name="google-adsense-account" content={ADSENSE_CLIENT} />
+            <script async src={ADSENSE_SCRIPT_SRC} crossOrigin="anonymous" />
+          </Head>
+        ) : null}
+        <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
+        <CompanionBootstrap />
+        <NotificationBootstrap />
+        <AppConfigBootstrap />
+        <MonetizationBootstrap />
+        <TutorialBootstrap />
+        <GuestSessionBootstrap />
+        <ScreenTracker />
+        <AnalyticsDebugBootstrap />
+        <AnalyticsIdentityBootstrap />
+        <Stack
+          screenOptions={createAppStackScreenOptions({
+            backgroundColor: colors.bg,
+            headerShown: false,
+          })}
+        />
+      </RevenueCatProvider>
     </>
   );
 }
@@ -399,6 +404,7 @@ function AppConfigBootstrap() {
 function MonetizationBootstrap() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isHydrated = useAuthStore((s) => s.isHydrated);
+  const userId = useAuthStore((s) => s.user?.id);
   const adProviderInitRef = useRef(false);
 
   useEffect(() => {
@@ -432,11 +438,16 @@ function MonetizationBootstrap() {
             void useGuruWalletStore.getState().loadWallet();
           }
         });
+        if (userId) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.monetizationEntitlements(userId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.monetizationPaywall(userId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.monetizationOfferings(userId) });
+        }
       }
       appState.current = next;
     });
     return () => sub.remove();
-  }, [isHydrated]);
+  }, [isHydrated, userId]);
 
   return null;
 }

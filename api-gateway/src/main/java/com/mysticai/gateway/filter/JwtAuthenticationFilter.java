@@ -65,6 +65,10 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             // Monetization config is public (fail-safe: app needs config before login)
             "/api/v1/monetization/config",
             "/api/v1/monetization/modules/",
+            // Paywall is public so the welcome / pricing screens render without a session
+            "/api/v1/monetization/paywall",
+            // Billing webhooks authenticate via their own shared secret, not JWT
+            "/api/webhooks/",
             // Public name search (name analysis feature)
             "/api/numerology/names"
     );

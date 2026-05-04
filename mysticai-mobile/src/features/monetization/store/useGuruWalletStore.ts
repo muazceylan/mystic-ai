@@ -9,6 +9,7 @@ interface GuruWalletState {
 
   loadWallet: () => Promise<void>;
   refreshBalance: () => Promise<void>;
+  setBalance: (balance: number) => void;
   getBalance: () => number;
   clearWallet: () => void;
 }
@@ -35,12 +36,23 @@ export const useGuruWalletStore = create<GuruWalletState>((set, get) => ({
   refreshBalance: async () => {
     try {
       const balance = await fetchWalletBalance();
-      set(state => ({
-        wallet: state.wallet ? { ...state.wallet, currentBalance: balance } : null,
-      }));
+      get().setBalance(balance);
     } catch {
       // silent — balance refresh is best-effort
     }
+  },
+
+  setBalance: (balance) => {
+    set((state) => ({
+      wallet: state.wallet
+        ? { ...state.wallet, currentBalance: balance }
+        : {
+            currentBalance: balance,
+            lifetimeEarned: 0,
+            lifetimeSpent: 0,
+            lifetimePurchased: 0,
+          },
+    }));
   },
 
   getBalance: () => get().wallet?.currentBalance ?? 0,

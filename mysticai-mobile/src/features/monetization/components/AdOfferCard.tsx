@@ -5,6 +5,7 @@ import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/t
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { PREMIUM_ICONS } from '../../../constants/icons';
+import { useModuleMonetization } from '../hooks/useModuleMonetization';
 import { useRewardedUnlock } from '../hooks/useRewardedUnlock';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
@@ -21,6 +22,7 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
   const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
+  const monetization = useModuleMonetization(moduleKey);
   const { status, startRewardedUnlock, reset } = useRewardedUnlock(moduleKey, actionKey);
   const { getModuleRule } = useMonetizationStore();
   const rule = getModuleRule(moduleKey);
@@ -28,6 +30,10 @@ export function AdOfferCard({ moduleKey, actionKey, onComplete, onDismiss }: AdO
 
   const rewardAmount = rule?.guruRewardAmountPerCompletedAd ?? 1;
   const isProcessing = status === 'loading_ad' || status === 'showing_ad' || status === 'processing_reward';
+
+  if (!monetization.rewardedAdAvailable) {
+    return null;
+  }
 
   useEffect(() => {
     if (!trackedRef.current) {

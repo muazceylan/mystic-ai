@@ -67,6 +67,9 @@ public class AdminGuruProductService {
         existing.setCurrency(updates.getCurrency());
         existing.setIosProductId(updates.getIosProductId());
         existing.setAndroidProductId(updates.getAndroidProductId());
+        existing.setRevenueCatProductId(updates.getRevenueCatProductId());
+        existing.setEntitlementKey(updates.getEntitlementKey());
+        existing.setTrialDurationDays(Math.max(0, updates.getTrialDurationDays()));
         existing.setEnabled(updates.isEnabled());
         existing.setSortOrder(updates.getSortOrder());
         existing.setBadge(updates.getBadge());

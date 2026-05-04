@@ -1,9 +1,17 @@
+import type { ComponentProps } from 'react';
+import { Stack } from 'expo-router';
 import { Platform } from 'react-native';
-import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 
-type AppStackScreenOptionsInput = Omit<NativeStackNavigationOptions, 'contentStyle'> & {
+// pnpm can hoist @react-navigation/native-stack twice (once for our direct dep,
+// once nested under expo-router). Deriving both input and output types from
+// expo-router's <Stack> keeps us on the same resolution path and avoids
+// duplicate-package incompatibilities in global typecheck.
+type StackScreenOptionsProp = NonNullable<ComponentProps<typeof Stack>['screenOptions']>;
+type StackScreenOptionsObject = Exclude<StackScreenOptionsProp, (...args: never[]) => unknown>;
+
+type AppStackScreenOptionsInput = Omit<StackScreenOptionsObject, 'contentStyle'> & {
   backgroundColor: string;
-  contentStyle?: NativeStackNavigationOptions['contentStyle'];
+  contentStyle?: StackScreenOptionsObject['contentStyle'];
 };
 
 export function createAppStackScreenOptions({
@@ -11,7 +19,7 @@ export function createAppStackScreenOptions({
   headerShown = false,
   contentStyle,
   ...overrides
-}: AppStackScreenOptionsInput): NativeStackNavigationOptions {
+}: AppStackScreenOptionsInput): StackScreenOptionsObject {
   return {
     headerShown,
     presentation: 'card',
@@ -28,5 +36,5 @@ export function createAppStackScreenOptions({
     animationMatchesGesture: Platform.OS === 'ios',
     freezeOnBlur: true,
     ...overrides,
-  };
+  } as StackScreenOptionsObject;
 }

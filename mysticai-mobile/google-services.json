@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:699117630000:android:b26c416e346c5cd9a4b3f5",
+        "mobilesdk_app_id": "1:699117630000:android:9e28dea40ad6d6d5a4b3f5",
         "android_client_info": {
-          "package_name": "com.mysticai.app"
+          "package_name": "com.astroguru.mmc"
         }
       },
       "oauth_client": [],

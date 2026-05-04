@@ -429,6 +429,31 @@ export const guruWalletApi = {
   revoke: (userId: number, data: { amount: number; reason: string }) => api.post(`/api/admin/v1/monetization/wallets/${userId}/revoke`, data),
 };
 
+export const purchaseEventsApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/admin/v1/monetization/purchase-events', { params }),
+  get: (id: string) => api.get(`/api/admin/v1/monetization/purchase-events/${id}`),
+};
+
+export const userEntitlementsApi = {
+  get: (userId: number) => api.get(`/api/admin/v1/monetization/users/${userId}/entitlements`),
+  grant: (
+    userId: number,
+    data: {
+      entitlementKey?: string;
+      productId?: string;
+      currentPeriodEndAt?: string | null;
+      reason: string;
+    },
+  ) => api.post(`/api/admin/v1/monetization/users/${userId}/entitlements/grant`, data),
+  revoke: (
+    userId: number,
+    data: {
+      entitlementKey?: string;
+      reason: string;
+    },
+  ) => api.post(`/api/admin/v1/monetization/users/${userId}/entitlements/revoke`, data),
+};
+
 export const monetizationSimulationApi = {
   simulate: (data: unknown) => api.post('/api/admin/v1/monetization/simulation', data),
 };

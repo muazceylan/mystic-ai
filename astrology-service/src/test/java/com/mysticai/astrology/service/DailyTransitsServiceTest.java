@@ -13,6 +13,7 @@ import com.mysticai.astrology.repository.UserFeedbackRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,7 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -160,6 +163,38 @@ class DailyTransitsServiceTest {
         assertTrue(retro.meaningPlain().contains("yakın çevre") || retro.meaningPlain().contains("iletişim"));
     }
 
+    @Test
+    void shouldPersistBoundedCacheKeyForDailyTransitsCache() throws Exception {
+        LocalDate date = LocalDate.of(2026, 4, 9);
+
+        when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("42"))
+                .thenReturn(Optional.of(baseChart(baseNatalPlanets(), baseHouses())));
+        when(transitCalculator.calculateTransitPositions(any(LocalDate.class))).thenReturn(List.of(
+                planet("Mercury", false, 3),
+                planet("Venus", false, 7),
+                planet("Mars", false, 10)
+        ));
+        when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
+
+        service.getDailyTransits(42L, date, "Europe/Istanbul");
+
+        ArgumentCaptor<String> lookupVersionCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<com.mysticai.astrology.entity.DailyTransitsCache> cacheCaptor = ArgumentCaptor.forClass(com.mysticai.astrology.entity.DailyTransitsCache.class);
+
+        verify(dailyTransitsCacheRepository).findFirstByUserIdAndTransitDateAndTimezoneAndLocationVersionOrderByCreatedAtDesc(
+                eq(42L), eq(date), eq("Europe/Istanbul"), lookupVersionCaptor.capture()
+        );
+        verify(dailyTransitsCacheRepository).save(cacheCaptor.capture());
+
+        String lookupVersion = lookupVersionCaptor.getValue();
+        String savedVersion = cacheCaptor.getValue().getLocationVersion();
+
+        assertNotNull(lookupVersion);
+        assertEquals(lookupVersion, savedVersion);
+        assertTrue(savedVersion.length() <= 64);
+        assertTrue(savedVersion.startsWith("dtc-v2:"));
+    }
+
     private NatalChart baseChart(List<PlanetPosition> planets, List<HousePlacement> houses) throws Exception {
         return NatalChart.builder()
                 .id(10L)
@@ -167,6 +202,8 @@ class DailyTransitsServiceTest {
                 .name("Demo")
                 .birthDate(LocalDate.of(1995, 1, 10))
                 .birthLocation("Istanbul")
+                .latitude(41.0082)
+                .longitude(28.9784)
                 .sunSign("Capricorn")
                 .moonSign("Cancer")
                 .risingSign("Libra")

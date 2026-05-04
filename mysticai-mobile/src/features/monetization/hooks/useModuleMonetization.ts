@@ -5,7 +5,9 @@ import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
 import { getAdBlockReason } from '../providers/admobUnitIds';
 import { isAdMobAvailable } from '../providers/admobInit';
-import type { ModuleRule, ActionConfig, ActionUnlockState } from '../types';
+import { useEntitlements } from './useEntitlements';
+import { usePaywall } from './usePaywall';
+import type { ModuleRule, ActionConfig, ActionUnlockState, PremiumBehavior, EntitlementStatus } from '../types';
 
 interface ModuleMonetizationResult {
   isLoading: boolean;
@@ -20,6 +22,14 @@ interface ModuleMonetizationResult {
   adBlockReason: string | null;
   walletBalance: number;
   isPurchaseAvailable: boolean;
+  premiumActive: boolean;
+  trialing: boolean;
+  entitlementStatus: EntitlementStatus;
+  premiumBehavior?: PremiumBehavior;
+  premiumApplied?: boolean;
+  premiumCanUnlock?: boolean;
+  tokenPurchaseAvailable?: boolean;
+  rewardedAdAvailable?: boolean;
   getAction: (actionKey: string) => ActionConfig | undefined;
   getActionUnlockState: (actionKey: string) => ActionUnlockState;
   canAffordAction: (actionKey: string) => boolean;
@@ -61,16 +71,39 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
   const getExposureState = useMonetizationStore((s) => s.getExposureState);
 
   const walletBalance = useGuruWalletStore((s) => s.getBalance());
+  const { snapshot } = useEntitlements();
+  const { paywall } = usePaywall();
 
   const rule = useMemo(() => getModuleRule(moduleKey), [config, moduleKey, getModuleRule]);
   const adsEnabled = useMemo(() => isAdsEnabledForModule(moduleKey), [config, moduleKey, isAdsEnabledForModule]);
   const guruEnabled = useMemo(() => isGuruEnabledForModule(moduleKey), [config, moduleKey, isGuruEnabledForModule]);
   const shouldShowAd = useMemo(() => shouldShowAdOffer(moduleKey), [config, exposureState, moduleKey, shouldShowAdOffer]);
   const configLoaded = config !== null;
+  const premiumActive = snapshot?.premiumActive ?? paywall?.premiumActive ?? false;
+  const trialing = snapshot?.trialing ?? paywall?.trialing ?? false;
+  const entitlementStatus = (snapshot?.status ?? paywall?.entitlementStatus ?? 'NONE') as EntitlementStatus;
+  const premiumBehavior = (rule?.premiumBehavior ?? 'NO_CHANGE') as PremiumBehavior;
+  const premiumCanUnlock = Boolean(
+    premiumActive
+    && (!trialing || rule?.trialUnlockEnabled),
+  );
+  const premiumApplied = premiumCanUnlock && premiumBehavior !== 'NO_CHANGE';
+  const tokenPurchaseAvailable = Boolean(
+    paywall?.tokenPurchaseEnabled
+    || config?.guruPurchaseEnabled,
+  );
+  const adsSuppressedByPremium = Boolean(
+    premiumCanUnlock
+    && (
+      premiumBehavior === 'AD_FREE_ONLY'
+      || rule?.premiumAdFree
+      || paywall?.hideAdsForPremiumUsers
+    ),
+  );
 
   const isPurchaseAvailable = useMemo(
-    () => computePurchaseAvailable(config, rule),
-    [config, rule],
+    () => computePurchaseAvailable(config, rule) || Boolean(paywall?.tokenPurchaseEnabled && rule?.guruPurchaseEnabled),
+    [config, paywall?.tokenPurchaseEnabled, rule],
   );
 
   const adBlockReason = useMemo(
@@ -102,9 +135,12 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
     (actionKey: string) => {
       const action = getAction(actionKey, moduleKey);
       if (!action) return false;
-      return walletBalance >= action.guruCost;
+      const effectiveCost = premiumCanUnlock && premiumBehavior === 'DISCOUNT_TOKEN_COST'
+        ? Math.max(0, rule?.premiumTokenCost ?? action.guruCost)
+        : action.guruCost;
+      return walletBalance >= effectiveCost;
     },
-    [getAction, moduleKey, walletBalance],
+    [getAction, moduleKey, premiumBehavior, premiumCanUnlock, rule?.premiumTokenCost, walletBalance],
   );
 
   /** Check action-level purchase flag in addition to module/global checks */
@@ -130,7 +166,20 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
         && config?.enabled
         && config.webAdsEnabled === false,
       );
-      const unlockType = bypassMonetizationForWeb ? 'FREE' : (action?.unlockType ?? null);
+      const effectiveGuruCost = action
+        ? premiumCanUnlock && premiumBehavior === 'DISCOUNT_TOKEN_COST'
+          ? Math.max(0, rule?.premiumTokenCost ?? action.guruCost)
+          : action.guruCost
+        : 0;
+      const premiumFreeUnlock = Boolean(
+        action
+        && premiumCanUnlock
+        && (
+          premiumBehavior === 'UNLOCK_FREE'
+          || (premiumBehavior === 'DISCOUNT_TOKEN_COST' && effectiveGuruCost === 0)
+        ),
+      );
+      const unlockType = bypassMonetizationForWeb || premiumFreeUnlock ? 'FREE' : (action?.unlockType ?? null);
       const isFree = unlockType === 'FREE';
       const supportsGuru = unlockType === 'GURU_SPEND' || unlockType === 'AD_OR_GURU';
       const guruEnabledForAction = Boolean(action && supportsGuru && guruEnabled);
@@ -146,7 +195,7 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
           || action.unlockType === 'PURCHASE_ONLY'
         ),
       );
-      const adEnabledForAction = Boolean(action && supportsAd && adsEnabled);
+      const adEnabledForAction = Boolean(action && supportsAd && adsEnabled && !adsSuppressedByPremium);
       const purchaseEnabledForAction = Boolean(
         action
         && supportsPurchase
@@ -160,10 +209,12 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
         || purchaseEnabledForAction
       );
       const canAffordGuru = Boolean(action && walletBalance >= action.guruCost);
+      const canAffordEffectiveGuru = Boolean(action && walletBalance >= effectiveGuruCost);
       const rewardAmount = action?.rewardAmount && action.rewardAmount > 0
         ? action.rewardAmount
         : (rule?.guruRewardAmountPerCompletedAd ?? 0);
       const resolvedGuruCost = bypassMonetizationForWeb ? 0 : (action?.guruCost ?? 0);
+      const premiumAdjustedGuruCost = bypassMonetizationForWeb ? 0 : effectiveGuruCost;
       const resolvedRewardAmount = bypassMonetizationForWeb ? 0 : rewardAmount;
 
       return {
@@ -177,23 +228,37 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
         shouldShowAdOffer: adEnabledForAction && shouldShowAd,
         adReady: adEnabledForAction && isAdReady,
         guruEnabled: guruEnabledForAction,
-        canAffordGuru,
+        canAffordGuru: canAffordEffectiveGuru,
         purchaseEnabled: purchaseEnabledForAction,
         hasAnyUnlockOption,
         requiresAdThenGuruSpend: Boolean(
           action
           && guruEnabledForAction
-          && action.guruCost > 0
+          && premiumAdjustedGuruCost > 0
           && (
             unlockType === 'AD_OR_GURU'
             || (unlockType === 'GURU_SPEND' && action.rewardFallbackEnabled)
           )
         ),
-        guruCost: resolvedGuruCost,
+        guruCost: premiumAdjustedGuruCost || resolvedGuruCost,
         rewardAmount: resolvedRewardAmount,
       };
     },
-    [getAction, moduleKey, adsEnabled, guruEnabled, isPurchaseAvailable, walletBalance, shouldShowAd, isAdReady, rule, config],
+    [
+      getAction,
+      moduleKey,
+      adsEnabled,
+      guruEnabled,
+      isPurchaseAvailable,
+      walletBalance,
+      shouldShowAd,
+      isAdReady,
+      rule,
+      config,
+      adsSuppressedByPremium,
+      premiumBehavior,
+      premiumCanUnlock,
+    ],
   );
 
   const trackEntry = useCallback(() => {
@@ -214,6 +279,14 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
     adBlockReason,
     walletBalance,
     isPurchaseAvailable,
+    premiumActive,
+    trialing,
+    entitlementStatus,
+    premiumBehavior,
+    premiumApplied,
+    premiumCanUnlock,
+    tokenPurchaseAvailable,
+    rewardedAdAvailable: adsEnabled && isAdReady && !adsSuppressedByPremium,
     getAction: getActionForModule,
     getActionUnlockState,
     canAffordAction,

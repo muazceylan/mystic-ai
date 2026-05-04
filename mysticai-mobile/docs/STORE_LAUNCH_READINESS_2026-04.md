@@ -3,7 +3,8 @@
 Date: 2026-04-23
 Scope: First submission readiness for Apple App Store and Google Play
 App: Astro Guru
-Package / Bundle ID: `com.mysticai.app`
+Android Package ID: `com.astroguru.mmc`
+iOS Bundle ID: `com.astroguru.mmc`
 
 ## 1. Executive Summary
 
@@ -35,13 +36,13 @@ The following items still require human, backend, or store-console work before f
    - Play App Signing / upload key
    - EAS credential ownership check
 
-3. Google Play account deletion URL still needs a stronger public destination.
-   Current state:
-   - in-app deletion exists
-   - public contact page explains fallback deletion by email
-   Recommended final state:
-   - a dedicated public deletion page or self-serve deletion status page
-   - optionally a backend-authenticated web deletion endpoint for users who cannot access the app
+3. Google Play account deletion URL must be set and verified against the dedicated English public deletion page.
+   Required final value:
+   - `https://astroguru.app/en/account-deletion`
+   Required checks:
+   - the page resolves publicly in production
+   - it explains the in-app deletion path `Profile -> Permanently Delete Account`
+   - the same URL is used consistently in Play Console metadata
 
 4. Privacy Nutrition Label and Play Data Safety forms still need final manual submission in store consoles.
    This document includes draft matrices, but the final declaration must be completed by the release owner after validating live SDK behavior and backend retention policies.
@@ -62,7 +63,9 @@ The following items still require human, backend, or store-console work before f
 4. ATT-style tracking permission flow is not implemented.
    Do not declare cross-app tracking in App Store Connect unless the implementation is added later.
 
-5. Review team access is acceptable via guest quick start for broad exploration, but a dedicated registered review account is still recommended for testing authenticated and deletion-related flows.
+5. Review team access should use a two-path strategy:
+   - guest `Quick Start` for broad exploration
+   - a dedicated registered review account for authenticated, guest-blocked, and deletion-related flows
 
 ## 4. File-by-File Changes
 
@@ -160,16 +163,17 @@ Prepare the following before upload:
 - Account deletion URL or deletion help URL
 - Review notes describing:
   - guest quick start path
-  - registered account path
+  - registered reviewer account path
   - delete account path
-  - rewarded ads behavior
+  - no purchase required / Premium screen routes to Coming Soon
+  - notification and GPS/location permissions are not required for review
 - Keywords / tags that avoid child-targeting language
 - Screenshots without placeholder premium purchase language if monetization is still disabled
 - Category selection that avoids Kids / Family positioning
 
 ## 6. Apple Submission Checklist
 
-1. Confirm `com.mysticai.app` exists in App Store Connect.
+1. Confirm `com.astroguru.mmc` exists in App Store Connect.
 2. Confirm Sign in with Apple capability is enabled on the app record.
 3. Confirm bundle versioning:
    - marketing version `1.0.0`
@@ -190,24 +194,26 @@ Prepare the following before upload:
 
 ## 7. Google Play Submission Checklist
 
-1. Confirm package `com.mysticai.app` exists in Play Console.
+1. Confirm package `com.astroguru.mmc` exists in Play Console.
 2. Confirm Play App Signing and upload key ownership.
 3. Upload `aab` to Internal Testing first.
 4. Confirm target SDK satisfies current Play requirement.
 5. Confirm Data Safety answers from the matrix below.
 6. Confirm account deletion declaration:
    - in-app deletion available
-   - public deletion help URL prepared
+   - public deletion URL set to `https://astroguru.app/en/account-deletion`
 7. Confirm Ads declaration:
    - rewarded ads are present
    - not child-directed
 8. Confirm Sign in with Apple is not required on Android listing, but Google login and manual signup work.
-9. Add tester instructions for:
+9. Prepare the reviewer access package in Section 9, including:
    - Quick Start
-   - account linking
+   - seeded email/password reviewer account
+   - optional deletion test account
    - delete account
-   - rewarded token flow
-10. Run Internal Testing smoke before Closed / Production rollout.
+   - Premium screen purchase not required / Coming Soon state
+10. Run the Section 9 validation checklist against the release candidate build.
+11. Run Internal Testing smoke before Closed / Production rollout.
 
 ## 8. Privacy / Data Safety Draft Matrix
 
@@ -251,28 +257,94 @@ Prepare the following before upload:
 
 Recommended final requirement set:
 
-- Public route such as `/delete-account`
-- Clear statement that in-app deletion exists
-- Fallback form or email path for inaccessible accounts
-- Optional authenticated self-serve deletion request tied to user session
+- English public route set to `https://astroguru.app/en/account-deletion`
+- Clear statement that in-app deletion exists at `Profile -> Permanently Delete Account`
+- Fallback email path for inaccessible accounts
+- Optional authenticated self-serve deletion request tied to user session as a future enhancement
 - Confirmation / SLA language for manual requests
 
-## 9. Review Account Checklist
+## 9. Google Play Reviewer Access Package
 
-Recommended setup:
+### Summary
 
-- 1 guest review path using Quick Start
-- 1 registered email/password account
-- 1 Google-linked account
-- 1 Apple-linked account for iOS review if feasible
+Use a two-path reviewer access strategy for Google Play review:
 
-Reviewer note should mention:
+- `Quick Start` guest access from the welcome screen for broad product exploration
+- one seeded email/password reviewer account for authenticated or guest-blocked flows
 
-- Quick Start unlocks broad product exploration without signup
-- Profile contains visible Privacy Policy, Terms of Use, Support, and Delete Account actions
-- Account deletion path:
-  - Profile → Permanently Delete Account
-- Rewarded ads are optional and only grant in-app tokens, not cash value
+Do not rely on guest access alone for Play review because some advanced or premium-gated flows require a registered account.
+
+### Review Environment Accounts
+
+Primary review account:
+
+- Email: `reviewer@astroguru.app`
+- Password: enter the real password directly in Play Console and internal release checklists only; never commit it to git
+
+Optional deletion test account:
+
+- Email: `delete-test@astroguru.app`
+- Password: enter the real password directly in Play Console and internal release checklists only; never commit it to git
+
+Both accounts must be:
+
+- active and able to sign in immediately
+- fully onboarded before submission
+- free of OTP, email verification, SMS verification, 2FA, and social-login dependency
+- usable without payment, subscription, or free trial
+- stable for the full review window
+
+### Google Play App Access Note
+
+Use the following English note in `Play Console -> App content -> App access`, substituting the real password before submission:
+
+```text
+Hello Google Play review team,
+
+You can review Astro Guru using either guest access or the provided reviewer account.
+
+Guest path:
+1. Open the app.
+2. On the welcome screen, tap "Quick Start".
+3. Complete the guest onboarding flow.
+4. You will reach the main app tabs and can explore the core app experience.
+
+Reviewer account path:
+Email: reviewer@astroguru.app
+Password: <REAL_PASSWORD>
+
+Use this account for authenticated flows and screens that are blocked for guest users.
+
+Important notes:
+- No purchase is required to review this build.
+- Google Play Billing is not live in this build.
+- The Premium screen may show purchase or upgrade UI, but purchase actions currently route to a Coming Soon state.
+- Notification permission is optional and not required for the core review flow.
+- GPS/location permission is not required. Birth location is entered manually during onboarding.
+- Account deletion is available in the app from Profile -> Permanently Delete Account.
+- Web account deletion information is available at:
+  https://astroguru.app/en/account-deletion
+
+Please do not complete the final deletion action on the primary reviewer account. If deletion testing is required, use the optional deletion test account.
+```
+
+### Validation Checklist
+
+Before submission, verify in the release candidate build:
+
+- `Quick Start` is visible on the welcome screen and reaches the main app experience
+- the primary reviewer account signs in without any verification challenge
+- at least one guest-blocked premium or authenticated flow is accessible with the reviewer account
+- `Profile -> Permanently Delete Account` is visible and functional
+- the account deletion page resolves publicly at `https://astroguru.app/en/account-deletion`
+- no reviewer instruction depends on contacting support, using another device, making a purchase, or starting a free trial
+
+### Locked Defaults
+
+- the Play note is in English
+- the deletion URL uses `/en/account-deletion`
+- social login is optional for review and is not part of the required reviewer path
+- the optional deletion account exists to protect the primary reviewer account from accidental deletion
 
 ## 10. Future Monetization Note
 

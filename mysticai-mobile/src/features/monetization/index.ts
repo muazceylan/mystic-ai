@@ -9,6 +9,11 @@ export type {
   GuruLedgerEntry,
   EligibilityResult,
   AdExposureState,
+  PremiumBehavior,
+  EntitlementStatus,
+  EntitlementSnapshot,
+  PaywallProduct,
+  PaywallResponse,
 } from './types';
 
 // Stores
@@ -19,6 +24,11 @@ export { useGuruWalletStore } from './store/useGuruWalletStore';
 export { useModuleMonetization } from './hooks/useModuleMonetization';
 export { useRewardedUnlock } from './hooks/useRewardedUnlock';
 export { useGuruUnlock } from './hooks/useGuruUnlock';
+export { useEntitlements } from './hooks/useEntitlements';
+export { usePaywall } from './hooks/usePaywall';
+export { usePurchasePremium } from './hooks/usePurchasePremium';
+export { usePurchaseTokenPack } from './hooks/usePurchaseTokenPack';
+export { useRestorePurchases } from './hooks/useRestorePurchases';
 
 // Services
 export {
@@ -28,6 +38,10 @@ export {
   fetchLedger,
   checkEligibility,
   clearMonetizationCache,
+  fetchPaywall,
+  fetchEntitlements,
+  syncRevenueCatBilling,
+  restoreBilling,
 } from './api/monetization.service';
 
 // Providers
@@ -37,6 +51,7 @@ export { AdMobRewardedProvider } from './providers/AdMobRewardedProvider';
 export { initializeAdProvider } from './providers/initProvider';
 export { resolveRewardedUnitId, getAdBlockReason } from './providers/admobUnitIds';
 export { initializeAdMob, isAdMobInitialized, isAdMobAvailable } from './providers/admobInit';
+export { RevenueCatProvider } from './providers/RevenueCatProvider';
 
 // Components
 export { GuruBalanceBadge } from './components/GuruBalanceBadge';

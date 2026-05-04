@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
 import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/tokens';
 import { BottomSheet } from '../../../components/ui/BottomSheet';
@@ -8,6 +9,7 @@ import { BrandBadge } from '../../../components/ui/BrandLogo';
 import { PREMIUM_ICONS } from '../../../constants/icons';
 import { useGuruUnlock } from '../hooks/useGuruUnlock';
 import { useModuleMonetization } from '../hooks/useModuleMonetization';
+import { usePaywall } from '../hooks/usePaywall';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
@@ -37,26 +39,49 @@ export function GuruUnlockModal({
   const s = createStyles(colors);
   const { status, spendGuru, reset } = useGuruUnlock(moduleKey, actionKey);
   const monetization = useModuleMonetization(moduleKey);
+  const { paywall } = usePaywall();
   const balance = useGuruWalletStore(state => state.getBalance());
   const { getAction } = useMonetizationStore();
   const action = getAction(actionKey, moduleKey);
   const unlockState = monetization.getActionUnlockState(actionKey);
   const trackedRef = useRef(false);
 
-  const guruCost = action?.guruCost ?? 0;
-  const canAfford = balance >= guruCost;
+  const guruCost = unlockState.guruCost;
+  const canAfford = unlockState.canAffordGuru;
   const isProcessing = status === 'processing';
   const displayName = action?.displayName ?? actionKey;
+  const premiumStatusLabel = monetization.trialing
+    ? t('premium.trialActiveState')
+    : monetization.premiumActive
+      ? t('premium.activeState')
+      : null;
+  const showPremiumCta = Boolean(
+    paywall?.premiumEnabled
+    && (!paywall.premiumActive || paywall.entitlementStatus === 'TRIALING'),
+  );
+  const premiumCtaTarget = paywall?.premiumActive
+    ? 'manage'
+    : paywall?.trialEnabled && paywall?.trialEligible
+      ? 'trial'
+      : 'premium';
+  const premiumCtaLabel = paywall?.premiumActive
+    ? t('premium.activeState')
+    : paywall?.trialEnabled && paywall?.trialEligible
+      ? t('premium.startTrial')
+      : t('premium.upgrade');
 
   useEffect(() => {
     if (visible && !trackedRef.current) {
       MonetizationEvents.gateViewed(moduleKey, actionKey, canAfford ? 'can_afford' : 'insufficient');
+      if (!canAfford && unlockState.guruEnabled) {
+        MonetizationEvents.insufficientTokenModalShown(moduleKey, actionKey, 'modal');
+      }
       trackedRef.current = true;
     }
     if (!visible) {
       trackedRef.current = false;
     }
-  }, [visible, moduleKey, actionKey, canAfford]);
+  }, [visible, moduleKey, actionKey, canAfford, unlockState.guruEnabled]);
 
   useEffect(() => {
     if (status === 'success') {
@@ -65,6 +90,16 @@ export function GuruUnlockModal({
     }
   }, [status, onUnlocked, reset]);
 
+  useEffect(() => {
+    if (!visible || !unlockState.isFree) {
+      return;
+    }
+
+    onDismiss();
+    onUnlocked();
+    reset();
+  }, [onDismiss, onUnlocked, reset, unlockState.isFree, visible]);
+
   const handleSpend = useCallback(async () => {
     MonetizationEvents.tokenUnlockClicked(moduleKey, actionKey, balance, guruCost);
     const result = await spendGuru();
@@ -72,6 +107,12 @@ export function GuruUnlockModal({
       MonetizationEvents.tokenUnlockSuccess(moduleKey, actionKey, guruCost);
     }
   }, [spendGuru, moduleKey, actionKey, balance, guruCost]);
+
+  const openPremiumPaywall = useCallback(() => {
+    MonetizationEvents.premiumCtaClicked(moduleKey, actionKey, premiumCtaTarget, 'modal');
+    onDismiss();
+    router.push('/premium');
+  }, [actionKey, moduleKey, onDismiss, premiumCtaTarget]);
 
   const handleClose = useCallback(() => {
     reset();
@@ -130,7 +171,26 @@ export function GuruUnlockModal({
           </Text>
         </View>
 
-        {status === 'insufficient' && (
+        {premiumStatusLabel ? (
+          <View style={s.premiumBox}>
+            <Text
+              style={s.premiumTitle}
+              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+            >
+              {premiumStatusLabel}
+            </Text>
+            <Text
+              style={s.premiumBody}
+              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+            >
+              {monetization.premiumApplied
+                ? t('monetization.premiumAppliedHint')
+                : t('monetization.premiumAccountHint')}
+            </Text>
+          </View>
+        ) : null}
+
+        {(status === 'insufficient' || !canAfford) && (
           <View style={s.warningBox}>
             <Text
               style={s.warningText}
@@ -152,6 +212,15 @@ export function GuruUnlockModal({
                 <Button
                   title={t('monetization.guruBuyBtn')}
                   onPress={onShowPurchase}
+                  variant="outline"
+                  leftIcon={PREMIUM_ICONS.purchase}
+                  size="sm"
+                />
+              ) : null}
+              {showPremiumCta ? (
+                <Button
+                  title={premiumCtaLabel}
+                  onPress={openPremiumPaywall}
                   variant="outline"
                   leftIcon={PREMIUM_ICONS.purchase}
                   size="sm"
@@ -244,6 +313,24 @@ function createStyles(C: ThemeColors) {
       padding: SPACING.md,
       backgroundColor: C.warningBg,
       borderRadius: RADIUS.md,
+    },
+    premiumBox: {
+      marginTop: SPACING.md,
+      padding: SPACING.md,
+      backgroundColor: C.primarySoftBg,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: C.primarySoft,
+    },
+    premiumTitle: {
+      ...TYPOGRAPHY.SmallBold,
+      color: C.text,
+      marginBottom: SPACING.xs,
+    },
+    premiumBody: {
+      ...TYPOGRAPHY.Small,
+      color: C.subtext,
+      lineHeight: 20,
     },
     warningText: {
       ...TYPOGRAPHY.Small,

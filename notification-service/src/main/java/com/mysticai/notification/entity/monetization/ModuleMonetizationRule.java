@@ -96,6 +96,26 @@ public class ModuleMonetizationRule {
     @Builder.Default
     private PreviewDepthMode previewDepthMode = PreviewDepthMode.SUMMARY_ONLY;
 
+    // ─── Premium / Trial behavior (Phase 1: foundation only) ──────────
+    // Default NO_CHANGE means the active gate logic is unchanged for existing
+    // rules; FeatureAccessService will only branch on premiumBehavior when a
+    // user has an active premium / trial entitlement (Phase 4).
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private PremiumBehavior premiumBehavior = PremiumBehavior.NO_CHANGE;
+
+    @Builder.Default
+    private int premiumTokenCost = 0;
+
+    @Builder.Default
+    @JsonProperty("isPremiumAdFree")
+    private boolean premiumAdFree = false;
+
+    @Builder.Default
+    @JsonProperty("isTrialUnlockEnabled")
+    private boolean trialUnlockEnabled = false;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private RolloutStatus rolloutStatus = RolloutStatus.DISABLED;
@@ -154,5 +174,19 @@ public class ModuleMonetizationRule {
         INTERNAL_ONLY,
         PERCENTAGE_ROLLOUT,
         ENABLED
+    }
+
+    /**
+     * How this module behaves for users with an active premium / trial
+     * entitlement. NO_CHANGE preserves the existing rewarded-ad + token
+     * gate exactly. The other variants are evaluated in FeatureAccessService
+     * once entitlement support ships in Phase 4.
+     */
+    public enum PremiumBehavior {
+        NO_CHANGE,
+        UNLOCK_FREE,
+        DISCOUNT_TOKEN_COST,
+        AD_FREE_ONLY,
+        TOKEN_REQUIRED_EVEN_PREMIUM
     }
 }

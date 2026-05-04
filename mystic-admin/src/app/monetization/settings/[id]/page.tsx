@@ -134,6 +134,23 @@ export default function MonetizationSettingsDetailPage({ params }: { params: Pro
             <Controller name="isSignupBonusOneTimeOnly" control={control} render={({ field }) => <Checkbox label="Sadece Bir Kez Ver" checked={!!field.value} onChange={field.onChange} />} />
           </div>
 
+          <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+            <p className="text-xs text-gray-400 uppercase font-semibold">Premium &amp; Trial</p>
+            <p className="text-xs text-gray-500">
+              RevenueCat + entitlement akışı canlıdır. Bu alanlar paywall görünürlüğünü, free trial politikasını ve premium kullanıcıların reklam davranışını kontrol eder.
+            </p>
+            <Controller name="isPremiumEnabled" control={control} render={({ field }) => <Checkbox label="Premium Aboneliği Aktif" checked={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isTrialEnabled" control={control} render={({ field }) => <Checkbox label="Ücretsiz Deneme Aktif" checked={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isTokenPurchaseEnabled" control={control} render={({ field }) => <Checkbox label="Token Satın Alma Aktif" checked={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isRevenueCatEnabled" control={control} render={({ field }) => <Checkbox label="RevenueCat Entegrasyonu Aktif" checked={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isHideAdsForPremiumUsers" control={control} render={({ field }) => <Checkbox label="Premium Kullanıcılarda Reklamları Gizle" checked={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isAllowPremiumAndTokenTogether" control={control} render={({ field }) => <Checkbox label="Premium + Token Birlikte Satın Alınabilir" checked={!!field.value} onChange={field.onChange} />} />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Varsayılan Trial Süresi (gün)</label>
+              <Input {...register('defaultTrialDays', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Default Ad Provider</label>

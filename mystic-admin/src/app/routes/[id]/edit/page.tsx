@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -25,13 +25,13 @@ export default function EditRoutePage({ params }: { params: Promise<{ id: string
     queryFn: () => routesApi.get(Number(id)).then((r) => r.data),
   });
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<Partial<AppRoute>>();
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<Partial<AppRoute>>();
 
   useEffect(() => {
     if (route) reset(route);
   }, [route, reset]);
 
-  const path = watch('path');
+  const path = useWatch({ control, name: 'path' });
 
   const mutation = useMutation({
     mutationFn: (data: Partial<AppRoute>) => routesApi.update(Number(id), data),

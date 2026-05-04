@@ -110,14 +110,14 @@ export const MonetizationEvents = {
 
   // ── Purchase ──
   purchaseCatalogViewed: () =>
-    trackMonetizationEvent('purchase_catalog_viewed'),
+    trackMonetizationEvent('token_store_view'),
 
   purchaseClicked: (productKey: string, price?: string) =>
     trackMonetizationEvent('purchase_clicked', { product_key: productKey, price }),
 
   // ── Gate / eligibility ──
   gateViewed: (moduleKey: string, actionKey?: string, reason?: string) =>
-    trackMonetizationEvent('gate_viewed', { module_key: moduleKey, action_key: actionKey, reason }),
+    trackMonetizationEvent('gate_shown', { module_key: moduleKey, action_key: actionKey, reason }),
 
   gateSeen: (moduleKey: string, actionKey: string, gateType: 'ad' | 'guru_spend' | 'purchase') =>
     trackMonetizationEvent('gate_seen', {
@@ -131,6 +131,26 @@ export const MonetizationEvents = {
       module_key: moduleKey,
       action_key: actionKey,
       reason,
+    }),
+
+  insufficientTokenModalShown: (moduleKey: string, actionKey: string, source: 'sheet' | 'modal') =>
+    trackMonetizationEvent('insufficient_token_modal_shown', {
+      module_key: moduleKey,
+      action_key: actionKey,
+      source,
+    }),
+
+  premiumCtaClicked: (
+    moduleKey: string,
+    actionKey: string | undefined,
+    target: 'trial' | 'premium' | 'manage',
+    source: 'sheet' | 'modal' | 'quick_bar',
+  ) =>
+    trackMonetizationEvent('premium_cta_clicked', {
+      module_key: moduleKey,
+      action_key: actionKey,
+      target,
+      source,
     }),
 
   // ── Module entry ──

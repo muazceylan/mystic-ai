@@ -107,6 +107,25 @@ auth:
       batch-size: ${SIGNUP_BONUS_SCHEDULER_BATCH_SIZE:100}
   mail:
     from: ${MAIL_FROM:no-reply@mysticai.local}
+  reviewer-seed:
+    enabled: ${AUTH_REVIEWER_SEED_ENABLED:false}
+    primary:
+      email: ${AUTH_REVIEWER_SEED_PRIMARY_EMAIL:}
+      password: ${AUTH_REVIEWER_SEED_PRIMARY_PASSWORD:}
+    deletion:
+      email: ${AUTH_REVIEWER_SEED_DELETION_EMAIL:}
+      password: ${AUTH_REVIEWER_SEED_DELETION_PASSWORD:}
+    profile:
+      birth-date: ${AUTH_REVIEWER_SEED_BIRTH_DATE:1992-08-17}
+      birth-time: ${AUTH_REVIEWER_SEED_BIRTH_TIME:}
+      birth-time-unknown: ${AUTH_REVIEWER_SEED_BIRTH_TIME_UNKNOWN:true}
+      birth-country: ${AUTH_REVIEWER_SEED_BIRTH_COUNTRY:TR}
+      birth-city: ${AUTH_REVIEWER_SEED_BIRTH_CITY:Istanbul}
+      birth-location: ${AUTH_REVIEWER_SEED_BIRTH_LOCATION:Istanbul, TR}
+      timezone: ${AUTH_REVIEWER_SEED_TIMEZONE:Europe/Istanbul}
+      gender: ${AUTH_REVIEWER_SEED_GENDER:WOMAN}
+      marital-status: ${AUTH_REVIEWER_SEED_MARITAL_STATUS:SINGLE}
+      preferred-language: ${AUTH_REVIEWER_SEED_PREFERRED_LANGUAGE:en}
 
 management:
   endpoints:

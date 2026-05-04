@@ -51,7 +51,7 @@ Firebase iOS SDK requires static frameworks. This is configured via:
 
 | Platform | File | Status |
 |----------|------|--------|
-| Android | `google-services.json` | In repo, verified: project `astro-guru-57921`, package `com.mysticai.app` |
+| Android | `google-services.json` | In repo, verified: project `astro-guru-57921`, package `com.astroguru.mmc` |
 | iOS | `GoogleService-Info.plist` | **NOT YET IN REPO** — must download from Firebase Console |
 
 ### Android (verified)
@@ -68,7 +68,7 @@ Firebase iOS SDK requires static frameworks. This is configured via:
 ### iOS (setup required)
 
 1. Go to [Firebase Console](https://console.firebase.google.com/) → Project `astro-guru-57921`
-2. Add an iOS app with bundle ID `com.mysticai.app` (if not already added)
+2. Add an iOS app with bundle ID `com.astroguru.mmc` (if not already added)
 3. Download `GoogleService-Info.plist`
 4. Place it at `mysticai-mobile/GoogleService-Info.plist`
 5. Rebuild: `eas build --profile development --platform ios`
@@ -249,7 +249,7 @@ eas build --profile development --platform ios
 
 ```bash
 # Enable (persists until disabled)
-adb shell setprop debug.firebase.analytics.app com.mysticai.app
+adb shell setprop debug.firebase.analytics.app com.astroguru.mmc
 
 # Disable when done
 adb shell setprop debug.firebase.analytics.app .none.

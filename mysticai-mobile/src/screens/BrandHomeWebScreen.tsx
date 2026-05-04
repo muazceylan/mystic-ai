@@ -18,12 +18,10 @@ const SEO_LINKS = [
   { label: 'Blog', path: '/blog' },
 ] as const;
 
-const FEATURE_PILLS = [
-  'Kisiye ozel astroloji',
-  'Numeroloji ve isim yorumu',
-  'Ruya analizi',
-  'Gunluk kozmik rehberlik',
-] as const;
+const FEATURE_PILLS = {
+  en: ['Personal astrology', 'Numerology and name insights', 'Dream analysis', 'Daily cosmic guidance'],
+  tr: ['Kisiye ozel astrolojik analiz', 'Numeroloji ve isim analizi', 'Ruya sembolleri ve yorumlari', 'Gunluk kozmik rehberlik'],
+} as const;
 
 export default function BrandHomeWebScreen() {
   const { colors } = useTheme();
@@ -36,11 +34,11 @@ export default function BrandHomeWebScreen() {
   const pageTitle =
     locale === 'en'
       ? 'AstroGuru | Astrology, Numerology and Spiritual Guidance App'
-      : 'AstroGuru | Astroloji, Numeroloji ve Ruhsal Rehberlik Uygulamasi';
+      : 'AstroGuru | Astroloji, Numeroloji ve Spirituel Rehberlik Uygulamasi';
   const description =
     locale === 'en'
       ? 'Discover daily astrology, numerology, dream insights and spiritual guidance with AstroGuru.'
-      : 'AstroGuru ile gunluk astroloji, numeroloji, ruya yorumu ve spirituel rehberlik deneyimini kesfet.';
+      : 'AstroGuru ile gunluk astroloji, numeroloji, ruya yorumu ve spirituel rehberlige tek yerden ulas.';
   const organizationJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -113,16 +111,16 @@ export default function BrandHomeWebScreen() {
             <Text style={styles.title}>
               {locale === 'en'
                 ? 'Your daily astrology, numerology and spiritual guidance companion.'
-                : 'Gunluk astroloji, numeroloji ve ruhsal rehberlik icin tek uygulama.'}
+                : 'Gunluk astrolojik yorumlar, numeroloji analizi ve spirituel rehberligi tek merkezde sunan kisisel rehberiniz.'}
             </Text>
             <Text style={styles.subtitle}>
               {locale === 'en'
                 ? 'Open the app, explore premium guidance, and dive deeper with our editorial hub.'
-                : 'Uygulamayi ac, gunluk kozmik yorumlarini takip et ve detayli iceriklere bilgi merkezinden ulas.'}
+                : 'Gunluk gokevi etkilerinden numerolojik temalara, ruya sembollerinden uzman iceriklere kadar uzanan AstroGuru deneyimine uygulama ve bilgi merkezi uzerinden eris.'}
             </Text>
 
             <View style={styles.pillRow}>
-              {FEATURE_PILLS.map((pill) => (
+              {FEATURE_PILLS[locale].map((pill) => (
                 <View key={pill} style={styles.pill}>
                   <Text style={styles.pillText}>{pill}</Text>
                 </View>
@@ -134,7 +132,7 @@ export default function BrandHomeWebScreen() {
                 <Pressable style={styles.primaryCta}>
                   <Ionicons name="sparkles-outline" size={18} color={colors.white} />
                   <Text style={styles.primaryCtaText}>
-                    {locale === 'en' ? 'Open AstroGuru' : 'AstroGuru Uygulamasini Ac'}
+                    {locale === 'en' ? 'Open AstroGuru' : "AstroGuru'yu Ac"}
                   </Text>
                 </Pressable>
               </Link>
@@ -147,7 +145,7 @@ export default function BrandHomeWebScreen() {
               >
                 <Ionicons name="download-outline" size={18} color={colors.primary} />
                 <Text style={styles.secondaryCtaText}>
-                  {locale === 'en' ? 'Download or Continue' : 'Indir veya Devam Et'}
+                  {locale === 'en' ? 'Download or Continue' : 'Indir veya Webde Devam Et'}
                 </Text>
               </Pressable>
             </View>
@@ -155,20 +153,20 @@ export default function BrandHomeWebScreen() {
 
           <View style={styles.heroCard}>
             <Text style={styles.cardTitle}>
-              {locale === 'en' ? 'What users come here for' : 'Kullanicilar burada ne buluyor'}
+              {locale === 'en' ? 'What users come here for' : 'Kullanicilarin en cok yararlandigi alanlar'}
             </Text>
             <View style={styles.cardList}>
               <FeatureRow
                 icon="planet-outline"
-                text={locale === 'en' ? 'Daily astrological themes and moon guidance' : 'Gunluk astrolojik temalar ve ay rehberligi'}
+                text={locale === 'en' ? 'Daily astrological themes and moon guidance' : 'Gunluk gezegen etkileri, ay fazlari ve astrolojik odaklar'}
               />
               <FeatureRow
                 icon="apps-outline"
-                text={locale === 'en' ? 'Compatibility, dreams and numerology insights' : 'Uyum analizi, ruya yorumu ve numeroloji icerikleri'}
+                text={locale === 'en' ? 'Compatibility, dreams and numerology insights' : 'Uyum analizi, ruya sembolleri ve numeroloji icgoruleri'}
               />
               <FeatureRow
                 icon="newspaper-outline"
-                text={locale === 'en' ? 'Long-form explainers in the info hub' : 'Bilgi merkezinde uzun form astroloji ve spirituel rehberler'}
+                text={locale === 'en' ? 'Long-form explainers in the info hub' : 'Bilgi merkezinde derinlesmesine astroloji ve spirituel rehberler'}
               />
             </View>
           </View>
@@ -176,18 +174,18 @@ export default function BrandHomeWebScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {locale === 'en' ? 'Read before you dive in' : 'Kesfetmeye baslamadan once'}
+            {locale === 'en' ? 'Read before you dive in' : 'Baslamadan once goz atin'}
           </Text>
           <Text style={styles.sectionBody}>
             {locale === 'en'
               ? 'Our editorial hub helps new users understand each feature while the main app stays focused on personal guidance.'
-              : 'Bilgi merkezi yeni kullanicilarin ozellikleri anlamasina yardim eder; ana uygulama ise kisisel rehberlige odaklanir.'}
+              : 'Bilgi merkezi, AstroGuru deneyimindeki modulleri ve yorum yaklasimini aciklar; uygulama ise kisisel analiz ve gunluk rehberlige odaklanir.'}
           </Text>
           <View style={styles.linkGrid}>
             {SEO_LINKS.map((entry) => {
               const href = `${infoBaseUrl}${entry.path}`;
               return (
-                <Link key={entry.path} href={href} asChild>
+                <Link key={entry.path} href={href as any} asChild>
                   <Pressable style={styles.linkCard}>
                     <Text style={styles.linkCardTitle}>{entry.label}</Text>
                     <Text style={styles.linkCardHref}>{href.replace(/^https?:\/\//, '')}</Text>
@@ -200,7 +198,7 @@ export default function BrandHomeWebScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {locale === 'en' ? 'Need legal or support info?' : 'Yasal veya destek bilgisi mi lazim?'}
+            {locale === 'en' ? 'Need legal or support info?' : 'Yasal metinler ve destek kanallari'}
           </Text>
           <View style={styles.footerLinks}>
             <Link href="/privacy" asChild>
@@ -211,6 +209,11 @@ export default function BrandHomeWebScreen() {
             <Link href="/terms" asChild>
               <Pressable style={styles.footerLink}>
                 <Text style={styles.footerLinkText}>{locale === 'en' ? 'Terms' : 'Kullanim Sartlari'}</Text>
+              </Pressable>
+            </Link>
+            <Link href={"/account-deletion" as any} asChild>
+              <Pressable style={styles.footerLink}>
+                <Text style={styles.footerLinkText}>{locale === 'en' ? 'Account Deletion' : 'Hesap Silme'}</Text>
               </Pressable>
             </Link>
             <Pressable

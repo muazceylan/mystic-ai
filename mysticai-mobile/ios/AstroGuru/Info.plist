@@ -30,7 +30,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>mystic-ai</string>
-          <string>com.mysticai.app</string>
+          <string>com.astroguru.mmc</string>
         </array>
       </dict>
       <dict>

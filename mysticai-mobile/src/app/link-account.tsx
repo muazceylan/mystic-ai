@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,12 @@ import { SafeScreen } from '../components/ui';
 import { ActionModal } from '../components/auth';
 import { useAuthStore } from '../store/useAuthStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
-import { linkAccountWithSocial, linkAccountWithEmail, verifyLinkAccountOtp } from '../services/auth';
+import {
+  checkEmailGet,
+  linkAccountWithSocial,
+  linkAccountWithEmail,
+  verifyLinkAccountOtp,
+} from '../services/auth';
 import { trackEvent } from '../services/analytics';
 import { WEB_INPUT_RESET_STYLE } from '../utils/webInputReset';
 
@@ -74,8 +79,20 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       flexDirection: 'row',
       alignItems: 'center',
     },
+    inputError: { borderColor: colors.error ?? '#e53935' },
     input: { flex: 1, paddingVertical: 14, paddingHorizontal: 16, fontSize: 16, color: colors.text },
     eyeButton: { paddingHorizontal: 14, paddingVertical: 14 },
+    emailFeedback: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: -2,
+    },
+    emailFeedbackText: {
+      fontSize: 12,
+      color: colors.subtext,
+      flex: 1,
+    },
     policyText: { fontSize: 12, color: colors.subtext, marginTop: -4 },
     submitButton: {
       backgroundColor: colors.primary,
@@ -121,6 +138,22 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
 
 // Must match PasswordPolicy.STRONG_PASSWORD_REGEX on the server
 const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'error';
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+async function fetchEmailAvailability(email: string): Promise<boolean | null> {
+  try {
+    const response = await checkEmailGet(email);
+    return Boolean(response.data?.available);
+  } catch {
+    return null;
+  }
+}
 
 export default function LinkAccountScreen() {
   const { t } = useTranslation();
@@ -134,6 +167,8 @@ export default function LinkAccountScreen() {
   const [firstName, setFirstName] = useState(savedFirstName || '');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -143,6 +178,7 @@ export default function LinkAccountScreen() {
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [otpCode, setOtpCode] = useState('');
   const otpInputRef = useRef<TextInput>(null);
+  const emailCheckRequestIdRef = useRef(0);
 
   const redirectUri = makeRedirectUri({ path: 'oauth2/callback', scheme: 'mystic-ai' });
   const [, , googlePromptAsync] = Google.useIdTokenAuthRequest({
@@ -156,10 +192,81 @@ export default function LinkAccountScreen() {
 
   const isFormValid = firstName.trim().length > 0 && email.trim().length > 0 && STRONG_PASSWORD_RE.test(password);
   const isOtpValid = otpCode.length === 6;
+  const normalizedEmail = normalizeEmail(email);
+
+  useEffect(() => {
+    if (step !== 'form') return;
+
+    const requestId = ++emailCheckRequestIdRef.current;
+    if (!normalizedEmail) {
+      setEmailStatus('idle');
+      setEmailError(null);
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      setEmailStatus('idle');
+      setEmailError(null);
+      return;
+    }
+
+    setEmailStatus('checking');
+    const timeoutId = setTimeout(async () => {
+      const available = await fetchEmailAvailability(normalizedEmail);
+      if (emailCheckRequestIdRef.current !== requestId) return;
+
+      if (available === null) {
+        setEmailStatus('error');
+        return;
+      }
+
+      setEmailStatus(available ? 'available' : 'taken');
+      setEmailError(available ? null : t('linkAccount.emailConflict'));
+    }, 450);
+
+    return () => clearTimeout(timeoutId);
+  }, [normalizedEmail, step, t]);
 
   const navigateToHome = () => {
     setShowSuccessModal(false);
     router.replace('/(tabs)/home');
+  };
+
+  const renderEmailFeedback = () => {
+    if (!normalizedEmail) return null;
+
+    if (emailError) {
+      return (
+        <View style={styles.emailFeedback}>
+          <Ionicons name="close-circle" size={16} color={colors.error ?? '#e53935'} />
+          <Text style={[styles.emailFeedbackText, { color: colors.error ?? '#e53935' }]}>
+            {emailError}
+          </Text>
+        </View>
+      );
+    }
+
+    if (emailStatus === 'checking') {
+      return (
+        <View style={styles.emailFeedback}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.emailFeedbackText}>{t('emailRegister.checking')}</Text>
+        </View>
+      );
+    }
+
+    if (emailStatus === 'available') {
+      return (
+        <View style={styles.emailFeedback}>
+          <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+          <Text style={[styles.emailFeedbackText, { color: colors.success }]}>
+            {t('emailRegister.available')}
+          </Text>
+        </View>
+      );
+    }
+
+    return null;
   };
 
   // ─── Social linking (unchanged) ────────────────────────────────────────────
@@ -219,9 +326,17 @@ export default function LinkAccountScreen() {
     if (!isFormValid || loading) return;
     setLoading(true);
     try {
+      if (!EMAIL_REGEX.test(normalizedEmail)) {
+        const invalidEmailMessage = t('auth.invalidEmail');
+        setEmailStatus('idle');
+        setEmailError(invalidEmailMessage);
+        Alert.alert(t('common.error'), invalidEmailMessage);
+        return;
+      }
+
       trackEvent('link_account_started', { user_type: 'GUEST', auth_provider: 'EMAIL', entry_point: 'link_account_screen' });
       await linkAccountWithEmail({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim() || undefined,
@@ -230,7 +345,11 @@ export default function LinkAccountScreen() {
       setTimeout(() => otpInputRef.current?.focus(), 300);
     } catch (error: any) {
       const message = error?.response?.data?.message ?? '';
-      if (message === 'EMAIL_ALREADY_REGISTERED') Alert.alert(t('common.error'), t('linkAccount.emailConflict'));
+      if (message === 'EMAIL_ALREADY_REGISTERED') {
+        setEmailStatus('taken');
+        setEmailError(t('linkAccount.emailConflict'));
+        Alert.alert(t('common.error'), t('linkAccount.emailConflict'));
+      }
       else if (message === 'ACCOUNT_ALREADY_LINKED') Alert.alert(t('common.error'), t('linkAccount.alreadyLinked'));
       else if (message === 'PASSWORD_WEAK' || message.includes('WEAK')) Alert.alert(t('common.error'), t('security.passwordPolicyError'));
       else Alert.alert(t('common.error'), t('linkAccount.genericError'));
@@ -360,13 +479,17 @@ export default function LinkAccountScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputContainer}>
+                <View style={[styles.inputContainer, emailError && styles.inputError]}>
                   <TextInput
                     style={[styles.input, WEB_INPUT_RESET_STYLE]}
                     placeholder={t('linkAccount.emailPlaceholder')}
                     placeholderTextColor={colors.subtext}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      setEmailStatus('idle');
+                      if (emailError) setEmailError(null);
+                    }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -374,6 +497,8 @@ export default function LinkAccountScreen() {
                     accessibilityLabel={t('linkAccount.emailLabel')}
                   />
                 </View>
+
+                {renderEmailFeedback()}
 
                 <View style={styles.inputContainer}>
                   <TextInput
@@ -387,12 +512,27 @@ export default function LinkAccountScreen() {
                     editable={!loading}
                     accessibilityLabel={t('linkAccount.passwordLabel')}
                   />
-                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)} accessibilityRole="button" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.subtext} />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                    accessibilityRole="button"
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.subtext}
+                    />
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.policyText, password.length > 0 && !STRONG_PASSWORD_RE.test(password) && { color: colors.error ?? '#e53935' }]}>
+                <Text
+                  style={[
+                    styles.policyText,
+                    password.length > 0 &&
+                      !STRONG_PASSWORD_RE.test(password) && { color: colors.error ?? '#e53935' },
+                  ]}
+                >
                   {t('linkAccount.passwordPolicy')}
                 </Text>
 
@@ -402,7 +542,12 @@ export default function LinkAccountScreen() {
                   onPress={handleEmailSubmit}
                   accessibilityRole="button"
                 >
-                  <Text style={[styles.submitButtonText, (!isFormValid || loading) && styles.submitButtonTextDisabled]}>
+                  <Text
+                    style={[
+                      styles.submitButtonText,
+                      (!isFormValid || loading) && styles.submitButtonTextDisabled,
+                    ]}
+                  >
                     {loading ? t('linkAccount.submitting') : t('linkAccount.submit')}
                   </Text>
                 </TouchableOpacity>

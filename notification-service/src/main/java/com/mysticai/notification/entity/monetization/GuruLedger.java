@@ -81,6 +81,10 @@ public class GuruLedger {
         GURU_PURCHASE,
         ADMIN,
         SYSTEM,
-        PROMOTIONAL
+        PROMOTIONAL,
+        /** Token grant from a verified store / RevenueCat consumable purchase. */
+        PURCHASE_IAP,
+        /** Reversal of a previous PURCHASE_IAP credit (refund / revocation). */
+        PURCHASE_REFUND_REVERSAL
     }
 }

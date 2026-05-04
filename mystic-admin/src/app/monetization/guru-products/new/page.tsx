@@ -23,6 +23,9 @@ interface FormData {
   currency: string;
   iosProductId: string;
   androidProductId: string;
+  revenueCatProductId: string;
+  entitlementKey: string;
+  trialDurationDays: number;
   isEnabled: boolean;
   sortOrder: number;
   badge: string;
@@ -55,6 +58,9 @@ export default function NewGuruProductPage() {
       currency: 'TRY',
       iosProductId: '',
       androidProductId: '',
+      revenueCatProductId: '',
+      entitlementKey: '',
+      trialDurationDays: 0,
       isEnabled: true,
       sortOrder: 0,
       badge: '',
@@ -87,10 +93,12 @@ export default function NewGuruProductPage() {
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Product Type *</label>
               <Select {...register('productType')}>
-                <option value="CONSUMABLE">CONSUMABLE</option>
-                <option value="BUNDLE">BUNDLE</option>
-                <option value="SUBSCRIPTION_BONUS">SUBSCRIPTION_BONUS</option>
-                <option value="PROMOTIONAL">PROMOTIONAL</option>
+                <option value="CONSUMABLE">CONSUMABLE — token paketi</option>
+                <option value="BUNDLE">BUNDLE — token bundle</option>
+                <option value="PROMOTIONAL">PROMOTIONAL — kampanya</option>
+                <option value="SUBSCRIPTION">SUBSCRIPTION — premium abonelik</option>
+                <option value="NON_CONSUMABLE">NON_CONSUMABLE — tek seferlik unlock</option>
+                <option value="SUBSCRIPTION_BONUS">SUBSCRIPTION_BONUS — legacy</option>
               </Select>
             </div>
           </div>
@@ -137,6 +145,27 @@ export default function NewGuruProductPage() {
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Android Product ID</label>
               <Input {...register('androidProductId')} className="font-mono" placeholder="guru_50" />
+            </div>
+          </div>
+
+          <div className="border border-gray-700 rounded-lg p-4 space-y-4">
+            <p className="text-xs text-gray-400 uppercase font-semibold">Subscription / RevenueCat</p>
+            <p className="text-xs text-gray-500">
+              RevenueCat offering eşleşmesi için `revenueCatProductId` mağaza ürünleriyle uyumlu olmalıdır. Token ürünlerini premium entitlement&apos;a bağlamayın.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">RevenueCat Product ID</label>
+              <Input {...register('revenueCatProductId')} className="font-mono" placeholder="astroguru_premium_monthly" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Entitlement Key</label>
+                <Input {...register('entitlementKey')} className="font-mono" placeholder="premium" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Trial Süresi (gün)</label>
+                <Input {...register('trialDurationDays', { valueAsNumber: true })} type="number" min={0} />
+              </div>
             </div>
           </div>
 

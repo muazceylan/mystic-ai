@@ -92,8 +92,9 @@ export function MonetizationQuickBar({ style }: MonetizationQuickBarProps) {
     || rewardStatus === 'processing_reward';
   const rewardAmount = monetization.rule?.guruRewardAmountPerCompletedAd ?? 1;
   const showPackagesEntry = Boolean(config?.guruEnabled || (config?.products?.length ?? 0) > 0);
-  const showFreeEntry = Boolean(rewardModuleKey && (config?.adsEnabled || monetization.adsEnabled));
-  const canEarnFreeGuru = Boolean(rewardModuleKey && monetization.adsEnabled && monetization.isAdReady);
+  const showFreeEntry = Boolean(rewardModuleKey && monetization.rewardedAdAvailable);
+  const canEarnFreeGuru = Boolean(rewardModuleKey && monetization.rewardedAdAvailable && monetization.isAdReady);
+  const premiumBadgeLabel = monetization.trialing ? 'TRIAL' : monetization.premiumActive ? 'PREMIUM' : null;
 
   if (!showPackagesEntry && !showFreeEntry) {
     return null;
@@ -139,6 +140,12 @@ export function MonetizationQuickBar({ style }: MonetizationQuickBarProps) {
             <View style={styles.balanceBadge}>
               <Text style={styles.balanceBadgeText}>{monetization.walletBalance}</Text>
             </View>
+
+            {premiumBadgeLabel ? (
+              <View style={styles.premiumBadge}>
+                <Text style={styles.premiumBadgeText}>{premiumBadgeLabel}</Text>
+              </View>
+            ) : null}
           </View>
         </Pressable>
       ) : null}
@@ -260,6 +267,27 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       fontWeight: '900',
       color: colors.white,
       letterSpacing: -0.2,
+    },
+    premiumBadge: {
+      position: 'absolute',
+      bottom: -5,
+      left: -4,
+      minWidth: 34,
+      paddingHorizontal: 6,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: '#111827',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    premiumBadgeText: {
+      fontSize: 7,
+      lineHeight: 8,
+      fontWeight: '900',
+      color: colors.white,
+      letterSpacing: 0.4,
     },
     freeOrb: {
       width: 42,

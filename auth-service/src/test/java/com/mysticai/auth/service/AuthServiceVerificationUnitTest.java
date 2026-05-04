@@ -289,6 +289,93 @@ class AuthServiceVerificationUnitTest {
         assertThat(savedUserCaptor.getValue().getPassword()).isEqualTo("encoded-social-password");
     }
 
+    @Test
+    void deleteAccount_anonymizesLoginIdentifiersForDeletedSocialUser() {
+        User user = User.builder()
+                .id(44L)
+                .email("rejoin@example.com")
+                .username("rejoin@example.com")
+                .provider("google")
+                .socialId("social-123")
+                .avatarPath("avatars/44.png")
+                .accountStatus(AccountStatus.ACTIVE)
+                .enabled(true)
+                .hasLocalPassword(false)
+                .build();
+
+        when(userRepository.findById(44L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        authService.deleteAccount(44L, null);
+
+        assertThat(user.getAccountStatus()).isEqualTo(AccountStatus.DELETED);
+        assertThat(user.isEnabled()).isFalse();
+        assertThat(user.getEmail()).isEqualTo("deleted_44_rejoin@example.com");
+        assertThat(user.getUsername()).isEqualTo("deleted_44_rejoin@example.com");
+        assertThat(user.getProvider()).isNull();
+        assertThat(user.getSocialId()).isNull();
+        assertThat(user.getAvatarPath()).isNull();
+        verify(linkAccountOtpRepository).deleteAllByUserId(44L);
+    }
+
+    @Test
+    void socialLogin_afterDeleteAccount_createsFreshUserInsteadOfRevivingOldOne() {
+        User deletedUser = User.builder()
+                .id(44L)
+                .email("rejoin@example.com")
+                .username("rejoin@example.com")
+                .provider("google")
+                .socialId("social-123")
+                .accountStatus(AccountStatus.ACTIVE)
+                .enabled(true)
+                .hasLocalPassword(false)
+                .build();
+
+        SocialLoginRequest request = new SocialLoginRequest("google", "google-id-token");
+        SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
+                "social-123",
+                "rejoin@example.com",
+                "Re",
+                "Join"
+        );
+
+        when(userRepository.findById(44L)).thenReturn(Optional.of(deletedUser));
+        when(userRepository.findByProviderAndSocialId("google", "social-123")).thenAnswer(invocation -> {
+            if ("google".equals(deletedUser.getProvider()) && "social-123".equals(deletedUser.getSocialId())) {
+                return Optional.of(deletedUser);
+            }
+            return Optional.empty();
+        });
+        when(userRepository.findByEmailIgnoreCase("rejoin@example.com")).thenAnswer(invocation -> {
+            if ("rejoin@example.com".equalsIgnoreCase(deletedUser.getEmail())) {
+                return Optional.of(deletedUser);
+            }
+            return Optional.empty();
+        });
+        when(userRepository.existsByUsernameIgnoreCase("rejoin@example.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0, User.class);
+            if (saved != deletedUser && saved.getId() == null) {
+                saved.setId(501L);
+            }
+            return saved;
+        });
+        when(socialTokenVerifier.verifyGoogleToken("google-id-token")).thenReturn(socialUser);
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-social-password");
+        when(jwtTokenProvider.generateToken(anyLong(), any(String.class), any(String.class), any(UserType.class)))
+                .thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
+
+        authService.deleteAccount(44L, null);
+        LoginResponse response = authService.socialLogin(request);
+
+        assertThat(deletedUser.getAccountStatus()).isEqualTo(AccountStatus.DELETED);
+        assertThat(response.isNewUser()).isTrue();
+        assertThat(response.user().id()).isEqualTo(501L);
+        assertThat(response.user().email()).isEqualTo("rejoin@example.com");
+        verify(signupBonusSyncService).scheduleSignupBonus(any(User.class), eq("SOCIAL_GOOGLE"));
+    }
+
     // ─── verifyEmailOtp tests ────────────────────────────────────────────────
 
     @Test

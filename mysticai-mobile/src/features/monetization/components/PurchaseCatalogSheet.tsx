@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import i18n from 'i18next';
@@ -17,11 +16,11 @@ import { BottomSheet } from '../../../components/ui/BottomSheet';
 import { Button } from '../../../components/ui/Button';
 import { BrandBadge } from '../../../components/ui/BrandLogo';
 import { PREMIUM_ICONS } from '../../../constants/icons';
-import { useMonetizationStore } from '../store/useMonetizationStore';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
-import { processPurchase } from '../api/monetization.service';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
-import type { GuruProduct } from '../types';
+import { usePaywall } from '../hooks/usePaywall';
+import { usePurchaseTokenPack } from '../hooks/usePurchaseTokenPack';
+import type { ResolvedPaywallProduct } from '../types/billing';
 
 interface PurchaseCatalogSheetProps {
   visible: boolean;
@@ -32,17 +31,17 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
   const { t } = useTranslation();
   const { colors } = useTheme();
   const s = createStyles(colors);
-  const config = useMonetizationStore((state) => state.config);
   const balance = useGuruWalletStore((state) => state.getBalance());
-  const loadWallet = useGuruWalletStore((state) => state.loadWallet);
+  const { paywall, tokenProducts, canPurchaseTokens, revenueCatDisabledReason } = usePaywall();
+  const purchaseTokenPack = usePurchaseTokenPack();
   const trackedRef = useRef(false);
   const [purchasingKey, setPurchasingKey] = useState<string | null>(null);
 
   const products = useMemo(
-    () => [...(config?.products ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
-    [config?.products],
+    () => [...tokenProducts].sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0)),
+    [tokenProducts],
   );
-  const isPurchaseEnabled = config?.guruPurchaseEnabled ?? false;
+  const isPurchaseEnabled = canPurchaseTokens && Boolean(paywall?.tokenPurchaseEnabled);
 
   useEffect(() => {
     if (visible && !trackedRef.current) {
@@ -55,28 +54,35 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
     }
   }, [visible]);
 
-  const handlePurchase = async (product: GuruProduct) => {
+  const handlePurchase = async (product: ResolvedPaywallProduct) => {
     if (!isPurchaseEnabled || purchasingKey) return;
 
-    const totalGuru = product.guruAmount + product.bonusGuruAmount;
+    const totalGuru = (product.tokenAmount ?? 0) + (product.bonusTokenAmount ?? 0);
     try {
       setPurchasingKey(product.productKey);
-      MonetizationEvents.purchaseClicked(product.productKey, product.price);
+      MonetizationEvents.purchaseClicked(product.productKey, product.localizedPrice ?? product.price ?? undefined);
 
-      await processPurchase({
-        guruAmount: totalGuru,
-        productKey: product.productKey,
-        platform: Platform.OS,
-        locale: i18n.language,
-        idempotencyKey: `purchase_${product.productKey}_${Date.now()}`,
-      });
+      const result = await purchaseTokenPack.purchaseTokenPack(product);
+      if (result.status === 'success') {
+        onDismiss();
+        Alert.alert(
+          t('monetization.packageAddedTitle'),
+          t('monetization.packageAddedBody', { count: totalGuru }),
+        );
+        return;
+      }
 
-      await loadWallet();
-      onDismiss();
-      Alert.alert(
-        t('monetization.packageAddedTitle'),
-        t('monetization.packageAddedBody', { count: totalGuru }),
-      );
+      if (result.status === 'pending_backend') {
+        Alert.alert(
+          t('premium.pendingTitle'),
+          t('premium.pendingTokenBody'),
+        );
+        return;
+      }
+
+      if (result.status === 'cancelled') {
+        return;
+      }
     } catch {
       Alert.alert(
         t('monetization.purchaseFailedTitle'),
@@ -137,8 +143,8 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
     </View>
   );
 
-  const renderProduct = ({ item }: { item: GuruProduct }) => {
-    const totalGuru = item.guruAmount + item.bonusGuruAmount;
+  const renderProduct = ({ item }: { item: ResolvedPaywallProduct }) => {
+    const totalGuru = (item.tokenAmount ?? 0) + (item.bonusTokenAmount ?? 0);
     const isProcessing = purchasingKey === item.productKey;
 
     return (
@@ -191,9 +197,9 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
                 numberOfLines={2}
               >
-                {item.bonusGuruAmount > 0
-                  ? t('monetization.bonusGuru', { count: item.bonusGuruAmount })
-                  : item.description || t('monetization.packageFallbackDescription', { count: item.guruAmount })}
+                {(item.bonusTokenAmount ?? 0) > 0
+                  ? t('monetization.bonusGuru', { count: item.bonusTokenAmount ?? 0 })
+                  : item.description || t('monetization.packageFallbackDescription', { count: item.tokenAmount ?? 0 })}
               </Text>
             </View>
           </View>
@@ -209,7 +215,7 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
           ) : null}
 
           <Button
-            title={item.price ? `${item.price} ${item.currency}` : t('monetization.buy')}
+            title={item.localizedPrice || item.price || t('monetization.buy')}
             onPress={() => {
               void handlePurchase(item);
             }}
@@ -217,7 +223,7 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
             size="md"
             style={s.purchaseButton}
             loading={isProcessing}
-            disabled={!isPurchaseEnabled || isProcessing}
+            disabled={!isPurchaseEnabled || isProcessing || !item.availableForPurchase}
           />
         </View>
       </TouchableOpacity>
@@ -238,7 +244,9 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
             style={s.noticeText}
             maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
           >
-            {t('monetization.purchaseDisabledBody')}
+            {revenueCatDisabledReason === 'offerings_unavailable'
+              ? t('premium.offeringsUnavailableMessage')
+              : t('monetization.purchaseDisabledBody')}
           </Text>
         </View>
       ) : products.length === 0 ? (

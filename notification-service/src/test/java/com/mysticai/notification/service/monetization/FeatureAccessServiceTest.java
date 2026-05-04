@@ -44,6 +44,7 @@ class FeatureAccessServiceTest {
     @Mock GuruWalletRepository walletRepository;
     @Mock GuruLedgerRepository ledgerRepository;
     @Mock GuruWalletService guruWalletService;
+    @Mock EntitlementService entitlementService;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) MeterRegistry meterRegistry;
 
     @InjectMocks FeatureAccessService service;
@@ -58,6 +59,7 @@ class FeatureAccessServiceTest {
                 .thenReturn(Optional.of(action()));
         when(walletRepository.findByUserId(USER_ID))
                 .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(3).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(noEntitlement());
         when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
                 eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
                 .thenReturn(0L);
@@ -81,6 +83,7 @@ class FeatureAccessServiceTest {
                 .thenReturn(Optional.of(action()));
         when(walletRepository.findByUserId(USER_ID))
                 .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(0).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(noEntitlement());
         when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
                 eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
                 .thenReturn(0L);
@@ -116,6 +119,7 @@ class FeatureAccessServiceTest {
         when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
                 .thenReturn(Optional.of(action()));
         when(walletRepository.findByUserIdForUpdate(USER_ID)).thenReturn(Optional.of(lockedWallet));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(noEntitlement());
         when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
                 eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
                 .thenReturn(0L);
@@ -161,6 +165,7 @@ class FeatureAccessServiceTest {
         when(ledgerRepository.existsByIdempotencyKey("consume-dup")).thenReturn(true);
         when(ledgerRepository.findByIdempotencyKey("consume-dup")).thenReturn(Optional.of(ledger));
         when(walletRepository.findByUserId(USER_ID)).thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(1).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(noEntitlement());
 
         FeatureAccessService.FeatureAccessResponse response = service.consumeAccess(
                 USER_ID,
@@ -175,6 +180,224 @@ class FeatureAccessServiceTest {
         assertThat(response.allowed()).isTrue();
         assertThat(response.status()).isEqualTo(FeatureAccessService.AccessStatus.TOKEN_CONSUMED.name());
         verify(guruWalletService, never()).spendGuru(anyLong(), anyInt(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void premiumActive_unlockFree_allowsWithoutSpendingTokens() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE,
+                        0,
+                        false,
+                        false)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(action()));
+        when(walletRepository.findByUserIdForUpdate(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(0).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(activeEntitlement("ACTIVE"));
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.consumeAccess(
+                USER_ID, MODULE_KEY, ACTION_KEY, "ios", "tr", "consume-premium-free", "compatibility");
+
+        assertThat(response.allowed()).isTrue();
+        assertThat(response.requiresToken()).isFalse();
+        assertThat(response.tokenCost()).isZero();
+        assertThat(response.premiumApplied()).isTrue();
+        assertThat(response.premiumBehavior()).isEqualTo(ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE.name());
+        verify(guruWalletService, never()).spendGuru(anyLong(), anyInt(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void trialingWithTrialUnlockEnabled_usesPremiumRule() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE,
+                        0,
+                        false,
+                        true)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(action()));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(0).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(trialingEntitlement());
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.allowed()).isTrue();
+        assertThat(response.requiresToken()).isFalse();
+        assertThat(response.trialing()).isTrue();
+        assertThat(response.premiumApplied()).isTrue();
+    }
+
+    @Test
+    void trialingWithoutTrialUnlockEnabled_behavesLikeFreeUser() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE,
+                        0,
+                        false,
+                        false)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(action()));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(3).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(trialingEntitlement());
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.allowed()).isTrue();
+        assertThat(response.requiresToken()).isTrue();
+        assertThat(response.tokenCost()).isEqualTo(1);
+        assertThat(response.premiumApplied()).isFalse();
+    }
+
+    @Test
+    void premiumActive_discountTokenCost_usesPremiumTokenCost() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.DISCOUNT_TOKEN_COST,
+                        1,
+                        false,
+                        false)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(actionWithGuruCost(3)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(2).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(activeEntitlement("ACTIVE"));
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.allowed()).isTrue();
+        assertThat(response.tokenCost()).isEqualTo(1);
+        assertThat(response.originalTokenCost()).isEqualTo(3);
+        assertThat(response.discountedTokenCost()).isEqualTo(1);
+    }
+
+    @Test
+    void premiumActive_tokenRequiredEvenPremium_keepsOriginalTokenCost() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.TOKEN_REQUIRED_EVEN_PREMIUM,
+                        0,
+                        false,
+                        false)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(actionWithGuruCost(3)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(3).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(activeEntitlement("ACTIVE"));
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.allowed()).isTrue();
+        assertThat(response.tokenCost()).isEqualTo(3);
+        assertThat(response.premiumBehavior()).isEqualTo(ModuleMonetizationRule.PremiumBehavior.TOKEN_REQUIRED_EVEN_PREMIUM.name());
+    }
+
+    @Test
+    void premiumActive_adFreeOnly_disablesRewardedFallbackButKeepsTokenRule() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.AD_FREE_ONLY,
+                        0,
+                        false,
+                        false)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(action()));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(0).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(activeEntitlement("ACTIVE"));
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.allowed()).isFalse();
+        assertThat(response.rewardedAdAvailable()).isFalse();
+        assertThat(response.tokenCost()).isEqualTo(1);
+        assertThat(response.premiumApplied()).isTrue();
+    }
+
+    @Test
+    void cancelledActiveWithFuturePeriod_isTreatedAsActivePremium() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE,
+                        0,
+                        false,
+                        false)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(action()));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(0).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(activeEntitlement("CANCELLED_ACTIVE"));
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.allowed()).isTrue();
+        assertThat(response.requiresToken()).isFalse();
+        assertThat(response.entitlementStatus()).isEqualTo("CANCELLED_ACTIVE");
+    }
+
+    @Test
+    void expiredRevokedAndRefunded_entitlementsDoNotActivatePremiumRules() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(ruleWithPremium(
+                        ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE,
+                        0,
+                        false,
+                        false)));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(action()));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(1).build()));
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        for (String status : new String[]{"EXPIRED", "REVOKED", "REFUNDED"}) {
+            when(entitlementService.getSnapshot(USER_ID)).thenReturn(inactiveEntitlement(status));
+
+            FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+            assertThat(response.requiresToken()).as(status).isTrue();
+            assertThat(response.premiumApplied()).as(status).isFalse();
+        }
     }
 
     private MonetizationSettings settings() {
@@ -213,5 +436,109 @@ class FeatureAccessServiceTest {
                 .isRewardFallbackEnabled(true)
                 .isEnabled(true)
                 .build();
+    }
+
+    private MonetizationAction actionWithGuruCost(int guruCost) {
+        return MonetizationAction.builder()
+                .actionKey(ACTION_KEY)
+                .moduleKey(MODULE_KEY)
+                .displayName("Compatibility View")
+                .unlockType(MonetizationAction.UnlockType.GURU_SPEND)
+                .guruCost(guruCost)
+                .rewardAmount(1)
+                .analyticsKey("COMPATIBILITY_VIEW")
+                .isRewardFallbackEnabled(true)
+                .isEnabled(true)
+                .build();
+    }
+
+    private ModuleMonetizationRule ruleWithPremium(
+            ModuleMonetizationRule.PremiumBehavior premiumBehavior,
+            int premiumTokenCost,
+            boolean premiumAdFree,
+            boolean trialUnlockEnabled) {
+        return ModuleMonetizationRule.builder()
+                .moduleKey(MODULE_KEY)
+                .isEnabled(true)
+                .isAdsEnabled(true)
+                .isGuruEnabled(true)
+                .isGuruPurchaseEnabled(false)
+                .rolloutStatus(ModuleMonetizationRule.RolloutStatus.ENABLED)
+                .guruRewardAmountPerCompletedAd(1)
+                .premiumBehavior(premiumBehavior)
+                .premiumTokenCost(premiumTokenCost)
+                .premiumAdFree(premiumAdFree)
+                .trialUnlockEnabled(trialUnlockEnabled)
+                .build();
+    }
+
+    private EntitlementService.EntitlementSnapshot noEntitlement() {
+        return EntitlementService.EntitlementSnapshot.empty();
+    }
+
+    private EntitlementService.EntitlementSnapshot activeEntitlement(String status) {
+        return new EntitlementService.EntitlementSnapshot(
+                true,
+                false,
+                status,
+                "premium",
+                "premium_monthly",
+                "REVENUECAT",
+                "APP_STORE",
+                null,
+                null,
+                null,
+                null,
+                true,
+                null,
+                null,
+                null,
+                java.util.List.of("premium"),
+                0
+        );
+    }
+
+    private EntitlementService.EntitlementSnapshot trialingEntitlement() {
+        return new EntitlementService.EntitlementSnapshot(
+                true,
+                true,
+                "TRIALING",
+                "premium",
+                "premium_monthly",
+                "REVENUECAT",
+                "APP_STORE",
+                null,
+                null,
+                null,
+                null,
+                true,
+                null,
+                null,
+                null,
+                java.util.List.of("premium"),
+                0
+        );
+    }
+
+    private EntitlementService.EntitlementSnapshot inactiveEntitlement(String status) {
+        return new EntitlementService.EntitlementSnapshot(
+                false,
+                false,
+                status,
+                "premium",
+                "premium_monthly",
+                "REVENUECAT",
+                "APP_STORE",
+                null,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                java.util.List.of(),
+                0
+        );
     }
 }

@@ -39,6 +39,9 @@ public class AdminSecurityConfig {
                         .requestMatchers("/api/v1/notifications/health").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        // RevenueCat webhook — protected by its own shared secret,
+                        // not by admin JWT or gateway X-User-Id.
+                        .requestMatchers("/api/webhooks/**").permitAll()
                         // Audit log: SUPER_ADMIN + PRODUCT_ADMIN only
                         .requestMatchers("/api/admin/v1/audit-logs/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")

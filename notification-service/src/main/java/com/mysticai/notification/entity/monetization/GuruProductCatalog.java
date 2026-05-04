@@ -46,6 +46,19 @@ public class GuruProductCatalog {
     private String iosProductId;
     private String androidProductId;
 
+    /** RevenueCat product identifier (Phase 2 webhook integration). */
+    private String revenueCatProductId;
+
+    /**
+     * Entitlement key this product grants when type=SUBSCRIPTION (e.g. "premium").
+     * Ignored for CONSUMABLE / BUNDLE token products.
+     */
+    private String entitlementKey;
+
+    /** Trial duration in days for SUBSCRIPTION products; 0 = no trial. */
+    @Builder.Default
+    private int trialDurationDays = 0;
+
     @Builder.Default
     @JsonProperty("isEnabled")
     private boolean isEnabled = false;
@@ -91,7 +104,11 @@ public class GuruProductCatalog {
         CONSUMABLE,
         BUNDLE,
         SUBSCRIPTION_BONUS,
-        PROMOTIONAL
+        PROMOTIONAL,
+        /** Auto-renewable subscription (monthly / yearly premium). */
+        SUBSCRIPTION,
+        /** One-time non-consumable unlock (lifetime, etc.). */
+        NON_CONSUMABLE
     }
 
     public enum RolloutStatus {

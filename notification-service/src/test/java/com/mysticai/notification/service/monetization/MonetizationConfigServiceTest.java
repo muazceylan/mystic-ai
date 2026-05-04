@@ -396,7 +396,15 @@ class MonetizationConfigServiceTest {
                 0,
                 0,
                 0,
-                0
+                0,
+                false,
+                false,
+                "NONE",
+                false,
+                null,
+                tokenCost,
+                tokenCost,
+                tokenCost
         );
     }
 }

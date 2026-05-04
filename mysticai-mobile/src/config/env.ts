@@ -3,6 +3,7 @@ import { NativeModules, Platform } from 'react-native';
 
 export type AppEnv = 'dev' | 'stage' | 'prod';
 export type AnalyticsProvider = 'none' | 'amplitude';
+export type RevenueCatEnv = 'sandbox' | 'production';
 
 type EnvSource = string | undefined;
 
@@ -27,6 +28,11 @@ function normalizeAnalyticsProvider(value: EnvSource): AnalyticsProvider {
   const token = (value ?? '').trim().toLowerCase();
   if (token === 'amplitude') return 'amplitude';
   return 'none';
+}
+
+function normalizeRevenueCatEnv(value: EnvSource): RevenueCatEnv {
+  const token = (value ?? '').trim().toLowerCase();
+  return token === 'production' || token === 'prod' ? 'production' : 'sandbox';
 }
 
 function normalizeBaseUrl(value: EnvSource | null): string | null {
@@ -221,6 +227,9 @@ const iosGtmContainerId = (process.env.EXPO_PUBLIC_GTM_IOS_CONTAINER_ID ?? 'GTM-
 const androidGtmContainerId = (process.env.EXPO_PUBLIC_GTM_ANDROID_CONTAINER_ID ?? 'GTM-NNVXTDZB').trim();
 const webRewardedAdUnitPath = (process.env.EXPO_PUBLIC_GAM_REWARDED_AD_UNIT_PATH ?? '').trim();
 const webRewardedPlacementKey = (process.env.EXPO_PUBLIC_GAM_REWARDED_PLACEMENT_KEY ?? '').trim();
+const revenueCatIosApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '').trim();
+const revenueCatAndroidApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '').trim();
+const revenueCatEnv = normalizeRevenueCatEnv(process.env.EXPO_PUBLIC_REVENUECAT_ENV);
 
 export const envConfig = {
   appEnv,
@@ -254,5 +263,10 @@ export const envConfig = {
   webRewarded: {
     adUnitPath: webRewardedAdUnitPath,
     placementKey: webRewardedPlacementKey,
+  },
+  revenueCat: {
+    iosApiKey: revenueCatIosApiKey,
+    androidApiKey: revenueCatAndroidApiKey,
+    env: revenueCatEnv,
   },
 } as const;

@@ -806,6 +806,14 @@ export interface MonetizationSettings {
   isSignupBonusOneTimeOnly: boolean;
   signupBonusRegistrationSource?: string;
   signupBonusHelperText?: string;
+  // Premium / Trial / Billing (Phase 1: foundation)
+  isPremiumEnabled: boolean;
+  isTrialEnabled: boolean;
+  defaultTrialDays: number;
+  isTokenPurchaseEnabled: boolean;
+  isRevenueCatEnabled: boolean;
+  isHideAdsForPremiumUsers: boolean;
+  isAllowPremiumAndTokenTogether: boolean;
   defaultAdProvider: string;
   defaultCurrency: string;
   globalDailyAdCap: number;
@@ -828,6 +836,12 @@ export type AdStrategy = 'ON_ENTRY' | 'ON_DETAIL_CLICK' | 'ON_CTA_CLICK' | 'USER
 export type AdOfferFrequencyMode = 'EVERY_N_ENTRIES' | 'TIME_BASED' | 'SESSION_BASED' | 'COMBINED';
 export type PreviewDepthMode = 'NONE' | 'SUMMARY_ONLY' | 'PARTIAL_CONTENT' | 'FULL_WITH_BLUR';
 export type ModuleRolloutStatus = 'DISABLED' | 'INTERNAL_ONLY' | 'PERCENTAGE_ROLLOUT' | 'ENABLED';
+export type PremiumBehavior =
+  | 'NO_CHANGE'
+  | 'UNLOCK_FREE'
+  | 'DISCOUNT_TOKEN_COST'
+  | 'AD_FREE_ONLY'
+  | 'TOKEN_REQUIRED_EVEN_PREMIUM';
 
 export interface ModuleMonetizationRule {
   id: number;
@@ -853,6 +867,11 @@ export interface ModuleMonetizationRule {
   guruCostsByActionJson?: string;
   isAllowFreePreview: boolean;
   previewDepthMode: PreviewDepthMode;
+  // Premium / trial behavior (Phase 1: foundation)
+  premiumBehavior: PremiumBehavior;
+  premiumTokenCost: number;
+  isPremiumAdFree: boolean;
+  isTrialUnlockEnabled: boolean;
   rolloutStatus: ModuleRolloutStatus;
   platformOverridesJson?: string;
   localeOverridesJson?: string;
@@ -893,7 +912,13 @@ export interface MonetizationAction {
   updatedAt: string;
 }
 
-export type GuruProductType = 'CONSUMABLE' | 'BUNDLE' | 'SUBSCRIPTION_BONUS' | 'PROMOTIONAL';
+export type GuruProductType =
+  | 'CONSUMABLE'
+  | 'BUNDLE'
+  | 'SUBSCRIPTION_BONUS'
+  | 'PROMOTIONAL'
+  | 'SUBSCRIPTION'
+  | 'NON_CONSUMABLE';
 export type GuruProductRolloutStatus = 'DISABLED' | 'INTERNAL_ONLY' | 'ENABLED';
 
 export interface GuruProductCatalog {
@@ -908,6 +933,10 @@ export interface GuruProductCatalog {
   currency: string;
   iosProductId?: string;
   androidProductId?: string;
+  // Premium / subscription support (Phase 1: foundation)
+  revenueCatProductId?: string;
+  entitlementKey?: string;
+  trialDurationDays?: number;
   isEnabled: boolean;
   sortOrder: number;
   badge?: string;
@@ -958,6 +987,117 @@ export interface GuruLedger {
   metadataJson?: string;
   idempotencyKey?: string;
   createdAt: string;
+}
+
+export type BillingProvider = 'REVENUECAT' | 'APPLE_DIRECT' | 'GOOGLE_DIRECT' | 'ADMIN_GRANT';
+export type BillingStore = 'APP_STORE' | 'PLAY_STORE' | 'STRIPE' | 'PROMOTIONAL' | 'ADMIN';
+export type SubscriptionEntitlementStatus =
+  | 'NONE'
+  | 'TRIALING'
+  | 'ACTIVE'
+  | 'GRACE_PERIOD'
+  | 'BILLING_RETRY'
+  | 'PAUSED'
+  | 'CANCELLED_ACTIVE'
+  | 'EXPIRED'
+  | 'REFUNDED'
+  | 'REVOKED';
+export type PurchaseEventType =
+  | 'INITIAL_PURCHASE'
+  | 'RENEWAL'
+  | 'CANCELLATION'
+  | 'UNCANCELLATION'
+  | 'EXPIRATION'
+  | 'BILLING_ISSUE'
+  | 'PRODUCT_CHANGE'
+  | 'NON_RENEWING_PURCHASE'
+  | 'SUBSCRIPTION_PAUSED'
+  | 'REFUND'
+  | 'REVOCATION'
+  | 'TRIAL_STARTED'
+  | 'TRIAL_CONVERTED'
+  | 'ADMIN_GRANT'
+  | 'ADMIN_REVOKE'
+  | 'IGNORED';
+export type PurchaseEventProcessedStatus = 'PENDING' | 'PROCESSED' | 'DUPLICATE' | 'FAILED' | 'IGNORED';
+
+export interface MonetizationEntitlementSnapshot {
+  premiumActive: boolean;
+  trialing: boolean;
+  status: SubscriptionEntitlementStatus;
+  entitlementKey?: string | null;
+  productId?: string | null;
+  provider?: BillingProvider | null;
+  store?: BillingStore | null;
+  trialStartAt?: string | null;
+  trialEndAt?: string | null;
+  currentPeriodStartAt?: string | null;
+  currentPeriodEndAt?: string | null;
+  autoRenewEnabled: boolean;
+  cancelledAt?: string | null;
+  expiredAt?: string | null;
+  lastEventAt?: string | null;
+  entitlements: string[];
+  tokenBalance: number;
+}
+
+export interface SubscriptionEntitlementRecord {
+  id: number;
+  userId: number;
+  entitlementKey: string;
+  provider: BillingProvider;
+  store?: BillingStore | null;
+  productId?: string | null;
+  revenueCatCustomerId?: string | null;
+  originalTransactionId?: string | null;
+  transactionId?: string | null;
+  purchaseToken?: string | null;
+  status: Exclude<SubscriptionEntitlementStatus, 'NONE'>;
+  trialStartAt?: string | null;
+  trialEndAt?: string | null;
+  currentPeriodStartAt?: string | null;
+  currentPeriodEndAt?: string | null;
+  autoRenewEnabled: boolean;
+  cancelledAt?: string | null;
+  expiredAt?: string | null;
+  lastEventAt?: string | null;
+  rawPayload?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  version?: number;
+}
+
+export interface PurchaseEventRecord {
+  id: string;
+  userId?: number | null;
+  provider: BillingProvider;
+  store?: BillingStore | null;
+  eventId: string;
+  transactionId?: string | null;
+  originalTransactionId?: string | null;
+  purchaseToken?: string | null;
+  productId?: string | null;
+  productType?: GuruProductType | null;
+  eventType: PurchaseEventType;
+  tokenAmountGranted?: number | null;
+  ledgerEntryId?: string | null;
+  entitlementId?: number | null;
+  processedStatus: PurchaseEventProcessedStatus;
+  failureReason?: string | null;
+  rawPayload?: string | null;
+  createdAt: string;
+  processedAt?: string | null;
+}
+
+export interface UserEntitlementSnapshot {
+  userId: number;
+  active: MonetizationEntitlementSnapshot;
+  entitlements: SubscriptionEntitlementRecord[];
+  recentPurchaseEvents: PurchaseEventRecord[];
+  walletBalance: number;
+  lifetimeEarned: number;
+  lifetimeSpent: number;
+  lifetimePurchased: number;
 }
 
 export interface SimulationRequest {

@@ -7,10 +7,11 @@ import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { getPremiumRuleWarnings, PREMIUM_BEHAVIOR_OPTIONS } from '@/lib/monetizationPremiumRules';
 
 interface FormData {
   moduleKey: string;
@@ -35,6 +36,10 @@ interface FormData {
   guruRewardAmountPerCompletedAd: number;
   isAllowFreePreview: boolean;
   previewDepthMode: string;
+  premiumBehavior: string;
+  premiumTokenCost: number;
+  isPremiumAdFree: boolean;
+  isTrialUnlockEnabled: boolean;
   rolloutStatus: string;
 }
 
@@ -75,6 +80,10 @@ export default function NewModuleRulePage() {
       guruRewardAmountPerCompletedAd: 5,
       isAllowFreePreview: true,
       previewDepthMode: 'SUMMARY_ONLY',
+      premiumBehavior: 'NO_CHANGE',
+      premiumTokenCost: 0,
+      isPremiumAdFree: false,
+      isTrialUnlockEnabled: false,
       rolloutStatus: 'DISABLED',
     },
   });
@@ -83,6 +92,15 @@ export default function NewModuleRulePage() {
     mutationFn: (data: FormData) => moduleRulesApi.create(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['module-rules'] }); toast.success('Kural oluşturuldu.'); router.push('/monetization/module-rules'); },
     onError: (e: unknown) => toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Oluşturma başarısız.'),
+  });
+
+  const premiumBehavior = useWatch({ control, name: 'premiumBehavior' });
+  const premiumTokenCost = useWatch({ control, name: 'premiumTokenCost' });
+  const isPremiumAdFree = useWatch({ control, name: 'isPremiumAdFree' });
+  const premiumWarnings = getPremiumRuleWarnings({
+    premiumBehavior: premiumBehavior as FormData['premiumBehavior'],
+    premiumTokenCost,
+    isPremiumAdFree,
   });
 
   return (
@@ -203,6 +221,53 @@ export default function NewModuleRulePage() {
                 <option value="FULL_WITH_BLUR">FULL_WITH_BLUR</option>
               </Select>
             </div>
+          </div>
+
+          {/* Premium / Trial */}
+          <div className="border border-gray-700 rounded-lg p-4 space-y-4">
+            <p className="text-xs text-gray-400 uppercase font-semibold">Premium &amp; Trial</p>
+            <p className="text-xs text-gray-500">
+              Aktif premium veya trial entitlement&apos;ı olan kullanıcılar için bu modülün davranışı. Trial kullanıcıların premium kuralına dahil olması için ayrıca trial unlock açılmalıdır.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Premium Davranışı</label>
+              <Select {...register('premiumBehavior')}>
+                {PREMIUM_BEHAVIOR_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} — {option.description}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Premium Token Cost (DISCOUNT için)</label>
+              <Input
+                {...register('premiumTokenCost', { valueAsNumber: true })}
+                type="number"
+                min={0}
+                disabled={premiumBehavior !== 'DISCOUNT_TOKEN_COST'}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Sadece `DISCOUNT_TOKEN_COST` seçiliyken anlamlıdır. `0` girilirse premium kullanıcı fiilen ücretsiz unlock alır.
+              </p>
+            </div>
+            <Controller name="isPremiumAdFree" control={control} render={({ field }) => <Checkbox label="Premium kullanıcı reklam görmesin" value={!!field.value} onChange={field.onChange} />} />
+            <Controller name="isTrialUnlockEnabled" control={control} render={({ field }) => <Checkbox label="Trial kullanıcılar için de unlock" value={!!field.value} onChange={field.onChange} />} />
+            <p className="text-xs text-gray-500">
+              Trial unlock kapalıysa `TRIALING` kullanıcı free kullanıcı gibi davranır; açık olduğunda premium behavior tablosuna dahil edilir.
+            </p>
+            {premiumWarnings.map((warning) => (
+              <div
+                key={warning.id}
+                className={`rounded-lg border px-3 py-2 text-xs ${
+                  warning.tone === 'warning'
+                    ? 'border-amber-700/60 bg-amber-950/40 text-amber-200'
+                    : 'border-sky-800/60 bg-sky-950/30 text-sky-200'
+                }`}
+              >
+                {warning.message}
+              </div>
+            ))}
           </div>
 
           {/* Rollout */}

@@ -4,7 +4,12 @@ import type {
   GuruWallet,
   GuruLedgerEntry,
   EligibilityResult,
+  EntitlementSnapshot,
+  PaywallResponse,
+  PremiumBehavior,
+  EntitlementStatus,
 } from '../types';
+import type { RevenueCatSyncPayload } from '../types/billing';
 
 const CACHE_TTL = 60_000; // 60 seconds
 let cachedConfig: MonetizationConfig | null = null;
@@ -60,6 +65,42 @@ export async function fetchWallet(): Promise<GuruWallet> {
     console.warn('[Monetization] Wallet fetch failed', error);
     throw error;
   }
+}
+
+export async function fetchPaywall(): Promise<PaywallResponse> {
+  const { data } = await api.get<PaywallResponse>('/api/v1/monetization/paywall');
+  return data;
+}
+
+export async function fetchEntitlements(): Promise<EntitlementSnapshot> {
+  const { data } = await api.get<EntitlementSnapshot>('/api/v1/me/entitlements');
+  return data;
+}
+
+export async function syncRevenueCatBilling(
+  payload: RevenueCatSyncPayload,
+): Promise<{
+  premiumActive: boolean;
+  trialing: boolean;
+  status: EntitlementStatus;
+  tokenBalance: number;
+  entitlements: string[];
+}> {
+  const { data } = await api.post('/api/v1/billing/revenuecat/sync', payload);
+  return data;
+}
+
+export async function restoreBilling(
+  payload: RevenueCatSyncPayload,
+): Promise<{
+  premiumActive: boolean;
+  trialing: boolean;
+  status: EntitlementStatus;
+  tokenBalance: number;
+  entitlements: string[];
+}> {
+  const { data } = await api.post('/api/v1/billing/restore', payload);
+  return data;
 }
 
 export async function fetchWalletBalance(): Promise<number> {
@@ -137,6 +178,14 @@ export interface FeatureAccessResponse {
   weeklyLimit: number;
   dailyUsageCount: number;
   weeklyUsageCount: number;
+  premiumActive?: boolean;
+  trialing?: boolean;
+  entitlementStatus?: EntitlementStatus;
+  premiumApplied?: boolean;
+  premiumBehavior?: PremiumBehavior;
+  originalTokenCost?: number;
+  discountedTokenCost?: number;
+  chargedTokenAmount?: number;
 }
 
 export interface WebRewardedAdConfig {

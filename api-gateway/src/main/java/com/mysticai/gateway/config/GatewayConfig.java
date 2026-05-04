@@ -89,6 +89,17 @@ public class GatewayConfig {
                 .route("monetization", r -> r
                         .path("/api/v1/monetization/**")
                         .uri("lb://notification-service"))
+                // Per-user billing/entitlement reads (notification-service)
+                .route("me-entitlements", r -> r
+                        .path("/api/v1/me/entitlements")
+                        .uri("lb://notification-service"))
+                .route("billing-mobile", r -> r
+                        .path("/api/v1/billing/**")
+                        .uri("lb://notification-service"))
+                // Billing webhooks (notification-service own shared secret)
+                .route("billing-webhooks", r -> r
+                        .path("/api/webhooks/**")
+                        .uri("lb://notification-service"))
                 // Vision Service
                 .route("vision-service", r -> r
                         .path("/api/vision/**")

@@ -98,6 +98,13 @@ public class AdminMonetizationSettingsService {
         existing.setSignupBonusOneTimeOnly(updates.isSignupBonusOneTimeOnly());
         existing.setSignupBonusRegistrationSource(updates.getSignupBonusRegistrationSource());
         existing.setSignupBonusHelperText(updates.getSignupBonusHelperText());
+        existing.setPremiumEnabled(updates.isPremiumEnabled());
+        existing.setTrialEnabled(updates.isTrialEnabled());
+        existing.setDefaultTrialDays(Math.max(0, updates.getDefaultTrialDays()));
+        existing.setTokenPurchaseEnabled(updates.isTokenPurchaseEnabled());
+        existing.setRevenueCatEnabled(updates.isRevenueCatEnabled());
+        existing.setHideAdsForPremiumUsers(updates.isHideAdsForPremiumUsers());
+        existing.setAllowPremiumAndTokenTogether(updates.isAllowPremiumAndTokenTogether());
         existing.setEnvironmentRulesJson(updates.getEnvironmentRulesJson());
         existing.setRolloutRulesJson(updates.getRolloutRulesJson());
         existing.setUpdatedByAdminId(adminId);
@@ -200,6 +207,13 @@ public class AdminMonetizationSettingsService {
                 .isSignupBonusOneTimeOnly(s.isSignupBonusOneTimeOnly())
                 .signupBonusRegistrationSource(s.getSignupBonusRegistrationSource())
                 .signupBonusHelperText(s.getSignupBonusHelperText())
+                .premiumEnabled(s.isPremiumEnabled())
+                .trialEnabled(s.isTrialEnabled())
+                .defaultTrialDays(s.getDefaultTrialDays())
+                .tokenPurchaseEnabled(s.isTokenPurchaseEnabled())
+                .revenueCatEnabled(s.isRevenueCatEnabled())
+                .hideAdsForPremiumUsers(s.isHideAdsForPremiumUsers())
+                .allowPremiumAndTokenTogether(s.isAllowPremiumAndTokenTogether())
                 .configVersion(s.getConfigVersion())
                 .status(s.getStatus())
                 .build();

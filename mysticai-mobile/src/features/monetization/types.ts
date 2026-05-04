@@ -1,3 +1,22 @@
+export type PremiumBehavior =
+  | 'NO_CHANGE'
+  | 'UNLOCK_FREE'
+  | 'DISCOUNT_TOKEN_COST'
+  | 'AD_FREE_ONLY'
+  | 'TOKEN_REQUIRED_EVEN_PREMIUM';
+
+export type EntitlementStatus =
+  | 'NONE'
+  | 'TRIALING'
+  | 'ACTIVE'
+  | 'GRACE_PERIOD'
+  | 'BILLING_RETRY'
+  | 'PAUSED'
+  | 'CANCELLED_ACTIVE'
+  | 'EXPIRED'
+  | 'REFUNDED'
+  | 'REVOKED';
+
 // Monetization config from server
 export interface MonetizationConfig {
   enabled: boolean;
@@ -40,6 +59,10 @@ export interface ModuleRule {
   guruRewardAmountPerCompletedAd: number;
   allowFreePreview: boolean;
   previewDepthMode: string;
+  premiumBehavior?: PremiumBehavior;
+  premiumTokenCost?: number;
+  premiumAdFree?: boolean;
+  trialUnlockEnabled?: boolean;
   rolloutStatus: string;
 }
 
@@ -97,6 +120,9 @@ export interface GuruProduct {
   currency: string;
   iosProductId?: string;
   androidProductId?: string;
+  revenueCatProductId?: string;
+  entitlementKey?: string | null;
+  trialDurationDays?: number;
   sortOrder: number;
   badge?: string;
   campaignLabel?: string;
@@ -132,6 +158,13 @@ export interface EligibilityResult {
   reason?: string;
   walletBalance: number;
   requiredGuruCost: number;
+  premiumActive?: boolean;
+  trialing?: boolean;
+  entitlementStatus?: EntitlementStatus;
+  premiumApplied?: boolean;
+  premiumBehavior?: PremiumBehavior;
+  discountedTokenCost?: number;
+  chargedTokenAmount?: number;
 }
 
 export interface AdExposureState {
@@ -142,4 +175,65 @@ export interface AdExposureState {
   lastOfferAt?: number; // timestamp
   lastCompletedAdAt?: number; // timestamp
   sessionCount: number;
+}
+
+export interface EntitlementSnapshot {
+  premiumActive: boolean;
+  trialing: boolean;
+  status: EntitlementStatus;
+  entitlementKey?: string | null;
+  productId?: string | null;
+  provider?: string | null;
+  store?: string | null;
+  trialStartAt?: string | null;
+  trialEndAt?: string | null;
+  currentPeriodStartAt?: string | null;
+  currentPeriodEndAt?: string | null;
+  autoRenewEnabled?: boolean;
+  cancelledAt?: string | null;
+  expiredAt?: string | null;
+  lastEventAt?: string | null;
+  entitlements: string[];
+  tokenBalance?: number;
+}
+
+export interface PaywallProduct {
+  productKey: string;
+  productType?: string;
+  iosProductId?: string | null;
+  androidProductId?: string | null;
+  revenueCatProductId?: string | null;
+  title?: string;
+  description?: string;
+  entitlementKey?: string | null;
+  tokenAmount?: number | null;
+  bonusTokenAmount?: number | null;
+  price?: string | null;
+  currency?: string | null;
+  trialDurationDays?: number | null;
+  sortOrder?: number;
+  badge?: string | null;
+  popular?: boolean;
+  campaignLabel?: string | null;
+}
+
+export interface PaywallResponse {
+  premiumEnabled: boolean;
+  trialEnabled: boolean;
+  trialEligible: boolean;
+  defaultTrialDays: number;
+  tokenPurchaseEnabled: boolean;
+  revenueCatEnabled: boolean;
+  hideAdsForPremiumUsers: boolean;
+  allowPremiumAndTokenTogether: boolean;
+  premiumActive: boolean;
+  trialing: boolean;
+  entitlementStatus: EntitlementStatus;
+  trialEndsAt?: string | null;
+  currentPeriodEndsAt?: string | null;
+  tokenBalance: number;
+  subscriptionProducts: PaywallProduct[];
+  tokenProducts: PaywallProduct[];
+  benefits: string[];
+  fetchedAt?: string;
 }

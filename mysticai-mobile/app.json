@@ -20,7 +20,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mysticai.app",
+      "bundleIdentifier": "com.astroguru.mmc",
       "buildNumber": "1",
       "usesNonExemptEncryption": false,
       "usesAppleSignIn": true,
@@ -32,7 +32,7 @@
       }
     },
     "android": {
-      "package": "com.mysticai.app",
+      "package": "com.astroguru.mmc",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "permissions": [
@@ -54,8 +54,8 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minSdkVersion": 24
           },
           "ios": {

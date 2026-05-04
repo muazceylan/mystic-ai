@@ -31,6 +31,7 @@ public class FeatureAccessService {
     private final GuruWalletRepository walletRepository;
     private final GuruLedgerRepository ledgerRepository;
     private final GuruWalletService guruWalletService;
+    private final EntitlementService entitlementService;
     private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
@@ -39,7 +40,7 @@ public class FeatureAccessService {
         if (!context.ready()) {
             return buildUnavailableResponse(context);
         }
-        return evaluateContext(userId, context, null, null, null, false);
+        return evaluateContext(userId, context, null);
     }
 
     @Transactional
@@ -58,16 +59,20 @@ public class FeatureAccessService {
         if (idempotencyKey != null && ledgerRepository.existsByIdempotencyKey(idempotencyKey)) {
             GuruLedger existing = ledgerRepository.findByIdempotencyKey(idempotencyKey).orElse(null);
             int balance = walletRepository.findByUserId(userId).map(GuruWallet::getCurrentBalance).orElse(0);
+            GateDecision decision = computeGateDecision(userId, context);
             log.info("Feature access duplicate consume blocked: userId={}, moduleKey={}, actionKey={}, idempotencyKey={}",
                     userId, moduleKey, actionKey, idempotencyKey);
             incrementMetric("idempotency.hit", "operation", "feature_consume", "featureKey", actionKey);
             return buildAllowedResponse(
                     context,
+                    decision,
                     balance,
                     AccessStatus.TOKEN_CONSUMED,
                     "feature_access_replayed",
                     ActionType.CONTINUE,
-                    true
+                    true,
+                    0,
+                    0
             );
         }
 
@@ -77,10 +82,7 @@ public class FeatureAccessService {
         FeatureAccessResponse evaluation = evaluateContext(
                 userId,
                 context,
-                wallet,
-                platform,
-                locale,
-                true
+                wallet
         );
 
         if (!evaluation.allowed() || !evaluation.requiresToken() || evaluation.tokenCost() <= 0) {
@@ -109,11 +111,14 @@ public class FeatureAccessService {
 
         return buildAllowedResponse(
                 context,
+                computeGateDecision(userId, context),
                 ledger != null ? ledger.getBalanceAfter() : walletRepository.findByUserId(userId).map(GuruWallet::getCurrentBalance).orElse(0),
                 AccessStatus.TOKEN_CONSUMED,
                 "feature_token_consumed",
                 ActionType.CONTINUE,
-                true
+                true,
+                evaluation.dailyUsageCount(),
+                evaluation.weeklyUsageCount()
         );
     }
 
@@ -141,53 +146,103 @@ public class FeatureAccessService {
 
     private FeatureAccessResponse evaluateContext(Long userId,
                                                   MonetizationContext context,
-                                                  GuruWallet lockedWallet,
-                                                  String platform,
-                                                  String locale,
-                                                  boolean strict) {
+                                                  GuruWallet lockedWallet) {
         MonetizationAction action = context.action();
-        ModuleMonetizationRule rule = context.rule();
-        MonetizationSettings settings = context.settings();
 
-        int tokenCost = Math.max(0, action.getGuruCost());
         int balance = lockedWallet != null
                 ? lockedWallet.getCurrentBalance()
                 : walletRepository.findByUserId(userId).map(GuruWallet::getCurrentBalance).orElse(0);
 
+        GateDecision decision = computeGateDecision(userId, context);
         long dailyUsage = countUsage(userId, context, LocalDate.now(ZoneOffset.UTC).atStartOfDay());
         long weeklyUsage = countUsage(userId, context, LocalDate.now(ZoneOffset.UTC).minusDays(6).atStartOfDay());
+
         if (action.getDailyLimit() > 0 && dailyUsage >= action.getDailyLimit()) {
             log.info("Feature access denied due to daily limit: userId={}, moduleKey={}, actionKey={}, dailyUsage={}, dailyLimit={}",
                     userId, context.requestedModuleKey(), context.requestedActionKey(), dailyUsage, action.getDailyLimit());
             incrementMetric("feature_access.denied", "reason", "daily_limit", "featureKey", context.requestedActionKey());
-            return buildBlockedResponse(context, balance, AccessStatus.LIMIT_REACHED, "daily_feature_limit_reached", ActionType.NONE, dailyUsage, weeklyUsage);
+            return buildBlockedResponse(
+                    context,
+                    decision,
+                    balance,
+                    AccessStatus.LIMIT_REACHED,
+                    "daily_feature_limit_reached",
+                    ActionType.NONE,
+                    dailyUsage,
+                    weeklyUsage
+            );
         }
         if (action.getWeeklyLimit() > 0 && weeklyUsage >= action.getWeeklyLimit()) {
             log.info("Feature access denied due to weekly limit: userId={}, moduleKey={}, actionKey={}, weeklyUsage={}, weeklyLimit={}",
                     userId, context.requestedModuleKey(), context.requestedActionKey(), weeklyUsage, action.getWeeklyLimit());
             incrementMetric("feature_access.denied", "reason", "weekly_limit", "featureKey", context.requestedActionKey());
-            return buildBlockedResponse(context, balance, AccessStatus.LIMIT_REACHED, "weekly_feature_limit_reached", ActionType.NONE, dailyUsage, weeklyUsage);
+            return buildBlockedResponse(
+                    context,
+                    decision,
+                    balance,
+                    AccessStatus.LIMIT_REACHED,
+                    "weekly_feature_limit_reached",
+                    ActionType.NONE,
+                    dailyUsage,
+                    weeklyUsage
+            );
         }
 
-        boolean requiresToken = action.getUnlockType() != MonetizationAction.UnlockType.FREE && tokenCost > 0;
-        if (!requiresToken) {
-            incrementMetric("feature_access.allowed", "mode", "free", "featureKey", context.requestedActionKey());
-            return buildAllowedResponse(context, balance, AccessStatus.ALLOWED, "feature_access_allowed", ActionType.CONTINUE, false);
+        boolean actionIsFree = action.getUnlockType() == MonetizationAction.UnlockType.FREE;
+        if (actionIsFree || !decision.requiresToken()) {
+            String message = decision.premiumApplied()
+                    ? "feature_premium_unlocked"
+                    : "feature_access_allowed";
+            incrementMetric(
+                    "feature_access.allowed",
+                    "mode",
+                    decision.premiumApplied() ? "premium" : "free",
+                    "featureKey",
+                    context.requestedActionKey()
+            );
+            return buildAllowedResponse(
+                    context,
+                    decision,
+                    balance,
+                    AccessStatus.ALLOWED,
+                    message,
+                    ActionType.CONTINUE,
+                    true,
+                    dailyUsage,
+                    weeklyUsage
+            );
         }
 
-        boolean guruAvailable = settings.isGuruEnabled() && rule.isGuruEnabled();
-        boolean rewardFallbackAvailable = action.isRewardFallbackEnabled() && settings.isAdsEnabled() && rule.isAdsEnabled();
-        if (guruAvailable && balance >= tokenCost) {
-            incrementMetric("feature_access.allowed", "mode", "token_available", "featureKey", context.requestedActionKey());
-            return buildAllowedResponse(context, balance, AccessStatus.TOKEN_REQUIRED, "feature_token_required", ActionType.SPEND_TOKEN, false);
+        if (decision.guruUnlockAvailable() && balance >= decision.chargedTokenCost()) {
+            incrementMetric(
+                    "feature_access.allowed",
+                    "mode",
+                    decision.premiumApplied() ? "premium_token_required" : "token_available",
+                    "featureKey",
+                    context.requestedActionKey()
+            );
+            return buildAllowedResponse(
+                    context,
+                    decision,
+                    balance,
+                    AccessStatus.TOKEN_REQUIRED,
+                    decision.premiumBehavior() == ModuleMonetizationRule.PremiumBehavior.DISCOUNT_TOKEN_COST
+                            ? "feature_discounted_token_required"
+                            : "feature_token_required",
+                    ActionType.SPEND_TOKEN,
+                    true,
+                    dailyUsage,
+                    weeklyUsage
+            );
         }
 
-        if (rewardFallbackAvailable) {
+        if (decision.rewardedAdAvailable()) {
             log.info("Feature access insufficient balance with rewarded fallback: userId={}, moduleKey={}, actionKey={}, balance={}, tokenCost={}",
-                    userId, context.requestedModuleKey(), context.requestedActionKey(), balance, tokenCost);
+                    userId, context.requestedModuleKey(), context.requestedActionKey(), balance, decision.chargedTokenCost());
             incrementMetric("feature_access.insufficient_balance", "fallback", "rewarded_ad", "featureKey", context.requestedActionKey());
             return buildBlockedResponse(
                     context,
+                    decision,
                     balance,
                     AccessStatus.INSUFFICIENT_BALANCE,
                     "feature_access_insufficient_balance",
@@ -198,17 +253,72 @@ public class FeatureAccessService {
         }
 
         ActionType fallbackAction = context.purchaseFallbackAvailable() ? ActionType.OPEN_PURCHASE : ActionType.NONE;
-        log.info("Feature access denied due to insufficient balance: userId={}, moduleKey={}, actionKey={}, balance={}, tokenCost={}, fallbackAction={}",
-                userId, context.requestedModuleKey(), context.requestedActionKey(), balance, tokenCost, fallbackAction);
+        log.info("Feature access denied due to insufficient balance: userId={}, moduleKey={}, actionKey={}, balance={}, tokenCost={}, fallbackAction={}, premiumBehavior={}",
+                userId, context.requestedModuleKey(), context.requestedActionKey(), balance,
+                decision.chargedTokenCost(), fallbackAction, decision.premiumBehavior());
         incrementMetric("feature_access.denied", "reason", "insufficient_balance", "featureKey", context.requestedActionKey());
         return buildBlockedResponse(
                 context,
+                decision,
                 balance,
                 AccessStatus.INSUFFICIENT_BALANCE,
                 "feature_access_insufficient_balance",
                 fallbackAction,
                 dailyUsage,
                 weeklyUsage
+        );
+    }
+
+    private GateDecision computeGateDecision(Long userId, MonetizationContext context) {
+        EntitlementService.EntitlementSnapshot snapshot = entitlementService.getSnapshot(userId);
+        ModuleMonetizationRule rule = context.rule();
+        MonetizationAction action = context.action();
+        MonetizationSettings settings = context.settings();
+
+        int originalTokenCost = Math.max(0, action.getGuruCost());
+        boolean premiumEligible = snapshot.premiumActive()
+                && (!snapshot.trialing() || rule.isTrialUnlockEnabled());
+
+        ModuleMonetizationRule.PremiumBehavior premiumBehavior = premiumEligible
+                ? rule.getPremiumBehavior()
+                : ModuleMonetizationRule.PremiumBehavior.NO_CHANGE;
+
+        int chargedTokenCost = switch (premiumBehavior) {
+            case UNLOCK_FREE -> 0;
+            case DISCOUNT_TOKEN_COST -> Math.max(0, rule.getPremiumTokenCost());
+            case AD_FREE_ONLY, TOKEN_REQUIRED_EVEN_PREMIUM, NO_CHANGE -> originalTokenCost;
+        };
+
+        boolean premiumAdFreeApplied = premiumEligible
+                && (premiumBehavior == ModuleMonetizationRule.PremiumBehavior.AD_FREE_ONLY
+                || rule.isPremiumAdFree()
+                || settings.isHideAdsForPremiumUsers());
+
+        boolean requiresToken = action.getUnlockType() != MonetizationAction.UnlockType.FREE
+                && chargedTokenCost > 0;
+        boolean guruUnlockAvailable = settings.isGuruEnabled() && rule.isGuruEnabled() && requiresToken;
+        boolean rewardedAdAvailable = requiresToken
+                && action.isRewardFallbackEnabled()
+                && settings.isAdsEnabled()
+                && rule.isAdsEnabled()
+                && !premiumAdFreeApplied;
+        boolean premiumApplied = premiumEligible && (
+                premiumBehavior != ModuleMonetizationRule.PremiumBehavior.NO_CHANGE
+                        || premiumAdFreeApplied
+                        || chargedTokenCost != originalTokenCost
+        );
+
+        return new GateDecision(
+                snapshot,
+                premiumEligible,
+                premiumApplied,
+                premiumAdFreeApplied,
+                premiumBehavior,
+                originalTokenCost,
+                chargedTokenCost,
+                requiresToken,
+                guruUnlockAvailable,
+                rewardedAdAvailable
         );
     }
 
@@ -260,6 +370,14 @@ public class FeatureAccessService {
                     0,
                     0,
                     0,
+                    0,
+                    false,
+                    false,
+                    "NONE",
+                    false,
+                    null,
+                    0,
+                    0,
                     0
             );
         }
@@ -288,23 +406,34 @@ public class FeatureAccessService {
                 action != null ? Math.max(0, action.getDailyLimit()) : 0,
                 action != null ? Math.max(0, action.getWeeklyLimit()) : 0,
                 0,
-                0
+                0,
+                false,
+                false,
+                "NONE",
+                false,
+                context.rule() != null ? context.rule().getPremiumBehavior().name() : null,
+                action != null ? Math.max(0, action.getGuruCost()) : 0,
+                action != null ? Math.max(0, action.getGuruCost()) : 0,
+                action != null ? Math.max(0, action.getGuruCost()) : 0
         );
     }
 
     private FeatureAccessResponse buildAllowedResponse(MonetizationContext context,
+                                                       GateDecision decision,
                                                        int balance,
                                                        AccessStatus status,
                                                        String message,
                                                        ActionType actionType,
-                                                       boolean allowed) {
+                                                       boolean allowed,
+                                                       long dailyUsage,
+                                                       long weeklyUsage) {
         return new FeatureAccessResponse(
                 allowed || status == AccessStatus.ALLOWED || status == AccessStatus.TOKEN_REQUIRED || status == AccessStatus.TOKEN_CONSUMED,
                 true,
-                Math.max(0, context.action().getGuruCost()) > 0,
-                Math.max(0, context.action().getGuruCost()),
+                decision.requiresToken(),
+                decision.chargedTokenCost(),
                 balance,
-                context.rewardFallbackAvailable(),
+                decision.rewardedAdAvailable(),
                 context.rewardAmount(),
                 context.action().getActionKey(),
                 context.action().getModuleKey(),
@@ -312,7 +441,7 @@ public class FeatureAccessService {
                 status.name(),
                 message,
                 context.purchaseFallbackAvailable(),
-                context.settings().isGuruEnabled() && context.rule().isGuruEnabled(),
+                decision.guruUnlockAvailable(),
                 context.action().getAnalyticsKey(),
                 firstNonBlank(context.action().getDialogTitle(), context.action().getDisplayName()),
                 firstNonBlank(context.action().getDialogDescription(), context.action().getDescription()),
@@ -320,12 +449,21 @@ public class FeatureAccessService {
                 context.action().getSecondaryCtaLabel(),
                 Math.max(0, context.action().getDailyLimit()),
                 Math.max(0, context.action().getWeeklyLimit()),
-                0,
-                0
+                dailyUsage,
+                weeklyUsage,
+                decision.snapshot().premiumActive(),
+                decision.snapshot().trialing(),
+                decision.snapshot().status(),
+                decision.premiumApplied(),
+                decision.premiumBehavior().name(),
+                decision.originalTokenCost(),
+                decision.chargedTokenCost(),
+                decision.chargedTokenCost()
         );
     }
 
     private FeatureAccessResponse buildBlockedResponse(MonetizationContext context,
+                                                       GateDecision decision,
                                                        int balance,
                                                        AccessStatus status,
                                                        String message,
@@ -335,10 +473,10 @@ public class FeatureAccessService {
         return new FeatureAccessResponse(
                 false,
                 true,
-                Math.max(0, context.action().getGuruCost()) > 0,
-                Math.max(0, context.action().getGuruCost()),
+                decision.requiresToken(),
+                decision.chargedTokenCost(),
                 balance,
-                context.rewardFallbackAvailable(),
+                decision.rewardedAdAvailable(),
                 context.rewardAmount(),
                 context.action().getActionKey(),
                 context.action().getModuleKey(),
@@ -346,7 +484,7 @@ public class FeatureAccessService {
                 status.name(),
                 message,
                 context.purchaseFallbackAvailable(),
-                context.settings().isGuruEnabled() && context.rule().isGuruEnabled(),
+                decision.guruUnlockAvailable(),
                 context.action().getAnalyticsKey(),
                 firstNonBlank(context.action().getDialogTitle(), context.action().getDisplayName()),
                 firstNonBlank(context.action().getDialogDescription(), context.action().getDescription()),
@@ -355,7 +493,15 @@ public class FeatureAccessService {
                 Math.max(0, context.action().getDailyLimit()),
                 Math.max(0, context.action().getWeeklyLimit()),
                 dailyUsage,
-                weeklyUsage
+                weeklyUsage,
+                decision.snapshot().premiumActive(),
+                decision.snapshot().trialing(),
+                decision.snapshot().status(),
+                decision.premiumApplied(),
+                decision.premiumBehavior().name(),
+                decision.originalTokenCost(),
+                decision.chargedTokenCost(),
+                decision.chargedTokenCost()
         );
     }
 
@@ -427,7 +573,28 @@ public class FeatureAccessService {
             int dailyLimit,
             int weeklyLimit,
             long dailyUsageCount,
-            long weeklyUsageCount
+            long weeklyUsageCount,
+            boolean premiumActive,
+            boolean trialing,
+            String entitlementStatus,
+            boolean premiumApplied,
+            String premiumBehavior,
+            int originalTokenCost,
+            int discountedTokenCost,
+            int chargedTokenAmount
+    ) {}
+
+    private record GateDecision(
+            EntitlementService.EntitlementSnapshot snapshot,
+            boolean premiumEligible,
+            boolean premiumApplied,
+            boolean premiumAdFreeApplied,
+            ModuleMonetizationRule.PremiumBehavior premiumBehavior,
+            int originalTokenCost,
+            int chargedTokenCost,
+            boolean requiresToken,
+            boolean guruUnlockAvailable,
+            boolean rewardedAdAvailable
     ) {}
 
     private record MonetizationContext(

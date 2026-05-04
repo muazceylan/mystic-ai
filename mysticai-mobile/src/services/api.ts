@@ -1,4 +1,5 @@
 import axios from 'axios/dist/browser/axios.cjs';
+import type { AxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import { getToken } from '../utils/storage';
 import { useAuthStore } from '../store/useAuthStore';
@@ -10,7 +11,10 @@ import {
   logWarnOnce,
 } from './observability';
 
-type ApiRequestConfig = {
+// Extend AxiosRequestConfig (default data type = any) so the helper's return
+// value is structurally accepted as the 3rd arg to axios.post/put/delete<D>
+// without forcing every call site to specialize the data generic.
+type ApiRequestConfig<Data = unknown> = AxiosRequestConfig<Data> & {
   suppressGlobalErrorLog?: boolean;
 };
 
@@ -45,7 +49,9 @@ function shouldSuppressGlobalErrorLog(error: unknown): boolean {
   return Boolean((error.config as ApiRequestConfig | undefined)?.suppressGlobalErrorLog);
 }
 
-export function withSuppressedGlobalApiErrorLog<T extends Record<string, unknown>>(config?: T): T & ApiRequestConfig {
+export function withSuppressedGlobalApiErrorLog<Data = unknown>(
+  config?: AxiosRequestConfig<Data>,
+): ApiRequestConfig<Data> {
   return {
     ...(config ?? {}),
     suppressGlobalErrorLog: true,

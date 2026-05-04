@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.numerology.config.NumerologyConfig;
 import com.mysticai.numerology.dto.NumerologyResponse;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -157,5 +159,20 @@ class NumerologyCalculatorTest {
 
         assertTrue(response.karmicDebt().debts().contains(13));
         assertFalse(response.karmicDebt().sources().isEmpty());
+    }
+
+    @Test
+    void numerologyConfig_appliesAggressiveAiGuidanceTimeouts() {
+        NumerologyConfig config = new NumerologyConfig(false, 400L, 1200L);
+
+        RestTemplate restTemplate = config.numerologyRestTemplate();
+
+        assertTrue(restTemplate.getRequestFactory() instanceof SimpleClientHttpRequestFactory);
+
+        SimpleClientHttpRequestFactory requestFactory =
+                (SimpleClientHttpRequestFactory) restTemplate.getRequestFactory();
+
+        assertEquals(400, ReflectionTestUtils.getField(requestFactory, "connectTimeout"));
+        assertEquals(1200, ReflectionTestUtils.getField(requestFactory, "readTimeout"));
     }
 }

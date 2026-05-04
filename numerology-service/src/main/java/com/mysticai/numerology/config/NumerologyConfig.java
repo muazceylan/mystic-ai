@@ -3,6 +3,7 @@ package com.mysticai.numerology.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,11 +20,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class NumerologyConfig {
 
     private final AtomicBoolean premiumEnabled;
+    private final int guidanceConnectTimeoutMs;
+    private final int guidanceReadTimeoutMs;
 
     public NumerologyConfig(
-            @Value("${numerology.premium-enabled:false}") boolean premiumEnabledFromConfig
+            @Value("${numerology.premium-enabled:false}") boolean premiumEnabledFromConfig,
+            @Value("${services.ai-orchestrator.guidance-connect-timeout-ms:500}") long guidanceConnectTimeoutMs,
+            @Value("${services.ai-orchestrator.guidance-timeout-ms:1500}") long guidanceReadTimeoutMs
     ) {
         this.premiumEnabled = new AtomicBoolean(premiumEnabledFromConfig);
+        long resolvedConnectTimeoutMs = Math.max(250L, guidanceConnectTimeoutMs);
+        long resolvedReadTimeoutMs = Math.max(resolvedConnectTimeoutMs, guidanceReadTimeoutMs);
+        this.guidanceConnectTimeoutMs = Math.toIntExact(resolvedConnectTimeoutMs);
+        this.guidanceReadTimeoutMs = Math.toIntExact(resolvedReadTimeoutMs);
+    }
+
+    public NumerologyConfig(boolean premiumEnabledFromConfig) {
+        this(premiumEnabledFromConfig, 500L, 1500L);
     }
 
     public boolean isPremiumEnabled() {
@@ -36,6 +49,9 @@ public class NumerologyConfig {
 
     @Bean
     public RestTemplate numerologyRestTemplate() {
-        return new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(guidanceConnectTimeoutMs);
+        requestFactory.setReadTimeout(guidanceReadTimeoutMs);
+        return new RestTemplate(requestFactory);
     }
 }

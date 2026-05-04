@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { BottomSheet } from '../../../components/ui/BottomSheet';
@@ -9,6 +10,7 @@ import { RADIUS, SPACING, TYPOGRAPHY } from '../../../constants/tokens';
 import { useModuleMonetization } from '../hooks/useModuleMonetization';
 import { useRewardedUnlock } from '../hooks/useRewardedUnlock';
 import { useGuruUnlock } from '../hooks/useGuruUnlock';
+import { usePaywall } from '../hooks/usePaywall';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
 import { GuruBalanceBadge } from './GuruBalanceBadge';
 
@@ -37,6 +39,7 @@ export function ActionUnlockSheet({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const monetization = useModuleMonetization(moduleKey);
+  const { paywall } = usePaywall();
   const unlockState = monetization.getActionUnlockState(actionKey);
   const action = unlockState.action;
   const { status: adStatus, startRewardedUnlock, reset: resetRewardedUnlock } = useRewardedUnlock(moduleKey, actionKey);
@@ -54,10 +57,30 @@ export function ActionUnlockSheet({
       || !unlockState.canAffordGuru
       || unlockState.unlockType === 'AD_WATCH'
     );
+  const premiumStatusLabel = monetization.trialing
+    ? t('premium.trialActiveState')
+    : monetization.premiumActive
+      ? t('premium.activeState')
+      : null;
+  const premiumCtaTarget = paywall?.premiumActive
+    ? 'manage'
+    : paywall?.trialEnabled && paywall?.trialEligible
+      ? 'trial'
+      : 'premium';
+  const premiumCtaLabel = paywall?.premiumActive
+    ? t('premium.activeState')
+    : paywall?.trialEnabled && paywall?.trialEligible
+      ? t('premium.startTrial')
+      : t('premium.upgrade');
+  const showPremiumCta = Boolean(
+    paywall?.premiumEnabled
+    && (!paywall.premiumActive || paywall.entitlementStatus === 'TRIALING'),
+  );
   const hasVisibleOptions = unlockState.isFree
     || shouldRenderAdOption
     || unlockState.guruEnabled
-    || Boolean(unlockState.purchaseEnabled && onShowPurchase);
+    || Boolean(unlockState.purchaseEnabled && onShowPurchase)
+    || showPremiumCta;
   const presentAlert = useCallback((alertTitle: string, message: string) => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.alert === 'function') {
       window.alert(`${alertTitle}\n\n${message}`);
@@ -88,6 +111,17 @@ export function ActionUnlockSheet({
       t('monetization.unlockOptionsUnavailableHint'),
     );
   }, [visible, hasVisibleOptions, onClose, presentAlert, t]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    MonetizationEvents.gateViewed(moduleKey, actionKey, unlockState.canAffordGuru ? 'can_afford' : 'insufficient');
+    if (unlockState.guruEnabled && !unlockState.canAffordGuru) {
+      MonetizationEvents.insufficientTokenModalShown(moduleKey, actionKey, 'sheet');
+    }
+  }, [actionKey, moduleKey, unlockState.canAffordGuru, unlockState.guruEnabled, visible]);
 
   const isBusy = adStatus === 'loading_ad'
     || adStatus === 'showing_ad'
@@ -166,6 +200,12 @@ export function ActionUnlockSheet({
     await completeUnlock();
   }, [unlockState, startRewardedUnlock, spendGuru, completeUnlock, t, moduleKey, actionKey, presentAlert]);
 
+  const openPremiumPaywall = useCallback(() => {
+    MonetizationEvents.premiumCtaClicked(moduleKey, actionKey, premiumCtaTarget, 'sheet');
+    onClose();
+    router.push('/premium');
+  }, [actionKey, moduleKey, onClose, premiumCtaTarget]);
+
   if (!visible || !hasVisibleOptions || unlockState.isFree) {
     return null;
   }
@@ -176,6 +216,17 @@ export function ActionUnlockSheet({
         {unlockState.usesMonetization ? (
           <View style={styles.balanceRow}>
             <GuruBalanceBadge size="sm" />
+          </View>
+        ) : null}
+
+        {premiumStatusLabel ? (
+          <View style={styles.premiumInfoCard}>
+            <Text style={styles.premiumInfoTitle}>{premiumStatusLabel}</Text>
+            <Text style={styles.premiumInfoBody}>
+              {monetization.premiumApplied
+                ? t('monetization.premiumAppliedHint')
+                : t('monetization.premiumAccountHint')}
+            </Text>
           </View>
         ) : null}
 
@@ -251,7 +302,10 @@ export function ActionUnlockSheet({
                 styles.optionCardPurchase,
                 isBusy && styles.optionCardDisabled,
               ]}
-              onPress={onShowPurchase}
+              onPress={() => {
+                MonetizationEvents.gateSeen(moduleKey, actionKey, 'purchase');
+                onShowPurchase();
+              }}
               disabled={isBusy}
               accessibilityRole="button"
               accessibilityLabel={t('monetization.guruBuyBtn')}
@@ -262,6 +316,28 @@ export function ActionUnlockSheet({
               <View style={styles.optionCopy}>
                 <Text style={styles.optionTitle}>{t('monetization.guruBuyBtn')}</Text>
                 <Text style={styles.optionSubtitle}>{t('monetization.purchaseOptionHint')}</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+
+          {showPremiumCta ? (
+            <TouchableOpacity
+              style={[
+                styles.optionCard,
+                styles.optionCardPremium,
+                isBusy && styles.optionCardDisabled,
+              ]}
+              onPress={openPremiumPaywall}
+              disabled={isBusy}
+              accessibilityRole="button"
+              accessibilityLabel={premiumCtaLabel}
+            >
+              <View style={[styles.optionIconWrap, styles.optionIconWrapPremium]}>
+                <Ionicons name="sparkles" size={20} color={colors.white} />
+              </View>
+              <View style={styles.optionCopy}>
+                <Text style={styles.optionTitlePrimary}>{premiumCtaLabel}</Text>
+                <Text style={styles.optionSubtitlePrimary}>{t('monetization.premiumOptionHint')}</Text>
               </View>
             </TouchableOpacity>
           ) : null}
@@ -286,6 +362,24 @@ function createStyles(colors: ThemeColors) {
     },
     balanceRow: {
       marginBottom: SPACING.md,
+    },
+    premiumInfoCard: {
+      marginBottom: SPACING.md,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: colors.primarySoftBg,
+      borderWidth: 1,
+      borderColor: colors.primarySoft,
+    },
+    premiumInfoTitle: {
+      ...TYPOGRAPHY.SmallBold,
+      color: colors.text,
+      marginBottom: 4,
+    },
+    premiumInfoBody: {
+      ...TYPOGRAPHY.Small,
+      color: colors.subtext,
+      lineHeight: 18,
     },
     descriptionText: {
       ...TYPOGRAPHY.Small,
@@ -323,6 +417,10 @@ function createStyles(colors: ThemeColors) {
     optionCardPurchase: {
       backgroundColor: colors.surface,
     },
+    optionCardPremium: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
     optionCardDisabled: {
       opacity: 0.45,
     },
@@ -339,6 +437,9 @@ function createStyles(colors: ThemeColors) {
     },
     optionIconWrapPurchase: {
       backgroundColor: colors.surfaceAlt,
+    },
+    optionIconWrapPremium: {
+      backgroundColor: colors.primary700,
     },
     optionCopy: {
       flex: 1,
