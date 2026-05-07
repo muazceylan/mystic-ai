@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { PlannerCategoryId } from '../features/planner/plannerEngine';
 import { zustandStorage } from '../utils/storage';
+import { bindUserScopedPersist, getInitialUserScopedStoreName } from './userScopedPersist';
 
 interface PlannerPreferencesState {
   hiddenCategoryIds: PlannerCategoryId[];
@@ -10,10 +11,15 @@ interface PlannerPreferencesState {
   reset: () => void;
 }
 
+const PLANNER_PREFERENCES_STORE_NAME = 'planner-preferences';
+const EMPTY_PLANNER_PREFERENCES_STATE: Pick<PlannerPreferencesState, 'hiddenCategoryIds'> = {
+  hiddenCategoryIds: [],
+};
+
 export const usePlannerPreferencesStore = create<PlannerPreferencesState>()(
   persist(
     (set, get) => ({
-      hiddenCategoryIds: [],
+      ...EMPTY_PLANNER_PREFERENCES_STATE,
       toggleCategoryVisibility: (categoryId) => {
         const hidden = get().hiddenCategoryIds;
         const alreadyHidden = hidden.includes(categoryId);
@@ -36,8 +42,14 @@ export const usePlannerPreferencesStore = create<PlannerPreferencesState>()(
       reset: () => set({ hiddenCategoryIds: [] }),
     }),
     {
-      name: 'planner-preferences',
+      name: getInitialUserScopedStoreName(PLANNER_PREFERENCES_STORE_NAME),
       storage: createJSONStorage(() => zustandStorage),
     },
   ),
 );
+
+bindUserScopedPersist({
+  store: usePlannerPreferencesStore,
+  baseName: PLANNER_PREFERENCES_STORE_NAME,
+  emptyState: EMPTY_PLANNER_PREFERENCES_STATE,
+});

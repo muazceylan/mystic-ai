@@ -19,11 +19,13 @@ const FACT_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 export function QuickFactChip({ item }: QuickFactChipProps) {
   const { colors, isDark } = useTheme();
   const iconName = FACT_ICON_MAP[item.icon] ?? 'planet';
+  const isMoonPhaseChip = item.icon === 'moonPhase' || item.id === 'moon-phase';
 
   return (
     <View
       style={[
         styles.chip,
+        isMoonPhaseChip && styles.moonPhaseChip,
         {
           backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
           borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#EAE4F8',
@@ -36,7 +38,7 @@ export function QuickFactChip({ item }: QuickFactChipProps) {
       <Text style={[styles.label, { color: colors.subtext }]} numberOfLines={1}>
         {item.label}
       </Text>
-      <Text style={[styles.value, { color: colors.text }]} numberOfLines={1}>
+      <Text style={[styles.value, { color: colors.text }]} numberOfLines={2}>
         {item.value}
       </Text>
     </View>
@@ -46,12 +48,16 @@ export function QuickFactChip({ item }: QuickFactChipProps) {
 const styles = StyleSheet.create({
   chip: {
     flex: 1,
+    minWidth: 0,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.smMd,
-    minHeight: 82,
+    minHeight: 96,
     gap: SPACING.xsSm,
+  },
+  moonPhaseChip: {
+    flex: 1.22,
   },
   iconWrap: {
     width: 28,
@@ -69,6 +75,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.BodyBold,
     fontSize: 16,
     lineHeight: 21,
+    flexShrink: 1,
   },
 });
 

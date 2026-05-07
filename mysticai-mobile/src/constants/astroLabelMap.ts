@@ -1,5 +1,5 @@
 import type { AspectType, PlanetaryAspect } from '../services/astrology.service';
-import { PLANET_TURKISH, ZODIAC_TURKISH } from './zodiac';
+import { PLANET_ENGLISH, PLANET_TURKISH, ZODIAC_ENGLISH, ZODIAC_TURKISH } from './zodiac';
 
 export const ASPECT_TYPE_LABEL_MAP: Record<AspectType, { short: string; rich: string; exact: number }> = {
   CONJUNCTION: { short: 'Kavuşum', rich: 'Kavuşum (Güç Birliği)', exact: 0 },
@@ -10,12 +10,29 @@ export const ASPECT_TYPE_LABEL_MAP: Record<AspectType, { short: string; rich: st
   OPPOSITION: { short: 'Karşıt', rich: 'Karşıt (Denge Dersi)', exact: 180 },
 };
 
+export const ASPECT_TYPE_LABEL_MAP_EN: Record<AspectType, { short: string; rich: string; exact: number }> = {
+  CONJUNCTION: { short: 'Conjunction', rich: 'Conjunction (Unified Force)', exact: 0 },
+  SEXTILE: { short: 'Sextile', rich: 'Sextile (Opportunity Flow)', exact: 60 },
+  SQUARE: { short: 'Square', rich: 'Square (Growth Tension)', exact: 90 },
+  TRINE: { short: 'Trine', rich: 'Trine (Natural Flow)', exact: 120 },
+  QUINCUNX: { short: 'Quincunx', rich: 'Quincunx (Fine Adjustment)', exact: 150 },
+  OPPOSITION: { short: 'Opposition', rich: 'Opposition (Balance Lesson)', exact: 180 },
+};
+
 export const PLANET_LABEL_MAP: Record<string, string> = {
   ...PLANET_TURKISH,
 };
 
+export const PLANET_LABEL_MAP_EN: Record<string, string> = {
+  ...PLANET_ENGLISH,
+};
+
 export const SIGN_LABEL_MAP: Record<string, string> = Object.fromEntries(
   Object.entries(ZODIAC_TURKISH).map(([key, value]) => [key, `${value.symbol} ${value.name}`]),
+) as Record<string, string>;
+
+export const SIGN_LABEL_MAP_EN: Record<string, string> = Object.fromEntries(
+  Object.entries(ZODIAC_ENGLISH).map(([key, value]) => [key, `${value.symbol} ${value.name}`]),
 ) as Record<string, string>;
 
 const PLANET_ALIASES: Record<string, string> = {
@@ -51,19 +68,41 @@ const SECTION_ID_LABELS: Record<string, string> = {
   spiritual_mission: 'Ruhsal Yön ve Kuzey Düğümü',
 };
 
-export function labelPlanet(planetKey: string | null | undefined): string {
-  if (!planetKey) return 'Gezegen';
-  return PLANET_LABEL_MAP[planetKey] ?? planetKey;
+export function labelPlanet(planetKey: string | null | undefined, locale?: string): string {
+  const isEnglish = locale?.toLowerCase().startsWith('en');
+  if (!planetKey) return isEnglish ? 'Planet' : 'Gezegen';
+  const map = isEnglish ? PLANET_LABEL_MAP_EN : PLANET_LABEL_MAP;
+  return map[planetKey] ?? planetKey;
 }
 
-export function labelAspectType(type: AspectType | string | null | undefined, rich = false): string {
-  if (!type) return 'Açı';
-  const meta = ASPECT_TYPE_LABEL_MAP[type as AspectType];
+export function labelAspectType(type: AspectType | string | null | undefined, rich = false, locale?: string): string {
+  const isEnglish = locale?.toLowerCase().startsWith('en');
+  if (!type) return isEnglish ? 'Aspect' : 'Açı';
+  const map = isEnglish ? ASPECT_TYPE_LABEL_MAP_EN : ASPECT_TYPE_LABEL_MAP;
+  const meta = map[type as AspectType];
   if (meta) return rich ? meta.rich : meta.short;
   return String(type);
 }
 
-export function aspectMeaningFromType(type: AspectType): string {
+export function aspectMeaningFromType(type: AspectType, locale?: string): string {
+  if (locale?.toLowerCase().startsWith('en')) {
+    switch (type) {
+      case 'CONJUNCTION':
+        return 'energies are merging';
+      case 'SEXTILE':
+        return 'cooperation and opportunity are opening';
+      case 'SQUARE':
+        return 'tension is producing growth';
+      case 'TRINE':
+        return 'energy is flowing naturally';
+      case 'QUINCUNX':
+        return 'ongoing adjustment is required';
+      case 'OPPOSITION':
+        return 'a lesson in balance is active';
+      default:
+        return 'the aspect is active';
+    }
+  }
   switch (type) {
     case 'CONJUNCTION':
       return 'enerjiler birleşiyor';
@@ -82,7 +121,8 @@ export function aspectMeaningFromType(type: AspectType): string {
   }
 }
 
-export function formatAspectAngleHuman(aspect: PlanetaryAspect | { angle: number; orb?: number; type?: AspectType }): string {
+export function formatAspectAngleHuman(aspect: PlanetaryAspect | { angle: number; orb?: number; type?: AspectType }, locale?: string): string {
+  const isEnglish = locale?.toLowerCase().startsWith('en');
   const angle = Number(aspect.angle) || 0;
   const orb = typeof aspect.orb === 'number' ? aspect.orb : undefined;
   const type = aspect.type;
@@ -90,14 +130,21 @@ export function formatAspectAngleHuman(aspect: PlanetaryAspect | { angle: number
     return `${angle.toFixed(1)}°`;
   }
 
-  const exact = ASPECT_TYPE_LABEL_MAP[type].exact;
+  const map = isEnglish ? ASPECT_TYPE_LABEL_MAP_EN : ASPECT_TYPE_LABEL_MAP;
+  const exact = map[type].exact;
   const deviation = Math.abs(angle - exact);
   const closeness =
-    deviation <= 0.3 ? 'tam isabet' :
-    deviation <= 1.0 ? 'çok yakın' :
-    deviation <= 2.0 ? 'yakın' : 'geniş orb';
+    isEnglish
+      ? deviation <= 0.3 ? 'exact hit'
+        : deviation <= 1.0 ? 'very close'
+        : deviation <= 2.0 ? 'close'
+        : 'wide orb'
+      : deviation <= 0.3 ? 'tam isabet'
+        : deviation <= 1.0 ? 'çok yakın'
+        : deviation <= 2.0 ? 'yakın'
+        : 'geniş orb';
   const orbText = orb != null ? ` • orb ${orb.toFixed(1)}°` : '';
-  return `${labelAspectType(type)}: ${closeness} (${angle.toFixed(1)}°)${orbText}`;
+  return `${labelAspectType(type, false, locale)}: ${closeness} (${angle.toFixed(1)}°)${orbText}`;
 }
 
 export function cleanAstroHeading(raw: string | null | undefined): string {

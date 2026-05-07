@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { zustandStorage } from '../../../utils/storage';
+import { bindUserScopedPersist, getInitialUserScopedStoreName } from '../../../store/userScopedPersist';
 import { HoroscopeResponse, HoroscopePeriod, ZodiacSign } from '../types/horoscope.types';
 import { fetchHoroscope, clearHoroscopeCache } from '../services/horoscope.service';
 import i18n from '../../../i18n';
@@ -25,15 +26,23 @@ interface HoroscopeState {
   clear: () => void;
 }
 
+const HOROSCOPE_STORE_NAME = 'horoscope-store';
+const EMPTY_HOROSCOPE_STATE: Pick<
+  HoroscopeState,
+  'current' | 'period' | 'selectedSign' | 'loading' | 'error' | 'favorites'
+> = {
+  current: null,
+  period: 'daily',
+  selectedSign: null,
+  loading: false,
+  error: null,
+  favorites: [],
+};
+
 export const useHoroscopeStore = create<HoroscopeState>()(
   persist(
     (set, get) => ({
-      current: null,
-      period: 'daily',
-      selectedSign: null,
-      loading: false,
-      error: null,
-      favorites: [],
+      ...EMPTY_HOROSCOPE_STATE,
 
       setPeriod: (period) => set({ period }),
 
@@ -69,7 +78,7 @@ export const useHoroscopeStore = create<HoroscopeState>()(
       clear: () => set({ current: null, error: null, loading: false }),
     }),
     {
-      name: 'horoscope-store',
+      name: getInitialUserScopedStoreName(HOROSCOPE_STORE_NAME),
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         favorites: state.favorites,
@@ -78,3 +87,9 @@ export const useHoroscopeStore = create<HoroscopeState>()(
     },
   ),
 );
+
+bindUserScopedPersist({
+  store: useHoroscopeStore,
+  baseName: HOROSCOPE_STORE_NAME,
+  emptyState: EMPTY_HOROSCOPE_STATE,
+});

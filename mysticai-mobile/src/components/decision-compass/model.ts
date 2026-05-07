@@ -241,22 +241,28 @@ function normalizeCategoryLabels(
   activityLabel: string,
   itemCount: number,
   dynamicSubLabel?: string | null,
+  t?: TFn,
 ) {
   const haystack = `${id} ${title} ${activityLabel}`.toLocaleLowerCase('tr-TR');
-  const defaultSubLabel = dynamicSubLabel || (activityLabel !== title ? activityLabel : `${itemCount} alt alan`);
+  const subAreasLabel = t
+    ? t('decisionCompassScreen.subAreasCount').replace('{{count}}', String(itemCount))
+    : `${itemCount}`;
+  const defaultSubLabel = dynamicSubLabel || (activityLabel !== title ? activityLabel : subAreasLabel);
 
   if (isMoonText(haystack)) {
+    const moonLabel = t ? t('decisionCompassScreen.moonCategoryLabel') : title;
     return {
-      title: 'Ay',
-      activityLabel: 'Ay',
+      title: moonLabel,
+      activityLabel: moonLabel,
       subLabel: defaultSubLabel,
     };
   }
 
   if (isTransitText(haystack)) {
+    const transitLabel = t ? t('decisionCompassScreen.transitCategoryLabel') : 'Transit';
     return {
-      title: 'Transit',
-      activityLabel: activityLabel && activityLabel !== title ? activityLabel : 'Transit',
+      title: transitLabel,
+      activityLabel: activityLabel && activityLabel !== title ? activityLabel : transitLabel,
       subLabel: defaultSubLabel,
     };
   }
@@ -271,6 +277,7 @@ function normalizeCategoryLabels(
 function mapCosmicOnlyCategories(
   cosmicCategories: Record<string, CosmicCategoryDetail> | undefined,
   usedCosmicKeys: Set<string>,
+  t?: TFn,
 ): DecisionCategoryModel[] {
   if (!cosmicCategories) return [];
 
@@ -281,9 +288,11 @@ function mapCosmicOnlyCategories(
     const score = Number.isFinite(detail.score) ? Math.round(detail.score) : SCORE_HINT_FALLBACK;
     const dynamicSubLabel = subLabelFromCosmic(detail);
     const rawTitle = detail.categoryLabel?.trim() || cosmicKey;
-    const normalized = normalizeCategoryLabels(cosmicKey, rawTitle, rawTitle, detail.subcategories?.length ?? 0, dynamicSubLabel);
+    const normalized = normalizeCategoryLabels(cosmicKey, rawTitle, rawTitle, detail.subcategories?.length ?? 0, dynamicSubLabel, t);
     const items = buildItemsFromCosmicCategory(detail, cosmicKey, normalized.title, [], score);
-    const summary = detail.reasoning?.trim() || detail.subcategories?.[0]?.shortAdvice?.trim() || 'Bugün bu alanda sade ve net ilerlemek daha verimli.';
+    const summary = detail.reasoning?.trim()
+      || detail.subcategories?.[0]?.shortAdvice?.trim()
+      || (t ? t('decisionCompassScreen.summarySingleFallback') : '');
     const icon = deriveIcon(`${cosmicKey} ${normalized.title} ${normalized.subLabel}`.toLocaleLowerCase('tr-TR'));
 
     result.push({
@@ -336,6 +345,7 @@ export function statusLabel(status: CompassStatus, t?: TFn): string {
 export function buildCategoryModels(
   activities: DailyLifeGuideActivity[] | null | undefined,
   cosmicCategories?: Record<string, CosmicCategoryDetail> | null,
+  t?: TFn,
 ): DecisionCategoryModel[] {
   const grouped = new Map<string, DailyLifeGuideActivity[]>();
   for (const item of activities ?? []) {
@@ -373,12 +383,13 @@ export function buildCategoryModels(
         rawActivityLabel,
         cosmicDetail?.subcategories?.length ?? sorted.length,
         dynamicSubLabel,
+        t,
       );
       const items = buildItemsFromCosmicCategory(cosmicDetail, id, normalized.title, sorted, score);
       const summary = cosmicDetail?.reasoning?.trim()
         || top?.shortAdvice?.trim()
         || cosmicDetail?.subcategories?.[0]?.shortAdvice?.trim()
-        || 'Bugün bu alanda tek hedefe odaklanmak daha verimli olur.';
+        || (t ? t('decisionCompassScreen.summarySingleFallback') : '');
       const icon = deriveIcon(
         `${id} ${matchedCosmicKey ?? ''} ${normalized.title} ${normalized.activityLabel}`.toLocaleLowerCase('tr-TR'),
       );
@@ -398,7 +409,7 @@ export function buildCategoryModels(
       };
     });
 
-  const categories = [...baseCategories, ...mapCosmicOnlyCategories(cosmicMap, usedCosmicKeys)];
+  const categories = [...baseCategories, ...mapCosmicOnlyCategories(cosmicMap, usedCosmicKeys, t)];
 
   const uniqueById = new Map<string, DecisionCategoryModel>();
   for (const item of categories) {
@@ -419,25 +430,31 @@ function firstClause(input: string | undefined): string {
   return clause || text;
 }
 
-function compactDoCopy(category: DecisionCategoryModel): string {
+function compactDoCopy(category: DecisionCategoryModel, t?: TFn): string {
   const title = category.title.trim();
   const fromAdvice = firstClause(category.shortSummary);
   if (fromAdvice && fromAdvice.length <= 54) return fromAdvice;
-  return `${title} için ana adımı netleştir`;
+  if (t) return t('decisionCompassScreen.heroDoFallback').replace('{{title}}', title);
+  return title;
 }
 
-function compactAvoidCopy(category: DecisionCategoryModel): string {
+function compactAvoidCopy(category: DecisionCategoryModel, t?: TFn): string {
   const title = category.title.trim();
-  return `${title} alanında aşırı yüklenme`;
+  if (t) return t('decisionCompassScreen.heroAvoidFallback').replace('{{title}}', title);
+  return title;
 }
 
-export function buildHeroModel(categories: DecisionCategoryModel[]): DecisionHeroModel {
+export function buildHeroModel(categories: DecisionCategoryModel[], t?: TFn): DecisionHeroModel {
   if (!categories.length) {
     return {
-      headline: 'Bugün güçlü pencere: tek bir hedefe odaklan.',
-      explanation: 'Kategori skorları güncellendiğinde bu alan otomatik olarak kişiselleşir.',
-      doItems: ['Öncelikli tek işi tamamla', 'Kararını yazılı netleştir', 'Dikkati tek alanda tut'],
-      avoidItems: ['Aynı anda çok konu açma'],
+      headline: t ? t('decisionCompassScreen.heroHeadlineFallback') : '',
+      explanation: t ? t('decisionCompassScreen.heroExplanationFallback') : '',
+      doItems: [
+        t ? t('decisionCompassScreen.doItemFallback1') : '',
+        t ? t('decisionCompassScreen.doItemFallback2') : '',
+        t ? t('decisionCompassScreen.heroDoItemFallback3') : '',
+      ].filter(Boolean),
+      avoidItems: [t ? t('decisionCompassScreen.heroAvoidFallback1') : ''].filter(Boolean),
       strongCategories: [],
     };
   }
@@ -447,20 +464,29 @@ export function buildHeroModel(categories: DecisionCategoryModel[]): DecisionHer
   const weak = categories.filter((c) => c.status === 'CAUTION' || c.status === 'HOLD').slice(0, 2);
 
   const doItems = [
-    compactDoCopy(top),
-    ...strong.filter((c) => c.id !== top.id).map((c) => compactDoCopy(c)),
-    'Tek ana hedefe odaklan',
+    compactDoCopy(top, t),
+    ...strong.filter((c) => c.id !== top.id).map((c) => compactDoCopy(c, t)),
+    t ? t('decisionCompassScreen.doItemFallback1') : '',
   ].filter(Boolean).slice(0, 3);
 
   const avoidItems = weak.length
-    ? weak.map((c) => compactAvoidCopy(c))
-    : ['Aynı anda çok konu açma', 'Kararları gereksiz dağıtma'];
+    ? weak.map((c) => compactAvoidCopy(c, t))
+    : [
+        t ? t('decisionCompassScreen.heroAvoidFallback1') : '',
+        t ? t('decisionCompassScreen.heroAvoidFallback2') : '',
+      ].filter(Boolean);
+
+  const headline = t
+    ? t('decisionCompassScreen.heroHeadlineStrong').replace('{{area}}', top.title)
+    : top.title;
+
+  const explanation = strong.length >= 2
+    ? (t ? t('decisionCompassScreen.heroExplanationTwoStrong').replace('{{areas}}', strong.map((c) => c.title).join(' & ')) : '')
+    : (t ? t('decisionCompassScreen.heroExplanationOneStrong').replace('{{area}}', top.title) : '');
 
   return {
-    headline: `Bugün güçlü pencere: ${top.title} alanında senin için fırsatlar var`,
-    explanation: strong.length >= 2
-      ? `${strong.map((c) => c.title).join(' ve ')} alanlarında destek yüksek.`
-      : `${top.title} alanında destek yüksek, kararları sade tutmak avantaj sağlar.`,
+    headline,
+    explanation,
     doItems,
     avoidItems: avoidItems.slice(0, 3),
     strongCategories: [top.title],

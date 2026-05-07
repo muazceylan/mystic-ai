@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { zustandStorage } from '../../utils/storage';
+import { bindUserScopedPersist, getInitialUserScopedStoreName } from '../../store/userScopedPersist';
 import type { JournalEntry, DhikrSessionLocal } from '../types';
 
 interface JournalState {
@@ -33,11 +34,16 @@ function genId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+const JOURNAL_STORE_NAME = 'spiritual-journal-store';
+const EMPTY_JOURNAL_STATE: Pick<JournalState, 'entries' | 'sessions'> = {
+  entries: [],
+  sessions: [],
+};
+
 export const useJournalStore = create<JournalState>()(
   persist(
     (set, get) => ({
-      entries: [],
-      sessions: [],
+      ...EMPTY_JOURNAL_STATE,
 
       addEntry: (entry) => {
         const newEntry: JournalEntry = {
@@ -148,9 +154,15 @@ export const useJournalStore = create<JournalState>()(
       },
     }),
     {
-      name: 'spiritual-journal-store',
+      name: getInitialUserScopedStoreName(JOURNAL_STORE_NAME),
       storage: createJSONStorage(() => zustandStorage),
       partialize: (s) => ({ entries: s.entries, sessions: s.sessions }),
     },
   ),
 );
+
+bindUserScopedPersist({
+  store: useJournalStore,
+  baseName: JOURNAL_STORE_NAME,
+  emptyState: EMPTY_JOURNAL_STATE,
+});

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { zustandStorage } from '../../utils/storage';
+import { bindUserScopedPersist, getInitialUserScopedStoreName } from '../../store/userScopedPersist';
 import { buildRecommendation } from '../engine/recommendationEngine';
 import type { ContentRecommendation } from '../engine/recommendationEngine';
 import type { EsmaItem, DuaItem } from '../types';
@@ -22,14 +23,22 @@ interface RecommendationState {
   markShown: (esmaId: number, duaId: number, sureId?: number) => void;
 }
 
+const RECOMMENDATION_STORE_NAME = 'spiritual-recommendation-store';
+const EMPTY_RECOMMENDATION_STATE: Pick<
+  RecommendationState,
+  'today' | 'lastGeneratedDate' | 'recentEsmaIds' | 'recentDuaIds' | 'recentSureIds'
+> = {
+  today: null,
+  lastGeneratedDate: null,
+  recentEsmaIds: [],
+  recentDuaIds: [],
+  recentSureIds: [],
+};
+
 export const useRecommendationStore = create<RecommendationState>()(
   persist(
     (set, get) => ({
-      today: null,
-      lastGeneratedDate: null,
-      recentEsmaIds: [],
-      recentDuaIds: [],
-      recentSureIds: [],
+      ...EMPTY_RECOMMENDATION_STATE,
 
       generate: (chart, esmaList, duaList) => {
         const dateISO = new Date().toISOString().slice(0, 10);
@@ -61,7 +70,7 @@ export const useRecommendationStore = create<RecommendationState>()(
       },
     }),
     {
-      name: 'spiritual-recommendation-store',
+      name: getInitialUserScopedStoreName(RECOMMENDATION_STORE_NAME),
       storage: createJSONStorage(() => zustandStorage),
       partialize: (s) => ({
         today: s.today,
@@ -73,3 +82,9 @@ export const useRecommendationStore = create<RecommendationState>()(
     },
   ),
 );
+
+bindUserScopedPersist({
+  store: useRecommendationStore,
+  baseName: RECOMMENDATION_STORE_NAME,
+  emptyState: EMPTY_RECOMMENDATION_STATE,
+});

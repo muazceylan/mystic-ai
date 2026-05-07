@@ -34,7 +34,7 @@ export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCat
 
   return (
     <View style={S.wrap}>
-      <Text style={S.title}>Bugün Öne Çıkanlar</Text>
+      <Text style={S.title}>{t('decisionCompassScreen.featuredSectionTitle')}</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.row}>
         {categories.slice(0, 3).map((category, index) => {
@@ -81,7 +81,7 @@ export function FeaturedCategoryRow({ categories, onPressCategory }: FeaturedCat
                   <Text style={S.summary} numberOfLines={2}>{category.shortSummary}</Text>
 
                   <Pressable onPress={() => onPressCategory(category)} style={({ pressed }) => [S.detailBtn, pressed && S.pressed]}>
-                    <Text style={S.detailText}>Detay</Text>
+                    <Text style={S.detailText}>{t('decisionCompassScreen.detailBtn')}</Text>
                     <Ionicons name="chevron-forward" size={12} color={colors.primary} />
                   </Pressable>
                 </View>

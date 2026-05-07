@@ -4,6 +4,7 @@ import { experimental_createQueryPersister } from '@tanstack/query-persist-clien
 
 const CACHE_MAX_AGE = 1000 * 60 * 60 * 24; // 24 saat
 const PERSIST_PREFIX = 'mystic-query';
+const QUERY_CACHE_SCOPE_STORAGE_KEY = 'query-cache-scope:v1';
 
 const persister = experimental_createQueryPersister({
   storage: AsyncStorage,
@@ -26,5 +27,31 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+export async function clearPersistedQueryCache(): Promise<void> {
+  queryClient.clear();
+
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const persistedQueryKeys = allKeys.filter((key) => key.startsWith(PERSIST_PREFIX));
+    if (persistedQueryKeys.length > 0) {
+      await AsyncStorage.multiRemove(persistedQueryKeys);
+    }
+  } catch {
+    // ignore storage cleanup failures
+  }
+}
+
+export async function syncPersistedQueryCacheScope(scopeKey: string): Promise<void> {
+  try {
+    const previousScope = await AsyncStorage.getItem(QUERY_CACHE_SCOPE_STORAGE_KEY);
+    if (previousScope && previousScope !== scopeKey) {
+      await clearPersistedQueryCache();
+    }
+    await AsyncStorage.setItem(QUERY_CACHE_SCOPE_STORAGE_KEY, scopeKey);
+  } catch {
+    // ignore scope sync failures
+  }
+}
 
 export { persister };

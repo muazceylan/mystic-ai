@@ -99,6 +99,10 @@ public class AdminSecurityConfig {
                         // Authenticated monetization endpoints — protected by gateway JWT
                         // (X-User-Id injected by gateway; no admin JWT required here)
                         .requestMatchers("/api/v1/monetization/**").permitAll()
+                        // User entitlement snapshot and mobile billing sync/restore use the
+                        // same gateway JWT + X-User-Id trust model as monetization routes.
+                        .requestMatchers("/api/v1/me/entitlements").permitAll()
+                        .requestMatchers("/api/v1/billing/**").permitAll()
                         // Rewarded ads endpoints — protected by gateway JWT (X-User-Id required)
                         .requestMatchers("/api/v1/monetization/rewarded-ads/**").permitAll()
                         // Public app config — no auth required

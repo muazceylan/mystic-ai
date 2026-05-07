@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Service for generating mystical AI interpretations.
@@ -29,6 +32,10 @@ import java.util.Locale;
 public class MysticalAiService {
 
     private static final Logger logger = LoggerFactory.getLogger(MysticalAiService.class);
+    private static final Pattern HARMONY_SCORE_PUAN_PATTERN =
+            Pattern.compile("(?i)\\b(\\d{1,3})\\s*puan(?:lık)?\\b");
+    private static final Pattern HARMONY_SCORE_FRACTION_PATTERN =
+            Pattern.compile("(?i)\\b(\\d{1,3})\\s*/\\s*100\\b");
 
     private final AiFallbackService fallbackService;
     private final MysticalPromptTemplates promptTemplates;
@@ -463,22 +470,24 @@ public class MysticalAiService {
                     extractFromPayload(event.payload(), "midMonthTransits"));
         }
         if (event.analysisType() == AiAnalysisEvent.AnalysisType.RELATIONSHIP_ANALYSIS) {
+            String payload = event.payload();
             return promptTemplates.getRelationshipAnalysisPrompt(
-                    extractFromPayload(event.payload(), "userName"),
-                    extractFromPayload(event.payload(), "userSunSign"),
-                    extractFromPayload(event.payload(), "userMoonSign"),
-                    extractFromPayload(event.payload(), "userRisingSign"),
-                    extractFromPayload(event.payload(), "userPlanetsText"),
-                    extractFromPayload(event.payload(), "partnerName"),
-                    extractFromPayload(event.payload(), "partnerSunSign"),
-                    extractFromPayload(event.payload(), "partnerMoonSign"),
-                    extractFromPayload(event.payload(), "partnerRisingSign"),
-                    extractFromPayload(event.payload(), "partnerPlanetsText"),
-                    extractFromPayload(event.payload(), "relationshipType"),
-                    extractFromPayload(event.payload(), "allAspectsText"),
-                    extractFromPayload(event.payload(), "userGender"),
-                    extractFromPayload(event.payload(), "partnerGender"),
-                    extractFromPayload(event.payload(), "baseHarmonyScore"));
+                    extractFromPayload(payload, "userName"),
+                    extractFromPayload(payload, "userSunSign"),
+                    extractFromPayload(payload, "userMoonSign"),
+                    extractFromPayload(payload, "userRisingSign"),
+                    extractFromPayload(payload, "userPlanetsText"),
+                    extractFromPayload(payload, "partnerName"),
+                    extractFromPayload(payload, "partnerSunSign"),
+                    extractFromPayload(payload, "partnerMoonSign"),
+                    extractFromPayload(payload, "partnerRisingSign"),
+                    extractFromPayload(payload, "partnerPlanetsText"),
+                    extractFromPayload(payload, "relationshipType"),
+                    extractFromPayload(payload, "allAspectsText"),
+                    extractFromPayload(payload, "userGender"),
+                    extractFromPayload(payload, "partnerGender"),
+                    Integer.toString(resolveRelationshipReferenceScore(payload)),
+                    Integer.toString(resolveRelationshipBaseScore(payload)));
         }
         return switch (event.sourceService()) {
             case DREAM     -> promptTemplates.getDreamInterpretationPrompt(
@@ -603,23 +612,29 @@ public class MysticalAiService {
         String userName = sanitizePartyName(extractFromPayload(payload, "userName"), "Kişi A");
         String partnerName = sanitizePartyName(extractFromPayload(payload, "partnerName"), "Kişi B");
         String relationshipType = extractFromPayload(payload, "relationshipType");
-        int baseScore = parseScore(extractFromPayload(payload, "baseHarmonyScore"), 50);
+        int referenceScore = resolveRelationshipReferenceScore(payload);
 
         try {
             JsonNode parsed = objectMapper.readTree(response);
             if (parsed == null || !parsed.isObject()) {
-                return buildFallbackRelationshipJson(userName, partnerName, relationshipType, baseScore);
+                return buildFallbackRelationshipJson(userName, partnerName, relationshipType, referenceScore);
             }
 
             ObjectNode root = (ObjectNode) parsed;
             ObjectNode out = objectMapper.createObjectNode();
 
-            int aiScore = parseScore(text(root, "harmonyScore"), baseScore);
-            int harmonyScore = constrainToReference(aiScore, baseScore, 8);
+            int aiScore = parseScore(text(root, "harmonyScore"), referenceScore);
+            int constrainedScore = constrainToReference(aiScore, referenceScore, 8);
+            int harmonyScore = referenceScore;
             out.put("harmonyScore", harmonyScore);
 
             String insightFallback = buildRelationshipInsightFallback(userName, partnerName, relationshipType, harmonyScore);
-            out.put("harmonyInsight", ensureTurkishNarrative(text(root, "harmonyInsight"), insightFallback));
+            out.put("harmonyInsight", normalizeRelationshipInsight(
+                    text(root, "harmonyInsight"),
+                    insightFallback,
+                    harmonyScore,
+                    constrainedScore
+            ));
 
             List<String> strengthFallbacks = List.of(
                     userName + " ile " + partnerName + " arasında destekleyici alanlarda doğal bir tamamlayıcılık oluşabilir.",
@@ -643,7 +658,7 @@ public class MysticalAiService {
             return objectMapper.writeValueAsString(out);
         } catch (Exception e) {
             logger.warn("Relationship JSON normalization failed, using Turkish fallback: {}", e.getMessage());
-            return buildFallbackRelationshipJson(userName, partnerName, relationshipType, baseScore);
+            return buildFallbackRelationshipJson(userName, partnerName, relationshipType, referenceScore);
         }
     }
 
@@ -690,6 +705,17 @@ public class MysticalAiService {
         return Math.max(min, Math.min(max, score));
     }
 
+    private int resolveRelationshipBaseScore(String payload) {
+        return parseScore(extractFromPayload(payload, "baseHarmonyScore"), 50);
+    }
+
+    private int resolveRelationshipReferenceScore(String payload) {
+        return parseScore(
+                extractFromPayload(payload, "selectedModuleScore"),
+                resolveRelationshipBaseScore(payload)
+        );
+    }
+
     private String sanitizePartyName(String raw, String fallback) {
         String value = nonBlank(raw) ? raw : fallback;
         if (value == null) return fallback;
@@ -721,6 +747,27 @@ public class MysticalAiService {
                 + "Küçük ama düzenli ortak adımlar, bu eşleşmenin güçlü taraflarını daha görünür hale getirebilir.";
     }
 
+    private String normalizeRelationshipInsight(
+            String raw,
+            String fallback,
+            int harmonyScore,
+            int constrainedScore
+    ) {
+        String normalized = ensureTurkishNarrative(raw, fallback);
+        if (!nonBlank(normalized)) {
+            return fallback;
+        }
+        if (containsConflictingHarmonyScoreReference(normalized, harmonyScore)) {
+            logger.warn(
+                    "Relationship harmonyInsight score mismatch detected; using fallback. visibleScore={}, constrainedAiScore={}",
+                    harmonyScore,
+                    constrainedScore
+            );
+            return fallback;
+        }
+        return normalized;
+    }
+
     private String buildRelationshipAdviceFallback(String userName, String partnerName, String relationshipType) {
         String relation = relationTypeLabelTr(relationshipType);
         return "%s ve %s için en etkili yaklaşım, %s dinamiğinde beklentiyi baştan netleştirmek olur. "
@@ -730,11 +777,12 @@ public class MysticalAiService {
                 + "Bu ritim, güven ve yakınlık hissini daha sürdürülebilir hale getirebilir.";
     }
 
-    private String buildFallbackRelationshipJson(String userName, String partnerName, String relationshipType, int baseScore) {
+    private String buildFallbackRelationshipJson(String userName, String partnerName, String relationshipType, int referenceScore) {
         try {
             ObjectNode out = objectMapper.createObjectNode();
-            out.put("harmonyScore", Math.max(0, Math.min(100, baseScore)));
-            out.put("harmonyInsight", buildRelationshipInsightFallback(userName, partnerName, relationshipType, baseScore));
+            int safeReferenceScore = Math.max(0, Math.min(100, referenceScore));
+            out.put("harmonyScore", safeReferenceScore);
+            out.put("harmonyInsight", buildRelationshipInsightFallback(userName, partnerName, relationshipType, safeReferenceScore));
             out.set("strengths", normalizeRelationshipArray(objectMapper.createArrayNode(), 3, List.of(
                     userName + " ve " + partnerName + " destekleyici başlıklarda birbirini tamamlayabilir.",
                     "Kısa ve net iletişim kalıbı, yanlış anlaşılma riskini azaltır.",
@@ -750,6 +798,36 @@ public class MysticalAiService {
         } catch (Exception e) {
             return "{\"harmonyScore\":50,\"harmonyInsight\":\"Uyum analizi Türkçe güvenli biçimde yeniden oluşturuldu.\",\"strengths\":[\"Açık iletişim dengeyi güçlendirebilir.\",\"Ortak ritim güveni artırabilir.\",\"Küçük adımlar sürdürülebilir ilerleme sağlar.\"],\"challenges\":[\"Tempo farkı gerilim yaratabilir.\",\"Karar tarzı farkı yanlış anlaşılma üretebilir.\"],\"keyWarning\":\"Varsayım yerine doğrulama yapmadan hüküm verme.\",\"cosmicAdvice\":\"Önce duyguyu, sonra çözümü konuşun.\"}";
         }
+    }
+
+    private boolean containsConflictingHarmonyScoreReference(String text, int expectedScore) {
+        return extractReferencedHarmonyScore(text)
+                .map(score -> score != expectedScore)
+                .orElse(false);
+    }
+
+    private Optional<Integer> extractReferencedHarmonyScore(String text) {
+        if (!nonBlank(text)) {
+            return Optional.empty();
+        }
+
+        Matcher puanMatcher = HARMONY_SCORE_PUAN_PATTERN.matcher(text);
+        while (puanMatcher.find()) {
+            int parsed = parseScore(puanMatcher.group(1), -1);
+            if (parsed >= 0 && parsed <= 100) {
+                return Optional.of(parsed);
+            }
+        }
+
+        Matcher fractionMatcher = HARMONY_SCORE_FRACTION_PATTERN.matcher(text);
+        while (fractionMatcher.find()) {
+            int parsed = parseScore(fractionMatcher.group(1), -1);
+            if (parsed >= 0 && parsed <= 100) {
+                return Optional.of(parsed);
+            }
+        }
+
+        return Optional.empty();
     }
 
     private String ensureTurkishNarrative(String raw, String fallback) {

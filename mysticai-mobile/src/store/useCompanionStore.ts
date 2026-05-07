@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { UserProfile } from './useAuthStore';
 import { zustandStorage } from '../utils/storage';
+import { bindUserScopedPersist, getInitialUserScopedStoreName } from './userScopedPersist';
 import {
   addSavedPerson,
   deleteSavedPerson,
@@ -99,15 +100,23 @@ function reconcileProfile(profile: Profile, savedPeople: SavedPerson[], user: Us
   return user ?? profile;
 }
 
+const COMPANION_STORE_NAME = 'companion-store';
+const EMPTY_COMPANION_STATE: Pick<
+  CompanionState,
+  'savedPeople' | 'activeProfile' | 'selectedForComparison' | 'isLoading' | 'error' | 'lastSyncedAt'
+> = {
+  savedPeople: [],
+  activeProfile: null,
+  selectedForComparison: [],
+  isLoading: false,
+  error: null,
+  lastSyncedAt: null,
+};
+
 export const useCompanionStore = create<CompanionState>()(
   persist(
     (set) => ({
-      savedPeople: [],
-      activeProfile: null,
-      selectedForComparison: [],
-      isLoading: false,
-      error: null,
-      lastSyncedAt: null,
+      ...EMPTY_COMPANION_STATE,
 
       syncSavedPeople: async (userId) => {
         set({ isLoading: true, error: null });
@@ -246,7 +255,7 @@ export const useCompanionStore = create<CompanionState>()(
         }),
     }),
     {
-      name: 'companion-store',
+      name: getInitialUserScopedStoreName(COMPANION_STORE_NAME),
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         savedPeople: state.savedPeople,
@@ -257,6 +266,12 @@ export const useCompanionStore = create<CompanionState>()(
     }
   )
 );
+
+bindUserScopedPersist({
+  store: useCompanionStore,
+  baseName: COMPANION_STORE_NAME,
+  emptyState: EMPTY_COMPANION_STATE,
+});
 
 export function isSavedPersonProfile(profile: Profile | null): profile is SavedPerson {
   return isSavedProfile(profile);

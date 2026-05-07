@@ -100,6 +100,41 @@ class MysticalAiServiceTest {
         assertFalse(result.contains("Temel yorum korunarak"));
     }
 
+    @Test
+    void shouldUseSelectedModuleScoreForRelationshipPromptAndNormalization() throws Exception {
+        RecordingFallbackService fallbackService = new RecordingFallbackService("""
+                {
+                  "harmonyScore": 84,
+                  "harmonyInsight": "Aylin ve Bora arasında aşk odağında 84 puanlık, yüksek bir uyum görünüyor.",
+                  "strengths": ["Çekim destekleyici akıyor.", "Duygusal temas sıcak kalıyor.", "Güven kolay kuruluyor."],
+                  "challenges": ["Tempo farkı zaman zaman zorlayabilir.", "Beklenti dili ayrışabilir."],
+                  "keyWarning": "Varsayımla ilerlemek kırgınlığı büyütebilir.",
+                  "cosmicAdvice": "Önce duyguyu, sonra ihtiyacı konuşun."
+                }
+                """);
+        MysticalAiService service = new MysticalAiService(
+                fallbackService,
+                new MysticalPromptTemplates(),
+                new ObjectMapper()
+        );
+
+        String result = service.generateInterpretation(new AiAnalysisEvent(
+                181L,
+                relationshipPayload(79, 84),
+                AiAnalysisEvent.SourceService.ASTROLOGY,
+                AiAnalysisEvent.AnalysisType.RELATIONSHIP_ANALYSIS
+        ));
+
+        ObjectMapper mapper = new ObjectMapper();
+        var json = mapper.readTree(result);
+
+        assertEquals(79, json.path("harmonyScore").asInt());
+        assertTrue(json.path("harmonyInsight").asText().contains("79 puanlık"));
+        assertFalse(json.path("harmonyInsight").asText().contains("84 puanlık"));
+        assertTrue(fallbackService.lastPrompt.contains("Seçili modül için referans backend skoru: 79"));
+        assertTrue(fallbackService.lastPrompt.contains("Genel synastry baz skoru: 84"));
+    }
+
     private String natalPayload(String locale) {
         return """
                 {
@@ -132,10 +167,35 @@ class MysticalAiServiceTest {
                 """.formatted(locale);
     }
 
+    private String relationshipPayload(int selectedModuleScore, int baseHarmonyScore) {
+        return """
+                {
+                  "userName": "Aylin",
+                  "userSunSign": "Libra",
+                  "userMoonSign": "Pisces",
+                  "userRisingSign": "Gemini",
+                  "userPlanetsText": "Venus Libra 12.4° — 7. Ev",
+                  "partnerName": "Bora",
+                  "partnerSunSign": "Leo",
+                  "partnerMoonSign": "Sagittarius",
+                  "partnerRisingSign": "Aries",
+                  "partnerPlanetsText": "Mars Leo 14.1° — 5. Ev",
+                  "relationshipType": "LOVE",
+                  "allAspectsText": "Venus(Aylin) Üçgen Mars(Bora) — orb: 1.7°",
+                  "userGender": "FEMALE",
+                  "partnerGender": "MALE",
+                  "selectedModuleScore": %d,
+                  "baseHarmonyScore": %d,
+                  "locale": "tr"
+                }
+                """.formatted(selectedModuleScore, baseHarmonyScore);
+    }
+
     private static final class RecordingFallbackService extends AiFallbackService {
         private final String response;
         private boolean generateCalled;
         private boolean lastComplex;
+        private String lastPrompt;
 
         private RecordingFallbackService(String response) {
             super(
@@ -156,6 +216,7 @@ class MysticalAiServiceTest {
         public String generate(String prompt, boolean complex) {
             this.generateCalled = true;
             this.lastComplex = complex;
+            this.lastPrompt = prompt;
             return response;
         }
     }

@@ -2,8 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import type { PendingSpiritualLogJob, PendingSpiritualLogKind } from '../types';
 import { protectQueuePayload, unprotectQueuePayload } from '../storage/secureStorage';
+import { buildUserScopedStorageKey, getCurrentUserScopeKey } from '../../store/userScopedPersist';
 
 const QUEUE_KEY = 'mystic:spiritual:pending-log-queue';
+
+function resolveQueueStorageKey(): string {
+  return buildUserScopedStorageKey(QUEUE_KEY, getCurrentUserScopeKey());
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -18,7 +23,7 @@ function makeId(kind: PendingSpiritualLogKind) {
 }
 
 async function readQueue(): Promise<PendingSpiritualLogJob[]> {
-  const raw = await AsyncStorage.getItem(QUEUE_KEY);
+  const raw = await AsyncStorage.getItem(resolveQueueStorageKey());
   if (!raw) return [];
   try {
     const unprotected = await unprotectQueuePayload(raw);
@@ -32,7 +37,7 @@ async function readQueue(): Promise<PendingSpiritualLogJob[]> {
 async function writeQueue(queue: PendingSpiritualLogJob[]): Promise<void> {
   const serialized = JSON.stringify(queue);
   const protectedPayload = await protectQueuePayload(serialized);
-  await AsyncStorage.setItem(QUEUE_KEY, protectedPayload);
+  await AsyncStorage.setItem(resolveQueueStorageKey(), protectedPayload);
 }
 
 export async function getPendingSpiritualLogQueue(): Promise<PendingSpiritualLogJob[]> {
@@ -90,4 +95,3 @@ export async function flushPendingSpiritualLogQueue(): Promise<{ sent: number; r
   await writeQueue(remaining);
   return { sent, remaining: remaining.length };
 }
-

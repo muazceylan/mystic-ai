@@ -14,8 +14,10 @@ export const queryKeys = {
   weeklySwot: (userId: number, locale?: string) => ['astrology', 'weekly-swot', userId, locale ?? 'tr'] as const,
   dailyLifeGuide: (userId: number, locale?: string, date?: string) =>
     ['astrology', 'daily-life-guide', userId, locale ?? 'tr', date ?? 'today'] as const,
-  dailyTransits: (date: string, locale?: string) => ['dailyTransits', date, locale ?? 'tr'] as const,
-  dailyActions: (date: string, locale?: string) => ['dailyActions', date, locale ?? 'tr'] as const,
+  dailyTransits: (date: string, locale?: string, scopeKey?: string | null) =>
+    ['dailyTransits', scopeKey ?? 'guest', date, locale ?? 'tr'] as const,
+  dailyActions: (date: string, locale?: string, scopeKey?: string | null) =>
+    ['dailyActions', scopeKey ?? 'guest', date, locale ?? 'tr'] as const,
   cosmicSummary: (userId: number, locale?: string, date?: string, gender?: string, maritalStatus?: string) =>
     ['cosmic', 'summary', userId, locale ?? 'tr', date ?? 'today', gender ?? '', maritalStatus ?? ''] as const,
   cosmicPlanner: (userId: number, month?: string, locale?: string, gender?: string, maritalStatus?: string) =>

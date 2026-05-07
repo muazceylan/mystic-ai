@@ -74,7 +74,7 @@ export default function DailySummaryScreen() {
     user?.id
       ? {
           userId: user.id,
-          locale: user.preferredLanguage ?? i18n.language,
+          locale: i18n.language,
           userGender: user.gender,
           maritalStatus: user.maritalStatus,
         }

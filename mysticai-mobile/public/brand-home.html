@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Astro Guru | Astroloji, Numeroloji ve Spirituel Rehberlik Uygulamasi</title>
+    <meta
+      name="description"
+      content="Astro Guru ile gunluk astroloji yorumlari, numeroloji analizi, ruya yorumu ve spirituel rehberlik iceriklerini tek yerde kesfedin."
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta property="og:title" content="Astro Guru | Astroloji, Numeroloji ve Spirituel Rehberlik Uygulamasi" />
+    <meta
+      property="og:description"
+      content="Astro Guru uygulamasini kesfedin. Gunluk astroloji, numeroloji, ruya yorumu ve spirituel rehberlik icin resmi giris sayfasi."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://astroguru.app/" />
+    <meta property="og:site_name" content="Astro Guru" />
+    <meta property="og:image" content="https://astroguru.app/favicon.ico" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#120a2f" />
+    <link rel="canonical" href="https://astroguru.app/" />
+    <style>
+      :root {
+        --bg-top: #120a2f;
+        --bg-bottom: #071227;
+        --panel: rgba(18, 26, 52, 0.72);
+        --panel-soft: rgba(255, 255, 255, 0.06);
+        --line: rgba(255, 255, 255, 0.12);
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+        --primary: #d8b4fe;
+        --primary-strong: #c084fc;
+        --primary-text: #1f1235;
+        --accent: #7dd3fc;
+        --shadow: 0 24px 56px rgba(2, 6, 23, 0.38);
+        --radius: 24px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 15% 18%, rgba(192, 132, 252, 0.26), transparent 38%),
+          radial-gradient(circle at 82% 72%, rgba(125, 211, 252, 0.18), transparent 32%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 56px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 0 22px;
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .brand-mark {
+        font-size: 12px;
+        letter-spacing: 0.22em;
+        font-weight: 800;
+        color: var(--primary);
+      }
+
+      .brand-name {
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+
+      .nav a {
+        text-decoration: none;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+        gap: 24px;
+        align-items: stretch;
+      }
+
+      .hero-card,
+      .panel,
+      .faq-item,
+      .footer-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .hero-copy {
+        padding: 32px;
+      }
+
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(216, 180, 254, 0.28);
+        background: rgba(216, 180, 254, 0.12);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 14px;
+        font-size: clamp(36px, 7vw, 58px);
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+      }
+
+      .hero-copy p {
+        margin: 0;
+        max-width: 680px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.72;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .pill {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #e2e8f0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 26px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 50px;
+        padding: 0 20px;
+        border-radius: 14px;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 15px;
+        transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+        color: var(--primary-text);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        color: var(--text);
+      }
+
+      .btn-tertiary {
+        color: var(--accent);
+      }
+
+      .hero-side {
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .hero-side h2,
+      .section h2 {
+        margin: 0 0 10px;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      .hero-side p,
+      .section p,
+      .faq-item p,
+      .footer-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .stack strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text);
+      }
+
+      .section-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 18px;
+      }
+
+      .section {
+        margin-top: 26px;
+        padding: 24px;
+      }
+
+      .feature-card {
+        padding: 20px;
+        border-radius: 18px;
+        background: var(--panel-soft);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .feature-card h3,
+      .link-card h3,
+      .faq-item h3,
+      .footer-card h3 {
+        margin: 0 0 10px;
+        font-size: 19px;
+      }
+
+      .link-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 18px;
+      }
+
+      .link-card {
+        display: block;
+        padding: 20px;
+        border-radius: 18px;
+        background: var(--panel-soft);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+      }
+
+      .link-card span {
+        display: inline-block;
+        margin-top: 10px;
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .faq-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 18px;
+      }
+
+      .faq-item {
+        padding: 20px;
+      }
+
+      .footer-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 26px;
+      }
+
+      .footer-card {
+        padding: 22px;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .footer-links a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .microcopy {
+        margin-top: 22px;
+        color: rgba(226, 232, 240, 0.72);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 980px) {
+        .hero,
+        .section-grid,
+        .link-grid,
+        .faq-grid,
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .nav {
+          justify-content: flex-start;
+        }
+
+        .hero-copy,
+        .hero-side,
+        .section {
+          padding: 22px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .btn {
+          transition: none;
+        }
+      }
+    </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Astro Guru",
+        "alternateName": "AstroGuru",
+        "url": "https://astroguru.app/",
+        "sameAs": [
+          "https://info.astroguru.app/"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "support@astroguru.app",
+          "availableLanguage": ["tr", "en"]
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Astro Guru",
+        "applicationCategory": "LifestyleApplication",
+        "operatingSystem": "iOS, Android, Web",
+        "url": "https://astroguru.app/welcome",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "TRY"
+        },
+        "description": "Astro Guru, gunluk astroloji, numeroloji, ruya yorumu ve spirituel rehberlik deneyimini tek uygulamada sunar."
+      }
+    </script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">ASTRO GURU</span>
+          <span class="brand-name">AstroGuru resmi web giris sayfasi</span>
+        </div>
+        <nav class="nav" aria-label="Hizli baglantilar">
+          <a href="#ozellikler">Ozellikler</a>
+          <a href="#rehberler">Rehberler</a>
+          <a href="#sss">SSS</a>
+          <a href="/account-deletion">Hesap Silme</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <article class="hero-card hero-copy">
+            <div class="hero-eyebrow">Astro Guru uygulamasi</div>
+            <h1>Gunluk astroloji, numeroloji ve spirituel rehberlik icin tek merkez.</h1>
+            <p>
+              Astro Guru ile natal haritanizi kesfedebilir, gunluk transitlerinizi takip edebilir,
+              numeroloji analizi alabilir, ruya yorumlarina ulasabilir ve spirituel icerikleri tek
+              bir uygulamada deneyimleyebilirsiniz. Bu sayfa, Astro Guru markasinin resmi ana
+              giris sayfasidir.
+            </p>
+            <div class="pill-row" aria-label="Sunulan alanlar">
+              <span class="pill">Kisiye ozel astrolojik analizler</span>
+              <span class="pill">Numeroloji ve isim yorumlari</span>
+              <span class="pill">Ruya yorumu ve sembol rehberi</span>
+              <span class="pill">Gunluk spirituel rehberlik</span>
+            </div>
+            <div class="cta-row">
+              <a class="btn btn-primary" href="/dl?utm_source=brand_home&utm_medium=organic&utm_campaign=brand_search">
+                Uygulamayi indir
+              </a>
+              <a class="btn btn-secondary" href="/welcome">
+                Uygulamayi ac
+              </a>
+              <a class="btn btn-tertiary" href="https://info.astroguru.app/" rel="noopener">
+                Bilgi merkezine git
+              </a>
+            </div>
+            <p class="microcopy">
+              Google'da "Astro Guru" veya "AstroGuru" aramalarinda gorulecek resmi landing page
+              olarak hazirlanmistir. Uygulama indirme, marka dogrulama ve temel bilgi akislarini
+              tek yerde toplar.
+            </p>
+          </article>
+
+          <aside class="hero-card hero-side" aria-label="Kullanici beklentileri">
+            <div>
+              <h2>Astro Guru neden kullanilir?</h2>
+              <p>
+                Astro Guru, yalnizca bir tanitim sayfasi degil; marka aramasindan gelen
+                kullanicilarin uygulamaya, destek iceriklerine ve kamuya acik yasal bilgilere hizli
+                erisimini saglayan resmi giris noktasi olarak konumlanir.
+              </p>
+            </div>
+            <div class="stack">
+              <div class="feature-card">
+                <strong>Marka aramasina uygun icerik</strong>
+                <p>Astro Guru adi, uygulama amaci ve temel deger onerisi bu sayfada acikca anlatilir.</p>
+              </div>
+              <div class="feature-card">
+                <strong>Uygulamaya gecis</strong>
+                <p>Indirme, uygulamayi acma ve destek sayfalarina yonlendiren net CTA'lar bulunur.</p>
+              </div>
+              <div class="feature-card">
+                <strong>Editoriyel rehber baglantilari</strong>
+                <p>Astroloji, numeroloji ve ruya yorumu gibi daha uzun icerikler bilgi merkezinde yer alir.</p>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="panel section" id="ozellikler">
+          <h2>Astro Guru ile neler yapabilirsiniz?</h2>
+          <p>
+            Marka sorgusundan gelen kullanicilar icin ana urun deneyimini kisa ve net anlatan temel
+            alanlar:
+          </p>
+          <div class="section-grid">
+            <article class="feature-card">
+              <h3>Astroloji</h3>
+              <p>
+                Natal harita, transitler, uyum analizi ve gunluk kozmik etkileri yorumlamaya
+                yardimci analizler.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Numeroloji</h3>
+              <p>
+                Dogum tarihi ve isim verileriyle sayisal temalari, yasam yolu yorumlarini ve isim
+                enerjilerini kesfetme imkani.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Spirituel rehberlik</h3>
+              <p>
+                Ruya yorumu, meditasyon, dua ve gunluk icgoru akislariyla daha butunsel bir deneyim.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel section" id="rehberler">
+          <h2>Detayli rehberler ve bilgi merkezi</h2>
+          <p>
+            Derinlemesine icerik arayan kullanicilar icin Astro Guru bilgi merkezi `info.astroguru.app`
+            alaninda yayinlanir. Ana uygulama sayfasi ile editoriyel icerik merkezi birbirini
+            tamamlar.
+          </p>
+          <div class="link-grid">
+            <a class="link-card" href="https://info.astroguru.app/astroloji" rel="noopener">
+              <h3>Astroloji rehberleri</h3>
+              <p>Burclar, transitler, natal harita ve astrolojik kavramlar icin public rehberler.</p>
+              <span>Astroloji iceriklerine git</span>
+            </a>
+            <a class="link-card" href="https://info.astroguru.app/numeroloji" rel="noopener">
+              <h3>Numeroloji icerikleri</h3>
+              <p>Sayilarin anlamlari, isim analizi ve yasam yolu temalari hakkinda yazilar.</p>
+              <span>Numeroloji iceriklerine git</span>
+            </a>
+            <a class="link-card" href="https://info.astroguru.app/blog" rel="noopener">
+              <h3>Astro Guru blog</h3>
+              <p>Yeni yayinlanan rehberler, uygulama odakli icerikler ve editoriyel yazilar.</p>
+              <span>Blogu ziyaret et</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="panel section" id="sss">
+          <h2>Sik sorulan sorular</h2>
+          <p>Marka aramasindan gelen ziyaretcilerin en cok merak ettigi kisa basliklar:</p>
+          <div class="faq-grid">
+            <article class="faq-item">
+              <h3>Astro Guru nedir?</h3>
+              <p>
+                Astro Guru, astroloji, numeroloji, ruya yorumu ve spirituel rehberlik ozelliklerini
+                tek uygulamada birlestiren resmi AstroGuru deneyimidir.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>Astro Guru sitesi neden var?</h3>
+              <p>
+                Bu site, marka aramasiyla gelen kullanicilarin uygulamayi bulmasi, resmi baglantilari
+                gormesi ve kamuya acik bilgilere erismesi icin kullanilir.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>Astro Guru icerikleri nerede yayinlaniyor?</h3>
+              <p>
+                Derinlemesine astroloji ve numeroloji yazilari `info.astroguru.app` uzerindeki bilgi
+                merkezinde yayinlanir.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>Uygulamayi nasil indiririm?</h3>
+              <p>
+                Bu sayfadaki "Uygulamayi indir" butonu sizi cihaziniza uygun indirme akisine yonlendirir.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="footer-grid" aria-label="Destek ve kamuya acik baglantilar">
+          <article class="footer-card">
+            <h3>Destek ve yasal sayfalar</h3>
+            <p>
+              Kamuya acik destek ve politika sayfalarina asagidaki baglantilar uzerinden
+              ulasabilirsiniz.
+            </p>
+            <div class="footer-links">
+              <a href="/privacy">Gizlilik</a>
+              <a href="/terms">Kullanim sartlari</a>
+              <a href="/account-deletion">Hesap silme</a>
+              <a href="mailto:support@astroguru.app">support@astroguru.app</a>
+            </div>
+          </article>
+          <article class="footer-card">
+            <h3>Marka ve uygulama girisi</h3>
+            <p>
+              Astro Guru marka aramasindan gelen kullanicilar icin bu alan, resmi web girisi ve
+              uygulamaya ulasmanin en hizli yoludur.
+            </p>
+            <div class="footer-links">
+              <a href="/welcome">Web'de uygulamayi ac</a>
+              <a href="/dl?utm_source=brand_home&utm_medium=organic&utm_campaign=brand_search">Indirme sayfasina git</a>
+              <a href="https://info.astroguru.app/" rel="noopener">Bilgi merkezi</a>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

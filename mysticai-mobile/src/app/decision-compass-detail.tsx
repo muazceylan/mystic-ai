@@ -131,14 +131,14 @@ export default function DecisionCompassDetailScreen() {
   const isCategoryHidden = !!categoryKey && hiddenCategoryKeys.includes(categoryKey);
 
   const query = useQuery({
-    queryKey: ['cosmic', 'category-details', user?.id ?? 0, categoryKey, selectedDate, user?.preferredLanguage ?? i18n.language],
+    queryKey: ['cosmic', 'category-details', user?.id ?? 0, categoryKey, selectedDate, i18n.language],
     queryFn: async () => {
       if (!user?.id || !categoryKey) throw new Error('missing params');
       const res = await fetchCosmicCategoryDetails({
         userId: user.id,
         categoryKey,
         date: selectedDate,
-        locale: user.preferredLanguage ?? i18n.language,
+        locale: i18n.language,
         gender: user.gender,
         maritalStatus: user.maritalStatus,
       });

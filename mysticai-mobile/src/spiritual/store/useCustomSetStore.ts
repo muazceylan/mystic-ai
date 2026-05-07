@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { zustandStorage } from '../../utils/storage';
+import { bindUserScopedPersist, getInitialUserScopedStoreName } from '../../store/userScopedPersist';
 import type { CustomSet, CustomSetItem, SpiritualItemType } from '../types';
 
 interface CustomSetState {
@@ -24,11 +25,16 @@ interface CustomSetState {
   setActiveRoutine: (setId: string | null) => void;
 }
 
+const CUSTOM_SET_STORE_NAME = 'spiritual-custom-set-store';
+const EMPTY_CUSTOM_SET_STATE: Pick<CustomSetState, 'sets' | 'activeRoutineSetId'> = {
+  sets: [],
+  activeRoutineSetId: null,
+};
+
 export const useCustomSetStore = create<CustomSetState>()(
   persist(
     (set, get) => ({
-      sets: [],
-      activeRoutineSetId: null,
+      ...EMPTY_CUSTOM_SET_STATE,
 
       createSet: (name: string): CustomSet => {
         const now = new Date().toISOString();
@@ -138,9 +144,15 @@ export const useCustomSetStore = create<CustomSetState>()(
       },
     }),
     {
-      name: 'spiritual-custom-set-store',
+      name: getInitialUserScopedStoreName(CUSTOM_SET_STORE_NAME),
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({ sets: state.sets, activeRoutineSetId: state.activeRoutineSetId }),
     },
   ),
 );
+
+bindUserScopedPersist({
+  store: useCustomSetStore,
+  baseName: CUSTOM_SET_STORE_NAME,
+  emptyState: EMPTY_CUSTOM_SET_STATE,
+});

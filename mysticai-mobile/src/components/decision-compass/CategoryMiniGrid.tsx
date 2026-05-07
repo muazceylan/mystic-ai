@@ -37,7 +37,7 @@ export function CategoryMiniGrid({
       <View pointerEvents="none" style={S.sectionEdge} />
 
       <View style={S.headerRow}>
-        <Text style={S.title}>Diğer Kategoriler</Text>
+        <Text style={S.title}>{t('decisionCompassScreen.otherCategoriesTitle')}</Text>
         {onPressShowAll ? (
           <Pressable onPress={onPressShowAll} style={({ pressed }) => [S.arrowBtn, pressed && S.pressed]}>
             <Ionicons name="chevron-forward" size={18} color={T.text.subtitle} />
@@ -79,7 +79,7 @@ export function CategoryMiniGrid({
                 <View style={S.footerRow}>
                   <StatusPill label={statusLabel(category.status, t)} textColor={tint.text} gradient={tint.pill} compact />
                   <View style={S.detailHint}>
-                    <Text style={S.detailHintText}>Detay</Text>
+                    <Text style={S.detailHintText}>{t('decisionCompassScreen.detailBtn')}</Text>
                     <Ionicons name="chevron-forward" size={12} color={colors.primary} />
                   </View>
                 </View>
@@ -104,8 +104,8 @@ export function CategoryMiniGrid({
               <DecisionCompassPremiumBadge iconName="apps-outline" tone="hero" size="sm" />
 
               <View style={S.showAllTextWrap}>
-                <Text style={S.showAllMeta}>Tüm Liste</Text>
-                <Text style={S.showAllLabel}>Tüm kategorileri gör</Text>
+                <Text style={S.showAllMeta}>{t('decisionCompassScreen.showAllMeta')}</Text>
+                <Text style={S.showAllLabel}>{t('decisionCompassScreen.showAllCategories')}</Text>
               </View>
 
               <LinearGradient

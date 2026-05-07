@@ -430,6 +430,12 @@ public class DailyLifeGuideService {
         if (rule.activityKey().equals("FLIRT")) {
             if (phase.contains("dolunay") || phase.contains("full")) delta -= 10;
         }
+        if (rule.activityKey().equals("SOCIAL_INVITE")) {
+            if (sign.equals("libra") || sign.equals("gemini") || sign.equals("aquarius")
+                    || sign.equals("terazi") || sign.equals("ikizler") || sign.equals("kova")) delta += 8;
+            if (phase.contains("büyüyen") || phase.contains("waxing")) delta += 5;
+            if (phase.contains("küçülen") || phase.contains("waning")) delta -= 4;
+        }
         return delta;
     }
 
@@ -802,7 +808,7 @@ public class DailyLifeGuideService {
             case "finance" -> t(english, "Finans & Yatırım", "Finance & Investment");
             case "career" -> t(english, "Kariyer & İş", "Career & Work");
             case "marriage" -> t(english, "Evlilik & Bağlılık", "Marriage & Commitment");
-            case "social" -> t(english, "Aşk", "Love");
+            case "social" -> t(english, "Sosyal & Aşk", "Social & Love");
             case "health" -> t(english, "Sağlık", "Health");
             case "activity" -> t(english, "Aktivite", "Activity");
             case "official" -> t(english, "Resmi", "Official");

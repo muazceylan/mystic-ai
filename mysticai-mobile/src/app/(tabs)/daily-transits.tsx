@@ -20,6 +20,7 @@ import type { DailyFeedbackPayload, DailyTransitsDTO } from '../../types/daily.t
 import { trackEvent } from '../../services/analytics';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
+import { resolveUserScopeKey } from '../../store/userScopedPersist';
 import { getZodiacInfo } from '../../constants/zodiac';
 import {
   DAILY_TRANSITS_TUTORIAL_TARGET_KEYS,
@@ -794,6 +795,7 @@ export default function DailyTransitsScreen() {
   const router = useRouter();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const user = useAuthStore((state) => state.user);
+  const userScopeKey = resolveUserScopeKey(user);
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS);
   const chart = useNatalChartStore((state) => state.chart);
@@ -802,35 +804,44 @@ export default function DailyTransitsScreen() {
   const errorEventSentRef = useRef<string | null>(null);
   const loadEventSentRef = useRef<string | null>(null);
   const tutorialBootstrapRef = useRef<string | null>(null);
+  const expandedThemesHydratedKeyRef = useRef<string | null>(null);
   const [expandedThemes, setExpandedThemes] = useState<Record<string, boolean>>({});
 
   const dailyTransitsQuery = useQuery({
-    queryKey: queryKeys.dailyTransits(date, resolvedLocale),
-    queryFn: () => getDailyTransits(date, resolvedLocale),
+    queryKey: queryKeys.dailyTransits(date, resolvedLocale, userScopeKey),
+    queryFn: () => getDailyTransits(date, resolvedLocale, userScopeKey),
+    enabled: Boolean(user?.id),
     staleTime: SIX_HOURS,
     gcTime: ONE_DAY,
   });
 
   useEffect(() => {
     let active = true;
-    const key = `${GROUP_STATE_STORAGE_PREFIX}:${resolvedLocale}:${date}`;
+    const key = `${GROUP_STATE_STORAGE_PREFIX}:${userScopeKey}:${resolvedLocale}:${date}`;
+    expandedThemesHydratedKeyRef.current = null;
+    setExpandedThemes({});
+
     const restoreGroupState = async () => {
       try {
         const raw = await AsyncStorage.getItem(key);
         if (!active) return;
         if (!raw) {
           setExpandedThemes({});
+          expandedThemesHydratedKeyRef.current = key;
           return;
         }
         const parsed = JSON.parse(raw) as Record<string, boolean> | null;
         if (parsed && typeof parsed === 'object') {
           setExpandedThemes(parsed);
+          expandedThemesHydratedKeyRef.current = key;
           return;
         }
         setExpandedThemes({});
+        expandedThemesHydratedKeyRef.current = key;
       } catch {
         if (active) {
           setExpandedThemes({});
+          expandedThemesHydratedKeyRef.current = key;
         }
       }
     };
@@ -838,12 +849,13 @@ export default function DailyTransitsScreen() {
     return () => {
       active = false;
     };
-  }, [date, resolvedLocale]);
+  }, [date, resolvedLocale, userScopeKey]);
 
   useEffect(() => {
-    const key = `${GROUP_STATE_STORAGE_PREFIX}:${resolvedLocale}:${date}`;
+    const key = `${GROUP_STATE_STORAGE_PREFIX}:${userScopeKey}:${resolvedLocale}:${date}`;
+    if (expandedThemesHydratedKeyRef.current !== key) return;
     void AsyncStorage.setItem(key, JSON.stringify(expandedThemes));
-  }, [date, expandedThemes, resolvedLocale]);
+  }, [date, expandedThemes, resolvedLocale, userScopeKey]);
 
   useEffect(() => {
     if (!dailyTransitsQuery.data) return;

@@ -22,7 +22,9 @@ interface Props {
 }
 
 export default function CosmicHotspotCard({ aspect, index }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
+  const isEnglish = locale.toLowerCase().startsWith('en');
   const { colors } = useTheme();
   const harmonious = isHarmoniousAspect(aspect.type);
   const glowColor = harmonious ? colors.violet : colors.harmonious;
@@ -63,7 +65,7 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
   const planetKey = (p: string) => `natalChart.${p === 'NorthNode' ? 'northNode' : p.charAt(0).toLowerCase() + p.slice(1)}`;
   const p1Name = t(planetKey(aspect.planet1), { defaultValue: aspect.planet1 });
   const p2Name = t(planetKey(aspect.planet2), { defaultValue: aspect.planet2 });
-  const hookText = getAspectHookText(aspect.planet1, aspect.planet2, aspect.type);
+  const hookText = getAspectHookText(aspect.planet1, aspect.planet2, aspect.type, locale);
 
   const borderColor = pulseAnim.interpolate({
     inputRange: [0.2, 0.7],
@@ -110,13 +112,13 @@ export default function CosmicHotspotCard({ aspect, index }: Props) {
         {p1Name} & {p2Name}
       </Text>
       <Text style={[s.typeLabel, { color: glowColor }]}>
-        {labelAspectType(aspect.type)}
+        {labelAspectType(aspect.type, false, locale)}
         {' \u00B7 '}
-        {formatAspectAngleHuman(aspect)}
+        {formatAspectAngleHuman(aspect, locale)}
       </Text>
 
       {/* Hook text */}
-      <Text style={s.hookText}>{translateAstroTermsForUi(hookText)}</Text>
+      <Text style={s.hookText}>{isEnglish ? hookText : translateAstroTermsForUi(hookText)}</Text>
     </Animated.View>
   );
 }

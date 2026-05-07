@@ -1,8 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { HousePlacement, PlanetPosition, PlanetaryAspect } from '../../services/astrology.service';
-import { getZodiacInfo } from '../../constants/zodiac';
+import { COUNTRIES } from '../../constants/index';
+import { getPlanetName, getZodiacInfo } from '../../constants/zodiac';
 import { useTheme } from '../../context/ThemeContext';
 import NatalChartProPanels from './NatalChartProPanels';
 
@@ -24,15 +26,60 @@ const CHART_RULER_MAP: Record<string, { planet: string; symbol: string }> = {
 function getChartRulerInfo(
   risingSign: string | null | undefined,
   planets: PlanetPosition[],
+  locale: string,
 ): { label: string; house: number | null } | null {
   if (!risingSign) return null;
   const ruler = CHART_RULER_MAP[risingSign];
   if (!ruler) return null;
   const rulerPlanet = planets.find((p) => p.planet === ruler.planet);
   return {
-    label: `${ruler.symbol} ${ruler.planet}`,
+    label: `${ruler.symbol} ${getPlanetName(ruler.planet, locale)}`,
     house: rulerPlanet?.house ?? null,
   };
+}
+
+const COUNTRY_NAME_TO_CODE = new Map(
+  COUNTRIES.flatMap(({ code, name }) => {
+    const normalizedCode = code.trim().toLowerCase();
+    const normalizedName = name.trim().toLowerCase();
+    return [
+      [normalizedCode, code],
+      [normalizedName, code],
+    ] as const;
+  }),
+);
+
+function resolveAppLocale(locale: string | null | undefined): 'en' | 'tr' {
+  return (locale ?? '').toLowerCase().startsWith('en') ? 'en' : 'tr';
+}
+
+function localizeCountrySegment(segment: string, locale: string): string {
+  const trimmed = segment.trim();
+  if (!trimmed) return trimmed;
+
+  const code = COUNTRY_NAME_TO_CODE.get(trimmed.toLowerCase());
+  if (!code) return trimmed;
+
+  try {
+    const displayNames = new Intl.DisplayNames([resolveAppLocale(locale)], { type: 'region' });
+    const localized = displayNames.of(code);
+    if (localized) return localized;
+  } catch {
+    if (code === 'TR') return resolveAppLocale(locale) === 'en' ? 'Turkey' : 'Türkiye';
+  }
+
+  if (code === 'TR') return resolveAppLocale(locale) === 'en' ? 'Turkey' : 'Türkiye';
+  return trimmed;
+}
+
+function localizeBirthLocation(value: string | null | undefined, locale: string): string | null {
+  if (!value) return null;
+  const parts = value
+    .split(',')
+    .map((part) => localizeCountrySegment(part, locale).trim())
+    .filter(Boolean);
+
+  return parts.length ? parts.join(', ') : null;
 }
 
 function getElementDots(elementDistribution: Record<string, number> | undefined): string {
@@ -95,11 +142,13 @@ function MetricChip({
   value,
   icon,
   onPress,
+  accessibilityLabel,
 }: {
   label: string;
   value: string | number;
   icon: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
+  accessibilityLabel?: string;
 }) {
   const { colors } = useTheme();
   return (
@@ -112,7 +161,7 @@ function MetricChip({
         onPress && pressed && { opacity: 0.9 },
       ]}
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={onPress ? `${value} ${label} detayını aç` : undefined}
+      accessibilityLabel={onPress ? accessibilityLabel : undefined}
     >
       <View style={styles.metricChipTopRow}>
         <View
@@ -148,12 +197,14 @@ function SignatureRow({
   signText,
   element,
   onPress,
+  accessibilityLabel,
 }: {
   icon: string;
   label: string;
   signText: string;
   element: string;
   onPress?: () => void;
+  accessibilityLabel?: string;
 }) {
   const { colors } = useTheme();
   return (
@@ -166,7 +217,7 @@ function SignatureRow({
         onPress && pressed && { opacity: 0.9 },
       ]}
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={onPress ? `${label} detayını aç` : undefined}
+      accessibilityLabel={onPress ? accessibilityLabel : undefined}
     >
       <View
         style={[
@@ -215,19 +266,22 @@ export default function NatalChartHeroCard({
   onMetricPress,
 }: Props) {
   const { colors } = useTheme();
-  const sun = getZodiacInfo(sunSign);
-  const moon = getZodiacInfo(moonSign);
-  const rising = getZodiacInfo(risingSign);
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
+  const sun = getZodiacInfo(sunSign, locale);
+  const moon = getZodiacInfo(moonSign, locale);
+  const rising = getZodiacInfo(risingSign, locale);
 
   // birthTimeKnown: false when birth time was not provided
   const isBirthTimeKnown = birthTimeKnown ?? birthTime != null;
-  const chartRulerInfo = getChartRulerInfo(risingSign, planets ?? []);
+  const chartRulerInfo = getChartRulerInfo(risingSign, planets ?? [], locale);
   const elementDots = getElementDots(elementDistribution);
   const dominantMode = modeDistribution
     ? Object.entries(modeDistribution).sort(([, a], [, b]) => b - a)[0]?.[0]
     : null;
 
-  const dateTimeLine = [birthDate || 'Tarih yok', birthTime || 'Saat bilinmiyor'].join(' • ');
+  const dateTimeLine = [birthDate || t('common.unknown'), birthTime || t('birthInfo.timeUnknown')].join(' • ');
+  const localizedBirthLocation = localizeBirthLocation(birthLocation, locale);
   const planetCount = planets?.length ?? 0;
   const houseCount = houses?.length ?? 0;
   const aspectCount = aspects?.length ?? 0;
@@ -256,14 +310,14 @@ export default function NatalChartHeroCard({
         ]}
         accessibilityRole={onToggleExpanded ? 'button' : undefined}
         accessibilityState={onToggleExpanded ? { expanded } : undefined}
-        accessibilityLabel={onToggleExpanded ? `Yıldız harita bilgilerini ${expanded ? 'daralt' : 'genişlet'}` : undefined}
+        accessibilityLabel={onToggleExpanded ? t(expanded ? 'natalChart.heroCollapseA11y' : 'natalChart.heroExpandA11y') : undefined}
       >
         <View style={[styles.headerGlow, { backgroundColor: colors.violetBg }]} />
         <View style={styles.headerRow}>
           <View style={styles.identityCol}>
-            <Text style={[styles.eyebrow, { color: colors.violet }]}>YILDIZ HARİTA BİLGİLERİ</Text>
+            <Text style={[styles.eyebrow, { color: colors.violet }]}>{t('natalChart.heroInfoEyebrow')}</Text>
             <Text style={[styles.name, { color: colors.textSlate }]} numberOfLines={1}>
-              {name || 'Astro Soul'}
+              {name || t('natalChart.heroNameFallback')}
             </Text>
             <Text style={[styles.headerSub, { color: colors.textMuted }]} numberOfLines={1}>
               {dateTimeLine}
@@ -271,7 +325,7 @@ export default function NatalChartHeroCard({
           </View>
 
           <View style={[styles.headerBadge, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>
-            <Text style={[styles.headerBadgeText, { color: colors.violet }]}>ÖZET</Text>
+            <Text style={[styles.headerBadgeText, { color: colors.violet }]}>{t('natalChart.heroSummaryBadge')}</Text>
           </View>
 
           {onToggleExpanded ? (
@@ -294,39 +348,42 @@ export default function NatalChartHeroCard({
       {expanded ? (
         <View style={styles.body}>
           <View style={styles.metaGrid}>
-            <MetaChip label="Yer" value={birthLocation || 'Belirtilmedi'} />
-            <MetaChip label="Harita Sistemi" value="Tropikal Zodyak • Placidus Ev Sistemi" />
+            <MetaChip label={t('natalChart.heroLocationLabel')} value={localizedBirthLocation || t('natalChart.heroLocationUnknown')} />
+            <MetaChip label={t('natalChart.heroChartSystemLabel')} value={t('natalChart.heroChartSystemValue')} />
           </View>
 
           <View style={styles.signaturePanel}>
             <View style={styles.signaturePanelHeader}>
-              <Text style={[styles.signatureTitle, { color: colors.text }]}>Kozmik İmza</Text>
+              <Text style={[styles.signatureTitle, { color: colors.text }]}>{t('natalChart.heroSignatureTitle')}</Text>
               <Text style={[styles.signatureSub, { color: colors.textMuted }]}>
-                Güneş • Ay • Yükselen üçlüsüne dokunarak detayları aç
+                {t('natalChart.heroSignatureSubtitle')}
               </Text>
             </View>
 
             <View style={styles.signatureRows}>
               <SignatureRow
                 icon="☉"
-                label="Güneş"
+                label={t('natalChart.sun')}
                 signText={`${sun.symbol} ${sun.name}`}
                 element={sun.element}
                 onPress={onBigThreePress ? () => onBigThreePress('sun') : undefined}
+                accessibilityLabel={t('natalChart.bigThreeOpenA11y', { label: t('natalChart.sun') })}
               />
               <SignatureRow
                 icon="☽"
-                label="Ay"
+                label={t('natalChart.moon')}
                 signText={`${moon.symbol} ${moon.name}`}
                 element={moon.element}
                 onPress={onBigThreePress ? () => onBigThreePress('moon') : undefined}
+                accessibilityLabel={t('natalChart.bigThreeOpenA11y', { label: t('natalChart.moon') })}
               />
               <SignatureRow
                 icon="↑"
-                label="Yükselen"
-                signText={isBirthTimeKnown ? `${rising.symbol} ${rising.name}` : '? Bilinmiyor'}
+                label={t('natalChart.rising')}
+                signText={isBirthTimeKnown ? `${rising.symbol} ${rising.name}` : `? ${t('common.unknown')}`}
                 element={isBirthTimeKnown ? rising.element : '—'}
                 onPress={isBirthTimeKnown && onBigThreePress ? () => onBigThreePress('rising') : undefined}
+                accessibilityLabel={t('natalChart.bigThreeOpenA11y', { label: t('natalChart.rising') })}
               />
               {chartRulerInfo ? (
                 <View
@@ -336,11 +393,11 @@ export default function NatalChartHeroCard({
                   ]}
                 >
                   <Text style={[styles.chartRulerLabel, { color: colors.textMuted }]}>
-                    Harita Yöneticisi
+                    {t('natalChart.heroChartRulerLabel')}
                   </Text>
                   <Text style={[styles.chartRulerValue, { color: colors.violet }]}>
                     {chartRulerInfo.label}
-                    {chartRulerInfo.house ? ` • ${chartRulerInfo.house}. Ev` : ''}
+                    {chartRulerInfo.house ? ` • ${t('natalChart.panels.housePosition', { number: String(chartRulerInfo.house) })}` : ''}
                   </Text>
                 </View>
               ) : null}
@@ -355,7 +412,7 @@ export default function NatalChartHeroCard({
               >
                 <Ionicons name="information-circle-outline" size={13} color={colors.textMuted} />
                 <Text style={[styles.birthTimeWarningText, { color: colors.textMuted }]}>
-                  Doğum saati bilinmiyor — yükselen burç ve ev yerleşimleri yaklaşıktır.
+                  {t('natalChart.heroBirthTimeWarning')}
                 </Text>
               </View>
             ) : null}
@@ -367,16 +424,16 @@ export default function NatalChartHeroCard({
                   { backgroundColor: colors.surfaceAlt, borderColor: colors.border },
                 ]}
               >
-                <Text style={[styles.elementBarLabel, { color: colors.textMuted }]}>Element</Text>
+                <Text style={[styles.elementBarLabel, { color: colors.textMuted }]}>{t('natalChart.panels.elementDonutTitle')}</Text>
                 <Text style={[styles.elementBarValue, { color: colors.text }]}>{elementDots}</Text>
                 {dominantMode ? (
                   <Text style={[styles.elementBarMode, { color: colors.textMuted }]}>
                     {'  ·  '}
                     {dominantMode === 'Cardinal'
-                      ? 'Öncü'
+                      ? t('natalChart.panels.modalityCardinal')
                       : dominantMode === 'Fixed'
-                      ? 'Sabit'
-                      : 'Değişken'}
+                      ? t('natalChart.panels.modalityFixed')
+                      : t('natalChart.panels.modalityMutable')}
                   </Text>
                 ) : null}
               </View>
@@ -385,29 +442,32 @@ export default function NatalChartHeroCard({
 
           <View style={styles.metricsRow}>
             <MetricChip
-              label="Gezegen"
+              label={t('natalChart.heroMetricPlanets')}
               value={planetCount}
               icon="planet-outline"
               onPress={onMetricPress ? () => onMetricPress('planet_positions') : undefined}
+              accessibilityLabel={t('natalChart.heroMetricOpenA11y', { value: String(planetCount), label: t('natalChart.heroMetricPlanets') })}
             />
             <MetricChip
-              label="Ev"
+              label={t('natalChart.heroMetricHouses')}
               value={houseCount}
               icon="home-outline"
               onPress={onMetricPress ? () => onMetricPress('house_positions') : undefined}
+              accessibilityLabel={t('natalChart.heroMetricOpenA11y', { value: String(houseCount), label: t('natalChart.heroMetricHouses') })}
             />
             <MetricChip
-              label="Açı"
+              label={t('natalChart.heroMetricAspects')}
               value={aspectCount}
               icon="git-network-outline"
               onPress={onMetricPress ? () => onMetricPress('aspect_list') : undefined}
+              accessibilityLabel={t('natalChart.heroMetricOpenA11y', { value: String(aspectCount), label: t('natalChart.heroMetricAspects') })}
             />
           </View>
 
           {!showWheelPreview ? (
             <View style={[styles.footerNote, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
               <Text style={[styles.footerNoteText, { color: colors.textMuted }]}>
-                Dairesel harita, açı matrisi ve derece listesi aşağıdaki teknik akordiyonlarda.
+                {t('natalChart.heroFooterNote')}
               </Text>
             </View>
           ) : null}

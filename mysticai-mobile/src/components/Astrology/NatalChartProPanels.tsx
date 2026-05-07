@@ -565,7 +565,8 @@ function NatalWheel({
   showAuras?: boolean;
 }) {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
   const { width } = useWindowDimensions();
   const isHero = mode === 'hero';
   const isPoster = !isHero && !showMetaRow && !showAuras;
@@ -789,7 +790,7 @@ function NatalWheel({
             );
             const posterNamePoint = polarPoint(cx, cy, outerR + 25, angle + 15);
             const mid = polarPoint(cx, cy, (outerR + signR) / 2, angle + 15);
-            const signInfo = getZodiacInfo(SIGN_KEYS_IN_ORDER[i]);
+            const signInfo = getZodiacInfo(SIGN_KEYS_IN_ORDER[i], locale);
             return (
               <G key={`sign-${i}`}>
                 <Line

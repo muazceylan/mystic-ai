@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { zustandStorage } from '../utils/storage';
+import { bindUserScopedPersist, getInitialUserScopedStoreName } from './userScopedPersist';
 
 interface DecisionCompassState {
   hiddenActivityKeys: string[];
@@ -13,11 +14,19 @@ interface DecisionCompassState {
   resetHiddenCategories: () => void;
 }
 
+const DECISION_COMPASS_STORE_NAME = 'decision-compass-store';
+const EMPTY_DECISION_COMPASS_STATE: Pick<
+  DecisionCompassState,
+  'hiddenActivityKeys' | 'hiddenCategoryKeys'
+> = {
+  hiddenActivityKeys: [],
+  hiddenCategoryKeys: [],
+};
+
 export const useDecisionCompassStore = create<DecisionCompassState>()(
   persist(
     (set, get) => ({
-      hiddenActivityKeys: [],
-      hiddenCategoryKeys: [],
+      ...EMPTY_DECISION_COMPASS_STATE,
       toggleHiddenActivity: (activityKey) => {
         const current = get().hiddenActivityKeys;
         const next = current.includes(activityKey)
@@ -52,8 +61,14 @@ export const useDecisionCompassStore = create<DecisionCompassState>()(
       resetHiddenCategories: () => set({ hiddenCategoryKeys: [] }),
     }),
     {
-      name: 'decision-compass-store',
+      name: getInitialUserScopedStoreName(DECISION_COMPASS_STORE_NAME),
       storage: createJSONStorage(() => zustandStorage),
     },
   ),
 );
+
+bindUserScopedPersist({
+  store: useDecisionCompassStore,
+  baseName: DECISION_COMPASS_STORE_NAME,
+  emptyState: EMPTY_DECISION_COMPASS_STATE,
+});

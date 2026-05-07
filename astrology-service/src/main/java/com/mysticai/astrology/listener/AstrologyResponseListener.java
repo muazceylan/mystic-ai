@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -44,6 +46,10 @@ public class AstrologyResponseListener {
     private static final Pattern CANNED_HARMONY_INSIGHT_PATTERN = Pattern.compile(
             "(?is).*bu\\s+iki\\s+haritan[ıi]n\\s+uyumu\\s*\\d+\\s*puan.*güçlü\\s+bir\\s+çekim\\s+yarat[ıi]yor.*"
     );
+    private static final Pattern HARMONY_SCORE_PUAN_PATTERN =
+            Pattern.compile("(?i)\\b(\\d{1,3})\\s*puan(?:lık)?\\b");
+    private static final Pattern HARMONY_SCORE_FRACTION_PATTERN =
+            Pattern.compile("(?i)\\b(\\d{1,3})\\s*/\\s*100\\b");
 
     @RabbitListener(queues = "ai.responses.astrology.queue")
     public void handleAiResponse(AiAnalysisResponseEvent event) {
@@ -578,7 +584,50 @@ public class AstrologyResponseListener {
             log.warn("Detected canned harmonyInsight template text; using fallback. score={}", resolvedHarmonyScore);
             return fallback;
         }
+        if (containsConflictingHarmonyScoreReference(normalized, resolvedHarmonyScore)) {
+            log.warn("Detected harmonyInsight score mismatch; using fallback. score={}", resolvedHarmonyScore);
+            return fallback;
+        }
         return normalized;
+    }
+
+    private boolean containsConflictingHarmonyScoreReference(String text, int expectedScore) {
+        return extractReferencedHarmonyScore(text)
+                .map(score -> score != expectedScore)
+                .orElse(false);
+    }
+
+    private Optional<Integer> extractReferencedHarmonyScore(String text) {
+        if (text == null || text.isBlank()) {
+            return Optional.empty();
+        }
+
+        Matcher puanMatcher = HARMONY_SCORE_PUAN_PATTERN.matcher(text);
+        while (puanMatcher.find()) {
+            int parsed = safeParseReferencedScore(puanMatcher.group(1));
+            if (parsed >= 0) {
+                return Optional.of(parsed);
+            }
+        }
+
+        Matcher fractionMatcher = HARMONY_SCORE_FRACTION_PATTERN.matcher(text);
+        while (fractionMatcher.find()) {
+            int parsed = safeParseReferencedScore(fractionMatcher.group(1));
+            if (parsed >= 0) {
+                return Optional.of(parsed);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private int safeParseReferencedScore(String value) {
+        try {
+            int parsed = Integer.parseInt(value);
+            return parsed >= 0 && parsed <= 100 ? parsed : -1;
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
     }
 
     private String replaceCommonEnglishTerms(String text) {

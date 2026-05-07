@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
 import { envConfig } from '../config/env';
+import { buildUserScopedStorageKey } from '../store/userScopedPersist';
 import {
   createServiceNotConfiguredError,
   logApiError,
@@ -26,8 +27,22 @@ interface CacheEnvelope<T> {
   expiresAt: number;
 }
 
-const transitsCacheKey = (date: string, locale: DailyLocale) => `dailyTransits:${DAILY_CACHE_VERSION}:${locale}:${date}`;
-const actionsCacheKey = (date: string, locale: DailyLocale) => `dailyActions:${DAILY_CACHE_VERSION}:${locale}:${date}`;
+function resolveDailyScopeKey(scopeKey?: string | null): string {
+  const normalizedScope = scopeKey?.trim();
+  return normalizedScope ? normalizedScope : 'guest';
+}
+
+const transitsCacheKey = (date: string, locale: DailyLocale, scopeKey?: string | null) =>
+  buildUserScopedStorageKey(
+    `dailyTransits:${DAILY_CACHE_VERSION}:${locale}:${date}`,
+    resolveDailyScopeKey(scopeKey),
+  );
+
+const actionsCacheKey = (date: string, locale: DailyLocale, scopeKey?: string | null) =>
+  buildUserScopedStorageKey(
+    `dailyActions:${DAILY_CACHE_VERSION}:${locale}:${date}`,
+    resolveDailyScopeKey(scopeKey),
+  );
 
 function normalizeLocale(locale?: string | null): DailyLocale {
   return locale?.toLowerCase().startsWith('en') ? 'en' : 'tr';
@@ -250,9 +265,10 @@ async function patchLocalActionState(
   actionId: string,
   isDone: boolean,
   locale: DailyLocale,
+  scopeKey?: string | null,
   doneAt?: string | null,
 ): Promise<void> {
-  const key = actionsCacheKey(date, locale);
+  const key = actionsCacheKey(date, locale, scopeKey);
   const existing = await readCache<DailyActionsDTO>(key);
   if (!existing) return;
 
@@ -310,10 +326,14 @@ function buildEmptyDailyActions(date: string, locale: DailyLocale): DailyActions
   };
 }
 
-export async function getDailyTransits(date: string, locale?: string): Promise<DailyTransitsDTO> {
+export async function getDailyTransits(
+  date: string,
+  locale?: string,
+  scopeKey?: string | null,
+): Promise<DailyTransitsDTO> {
   const normalizedDate = normalizeDate(date);
   const resolvedLocale = normalizeLocale(locale);
-  const cacheKey = transitsCacheKey(normalizedDate, resolvedLocale);
+  const cacheKey = transitsCacheKey(normalizedDate, resolvedLocale, scopeKey);
 
   if (!envConfig.isApiConfigured) {
     logWarnOnce(
@@ -339,10 +359,14 @@ export async function getDailyTransits(date: string, locale?: string): Promise<D
   }
 }
 
-export async function getDailyActions(date: string, locale?: string): Promise<DailyActionsDTO> {
+export async function getDailyActions(
+  date: string,
+  locale?: string,
+  scopeKey?: string | null,
+): Promise<DailyActionsDTO> {
   const normalizedDate = normalizeDate(date);
   const resolvedLocale = normalizeLocale(locale);
-  const cacheKey = actionsCacheKey(normalizedDate, resolvedLocale);
+  const cacheKey = actionsCacheKey(normalizedDate, resolvedLocale, scopeKey);
 
   if (!envConfig.isApiConfigured) {
     logWarnOnce(
@@ -374,6 +398,7 @@ export async function markActionDone(
   actionId: string,
   isDone: boolean,
   locale?: string,
+  scopeKey?: string | null,
 ): Promise<DailyActionToggleResponse> {
   const normalizedDate = normalizeDate(date);
   const resolvedLocale = normalizeLocale(locale);
@@ -393,7 +418,7 @@ export async function markActionDone(
       `${DAILY_TRANSITS_BASE}/actions/${encodeURIComponent(actionId)}/done`,
       { date: normalizedDate, isDone, locale: resolvedLocale },
     );
-    await patchLocalActionState(normalizedDate, actionId, data.isDone, resolvedLocale, data.doneAt);
+    await patchLocalActionState(normalizedDate, actionId, data.isDone, resolvedLocale, scopeKey, data.doneAt);
     return data;
   } catch (error) {
     logApiError('daily_action_toggle', error, {

@@ -12,6 +12,8 @@ import type { DailyActionsDTO, DailyFeedbackPayload } from '../../types/daily.ty
 import { trackEvent } from '../../services/analytics';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../store/useAuthStore';
+import { resolveUserScopeKey } from '../../store/userScopedPersist';
 
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
@@ -43,15 +45,18 @@ export default function TodayActionsScreen() {
   const { colors, isDark } = useTheme();
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const userScopeKey = resolveUserScopeKey(user);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const date = useMemo(() => getTodayIsoDate(), []);
-  const queryKey = queryKeys.dailyActions(date, resolvedLocale);
+  const queryKey = queryKeys.dailyActions(date, resolvedLocale, userScopeKey);
   const errorEventSentRef = useRef<string | null>(null);
   const loadEventSentRef = useRef<string | null>(null);
 
   const dailyActionsQuery = useQuery({
     queryKey,
-    queryFn: () => getDailyActions(date, resolvedLocale),
+    queryFn: () => getDailyActions(date, resolvedLocale, userScopeKey),
+    enabled: Boolean(user?.id),
     staleTime: SIX_HOURS,
     gcTime: ONE_DAY,
   });
@@ -87,7 +92,7 @@ export default function TodayActionsScreen() {
   const toggleMutation = useMutation({
     mutationFn: async (input: { actionId: string; isDone: boolean }) => {
       setPendingActionId(input.actionId);
-      return markActionDone(date, input.actionId, input.isDone, resolvedLocale);
+      return markActionDone(date, input.actionId, input.isDone, resolvedLocale, userScopeKey);
     },
     onMutate: async ({ actionId, isDone }) => {
       await queryClient.cancelQueries({ queryKey });

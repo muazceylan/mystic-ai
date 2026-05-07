@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
+import { buildUserScopedStorageKey, getCurrentUserScopeKey } from '../store/userScopedPersist';
 
 export type NameGender = 'MALE' | 'FEMALE' | 'UNISEX' | 'UNKNOWN';
 export type NameStatus = 'ACTIVE' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED';
@@ -60,6 +61,39 @@ export interface PageResult<T> {
 
 const NAMES_BASE = '/api/numerology/names';
 const FAVORITES_KEY = 'name-module:favorites:v1';
+const FAVORITES_MIGRATION_FLAG_KEY = `${FAVORITES_KEY}:user-scope-migrated:v1`;
+
+function resolveFavoritesStorageKey(): string {
+  return buildUserScopedStorageKey(FAVORITES_KEY, getCurrentUserScopeKey());
+}
+
+async function readFavoritesRaw(): Promise<string | null> {
+  const scopedKey = resolveFavoritesStorageKey();
+  const scopedRaw = await AsyncStorage.getItem(scopedKey);
+  if (scopedRaw) {
+    return scopedRaw;
+  }
+
+  const scopeKey = getCurrentUserScopeKey();
+  if (scopeKey === 'guest') {
+    return null;
+  }
+
+  const alreadyMigrated = await AsyncStorage.getItem(FAVORITES_MIGRATION_FLAG_KEY);
+  if (alreadyMigrated) {
+    return null;
+  }
+
+  const legacyRaw = await AsyncStorage.getItem(FAVORITES_KEY);
+  if (!legacyRaw) {
+    return null;
+  }
+
+  await AsyncStorage.setItem(scopedKey, legacyRaw);
+  await AsyncStorage.setItem(FAVORITES_MIGRATION_FLAG_KEY, '1');
+  await AsyncStorage.removeItem(FAVORITES_KEY);
+  return legacyRaw;
+}
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
@@ -216,7 +250,7 @@ export async function getSimilarNames(base: NameDetail, limit = 10): Promise<Nam
 }
 
 export async function listFavoriteNames(): Promise<NameListItem[]> {
-  const raw = await AsyncStorage.getItem(FAVORITES_KEY);
+  const raw = await readFavoritesRaw();
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -230,7 +264,7 @@ export async function listFavoriteNames(): Promise<NameListItem[]> {
 }
 
 async function persistFavorites(items: NameListItem[]): Promise<void> {
-  await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(items));
+  await AsyncStorage.setItem(resolveFavoritesStorageKey(), JSON.stringify(items));
 }
 
 export async function toggleFavoriteName(item: NameListItem): Promise<NameListItem[]> {

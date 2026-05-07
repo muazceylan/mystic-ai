@@ -45,6 +45,7 @@ import {
   type RenderItemParams as DraggableRenderItemParams,
 } from 'react-native-draggable-flatlist';
 import { isGuestUser, useAuthStore } from '../../store/useAuthStore';
+import { buildUserScopedStorageKey, resolveUserScopeKey } from '../../store/userScopedPersist';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import {
   useCompanionStore,
@@ -602,6 +603,10 @@ export function NatalChartScreenContent() {
     return user ?? null;
   }, [activeProfile, user]);
   const activeProfileIsSaved = isSavedPersonProfile(resolvedActiveProfile);
+  const sectionOrderStorageKey = useMemo(
+    () => buildUserScopedStorageKey(NATAL_SECTION_ORDER_STORAGE_KEY, resolveUserScopeKey(user)),
+    [user],
+  );
 
   // ─── AI Interpretation Polling ─────────────────────────────────────
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -687,7 +692,8 @@ export function NatalChartScreenContent() {
 
   useEffect(() => {
     let alive = true;
-    AsyncStorage.getItem(NATAL_SECTION_ORDER_STORAGE_KEY)
+    sectionOrderHydratedRef.current = false;
+    AsyncStorage.getItem(sectionOrderStorageKey)
       .then((raw) => {
         if (!alive) return;
         if (!raw) {
@@ -709,14 +715,14 @@ export function NatalChartScreenContent() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [sectionOrderStorageKey]);
 
   useEffect(() => {
     if (!sectionOrderHydratedRef.current) return;
-    AsyncStorage.setItem(NATAL_SECTION_ORDER_STORAGE_KEY, JSON.stringify(sectionOrder)).catch(() => {
+    AsyncStorage.setItem(sectionOrderStorageKey, JSON.stringify(sectionOrder)).catch(() => {
       // ignore storage write failures
     });
-  }, [sectionOrder]);
+  }, [sectionOrder, sectionOrderStorageKey]);
 
   useEffect(() => {
     const scope = user?.id ? String(user.id) : null;
@@ -2144,7 +2150,7 @@ export function NatalChartScreenContent() {
                   onPress={() => openAspectSheet(asp)}
                   accessibilityLabel={t('natalChart.cosmicHotspotLabel', {
                     p1: planetNames[asp.planet1] ?? asp.planet1,
-                    type: labelAspectType(asp.type),
+                    type: labelAspectType(asp.type, false, i18n.language),
                     p2: planetNames[asp.planet2] ?? asp.planet2,
                   })}
                   accessibilityRole="button"
@@ -2391,7 +2397,7 @@ export function NatalChartScreenContent() {
                     <Pressable
                       key={`asp-${i}`}
                       onPress={() => openAspectSheet(asp)}
-                      accessibilityLabel={t('natalChart.aspectDetailsLabel', { label: labelAspectType(asp.type) })}
+                      accessibilityLabel={t('natalChart.aspectDetailsLabel', { label: labelAspectType(asp.type, false, i18n.language) })}
                       accessibilityRole="button"
                     >
                       <View style={styles.aspectTag}>
@@ -2413,9 +2419,9 @@ export function NatalChartScreenContent() {
                           </View>
                         </View>
                         <Text style={[styles.aspectLabel, { color: info.color }]}>
-                          {labelAspectType(asp.type)}
+                          {labelAspectType(asp.type, false, i18n.language)}
                         </Text>
-                        <Text style={styles.aspectOrb}>{formatAspectAngleHuman(asp)}</Text>
+                        <Text style={styles.aspectOrb}>{formatAspectAngleHuman(asp, i18n.language)}</Text>
                       </View>
                     </Pressable>
                   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import type { DecisionHeroModel } from './model';
 import { DecisionCompassPremiumBadge } from './DecisionCompassPremiumBadge';
@@ -15,10 +16,11 @@ interface DecisionInsightHeroProps {
 export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHeroProps) {
   const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
+  const { t } = useTranslation();
   const T = getCompassTokens(colors, isDark);
   const compactActions = width <= 460;
   const S = styles(colors, isDark, T, compactActions);
-  const strongest = hero.strongCategories[0] ?? 'Günlük odak';
+  const strongest = hero.strongCategories[0] ?? t('decisionCompassScreen.heroDailyFocusFallback');
 
   return (
     <View style={S.shell}>
@@ -38,7 +40,7 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
 
             <View style={S.kickerRow}>
               <DecisionCompassPremiumBadge iconName="sparkles" tone="hero" size="xs" />
-              <Text style={S.kicker}>GÜNÜN İÇGÖRÜSÜ</Text>
+              <Text style={S.kicker}>{t('decisionCompassScreen.heroKicker')}</Text>
             </View>
             <Text style={S.headline}>{hero.headline}</Text>
           </LinearGradient>
@@ -62,7 +64,7 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
           <View pointerEvents="none" style={S.actionModuleGlow} />
           <View style={S.actionColumn}>
             <View style={S.actionHeader}>
-              <Text style={S.actionTitle}>Bugün yap</Text>
+              <Text style={S.actionTitle}>{t('decisionCompassScreen.heroDoTitle')}</Text>
               <Ionicons name="chevron-forward" size={15} color={T.text.body} />
             </View>
             {hero.doItems.slice(0, 3).map((item, index) => (
@@ -77,7 +79,7 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
 
           <View style={S.actionColumn}>
             <View style={S.actionHeader}>
-              <Text style={S.actionTitle}>Bugün kaçın</Text>
+              <Text style={S.actionTitle}>{t('decisionCompassScreen.heroAvoidTitle')}</Text>
               <Ionicons name="warning-outline" size={15} color="#E0A545" />
             </View>
             {hero.avoidItems.slice(0, 2).map((item, index) => (
@@ -91,12 +93,12 @@ export function DecisionInsightHero({ hero, onPressDetail }: DecisionInsightHero
 
         <View style={S.bottomRow}>
           <View style={S.strongWrap}>
-            <Text style={S.bottomStrongLabel}>En güçlü alanlar:</Text>
-            <Text style={S.bottomStrongValue} numberOfLines={1}>{strongest}</Text>
+            <Text style={S.bottomStrongLabel}>{t('decisionCompassScreen.heroStrongAreasLabel')}</Text>
+            <Text style={S.bottomStrongValue}>{strongest}</Text>
           </View>
 
           <Pressable onPress={onPressDetail} style={({ pressed }) => [S.detailButton, pressed && S.pressed]}>
-            <Text style={S.detailText}>Detayı Gör</Text>
+            <Text style={S.detailText}>{t('decisionCompassScreen.heroDetailBtn')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </Pressable>
         </View>
@@ -207,7 +209,7 @@ function styles(
       paddingVertical: 11,
     },
     messageText: {
-      color: isDark ? '#F7F2FD' : '#2D2538',
+      color: '#2D2538',
       fontSize: 13,
       lineHeight: 18.4,
       fontWeight: '500',
@@ -281,29 +283,26 @@ function styles(
     },
     bottomRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-end',
       gap: 10,
       paddingHorizontal: 2,
     },
     strongWrap: {
       flex: 1,
       minWidth: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
+      flexDirection: 'column',
+      gap: 2,
     },
     bottomStrongLabel: {
       color: isDark ? '#D9CFF0' : '#6A617C',
       fontSize: 12.4,
       fontWeight: '600',
-      flexShrink: 0,
     },
     bottomStrongValue: {
-      flex: 1,
       color: isDark ? '#F7F0FF' : '#4C31A1',
       fontSize: 13,
       fontWeight: '700',
-      minWidth: 0,
+      flexWrap: 'wrap',
     },
     detailButton: {
       minHeight: 40,

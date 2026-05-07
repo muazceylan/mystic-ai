@@ -43,10 +43,11 @@ import {
 import { createAppStackScreenOptions } from '../navigation/stackOptions';
 import { TutorialProvider, TUTORIAL_SCREEN_KEYS, useTutorialTrigger } from '../features/tutorial';
 import { initI18n } from '../i18n';
-import { queryClient } from '../lib/queryClient';
+import { queryClient, syncPersistedQueryCacheScope } from '../lib/queryClient';
 import { queryKeys } from '../lib/queryKeys';
 import { needsOnboarding } from '../utils/authOnboarding';
 import { isGuestUser } from '../store/useAuthStore';
+import { resolveUserScopeKey } from '../store/userScopedPersist';
 import {
   trackEvent,
   logScreen,
@@ -265,6 +266,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
           </Head>
         ) : null}
         <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
+        <QueryCacheScopeBootstrap />
         <CompanionBootstrap />
         <NotificationBootstrap />
         <AppConfigBootstrap />
@@ -309,6 +311,24 @@ function CompanionBootstrap() {
   useEffect(() => {
     initializeForUser(user ?? null);
   }, [user]);
+
+  return null;
+}
+
+function QueryCacheScopeBootstrap() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const user = useAuthStore((s) => s.user);
+  const lastAppliedScopeRef = useRef<string | null>(null);
+  const scopeKey = isAuthenticated ? resolveUserScopeKey(user) : 'anonymous';
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (lastAppliedScopeRef.current === scopeKey) return;
+
+    lastAppliedScopeRef.current = scopeKey;
+    void syncPersistedQueryCacheScope(scopeKey);
+  }, [isHydrated, scopeKey]);
 
   return null;
 }

@@ -1087,7 +1087,7 @@
       "compatibility": "Compatibility"
     },
     "categories": {
-      "GuruFlow": {
+      "cosmicFlow": {
         "title": "Guru Flow",
         "subtitle": "Track today's and this week's rhythm here."
       },
@@ -1186,7 +1186,7 @@
         "subtitle": "Coming soon"
       }
     },
-    "GuruFlow": "Guru Flow",
+    "cosmicFlow": "Guru Flow",
     "tools": "Guiding Tools",
     "wisdom": "Personal Wisdom",
     "dailySummary": "Daily Summary",
@@ -1439,10 +1439,10 @@
     "filters": {
       "all": "All"
     },
-    "GuruCoreLabels": {
+    "cosmicCoreLabels": {
       "finance": "Finance",
       "career": "Career",
-      "social": "Social",
+      "social": "Love",
       "home": "Home",
       "spirituality": "Spirituality"
     },
@@ -1609,6 +1609,24 @@
     "sun": "Sun",
     "moon": "Moon",
     "rising": "Rising",
+    "heroInfoEyebrow": "STAR CHART INFO",
+    "heroNameFallback": "Astro Soul",
+    "heroSummaryBadge": "SUMMARY",
+    "heroExpandA11y": "Expand star chart info",
+    "heroCollapseA11y": "Collapse star chart info",
+    "heroLocationLabel": "Location",
+    "heroLocationUnknown": "Not specified",
+    "heroChartSystemLabel": "Chart System",
+    "heroChartSystemValue": "Tropical Zodiac • Placidus House System",
+    "heroSignatureTitle": "Cosmic Signature",
+    "heroSignatureSubtitle": "Tap your Sun • Moon • Rising trio to open the details",
+    "heroChartRulerLabel": "Chart Ruler",
+    "heroBirthTimeWarning": "Birth time unknown — rising sign and house placements are approximate.",
+    "heroMetricPlanets": "Planets",
+    "heroMetricHouses": "Houses",
+    "heroMetricAspects": "Aspects",
+    "heroMetricOpenA11y": "Open {{value}} {{label}} details",
+    "heroFooterNote": "The circular chart, aspect matrix, and degree list are available in the technical accordions below.",
     "missingBirthData": "Birth data missing",
     "calcError": "Calculation error",
     "addPersonError": "Could not add person",
@@ -2468,6 +2486,17 @@
     "lineCautionRetro": "Because {{planet}} is retrograde, you may tend to process things internally before acting. Taking a second look rather than rushing serves you well.",
     "lineCautionNormal": "When you push {{planet}} energy too hard, you can get stuck in a single perspective. Flexibility and feedback restore balance.",
     "glossarySnippet": "This placement especially highlights the theme of {{desc}}."
+  },
+  "aspectSheet": {
+    "meaningTitle": "What Does This Aspect Mean?",
+    "summaryTitle": "Cosmic Dynamic (Summary)",
+    "summaryText": "A {{aspect}} is active between {{p1}} and {{p2}}. In the related life area, this creates a theme of {{theme}}.",
+    "harmoniousTheme": "flow and support",
+    "challengingTheme": "growth through tension",
+    "personalTitle": "Personal Note",
+    "closeBtn": "Close",
+    "closeA11y": "Close",
+    "backdropA11y": "Tap backdrop to close"
   },
   "bigThreeSheet": {
     "sunLabel": "Sun",
@@ -3367,7 +3396,33 @@
     "doItemFallback2": "Block clear time on your calendar",
     "categoryDetailFallbackDo": "Focus on a single goal in this area today.",
     "categoryDetailFallbackDont": "Don't open multiple topics at once.",
-    "categoryDetailSuggestionsTitle": "Supporting Indicators"
+    "categoryDetailSuggestionsTitle": "Supporting Indicators",
+    "heroKicker": "TODAY'S INSIGHT",
+    "heroDoTitle": "Do Today",
+    "heroAvoidTitle": "Avoid Today",
+    "heroStrongAreasLabel": "Strongest areas:",
+    "heroDetailBtn": "View Details",
+    "heroDailyFocusFallback": "Daily Focus",
+    "heroHeadlineFallback": "Strong window today: focus on a single goal.",
+    "heroExplanationFallback": "Category scores will personalize this section when updated.",
+    "heroDoItemFallback3": "Keep focus on one area",
+    "heroAvoidFallback1": "Don't open multiple topics at once",
+    "heroAvoidFallback2": "Avoid spreading decisions unnecessarily",
+    "heroHeadlineStrong": "Strong window today: great opportunities in {{area}}",
+    "heroExplanationTwoStrong": "Support is high in {{areas}}.",
+    "heroExplanationOneStrong": "Support is high in {{area}}; keeping decisions simple gives an advantage.",
+    "heroDoFallback": "Clarify the key step for {{title}}",
+    "heroAvoidFallback": "Avoid overloading in {{title}}",
+    "subAreaLabel": "Sub-area",
+    "subAreasCount": "{{count}} sub-areas",
+    "summarySingleFallback": "Keeping it simple and clear in this area today is more productive.",
+    "moonCategoryLabel": "Moon",
+    "transitCategoryLabel": "Transit",
+    "featuredSectionTitle": "Today's Highlights",
+    "otherCategoriesTitle": "Other Categories",
+    "showAllMeta": "Full List",
+    "showAllCategories": "See all categories",
+    "detailBtn": "Detail"
   },
   "appBrand": {
     "logoA11y": "Astro Guru"

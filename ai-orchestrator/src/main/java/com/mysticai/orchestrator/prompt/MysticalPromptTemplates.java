@@ -834,7 +834,7 @@ public class MysticalPromptTemplates {
     /**
      * Generates a deep synastry (relationship compatibility) analysis prompt.
      * Includes full planet positions for both charts and ALL cross-aspects.
-     * AI is instructed to calculate the harmonyScore (0-100) itself.
+     * AI is instructed to explain the canonical relationship score without drifting from it.
      *
      * Output: strict JSON with harmonyScore, harmonyInsight, strengths[], challenges[], keyWarning, cosmicAdvice.
      */
@@ -844,7 +844,7 @@ public class MysticalPromptTemplates {
             String partnerName, String partnerSunSign, String partnerMoonSign, String partnerRisingSign,
             String partnerPlanetsText,
             String relationshipType, String allAspectsText,
-            String userGender, String partnerGender, String baseHarmonyScore) {
+            String userGender, String partnerGender, String selectedModuleScore, String baseHarmonyScore) {
         String normalizedType = (relationshipType == null || relationshipType.isBlank()) ? "LOVE" : relationshipType;
 
         String typeLabel = switch (normalizedType.toUpperCase()) {
@@ -954,7 +954,8 @@ public class MysticalPromptTemplates {
                 ══════════════════════════════════════════
                 UYUM SKORU HESAPLAMA
                 ══════════════════════════════════════════
-                Referans skor (backend hesaplaması): %s
+                Seçili modül için referans backend skoru: %s
+                Genel synastry baz skoru: %s
                 Tüm gezegen çiftlerini ve açılarını değerlendirerek 0-100 arası bir harmonyScore belirle.
                 KURALLAR:
                 - Başlangıç: 50 puan
@@ -966,8 +967,9 @@ public class MysticalPromptTemplates {
                 - Karşıt açılar (-2.5, kilit gezegenler için -4)
                 - %s türü için kilit gezegenler: %s
                 - RIVAL türü için skoru ters çevir (100 - hesaplanan)
-                - harmonyScore, referans backend skorundan en fazla +/-8 sapmalı.
-                  Eğer çok güçlü kanıt yoksa referans skoru koru.
+                - Genel synastry baz skoru sadece yardımcı bağlamdır; görünür skor yerine geçmez.
+                - Bu istekte döndüreceğin harmonyScore, seçili modül için referans backend skoruyla aynı kalmalı.
+                - Açılar ve evler bu skoru değiştirmek için değil, o skorun nedenini açıklamak için kullanılmalı.
                 Sonucu 0-100 aralığına sınırla. Ondalık olmadan TAM SAYI ver.
 
                 ══════════════════════════════════════════
@@ -994,7 +996,7 @@ public class MysticalPromptTemplates {
                   Paragraf 1: güçlü bağlar. Paragraf 2: zorlayıcı açılar. Paragraf 3: gelişim fırsatları.
                   Genel enerji dinamiğini ver; öne çıkan 1-2 açıyı derece/orb ile belirt.
                   Skoru doğal bir cümle içinde geç; SABİT örnek sayı/metin kopyalama.
-                  Kullandığın puan, bu yanıtta ürettiğin harmonyScore ile tutarlı olmalı.
+                  Kullandığın puan, seçili modül için referans backend skoru ve bu yanıtta ürettiğin harmonyScore ile aynı olmalı.
                 - strengths: TAM OLARAK 3 madde. Her biri 1-2 cümle.
                   ZORUNLU: Her maddede gezegen adı + burç + ev + açı tipi + orb referansı olmalı.
                   İyi örnek: "Partnerinin 5. evindeki Venüsü, senin 9. evindeki Marsinle üçgen açı yapıyor (orb: 2.3°) — bu çiftin romantik enerjisi doğal ve sürtünmesiz akar."
@@ -1025,6 +1027,7 @@ public class MysticalPromptTemplates {
                 allAspectsText,
                 typeInstructions,
                 typeLabel,
+                selectedModuleScore,
                 baseHarmonyScore,
                 normalizedType.toUpperCase(), getKeyPlanetsForType(normalizedType)
         );

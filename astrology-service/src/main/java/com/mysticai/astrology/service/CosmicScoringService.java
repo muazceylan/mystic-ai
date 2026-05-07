@@ -694,6 +694,7 @@ public class CosmicScoringService {
                 case "reconciliation" -> "#F472B6";
                 case "romantic_night" -> "#7C3AED";
                 case "deep_talk" -> "#6366F1";
+                case "social_invites" -> "#10B981";
                 default -> "#EC4899";
             };
             case "moon" -> switch (subCategoryKey) {

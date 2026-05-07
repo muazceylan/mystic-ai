@@ -91,7 +91,7 @@ export default function DecisionCompassAllCategoriesScreen() {
     user?.id
       ? {
           userId: user.id,
-          locale: user.preferredLanguage ?? i18n.language,
+          locale: i18n.language,
           userGender: user.gender,
           maritalStatus: user.maritalStatus,
         }
@@ -105,7 +105,7 @@ export default function DecisionCompassAllCategoriesScreen() {
       'day-detail',
       user?.id ?? 0,
       dayDetailDate ?? '',
-      user?.preferredLanguage ?? i18n.language,
+      i18n.language,
       user?.gender ?? '',
       user?.maritalStatus ?? '',
     ],
@@ -114,7 +114,7 @@ export default function DecisionCompassAllCategoriesScreen() {
       const res = await fetchCosmicDayDetail({
         userId: user.id,
         date: dayDetailDate,
-        locale: user.preferredLanguage ?? i18n.language,
+        locale: i18n.language,
         gender: user.gender,
         maritalStatus: user.maritalStatus,
       });
@@ -125,8 +125,8 @@ export default function DecisionCompassAllCategoriesScreen() {
   });
 
   const categories = useMemo(
-    () => buildCategoryModels(query.data?.dailyGuide?.activities, dayDetailQuery.data?.categories),
-    [dayDetailQuery.data?.categories, query.data?.dailyGuide?.activities],
+    () => buildCategoryModels(query.data?.dailyGuide?.activities, dayDetailQuery.data?.categories, t),
+    [dayDetailQuery.data?.categories, query.data?.dailyGuide?.activities, t],
   );
 
   const availableFilters = useMemo(

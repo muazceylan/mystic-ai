@@ -1,27 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listFavoriteNames, removeFavoriteName, toggleFavoriteName, type NameListItem } from '../services/name.service';
-
-const FAVORITES_QUERY_KEY = ['names', 'favorites'] as const;
+import { useAuthStore } from '../store/useAuthStore';
+import { resolveUserScopeKey } from '../store/userScopedPersist';
 
 export function useNameFavorites() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const userScopeKey = resolveUserScopeKey(user);
+  const queryKey = ['names', 'favorites', userScopeKey] as const;
 
   const favoritesQuery = useQuery({
-    queryKey: FAVORITES_QUERY_KEY,
+    queryKey,
     queryFn: listFavoriteNames,
   });
 
   const toggleMutation = useMutation({
     mutationFn: (item: NameListItem) => toggleFavoriteName(item),
     onSuccess: (next) => {
-      queryClient.setQueryData(FAVORITES_QUERY_KEY, next);
+      queryClient.setQueryData(queryKey, next);
     },
   });
 
   const removeMutation = useMutation({
     mutationFn: (nameId: number) => removeFavoriteName(nameId),
     onSuccess: (next) => {
-      queryClient.setQueryData(FAVORITES_QUERY_KEY, next);
+      queryClient.setQueryData(queryKey, next);
     },
   });
 

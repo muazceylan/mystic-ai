@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   Admin can toggle at runtime via NumerologyAdminController.
  *   Persists across restarts via NUMEROLOGY_PREMIUM_ENABLED env var.
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public class NumerologyConfig {
 
     private final AtomicBoolean premiumEnabled;

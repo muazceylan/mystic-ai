@@ -10,10 +10,9 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { router, useLocalSearchParams, useSegments } from 'expo-router';
+import { router, useLocalSearchParams, usePathname, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -60,8 +59,8 @@ export default function DecisionCompassScreen() {
   const T = getCompassTokens(colors, isDark);
   const { i18n, t } = useTranslation();
   const { width } = useWindowDimensions();
+  const pathname = usePathname();
   const segments = useSegments();
-  const isFocused = useIsFocused();
   const params = useLocalSearchParams<{ from?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const { tabBarHeight } = useBottomTabBarOffset();
@@ -89,7 +88,7 @@ export default function DecisionCompassScreen() {
     user?.id
       ? {
           userId: user.id,
-          locale: user.preferredLanguage ?? i18n.language,
+          locale: i18n.language,
           userGender: user.gender,
           maritalStatus: user.maritalStatus,
         }
@@ -109,7 +108,7 @@ export default function DecisionCompassScreen() {
       'day-detail',
       user?.id ?? 0,
       detailDate ?? '',
-      user?.preferredLanguage ?? i18n.language,
+      i18n.language,
       user?.gender ?? '',
       user?.maritalStatus ?? '',
     ],
@@ -118,7 +117,7 @@ export default function DecisionCompassScreen() {
       const res = await fetchCosmicDayDetail({
         userId: user.id,
         date: detailDate,
-        locale: user.preferredLanguage ?? i18n.language,
+        locale: i18n.language,
         gender: user.gender,
         maritalStatus: user.maritalStatus,
       });
@@ -129,8 +128,8 @@ export default function DecisionCompassScreen() {
   });
 
   const categories = useMemo(
-    () => buildCategoryModels(query.data?.dailyGuide?.activities, dayDetailQuery.data?.categories),
-    [dayDetailQuery.data?.categories, query.data?.dailyGuide?.activities],
+    () => buildCategoryModels(query.data?.dailyGuide?.activities, dayDetailQuery.data?.categories, t),
+    [dayDetailQuery.data?.categories, query.data?.dailyGuide?.activities, t],
   );
 
   const visibleCategories = useMemo(
@@ -163,7 +162,7 @@ export default function DecisionCompassScreen() {
     [featuredCategories, filteredCategories],
   );
 
-  const heroModel = useMemo(() => buildHeroModel(visibleCategories), [visibleCategories]);
+  const heroModel = useMemo(() => buildHeroModel(visibleCategories, t), [visibleCategories, t]);
   const strongestCategory = visibleCategories[0] ?? null;
 
   const dateLabel = formatDateShort(selectedDate ?? query.data?.date, t('decisionCompassScreen.todayLabel'), i18n.language);
@@ -179,16 +178,14 @@ export default function DecisionCompassScreen() {
   const contentMaxWidth = Platform.OS === 'web' ? Math.min(900, width - 24) : undefined;
 
   React.useEffect(() => {
-    if (!isFocused) return;
+    if (isInTabFlow || pathname !== '/decision-compass') return;
 
-    if (!isInTabFlow) {
-      const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
-      router.replace({
-        pathname: '/(tabs)/decision-compass-tab',
-        params: typeof fromParam === 'string' && fromParam.startsWith('/') ? { from: fromParam } : undefined,
-      } as never);
-    }
-  }, [isFocused, isInTabFlow, params.from]);
+    const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
+    router.replace({
+      pathname: '/(tabs)/decision-compass-tab',
+      params: typeof fromParam === 'string' && fromParam.startsWith('/') ? { from: fromParam } : undefined,
+    } as never);
+  }, [isInTabFlow, params.from, pathname]);
 
   React.useEffect(() => {
     if (selectedCategory && !visibleCategories.some((item) => item.id === selectedCategory.id)) {
