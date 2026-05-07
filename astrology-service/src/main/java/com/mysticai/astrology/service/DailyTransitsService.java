@@ -63,7 +63,7 @@ public class DailyTransitsService {
     private static final int MIN_TRANSITS = 3;
     private static final int MAX_TRANSITS = 7;
     private static final String INSIGHT_ENGINE_VERSION = "daily-insight-v3";
-    private static final String DAILY_TRANSITS_CACHE_KEY_PREFIX = "dtc-v2:";
+    private static final String DAILY_TRANSITS_CACHE_KEY_PREFIX = "dtc-v3:";
     private static final Set<String> BENEFIC_PLANETS = Set.of("Sun", "Moon", "Mercury", "Venus", "Jupiter");
     private static final Set<String> ACTIONABLE_TRANSIT_PLANETS = Set.of(
             "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Moon", "Sun"
@@ -1100,7 +1100,7 @@ public class DailyTransitsService {
                     : t(english, "Bu retro " + area + " tarafında daha yavaş, dikkatli ve bilinçli ilerlemeni önerir.", "This retrograde suggests moving more slowly, carefully, and consciously around " + area + ".");
         };
         String risk = retroRiskLevel(position.planet(), house);
-        return new DailyTransitsDTO.RetrogradeItem(planet, clamp(meaning, 96), risk);
+        return new DailyTransitsDTO.RetrogradeItem(planet, meaning, risk);
     }
 
     private List<ActionTemplate> buildActionTemplates(DailyTransitsDTO dto, boolean english) {

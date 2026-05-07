@@ -151,7 +151,7 @@ class DailyTransitsServiceTest {
         when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("42"))
                 .thenReturn(Optional.of(baseChart(baseNatalPlanets(), baseHouses())));
         when(transitCalculator.calculateTransitPositions(any(LocalDate.class))).thenReturn(List.of(
-                planet("Mercury", true, 3),
+                planet("Pluto", true, 10),
                 planet("Venus", false, 7)
         ));
         when(transitCalculator.calculateTransitAspects(anyList(), anyList())).thenReturn(List.of());
@@ -160,8 +160,12 @@ class DailyTransitsServiceTest {
 
         assertEquals(1, response.retrogrades().size());
         DailyTransitsDTO.RetrogradeItem retro = response.retrogrades().get(0);
-        assertEquals("High", retro.riskLevel());
-        assertTrue(retro.meaningPlain().contains("yakın çevre") || retro.meaningPlain().contains("iletişim"));
+        assertEquals("Low", retro.riskLevel());
+        assertEquals(
+                "Bu retro kariyer, hedefler ve görünürlüğün tarafında daha yavaş, dikkatli ve bilinçli ilerlemeni önerir.",
+                retro.meaningPlain()
+        );
+        assertFalse(retro.meaningPlain().endsWith("…"));
     }
 
     @Test
@@ -193,7 +197,7 @@ class DailyTransitsServiceTest {
         assertNotNull(lookupVersion);
         assertEquals(lookupVersion, savedVersion);
         assertTrue(savedVersion.length() <= 64);
-        assertTrue(savedVersion.startsWith("dtc-v2:"));
+        assertTrue(savedVersion.startsWith("dtc-v3:"));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.mysticai.numerology.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,7 @@ public class NumerologyConfig {
     private final int guidanceConnectTimeoutMs;
     private final int guidanceReadTimeoutMs;
 
+    @Autowired
     public NumerologyConfig(
             @Value("${numerology.premium-enabled:false}") boolean premiumEnabledFromConfig,
             @Value("${services.ai-orchestrator.guidance-connect-timeout-ms:500}") long guidanceConnectTimeoutMs,
