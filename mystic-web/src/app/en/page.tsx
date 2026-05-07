@@ -6,6 +6,7 @@ import { fetchAllPosts } from '@/lib/blog';
 import { getMetadataAlternates } from '@/lib/i18n';
 import { StoreCTA } from '@/components/StoreCTA';
 import { TrackedLink } from '@/components/TrackedLink';
+import { ASTRO_GURU_WEB_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   alternates: getMetadataAlternates('en', '/'),
@@ -68,7 +69,7 @@ export default async function HomePageEn() {
             receive cosmic guidance.
           </p>
           <div id="download">
-            <StoreCTA locale="en" variant="hero" />
+            <StoreCTA locale="en" variant="hero" webHref={ASTRO_GURU_WEB_URL} />
           </div>
         </div>
       </section>

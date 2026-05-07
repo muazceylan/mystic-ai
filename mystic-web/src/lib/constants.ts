@@ -5,6 +5,7 @@ export const SITE_NAME = 'AstroGuru';
 export const SUPPORT_EMAIL = 'support@astroguru.app';
 export const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || '#';
 export const PLAY_STORE_URL = process.env.NEXT_PUBLIC_PLAY_STORE_URL || '#';
+export const ASTRO_GURU_WEB_URL = 'https://astroguru.app/welcome';
 
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '';
 export const ENABLE_ANALYTICS = process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true';

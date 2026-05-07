@@ -4,9 +4,10 @@ import { APP_STORE_URL, PLAY_STORE_URL } from '@/lib/constants';
 interface StoreCTAProps {
   locale: 'tr' | 'en';
   variant?: 'hero' | 'cta';
+  webHref?: string;
 }
 
-export function StoreCTA({ locale, variant = 'hero' }: StoreCTAProps) {
+export function StoreCTA({ locale, variant = 'hero', webHref }: StoreCTAProps) {
   const appStoreAvailable = Boolean(APP_STORE_URL && APP_STORE_URL !== '#');
   const playStoreAvailable = Boolean(PLAY_STORE_URL && PLAY_STORE_URL !== '#');
   const comingSoon = locale === 'tr' ? 'Yakinda' : 'Coming Soon';
@@ -44,6 +45,7 @@ export function StoreCTA({ locale, variant = 'hero' }: StoreCTAProps) {
   }
 
   const appStoreLabel = locale === 'tr' ? "App Store'dan Indir" : 'Download on App Store';
+  const webLabel = locale === 'tr' ? 'Astro Guru Webe Git' : 'Go to Astro Guru Web';
   const playStoreLabel = locale === 'tr' ? "Google Play'den Indir" : 'Get it on Google Play';
 
   return (
@@ -70,6 +72,24 @@ export function StoreCTA({ locale, variant = 'hero' }: StoreCTAProps) {
           {appStoreLabel} — {comingSoon}
         </span>
       )}
+      {webHref ? (
+        <TrackedAnchor
+          href={webHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          analyticsEvent={{
+            type: 'cta_click',
+            params: {
+              cta_label: 'astro_guru_web',
+              placement: variant,
+              source: `store_cta_${variant}`,
+            },
+          }}
+          className="inline-flex h-12 items-center rounded-full border border-amber-300/40 bg-amber-200/10 px-8 text-sm font-semibold text-amber-100 transition-transform hover:scale-105 hover:bg-amber-200/15"
+        >
+          {webLabel}
+        </TrackedAnchor>
+      ) : null}
       {playStoreAvailable ? (
         <TrackedAnchor
           href={PLAY_STORE_URL}

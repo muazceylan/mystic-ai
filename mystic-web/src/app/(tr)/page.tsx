@@ -6,6 +6,7 @@ import { fetchAllPosts } from '@/lib/blog';
 import { getMetadataAlternates } from '@/lib/i18n';
 import { StoreCTA } from '@/components/StoreCTA';
 import { TrackedLink } from '@/components/TrackedLink';
+import { ASTRO_GURU_WEB_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   alternates: getMetadataAlternates('tr', '/'),
@@ -69,7 +70,7 @@ export default async function HomePage() {
             deneyimini kesfet.
           </p>
           <div id="indir">
-            <StoreCTA locale="tr" variant="hero" />
+            <StoreCTA locale="tr" variant="hero" webHref={ASTRO_GURU_WEB_URL} />
           </div>
         </div>
       </section>
