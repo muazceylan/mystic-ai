@@ -26,7 +26,7 @@ import { useWebViewportBottomInset } from '../../hooks/useWebViewportBottomInset
 const WEB_SIDEBAR_BREAKPOINT = 900;
 const WEB_SIDEBAR_EXPANDED_BREAKPOINT = 1220;
 const WEB_SIDEBAR_GAP = 20;
-const WEB_BRAND_ICON = require('../../../assets/icon.png');
+const WEB_BRAND_ICON = require('../../../assets/brand/logo/astro-guru-app-icon-rounded-preview.png');
 const IOS_TAB_BAR_BASE_HEIGHT = 68;
 const ANDROID_TAB_BAR_BASE_HEIGHT = 76;
 

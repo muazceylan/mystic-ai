@@ -22,6 +22,7 @@ import { fetchCosmicCategoryDetails } from '../services/cosmic.service';
 import { useDecisionCompassStore } from '../store/useDecisionCompassStore';
 import { useInnerHeaderSpacing } from '../hooks/useInnerHeaderSpacing';
 import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
+import { resolveNativePickerLocale } from '../utils/nativeLocale';
 
 function todayIsoDate() {
   const d = new Date();
@@ -129,6 +130,10 @@ export default function DecisionCompassDetailScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const scoreText = typeof params.score === 'string' ? params.score : null;
   const isCategoryHidden = !!categoryKey && hiddenCategoryKeys.includes(categoryKey);
+  const nativePickerLocale = useMemo(
+    () => resolveNativePickerLocale(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
 
   const query = useQuery({
     queryKey: ['cosmic', 'category-details', user?.id ?? 0, categoryKey, selectedDate, i18n.language],
@@ -273,6 +278,7 @@ export default function DecisionCompassDetailScreen() {
                 <DateTimePicker
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  locale={nativePickerLocale}
                   value={parseIsoDateLocal(selectedDate)}
                   onChange={handleDatePickerChange}
                   maximumDate={new Date(2100, 11, 31)}

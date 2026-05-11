@@ -10,6 +10,7 @@ import {
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
 import { MATCH_AVATAR_FALLBACK_ASSETS } from '../../constants/matchDesignTokens';
+import { useTheme } from '../../context/ThemeContext';
 
 interface PersonAvatarProps {
   uri?: string | null;
@@ -35,6 +36,8 @@ export default function PersonAvatar({
   style,
   imageStyle,
 }: PersonAvatarProps) {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const [uriFailed, setUriFailed] = useState(false);
   const [fallbackFailed, setFallbackFailed] = useState(false);
 
@@ -101,12 +104,15 @@ export default function PersonAvatar({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+) => StyleSheet.create({
   shell: {
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E8E2F2',
-    backgroundColor: '#F3ECFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
   },
   image: {
     width: '100%',
@@ -116,10 +122,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3ECFF',
+    backgroundColor: colors.surfaceAlt,
   },
   initialText: {
-    color: '#4C1D95',
+    color: isDark ? colors.primaryLight : '#4C1D95',
     fontWeight: '900',
   },
 });

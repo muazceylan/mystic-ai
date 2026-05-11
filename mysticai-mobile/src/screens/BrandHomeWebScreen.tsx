@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Head from 'expo-router/head';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,13 +20,16 @@ const SEO_LINKS = [
 
 const FEATURE_PILLS = {
   en: ['Personal astrology', 'Numerology and name insights', 'Dream analysis', 'Daily cosmic guidance'],
-  tr: ['Kisiye ozel astrolojik analiz', 'Numeroloji ve isim analizi', 'Ruya sembolleri ve yorumlari', 'Gunluk kozmik rehberlik'],
+  tr: ['Kişiye özel astrolojik analiz', 'Numeroloji ve isim analizi', 'Rüya sembolleri ve yorumları', 'Günlük kozmik rehberlik'],
 } as const;
 
 export default function BrandHomeWebScreen() {
   const { colors } = useTheme();
   const { i18n } = useTranslation();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 960;
+  const isCompact = width < 560;
+  const styles = useMemo(() => createStyles(colors, { isNarrow, isCompact }), [colors, isCompact, isNarrow]);
   const locale = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr';
   const infoBaseUrl = getPublicWebBaseUrl();
   const downloadUrl = getUniversalDownloadUrl('/dl?utm_source=brand_home');
@@ -38,7 +41,7 @@ export default function BrandHomeWebScreen() {
   const description =
     locale === 'en'
       ? 'Discover daily astrology, numerology, dream insights and spiritual guidance with AstroGuru.'
-      : 'AstroGuru ile gunluk astroloji, numeroloji, ruya yorumu ve spirituel rehberlige tek yerden ulas.';
+      : 'Günlük astrolojik yorumlar, numeroloji analizleri ve spiritüel rehberliği AstroGuru ile tek merkezden keşfedin.';
   const organizationJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -111,12 +114,12 @@ export default function BrandHomeWebScreen() {
             <Text style={styles.title}>
               {locale === 'en'
                 ? 'Your daily astrology, numerology and spiritual guidance companion.'
-                : 'Gunluk astrolojik yorumlar, numeroloji analizi ve spirituel rehberligi tek merkezde sunan kisisel rehberiniz.'}
+                : 'Günlük astrolojik yorumlar, numeroloji analizleri ve spiritüel rehberliği tek bir merkezde buluşturan kişisel rehberiniz.'}
             </Text>
             <Text style={styles.subtitle}>
               {locale === 'en'
                 ? 'Open the app, explore premium guidance, and dive deeper with our editorial hub.'
-                : 'Gunluk gokevi etkilerinden numerolojik temalara, ruya sembollerinden uzman iceriklere kadar uzanan AstroGuru deneyimine uygulama ve bilgi merkezi uzerinden eris.'}
+                : 'Gök olaylarının günlük etkilerinden numerolojik temalara, rüya sembollerinden uzman içeriklere kadar uzanan AstroGuru deneyimine hem uygulama hem de bilgi merkezi üzerinden kolayca erişin.'}
             </Text>
 
             <View style={styles.pillRow}>
@@ -132,7 +135,7 @@ export default function BrandHomeWebScreen() {
                 <Pressable style={styles.primaryCta}>
                   <Ionicons name="sparkles-outline" size={18} color={colors.white} />
                   <Text style={styles.primaryCtaText}>
-                    {locale === 'en' ? 'Open AstroGuru' : "AstroGuru'yu Ac"}
+                    {locale === 'en' ? 'Open AstroGuru' : "AstroGuru'yu Aç"}
                   </Text>
                 </Pressable>
               </Link>
@@ -145,7 +148,7 @@ export default function BrandHomeWebScreen() {
               >
                 <Ionicons name="download-outline" size={18} color={colors.primary} />
                 <Text style={styles.secondaryCtaText}>
-                  {locale === 'en' ? 'Download or Continue' : 'Indir veya Webde Devam Et'}
+                  {locale === 'en' ? 'Download or Continue' : "İndir veya Web'de Devam Et"}
                 </Text>
               </Pressable>
             </View>
@@ -245,16 +248,21 @@ function FeatureRow({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text
   );
 }
 
-function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
+function createStyles(
+  colors: ReturnType<typeof useTheme>['colors'],
+  options: { isNarrow?: boolean; isCompact?: boolean } = {}
+) {
+  const { isNarrow = false, isCompact = false } = options;
+
   return StyleSheet.create({
     page: {
       flex: 1,
       backgroundColor: colors.bg,
     },
     content: {
-      paddingHorizontal: 24,
-      paddingVertical: 32,
-      gap: 28,
+      paddingHorizontal: isCompact ? 16 : 24,
+      paddingVertical: isCompact ? 24 : 32,
+      gap: isCompact ? 20 : 28,
       alignSelf: 'center',
       width: '100%',
       maxWidth: 1180,
@@ -262,17 +270,19 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
     hero: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 20,
+      gap: isCompact ? 16 : 20,
       alignItems: 'stretch',
     },
     heroCopy: {
       flex: 1,
-      minWidth: 320,
+      minWidth: isCompact ? 0 : 320,
+      width: isNarrow ? '100%' : undefined,
+      maxWidth: '100%',
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.borderLight,
       borderRadius: 28,
-      padding: 28,
+      padding: isCompact ? 20 : 28,
       shadowColor: colors.shadow,
       shadowOpacity: 0.08,
       shadowRadius: 20,
@@ -287,40 +297,41 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       marginBottom: 12,
     },
     title: {
-      fontSize: 42,
-      lineHeight: 48,
+      fontSize: isCompact ? 30 : isNarrow ? 36 : 42,
+      lineHeight: isCompact ? 38 : isNarrow ? 42 : 48,
       fontWeight: '800',
       color: colors.text,
     },
     subtitle: {
       marginTop: 14,
-      fontSize: 17,
-      lineHeight: 27,
+      fontSize: isCompact ? 15 : 17,
+      lineHeight: isCompact ? 24 : 27,
       color: colors.subtext,
-      maxWidth: 720,
+      maxWidth: isNarrow ? undefined : 720,
     },
     pillRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 10,
-      marginTop: 20,
+      gap: isCompact ? 8 : 10,
+      marginTop: isCompact ? 18 : 20,
     },
     pill: {
-      paddingHorizontal: 12,
+      paddingHorizontal: isCompact ? 10 : 12,
       paddingVertical: 8,
       borderRadius: 999,
       backgroundColor: colors.primarySoft,
     },
     pillText: {
       color: colors.primary,
-      fontSize: 13,
+      fontSize: isCompact ? 12 : 13,
       fontWeight: '700',
     },
     ctaRow: {
-      flexDirection: 'row',
+      flexDirection: isCompact ? 'column' : 'row',
       flexWrap: 'wrap',
       gap: 12,
       marginTop: 24,
+      alignItems: isCompact ? 'stretch' : 'center',
     },
     primaryCta: {
       minHeight: 52,
@@ -329,7 +340,9 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       backgroundColor: colors.primary,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 10,
+      width: isCompact ? '100%' : undefined,
     },
     primaryCtaText: {
       color: colors.white,
@@ -345,7 +358,9 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       borderColor: colors.primarySoft,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 10,
+      width: isCompact ? '100%' : undefined,
     },
     secondaryCtaText: {
       color: colors.primary,
@@ -353,17 +368,18 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       fontWeight: '800',
     },
     heroCard: {
-      width: 360,
-      minWidth: 300,
+      width: isNarrow ? '100%' : 360,
+      minWidth: 0,
+      maxWidth: '100%',
       backgroundColor: colors.dictSurface,
       borderWidth: 1,
       borderColor: colors.dictBorder,
       borderRadius: 28,
-      padding: 24,
+      padding: isCompact ? 20 : 24,
     },
     cardTitle: {
-      fontSize: 20,
-      lineHeight: 28,
+      fontSize: isCompact ? 18 : 20,
+      lineHeight: isCompact ? 26 : 28,
       fontWeight: '800',
       color: colors.text,
       marginBottom: 16,
@@ -395,11 +411,11 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       borderWidth: 1,
       borderColor: colors.borderLight,
       borderRadius: 28,
-      padding: 24,
+      padding: isCompact ? 20 : 24,
     },
     sectionTitle: {
-      fontSize: 26,
-      lineHeight: 34,
+      fontSize: isCompact ? 22 : 26,
+      lineHeight: isCompact ? 30 : 34,
       fontWeight: '800',
       color: colors.text,
     },
@@ -417,7 +433,7 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       marginTop: 20,
     },
     linkCard: {
-      width: 320,
+      width: isCompact ? '100%' : 320,
       maxWidth: '100%',
       padding: 18,
       borderRadius: 20,

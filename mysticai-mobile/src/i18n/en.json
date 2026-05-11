@@ -279,7 +279,7 @@
       "loadingInsight": "Interpretation is loading…"
     },
     "horoscopeSummary": {
-      "title": "What Awaits You Today?",
+      "title": "Guru Horoscope Readings",
       "todayPrefix": "Today ·",
       "todaySubtitle": "Daily reading",
       "weekPrefix": "This Week ·",
@@ -1597,6 +1597,7 @@
     }
   },
   "natalChart": {
+    "title": "My Chart",
     "retry": "Try again",
     "refreshChart": "Refresh my chart",
     "checkAgain": "Check again",
@@ -1724,6 +1725,8 @@
     "fieldGenderHint": "Used to improve tone and relationship context in comparison readings.",
     "fieldBirthDate": "Birth Date",
     "fieldBirthTime": "Birth Time",
+    "selectDateFallback": "Select Date",
+    "selectTimeFallback": "Select Time",
     "pickerSelect": "Select",
     "locationTitle": "Location Selection",
     "locationSub": "Choose country, city, and district from the steps below.",
@@ -1742,6 +1745,14 @@
     "locationPickerHint": "Select from the list or search.",
     "locationPickerCityRequired": "Select city first.",
     "locationPickerEmpty": "No records found.",
+    "selectCountry": "Select Country",
+    "selectCityTitle": "Province / City",
+    "selectDistrict": "Select District",
+    "selectGeneral": "Select",
+    "countryFirstTitle": "Select Country First",
+    "countryFirstMsg": "Please select a country first.",
+    "cityFirstTitle": "Select Province First",
+    "cityFirstMsg": "Please select a province/city first.",
     "locationGooglePlaceholder": "City, country or full address",
     "iosPickerDateTitle": "Birth Date",
     "iosPickerTimeTitle": "Birth Time",

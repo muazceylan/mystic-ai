@@ -49,7 +49,7 @@ export default function CustomSetDetailScreen() {
   const { colors, isDark } = useTheme();
   const { bottomTabBarOffset } = useBottomTabBarOffset();
   const S = makeStyles(colors, isDark);
-  const goBack = useBackNavigation();
+  const goBack = useBackNavigation({ fallbackRoute: '/spiritual/custom-sets' });
 
   const {
     getSetById, renameSet, removeItem,

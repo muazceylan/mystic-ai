@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function LoadingSkeletonByModule() {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+
   return (
     <View style={styles.wrap}>
       <View style={[styles.block, styles.hero]} />
@@ -18,15 +22,18 @@ export default function LoadingSkeletonByModule() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+) => StyleSheet.create({
   wrap: {
     gap: 10,
   },
   block: {
     borderRadius: 14,
-    backgroundColor: '#EEE8F8',
+    backgroundColor: isDark ? colors.surfaceAlt : '#EEE8F8',
     borderWidth: 1,
-    borderColor: '#E4DCF0',
+    borderColor: colors.border,
   },
   hero: {
     height: 130,

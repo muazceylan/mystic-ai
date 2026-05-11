@@ -32,7 +32,9 @@ export function createAppStackScreenOptions({
     animationDuration: Platform.select({ android: 200, default: undefined }),
     gestureEnabled: Platform.OS === 'ios',
     gestureDirection: 'horizontal',
-    fullScreenGestureEnabled: Platform.OS === 'ios',
+    // Keep iOS back-swipe edge-only. Full-screen back gestures were too easy to
+    // trigger while vertically scrolling long screens in Expo/device testing.
+    fullScreenGestureEnabled: false,
     animationMatchesGesture: Platform.OS === 'ios',
     freezeOnBlur: true,
     ...overrides,

@@ -383,6 +383,7 @@ export default function WelcomeScreen() {
   const authTransitionRef = useRef(false);
   const styles = makeStyles(colors);
   const isFormValid = email.trim().length > 0 && password.length > 0;
+  const quickStartHint = t('auth.quickStartHint').trim();
 
   useFocusEffect(
     useCallback(() => {
@@ -804,7 +805,9 @@ export default function WelcomeScreen() {
                     <>
                       <View style={styles.quickStartContent}>
                         <Text style={styles.quickStartTitle}>{t('auth.quickStartTitle')}</Text>
-                        <Text style={styles.quickStartHint}>{t('auth.quickStartHint')}</Text>
+                        {quickStartHint ? (
+                          <Text style={styles.quickStartHint}>{quickStartHint}</Text>
+                        ) : null}
                       </View>
 
                       <View style={styles.quickStartArrow}>

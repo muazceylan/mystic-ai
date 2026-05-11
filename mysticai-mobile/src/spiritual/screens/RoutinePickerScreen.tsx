@@ -3,12 +3,12 @@
  */
 import React from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { useBackNavigation } from '../../hooks/useBackNavigation';
+import { navigateWithOrigin } from '../../navigation';
 import { useCustomSetStore } from '../store/useCustomSetStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
 import { platformColor } from '../../theme';
@@ -16,7 +16,7 @@ import type { CustomSet, SpiritualItemType } from '../types';
 
 export default function RoutinePickerScreen() {
   const { t } = useTranslation();
-  const goBack = useBackNavigation();
+  const goBack = useBackNavigation({ fallbackRoute: '/spiritual' });
   const { colors, isDark } = useTheme();
   const S = makeStyles(colors, isDark);
 
@@ -32,7 +32,7 @@ export default function RoutinePickerScreen() {
 
   const handleSelect = (setId: string) => {
     setActiveRoutine(activeRoutineSetId === setId ? null : setId);
-    router.back();
+    goBack();
   };
 
   const getUniqueTypes = (set: CustomSet): SpiritualItemType[] => {
@@ -84,7 +84,11 @@ export default function RoutinePickerScreen() {
       <Text style={S.emptySub}>{t('spiritual.routinePicker.emptySub')}</Text>
       <Pressable
         style={({ pressed }) => [S.createBtn, pressed && { opacity: 0.85 }]}
-        onPress={() => router.push('/spiritual/custom-sets')}
+        onPress={() => navigateWithOrigin({
+          pathname: '/spiritual/custom-sets',
+          from: '/spiritual/routine-picker',
+          fallbackRoute: '/spiritual/routine-picker',
+        })}
       >
         <Ionicons name="add" size={18} color="#FFF" />
         <Text style={S.createBtnText}>{t('spiritual.routinePicker.createBtn')}</Text>
@@ -113,7 +117,11 @@ export default function RoutinePickerScreen() {
           sets.length > 0 ? (
             <Pressable
               style={({ pressed }) => [S.newListBtn, pressed && { opacity: 0.85 }]}
-              onPress={() => router.push('/spiritual/custom-sets')}
+              onPress={() => navigateWithOrigin({
+                pathname: '/spiritual/custom-sets',
+                from: '/spiritual/routine-picker',
+                fallbackRoute: '/spiritual/routine-picker',
+              })}
             >
               <Ionicons name="add-circle-outline" size={18} color={isDark ? '#818CF8' : '#6366F1'} />
               <Text style={S.newListBtnText}>{t('spiritual.routinePicker.newListBtn')}</Text>

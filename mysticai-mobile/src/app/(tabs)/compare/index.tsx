@@ -14,6 +14,7 @@ import { parseRelationshipTypeParam } from '../../../services/compare.service';
 import { trackEvent } from '../../../services/analytics';
 import useComparison from '../../../hooks/useComparison';
 import { useInnerHeaderSpacing } from '../../../hooks/useInnerHeaderSpacing';
+import { useTheme } from '../../../context/ThemeContext';
 
 import CompareModuleTabs from '../../../components/compare/CompareModuleTabs';
 import CompareTechnicalDrawer from '../../../components/compare/CompareTechnicalDrawer';
@@ -1057,6 +1058,7 @@ function buildExpertThemeAdvice(
 
 export default function CompareOverviewScreen() {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
   const params = useLocalSearchParams<{
     matchId?: string;
     type?: string;
@@ -1092,7 +1094,8 @@ export default function CompareOverviewScreen() {
     enabled: hasTypeParam && matchId != null,
   });
 
-  const palette = getRelationshipPalette(relationshipType);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const palette = getRelationshipPalette(relationshipType, isDark);
   const leftSign = parseLocalizedSignLabel(leftSignLabel, 'Burç');
   const rightSign = parseLocalizedSignLabel(rightSignLabel, 'Burç');
 
@@ -1297,7 +1300,7 @@ export default function CompareOverviewScreen() {
           {canRenderContent && data ? (
             <View style={styles.contentWrap}>
               <LinearGradient
-                colors={[palette.surface, '#FFFFFF']}
+                colors={[palette.surface, isDark ? colors.surface : '#FFFFFF']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[styles.heroCard, { borderColor: palette.border }]}
@@ -1314,7 +1317,14 @@ export default function CompareOverviewScreen() {
                   </View>
 
                   <View style={styles.scoreWrap}>
-                    <MatchCircularScore score={data.overall.score} size={136} />
+                    <MatchCircularScore
+                      score={data.overall.score}
+                      size={136}
+                      trackColor={isDark ? palette.ringTrack : undefined}
+                      gradientColors={isDark ? ([palette.ringStart, palette.ringEnd] as const) : undefined}
+                      valueColor={isDark ? palette.accent : undefined}
+                      labelColor={isDark ? colors.subtext : undefined}
+                    />
                   </View>
 
                   <View style={styles.personColumn}>
@@ -1361,7 +1371,7 @@ export default function CompareOverviewScreen() {
                 <View style={styles.notesCard}>
                   {signalNotes.map((note, index) => (
                     <View key={`note-${index + 1}`} style={styles.noteRow}>
-                      <Info size={12} color="#6D28D9" />
+                      <Info size={12} color={isDark ? colors.primaryLight : '#6D28D9'} />
                       <AccessibleText style={styles.noteText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
                         {compactText(note, note, null)}
                       </AccessibleText>
@@ -1507,7 +1517,7 @@ export default function CompareOverviewScreen() {
                 }}
                 style={styles.shareBtn}
               >
-                <Share2 size={18} color="#6D28D9" />
+                <Share2 size={18} color={isDark ? colors.primaryLight : '#6D28D9'} />
                 <AccessibleText style={styles.shareBtnText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
                   Paylaşılabilir Kart
                 </AccessibleText>
@@ -1537,10 +1547,13 @@ export default function CompareOverviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F7F5FB',
+    backgroundColor: colors.background,
   },
   screenContent: {
     flex: 1,
@@ -1559,20 +1572,21 @@ const styles = StyleSheet.create({
   stateCard: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E6E0EE',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     padding: 12,
     alignItems: 'center',
     gap: 8,
   },
   stateText: {
     fontSize: 14,
-    color: '#534A69',
+    color: colors.textSoft,
     fontWeight: '700',
+    textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#9F1239',
+    color: isDark ? '#FCA5A5' : '#9F1239',
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -1580,25 +1594,25 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D7C7F6',
+    borderColor: isDark ? colors.surfaceGlassBorder : '#D7C7F6',
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfaceAlt,
   },
   retryText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#5B21B6',
+    color: isDark ? colors.primaryLight : '#5B21B6',
   },
   heroCard: {
     borderRadius: 20,
     borderWidth: 1,
     padding: 14,
-    shadowColor: '#2D0A5B',
+    shadowColor: isDark ? '#000000' : '#2D0A5B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOpacity: isDark ? 0.24 : 0.1,
+    shadowRadius: isDark ? 16 : 12,
     elevation: 4,
     gap: 12,
   },
@@ -1619,13 +1633,13 @@ const styles = StyleSheet.create({
   personName: {
     fontSize: 13,
     lineHeight: 17,
-    color: '#2B2340',
+    color: colors.text,
     fontWeight: '800',
     textAlign: 'center',
   },
   signText: {
     fontSize: 11,
-    color: '#6B6381',
+    color: colors.subtext,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -1636,7 +1650,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 29,
     fontWeight: '900',
-    color: '#231C37',
+    color: colors.text,
     letterSpacing: -0.3,
   },
   metaRow: {
@@ -1652,7 +1666,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
   },
   levelPillText: {
     fontSize: 12,
@@ -1660,13 +1674,13 @@ const styles = StyleSheet.create({
   },
   confidenceMeta: {
     fontSize: 12,
-    color: '#5F5775',
+    color: colors.textSoft,
     fontWeight: '700',
   },
   heroSummary: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#4E4564',
+    color: colors.body,
     fontWeight: '600',
   },
   hintRow: {
@@ -1678,14 +1692,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     lineHeight: 17,
-    color: '#473E5E',
+    color: colors.textSoft,
     fontWeight: '700',
   },
   notesCard: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E4D8F8',
-    backgroundColor: '#F7F2FF',
+    borderColor: isDark ? colors.surfaceGlassBorder : '#E4D8F8',
+    backgroundColor: isDark ? colors.primarySoftBg : '#F7F2FF',
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 6,
@@ -1699,7 +1713,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 11,
     lineHeight: 16,
-    color: '#4E4270',
+    color: colors.textSoft,
     fontWeight: '600',
   },
   metricStripWrap: {
@@ -1714,8 +1728,8 @@ const styles = StyleSheet.create({
     minHeight: 86,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E7E0F1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
     paddingVertical: 9,
     gap: 4,
@@ -1724,7 +1738,7 @@ const styles = StyleSheet.create({
   metricTitle: {
     fontSize: 12,
     lineHeight: 16,
-    color: '#3B334F',
+    color: colors.textSoft,
     fontWeight: '700',
     flexShrink: 1,
   },
@@ -1742,15 +1756,15 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8E1F3',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 2,
   },
   driverLabel: {
     fontSize: 11,
-    color: '#7A718F',
+    color: colors.subtext,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -1758,7 +1772,7 @@ const styles = StyleSheet.create({
   driverTitle: {
     fontSize: 13,
     lineHeight: 17,
-    color: '#2C2441',
+    color: colors.text,
     fontWeight: '800',
   },
   sectionWrap: {
@@ -1773,7 +1787,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     lineHeight: 22,
-    color: '#231C37',
+    color: colors.text,
     fontWeight: '900',
     letterSpacing: -0.2,
   },
@@ -1782,23 +1796,23 @@ const styles = StyleSheet.create({
     minHeight: 38,
     borderRadius: 19,
     borderWidth: 1,
-    borderColor: '#DCCBFF',
+    borderColor: isDark ? colors.surfaceGlassBorder : '#DCCBFF',
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3EDFF',
+    backgroundColor: isDark ? colors.primarySoftBg : '#F3EDFF',
   },
   inlineActionText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#5B21B6',
+    color: isDark ? colors.primaryLight : '#5B21B6',
   },
   primaryCta: {
     minHeight: 50,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6D28D9',
+    backgroundColor: colors.primary,
     marginTop: 2,
   },
   primaryCtaText: {
@@ -1814,15 +1828,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#F3EAFF',
+    backgroundColor: isDark ? colors.surfaceAlt : '#F3EAFF',
     borderWidth: 1,
-    borderColor: '#E0D0F7',
+    borderColor: isDark ? colors.border : '#E0D0F7',
     marginTop: 2,
   },
   shareBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#6D28D9',
+    color: isDark ? colors.primaryLight : '#6D28D9',
     letterSpacing: -0.2,
   },
 });

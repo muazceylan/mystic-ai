@@ -266,7 +266,6 @@ export default function BirthCityScreen() {
             placeholderTextColor={colors.disabledText}
             value={citySearch}
             onChangeText={setCitySearch}
-            autoFocus
           />
           {citySearch.length > 0 && (
             <TouchableOpacity
@@ -337,7 +336,6 @@ export default function BirthCityScreen() {
             placeholderTextColor={colors.disabledText}
             value={districtSearch}
             onChangeText={setDistrictSearch}
-            autoFocus
           />
           {districtSearch.length > 0 && (
             <TouchableOpacity

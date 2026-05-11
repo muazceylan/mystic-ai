@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import * as Haptics from '../../utils/haptics';
+import { resolveNativePickerLocale } from '../../utils/nativeLocale';
 import DateTimePicker, {
   DateTimePickerAndroid,
   type DateTimePickerEvent,
@@ -477,6 +478,10 @@ export function NatalChartScreenContent() {
   const { t, i18n } = useTranslation();
   const resolvedLocale = useMemo(
     () => normalizeAppLocale(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
+  const nativePickerLocale = useMemo(
+    () => resolveNativePickerLocale(i18n.resolvedLanguage ?? i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   );
   const { colors } = useTheme();
@@ -3390,6 +3395,7 @@ export function NatalChartScreenContent() {
                     value={iosPickerDraftDate}
                     mode={iosPickerTarget}
                     display="spinner"
+                    locale={nativePickerLocale}
                     is24Hour
                     themeVariant="light"
                     textColor="#0F172A"

@@ -12,6 +12,7 @@ import { useContentStore } from '../store/useContentStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW, ACCESSIBILITY } from '../../constants/tokens';
 import { useAuthStore } from '../../store/useAuthStore';
+import { navigateWithOrigin } from '../../navigation';
 import { platformColor } from '../../theme';
 import {
   SPIRITUAL_PRACTICE_TUTORIAL_TARGET_KEYS,
@@ -165,6 +166,32 @@ export default function SpiritualHomeScreen() {
     [getDuaById, getEsmaById],
   );
 
+  const navigateToCustomSetDetail = useCallback((setId: string) => {
+    navigateWithOrigin({
+      pathname: '/spiritual/custom-sets/[id]',
+      from: '/spiritual',
+      fallbackRoute: '/spiritual',
+      extraParams: { id: setId },
+    });
+  }, []);
+
+  const handleQuickActionPress = useCallback((route: string) => {
+    if (
+      route === '/spiritual/custom-sets'
+      || route === '/spiritual/routine-picker'
+      || route === '/spiritual/journal'
+    ) {
+      navigateWithOrigin({
+        pathname: route,
+        from: '/spiritual',
+        fallbackRoute: '/spiritual',
+      });
+      return;
+    }
+
+    router.push(route as any);
+  }, []);
+
   const getCompletedCount = useCallback(
     (item: CustomSetItem) =>
       todayEntries
@@ -179,25 +206,23 @@ export default function SpiritualHomeScreen() {
 
   const handlePressRoutineStart = useCallback(() => {
     if (!activeSet) {
-      router.push('/spiritual/routine-picker' as any);
+      navigateWithOrigin({
+        pathname: '/spiritual/routine-picker',
+        from: '/spiritual',
+        fallbackRoute: '/spiritual',
+      });
       return;
     }
 
     if (activeSet.items.length === 0) {
-      router.push({
-        pathname: '/spiritual/custom-sets/[id]',
-        params: { id: activeSet.id },
-      } as any);
+      navigateToCustomSetDetail(activeSet.id);
       return;
     }
 
     const nextItemIndex = activeSet.items.findIndex((item) => resolveItemTarget(item) > getCompletedCount(item));
 
     if (nextItemIndex < 0) {
-      router.push({
-        pathname: '/spiritual/custom-sets/[id]',
-        params: { id: activeSet.id },
-      } as any);
+      navigateToCustomSetDetail(activeSet.id);
       return;
     }
 
@@ -207,10 +232,7 @@ export default function SpiritualHomeScreen() {
     const remaining = Math.max(0, target - completed);
 
     if (remaining <= 0) {
-      router.push({
-        pathname: '/spiritual/custom-sets/[id]',
-        params: { id: activeSet.id },
-      } as any);
+      navigateToCustomSetDetail(activeSet.id);
       return;
     }
 
@@ -225,7 +247,7 @@ export default function SpiritualHomeScreen() {
         setIndex: nextItemIndex.toString(),
       },
     } as any);
-  }, [activeSet, getCompletedCount, resolveItemName, resolveItemTarget]);
+  }, [activeSet, getCompletedCount, navigateToCustomSetDetail, resolveItemName, resolveItemTarget]);
 
   return (
     <SafeScreen scroll>
@@ -244,7 +266,7 @@ export default function SpiritualHomeScreen() {
                 s.quickCard,
                 pressed && { opacity: 0.8 },
               ]}
-              onPress={() => router.push(q.route as any)}
+              onPress={() => handleQuickActionPress(q.route)}
               accessibilityLabel={t(q.labelKey)}
             >
               <View style={[s.quickIcon, { backgroundColor: q.accent + '18' }]}>

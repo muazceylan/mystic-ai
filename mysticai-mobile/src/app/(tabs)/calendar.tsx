@@ -34,6 +34,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from '../../utils/haptics';
+import { resolveNativePickerLocale } from '../../utils/nativeLocale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
@@ -707,8 +708,13 @@ export function CalendarScreenContent() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
-  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const dockChipWidth = useMemo(
+    () => Math.round(clamp(windowWidth * 0.36, 132, 156)),
+    [windowWidth],
+  );
+  const styles = useMemo(() => makeStyles(colors, isDark, dockChipWidth), [colors, isDark, dockChipWidth]);
+  const isCompactHeaderLayout = windowWidth <= 390;
   const router = useRouter();
   const routeParams = useLocalSearchParams<{
     date?: string | string[];
@@ -796,6 +802,10 @@ export function CalendarScreenContent() {
   const shortDays = useMemo(() => t('calendar.shortDays').split(','), [t]);
   const plannerLocale = useMemo(
     () => ((i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
+    [i18n.language, i18n.resolvedLanguage],
+  );
+  const nativePickerLocale = useMemo(
+    () => resolveNativePickerLocale(i18n.resolvedLanguage ?? i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   );
   const backendWindowEnd = useMemo(
@@ -2273,7 +2283,7 @@ export function CalendarScreenContent() {
 
             <Animated.View style={[styles.headerHeroWrap, headerHeroCollapseStyle]}>
               <View
-                style={styles.headerHeroRow}
+                style={[styles.headerHeroRow, isCompactHeaderLayout && styles.headerHeroRowCompact]}
                 onLayout={(event) => {
                   const nextHeight = Math.ceil(event.nativeEvent.layout.height);
                   if (nextHeight > headerHeroHeight) {
@@ -2291,8 +2301,8 @@ export function CalendarScreenContent() {
                     {formatDateLabel(selectedDate, months)}
                   </Text>
                   <Text
-                    style={styles.headerLead}
-                    numberOfLines={2}
+                    style={[styles.headerLead, isCompactHeaderLayout && styles.headerLeadCompact]}
+                    numberOfLines={isCompactHeaderLayout ? 3 : 2}
                   >
                     {t('calendar.editorialSubtitle')}
                   </Text>
@@ -2309,10 +2319,10 @@ export function CalendarScreenContent() {
 
                 <LinearGradient
                   colors={isDark ? ['rgba(244,211,94,0.22)', 'rgba(124,58,237,0.22)'] : ['rgba(163,127,255,0.18)', 'rgba(114,132,255,0.14)']}
-                  style={styles.headerScorePill}
+                  style={[styles.headerScorePill, isCompactHeaderLayout && styles.headerScorePillCompact]}
                 >
                   <Text
-                    style={styles.headerScoreValue}
+                    style={[styles.headerScoreValue, isCompactHeaderLayout && styles.headerScoreValueCompact]}
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     minimumFontScale={0.78}
@@ -2320,7 +2330,7 @@ export function CalendarScreenContent() {
                     %{selectedSummary.score}
                   </Text>
                   <Text
-                    style={styles.headerScoreLabel}
+                    style={[styles.headerScoreLabel, isCompactHeaderLayout && styles.headerScoreLabelCompact]}
                     numberOfLines={2}
                     adjustsFontSizeToFit
                     minimumFontScale={0.72}
@@ -2598,13 +2608,15 @@ export function CalendarScreenContent() {
                       <PremiumIconBadge
                         icon="settings-outline"
                         tone="oracle"
-                        size={28}
-                        iconSize={13}
-                        glowSize={36}
+                        size={30}
+                        iconSize={14}
+                        glowSize={38}
                         innerInset={4}
                         style={styles.customizeButtonBadge}
                       />
-                      <Text style={styles.customizeButtonText}>{t('calendar.customize')}</Text>
+                      <Text style={styles.customizeButtonText} numberOfLines={1} ellipsizeMode="tail">
+                        {t('calendar.customize')}
+                      </Text>
                     </TouchableOpacity>
                   </View>
 
@@ -2616,10 +2628,10 @@ export function CalendarScreenContent() {
                         <TouchableOpacity
                           key={category.id}
                           style={[styles.categoryChip, isActive && styles.categoryChipActive]}
-                        onPress={() => onPressCategory(category.id)}
-                        accessibilityRole="button"
-                        accessibilityLabel={dockLabel}
-                      >
+                          onPress={() => onPressCategory(category.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={dockLabel}
+                        >
                           <PremiumIconBadge
                             icon={category.icon as any}
                             tone={getPlannerCategoryIconTone(category.id)}
@@ -2629,7 +2641,11 @@ export function CalendarScreenContent() {
                             innerInset={4}
                             style={styles.categoryChipBadge}
                           />
-                          <Text style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]}>
+                          <Text
+                            style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
                             {dockLabel}
                           </Text>
                         </TouchableOpacity>
@@ -2993,6 +3009,7 @@ export function CalendarScreenContent() {
                         <DateTimePicker
                           mode="time"
                           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                          locale={nativePickerLocale}
                           value={reminderTime}
                           onChange={onReminderTimePickerChange}
                           is24Hour
@@ -3287,7 +3304,7 @@ export default function CalendarRoute() {
   return null;
 }
 
-function makeStyles(C: ThemeColors, isDark: boolean) {
+function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -3341,6 +3358,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       paddingHorizontal: 18,
       paddingBottom: 8,
     },
+    headerHeroRowCompact: {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: 12,
+    },
     headerHeroWrap: {
       overflow: 'hidden',
     },
@@ -3378,6 +3400,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontFamily: SCORE_FONT,
       flexShrink: 1,
     },
+    headerLeadCompact: {
+      fontSize: 16,
+      lineHeight: 20,
+    },
     headerSublead: {
       color: C.subtext,
       fontSize: 12,
@@ -3397,6 +3423,16 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       justifyContent: 'center',
       gap: 6,
     },
+    headerScorePillCompact: {
+      width: '100%',
+      minHeight: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      gap: 12,
+    },
     headerScoreValue: {
       color: C.text,
       fontSize: 24,
@@ -3406,6 +3442,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       width: '100%',
       flexShrink: 1,
     },
+    headerScoreValueCompact: {
+      width: 'auto',
+      flexShrink: 0,
+    },
     headerScoreLabel: {
       color: C.subtext,
       fontSize: 10,
@@ -3414,6 +3454,13 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontFamily: UI_FONT,
       width: '100%',
       flexShrink: 1,
+    },
+    headerScoreLabelCompact: {
+      width: 'auto',
+      flex: 1,
+      fontSize: 11,
+      lineHeight: 14,
+      textAlign: 'right',
     },
     noticeChip: {
       alignSelf: 'flex-start',
@@ -3740,52 +3787,56 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       fontFamily: UI_FONT,
     },
     customizeButton: {
+      width: dockChipWidth,
+      minHeight: 52,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 6,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
+      paddingHorizontal: 14,
       borderRadius: 999,
       backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(248,245,255,0.84)',
       borderWidth: 1,
       borderColor: isDark ? 'rgba(244,211,94,0.14)' : 'rgba(122,91,234,0.12)',
     },
     customizeButtonBadge: {
-      marginVertical: -4,
-      marginLeft: -3,
+      marginVertical: -2,
     },
     customizeButtonText: {
+      flexShrink: 1,
       color: C.primary,
       fontSize: 12,
       fontWeight: '700',
       fontFamily: UI_FONT,
     },
     dockRow: {
-      paddingTop: 8,
-      paddingBottom: 2,
-      gap: 8,
-      paddingRight: 8,
+      paddingTop: 10,
+      paddingBottom: 4,
+      gap: 10,
+      paddingRight: 18,
     },
     categoryChip: {
+      width: dockChipWidth,
+      minHeight: 52,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 7,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(244,211,94,0.14)' : 'rgba(122,91,234,0.12)',
       backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(248,245,255,0.84)',
-      paddingVertical: 9,
       paddingHorizontal: 14,
     },
     categoryChipBadge: {
-      marginVertical: -4,
-      marginLeft: -2,
+      marginVertical: -2,
     },
     categoryChipActive: {
       backgroundColor: isDark ? 'rgba(122,91,234,0.22)' : 'rgba(236,228,255,0.98)',
       borderColor: isDark ? 'rgba(197,182,255,0.28)' : 'rgba(122,91,234,0.22)',
     },
     categoryChipText: {
+      flex: 1,
       color: C.subtext,
       fontSize: 12,
       fontWeight: '600',

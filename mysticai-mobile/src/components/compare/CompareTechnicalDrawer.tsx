@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { X } from 'lucide-react-native';
 import { AccessibleText } from '../ui';
 import { ACCESSIBILITY } from '../../constants/tokens';
+import { useTheme } from '../../context/ThemeContext';
 import type { CompareExplainabilityDTO } from '../../types/compare';
 import {
   formatFactorsList,
@@ -28,6 +29,8 @@ export default function CompareTechnicalDrawer({
   onClose,
 }: CompareTechnicalDrawerProps) {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const { animatedStyle, gesture } = useBottomSheetDragGesture({
     enabled: visible,
     onClose,
@@ -53,7 +56,7 @@ export default function CompareTechnicalDrawer({
                   {t('compare.technicalDrawerTitle')}
                 </AccessibleText>
                 <Pressable onPress={onClose} style={styles.closeBtn} accessibilityRole="button">
-                  <X size={16} color="#4F4666" />
+                  <X size={16} color={isDark ? colors.textSoft : '#4F4666'} />
                 </Pressable>
               </View>
             </View>
@@ -96,18 +99,21 @@ export default function CompareTechnicalDrawer({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(23, 18, 37, 0.35)',
+    backgroundColor: isDark ? 'rgba(2, 6, 23, 0.72)' : 'rgba(23, 18, 37, 0.35)',
   },
   sheet: {
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderColor: '#E9E2F3',
+    borderColor: colors.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 7,
@@ -117,7 +123,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 999,
-    backgroundColor: '#D5CCE5',
+    backgroundColor: colors.borderLight,
     marginBottom: 10,
   },
   head: {
@@ -128,40 +134,41 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#251E39',
+    color: colors.text,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E4DCEF',
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
   item: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#4C4262',
+    color: colors.textSoft,
     fontWeight: '600',
   },
   subTitle: {
     marginTop: 4,
     fontSize: 13,
     fontWeight: '800',
-    color: '#332A4A',
+    color: colors.text,
   },
   factors: {
     fontSize: 12,
     lineHeight: 17,
-    color: '#5E5575',
+    color: colors.body,
     fontWeight: '600',
   },
   warning: {
     marginTop: 4,
     fontSize: 12,
     lineHeight: 17,
-    color: '#6D28D9',
+    color: isDark ? colors.primaryLight : '#6D28D9',
     fontWeight: '700',
   },
 });

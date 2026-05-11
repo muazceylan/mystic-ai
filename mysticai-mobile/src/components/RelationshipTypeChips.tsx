@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AccessibleText } from './ui';
 import { ACCESSIBILITY } from '../constants/tokens';
 import { getRelationshipPalette } from '../constants/compareDesignTokens';
+import { useTheme } from '../context/ThemeContext';
 import type { RelationshipType } from '../types/compare';
 import { RELATIONSHIP_TYPE_LABELS } from '../types/compare';
 
@@ -14,6 +15,8 @@ interface RelationshipTypeChipsProps {
 const TYPES: RelationshipType[] = ['love', 'work', 'friend', 'family', 'rival'];
 
 export default function RelationshipTypeChips({ value, onChange }: RelationshipTypeChipsProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <ScrollView
       horizontal
@@ -23,7 +26,7 @@ export default function RelationshipTypeChips({ value, onChange }: RelationshipT
     >
       {TYPES.map((type) => {
         const selected = type === value;
-        const palette = getRelationshipPalette(type);
+        const palette = getRelationshipPalette(type, isDark);
 
         return (
           <Pressable
@@ -34,14 +37,19 @@ export default function RelationshipTypeChips({ value, onChange }: RelationshipT
             style={[
               styles.chip,
               {
-                backgroundColor: selected ? palette.surface : '#FFFFFF',
-                borderColor: selected ? palette.border : '#E5DEEF',
+                backgroundColor: selected ? palette.surface : colors.surface,
+                borderColor: selected ? palette.border : colors.border,
               },
             ]}
             accessibilityRole="button"
             accessibilityLabel={`${RELATIONSHIP_TYPE_LABELS[type]} türünü seç`}
           >
-            <View style={[styles.iconWrap, { backgroundColor: selected ? palette.accentSoft : '#F4F0FB' }]}>
+            <View
+              style={[
+                styles.iconWrap,
+                { backgroundColor: selected ? palette.accentSoft : colors.surfaceAlt },
+              ]}
+            >
               <AccessibleText
                 style={styles.iconText}
                 maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
@@ -51,7 +59,7 @@ export default function RelationshipTypeChips({ value, onChange }: RelationshipT
             </View>
 
             <AccessibleText
-              style={[styles.label, { color: selected ? palette.accent : '#3F3753' }]}
+              style={[styles.label, { color: selected ? palette.accent : colors.textSoft }]}
               maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
             >
               {RELATIONSHIP_TYPE_LABELS[type]}

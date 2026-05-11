@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { AccessibleText } from './ui';
 import { ACCESSIBILITY } from '../constants/tokens';
 import { COMPARE_TYPOGRAPHY, getCompareBadgePalette } from '../constants/compareDesignTokens';
+import { useTheme } from '../context/ThemeContext';
 import type { ComparisonCardDTO } from '../types/compare';
 
 interface ComparisonCardProps {
@@ -21,7 +22,9 @@ function clamp(value: number, min: number, max: number) {
 }
 
 export default function ComparisonCard({ card }: ComparisonCardProps) {
-  const badge = getCompareBadgePalette(card.label);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const badge = getCompareBadgePalette(card.label, isDark);
 
   const { leftValue, rightValue } = useMemo(() => {
     const left = clamp(card.leftValue ?? 50, 0, 100);
@@ -132,8 +135,13 @@ export default function ComparisonCard({ card }: ComparisonCardProps) {
 
       <View style={styles.barWrap}>
         <View style={styles.barTrack}>
-          <View style={[styles.leftBar, { flex: leftValue, backgroundColor: '#A78BFA' }]} />
-          <View style={[styles.rightBar, { flex: rightValue, backgroundColor: '#DDD6FE' }]} />
+          <View style={[styles.leftBar, { flex: leftValue, backgroundColor: isDark ? colors.primary : '#A78BFA' }]} />
+          <View
+            style={[
+              styles.rightBar,
+              { flex: rightValue, backgroundColor: isDark ? colors.primarySoftBg : '#DDD6FE' },
+            ]}
+          />
         </View>
         <View style={styles.barLabels}>
           <AccessibleText
@@ -161,17 +169,20 @@ export default function ComparisonCard({ card }: ComparisonCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+) => StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E7E0F1',
+    borderColor: colors.border,
     padding: 12,
-    shadowColor: '#2D0A5B',
+    shadowColor: isDark ? '#000000' : '#2D0A5B',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOpacity: isDark ? 0.22 : 0.08,
+    shadowRadius: isDark ? 10 : 8,
     elevation: 3,
     gap: 10,
   },
@@ -183,7 +194,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     ...COMPARE_TYPOGRAPHY.cardTitle,
-    color: '#1F1A2E',
+    color: colors.text,
     flex: 1,
   },
   badge: {
@@ -228,26 +239,26 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#EFE8FF',
+    backgroundColor: isDark ? colors.primarySoftBg : '#EFE8FF',
     borderWidth: 1,
-    borderColor: '#DCCBFF',
+    borderColor: isDark ? colors.surfaceGlassBorder : '#DCCBFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   initialText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#5B21B6',
+    color: isDark ? colors.primaryLight : '#5B21B6',
   },
   personName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2E2642',
+    color: colors.text,
   },
   traitText: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#443A5C',
+    color: colors.body,
     fontWeight: '600',
   },
   rightTraitText: {
@@ -256,7 +267,7 @@ const styles = StyleSheet.create({
   intersectionText: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#2E2642',
+    color: colors.text,
     fontWeight: '700',
   },
   barWrap: {
@@ -267,7 +278,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#DDD1F8',
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
     flexDirection: 'row',
   },
   leftBar: {
@@ -283,13 +295,13 @@ const styles = StyleSheet.create({
   },
   barLabelText: {
     fontSize: 11,
-    color: '#6A6280',
+    color: colors.subtext,
     fontWeight: '700',
   },
   adviceText: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#372F4B',
+    color: colors.textSoft,
     fontWeight: '700',
   },
 });

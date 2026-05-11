@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { AccessibleText } from './ui';
 import { ACCESSIBILITY } from '../constants/tokens';
 import { COMPARE_TYPOGRAPHY } from '../constants/compareDesignTokens';
+import { useTheme } from '../context/ThemeContext';
 import type { ThemeGroup } from '../types/compare';
 
 interface ThemeSectionHeaderProps {
@@ -21,6 +22,10 @@ export default function ThemeSectionHeader({
   isExpanded,
   onToggleExpand,
 }: ThemeSectionHeaderProps) {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const actionColor = isDark ? colors.primaryLight : '#6D28D9';
+
   return (
     <View style={styles.row}>
       <View style={styles.leftSide}>
@@ -54,9 +59,9 @@ export default function ThemeSectionHeader({
             {isExpanded ? 'Daralt' : 'Tümü'}
           </AccessibleText>
           {isExpanded ? (
-            <ChevronUp size={14} color="#6D28D9" />
+            <ChevronUp size={14} color={actionColor} />
           ) : (
-            <ChevronDown size={14} color="#6D28D9" />
+            <ChevronDown size={14} color={actionColor} />
           )}
         </Pressable>
       ) : null}
@@ -64,7 +69,10 @@ export default function ThemeSectionHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  isDark: boolean,
+) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -80,7 +88,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...COMPARE_TYPOGRAPHY.groupHeader,
-    color: '#241F35',
+    color: colors.text,
   },
   scorePill: {
     minHeight: 26,
@@ -88,27 +96,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFE8FF',
+    backgroundColor: isDark ? colors.primarySoftBg : '#EFE8FF',
     borderWidth: 1,
-    borderColor: '#D9C9FB',
+    borderColor: isDark ? colors.surfaceGlassBorder : '#D9C9FB',
   },
   scoreText: {
     ...COMPARE_TYPOGRAPHY.groupMeta,
-    color: '#5B21B6',
+    color: isDark ? colors.primaryLight : '#5B21B6',
   },
   toggleBtn: {
     minHeight: 44,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: isDark ? colors.border : '#E7DDF8',
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: '#F6F1FF',
+    backgroundColor: isDark ? colors.surfaceAlt : '#F6F1FF',
   },
   toggleText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#6D28D9',
+    color: isDark ? colors.primaryLight : '#6D28D9',
   },
 });

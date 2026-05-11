@@ -11,7 +11,6 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
 import { useCustomSetStore } from '../store/useCustomSetStore';
@@ -20,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { SafeScreen, AppHeader, HeaderRightIcons, useBottomTabBarOffset } from '../../components/ui';
 import { TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../../constants/tokens';
+import { navigateWithOrigin } from '../../navigation';
 import { platformColor } from '../../theme';
 import type { CustomSet, CustomSetItem } from '../types';
 
@@ -131,7 +131,12 @@ export default function CustomSetListScreen() {
         ]}
         onPress={() => {
           if (isEditing) return;
-          router.push({ pathname: '/spiritual/custom-sets/[id]', params: { id: item.id } });
+          navigateWithOrigin({
+            pathname: '/spiritual/custom-sets/[id]',
+            from: '/spiritual/custom-sets',
+            fallbackRoute: '/spiritual/custom-sets',
+            extraParams: { id: item.id },
+          });
         }}
         onLongPress={() => {
           if (isEditing) return;

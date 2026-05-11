@@ -7,7 +7,7 @@ const ROOT_SITE_URL = 'https://astroguru.app';
 const INFO_SITE_URL = 'https://info.astroguru.app';
 const PAGE_TITLE = 'AstroGuru | Astroloji, Numeroloji ve Ruhsal Rehberlik Uygulamasi';
 const PAGE_DESCRIPTION =
-  'AstroGuru ile gunluk astroloji, numeroloji, ruya yorumu ve spirituel rehberlik deneyimini kesfet.';
+  'Günlük astrolojik yorumlar, numeroloji analizleri ve spiritüel rehberliği AstroGuru ile tek merkezden keşfedin.';
 
 export default function RootHtml({ children }: PropsWithChildren) {
   const gtmContainerId = envConfig.gtm.webContainerId || 'GTM-P48FMPJB';
@@ -68,12 +68,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             }}
           >
             <p style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.18em', color: '#7c3aed' }}>ASTROGURU</p>
-            <h1 style={{ fontSize: 40, lineHeight: 1.15, margin: '12px 0 16px' }}>
-              Astroloji, numeroloji ve ruhsal rehberlik icin tek uygulama.
+            <h1 style={{ fontSize: 'clamp(2rem, 7vw, 2.5rem)', lineHeight: 1.15, margin: '12px 0 16px' }}>
+              Günlük astrolojik yorumlar, numeroloji analizleri ve spiritüel rehberliği tek bir merkezde buluşturan kişisel rehberiniz.
             </h1>
-            <p style={{ fontSize: 18, lineHeight: 1.7, margin: 0 }}>
-              Gunluk yorumlar, uyum analizi, ruya yorumu ve daha fazlasi icin AstroGuru uygulamasini acin.
-              Daha detayli bilgi icerikleri icin bilgi merkezimizi ziyaret edebilirsiniz.
+            <p style={{ fontSize: 'clamp(1rem, 3.5vw, 1.125rem)', lineHeight: 1.7, margin: 0 }}>
+              Gök olaylarının günlük etkilerinden numerolojik temalara, rüya sembollerinden uzman içeriklere kadar uzanan AstroGuru deneyimine hem uygulama hem de bilgi merkezi üzerinden kolayca erişin.
             </p>
             <ul style={{ marginTop: 20, paddingLeft: 20, lineHeight: 1.8 }}>
               <li><a href={`${INFO_SITE_URL}/astroloji`}>Astroloji Rehberleri</a></li>
