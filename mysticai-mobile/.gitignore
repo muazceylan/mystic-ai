@@ -8,3 +8,6 @@ expo-env.d.ts
 !android/gradlew.bat
 !android/gradle/wrapper/gradle-wrapper.jar
 !android/gradle/wrapper/gradle-wrapper.properties
+
+# Keep Gradle wrapper jar for EAS Android builds
+!android/gradle/wrapper/gradle-wrapper.jar

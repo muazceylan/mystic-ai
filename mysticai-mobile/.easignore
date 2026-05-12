@@ -1,0 +1,6 @@
+
+# Keep Gradle wrapper files for EAS Android builds
+!android/gradle/wrapper/gradle-wrapper.jar
+!android/gradle/wrapper/gradle-wrapper.properties
+!android/gradlew
+!android/gradlew.bat
