@@ -359,7 +359,9 @@ export default function CompatibilityScreen() {
     }
 
     tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
+    triggerInitialTutorials().then(() => {
+      tutorialBootstrapRef.current = null;
+    });
   }, [triggerInitialTutorials, userId]);
 
   useEffect(() => {

@@ -12,12 +12,13 @@ export function useTutorialTrigger(screenKey: string) {
     [requestTutorialForScreen, screenKey],
   );
 
-  const triggerInitial = useCallback(async (options?: { includeFirstAppOpen?: boolean }) => {
+  const triggerInitial = useCallback(async (options?: { includeFirstAppOpen?: boolean }): Promise<boolean> => {
     if (options?.includeFirstAppOpen) {
-      await trigger('first_app_open');
+      if (await trigger('first_app_open')) return true;
     }
-    await trigger('first_screen_visit');
-    await trigger('version_changed');
+    if (await trigger('first_screen_visit')) return true;
+    if (await trigger('version_changed')) return true;
+    return false;
   }, [trigger]);
 
   return {

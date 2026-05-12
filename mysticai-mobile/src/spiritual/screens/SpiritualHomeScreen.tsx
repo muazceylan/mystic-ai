@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -130,15 +130,22 @@ export default function SpiritualHomeScreen() {
     [journalEntries, todayISO],
   );
 
-  useEffect(() => {
-    const scope = userId ? String(userId) : 'guest';
-    if (tutorialBootstrapRef.current === scope) {
-      return;
-    }
-
-    tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
-  }, [triggerInitialTutorials, userId]);
+  useFocusEffect(
+    useCallback(() => {
+      const scope = userId ? String(userId) : null;
+      if (!scope) {
+        tutorialBootstrapRef.current = null;
+        return;
+      }
+      if (tutorialBootstrapRef.current === scope) {
+        return;
+      }
+      tutorialBootstrapRef.current = scope;
+      triggerInitialTutorials().then(() => {
+        tutorialBootstrapRef.current = null;
+      });
+    }, [triggerInitialTutorials, userId]),
+  );
 
   const handlePressTutorialHelp = useCallback(() => {
     void reopenTutorialById(TUTORIAL_IDS.SPIRITUAL_PRACTICE_FOUNDATION, 'spiritual_home');

@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from '../../utils/haptics';
 import { useTheme } from '../../context/ThemeContext';
@@ -87,9 +87,6 @@ export function ProfileScreenContent() {
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
   const { reopenTutorialById } = useTutorial();
-  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.PROFILE);
-  const tutorialBootstrapRef = useRef<string | null>(null);
-
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,16 +105,6 @@ export function ProfileScreenContent() {
 
   const zodiac = user?.zodiacSign || getZodiacFromBirthDate(user?.birthDate);
   const avatarUri = user?.avatarUri || user?.avatarUrl || null;
-
-  useEffect(() => {
-    const scope = user?.id ? String(user.id) : 'guest';
-    if (tutorialBootstrapRef.current === scope) {
-      return;
-    }
-
-    tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
-  }, [triggerInitialTutorials, user?.id]);
 
   const fetchStats = useCallback(async (isRefresh = false) => {
     if (!user?.id) { setLoadingStats(false); return; }
@@ -586,6 +573,22 @@ export function ProfileScreenContent() {
  * Route shell — content is rendered by MainTabPager (PagerView).
  */
 export default function ProfileRoute() {
+  const user = useAuthStore((s) => s.user);
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.PROFILE);
+  const tutorialBootstrapRef = useRef<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const scope = user?.id ? String(user.id) : null;
+      if (!scope) { tutorialBootstrapRef.current = null; return; }
+      if (tutorialBootstrapRef.current === scope) return;
+      tutorialBootstrapRef.current = scope;
+      triggerInitialTutorials().then(() => {
+        tutorialBootstrapRef.current = null;
+      });
+    }, [triggerInitialTutorials, user?.id]),
+  );
+
   return null;
 }
 

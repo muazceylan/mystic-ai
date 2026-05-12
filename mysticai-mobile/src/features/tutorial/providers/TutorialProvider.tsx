@@ -35,6 +35,11 @@ import { canStartTutorial } from '../services/TutorialDisplayService';
 import { createTutorialConfigService } from '../services/TutorialConfigFactory';
 import { useTutorialProgressStore } from '../storage/useTutorialProgressStore';
 import { tutorialDebugLog } from '../services/tutorialDebug';
+import { resolveTutorialLocaleTag } from '../domain/tutorial.locale';
+
+function localeScreenKey(screenKey: string): string {
+  return `${screenKey}:${resolveTutorialLocaleTag()}`;
+}
 
 interface TutorialContextValue {
   activeSession: TutorialSession | null;
@@ -99,6 +104,13 @@ function isSameLayout(left: TutorialTargetLayout, right: TutorialTargetLayout): 
 
 export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // Keep a ref so startSession can read current pathname without being a dep.
+  // Adding `pathname` to startSession's deps would recreate the callback on every
+  // route change, cascading into hook recreation all the way up to screen effects
+  // and cancelling their retry timers (regression from fdcae5e).
+  const pathnameRef = useRef(pathname);
+  useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
+
   const userId = useAuthStore((state) => state.user?.id);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const scopeKey = useMemo(() => (userId ? `user:${userId}` : 'guest'), [userId]);
@@ -186,7 +198,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
         definition: normalizedDefinition,
         stepIndex: 0,
         reason,
-        originPathname: pathname,
+        originPathname: pathnameRef.current,
       };
       activeSessionRef.current = nextSession;
       setActiveSession(nextSession);
@@ -207,7 +219,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       trackTutorialStarted({ tutorial: normalizedDefinition, reason });
       return true;
     },
-    [pathname, scopeKey, updateProgress],
+    [scopeKey, updateProgress],
   );
 
   const requestTutorialForScreen = useCallback(
@@ -223,15 +235,11 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
           return false;
         }
 
-        const isFirstScreenVisit =
-          reason === 'first_screen_visit'
-            ? markScreenVisited(scopeKey, screenKey)
-            : !hasVisitedScreen(scopeKey, screenKey);
-
-        const isFirstAppOpen =
-          reason === 'first_app_open'
-            ? markFirstAppOpenHandled(scopeKey)
-            : !isFirstAppOpenHandled(scopeKey);
+        // Check without side effects first — mark only when a tutorial actually starts.
+        // Key includes locale so switching language allows the new-locale tutorial to show.
+        const lScreenKey = localeScreenKey(screenKey);
+        const isFirstScreenVisit = !hasVisitedScreen(scopeKey, lScreenKey);
+        const isFirstAppOpen = !isFirstAppOpenHandled(scopeKey);
 
         for (const tutorial of tutorials) {
           const progress = getProgress(scopeKey, tutorial.tutorialId);
@@ -243,6 +251,8 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (shouldStart) {
+            if (reason === 'first_screen_visit') markScreenVisited(scopeKey, lScreenKey);
+            if (reason === 'first_app_open') markFirstAppOpenHandled(scopeKey);
             return startSession(tutorial, reason);
           }
         }
@@ -365,7 +375,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       resetTutorialProgress(scopeKey, resolvedTutorialId);
 
       if (tutorial) {
-        resetScreenVisit(scopeKey, tutorial.screenKey);
+        resetScreenVisit(scopeKey, localeScreenKey(tutorial.screenKey));
         if (tutorial.screenKey === TUTORIAL_SCREEN_KEYS.GLOBAL_ONBOARDING) {
           resetFirstAppOpenHandled(scopeKey);
         }
@@ -499,18 +509,23 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
+    // Clear version tracking so the tutorial can re-trigger on next screen visit.
+    // Only dontShowAgain (the explicit "never again" toggle) should permanently suppress.
     updateProgress(scopeKey, definition.tutorialId, (current) => ({
       ...current,
       status: 'skipped',
-      skippedVersion: definition.version,
-      lastSeenVersion: definition.version,
+      skippedVersion: null,
+      lastSeenVersion: null,
       lastShownAt: new Date().toISOString(),
     }));
+
+    // Reset the locale-qualified screen-visited flag so the first_screen_visit trigger fires again.
+    resetScreenVisit(scopeKey, localeScreenKey(definition.screenKey));
 
     viewedStepRef.current = null;
     activeSessionRef.current = null;
     setActiveSession(null);
-  }, [activeSession, scopeKey, updateProgress]);
+  }, [activeSession, resetScreenVisit, scopeKey, updateProgress]);
 
   const replayTutorial = useCallback(() => {
     if (!activeSession) {
@@ -563,7 +578,11 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (pathname === activeSession.originPathname) {
+    // Strip Expo Router group prefixes (e.g. `/(tabs)/home` → `/home`) before
+    // comparing so that a pager-induced re-navigate to the same logical screen
+    // does not prematurely close the session (regression from fdcae5e).
+    const normalize = (p: string) => p.replace(/^(\/\([^)]+\))+/, '') || '/';
+    if (normalize(pathname) === normalize(activeSession.originPathname)) {
       return;
     }
 

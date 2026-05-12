@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
@@ -181,15 +181,22 @@ export default function NameLandingScreen() {
     });
   }, []);
 
-  useEffect(() => {
-    const scope = userId ? String(userId) : 'guest';
-    if (tutorialBootstrapRef.current === scope) {
-      return;
-    }
-
-    tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
-  }, [triggerInitialTutorials, userId]);
+  useFocusEffect(
+    useCallback(() => {
+      const scope = userId ? String(userId) : null;
+      if (!scope) {
+        tutorialBootstrapRef.current = null;
+        return;
+      }
+      if (tutorialBootstrapRef.current === scope) {
+        return;
+      }
+      tutorialBootstrapRef.current = scope;
+      triggerInitialTutorials().then(() => {
+        tutorialBootstrapRef.current = null;
+      });
+    }, [triggerInitialTutorials, userId]),
+  );
 
   const handlePressTutorialHelp = useCallback(() => {
     void reopenTutorialById(TUTORIAL_IDS.NAME_ANALYSIS_FOUNDATION, 'name_analysis');

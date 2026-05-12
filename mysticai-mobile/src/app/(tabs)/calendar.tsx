@@ -35,7 +35,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from '../../utils/haptics';
 import { resolveNativePickerLocale } from '../../utils/nativeLocale';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios/dist/browser/axios.cjs';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -730,7 +730,7 @@ export function CalendarScreenContent() {
   });
 
   const user = useAuthStore((s) => s.user);
-  const { trigger: triggerTutorial, triggerInitial: triggerInitialTutorials } = useTutorialTrigger(
+  const { trigger: triggerTutorial } = useTutorialTrigger(
     TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER,
   );
   const { activeSession } = useTutorial();
@@ -795,7 +795,6 @@ export function CalendarScreenContent() {
   const subAnalysisListOffsetYRef = useRef(0);
   const seenSubCategoryHapticKeysRef = useRef<Set<string>>(new Set());
   const lastSubCategoryHapticAtRef = useRef(0);
-  const tutorialBootstrapRef = useRef<string | null>(null);
   const routeSelectionRef = useRef<string | null>(null);
 
   const months = useMemo(() => t('calendar.months').split(','), [t]);
@@ -870,21 +869,6 @@ export function CalendarScreenContent() {
     const value = normalizeRouteParam(routeParams.openDetail);
     return value === '1' || value === 'true';
   }, [routeParams.openDetail]);
-
-  useEffect(() => {
-    const scope = user?.id ? String(user.id) : null;
-    if (!scope) {
-      tutorialBootstrapRef.current = null;
-      return;
-    }
-
-    if (tutorialBootstrapRef.current === scope) {
-      return;
-    }
-
-    tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
-  }, [triggerInitialTutorials, user?.id]);
 
   const scrollCosmicPlannerTutorialStepIfNeeded = useCallback(() => {
     if (!activeSession || activeSession.definition.screenKey !== TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER) return;
@@ -3299,8 +3283,26 @@ export function CalendarScreenContent() {
 
 /**
  * Route shell — content is rendered by MainTabPager (PagerView).
+ * Tutorial is triggered here so it fires on real Expo Router focus events,
+ * not on pager mount (which happens for all pages simultaneously).
  */
 export default function CalendarRoute() {
+  const user = useAuthStore((s) => s.user);
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.COSMIC_PLANNER);
+  const tutorialBootstrapRef = useRef<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const scope = user?.id ? String(user.id) : null;
+      if (!scope) { tutorialBootstrapRef.current = null; return; }
+      if (tutorialBootstrapRef.current === scope) return;
+      tutorialBootstrapRef.current = scope;
+      triggerInitialTutorials().then(() => {
+        tutorialBootstrapRef.current = null;
+      });
+    }, [triggerInitialTutorials, user?.id]),
+  );
+
   return null;
 }
 

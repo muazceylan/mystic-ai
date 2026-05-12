@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -55,20 +56,26 @@ function clampPage(index: number): number {
 export const MainTabPager = forwardRef<MainTabPagerHandle, MainTabPagerProps>(
   function MainTabPager({ initialPage, onPageSelected }, ref) {
     const [activePage, setActivePage] = useState(() => clampPage(initialPage));
+    // Ref mirrors activePage so goToPage can deduplicate without relying on
+    // the previous-state argument inside a setState updater (calling side
+    // effects inside an updater triggers the "setState during render" error).
+    const activePageRef = useRef(clampPage(initialPage));
 
     useEffect(() => {
       const next = clampPage(initialPage);
-      setActivePage((prev) => (prev === next ? prev : next));
+      if (activePageRef.current !== next) {
+        activePageRef.current = next;
+        setActivePage(next);
+      }
     }, [initialPage]);
 
     const goToPage = useCallback(
       (index: number) => {
         const next = clampPage(index);
-        setActivePage((prev) => {
-          if (prev === next) return prev;
-          onPageSelected(next);
-          return next;
-        });
+        if (activePageRef.current === next) return;
+        activePageRef.current = next;
+        setActivePage(next);
+        onPageSelected(next);
       },
       [onPageSelected],
     );

@@ -335,9 +335,13 @@ export default function HomeScreen() {
     }
 
     tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
+    triggerInitialTutorials().then(() => {
+      tutorialBootstrapRef.current = null;
+    });
     const retryTimer = setTimeout(() => {
-      void triggerInitialTutorials();
+      triggerInitialTutorials().then(() => {
+        tutorialBootstrapRef.current = null;
+      });
     }, 2200);
 
     return () => {

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeScreen, Skeleton, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
@@ -910,20 +910,22 @@ export default function DailyTransitsScreen() {
     });
   }, [dailyTransitsQuery.isError, date, resolvedLocale]);
 
-  useEffect(() => {
-    const scope = user?.id ? String(user.id) : null;
-    if (!scope) {
-      tutorialBootstrapRef.current = null;
-      return;
-    }
-
-    if (tutorialBootstrapRef.current === scope) {
-      return;
-    }
-
-    tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
-  }, [triggerInitialTutorials, user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      const scope = user?.id ? String(user.id) : null;
+      if (!scope) {
+        tutorialBootstrapRef.current = null;
+        return;
+      }
+      if (tutorialBootstrapRef.current === scope) {
+        return;
+      }
+      tutorialBootstrapRef.current = scope;
+      triggerInitialTutorials().then(() => {
+        tutorialBootstrapRef.current = null;
+      });
+    }, [triggerInitialTutorials, user?.id]),
+  );
 
   const handleFeedback = async (payload: DailyFeedbackPayload) => {
     try {

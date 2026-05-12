@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import * as Haptics from '../../utils/haptics';
@@ -522,8 +522,6 @@ export function NatalChartScreenContent() {
   }), [t]);
   const user = useAuthStore((s) => s.user);
   const { reopenTutorialById } = useTutorial();
-  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.BIRTH_CHART);
-  const tutorialBootstrapRef = useRef<string | null>(null);
   const setNightSkyPosterDraft = useNightSkyPosterStore((s) => s.setDraft);
   const setNatalVisualsDraft = useNatalVisualsStore((s) => s.setDraft);
   const {
@@ -740,20 +738,7 @@ export function NatalChartScreenContent() {
     });
   }, [sectionOrder, sectionOrderStorageKey]);
 
-  useEffect(() => {
-    const scope = user?.id ? String(user.id) : null;
-    if (!scope) {
-      tutorialBootstrapRef.current = null;
-      return;
-    }
 
-    if (tutorialBootstrapRef.current === scope) {
-      return;
-    }
-
-    tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
-  }, [triggerInitialTutorials, user?.id]);
 
   // ─── Skeleton Pulse ────────────────────────────────────────────────
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
@@ -3510,8 +3495,25 @@ export function NatalChartScreenContent() {
 
 /**
  * Route shell — content is rendered by MainTabPager (PagerView).
+ * Tutorial is triggered here so it fires on real Expo Router focus events.
  */
 export default function NatalChartRoute() {
+  const user = useAuthStore((s) => s.user);
+  const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.BIRTH_CHART);
+  const tutorialBootstrapRef = useRef<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const scope = user?.id ? String(user.id) : null;
+      if (!scope) { tutorialBootstrapRef.current = null; return; }
+      if (tutorialBootstrapRef.current === scope) return;
+      tutorialBootstrapRef.current = scope;
+      triggerInitialTutorials().then(() => {
+        tutorialBootstrapRef.current = null;
+      });
+    }, [triggerInitialTutorials, user?.id]),
+  );
+
   return null;
 }
 

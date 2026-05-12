@@ -399,7 +399,9 @@ export default function DreamsScreen() {
     }
 
     tutorialBootstrapRef.current = scope;
-    void triggerInitialTutorials();
+    triggerInitialTutorials().then(() => {
+      tutorialBootstrapRef.current = null;
+    });
   }, [triggerInitialTutorials, userId]);
 
   // Register push notifications on mount

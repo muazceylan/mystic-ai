@@ -511,8 +511,16 @@ function TutorialBootstrap() {
     }
 
     bootstrapRef.current = scope;
-    void trigger('first_app_open');
-    void trigger('version_changed');
+    // Run sequentially: first_app_open acquires startLockRef while it runs.
+    // Firing version_changed concurrently (void, no await) always loses the race
+    // and returns false because startLockRef is still held (regression from fdcae5e).
+    void (async () => {
+      const opened = await trigger('first_app_open');
+      if (!opened) {
+        // first_app_open was already handled for this user; try version_changed.
+        await trigger('version_changed');
+      }
+    })();
   }, [isAuthenticated, isHydrated, pathname, trigger, userId]);
 
   return null;
