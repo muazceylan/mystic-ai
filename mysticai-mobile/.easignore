@@ -4,3 +4,13 @@
 !android/gradle/wrapper/gradle-wrapper.properties
 !android/gradlew
 !android/gradlew.bat
+
+# Required for EAS Android production builds
+!android/
+!android/gradle/
+!android/gradle/wrapper/
+!android/gradle/wrapper/gradle-wrapper.jar
+!android/gradle/wrapper/gradle-wrapper.properties
+!android/gradlew
+!android/gradlew.bat
+!**/gradle/wrapper/gradle-wrapper.jar

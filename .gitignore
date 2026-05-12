@@ -83,3 +83,13 @@ mysticai-mobile/build/
 *.zip
 *.tar.gz
 *.rar
+
+# Required for EAS Android production builds
+!mysticai-mobile/android/
+!mysticai-mobile/android/gradle/
+!mysticai-mobile/android/gradle/wrapper/
+!mysticai-mobile/android/gradle/wrapper/gradle-wrapper.jar
+!mysticai-mobile/android/gradle/wrapper/gradle-wrapper.properties
+!mysticai-mobile/android/gradlew
+!mysticai-mobile/android/gradlew.bat
+!**/gradle/wrapper/gradle-wrapper.jar
