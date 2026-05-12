@@ -16,6 +16,8 @@ export interface OnboardingData {
   birthCity: string;
   birthCityManual: string;
   birthDistrict: string;
+  birthLatitude: number | null;
+  birthLongitude: number | null;
   timezone: string;
 
   // Personal info
@@ -41,6 +43,8 @@ interface OnboardingStore extends OnboardingData {
   setBirthCity: (city: string) => void;
   setBirthCityManual: (city: string) => void;
   setBirthDistrict: (district: string) => void;
+  setBirthLatitude: (latitude: number | null) => void;
+  setBirthLongitude: (longitude: number | null) => void;
   setTimezone: (timezone: string) => void;
 
   setGender: (gender: string) => void;
@@ -62,6 +66,8 @@ interface OnboardingStore extends OnboardingData {
     birthTimeUnknown: boolean;
     birthCountry: string;
     birthCity: string;
+    birthLatitude: number | null;
+    birthLongitude: number | null;
     timezone: string;
     gender: string;
     maritalStatus: string;
@@ -86,6 +92,8 @@ const initialState: OnboardingData = {
   birthCity: '',
   birthCityManual: '',
   birthDistrict: '',
+  birthLatitude: null,
+  birthLongitude: null,
   timezone: 'Europe/Istanbul',
 
   gender: '',
@@ -109,6 +117,8 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   setBirthCity: (birthCity) => set({ birthCity }),
   setBirthCityManual: (birthCityManual) => set({ birthCityManual }),
   setBirthDistrict: (birthDistrict) => set({ birthDistrict }),
+  setBirthLatitude: (birthLatitude) => set({ birthLatitude }),
+  setBirthLongitude: (birthLongitude) => set({ birthLongitude }),
   setTimezone: (timezone) => set({ timezone }),
 
   setGender: (gender) => set({ gender }),
@@ -151,6 +161,8 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       birthTimeUnknown: state.birthTimeUnknown,
       birthCountry: state.birthCountry,
       birthCity: (state.birthCity || state.birthCityManual) + (state.birthDistrict ? `, ${state.birthDistrict}` : ''),
+      birthLatitude: state.birthLatitude,
+      birthLongitude: state.birthLongitude,
       timezone: state.timezone,
       gender: state.gender,
       maritalStatus: state.maritalStatus,

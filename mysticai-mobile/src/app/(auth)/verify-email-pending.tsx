@@ -19,6 +19,11 @@ import { PrimaryButton, StatusBanner } from '../../components/auth';
 import { resendVerification, verifyEmailOtp } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { trackEvent } from '../../services/analytics';
+import {
+  ProductEventName,
+  setProductUserProperties,
+  trackProductEvent,
+} from '../../services/productAnalytics';
 
 const COOLDOWN_SECONDS = 60;
 
@@ -165,6 +170,14 @@ export default function VerifyEmailPendingScreen() {
       const { accessToken, refreshToken, user } = res.data;
       storeLogin(accessToken, refreshToken, user);
       trackEvent('auth_otp_verify_success', { source });
+      trackProductEvent(ProductEventName.LOGIN_COMPLETED, {
+        'login method': 'email',
+        'entry point': source === 'login' ? 'email_verification_login' : 'email_verification_signup',
+        'is returning user': source === 'login',
+      });
+      setProductUserProperties({
+        'Login Method': 'email',
+      });
       router.replace('/(tabs)/home');
     } catch (error: any) {
       const message = error?.response?.data?.message ?? '';

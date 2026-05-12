@@ -3,6 +3,15 @@ import Constants from 'expo-constants';
 import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from 'react-native';
 import { envConfig } from '../config/env';
 import api, { withSuppressedGlobalApiErrorLog } from './api';
+import {
+  identifyAmplitudeClientUserProperties,
+  initializeAmplitudeClient,
+  resetAmplitudeClient,
+  setAmplitudeClientOptOut,
+  setAmplitudeClientUserId,
+  trackAmplitudeClientEvent,
+} from './amplitudeClient';
+import { sanitizeAmplitudeProperties } from './amplitudeSanitization';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -43,6 +52,7 @@ const queue: QueuedEvent[] = [];
 let analyticsUserId: string | null = null;
 let analyticsUserProperties: Record<string, string | null> = {};
 let debugBootstrapSent = false;
+let sessionDepth = 0;
 
 // ── Firebase Analytics (lazy, null-safe) ────────────────────────────
 //
@@ -347,13 +357,14 @@ export function trackEvent(name: string, params?: AnalyticsParams): void {
   }
 
   const normalizedParams = sanitizeParams(params);
+  const sanitizedParams = sanitizeAmplitudeProperties(normalizedParams) ?? {};
   const event = {
     name,
-    params: normalizedParams,
+    params: sanitizedParams,
     timestampMs: Date.now(),
   };
 
-  debugLog(`${name}`, normalizedParams);
+  debugLog(`${name}`, sanitizedParams);
 
   if (!collectionEnabled || !hasActiveAnalyticsProvider()) {
     return;
@@ -369,7 +380,44 @@ export function trackEvent(name: string, params?: AnalyticsParams): void {
   }
 
   // Firebase GA4 (direct — Firebase handles its own batching)
-  firebaseSafe((fa) => fa.logEvent(name, normalizedParams));
+  firebaseSafe((fa) => fa.logEvent(name, sanitizedParams));
+}
+
+export function initializeClientAnalytics(): void {
+  if (!amplitudeEnabled) {
+    return;
+  }
+
+  void initializeAmplitudeClient().catch((error) => {
+    debugLog('Amplitude client bootstrap failed', error);
+  });
+}
+
+export function trackAmplitudeEvent(name: string, params?: AnalyticsParams): void {
+  if (!collectionEnabled || !amplitudeEnabled) {
+    return;
+  }
+
+  trackAmplitudeClientEvent(name, sanitizeAmplitudeProperties(sanitizeParams(params)));
+}
+
+export function identifyAmplitudeUserProperties(
+  properties: Record<string, AnalyticsPrimitive>,
+): void {
+  if (!collectionEnabled || !amplitudeEnabled) {
+    return;
+  }
+
+  const sanitizedProperties = sanitizeAmplitudeProperties(sanitizeParams(properties));
+  if (!sanitizedProperties) {
+    return;
+  }
+
+  identifyAmplitudeClientUserProperties(sanitizedProperties);
+}
+
+export function getAnalyticsSessionDepth(): number {
+  return sessionDepth;
 }
 
 // ── Public API: Screen tracking ─────────────────────────────────────
@@ -386,6 +434,7 @@ export function logScreen(screenName: string, screenClass?: string): void {
   debugLog(`screen: ${screenName}`);
 
   if (!collectionEnabled) return;
+  sessionDepth += 1;
 
   if (hasActiveAnalyticsProvider()) {
     // Firebase GA4 native screen_view (uses recommended logScreenView API)
@@ -518,6 +567,7 @@ export function logPurchase(
 export function setAnalyticsUserId(userId: string | null): void {
   analyticsUserId = userId;
   debugLog(`setUserId: ${userId ?? '(null)'}`);
+  setAmplitudeClientUserId(userId);
   firebaseSafe((fa) => fa.setUserId(userId));
 }
 
@@ -546,6 +596,7 @@ export function setAnalyticsUserProperties(
 export function setAnalyticsCollectionEnabled(enabled: boolean): void {
   collectionEnabled = enabled;
   debugLog(`Analytics collection ${enabled ? 'enabled' : 'disabled'}`);
+  setAmplitudeClientOptOut(!enabled);
   firebaseSafe((fa) => fa.setAnalyticsCollectionEnabled(enabled));
 }
 
@@ -570,7 +621,9 @@ export function setAnalyticsConsent(
 export function resetAnalyticsIdentity(): void {
   debugLog('resetAnalyticsIdentity');
   analyticsUserProperties = {};
+  sessionDepth = 0;
   setAnalyticsUserId(null);
+  resetAmplitudeClient();
   firebaseSafe((fa) => fa.resetAnalyticsData());
 }
 

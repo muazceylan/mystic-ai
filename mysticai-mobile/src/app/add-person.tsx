@@ -19,11 +19,16 @@ import CalendarPicker from '../components/CalendarPicker';
 import WheelPicker from '../components/WheelPicker';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSynastryStore } from '../store/useSynastryStore';
-import { COUNTRIES, CITIES, DISTRICTS } from '../constants/index';
+import { DISTRICTS } from '../constants/index';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { AppHeader, SafeScreen } from '../components/ui';
 import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
+import { useLocationCities, useLocationCountries } from '../hooks/useLocationCatalog';
+import {
+  normalizeLocationSearchText,
+  resolveCountryNameByCode,
+} from '../services/locationCatalog.service';
 import {
   ActionUnlockSheet,
   FEATURE_ACTION_KEYS,
@@ -76,21 +81,30 @@ export default function AddPersonScreen() {
   const [showDistrictModal, setShowDistrictModal] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
+  const countriesQuery = useLocationCountries();
+  const citiesQuery = useLocationCities(countryCode);
+  const countries = countriesQuery.data ?? [];
+  const cityList = citiesQuery.data ?? [];
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
-  const countryName = COUNTRIES.find(c => c.code === countryCode)?.name ?? t('addPerson.defaultCountry');
-  const cityList = CITIES[countryCode] ?? CITIES['TR'] ?? [];
+  const countryName = resolveCountryNameByCode(countryCode, countries) || t('addPerson.defaultCountry');
   const districtList = DISTRICTS[city] ?? [];
+  const selectedCityMeta = cityList.find((item) => item.name === city);
 
-  const filteredCountries = COUNTRIES.filter(c =>
-    c.name.toLowerCase().includes(countrySearch.toLowerCase())
+  const normalizedCountrySearch = normalizeLocationSearchText(countrySearch);
+  const filteredCountries = countries.filter(c =>
+    !normalizedCountrySearch
+      || normalizeLocationSearchText(c.name).includes(normalizedCountrySearch)
+      || normalizeLocationSearchText(c.code).includes(normalizedCountrySearch)
   );
+  const normalizedCitySearch = normalizeLocationSearchText(citySearch);
   const filteredCities = cityList.filter(c =>
-    c.name.toLowerCase().includes(citySearch.toLowerCase())
+    !normalizedCitySearch || normalizeLocationSearchText(c.name).includes(normalizedCitySearch)
   );
+  const normalizedDistrictSearch = normalizeLocationSearchText(districtSearch);
   const filteredDistricts = districtList.filter(d =>
-    d.toLowerCase().includes(districtSearch.toLowerCase())
+    !normalizedDistrictSearch || normalizeLocationSearchText(d).includes(normalizedDistrictSearch)
   );
 
   const displayTime = birthTimeUnknown
@@ -156,7 +170,7 @@ export default function AddPersonScreen() {
     const birthTimeStr =
       !birthTimeUnknown && birthTimeConfirmed ? `${birthTime}:00` : undefined;
 
-    const birthLocation = district ? `${city}, ${district}` : city;
+    const birthLocation = [district, city, countryName].filter(Boolean).join(', ');
 
     setIsSaving(true);
     try {
@@ -166,6 +180,9 @@ export default function AddPersonScreen() {
         birthDate: birthDateStr,
         birthTime: birthTimeStr,
         birthLocation,
+        latitude: selectedCityMeta?.latitude ?? undefined,
+        longitude: selectedCityMeta?.longitude ?? undefined,
+        timezone: selectedCityMeta?.timezone ?? undefined,
       });
       router.replace('/(tabs)/compatibility');
     } catch (e: any) {

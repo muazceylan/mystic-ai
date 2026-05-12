@@ -6,6 +6,7 @@ import OnboardingBackground from '../../components/OnboardingBackground';
 import { AppText, Button, SafeScreen, TextField } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { forgotPassword } from '../../services/auth';
+import { ProductEventName, trackProductEvent } from '../../services/productAnalytics';
 
 function firstParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) {
@@ -76,6 +77,10 @@ export default function ForgotPasswordScreen() {
     setError(null);
     try {
       await forgotPassword(email.trim().toLowerCase());
+      trackProductEvent(ProductEventName.PASSWORD_RESET_REQUESTED, {
+        'entry point': 'forgot_password',
+        'reset channel': 'email',
+      });
       setIsSubmitted(true);
     } catch {
       setError(t('auth.passwordReset.requestError'));

@@ -13,6 +13,11 @@ import {
 } from '../services/revenueCatService';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import type { ResolvedPaywallProduct } from '../types/billing';
+import {
+  ProductEventName,
+  resolveBillingCycle,
+  trackProductEvent,
+} from '../../../services/productAnalytics';
 
 type PurchasePremiumStatus =
   | 'idle'
@@ -44,6 +49,20 @@ export function usePurchasePremium() {
       trackMonetizationEvent('premium_purchase_started', {
         product_key: product.productKey,
         offering_id: product.offeringId,
+      });
+      trackProductEvent(ProductEventName.SUBSCRIPTION_STARTED, {
+        'product id': product.revenueCatProductId ?? product.productKey,
+        'subscription tier': product.productType ?? product.title ?? 'premium',
+        'billing cycle': resolveBillingCycle(
+          product.productKey
+          ?? product.title
+          ?? product.revenueCatProductId
+          ?? null,
+        ),
+        'is trial': Boolean(product.trialDurationDays && product.trialDurationDays > 0),
+        price: product.localizedPrice ?? product.price ?? null,
+        currency: product.currency ?? null,
+        'offer id': product.offeringId ?? product.productKey,
       });
 
       if (product.trialDurationDays && product.trialDurationDays > 0) {

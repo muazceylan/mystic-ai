@@ -14,6 +14,14 @@ import { registerOnboarding, updateProfile } from '../../services/auth';
 import { ensureNatalChartForUser } from '../../services/natalChartBootstrap.service';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+import { useLocationCountries } from '../../hooks/useLocationCatalog';
+import { resolveCountryNameByCode } from '../../services/locationCatalog.service';
+import {
+  ProductEventName,
+  buildBirthDetailsProperties,
+  setProductUserProperties,
+  trackProductEvent,
+} from '../../services/productAnalytics';
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -143,15 +151,23 @@ export default function NatalChartScreen() {
   const [currentStep, setCurrentStep] = useState<Step>('register');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const started = useRef(false);
+  const countriesQuery = useLocationCountries();
   const styles = makeStyles(colors);
 
   const birthLocation = useMemo(() => {
-    const countryName =
-      COUNTRIES.find((country) => country.code === onboarding.birthCountry)?.name ||
-      onboarding.birthCountry;
+    const countryName = resolveCountryNameByCode(
+      onboarding.birthCountry,
+      countriesQuery.data ?? COUNTRIES
+    ) || onboarding.birthCountry;
     const cityName = onboarding.birthCity || onboarding.birthCityManual;
-    return [countryName, cityName].filter(Boolean).join(', ');
-  }, [onboarding.birthCountry, onboarding.birthCity, onboarding.birthCityManual]);
+    return [onboarding.birthDistrict, cityName, countryName].filter(Boolean).join(', ');
+  }, [
+    countriesQuery.data,
+    onboarding.birthCity,
+    onboarding.birthCityManual,
+    onboarding.birthCountry,
+    onboarding.birthDistrict,
+  ]);
 
   const buildRegisterPayload = () => {
     const birthDate = onboarding.birthDate
@@ -175,6 +191,8 @@ export default function NatalChartScreen() {
       birthLocation,
       birthCountry: onboarding.birthCountry,
       birthCity: onboarding.birthCity || onboarding.birthCityManual,
+      birthLatitude: onboarding.birthLatitude,
+      birthLongitude: onboarding.birthLongitude,
       birthTimeUnknown: onboarding.birthTimeUnknown,
       timezone: onboarding.timezone,
       gender: onboarding.gender,
@@ -205,6 +223,8 @@ export default function NatalChartScreen() {
       birthLocation,
       birthCountry: onboarding.birthCountry || undefined,
       birthCity: onboarding.birthCity || onboarding.birthCityManual || undefined,
+      birthLatitude: onboarding.birthLatitude,
+      birthLongitude: onboarding.birthLongitude,
       birthTimeUnknown: onboarding.birthTimeUnknown,
       timezone: onboarding.timezone || undefined,
       gender: onboarding.gender || undefined,
@@ -226,6 +246,7 @@ export default function NatalChartScreen() {
 
   const runSetup = async () => {
     setErrorMessage(null);
+    const isFirstTimeBirthDetails = !isAuthenticated || !useAuthStore.getState().user?.birthDate;
 
     try {
       // Step 1: Register or update profile
@@ -235,6 +256,20 @@ export default function NatalChartScreen() {
       } else {
         await handleRegister();
       }
+      trackProductEvent(ProductEventName.BIRTH_DETAILS_SAVED, buildBirthDetailsProperties({
+        birthTime: onboarding.birthTime,
+        birthTimeUnknown: onboarding.birthTimeUnknown,
+        birthLocation,
+        birthCity: onboarding.birthCity || onboarding.birthCityManual,
+        birthCountry: onboarding.birthCountry,
+        zodiacSign: onboarding.zodiacSign,
+        isFirstTime: isFirstTimeBirthDetails,
+      }));
+      setProductUserProperties({
+        'Onboarding Status': 'completed',
+        'Zodiac Sign': onboarding.zodiacSign || null,
+        'Has Birth Details': true,
+      });
 
       // Step 2: Chart (or verification) follow-up
       setCurrentStep('chart');

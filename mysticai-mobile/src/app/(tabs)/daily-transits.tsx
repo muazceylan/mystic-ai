@@ -17,7 +17,7 @@ import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import { queryKeys } from '../../lib/queryKeys';
 import { getDailyTransits, getTodayIsoDate, sendFeedback } from '../../services/daily.service';
 import type { DailyFeedbackPayload, DailyTransitsDTO } from '../../types/daily.types';
-import { trackEvent } from '../../services/analytics';
+import { getAnalyticsSessionDepth, trackEvent } from '../../services/analytics';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { resolveUserScopeKey } from '../../store/userScopedPersist';
@@ -32,6 +32,7 @@ import {
 } from '../../features/tutorial';
 import { useTranslation } from 'react-i18next';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
+import { ProductEventName, trackProductEvent } from '../../services/productAnalytics';
 
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
@@ -885,6 +886,13 @@ export default function DailyTransitsScreen() {
       destination: 'daily_transits',
       result: 'success',
       locale: resolvedLocale,
+    });
+    trackProductEvent(ProductEventName.GUIDANCE_VIEWED, {
+      'guidance type': 'daily_transits',
+      'guidance date': dailyTransitsQuery.data.date,
+      'is personalized': true,
+      'source surface': 'daily_transits',
+      'session depth': getAnalyticsSessionDepth(),
     });
   }, [dailyTransitsQuery.data, resolvedLocale]);
 

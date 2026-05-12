@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { COUNTRIES } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
 import { AppText, SafeScreen, TextField } from '../../components/ui';
+import { useLocationCountries } from '../../hooks/useLocationCatalog';
+import { normalizeLocationSearchText } from '../../services/locationCatalog.service';
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -61,17 +62,25 @@ export default function BirthCountryScreen() {
   const { colors } = useTheme();
   const store = useOnboardingStore();
   const [search, setSearch] = useState('');
+  const countriesQuery = useLocationCountries();
   const styles = makeStyles(colors);
+  const countries = countriesQuery.data ?? [];
 
-  const filteredCountries = COUNTRIES.filter((country) =>
-    country.name.toLowerCase().includes(search.toLowerCase())
+  const normalizedSearch = normalizeLocationSearchText(search);
+  const filteredCountries = countries.filter((country) =>
+    !normalizedSearch
+      || normalizeLocationSearchText(country.name).includes(normalizedSearch)
+      || normalizeLocationSearchText(country.code).includes(normalizedSearch)
   );
 
-  const handleSelect = (country: typeof COUNTRIES[0]) => {
+  const handleSelect = (country: { code: string; name: string }) => {
     store.setBirthCountry(country.code);
     store.setBirthCity('');
     store.setBirthCityManual('');
     store.setBirthDistrict('');
+    store.setBirthLatitude(null);
+    store.setBirthLongitude(null);
+    store.setTimezone('');
     router.push('/(auth)/birth-city');
   };
 

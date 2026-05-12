@@ -27,6 +27,8 @@ export interface UserProfile {
   birthLocation?: string;
   birthCountry?: string;
   birthCity?: string;
+  birthLatitude?: number;
+  birthLongitude?: number;
   latitude?: number;
   longitude?: number;
   lat?: number;

@@ -11,7 +11,8 @@ import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../components/ui
 import { useGenerateMatchImage } from '../hooks/useGenerateMatchImage';
 import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 import { useNumerology } from '../hooks/useNumerology';
-import { trackEvent } from '../services/analytics';
+import { getAnalyticsSessionDepth, trackEvent } from '../services/analytics';
+import { ProductEventName, trackProductEvent } from '../services/productAnalytics';
 import {
   useModuleMonetization,
   AdOfferCard,
@@ -409,6 +410,15 @@ export default function NumerologyScreen() {
       is_partial: numerology.isPartial,
       generated_at: data.generatedAt,
     });
+    if (data.miniGuidance) {
+      trackProductEvent(ProductEventName.GUIDANCE_VIEWED, {
+        'guidance type': 'numerology',
+        'guidance date': effectiveDate,
+        'is personalized': true,
+        'source surface': 'numerology',
+        'session depth': getAnalyticsSessionDepth(),
+      });
+    }
   }, [commonEventProps, data, numerology.isPartial]);
 
   useEffect(() => {
@@ -559,6 +569,14 @@ export default function NumerologyScreen() {
         await instagramStory(uri);
       } else {
         await shareImage(uri);
+      }
+      if (channel !== 'gallery') {
+        trackProductEvent(ProductEventName.GUIDANCE_SHARED, {
+          'guidance type': 'numerology',
+          'share channel': channel,
+          'is personalized': true,
+          'content id': `numerology:${effectiveDate}`,
+        });
       }
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {

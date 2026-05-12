@@ -1,0 +1,786 @@
+{
+  "countries": [
+    {
+      "code": "AE",
+      "name": "الإمارات",
+      "cities": [
+        { "name": "Dubai", "latitude": 25.2048, "longitude": 55.2708, "timezone": "Asia/Dubai" },
+        { "name": "Abu Dhabi", "latitude": 24.4539, "longitude": 54.3773, "timezone": "Asia/Dubai" },
+        { "name": "Sharjah", "latitude": 25.3463, "longitude": 55.4209, "timezone": "Asia/Dubai" },
+        { "name": "Ajman", "latitude": 25.4052, "longitude": 55.5136, "timezone": "Asia/Dubai" },
+        { "name": "Al Ain", "latitude": 24.2075, "longitude": 55.7447, "timezone": "Asia/Dubai" },
+        { "name": "Ras Al Khaimah", "latitude": 25.8007, "longitude": 55.9762, "timezone": "Asia/Dubai" }
+      ]
+    },
+    {
+      "code": "AR",
+      "name": "Argentina",
+      "cities": [
+        { "name": "Buenos Aires", "latitude": -34.6037, "longitude": -58.3816, "timezone": "America/Argentina/Buenos_Aires" },
+        { "name": "Córdoba", "latitude": -31.4201, "longitude": -64.1888, "timezone": "America/Argentina/Cordoba" },
+        { "name": "Rosario", "latitude": -32.9442, "longitude": -60.6505, "timezone": "America/Argentina/Cordoba" },
+        { "name": "Mendoza", "latitude": -32.8895, "longitude": -68.8458, "timezone": "America/Argentina/Mendoza" },
+        { "name": "La Plata", "latitude": -34.9205, "longitude": -57.9536, "timezone": "America/Argentina/Buenos_Aires" },
+        { "name": "San Miguel de Tucumán", "latitude": -26.8083, "longitude": -65.2176, "timezone": "America/Argentina/Tucuman", "aliases": ["San Miguel de Tucuman"] }
+      ]
+    },
+    {
+      "code": "AT",
+      "name": "Österreich",
+      "cities": [
+        { "name": "Vienna", "latitude": 48.2082, "longitude": 16.3738, "timezone": "Europe/Vienna" },
+        { "name": "Salzburg", "latitude": 47.8095, "longitude": 13.0550, "timezone": "Europe/Vienna" },
+        { "name": "Graz", "latitude": 47.0707, "longitude": 15.4395, "timezone": "Europe/Vienna" },
+        { "name": "Linz", "latitude": 48.3069, "longitude": 14.2858, "timezone": "Europe/Vienna" },
+        { "name": "Innsbruck", "latitude": 47.2692, "longitude": 11.4041, "timezone": "Europe/Vienna" }
+      ]
+    },
+    {
+      "code": "AU",
+      "name": "Australia",
+      "cities": [
+        { "name": "Sydney", "latitude": -33.8688, "longitude": 151.2093, "timezone": "Australia/Sydney" },
+        { "name": "Melbourne", "latitude": -37.8136, "longitude": 144.9631, "timezone": "Australia/Melbourne" },
+        { "name": "Brisbane", "latitude": -27.4698, "longitude": 153.0251, "timezone": "Australia/Brisbane" },
+        { "name": "Perth", "latitude": -31.9523, "longitude": 115.8613, "timezone": "Australia/Perth" },
+        { "name": "Adelaide", "latitude": -34.9285, "longitude": 138.6007, "timezone": "Australia/Adelaide" },
+        { "name": "Canberra", "latitude": -35.2809, "longitude": 149.1300, "timezone": "Australia/Sydney" },
+        { "name": "Gold Coast", "latitude": -28.0167, "longitude": 153.4000, "timezone": "Australia/Brisbane" }
+      ]
+    },
+    {
+      "code": "AZ",
+      "name": "Azerbaijan",
+      "cities": [
+        { "name": "Baku", "latitude": 40.4093, "longitude": 49.8671, "timezone": "Asia/Baku" },
+        { "name": "Ganja", "latitude": 40.6828, "longitude": 46.3606, "timezone": "Asia/Baku" },
+        { "name": "Sumqayit", "latitude": 40.5897, "longitude": 49.6686, "timezone": "Asia/Baku" },
+        { "name": "Mingachevir", "latitude": 40.7703, "longitude": 47.0496, "timezone": "Asia/Baku" },
+        { "name": "Nakhchivan", "latitude": 39.2089, "longitude": 45.4122, "timezone": "Asia/Baku" }
+      ]
+    },
+    {
+      "code": "BE",
+      "name": "België",
+      "cities": [
+        { "name": "Brussels", "latitude": 50.8503, "longitude": 4.3517, "timezone": "Europe/Brussels" },
+        { "name": "Antwerp", "latitude": 51.2194, "longitude": 4.4025, "timezone": "Europe/Brussels" },
+        { "name": "Ghent", "latitude": 51.0543, "longitude": 3.7174, "timezone": "Europe/Brussels" }
+      ]
+    },
+    {
+      "code": "BG",
+      "name": "Bulgaria",
+      "cities": [
+        { "name": "Sofia", "latitude": 42.6977, "longitude": 23.3219, "timezone": "Europe/Sofia" },
+        { "name": "Plovdiv", "latitude": 42.1354, "longitude": 24.7453, "timezone": "Europe/Sofia" },
+        { "name": "Varna", "latitude": 43.2141, "longitude": 27.9147, "timezone": "Europe/Sofia" },
+        { "name": "Burgas", "latitude": 42.5048, "longitude": 27.4626, "timezone": "Europe/Sofia" },
+        { "name": "Ruse", "latitude": 43.8356, "longitude": 25.9657, "timezone": "Europe/Sofia" }
+      ]
+    },
+    {
+      "code": "BR",
+      "name": "Brasil",
+      "cities": [
+        { "name": "São Paulo", "latitude": -23.5558, "longitude": -46.6396, "timezone": "America/Sao_Paulo", "aliases": ["Sao Paulo"] },
+        { "name": "Rio de Janeiro", "latitude": -22.9068, "longitude": -43.1729, "timezone": "America/Sao_Paulo" },
+        { "name": "Brasília", "latitude": -15.7939, "longitude": -47.8828, "timezone": "America/Sao_Paulo", "aliases": ["Brasilia"] },
+        { "name": "Salvador", "latitude": -12.9777, "longitude": -38.5016, "timezone": "America/Bahia" },
+        { "name": "Belo Horizonte", "latitude": -19.9167, "longitude": -43.9345, "timezone": "America/Sao_Paulo" },
+        { "name": "Curitiba", "latitude": -25.4296, "longitude": -49.2719, "timezone": "America/Sao_Paulo" },
+        { "name": "Porto Alegre", "latitude": -30.0346, "longitude": -51.2177, "timezone": "America/Sao_Paulo" },
+        { "name": "Recife", "latitude": -8.0476, "longitude": -34.8770, "timezone": "America/Recife" },
+        { "name": "Fortaleza", "latitude": -3.7319, "longitude": -38.5267, "timezone": "America/Fortaleza" }
+      ]
+    },
+    {
+      "code": "CA",
+      "name": "Canada",
+      "cities": [
+        { "name": "Toronto", "latitude": 43.6532, "longitude": -79.3832, "timezone": "America/Toronto" },
+        { "name": "Vancouver", "latitude": 49.2827, "longitude": -123.1207, "timezone": "America/Vancouver" },
+        { "name": "Montréal", "latitude": 45.5017, "longitude": -73.5673, "timezone": "America/Toronto", "aliases": ["Montreal"] },
+        { "name": "Calgary", "latitude": 51.0447, "longitude": -114.0719, "timezone": "America/Edmonton" },
+        { "name": "Ottawa", "latitude": 45.4215, "longitude": -75.6972, "timezone": "America/Toronto" },
+        { "name": "Edmonton", "latitude": 53.5461, "longitude": -113.4938, "timezone": "America/Edmonton" },
+        { "name": "Québec City", "latitude": 46.8139, "longitude": -71.2080, "timezone": "America/Toronto", "aliases": ["Quebec City"] },
+        { "name": "Winnipeg", "latitude": 49.8951, "longitude": -97.1384, "timezone": "America/Winnipeg" }
+      ]
+    },
+    {
+      "code": "CH",
+      "name": "Schweiz",
+      "cities": [
+        { "name": "Zürich", "latitude": 47.3769, "longitude": 8.5417, "timezone": "Europe/Zurich", "aliases": ["Zurich"] },
+        { "name": "Geneva", "latitude": 46.2044, "longitude": 6.1432, "timezone": "Europe/Zurich" },
+        { "name": "Basel", "latitude": 47.5596, "longitude": 7.5886, "timezone": "Europe/Zurich" }
+      ]
+    },
+    {
+      "code": "CL",
+      "name": "Chile",
+      "cities": [
+        { "name": "Santiago", "latitude": -33.4489, "longitude": -70.6693, "timezone": "America/Santiago" },
+        { "name": "Valparaíso", "latitude": -33.0472, "longitude": -71.6127, "timezone": "America/Santiago", "aliases": ["Valparaiso"] },
+        { "name": "Concepción", "latitude": -36.8201, "longitude": -73.0444, "timezone": "America/Santiago", "aliases": ["Concepcion"] }
+      ]
+    },
+    {
+      "code": "CN",
+      "name": "中国",
+      "cities": [
+        { "name": "Beijing", "latitude": 39.9042, "longitude": 116.4074, "timezone": "Asia/Shanghai" },
+        { "name": "Shanghai", "latitude": 31.2304, "longitude": 121.4737, "timezone": "Asia/Shanghai" },
+        { "name": "Guangzhou", "latitude": 23.1291, "longitude": 113.2644, "timezone": "Asia/Shanghai" },
+        { "name": "Shenzhen", "latitude": 22.5431, "longitude": 114.0579, "timezone": "Asia/Shanghai" },
+        { "name": "Chengdu", "latitude": 30.5728, "longitude": 104.0668, "timezone": "Asia/Shanghai" },
+        { "name": "Chongqing", "latitude": 29.4316, "longitude": 106.9123, "timezone": "Asia/Shanghai" },
+        { "name": "Wuhan", "latitude": 30.5928, "longitude": 114.3055, "timezone": "Asia/Shanghai" },
+        { "name": "Xi'an", "latitude": 34.3416, "longitude": 108.9398, "timezone": "Asia/Shanghai", "aliases": ["Xian"] },
+        { "name": "Hangzhou", "latitude": 30.2741, "longitude": 120.1551, "timezone": "Asia/Shanghai" },
+        { "name": "Nanjing", "latitude": 32.0603, "longitude": 118.7969, "timezone": "Asia/Shanghai" },
+        { "name": "Tianjin", "latitude": 39.3434, "longitude": 117.3616, "timezone": "Asia/Shanghai" }
+      ]
+    },
+    {
+      "code": "CO",
+      "name": "Colombia",
+      "cities": [
+        { "name": "Bogotá", "latitude": 4.7110, "longitude": -74.0721, "timezone": "America/Bogota", "aliases": ["Bogota"] },
+        { "name": "Medellín", "latitude": 6.2442, "longitude": -75.5812, "timezone": "America/Bogota", "aliases": ["Medellin"] },
+        { "name": "Cali", "latitude": 3.4516, "longitude": -76.5320, "timezone": "America/Bogota" }
+      ]
+    },
+    {
+      "code": "CZ",
+      "name": "Česko",
+      "cities": [
+        { "name": "Prague", "latitude": 50.0755, "longitude": 14.4378, "timezone": "Europe/Prague" },
+        { "name": "Brno", "latitude": 49.1951, "longitude": 16.6068, "timezone": "Europe/Prague" },
+        { "name": "Ostrava", "latitude": 49.8209, "longitude": 18.2625, "timezone": "Europe/Prague" }
+      ]
+    },
+    {
+      "code": "DE",
+      "name": "Deutschland",
+      "cities": [
+        { "name": "Berlin", "latitude": 52.5200, "longitude": 13.4050, "timezone": "Europe/Berlin" },
+        { "name": "Hamburg", "latitude": 53.5511, "longitude": 9.9937, "timezone": "Europe/Berlin" },
+        { "name": "München", "latitude": 48.1351, "longitude": 11.5820, "timezone": "Europe/Berlin", "aliases": ["Munich"] },
+        { "name": "Köln", "latitude": 50.9375, "longitude": 6.9603, "timezone": "Europe/Berlin", "aliases": ["Cologne"] },
+        { "name": "Frankfurt", "latitude": 50.1109, "longitude": 8.6821, "timezone": "Europe/Berlin" },
+        { "name": "Stuttgart", "latitude": 48.7758, "longitude": 9.1829, "timezone": "Europe/Berlin" },
+        { "name": "Düsseldorf", "latitude": 51.2277, "longitude": 6.7735, "timezone": "Europe/Berlin", "aliases": ["Dusseldorf"] },
+        { "name": "Leipzig", "latitude": 51.3397, "longitude": 12.3731, "timezone": "Europe/Berlin" },
+        { "name": "Dresden", "latitude": 51.0504, "longitude": 13.7373, "timezone": "Europe/Berlin" }
+      ]
+    },
+    {
+      "code": "DK",
+      "name": "Danmark",
+      "cities": [
+        { "name": "Copenhagen", "latitude": 55.6761, "longitude": 12.5683, "timezone": "Europe/Copenhagen" },
+        { "name": "Aarhus", "latitude": 56.1629, "longitude": 10.2039, "timezone": "Europe/Copenhagen" },
+        { "name": "Odense", "latitude": 55.4038, "longitude": 10.4024, "timezone": "Europe/Copenhagen" }
+      ]
+    },
+    {
+      "code": "EG",
+      "name": "مصر",
+      "cities": [
+        { "name": "Cairo", "latitude": 30.0444, "longitude": 31.2357, "timezone": "Africa/Cairo" },
+        { "name": "Alexandria", "latitude": 31.2001, "longitude": 29.9187, "timezone": "Africa/Cairo" },
+        { "name": "Giza", "latitude": 30.0131, "longitude": 31.2089, "timezone": "Africa/Cairo" }
+      ]
+    },
+    {
+      "code": "ES",
+      "name": "España",
+      "cities": [
+        { "name": "Madrid", "latitude": 40.4168, "longitude": -3.7038, "timezone": "Europe/Madrid" },
+        { "name": "Barcelona", "latitude": 41.3874, "longitude": 2.1686, "timezone": "Europe/Madrid" },
+        { "name": "Valencia", "latitude": 39.4699, "longitude": -0.3763, "timezone": "Europe/Madrid" },
+        { "name": "Seville", "latitude": 37.3891, "longitude": -5.9845, "timezone": "Europe/Madrid" },
+        { "name": "Málaga", "latitude": 36.7213, "longitude": -4.4214, "timezone": "Europe/Madrid", "aliases": ["Malaga"] },
+        { "name": "Bilbao", "latitude": 43.2630, "longitude": -2.9350, "timezone": "Europe/Madrid" }
+      ]
+    },
+    {
+      "code": "FI",
+      "name": "Suomi",
+      "cities": [
+        { "name": "Helsinki", "latitude": 60.1699, "longitude": 24.9384, "timezone": "Europe/Helsinki" },
+        { "name": "Tampere", "latitude": 61.4978, "longitude": 23.7610, "timezone": "Europe/Helsinki" },
+        { "name": "Turku", "latitude": 60.4518, "longitude": 22.2666, "timezone": "Europe/Helsinki" }
+      ]
+    },
+    {
+      "code": "FR",
+      "name": "France",
+      "cities": [
+        { "name": "Paris", "latitude": 48.8566, "longitude": 2.3522, "timezone": "Europe/Paris" },
+        { "name": "Marseille", "latitude": 43.2965, "longitude": 5.3698, "timezone": "Europe/Paris" },
+        { "name": "Lyon", "latitude": 45.7640, "longitude": 4.8357, "timezone": "Europe/Paris" },
+        { "name": "Toulouse", "latitude": 43.6047, "longitude": 1.4442, "timezone": "Europe/Paris" },
+        { "name": "Nice", "latitude": 43.7102, "longitude": 7.2620, "timezone": "Europe/Paris" },
+        { "name": "Nantes", "latitude": 47.2184, "longitude": -1.5536, "timezone": "Europe/Paris" },
+        { "name": "Bordeaux", "latitude": 44.8378, "longitude": -0.5792, "timezone": "Europe/Paris" },
+        { "name": "Strasbourg", "latitude": 48.5734, "longitude": 7.7521, "timezone": "Europe/Paris" },
+        { "name": "Lille", "latitude": 50.6292, "longitude": 3.0573, "timezone": "Europe/Paris" }
+      ]
+    },
+    {
+      "code": "GB",
+      "name": "United Kingdom",
+      "cities": [
+        { "name": "London", "latitude": 51.5072, "longitude": -0.1276, "timezone": "Europe/London" },
+        { "name": "Manchester", "latitude": 53.4808, "longitude": -2.2426, "timezone": "Europe/London" },
+        { "name": "Birmingham", "latitude": 52.4862, "longitude": -1.8904, "timezone": "Europe/London" },
+        { "name": "Edinburgh", "latitude": 55.9533, "longitude": -3.1883, "timezone": "Europe/London" },
+        { "name": "Glasgow", "latitude": 55.8642, "longitude": -4.2518, "timezone": "Europe/London" },
+        { "name": "Liverpool", "latitude": 53.4084, "longitude": -2.9916, "timezone": "Europe/London" },
+        { "name": "Bristol", "latitude": 51.4545, "longitude": -2.5879, "timezone": "Europe/London" },
+        { "name": "Leeds", "latitude": 53.8008, "longitude": -1.5491, "timezone": "Europe/London" }
+      ]
+    },
+    {
+      "code": "GE",
+      "name": "Georgia",
+      "cities": [
+        { "name": "Tbilisi", "latitude": 41.7151, "longitude": 44.8271, "timezone": "Asia/Tbilisi" },
+        { "name": "Batumi", "latitude": 41.6168, "longitude": 41.6367, "timezone": "Asia/Tbilisi" },
+        { "name": "Kutaisi", "latitude": 42.2662, "longitude": 42.7180, "timezone": "Asia/Tbilisi" }
+      ]
+    },
+    {
+      "code": "GR",
+      "name": "Ελλάδα",
+      "cities": [
+        { "name": "Athens", "latitude": 37.9838, "longitude": 23.7275, "timezone": "Europe/Athens" },
+        { "name": "Thessaloniki", "latitude": 40.6401, "longitude": 22.9444, "timezone": "Europe/Athens" },
+        { "name": "Patras", "latitude": 38.2466, "longitude": 21.7346, "timezone": "Europe/Athens" },
+        { "name": "Heraklion", "latitude": 35.3387, "longitude": 25.1442, "timezone": "Europe/Athens" },
+        { "name": "Larissa", "latitude": 39.6390, "longitude": 22.4191, "timezone": "Europe/Athens" }
+      ]
+    },
+    {
+      "code": "HK",
+      "name": "香港",
+      "cities": [
+        { "name": "Hong Kong", "latitude": 22.3193, "longitude": 114.1694, "timezone": "Asia/Hong_Kong" }
+      ]
+    },
+    {
+      "code": "HR",
+      "name": "Croatia",
+      "cities": [
+        { "name": "Zagreb", "latitude": 45.8150, "longitude": 15.9819, "timezone": "Europe/Zagreb" },
+        { "name": "Split", "latitude": 43.5081, "longitude": 16.4402, "timezone": "Europe/Zagreb" },
+        { "name": "Rijeka", "latitude": 45.3271, "longitude": 14.4422, "timezone": "Europe/Zagreb" }
+      ]
+    },
+    {
+      "code": "HU",
+      "name": "Magyarország",
+      "cities": [
+        { "name": "Budapest", "latitude": 47.4979, "longitude": 19.0402, "timezone": "Europe/Budapest" },
+        { "name": "Debrecen", "latitude": 47.5316, "longitude": 21.6273, "timezone": "Europe/Budapest" },
+        { "name": "Szeged", "latitude": 46.2530, "longitude": 20.1414, "timezone": "Europe/Budapest" }
+      ]
+    },
+    {
+      "code": "ID",
+      "name": "Indonesia",
+      "cities": [
+        { "name": "Jakarta", "latitude": -6.2088, "longitude": 106.8456, "timezone": "Asia/Jakarta" },
+        { "name": "Surabaya", "latitude": -7.2575, "longitude": 112.7521, "timezone": "Asia/Jakarta" },
+        { "name": "Bandung", "latitude": -6.9175, "longitude": 107.6191, "timezone": "Asia/Jakarta" },
+        { "name": "Medan", "latitude": 3.5952, "longitude": 98.6722, "timezone": "Asia/Jakarta" }
+      ]
+    },
+    {
+      "code": "IE",
+      "name": "Ireland",
+      "cities": [
+        { "name": "Dublin", "latitude": 53.3498, "longitude": -6.2603, "timezone": "Europe/Dublin" },
+        { "name": "Cork", "latitude": 51.8985, "longitude": -8.4756, "timezone": "Europe/Dublin" },
+        { "name": "Galway", "latitude": 53.2707, "longitude": -9.0568, "timezone": "Europe/Dublin" }
+      ]
+    },
+    {
+      "code": "IL",
+      "name": "ישראל",
+      "cities": [
+        { "name": "Jerusalem", "latitude": 31.7683, "longitude": 35.2137, "timezone": "Asia/Jerusalem" },
+        { "name": "Tel Aviv", "latitude": 32.0853, "longitude": 34.7818, "timezone": "Asia/Jerusalem" },
+        { "name": "Haifa", "latitude": 32.7940, "longitude": 34.9896, "timezone": "Asia/Jerusalem" }
+      ]
+    },
+    {
+      "code": "IN",
+      "name": "भारत",
+      "cities": [
+        { "name": "Mumbai", "latitude": 19.0760, "longitude": 72.8777, "timezone": "Asia/Kolkata" },
+        { "name": "Delhi", "latitude": 28.6139, "longitude": 77.2090, "timezone": "Asia/Kolkata" },
+        { "name": "Bengaluru", "latitude": 12.9716, "longitude": 77.5946, "timezone": "Asia/Kolkata", "aliases": ["Bangalore"] },
+        { "name": "Chennai", "latitude": 13.0827, "longitude": 80.2707, "timezone": "Asia/Kolkata" },
+        { "name": "Kolkata", "latitude": 22.5726, "longitude": 88.3639, "timezone": "Asia/Kolkata" },
+        { "name": "Hyderabad", "latitude": 17.3850, "longitude": 78.4867, "timezone": "Asia/Kolkata" },
+        { "name": "Pune", "latitude": 18.5204, "longitude": 73.8567, "timezone": "Asia/Kolkata" },
+        { "name": "Ahmedabad", "latitude": 23.0225, "longitude": 72.5714, "timezone": "Asia/Kolkata" },
+        { "name": "Jaipur", "latitude": 26.9124, "longitude": 75.7873, "timezone": "Asia/Kolkata" },
+        { "name": "Surat", "latitude": 21.1702, "longitude": 72.8311, "timezone": "Asia/Kolkata" },
+        { "name": "Lucknow", "latitude": 26.8467, "longitude": 80.9462, "timezone": "Asia/Kolkata" },
+        { "name": "Kochi", "latitude": 9.9312, "longitude": 76.2673, "timezone": "Asia/Kolkata" }
+      ]
+    },
+    {
+      "code": "IT",
+      "name": "Italia",
+      "cities": [
+        { "name": "Rome", "latitude": 41.9028, "longitude": 12.4964, "timezone": "Europe/Rome" },
+        { "name": "Milan", "latitude": 45.4642, "longitude": 9.1900, "timezone": "Europe/Rome" },
+        { "name": "Naples", "latitude": 40.8518, "longitude": 14.2681, "timezone": "Europe/Rome" },
+        { "name": "Turin", "latitude": 45.0703, "longitude": 7.6869, "timezone": "Europe/Rome" },
+        { "name": "Bologna", "latitude": 44.4949, "longitude": 11.3426, "timezone": "Europe/Rome" },
+        { "name": "Florence", "latitude": 43.7696, "longitude": 11.2558, "timezone": "Europe/Rome" },
+        { "name": "Venice", "latitude": 45.4408, "longitude": 12.3155, "timezone": "Europe/Rome" },
+        { "name": "Palermo", "latitude": 38.1157, "longitude": 13.3615, "timezone": "Europe/Rome" }
+      ]
+    },
+    {
+      "code": "JP",
+      "name": "日本",
+      "cities": [
+        { "name": "Tokyo", "latitude": 35.6762, "longitude": 139.6503, "timezone": "Asia/Tokyo" },
+        { "name": "Osaka", "latitude": 34.6937, "longitude": 135.5023, "timezone": "Asia/Tokyo" },
+        { "name": "Yokohama", "latitude": 35.4437, "longitude": 139.6380, "timezone": "Asia/Tokyo" },
+        { "name": "Sapporo", "latitude": 43.0618, "longitude": 141.3545, "timezone": "Asia/Tokyo" },
+        { "name": "Kyoto", "latitude": 35.0116, "longitude": 135.7681, "timezone": "Asia/Tokyo" },
+        { "name": "Nagoya", "latitude": 35.1815, "longitude": 136.9066, "timezone": "Asia/Tokyo" },
+        { "name": "Fukuoka", "latitude": 33.5904, "longitude": 130.4017, "timezone": "Asia/Tokyo" },
+        { "name": "Kobe", "latitude": 34.6901, "longitude": 135.1955, "timezone": "Asia/Tokyo" },
+        { "name": "Hiroshima", "latitude": 34.3853, "longitude": 132.4553, "timezone": "Asia/Tokyo" },
+        { "name": "Sendai", "latitude": 38.2682, "longitude": 140.8694, "timezone": "Asia/Tokyo" }
+      ]
+    },
+    {
+      "code": "KR",
+      "name": "대한민국",
+      "cities": [
+        { "name": "Seoul", "latitude": 37.5665, "longitude": 126.9780, "timezone": "Asia/Seoul" },
+        { "name": "Busan", "latitude": 35.1796, "longitude": 129.0756, "timezone": "Asia/Seoul" },
+        { "name": "Incheon", "latitude": 37.4563, "longitude": 126.7052, "timezone": "Asia/Seoul" },
+        { "name": "Daegu", "latitude": 35.8714, "longitude": 128.6014, "timezone": "Asia/Seoul" },
+        { "name": "Daejeon", "latitude": 36.3504, "longitude": 127.3845, "timezone": "Asia/Seoul" },
+        { "name": "Gwangju", "latitude": 35.1595, "longitude": 126.8526, "timezone": "Asia/Seoul" },
+        { "name": "Ulsan", "latitude": 35.5384, "longitude": 129.3114, "timezone": "Asia/Seoul" },
+        { "name": "Suwon", "latitude": 37.2636, "longitude": 127.0286, "timezone": "Asia/Seoul" }
+      ]
+    },
+    {
+      "code": "KZ",
+      "name": "Kazakhstan",
+      "cities": [
+        { "name": "Almaty", "latitude": 43.2220, "longitude": 76.8512, "timezone": "Asia/Almaty" },
+        { "name": "Astana", "latitude": 51.1694, "longitude": 71.4491, "timezone": "Asia/Almaty", "aliases": ["Nur-Sultan"] },
+        { "name": "Shymkent", "latitude": 42.3417, "longitude": 69.5901, "timezone": "Asia/Almaty" },
+        { "name": "Karaganda", "latitude": 49.8060, "longitude": 73.0850, "timezone": "Asia/Almaty" },
+        { "name": "Aktobe", "latitude": 50.2839, "longitude": 57.1660, "timezone": "Asia/Aqtobe" }
+      ]
+    },
+    {
+      "code": "LT",
+      "name": "Lithuania",
+      "cities": [
+        { "name": "Vilnius", "latitude": 54.6872, "longitude": 25.2797, "timezone": "Europe/Vilnius" },
+        { "name": "Kaunas", "latitude": 54.8985, "longitude": 23.9036, "timezone": "Europe/Vilnius" },
+        { "name": "Klaipėda", "latitude": 55.7033, "longitude": 21.1443, "timezone": "Europe/Vilnius", "aliases": ["Klaipeda"] }
+      ]
+    },
+    {
+      "code": "MA",
+      "name": "Morocco",
+      "cities": [
+        { "name": "Casablanca", "latitude": 33.5731, "longitude": -7.5898, "timezone": "Africa/Casablanca" },
+        { "name": "Marrakech", "latitude": 31.6295, "longitude": -7.9811, "timezone": "Africa/Casablanca" },
+        { "name": "Rabat", "latitude": 34.0209, "longitude": -6.8416, "timezone": "Africa/Casablanca" },
+        { "name": "Tangier", "latitude": 35.7595, "longitude": -5.8340, "timezone": "Africa/Casablanca" },
+        { "name": "Fes", "latitude": 34.0181, "longitude": -5.0078, "timezone": "Africa/Casablanca", "aliases": ["Fez"] },
+        { "name": "Agadir", "latitude": 30.4278, "longitude": -9.5981, "timezone": "Africa/Casablanca" }
+      ]
+    },
+    {
+      "code": "MX",
+      "name": "México",
+      "cities": [
+        { "name": "Mexico City", "latitude": 19.4326, "longitude": -99.1332, "timezone": "America/Mexico_City" },
+        { "name": "Guadalajara", "latitude": 20.6597, "longitude": -103.3496, "timezone": "America/Mexico_City" },
+        { "name": "Monterrey", "latitude": 25.6866, "longitude": -100.3161, "timezone": "America/Monterrey" },
+        { "name": "Puebla", "latitude": 19.0414, "longitude": -98.2063, "timezone": "America/Mexico_City" },
+        { "name": "Tijuana", "latitude": 32.5149, "longitude": -117.0382, "timezone": "America/Tijuana" },
+        { "name": "Mérida", "latitude": 20.9674, "longitude": -89.5926, "timezone": "America/Merida", "aliases": ["Merida"] },
+        { "name": "León", "latitude": 21.1220, "longitude": -101.6817, "timezone": "America/Mexico_City", "aliases": ["Leon"] }
+      ]
+    },
+    {
+      "code": "MY",
+      "name": "Malaysia",
+      "cities": [
+        { "name": "Kuala Lumpur", "latitude": 3.1390, "longitude": 101.6869, "timezone": "Asia/Kuala_Lumpur" },
+        { "name": "George Town", "latitude": 5.4141, "longitude": 100.3288, "timezone": "Asia/Kuala_Lumpur" },
+        { "name": "Johor Bahru", "latitude": 1.4927, "longitude": 103.7414, "timezone": "Asia/Kuala_Lumpur" }
+      ]
+    },
+    {
+      "code": "NL",
+      "name": "Nederland",
+      "cities": [
+        { "name": "Amsterdam", "latitude": 52.3676, "longitude": 4.9041, "timezone": "Europe/Amsterdam" },
+        { "name": "Rotterdam", "latitude": 51.9244, "longitude": 4.4777, "timezone": "Europe/Amsterdam" },
+        { "name": "Utrecht", "latitude": 52.0907, "longitude": 5.1214, "timezone": "Europe/Amsterdam" },
+        { "name": "The Hague", "latitude": 52.0705, "longitude": 4.3007, "timezone": "Europe/Amsterdam", "aliases": ["Den Haag"] },
+        { "name": "Eindhoven", "latitude": 51.4416, "longitude": 5.4697, "timezone": "Europe/Amsterdam" },
+        { "name": "Groningen", "latitude": 53.2194, "longitude": 6.5665, "timezone": "Europe/Amsterdam" }
+      ]
+    },
+    {
+      "code": "NO",
+      "name": "Norge",
+      "cities": [
+        { "name": "Oslo", "latitude": 59.9139, "longitude": 10.7522, "timezone": "Europe/Oslo" },
+        { "name": "Bergen", "latitude": 60.3913, "longitude": 5.3221, "timezone": "Europe/Oslo" },
+        { "name": "Trondheim", "latitude": 63.4305, "longitude": 10.3951, "timezone": "Europe/Oslo" }
+      ]
+    },
+    {
+      "code": "NZ",
+      "name": "New Zealand",
+      "cities": [
+        { "name": "Auckland", "latitude": -36.8509, "longitude": 174.7645, "timezone": "Pacific/Auckland" },
+        { "name": "Wellington", "latitude": -41.2866, "longitude": 174.7756, "timezone": "Pacific/Auckland" },
+        { "name": "Christchurch", "latitude": -43.5321, "longitude": 172.6362, "timezone": "Pacific/Auckland" }
+      ]
+    },
+    {
+      "code": "PE",
+      "name": "Perú",
+      "cities": [
+        { "name": "Lima", "latitude": -12.0464, "longitude": -77.0428, "timezone": "America/Lima" },
+        { "name": "Arequipa", "latitude": -16.4090, "longitude": -71.5375, "timezone": "America/Lima" },
+        { "name": "Cusco", "latitude": -13.5319, "longitude": -71.9675, "timezone": "America/Lima" }
+      ]
+    },
+    {
+      "code": "PH",
+      "name": "Philippines",
+      "cities": [
+        { "name": "Manila", "latitude": 14.5995, "longitude": 120.9842, "timezone": "Asia/Manila" },
+        { "name": "Cebu City", "latitude": 10.3157, "longitude": 123.8854, "timezone": "Asia/Manila" },
+        { "name": "Davao", "latitude": 7.1907, "longitude": 125.4553, "timezone": "Asia/Manila" },
+        { "name": "Quezon City", "latitude": 14.6760, "longitude": 121.0437, "timezone": "Asia/Manila" },
+        { "name": "Baguio", "latitude": 16.4023, "longitude": 120.5960, "timezone": "Asia/Manila" },
+        { "name": "Iloilo City", "latitude": 10.7202, "longitude": 122.5621, "timezone": "Asia/Manila" }
+      ]
+    },
+    {
+      "code": "PK",
+      "name": "Pakistan",
+      "cities": [
+        { "name": "Karachi", "latitude": 24.8607, "longitude": 67.0011, "timezone": "Asia/Karachi" },
+        { "name": "Lahore", "latitude": 31.5204, "longitude": 74.3587, "timezone": "Asia/Karachi" },
+        { "name": "Islamabad", "latitude": 33.6844, "longitude": 73.0479, "timezone": "Asia/Karachi" },
+        { "name": "Faisalabad", "latitude": 31.4504, "longitude": 73.1350, "timezone": "Asia/Karachi" },
+        { "name": "Rawalpindi", "latitude": 33.5651, "longitude": 73.0169, "timezone": "Asia/Karachi" },
+        { "name": "Peshawar", "latitude": 34.0151, "longitude": 71.5249, "timezone": "Asia/Karachi" }
+      ]
+    },
+    {
+      "code": "PL",
+      "name": "Polska",
+      "cities": [
+        { "name": "Warsaw", "latitude": 52.2297, "longitude": 21.0122, "timezone": "Europe/Warsaw" },
+        { "name": "Kraków", "latitude": 50.0647, "longitude": 19.9450, "timezone": "Europe/Warsaw", "aliases": ["Krakow"] },
+        { "name": "Gdańsk", "latitude": 54.3520, "longitude": 18.6466, "timezone": "Europe/Warsaw", "aliases": ["Gdansk"] },
+        { "name": "Wrocław", "latitude": 51.1079, "longitude": 17.0385, "timezone": "Europe/Warsaw", "aliases": ["Wroclaw"] },
+        { "name": "Łódź", "latitude": 51.7592, "longitude": 19.4550, "timezone": "Europe/Warsaw", "aliases": ["Lodz"] },
+        { "name": "Poznań", "latitude": 52.4064, "longitude": 16.9252, "timezone": "Europe/Warsaw", "aliases": ["Poznan"] }
+      ]
+    },
+    {
+      "code": "PT",
+      "name": "Portugal",
+      "cities": [
+        { "name": "Lisbon", "latitude": 38.7223, "longitude": -9.1393, "timezone": "Europe/Lisbon" },
+        { "name": "Porto", "latitude": 41.1579, "longitude": -8.6291, "timezone": "Europe/Lisbon" },
+        { "name": "Faro", "latitude": 37.0194, "longitude": -7.9304, "timezone": "Europe/Lisbon" },
+        { "name": "Braga", "latitude": 41.5454, "longitude": -8.4265, "timezone": "Europe/Lisbon" },
+        { "name": "Coimbra", "latitude": 40.2033, "longitude": -8.4103, "timezone": "Europe/Lisbon" },
+        { "name": "Funchal", "latitude": 32.6669, "longitude": -16.9241, "timezone": "Atlantic/Madeira" }
+      ]
+    },
+    {
+      "code": "QA",
+      "name": "Qatar",
+      "cities": [
+        { "name": "Doha", "latitude": 25.2854, "longitude": 51.5310, "timezone": "Asia/Qatar" },
+        { "name": "Al Rayyan", "latitude": 25.2919, "longitude": 51.4244, "timezone": "Asia/Qatar" }
+      ]
+    },
+    {
+      "code": "RO",
+      "name": "Romania",
+      "cities": [
+        { "name": "Bucharest", "latitude": 44.4268, "longitude": 26.1025, "timezone": "Europe/Bucharest" },
+        { "name": "Cluj-Napoca", "latitude": 46.7712, "longitude": 23.6236, "timezone": "Europe/Bucharest" },
+        { "name": "Timișoara", "latitude": 45.7489, "longitude": 21.2087, "timezone": "Europe/Bucharest", "aliases": ["Timisoara"] },
+        { "name": "Iași", "latitude": 47.1585, "longitude": 27.6014, "timezone": "Europe/Bucharest", "aliases": ["Iasi"] },
+        { "name": "Constanța", "latitude": 44.1598, "longitude": 28.6348, "timezone": "Europe/Bucharest", "aliases": ["Constanta"] }
+      ]
+    },
+    {
+      "code": "RS",
+      "name": "Serbia",
+      "cities": [
+        { "name": "Belgrade", "latitude": 44.7866, "longitude": 20.4489, "timezone": "Europe/Belgrade" },
+        { "name": "Novi Sad", "latitude": 45.2671, "longitude": 19.8335, "timezone": "Europe/Belgrade" },
+        { "name": "Niš", "latitude": 43.3209, "longitude": 21.8958, "timezone": "Europe/Belgrade", "aliases": ["Nis"] }
+      ]
+    },
+    {
+      "code": "RU",
+      "name": "Россия",
+      "cities": [
+        { "name": "Moscow", "latitude": 55.7558, "longitude": 37.6173, "timezone": "Europe/Moscow" },
+        { "name": "Saint Petersburg", "latitude": 59.9311, "longitude": 30.3609, "timezone": "Europe/Moscow" },
+        { "name": "Novosibirsk", "latitude": 55.0084, "longitude": 82.9357, "timezone": "Asia/Novosibirsk" },
+        { "name": "Yekaterinburg", "latitude": 56.8389, "longitude": 60.6057, "timezone": "Asia/Yekaterinburg" },
+        { "name": "Kazan", "latitude": 55.8304, "longitude": 49.0661, "timezone": "Europe/Moscow" },
+        { "name": "Sochi", "latitude": 43.6028, "longitude": 39.7342, "timezone": "Europe/Moscow" },
+        { "name": "Krasnodar", "latitude": 45.0355, "longitude": 38.9753, "timezone": "Europe/Moscow" }
+      ]
+    },
+    {
+      "code": "SA",
+      "name": "السعودية",
+      "cities": [
+        { "name": "Riyadh", "latitude": 24.7136, "longitude": 46.6753, "timezone": "Asia/Riyadh" },
+        { "name": "Jeddah", "latitude": 21.4858, "longitude": 39.1925, "timezone": "Asia/Riyadh" },
+        { "name": "Dammam", "latitude": 26.4207, "longitude": 50.0888, "timezone": "Asia/Riyadh" },
+        { "name": "Mecca", "latitude": 21.3891, "longitude": 39.8579, "timezone": "Asia/Riyadh", "aliases": ["Makkah"] },
+        { "name": "Medina", "latitude": 24.5247, "longitude": 39.5692, "timezone": "Asia/Riyadh", "aliases": ["Madinah"] },
+        { "name": "Khobar", "latitude": 26.2794, "longitude": 50.2083, "timezone": "Asia/Riyadh", "aliases": ["Al Khobar"] }
+      ]
+    },
+    {
+      "code": "SE",
+      "name": "Sverige",
+      "cities": [
+        { "name": "Stockholm", "latitude": 59.3293, "longitude": 18.0686, "timezone": "Europe/Stockholm" },
+        { "name": "Gothenburg", "latitude": 57.7089, "longitude": 11.9746, "timezone": "Europe/Stockholm" },
+        { "name": "Malmö", "latitude": 55.6050, "longitude": 13.0038, "timezone": "Europe/Stockholm", "aliases": ["Malmo"] }
+      ]
+    },
+    {
+      "code": "SG",
+      "name": "Singapore",
+      "cities": [
+        { "name": "Singapore", "latitude": 1.3521, "longitude": 103.8198, "timezone": "Asia/Singapore" }
+      ]
+    },
+    {
+      "code": "SI",
+      "name": "Slovenia",
+      "cities": [
+        { "name": "Ljubljana", "latitude": 46.0569, "longitude": 14.5058, "timezone": "Europe/Ljubljana" },
+        { "name": "Maribor", "latitude": 46.5547, "longitude": 15.6459, "timezone": "Europe/Ljubljana" },
+        { "name": "Koper", "latitude": 45.5481, "longitude": 13.7302, "timezone": "Europe/Ljubljana" }
+      ]
+    },
+    {
+      "code": "SK",
+      "name": "Slovakia",
+      "cities": [
+        { "name": "Bratislava", "latitude": 48.1486, "longitude": 17.1077, "timezone": "Europe/Bratislava" },
+        { "name": "Košice", "latitude": 48.7164, "longitude": 21.2611, "timezone": "Europe/Bratislava", "aliases": ["Kosice"] },
+        { "name": "Žilina", "latitude": 49.2231, "longitude": 18.7394, "timezone": "Europe/Bratislava", "aliases": ["Zilina"] }
+      ]
+    },
+    {
+      "code": "TH",
+      "name": "Thailand",
+      "cities": [
+        { "name": "Bangkok", "latitude": 13.7563, "longitude": 100.5018, "timezone": "Asia/Bangkok" },
+        { "name": "Chiang Mai", "latitude": 18.7883, "longitude": 98.9853, "timezone": "Asia/Bangkok" },
+        { "name": "Phuket", "latitude": 7.8804, "longitude": 98.3923, "timezone": "Asia/Bangkok" },
+        { "name": "Pattaya", "latitude": 12.9236, "longitude": 100.8825, "timezone": "Asia/Bangkok" },
+        { "name": "Hat Yai", "latitude": 7.0084, "longitude": 100.4747, "timezone": "Asia/Bangkok" },
+        { "name": "Khon Kaen", "latitude": 16.4419, "longitude": 102.8350, "timezone": "Asia/Bangkok" }
+      ]
+    },
+    {
+      "code": "TR",
+      "name": "Türkiye",
+      "cities": [
+        { "name": "Adana", "latitude": 37.0000, "longitude": 35.3213, "timezone": "Europe/Istanbul" },
+        { "name": "Adıyaman", "latitude": 37.7648, "longitude": 38.2786, "timezone": "Europe/Istanbul" },
+        { "name": "Afyonkarahisar", "latitude": 38.7507, "longitude": 30.5567, "timezone": "Europe/Istanbul" },
+        { "name": "Ağrı", "latitude": 39.7191, "longitude": 43.0503, "timezone": "Europe/Istanbul" },
+        { "name": "Aksaray", "latitude": 38.3687, "longitude": 34.0370, "timezone": "Europe/Istanbul" },
+        { "name": "Amasya", "latitude": 40.6499, "longitude": 35.8353, "timezone": "Europe/Istanbul" },
+        { "name": "Ankara", "latitude": 39.9334, "longitude": 32.8597, "timezone": "Europe/Istanbul" },
+        { "name": "Antalya", "latitude": 36.8969, "longitude": 30.7133, "timezone": "Europe/Istanbul" },
+        { "name": "Ardahan", "latitude": 41.1105, "longitude": 42.7022, "timezone": "Europe/Istanbul" },
+        { "name": "Artvin", "latitude": 41.1828, "longitude": 41.8183, "timezone": "Europe/Istanbul" },
+        { "name": "Aydın", "latitude": 37.8560, "longitude": 27.8416, "timezone": "Europe/Istanbul" },
+        { "name": "Balıkesir", "latitude": 39.6484, "longitude": 27.8826, "timezone": "Europe/Istanbul" },
+        { "name": "Bartın", "latitude": 41.6344, "longitude": 32.3375, "timezone": "Europe/Istanbul" },
+        { "name": "Batman", "latitude": 37.8812, "longitude": 41.1351, "timezone": "Europe/Istanbul" },
+        { "name": "Bayburt", "latitude": 40.2552, "longitude": 40.2249, "timezone": "Europe/Istanbul" },
+        { "name": "Bilecik", "latitude": 40.0567, "longitude": 30.0665, "timezone": "Europe/Istanbul" },
+        { "name": "Bingöl", "latitude": 38.8854, "longitude": 40.4966, "timezone": "Europe/Istanbul" },
+        { "name": "Bitlis", "latitude": 38.4010, "longitude": 42.1095, "timezone": "Europe/Istanbul" },
+        { "name": "Bolu", "latitude": 40.7360, "longitude": 31.6061, "timezone": "Europe/Istanbul" },
+        { "name": "Burdur", "latitude": 37.7203, "longitude": 30.2908, "timezone": "Europe/Istanbul" },
+        { "name": "Bursa", "latitude": 40.1826, "longitude": 29.0665, "timezone": "Europe/Istanbul" },
+        { "name": "Çanakkale", "latitude": 40.1553, "longitude": 26.4142, "timezone": "Europe/Istanbul" },
+        { "name": "Çankırı", "latitude": 40.6013, "longitude": 33.6134, "timezone": "Europe/Istanbul" },
+        { "name": "Çorum", "latitude": 40.5506, "longitude": 34.9556, "timezone": "Europe/Istanbul" },
+        { "name": "Denizli", "latitude": 37.7765, "longitude": 29.0864, "timezone": "Europe/Istanbul" },
+        { "name": "Diyarbakır", "latitude": 37.9144, "longitude": 40.2306, "timezone": "Europe/Istanbul" },
+        { "name": "Düzce", "latitude": 40.8438, "longitude": 31.1565, "timezone": "Europe/Istanbul" },
+        { "name": "Edirne", "latitude": 41.6818, "longitude": 26.5623, "timezone": "Europe/Istanbul" },
+        { "name": "Elazığ", "latitude": 38.6810, "longitude": 39.2264, "timezone": "Europe/Istanbul" },
+        { "name": "Erzincan", "latitude": 39.7500, "longitude": 39.5000, "timezone": "Europe/Istanbul" },
+        { "name": "Erzurum", "latitude": 39.9054, "longitude": 41.2658, "timezone": "Europe/Istanbul" },
+        { "name": "Eskişehir", "latitude": 39.7767, "longitude": 30.5206, "timezone": "Europe/Istanbul" },
+        { "name": "Gaziantep", "latitude": 37.0662, "longitude": 37.3833, "timezone": "Europe/Istanbul" },
+        { "name": "Giresun", "latitude": 40.9128, "longitude": 38.3895, "timezone": "Europe/Istanbul" },
+        { "name": "Gümüşhane", "latitude": 40.4386, "longitude": 39.5086, "timezone": "Europe/Istanbul" },
+        { "name": "Hakkâri", "latitude": 37.5833, "longitude": 43.7408, "timezone": "Europe/Istanbul" },
+        { "name": "Hatay", "latitude": 36.4018, "longitude": 36.3498, "timezone": "Europe/Istanbul" },
+        { "name": "Iğdır", "latitude": 39.9167, "longitude": 44.0500, "timezone": "Europe/Istanbul" },
+        { "name": "Isparta", "latitude": 37.7648, "longitude": 30.5566, "timezone": "Europe/Istanbul" },
+        { "name": "İstanbul", "latitude": 41.0082, "longitude": 28.9784, "timezone": "Europe/Istanbul" },
+        { "name": "İzmir", "latitude": 38.4192, "longitude": 27.1287, "timezone": "Europe/Istanbul" },
+        { "name": "Kahramanmaraş", "latitude": 37.5858, "longitude": 36.9371, "timezone": "Europe/Istanbul" },
+        { "name": "Karabük", "latitude": 41.2061, "longitude": 32.6204, "timezone": "Europe/Istanbul" },
+        { "name": "Karaman", "latitude": 37.1759, "longitude": 33.2287, "timezone": "Europe/Istanbul" },
+        { "name": "Kars", "latitude": 40.6167, "longitude": 43.1000, "timezone": "Europe/Istanbul" },
+        { "name": "Kastamonu", "latitude": 41.3887, "longitude": 33.7827, "timezone": "Europe/Istanbul" },
+        { "name": "Kayseri", "latitude": 38.7312, "longitude": 35.4787, "timezone": "Europe/Istanbul" },
+        { "name": "Kilis", "latitude": 36.7184, "longitude": 37.1212, "timezone": "Europe/Istanbul" },
+        { "name": "Kırıkkale", "latitude": 39.8468, "longitude": 33.5153, "timezone": "Europe/Istanbul" },
+        { "name": "Kırklareli", "latitude": 41.7333, "longitude": 27.2167, "timezone": "Europe/Istanbul" },
+        { "name": "Kırşehir", "latitude": 39.1425, "longitude": 34.1709, "timezone": "Europe/Istanbul" },
+        { "name": "Kocaeli", "latitude": 40.8533, "longitude": 29.8815, "timezone": "Europe/Istanbul" },
+        { "name": "Konya", "latitude": 37.8746, "longitude": 32.4932, "timezone": "Europe/Istanbul" },
+        { "name": "Kütahya", "latitude": 39.4167, "longitude": 29.9833, "timezone": "Europe/Istanbul" },
+        { "name": "Malatya", "latitude": 38.3552, "longitude": 38.3095, "timezone": "Europe/Istanbul" },
+        { "name": "Manisa", "latitude": 38.6191, "longitude": 27.4289, "timezone": "Europe/Istanbul" },
+        { "name": "Mardin", "latitude": 37.3212, "longitude": 40.7245, "timezone": "Europe/Istanbul" },
+        { "name": "Mersin", "latitude": 36.8121, "longitude": 34.6415, "timezone": "Europe/Istanbul" },
+        { "name": "Muğla", "latitude": 37.2153, "longitude": 28.3636, "timezone": "Europe/Istanbul" },
+        { "name": "Muş", "latitude": 38.9462, "longitude": 41.7539, "timezone": "Europe/Istanbul" },
+        { "name": "Nevşehir", "latitude": 38.6939, "longitude": 34.6857, "timezone": "Europe/Istanbul" },
+        { "name": "Niğde", "latitude": 37.9667, "longitude": 34.6833, "timezone": "Europe/Istanbul" },
+        { "name": "Ordu", "latitude": 40.9839, "longitude": 37.8764, "timezone": "Europe/Istanbul" },
+        { "name": "Osmaniye", "latitude": 37.0742, "longitude": 36.2464, "timezone": "Europe/Istanbul" },
+        { "name": "Rize", "latitude": 41.0201, "longitude": 40.5234, "timezone": "Europe/Istanbul" },
+        { "name": "Sakarya", "latitude": 40.6940, "longitude": 30.4358, "timezone": "Europe/Istanbul" },
+        { "name": "Samsun", "latitude": 41.2867, "longitude": 36.3300, "timezone": "Europe/Istanbul" },
+        { "name": "Şanlıurfa", "latitude": 37.1674, "longitude": 38.7955, "timezone": "Europe/Istanbul" },
+        { "name": "Siirt", "latitude": 37.9333, "longitude": 41.9500, "timezone": "Europe/Istanbul" },
+        { "name": "Sinop", "latitude": 42.0231, "longitude": 35.1531, "timezone": "Europe/Istanbul" },
+        { "name": "Sivas", "latitude": 39.7477, "longitude": 37.0179, "timezone": "Europe/Istanbul" },
+        { "name": "Şırnak", "latitude": 37.4187, "longitude": 42.4918, "timezone": "Europe/Istanbul" },
+        { "name": "Tekirdağ", "latitude": 41.0024, "longitude": 27.5119, "timezone": "Europe/Istanbul" },
+        { "name": "Tokat", "latitude": 40.3167, "longitude": 36.5500, "timezone": "Europe/Istanbul" },
+        { "name": "Trabzon", "latitude": 41.0015, "longitude": 39.7178, "timezone": "Europe/Istanbul" },
+        { "name": "Tunceli", "latitude": 39.1079, "longitude": 39.5401, "timezone": "Europe/Istanbul" },
+        { "name": "Uşak", "latitude": 38.6823, "longitude": 29.4082, "timezone": "Europe/Istanbul" },
+        { "name": "Van", "latitude": 38.4891, "longitude": 43.3800, "timezone": "Europe/Istanbul" },
+        { "name": "Yalova", "latitude": 40.6500, "longitude": 29.2667, "timezone": "Europe/Istanbul" },
+        { "name": "Yozgat", "latitude": 39.8181, "longitude": 34.8147, "timezone": "Europe/Istanbul" },
+        { "name": "Zonguldak", "latitude": 41.4564, "longitude": 31.7987, "timezone": "Europe/Istanbul" }
+      ]
+    },
+    {
+      "code": "TW",
+      "name": "台灣",
+      "cities": [
+        { "name": "Taipei", "latitude": 25.0330, "longitude": 121.5654, "timezone": "Asia/Taipei" },
+        { "name": "Kaohsiung", "latitude": 22.6273, "longitude": 120.3014, "timezone": "Asia/Taipei" },
+        { "name": "Taichung", "latitude": 24.1477, "longitude": 120.6736, "timezone": "Asia/Taipei" },
+        { "name": "Tainan", "latitude": 22.9999, "longitude": 120.2270, "timezone": "Asia/Taipei" },
+        { "name": "Hsinchu", "latitude": 24.8138, "longitude": 120.9675, "timezone": "Asia/Taipei" }
+      ]
+    },
+    {
+      "code": "UA",
+      "name": "Ukraine",
+      "cities": [
+        { "name": "Kyiv", "latitude": 50.4501, "longitude": 30.5234, "timezone": "Europe/Kyiv", "aliases": ["Kiev"] },
+        { "name": "Lviv", "latitude": 49.8397, "longitude": 24.0297, "timezone": "Europe/Kyiv" },
+        { "name": "Odesa", "latitude": 46.4825, "longitude": 30.7233, "timezone": "Europe/Kyiv", "aliases": ["Odessa"] },
+        { "name": "Kharkiv", "latitude": 49.9935, "longitude": 36.2304, "timezone": "Europe/Kyiv" },
+        { "name": "Dnipro", "latitude": 48.4647, "longitude": 35.0462, "timezone": "Europe/Kyiv" }
+      ]
+    },
+    {
+      "code": "US",
+      "name": "United States",
+      "cities": [
+        { "name": "New York", "latitude": 40.7128, "longitude": -74.0060, "timezone": "America/New_York" },
+        { "name": "Los Angeles", "latitude": 34.0522, "longitude": -118.2437, "timezone": "America/Los_Angeles" },
+        { "name": "Chicago", "latitude": 41.8781, "longitude": -87.6298, "timezone": "America/Chicago" },
+        { "name": "Houston", "latitude": 29.7604, "longitude": -95.3698, "timezone": "America/Chicago" },
+        { "name": "Phoenix", "latitude": 33.4484, "longitude": -112.0740, "timezone": "America/Phoenix" },
+        { "name": "San Francisco", "latitude": 37.7749, "longitude": -122.4194, "timezone": "America/Los_Angeles" },
+        { "name": "Miami", "latitude": 25.7617, "longitude": -80.1918, "timezone": "America/New_York" },
+        { "name": "Seattle", "latitude": 47.6062, "longitude": -122.3321, "timezone": "America/Los_Angeles" },
+        { "name": "Boston", "latitude": 42.3601, "longitude": -71.0589, "timezone": "America/New_York" },
+        { "name": "Atlanta", "latitude": 33.7490, "longitude": -84.3880, "timezone": "America/New_York" },
+        { "name": "Dallas", "latitude": 32.7767, "longitude": -96.7970, "timezone": "America/Chicago" },
+        { "name": "Washington", "latitude": 38.9072, "longitude": -77.0369, "timezone": "America/New_York", "aliases": ["Washington, DC", "Washington DC"] },
+        { "name": "Denver", "latitude": 39.7392, "longitude": -104.9903, "timezone": "America/Denver" },
+        { "name": "Philadelphia", "latitude": 39.9526, "longitude": -75.1652, "timezone": "America/New_York" },
+        { "name": "San Diego", "latitude": 32.7157, "longitude": -117.1611, "timezone": "America/Los_Angeles" },
+        { "name": "Las Vegas", "latitude": 36.1699, "longitude": -115.1398, "timezone": "America/Los_Angeles" }
+      ]
+    },
+    {
+      "code": "VE",
+      "name": "Venezuela",
+      "cities": [
+        { "name": "Caracas", "latitude": 10.4806, "longitude": -66.9036, "timezone": "America/Caracas" },
+        { "name": "Maracaibo", "latitude": 10.6545, "longitude": -71.6406, "timezone": "America/Caracas" },
+        { "name": "Valencia", "latitude": 10.1579, "longitude": -67.9972, "timezone": "America/Caracas" }
+      ]
+    },
+    {
+      "code": "VN",
+      "name": "Vietnam",
+      "cities": [
+        { "name": "Ho Chi Minh City", "latitude": 10.8231, "longitude": 106.6297, "timezone": "Asia/Ho_Chi_Minh" },
+        { "name": "Hanoi", "latitude": 21.0278, "longitude": 105.8342, "timezone": "Asia/Ho_Chi_Minh" },
+        { "name": "Da Nang", "latitude": 16.0544, "longitude": 108.2022, "timezone": "Asia/Ho_Chi_Minh" },
+        { "name": "Hai Phong", "latitude": 20.8449, "longitude": 106.6881, "timezone": "Asia/Ho_Chi_Minh" },
+        { "name": "Can Tho", "latitude": 10.0452, "longitude": 105.7469, "timezone": "Asia/Ho_Chi_Minh" },
+        { "name": "Nha Trang", "latitude": 12.2388, "longitude": 109.1967, "timezone": "Asia/Ho_Chi_Minh" }
+      ]
+    },
+    {
+      "code": "ZA",
+      "name": "South Africa",
+      "cities": [
+        { "name": "Johannesburg", "latitude": -26.2041, "longitude": 28.0473, "timezone": "Africa/Johannesburg" },
+        { "name": "Cape Town", "latitude": -33.9249, "longitude": 18.4241, "timezone": "Africa/Johannesburg" },
+        { "name": "Durban", "latitude": -29.8587, "longitude": 31.0218, "timezone": "Africa/Johannesburg" },
+        { "name": "Pretoria", "latitude": -25.7479, "longitude": 28.2293, "timezone": "Africa/Johannesburg" },
+        { "name": "Gqeberha", "latitude": -33.9608, "longitude": 25.6022, "timezone": "Africa/Johannesburg", "aliases": ["Port Elizabeth"] }
+      ]
+    }
+  ]
+}

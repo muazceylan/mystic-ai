@@ -1,6 +1,7 @@
 'use client';
 
 import { TrackedLink } from '@/components/TrackedLink';
+import { trackAppEntryStarted } from '@/lib/amplitude';
 
 interface DownloadCtaLinkProps {
   href: string;
@@ -20,6 +21,13 @@ export function DownloadCtaLink({
   return (
     <TrackedLink
       href={href}
+      onClick={() => {
+        trackAppEntryStarted({
+          entryPoint: source,
+          ctaLabel: label,
+          destinationPath: href,
+        });
+      }}
       analyticsEvent={{
         type: 'cta_click',
         params: {

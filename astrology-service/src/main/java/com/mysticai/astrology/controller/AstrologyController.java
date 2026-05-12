@@ -7,6 +7,7 @@ import com.mysticai.astrology.entity.ZodiacSign;
 import com.mysticai.astrology.service.AstrologyService;
 import com.mysticai.astrology.service.DailyLifeGuideService;
 import com.mysticai.astrology.service.LuckyDatesService;
+import com.mysticai.astrology.service.LocationCatalogService;
 import com.mysticai.astrology.service.NightSkyPosterService;
 import com.mysticai.astrology.service.PosterEndpointGuardService;
 import com.mysticai.astrology.service.SkyPulseService;
@@ -34,6 +35,7 @@ public class AstrologyController {
     private final AstrologyService astrologyService;
     private final LuckyDatesService luckyDatesService;
     private final DailyLifeGuideService dailyLifeGuideService;
+    private final LocationCatalogService locationCatalogService;
     private final NightSkyPosterService nightSkyPosterService;
     private final PosterEndpointGuardService posterEndpointGuardService;
     private final SkyPulseService skyPulseService;
@@ -116,6 +118,16 @@ public class AstrologyController {
                 ))
                 .toList();
         return ResponseEntity.ok(signs);
+    }
+
+    @GetMapping("/locations/countries")
+    public ResponseEntity<List<LocationCountryResponse>> getLocationCountries() {
+        return ResponseEntity.ok(locationCatalogService.listCountries());
+    }
+
+    @GetMapping("/locations/countries/{countryCode}/cities")
+    public ResponseEntity<List<LocationCityResponse>> getLocationCities(@PathVariable String countryCode) {
+        return ResponseEntity.ok(locationCatalogService.listCities(countryCode));
     }
 
     /**

@@ -32,6 +32,8 @@ public record RegisterRequest(
 
         String birthCountry,
         String birthCity,
+        Double birthLatitude,
+        Double birthLongitude,
         Boolean birthTimeUnknown,
         String timezone,
         String gender,

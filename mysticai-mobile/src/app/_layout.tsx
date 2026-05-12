@@ -51,6 +51,7 @@ import { resolveUserScopeKey } from '../store/userScopedPersist';
 import {
   trackEvent,
   logScreen,
+  initializeClientAnalytics,
   setAnalyticsUserId,
   setAnalyticsUserProperties,
   resetAnalyticsIdentity,
@@ -58,6 +59,10 @@ import {
   emitAnalyticsDebugBootstrap,
 } from '../services/analytics';
 import { resolveScreenName } from '../services/analyticsScreenNames';
+import {
+  updateCoreUserProperties,
+  updateSubscriptionUserProperties,
+} from '../services/productAnalytics';
 import {
   ensureNotificationHandlerInstalled,
   maybeTriggerMorningDreamReminder,
@@ -271,11 +276,13 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
         <NotificationBootstrap />
         <AppConfigBootstrap />
         <MonetizationBootstrap />
+        <AmplitudeBootstrap />
         <TutorialBootstrap />
         <GuestSessionBootstrap />
         <ScreenTracker />
         <AnalyticsDebugBootstrap />
         <AnalyticsIdentityBootstrap />
+        <AnalyticsSubscriptionBootstrap />
         <Stack
           screenOptions={createAppStackScreenOptions({
             backgroundColor: colors.bg,
@@ -285,6 +292,14 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
       </RevenueCatProvider>
     </>
   );
+}
+
+function AmplitudeBootstrap() {
+  useEffect(() => {
+    initializeClientAnalytics();
+  }, []);
+
+  return null;
 }
 
 function CompanionBootstrap() {
@@ -551,10 +566,27 @@ function AnalyticsIdentityBootstrap() {
         preferred_language: user?.preferredLanguage ?? null,
         zodiac_sign: user?.zodiacSign ?? null,
       });
+      updateCoreUserProperties(user);
     } else {
       resetAnalyticsIdentity();
     }
   }, [isHydrated, isAuthenticated, user?.id]);
+
+  return null;
+}
+
+function AnalyticsSubscriptionBootstrap() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const entitlements = useMonetizationStore((s) => s.entitlements);
+  const paywall = useMonetizationStore((s) => s.paywall);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    updateSubscriptionUserProperties(entitlements, paywall);
+  }, [entitlements, isAuthenticated, paywall]);
 
   return null;
 }

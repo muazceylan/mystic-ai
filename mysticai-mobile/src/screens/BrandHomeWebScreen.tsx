@@ -6,6 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { getPublicWebBaseUrl, getUniversalDownloadUrl } from '../utils/publicUrl';
+import {
+  ProductEventName,
+  resolveCampaignId,
+  resolveReferrerDomain,
+  trackProductEvent,
+} from '../services/productAnalytics';
 
 const ROOT_SITE_URL = 'https://astroguru.app';
 const SUPPORT_EMAIL = 'support@astroguru.app';
@@ -79,6 +85,13 @@ export default function BrandHomeWebScreen() {
     if (Platform.OS !== 'web') {
       return;
     }
+    trackProductEvent(ProductEventName.APP_ENTRY_STARTED, {
+      'entry point': 'brand_home',
+      'cta label': 'download_or_continue',
+      'destination path': url,
+      'referrer domain': resolveReferrerDomain(),
+      'campaign id': resolveCampaignId(),
+    });
     await Linking.openURL(url);
   };
 
@@ -132,7 +145,18 @@ export default function BrandHomeWebScreen() {
 
             <View style={styles.ctaRow}>
               <Link href="/(auth)/welcome" asChild>
-                <Pressable style={styles.primaryCta}>
+                <Pressable
+                  style={styles.primaryCta}
+                  onPress={() => {
+                    trackProductEvent(ProductEventName.APP_ENTRY_STARTED, {
+                      'entry point': 'brand_home',
+                      'cta label': 'open_astroguru',
+                      'destination path': '/(auth)/welcome',
+                      'referrer domain': resolveReferrerDomain(),
+                      'campaign id': resolveCampaignId(),
+                    });
+                  }}
+                >
                   <Ionicons name="sparkles-outline" size={18} color={colors.white} />
                   <Text style={styles.primaryCtaText}>
                     {locale === 'en' ? 'Open AstroGuru' : "AstroGuru'yu Aç"}

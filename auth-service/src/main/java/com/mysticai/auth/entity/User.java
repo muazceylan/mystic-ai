@@ -69,6 +69,12 @@ public class User {
     @Column(name = "birth_city", length = 100)
     private String birthCity;
 
+    @Column(name = "birth_latitude")
+    private Double birthLatitude;
+
+    @Column(name = "birth_longitude")
+    private Double birthLongitude;
+
     @Column(name = "birth_time_unknown")
     private Boolean birthTimeUnknown;
 

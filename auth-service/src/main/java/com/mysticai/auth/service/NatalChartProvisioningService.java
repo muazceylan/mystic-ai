@@ -47,7 +47,9 @@ public class NatalChartProvisioningService {
                 birthDate,
                 resolveBirthTime(user),
                 birthLocation,
-                user.getTimezone()
+                user.getTimezone(),
+                user.getBirthLatitude(),
+                user.getBirthLongitude()
         );
 
         try {
@@ -154,7 +156,9 @@ public class NatalChartProvisioningService {
             LocalDate birthDate,
             String birthTime,
             String birthLocation,
-            String timezone
+            String timezone,
+            Double latitude,
+            Double longitude
     ) {
     }
 }

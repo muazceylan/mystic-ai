@@ -73,6 +73,13 @@ import {
   type GooglePlaceSuggestion,
 } from '../../services/googlePlaces.service';
 import { CITIES, COUNTRIES, DISTRICTS } from '../../constants';
+import { useLocationCities, useLocationCountries } from '../../hooks/useLocationCatalog';
+import {
+  getFallbackLocationCities,
+  type LocationCity,
+  normalizeLocationSearchText,
+  resolveCountryNameByCode,
+} from '../../services/locationCatalog.service';
 import { getZodiacInfo } from '../../constants/zodiac';
 import { getHouseGlossary } from '../../constants/astrology-glossary';
 import { formatAspectAngleHuman, labelAspectType } from '../../constants/astroLabelMap';
@@ -397,7 +404,9 @@ function createCompanionFormFromPerson(person: SavedPerson): CompanionFormState 
   );
   const countryCode = countryMatch?.code ?? 'TR';
   const cityCatalog = (CITIES[countryCode] ?? CITIES.default ?? []).map((c) => c.name);
-  const city = locationParts.find((part) => cityCatalog.some((name) => name.toLowerCase() === part.toLowerCase()));
+  const inferredCity = locationParts.length >= 2 ? locationParts[locationParts.length - 2] : locationParts[0];
+  const city = locationParts.find((part) => cityCatalog.some((name) => name.toLowerCase() === part.toLowerCase()))
+    ?? inferredCity;
   const district = city
     ? locationParts.find(
         (part) =>
@@ -424,7 +433,7 @@ function createCompanionFormFromPerson(person: SavedPerson): CompanionFormState 
 
 function getCountryNameByCode(code?: string) {
   if (!code) return '';
-  return COUNTRIES.find((country) => country.code === code)?.name ?? code;
+  return resolveCountryNameByCode(code, COUNTRIES);
 }
 
 function composeFallbackBirthLocation(form: CompanionFormState) {
@@ -599,6 +608,8 @@ export function NatalChartScreenContent() {
   const companionFormScrollRef = useRef<ScrollView | null>(null);
   const locationPickerInlineYRef = useRef(0);
   const pendingLocationPickerScrollRef = useRef(false);
+  const locationCountriesQuery = useLocationCountries();
+  const locationCitiesQuery = useLocationCities(companionForm.countryCode ?? 'TR');
 
   const googlePlacesAvailable = isGooglePlacesConfigured();
   const companionUseGooglePlaces = false && googlePlacesAvailable;
@@ -792,8 +803,8 @@ export function NatalChartScreenContent() {
       birthTime: user.birthTimeUnknown ? undefined : (user.birthTime ?? undefined),
       birthLocation,
       timezone: user.timezone ?? undefined,
-      latitude: user.latitude ?? user.lat,
-      longitude: user.longitude ?? user.lng,
+      latitude: user.birthLatitude ?? user.latitude ?? user.lat,
+      longitude: user.birthLongitude ?? user.longitude ?? user.lng,
       locale: resolvedLocale,
     };
   }, [resolvedLocale, user]);
@@ -1010,13 +1021,17 @@ export function NatalChartScreenContent() {
   };
 
   const fallbackCountryCode = companionForm.countryCode ?? 'TR';
-  const fallbackCityOptions = useMemo(
+  const locationCountries = locationCountriesQuery.data ?? COUNTRIES;
+  const fetchedLocationCities = locationCitiesQuery.data ?? [];
+  const fallbackCityOptions = useMemo<LocationCity[]>(
     () =>
       dedupeByNormalizedText(
-        (CITIES[fallbackCountryCode] ?? CITIES.default ?? []).filter((c) => c.name !== 'Other/Manual Entry'),
+        fetchedLocationCities.length > 0
+          ? fetchedLocationCities
+          : getFallbackLocationCities(fallbackCountryCode),
         (c) => c.name,
       ),
-    [fallbackCountryCode],
+    [fallbackCountryCode, fetchedLocationCities],
   );
   const fallbackDistrictOptions = useMemo(
     () =>
@@ -1034,16 +1049,20 @@ export function NatalChartScreenContent() {
   }, [locationPickerTarget, t]);
 
   const locationPickerItems = useMemo(() => {
-    const q = locationPickerQuery.trim().toLocaleLowerCase('tr-TR');
+    const q = normalizeLocationSearchText(locationPickerQuery);
     if (locationPickerTarget === 'country') {
-      return COUNTRIES
+      return locationCountries
         .map((country) => ({
           key: country.code,
           label: country.name,
           subLabel: country.code,
           value: country.code,
         }))
-        .filter((item) => !q || item.label.toLocaleLowerCase('tr-TR').includes(q) || item.subLabel.toLowerCase().includes(q));
+        .filter((item) =>
+          !q
+            || normalizeLocationSearchText(item.label).includes(q)
+            || normalizeLocationSearchText(item.subLabel).includes(q)
+        );
     }
 
     if (locationPickerTarget === 'city') {
@@ -1051,10 +1070,10 @@ export function NatalChartScreenContent() {
         .map((city) => ({
           key: city.name,
           label: city.name,
-          subLabel: city.timezone,
+          subLabel: city.timezone ?? undefined,
           value: city.name,
         }))
-        .filter((item) => !q || item.label.toLocaleLowerCase('tr-TR').includes(q));
+        .filter((item) => !q || normalizeLocationSearchText(item.label).includes(q));
     }
 
     if (locationPickerTarget === 'district') {
@@ -1065,11 +1084,18 @@ export function NatalChartScreenContent() {
           subLabel: companionForm.city ?? undefined,
           value: district,
         }))
-        .filter((item) => !q || item.label.toLocaleLowerCase('tr-TR').includes(q));
+        .filter((item) => !q || normalizeLocationSearchText(item.label).includes(q));
     }
 
     return [];
-  }, [locationPickerTarget, locationPickerQuery, fallbackCityOptions, fallbackDistrictOptions, companionForm.city]);
+  }, [
+    locationPickerTarget,
+    locationPickerQuery,
+    fallbackCityOptions,
+    fallbackDistrictOptions,
+    companionForm.city,
+    locationCountries,
+  ]);
 
   const openFallbackLocationPicker = (target: LocationPickerTarget) => {
     if (target === 'city' && !fallbackCountryCode) {
@@ -1117,14 +1143,14 @@ export function NatalChartScreenContent() {
       }
 
       if (locationPickerTarget === 'city') {
-        const cityMeta = (CITIES[prev.countryCode ?? 'TR'] ?? CITIES.default ?? []).find((city) => city.name === value);
+        const cityMeta = fallbackCityOptions.find((city) => city.name === value);
         const nextForm: CompanionFormState = {
           ...prev,
           city: value,
           district: undefined,
           timezone: cityMeta?.timezone ?? prev.timezone,
-          latitude: undefined,
-          longitude: undefined,
+          latitude: cityMeta?.latitude ?? undefined,
+          longitude: cityMeta?.longitude ?? undefined,
         };
         nextForm.birthLocation = composeFallbackBirthLocation(nextForm);
         return nextForm;

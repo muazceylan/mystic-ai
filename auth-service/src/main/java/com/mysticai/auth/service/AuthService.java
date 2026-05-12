@@ -140,6 +140,8 @@ public class AuthService {
                 .birthLocation(request.birthLocation())
                 .birthCountry(request.birthCountry())
                 .birthCity(request.birthCity())
+                .birthLatitude(request.birthLatitude())
+                .birthLongitude(request.birthLongitude())
                 .birthTimeUnknown(request.birthTimeUnknown())
                 .timezone(request.timezone())
                 .gender(request.gender())
@@ -457,6 +459,11 @@ public class AuthService {
         if (request.birthLocation() != null) user.setBirthLocation(request.birthLocation());
         if (request.birthCountry() != null) user.setBirthCountry(request.birthCountry());
         if (request.birthCity() != null) user.setBirthCity(request.birthCity());
+        if (request.birthLocation() != null || request.birthCountry() != null || request.birthCity() != null
+                || request.birthLatitude() != null || request.birthLongitude() != null) {
+            user.setBirthLatitude(request.birthLatitude());
+            user.setBirthLongitude(request.birthLongitude());
+        }
         if (request.birthTimeUnknown() != null) user.setBirthTimeUnknown(request.birthTimeUnknown());
         if (request.timezone() != null) user.setTimezone(request.timezone());
         if (request.gender() != null) user.setGender(request.gender());
@@ -1150,6 +1157,8 @@ public class AuthService {
                 .birthLocation(user.getBirthLocation())
                 .birthCountry(user.getBirthCountry())
                 .birthCity(user.getBirthCity())
+                .birthLatitude(user.getBirthLatitude())
+                .birthLongitude(user.getBirthLongitude())
                 .birthTimeUnknown(user.getBirthTimeUnknown())
                 .timezone(user.getTimezone())
                 .gender(user.getGender())

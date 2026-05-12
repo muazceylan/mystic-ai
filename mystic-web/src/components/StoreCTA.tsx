@@ -1,5 +1,8 @@
+'use client';
+
 import { TrackedAnchor } from '@/components/TrackedLink';
 import { APP_STORE_URL, PLAY_STORE_URL } from '@/lib/constants';
+import { trackAppEntryStarted } from '@/lib/amplitude';
 
 interface StoreCTAProps {
   locale: 'tr' | 'en';
@@ -23,6 +26,13 @@ export function StoreCTA({ locale, variant = 'hero', webHref }: StoreCTAProps) {
             href={primaryUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              trackAppEntryStarted({
+                entryPoint: `store_cta_${variant}`,
+                ctaLabel: singleLabel,
+                destinationPath: primaryUrl,
+              });
+            }}
             analyticsEvent={{
               type: 'store_click',
               params: {
@@ -55,6 +65,13 @@ export function StoreCTA({ locale, variant = 'hero', webHref }: StoreCTAProps) {
           href={APP_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => {
+            trackAppEntryStarted({
+              entryPoint: `store_cta_${variant}`,
+              ctaLabel: appStoreLabel,
+              destinationPath: APP_STORE_URL,
+            });
+          }}
           analyticsEvent={{
             type: 'store_click',
             params: {
@@ -77,6 +94,13 @@ export function StoreCTA({ locale, variant = 'hero', webHref }: StoreCTAProps) {
           href={webHref}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => {
+            trackAppEntryStarted({
+              entryPoint: `store_cta_${variant}`,
+              ctaLabel: webLabel,
+              destinationPath: webHref,
+            });
+          }}
           analyticsEvent={{
             type: 'cta_click',
             params: {
@@ -95,6 +119,13 @@ export function StoreCTA({ locale, variant = 'hero', webHref }: StoreCTAProps) {
           href={PLAY_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => {
+            trackAppEntryStarted({
+              entryPoint: `store_cta_${variant}`,
+              ctaLabel: playStoreLabel,
+              destinationPath: PLAY_STORE_URL,
+            });
+          }}
           analyticsEvent={{
             type: 'store_click',
             params: {

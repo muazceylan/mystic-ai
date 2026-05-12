@@ -5,9 +5,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
-import { CITIES, COUNTRIES, DISTRICTS } from '../../constants/index';
+import { DISTRICTS } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
+import { useLocationCities, useLocationCountries } from '../../hooks/useLocationCatalog';
+import {
+  normalizeLocationSearchText,
+  resolveCountryNameByCode,
+  type LocationCity,
+} from '../../services/locationCatalog.service';
 
 type ScreenView = 'city-list' | 'district-list' | 'summary';
 
@@ -183,32 +189,39 @@ export default function BirthCityScreen() {
   const { colors } = useTheme();
   const store = useOnboardingStore();
   const { listStyles, styles } = makeStyles(colors);
+  const countriesQuery = useLocationCountries();
+  const citiesQuery = useLocationCities(store.birthCountry);
+  const countries = countriesQuery.data ?? [];
+  const cities = citiesQuery.data ?? [];
 
   const hasCity = Boolean(store.birthCity || store.birthCityManual);
   const [view, setView] = useState<ScreenView>(hasCity ? 'summary' : 'city-list');
   const [citySearch, setCitySearch] = useState('');
   const [districtSearch, setDistrictSearch] = useState('');
-  const [pendingCity, setPendingCity] = useState<{ name: string; timezone: string } | null>(null);
+  const [pendingCity, setPendingCity] = useState<LocationCity | null>(null);
 
-  const cities = CITIES[store.birthCountry] || CITIES.default;
   const countryName = useMemo(
-    () => COUNTRIES.find((c) => c.code === store.birthCountry)?.name || t('auth.country'),
-    [store.birthCountry, t]
+    () => resolveCountryNameByCode(store.birthCountry, countries) || t('auth.country'),
+    [countries, store.birthCountry, t]
   );
 
+  const normalizedCitySearch = normalizeLocationSearchText(citySearch);
   const filteredCities = cities.filter((c) =>
-    c.name.toLowerCase().includes(citySearch.toLowerCase())
+    !normalizedCitySearch || normalizeLocationSearchText(c.name).includes(normalizedCitySearch)
   );
 
   const districtList = pendingCity ? (DISTRICTS[pendingCity.name] ?? []) : [];
+  const normalizedDistrictSearch = normalizeLocationSearchText(districtSearch);
   const filteredDistricts = districtList.filter((d) =>
-    d.toLowerCase().includes(districtSearch.toLowerCase())
+    !normalizedDistrictSearch || normalizeLocationSearchText(d).includes(normalizedDistrictSearch)
   );
 
   // City selected → save it, then open district list if available
-  const handleCitySelect = (city: typeof cities[0]) => {
+  const handleCitySelect = (city: LocationCity) => {
     store.setBirthCity(city.name);
-    store.setTimezone(city.timezone);
+    store.setBirthLatitude(city.latitude ?? null);
+    store.setBirthLongitude(city.longitude ?? null);
+    store.setTimezone(city.timezone ?? '');
     store.setBirthDistrict(''); // reset district when city changes
     const districts = DISTRICTS[city.name];
     if (districts && districts.length > 0) {

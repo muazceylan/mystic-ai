@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { trackArticleViewed } from '@/lib/amplitude';
 import { trackArticleOpen } from '@/lib/analytics';
 import type { BlogPost } from '@/lib/blog';
 import type { Locale } from '@/lib/constants';
@@ -29,6 +30,12 @@ export function ArticleOpenTracker({
       page_type: 'blog_article',
       content_group: 'blog',
       translation_group: translationGroup,
+    });
+    trackArticleViewed({
+      contentId: slug,
+      contentCategory: category,
+      contentLanguage: locale,
+      sourceSurface: 'blog_article',
     });
   }, [category, locale, slug, title, translationGroup]);
 

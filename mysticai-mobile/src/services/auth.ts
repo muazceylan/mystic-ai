@@ -14,6 +14,8 @@ export interface OnboardingRegisterPayload {
   birthLocation?: string;
   birthCountry?: string;
   birthCity?: string;
+  birthLatitude?: number | null;
+  birthLongitude?: number | null;
   birthTimeUnknown?: boolean;
   timezone?: string;
   gender?: string;
@@ -50,6 +52,8 @@ export interface UpdateProfilePayload {
   birthLocation?: string;
   birthCountry?: string;
   birthCity?: string;
+  birthLatitude?: number | null;
+  birthLongitude?: number | null;
   birthTimeUnknown?: boolean;
   timezone?: string;
   gender?: string;

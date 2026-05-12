@@ -29,6 +29,11 @@ import { socialLogin, login as loginApi, quickStart as quickStartApi } from '../
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { trackEvent } from '../../services/analytics';
+import {
+  ProductEventName,
+  setProductUserProperties,
+  trackProductEvent,
+} from '../../services/productAnalytics';
 import { needsOnboarding } from '../../utils/authOnboarding';
 import { WEB_INPUT_RESET_STYLE } from '../../utils/webInputReset';
 
@@ -429,6 +434,25 @@ export default function WelcomeScreen() {
       }
 
       storeLogin(accessToken, refreshToken, user);
+      if (isNewUser) {
+        trackProductEvent(ProductEventName.SIGNUP_COMPLETED, {
+          'signup method': provider,
+          'entry point': 'welcome_screen',
+          'is guest upgrade': false,
+          'email verification required': false,
+        });
+        setProductUserProperties({
+          'Signup Method': provider,
+        });
+      }
+      trackProductEvent(ProductEventName.LOGIN_COMPLETED, {
+        'login method': provider,
+        'entry point': 'welcome_screen',
+        'is returning user': !isNewUser,
+      });
+      setProductUserProperties({
+        'Login Method': provider,
+      });
       authTransitionRef.current = true;
     } catch (error: any) {
       authTransitionRef.current = false;
@@ -442,6 +466,11 @@ export default function WelcomeScreen() {
 
   const handleGoogleLogin = async () => {
     try {
+      trackProductEvent(ProductEventName.LOGIN_STARTED, {
+        'login method': 'google',
+        'entry point': 'welcome_screen',
+        'is returning user': true,
+      });
       const result = await googlePromptAsync();
       const idToken = extractGoogleIdToken(result) ?? extractGoogleIdToken(googleResponse);
 
@@ -510,6 +539,11 @@ export default function WelcomeScreen() {
 
   const handleAppleLogin = async () => {
     try {
+      trackProductEvent(ProductEventName.LOGIN_STARTED, {
+        'login method': 'apple',
+        'entry point': 'welcome_screen',
+        'is returning user': true,
+      });
       const nonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         Math.random().toString(36)
@@ -536,10 +570,23 @@ export default function WelcomeScreen() {
     if (!isFormValid || loading || authTransitionRef.current) return;
     setErrorMessage(null);
     setLoading(true);
+    trackProductEvent(ProductEventName.LOGIN_STARTED, {
+      'login method': 'email',
+      'entry point': 'welcome_screen',
+      'is returning user': true,
+    });
     try {
       const res = await loginApi({ username: email.trim().toLowerCase(), password });
       const { accessToken, refreshToken, user } = res.data;
       storeLogin(accessToken, refreshToken, user);
+      trackProductEvent(ProductEventName.LOGIN_COMPLETED, {
+        'login method': 'email',
+        'entry point': 'welcome_screen',
+        'is returning user': true,
+      });
+      setProductUserProperties({
+        'Login Method': 'email',
+      });
       authTransitionRef.current = true;
     } catch (error: any) {
       authTransitionRef.current = false;
@@ -580,6 +627,14 @@ export default function WelcomeScreen() {
       const res = await quickStartApi();
       const { accessToken, refreshToken, user } = res.data;
       trackEvent('quick_session_created', { user_type: 'GUEST', auth_provider: 'ANONYMOUS' });
+      trackProductEvent(ProductEventName.GUEST_MODE_STARTED, {
+        'entry point': 'welcome_screen',
+        'cta label': 'quick_start',
+        'guest limitations shown': false,
+      });
+      setProductUserProperties({
+        'Account Type': 'guest',
+      });
       // Save session temporarily — guest-name screen will complete the login
       setPendingGuest({ accessToken, refreshToken: refreshToken ?? null, user });
       router.push('/(auth)/guest-name');

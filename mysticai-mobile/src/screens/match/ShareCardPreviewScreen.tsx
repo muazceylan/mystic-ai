@@ -80,6 +80,7 @@ import {
 import { trackEvent } from '../../services/analytics';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { useSurfaceNavigationActions } from '../../hooks/useSurfaceNavigationActions';
+import { ProductEventName, trackProductEvent } from '../../services/productAnalytics';
 
 type ShareAction = 'share' | 'save' | 'download' | 'generate' | null;
 
@@ -1120,10 +1121,16 @@ export default function ShareCardPreviewScreen() {
     if (!checkMonetizationGate('share')) return;
     trackEvent('share_cards_action', { action: 'share' });
     await runShareAction('share', t('shareableCards.alerts.shareTitle'), async () => {
-      await shareImage(imageUri!);
+      const result = await shareImage(imageUri!);
+      trackProductEvent(ProductEventName.GUIDANCE_SHARED, {
+        'guidance type': 'compatibility',
+        'share channel': result.channel,
+        'is personalized': true,
+        'content id': matchId ? `match:${matchId}` : 'match:preview',
+      });
       await notifySuccess(t('shareableCards.success.share'));
     });
-  }, [checkMonetizationGate, imageUri, notifySuccess, runShareAction, t]);
+  }, [checkMonetizationGate, imageUri, matchId, notifySuccess, runShareAction, t]);
 
   const handleSave = useCallback(async () => {
     if (!checkMonetizationGate('save')) return;

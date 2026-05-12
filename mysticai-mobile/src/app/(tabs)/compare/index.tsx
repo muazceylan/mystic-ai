@@ -11,7 +11,7 @@ import type { CompareDriverDTO, CompareThemeSectionDTO, ComparisonCardDTO, Label
 import { RELATIONSHIP_TYPE_LABELS } from '../../../types/compare';
 import { parseLocalizedSignLabel } from '../../../utils/matchAstroLabels';
 import { parseRelationshipTypeParam } from '../../../services/compare.service';
-import { trackEvent } from '../../../services/analytics';
+import { getAnalyticsSessionDepth, trackEvent } from '../../../services/analytics';
 import useComparison from '../../../hooks/useComparison';
 import { useInnerHeaderSpacing } from '../../../hooks/useInnerHeaderSpacing';
 import { useTheme } from '../../../context/ThemeContext';
@@ -24,6 +24,7 @@ import PersonAvatar from '../../../components/match/PersonAvatar';
 import MatchCircularScore from '../../../components/match/MatchCircularScore';
 import ComparisonCard from '../../../components/ComparisonCard';
 import { useTranslation } from 'react-i18next';
+import { ProductEventName, trackProductEvent } from '../../../services/productAnalytics';
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -1182,6 +1183,13 @@ export default function CompareOverviewScreen() {
       data_quality: data.explainability.dataQuality,
       distribution_warning: data.explainability.distributionWarning ?? 'none',
       has_birth_time: !data.explainability.missingBirthTimeImpact,
+    });
+    trackProductEvent(ProductEventName.GUIDANCE_VIEWED, {
+      'guidance type': 'compatibility',
+      'guidance date': new Date().toISOString().slice(0, 10),
+      'is personalized': true,
+      'source surface': 'compatibility',
+      'session depth': getAnalyticsSessionDepth(),
     });
   }, [data, matchId]);
 

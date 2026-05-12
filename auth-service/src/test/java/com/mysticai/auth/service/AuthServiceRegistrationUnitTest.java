@@ -98,6 +98,8 @@ class AuthServiceRegistrationUnitTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null
         );
 

@@ -8,6 +8,7 @@ import {
   getAvailablePostLocales,
   getPostMetadataAlternates,
 } from '@/lib/blog';
+import { ArticleCompletionTracker } from '@/components/ArticleCompletionTracker';
 import { ArticleOpenTracker } from '@/components/ArticleOpenTracker';
 import { DownloadCtaLink } from '@/components/DownloadCtaLink';
 import { JsonLd } from '@/components/JsonLd';
@@ -102,6 +103,10 @@ export default async function BlogPostPage({ params }: Props) {
         category={post.category}
         locale="tr"
         translationGroup={post.translationGroup}
+      />
+      <ArticleCompletionTracker
+        slug={post.slug}
+        category={post.category}
       />
 
       <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6">

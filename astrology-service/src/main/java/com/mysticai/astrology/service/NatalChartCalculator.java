@@ -4,6 +4,7 @@ import com.mysticai.astrology.dto.HousePlacement;
 import com.mysticai.astrology.dto.PlanetPosition;
 import com.mysticai.astrology.dto.PlanetaryAspect;
 import com.mysticai.astrology.dto.PlanetaryAspect.AspectType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import de.thmac.swisseph.SweConst;
 import de.thmac.swisseph.SweDate;
@@ -26,6 +27,7 @@ import java.util.Set;
  * Provides sub-arcsecond precision for all major celestial bodies including Chiron and True Node.
  */
 @Service
+@RequiredArgsConstructor
 public class NatalChartCalculator {
 
     private static final String[] PLANETS = {
@@ -159,6 +161,7 @@ public class NatalChartCalculator {
             Map.entry("zonguldak", new double[]{41.4564, 31.7987})
     );
 
+    private final LocationCatalogService locationCatalogService;
     private final SwissEph sw = new SwissEph();
 
     /**
@@ -443,6 +446,19 @@ public class NatalChartCalculator {
             return new double[]{41.0082, 28.9784}; // Istanbul default
         }
 
+        LocationCatalogService.ResolvedLocation resolvedLocation = locationCatalogService
+                .resolveCoordinates(location)
+                .orElse(null);
+        if (resolvedLocation != null
+                && resolvedLocation.latitude() != null
+                && resolvedLocation.longitude() != null) {
+            return new double[]{resolvedLocation.latitude(), resolvedLocation.longitude()};
+        }
+
+        return parseLegacyLocation(location);
+    }
+
+    private double[] parseLegacyLocation(String location) {
         // Try direct lookup (case-insensitive)
         String key = location.trim().toLowerCase();
         double[] coords = CITY_COORDS.get(key);

@@ -18,6 +18,12 @@ import { ActionModal, AuthLegalNotice, PrimaryButton, SecondaryButton, StatusBan
 import { register, resendVerification } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { trackEvent } from '../../services/analytics';
+import {
+  ProductEventName,
+  resolveCountryCode,
+  setProductUserProperties,
+  trackProductEvent,
+} from '../../services/productAnalytics';
 import { isStrongPassword } from '../../utils/passwordPolicy';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -118,7 +124,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
 }
 
 export default function SignupScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const params = useLocalSearchParams<{ email?: string | string[] }>();
@@ -185,9 +191,24 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
+      trackProductEvent(ProductEventName.SIGNUP_STARTED, {
+        'signup method': 'email',
+        'entry point': 'signup_screen',
+        'is guest upgrade': false,
+        'country code': resolveCountryCode(i18n.resolvedLanguage ?? i18n.language),
+      });
       const response = await register(normalizedEmail, password, name);
       if (response.data?.status === 'PENDING_VERIFICATION') {
         trackEvent('auth_register_success', { source: 'signup', has_name: Boolean(name.trim()) });
+        trackProductEvent(ProductEventName.SIGNUP_COMPLETED, {
+          'signup method': 'email',
+          'entry point': 'signup_screen',
+          'is guest upgrade': false,
+          'email verification required': true,
+        });
+        setProductUserProperties({
+          'Signup Method': 'email',
+        });
         navigateToPending('register');
         return;
       }

@@ -59,6 +59,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/v1/auth/verify-email",
             "/api/v1/auth/verify-email-otp",
             "/api/v1/auth/quick-start",
+            "/api/v1/astrology/locations/",
             "/actuator/health",
             "/actuator/info",
             "/api/v1/analytics/",

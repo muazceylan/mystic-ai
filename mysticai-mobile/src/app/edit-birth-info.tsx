@@ -25,6 +25,12 @@ import { getZodiacSign } from '../constants/index';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { SafeScreen, TabHeader } from '../components/ui';
+import {
+  ProductEventName,
+  buildBirthDetailsProperties,
+  setProductUserProperties,
+  trackProductEvent,
+} from '../services/productAnalytics';
 
 function formatDateDisplay(date: Date, months: string[]): string {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
@@ -222,6 +228,7 @@ export default function EditBirthInfoScreen() {
     setSaving(true);
     try {
       const zodiacSign = getZodiacSign(birthDate.getMonth() + 1, birthDate.getDate());
+      const isFirstTimeBirthDetails = !user?.birthDate;
       const payload = {
         birthDate: birthDate.toISOString().split('T')[0],
         birthTime: birthTimeUnknown ? null : birthTime || null,
@@ -244,6 +251,18 @@ export default function EditBirthInfoScreen() {
       } catch {
         // Non-fatal: home screen will still reload, showing loading state
       }
+      trackProductEvent(ProductEventName.BIRTH_DETAILS_SAVED, buildBirthDetailsProperties({
+        birthTime,
+        birthTimeUnknown,
+        birthLocation,
+        zodiacSign,
+        isFirstTime: isFirstTimeBirthDetails,
+      }));
+      setProductUserProperties({
+        'Onboarding Status': 'completed',
+        'Zodiac Sign': zodiacSign,
+        'Has Birth Details': true,
+      });
       // Clear cached data so Home re-fetches the newly calculated chart
       queryClient.invalidateQueries({ queryKey: ['astrology'] });
       queryClient.invalidateQueries({ queryKey: ['lucky-dates'] });

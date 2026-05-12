@@ -18,6 +18,8 @@ public record UserDTO(
         String birthLocation,
         String birthCountry,
         String birthCity,
+        Double birthLatitude,
+        Double birthLongitude,
         Boolean birthTimeUnknown,
         String timezone,
         String gender,
@@ -58,6 +60,8 @@ public record UserDTO(
         private String birthLocation;
         private String birthCountry;
         private String birthCity;
+        private Double birthLatitude;
+        private Double birthLongitude;
         private Boolean birthTimeUnknown;
         private String timezone;
         private String gender;
@@ -89,6 +93,8 @@ public record UserDTO(
         public UserDTOBuilder birthLocation(String birthLocation) { this.birthLocation = birthLocation; return this; }
         public UserDTOBuilder birthCountry(String birthCountry) { this.birthCountry = birthCountry; return this; }
         public UserDTOBuilder birthCity(String birthCity) { this.birthCity = birthCity; return this; }
+        public UserDTOBuilder birthLatitude(Double birthLatitude) { this.birthLatitude = birthLatitude; return this; }
+        public UserDTOBuilder birthLongitude(Double birthLongitude) { this.birthLongitude = birthLongitude; return this; }
         public UserDTOBuilder birthTimeUnknown(Boolean birthTimeUnknown) { this.birthTimeUnknown = birthTimeUnknown; return this; }
         public UserDTOBuilder timezone(String timezone) { this.timezone = timezone; return this; }
         public UserDTOBuilder gender(String gender) { this.gender = gender; return this; }
@@ -110,7 +116,7 @@ public record UserDTO(
         public UserDTO build() {
             return new UserDTO(id, username, email, accountStatus, emailVerifiedAt, firstName, lastName, name,
                     birthDate, birthTime, birthLocation,
-                    birthCountry, birthCity, birthTimeUnknown, timezone, gender, maritalStatus,
+                    birthCountry, birthCity, birthLatitude, birthLongitude, birthTimeUnknown, timezone, gender, maritalStatus,
                     zodiacSign, avatarUri, avatarUrl, preferredLanguage,
                     roles, enabled, createdAt, updatedAt, hasPassword, provider,
                     userType, isAnonymous, isAccountLinked);

@@ -25,6 +25,7 @@ import {
 } from '../features/monetization';
 import { trackMonetizationEvent } from '../features/monetization/analytics/monetizationAnalytics';
 import type { ResolvedPaywallProduct } from '../features/monetization/types/billing';
+import { ProductEventName, trackProductEvent } from '../services/productAnalytics';
 
 function useBenefitList(fallbackCount = 7) {
   const { t } = useTranslation();
@@ -282,6 +283,13 @@ export default function PremiumScreen() {
   useEffect(() => {
     trackMonetizationEvent('paywall_view', {
       source: 'premium_screen',
+    });
+    trackProductEvent(ProductEventName.PAYWALL_VIEWED, {
+      'paywall placement': 'premium_screen',
+      'offer id': paywallQuery.subscriptionProducts[0]?.productKey ?? null,
+      'offer type': paywallQuery.paywall?.trialEligible ? 'trial_or_paid' : 'paid',
+      'eligibility state': paywallQuery.paywall?.trialEligible ? 'trial_eligible' : 'standard',
+      'source event': 'direct_navigation',
     });
   }, []);
 

@@ -40,6 +40,13 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
+import { useMonetizationStore } from '../../features/monetization';
+import {
+  ProductEventName,
+  computeDaysSince,
+  hasActiveSubscription,
+  trackProductEvent,
+} from '../../services/productAnalytics';
 
 interface UserStats {
   plannedDays: number;
@@ -91,6 +98,8 @@ export function ProfileScreenContent() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const entitlements = useMonetizationStore((s) => s.entitlements);
+  const paywall = useMonetizationStore((s) => s.paywall);
 
   const isGuest = isGuestUser(user);
   const initials = isGuest
@@ -159,8 +168,18 @@ export function ProfileScreenContent() {
     setDeleteLoading(true);
     setDeleteError(null);
     try {
+      trackProductEvent(ProductEventName.ACCOUNT_DELETION_REQUESTED, {
+        'entry point': 'profile',
+        'reason selected': 'unspecified',
+        'has active subscription': hasActiveSubscription(entitlements, paywall),
+      });
       await deleteAccount(requiresPassword ? deletePassword : undefined);
       trackEvent('account_deleted', { user_type: isGuest ? 'GUEST' : 'REGISTERED' });
+      trackProductEvent(ProductEventName.ACCOUNT_DELETED, {
+        'deletion method': requiresPassword ? 'password_confirmation' : 'session_confirmation',
+        'had active subscription': hasActiveSubscription(entitlements, paywall),
+        'days since signup': computeDaysSince(user?.createdAt),
+      });
       setShowDeleteModal(false);
       logout();
       router.replace('/(auth)/welcome');

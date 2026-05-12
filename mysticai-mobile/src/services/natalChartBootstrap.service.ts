@@ -38,8 +38,8 @@ export function buildNatalChartRequestFromUser(user: UserProfile | null): NatalC
     birthTime: user.birthTimeUnknown ? undefined : normalizeBirthTime(user.birthTime),
     birthLocation,
     timezone: trimToNull(user.timezone) ?? undefined,
-    latitude: user.latitude ?? user.lat,
-    longitude: user.longitude ?? user.lng,
+    latitude: user.birthLatitude ?? user.latitude ?? user.lat,
+    longitude: user.birthLongitude ?? user.longitude ?? user.lng,
   };
 }
 

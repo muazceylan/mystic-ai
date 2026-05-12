@@ -3,6 +3,7 @@ import type { AxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import { getToken } from '../utils/storage';
 import { useAuthStore } from '../store/useAuthStore';
+import { useNavigationHistoryStore } from '../store/useNavigationHistoryStore';
 import { envConfig } from '../config/env';
 import i18n from '../i18n';
 import {
@@ -10,6 +11,11 @@ import {
   logApiError,
   logWarnOnce,
 } from './observability';
+import {
+  sanitizeAmplitudeContextPath,
+  sanitizeAmplitudeErrorMessage,
+} from './amplitudeSanitization';
+import { ProductEventName, trackProductEvent } from './productAnalytics';
 
 // Extend AxiosRequestConfig (default data type = any) so the helper's return
 // value is structurally accepted as the 3rd arg to axios.post/put/delete<D>
@@ -47,6 +53,18 @@ function shouldSuppressGlobalErrorLog(error: unknown): boolean {
   }
 
   return Boolean((error.config as ApiRequestConfig | undefined)?.suppressGlobalErrorLog);
+}
+
+function isRetryableStatus(status?: number): boolean {
+  if (!status) {
+    return true;
+  }
+
+  return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+}
+
+function buildSanitizedErrorContext(method: string, url: string): string {
+  return `${method} ${sanitizeAmplitudeContextPath(url)}`;
 }
 
 export function withSuppressedGlobalApiErrorLog<Data = unknown>(
@@ -116,6 +134,19 @@ api.interceptors.response.use(
         }
       }
       if (status !== 401 && !shouldSuppressGlobalErrorLog(error)) {
+        const method = String(error.config?.method ?? 'GET').toUpperCase();
+        const url = String(error.config?.url ?? 'unknown');
+        const path = useNavigationHistoryStore.getState().currentPath ?? 'unknown';
+        trackProductEvent(ProductEventName.ERROR_ENCOUNTERED, {
+          'error category': 'api',
+          'error message': sanitizeAmplitudeErrorMessage(
+            error.response?.data?.message ?? error.message ?? 'Request failed',
+          ),
+          'error context': buildSanitizedErrorContext(method, url),
+          'http status code': status ?? null,
+          'is retryable': isRetryableStatus(status),
+          'source surface': path,
+        });
         logApiError('api', error);
       }
     }

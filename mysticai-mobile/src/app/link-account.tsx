@@ -31,6 +31,12 @@ import {
   verifyLinkAccountOtp,
 } from '../services/auth';
 import { trackEvent } from '../services/analytics';
+import {
+  ProductEventName,
+  resolveCountryCode,
+  setProductUserProperties,
+  trackProductEvent,
+} from '../services/productAnalytics';
 import { WEB_INPUT_RESET_STYLE } from '../utils/webInputReset';
 
 const GOOGLE_IOS_CLIENT_ID =
@@ -156,7 +162,7 @@ async function fetchEmailAvailability(email: string): Promise<boolean | null> {
 }
 
 export default function LinkAccountScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const storeLogin = useAuthStore((s) => s.login);
@@ -275,6 +281,12 @@ export default function LinkAccountScreen() {
     setLoading(true);
     try {
       trackEvent('link_account_started', { user_type: 'GUEST', auth_provider: provider.toUpperCase(), entry_point: 'link_account_screen' });
+      trackProductEvent(ProductEventName.SIGNUP_STARTED, {
+        'signup method': provider,
+        'entry point': 'link_account_screen',
+        'is guest upgrade': true,
+        'country code': resolveCountryCode(i18n.resolvedLanguage ?? i18n.language),
+      });
       const res = await linkAccountWithSocial({ provider, idToken });
       const { accessToken, refreshToken, user } = res.data;
       storeLogin(accessToken, refreshToken, user);
@@ -282,6 +294,21 @@ export default function LinkAccountScreen() {
       void queryClient.invalidateQueries({ queryKey: ['astrology'] });
       trackEvent('link_account_completed', { user_type: 'REGISTERED', auth_provider: provider.toUpperCase(), linked_account: true });
       trackEvent('quick_to_registered_converted', { auth_provider: provider.toUpperCase() });
+      trackProductEvent(ProductEventName.SIGNUP_COMPLETED, {
+        'signup method': provider,
+        'entry point': 'link_account_screen',
+        'is guest upgrade': true,
+        'email verification required': false,
+      });
+      trackProductEvent(ProductEventName.LOGIN_COMPLETED, {
+        'login method': provider,
+        'entry point': 'link_account_screen',
+        'is returning user': false,
+      });
+      setProductUserProperties({
+        'Signup Method': provider,
+        'Login Method': provider,
+      });
       setShowSuccessModal(true);
     } catch (error: any) {
       const message = error?.response?.data?.message ?? '';
@@ -335,6 +362,12 @@ export default function LinkAccountScreen() {
       }
 
       trackEvent('link_account_started', { user_type: 'GUEST', auth_provider: 'EMAIL', entry_point: 'link_account_screen' });
+      trackProductEvent(ProductEventName.SIGNUP_STARTED, {
+        'signup method': 'email',
+        'entry point': 'link_account_screen',
+        'is guest upgrade': true,
+        'country code': resolveCountryCode(i18n.resolvedLanguage ?? i18n.language),
+      });
       await linkAccountWithEmail({
         email: normalizedEmail,
         password,
@@ -371,6 +404,21 @@ export default function LinkAccountScreen() {
       void queryClient.invalidateQueries({ queryKey: ['astrology'] });
       trackEvent('link_account_completed', { user_type: 'REGISTERED', auth_provider: 'EMAIL', linked_account: true });
       trackEvent('quick_to_registered_converted', { auth_provider: 'EMAIL' });
+      trackProductEvent(ProductEventName.SIGNUP_COMPLETED, {
+        'signup method': 'email',
+        'entry point': 'link_account_screen',
+        'is guest upgrade': true,
+        'email verification required': false,
+      });
+      trackProductEvent(ProductEventName.LOGIN_COMPLETED, {
+        'login method': 'email',
+        'entry point': 'link_account_screen',
+        'is returning user': false,
+      });
+      setProductUserProperties({
+        'Signup Method': 'email',
+        'Login Method': 'email',
+      });
       setShowSuccessModal(true);
     } catch (error: any) {
       const message = error?.response?.data?.message ?? '';
