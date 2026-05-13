@@ -15,9 +15,7 @@ import {
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
-import { makeRedirectUri } from 'expo-auth-session';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
@@ -40,6 +38,11 @@ import {
   isNativeGoogleSigninConfigurationError,
   signInWithNativeGoogle,
 } from '../../services/googleSignIn';
+import {
+  isGoogleAuthSessionConfigured,
+  useGoogleIdTokenAuthRequest,
+  type GoogleAuthPromptResult,
+} from '../../services/googleAuthSession';
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
@@ -57,13 +60,7 @@ function firstParam(value: string | string[] | undefined): string {
   return value ?? '';
 }
 
-type GoogleAuthLikeResult = {
-  type?: string;
-  params?: Record<string, string | undefined>;
-  authentication?: { idToken?: string | null } | null;
-};
-
-function extractGoogleIdToken(result: GoogleAuthLikeResult | null | undefined): string | undefined {
+function extractGoogleIdToken(result: GoogleAuthPromptResult | undefined): string | undefined {
   if (!result || result.type !== 'success') return undefined;
   return result.params?.id_token ?? result.authentication?.idToken ?? undefined;
 }
@@ -363,8 +360,6 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   });
 }
 
-const GOOGLE_WEB_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
-
 function presentGoogleAuthError(title: string, message: string) {
   if (Platform.OS === 'android') {
     setTimeout(() => Alert.alert(title, message), 50);
@@ -410,17 +405,7 @@ export default function WelcomeScreen() {
     }
   }, [params.email, pendingEmail]);
 
-  const redirectUri = makeRedirectUri({
-    path: 'oauth2/callback',
-    scheme: 'mystic-ai',
-  });
-
-  const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
-    scopes: ['openid', 'profile', 'email'],
-    selectAccount: true,
-  });
+  const [googleResponse, googlePromptAsync] = useGoogleIdTokenAuthRequest();
 
   const handleSocialLoginResult = async (provider: string, idToken: string) => {
     if (authTransitionRef.current) return;
@@ -483,7 +468,7 @@ export default function WelcomeScreen() {
         return;
       }
 
-      if (!GOOGLE_WEB_CLIENT_ID) {
+      if (!isGoogleAuthSessionConfigured()) {
         presentGoogleAuthError(t('common.error'), t('auth.googleConfigError'));
         return;
       }

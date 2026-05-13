@@ -14,9 +14,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
 import * as Crypto from 'expo-crypto';
-import { makeRedirectUri } from 'expo-auth-session';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../context/ThemeContext';
@@ -42,8 +40,10 @@ import {
   isNativeGoogleSigninConfigurationError,
   signInWithNativeGoogle,
 } from '../services/googleSignIn';
-
-const GOOGLE_WEB_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
+import {
+  isGoogleAuthSessionConfigured,
+  useGoogleIdTokenAuthRequest,
+} from '../services/googleAuthSession';
 
 function presentGoogleLinkError(title: string, message: string) {
   if (Platform.OS === 'android') {
@@ -191,13 +191,7 @@ export default function LinkAccountScreen() {
   const otpInputRef = useRef<TextInput>(null);
   const emailCheckRequestIdRef = useRef(0);
 
-  const redirectUri = makeRedirectUri({ path: 'oauth2/callback', scheme: 'mystic-ai' });
-  const [, , googlePromptAsync] = Google.useIdTokenAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
-    scopes: ['openid', 'profile', 'email'],
-    selectAccount: true,
-  });
+  const [, googlePromptAsync] = useGoogleIdTokenAuthRequest();
 
   const isFormValid = firstName.trim().length > 0 && email.trim().length > 0 && STRONG_PASSWORD_RE.test(password);
   const isOtpValid = otpCode.length === 6;
@@ -334,7 +328,7 @@ export default function LinkAccountScreen() {
         return;
       }
 
-      if (!GOOGLE_WEB_CLIENT_ID) {
+      if (!isGoogleAuthSessionConfigured()) {
         presentGoogleLinkError(t('common.error'), t('linkAccount.googleConfigError'));
         return;
       }
