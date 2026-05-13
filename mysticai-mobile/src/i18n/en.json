@@ -1261,6 +1261,7 @@
     "loginError": "Could not sign in. Please try again.",
     "invalidCredentials": "Invalid email or password.",
     "googleLoginError": "Could not sign in with Google.",
+    "googleConfigError": "Google Sign-In is not configured for this app build. Please update the app and try again.",
     "appleLoginError": "Could not sign in with Apple.",
     "birthDateTitle": "Your Date of Birth?",
     "birthDateSubtitle": "Choose your birth date to personalize your chart.",
@@ -2770,6 +2771,7 @@
     "emailConflict": "This email is already registered. Sign in with your existing account.",
     "socialConflict": "This social account is already linked to another user.",
     "alreadyLinked": "Your account is already linked.",
+    "googleConfigError": "Google account linking is not configured for this app build. Please update the app and try again.",
     "genericError": "Could not link account. Please try again."
   },
   "guestGate": {

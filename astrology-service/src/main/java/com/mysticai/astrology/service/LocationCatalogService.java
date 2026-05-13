@@ -49,6 +49,42 @@ public class LocationCatalogService {
                 .getOrDefault(countryCode.trim().toUpperCase(Locale.ROOT), List.of());
     }
 
+    public List<LocationCityResponse> listDistricts(String countryCode) {
+        if (countryCode == null || countryCode.isBlank()) {
+            return List.of();
+        }
+        return catalogData.districtsByCountry()
+                .getOrDefault(countryCode.trim().toUpperCase(Locale.ROOT), List.of());
+    }
+
+    public List<LocationCityResponse> searchSettlements(String countryCode, String query) {
+        if (countryCode == null || countryCode.isBlank() || query == null || query.isBlank()) {
+            return List.of();
+        }
+        String code = countryCode.trim().toUpperCase(Locale.ROOT);
+        String normalizedQuery = normalizeKey(query);
+        if (normalizedQuery.isBlank()) {
+            return listCities(code);
+        }
+
+        List<LocationCityResponse> cities = catalogData.citiesByCountry().getOrDefault(code, List.of());
+        List<LocationCityResponse> districts = catalogData.districtsByCountry().getOrDefault(code, List.of());
+
+        List<LocationCityResponse> matched = new ArrayList<>();
+        for (LocationCityResponse c : cities) {
+            if (normalizeKey(c.name()).contains(normalizedQuery)) {
+                matched.add(c);
+            }
+        }
+        for (LocationCityResponse d : districts) {
+            if (normalizeKey(d.name()).contains(normalizedQuery)) {
+                matched.add(d);
+            }
+        }
+        matched.sort(Comparator.comparing(LocationCityResponse::name, String.CASE_INSENSITIVE_ORDER));
+        return matched;
+    }
+
     public Optional<ResolvedLocation> resolveCoordinates(String location) {
         if (location == null || location.isBlank()) {
             return Optional.empty();
@@ -142,11 +178,12 @@ public class LocationCatalogService {
         try (InputStream inputStream = new ClassPathResource(CATALOG_RESOURCE).getInputStream()) {
             CatalogSeed seed = objectMapper.readValue(inputStream, CatalogSeed.class);
             if (seed.countries() == null) {
-                return new CatalogData(List.of(), Map.of(), List.of(), Map.of());
+                return new CatalogData(List.of(), Map.of(), Map.of(), List.of(), Map.of());
             }
 
             List<LocationCountryResponse> countries = new ArrayList<>();
             Map<String, List<LocationCityResponse>> citiesByCountry = new LinkedHashMap<>();
+            Map<String, List<LocationCityResponse>> districtsByCountry = new LinkedHashMap<>();
             List<IndexedCity> indexedCities = new ArrayList<>();
             Map<String, String> countryCodeByToken = new LinkedHashMap<>();
 
@@ -159,37 +196,26 @@ public class LocationCatalogService {
                 String name = country.name() == null || country.name().isBlank()
                         ? code
                         : country.name().trim();
-                List<CitySeed> rawCities = country.cities() == null ? List.of() : country.cities();
 
-                List<LocationCityResponse> cityResponses = rawCities.stream()
-                        .filter(city -> city.name() != null && !city.name().isBlank())
-                        .map(city -> new LocationCityResponse(
-                                city.name().trim(),
-                                city.timezone() == null || city.timezone().isBlank() ? null : city.timezone().trim(),
-                                city.latitude(),
-                                city.longitude()
-                        ))
-                        .sorted(Comparator.comparing(LocationCityResponse::name, String.CASE_INSENSITIVE_ORDER))
-                        .toList();
+                List<CitySeed> rawCities = country.cities() == null ? List.of() : country.cities();
+                List<CitySeed> rawDistricts = country.districts() == null ? List.of() : country.districts();
+
+                List<LocationCityResponse> cityResponses = toSortedResponses(rawCities);
+                List<LocationCityResponse> districtResponses = toSortedResponses(rawDistricts);
 
                 countries.add(new LocationCountryResponse(code, name, cityResponses.size()));
                 citiesByCountry.put(code, cityResponses);
+                districtsByCountry.put(code, districtResponses);
                 countryCodeByToken.put(normalizeKey(code), code);
                 countryCodeByToken.put(normalizeKey(name), code);
 
                 for (CitySeed city : rawCities) {
-                    if (city.name() == null || city.name().isBlank()) {
-                        continue;
-                    }
-                    indexedCities.add(new IndexedCity(
-                            code,
-                            name,
-                            city.name().trim(),
-                            city.latitude(),
-                            city.longitude(),
-                            city.timezone(),
-                            buildMatchKeys(city)
-                    ));
+                    if (city.name() == null || city.name().isBlank()) continue;
+                    indexedCities.add(toIndexedCity(code, name, city));
+                }
+                for (CitySeed district : rawDistricts) {
+                    if (district.name() == null || district.name().isBlank()) continue;
+                    indexedCities.add(toIndexedCity(code, name, district));
                 }
             }
 
@@ -200,12 +226,38 @@ public class LocationCatalogService {
             return new CatalogData(
                     sortedCountries,
                     Map.copyOf(citiesByCountry),
+                    Map.copyOf(districtsByCountry),
                     List.copyOf(indexedCities),
                     Map.copyOf(countryCodeByToken)
             );
         } catch (IOException exception) {
             throw new IllegalStateException("Could not load location catalog seed: " + CATALOG_RESOURCE, exception);
         }
+    }
+
+    private List<LocationCityResponse> toSortedResponses(List<CitySeed> seeds) {
+        return seeds.stream()
+                .filter(c -> c.name() != null && !c.name().isBlank())
+                .map(c -> new LocationCityResponse(
+                        c.name().trim(),
+                        c.timezone() == null || c.timezone().isBlank() ? null : c.timezone().trim(),
+                        c.latitude(),
+                        c.longitude()
+                ))
+                .sorted(Comparator.comparing(LocationCityResponse::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    private IndexedCity toIndexedCity(String countryCode, String countryName, CitySeed city) {
+        return new IndexedCity(
+                countryCode,
+                countryName,
+                city.name().trim(),
+                city.latitude(),
+                city.longitude(),
+                city.timezone(),
+                buildMatchKeys(city)
+        );
     }
 
     private Set<String> buildMatchKeys(CitySeed city) {
@@ -253,6 +305,7 @@ public class LocationCatalogService {
     private record CatalogData(
             List<LocationCountryResponse> countries,
             Map<String, List<LocationCityResponse>> citiesByCountry,
+            Map<String, List<LocationCityResponse>> districtsByCountry,
             List<IndexedCity> indexedCities,
             Map<String, String> countryCodeByToken
     ) {
@@ -264,7 +317,8 @@ public class LocationCatalogService {
     private record CountrySeed(
             String code,
             String name,
-            List<CitySeed> cities
+            List<CitySeed> cities,
+            List<CitySeed> districts
     ) {
     }
 

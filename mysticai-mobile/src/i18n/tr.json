@@ -1260,6 +1260,7 @@
     "loginError": "Giriş yapılamadı. Lütfen tekrar deneyin.",
     "invalidCredentials": "E-posta veya şifre hatalı.",
     "googleLoginError": "Google ile giriş yapılamadı.",
+    "googleConfigError": "Google girişi bu uygulama sürümünde yapılandırılmamış. Lütfen uygulamayı güncelle ve tekrar dene.",
     "appleLoginError": "Apple ile giriş yapılamadı.",
     "birthDateTitle": "Doğum Tarihiniz?",
     "birthDateSubtitle": "Haritanızı kişiselleştirmek için doğum tarihinizi seçin.",
@@ -2769,6 +2770,7 @@
     "emailConflict": "Bu e-posta adresi zaten kayıtlı. Mevcut hesabınla giriş yap.",
     "socialConflict": "Bu sosyal hesap zaten başka bir kullanıcıya bağlı.",
     "alreadyLinked": "Hesabın zaten bağlı.",
+    "googleConfigError": "Google hesabı bu uygulama sürümünde bağlanamıyor. Lütfen uygulamayı güncelle ve tekrar dene.",
     "genericError": "Hesap bağlanamadı. Lütfen tekrar deneyin."
   },
   "guestGate": {

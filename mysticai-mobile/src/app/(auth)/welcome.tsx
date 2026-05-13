@@ -36,6 +36,10 @@ import {
 } from '../../services/productAnalytics';
 import { needsOnboarding } from '../../utils/authOnboarding';
 import { WEB_INPUT_RESET_STYLE } from '../../utils/webInputReset';
+import {
+  isNativeGoogleSigninConfigurationError,
+  signInWithNativeGoogle,
+} from '../../services/googleSignIn';
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
@@ -359,15 +363,16 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   });
 }
 
-const GOOGLE_IOS_CLIENT_ID =
-  process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
-  '607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID =
-  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
-  '607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com';
-const GOOGLE_WEB_CLIENT_ID =
-  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
-  '607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
+
+function presentGoogleAuthError(title: string, message: string) {
+  if (Platform.OS === 'android') {
+    setTimeout(() => Alert.alert(title, message), 50);
+    return;
+  }
+
+  Alert.alert(title, message);
+}
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
@@ -411,8 +416,6 @@ export default function WelcomeScreen() {
   });
 
   const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     webClientId: GOOGLE_WEB_CLIENT_ID,
     redirectUri,
     scopes: ['openid', 'profile', 'email'],
@@ -471,6 +474,20 @@ export default function WelcomeScreen() {
         'entry point': 'welcome_screen',
         'is returning user': true,
       });
+
+      if (Platform.OS !== 'web') {
+        const idToken = await signInWithNativeGoogle();
+        if (!idToken) return;
+
+        await handleSocialLoginResult('google', idToken);
+        return;
+      }
+
+      if (!GOOGLE_WEB_CLIENT_ID) {
+        presentGoogleAuthError(t('common.error'), t('auth.googleConfigError'));
+        return;
+      }
+
       const result = await googlePromptAsync();
       const idToken = extractGoogleIdToken(result) ?? extractGoogleIdToken(googleResponse);
 
@@ -478,10 +495,14 @@ export default function WelcomeScreen() {
         handledGoogleTokenRef.current = idToken;
         await handleSocialLoginResult('google', idToken);
       } else if (result?.type === 'success') {
-        Alert.alert(t('common.error'), t('auth.googleLoginError'));
+        presentGoogleAuthError(t('common.error'), t('auth.googleLoginError'));
       }
     } catch (error) {
-      Alert.alert(t('common.error'), t('auth.googleLoginError'));
+      const message = isNativeGoogleSigninConfigurationError(error)
+        ? t('auth.googleConfigError')
+        : t('auth.googleLoginError');
+
+      presentGoogleAuthError(t('common.error'), message);
     }
   };
 

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import { useLocationCities, useLocationCountries } from '../../hooks/useLocation
 import {
   normalizeLocationSearchText,
   resolveCountryNameByCode,
+  searchLocationSettlements,
   type LocationCity,
 } from '../../services/locationCatalog.service';
 
@@ -41,6 +42,45 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       fontWeight: '600',
       color: C.primary,
       paddingHorizontal: 4,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingBottom: 32,
+      paddingHorizontal: 20,
+      backgroundColor: C.surface,
+    },
+    outlineButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: C.primary,
+      borderRadius: 999,
+      paddingVertical: 14,
+      alignItems: 'center',
+      backgroundColor: C.surface,
+    },
+    outlineText: {
+      color: C.primary,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    primaryButton: {
+      flex: 1,
+      borderRadius: 999,
+      paddingVertical: 14,
+      alignItems: 'center',
+      backgroundColor: C.primary,
+    },
+    primaryDisabled: {
+      backgroundColor: C.disabled,
+    },
+    primaryText: {
+      color: C.white,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    primaryTextDisabled: {
+      color: C.disabledText,
     },
     searchContainer: {
       flexDirection: 'row',
@@ -184,6 +224,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return { listStyles, styles: summaryStyles };
 }
 
+const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_MIN_CHARS = 2;
+
 export default function BirthCityScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -194,21 +237,49 @@ export default function BirthCityScreen() {
   const countries = countriesQuery.data ?? [];
   const cities = citiesQuery.data ?? [];
 
-  const hasCity = Boolean(store.birthCity || store.birthCityManual);
-  const [view, setView] = useState<ScreenView>(hasCity ? 'summary' : 'city-list');
+  const canContinue = Boolean(store.birthCity || store.birthCityManual);
+  const [view, setView] = useState<ScreenView>(canContinue ? 'summary' : 'city-list');
   const [citySearch, setCitySearch] = useState('');
   const [districtSearch, setDistrictSearch] = useState('');
   const [pendingCity, setPendingCity] = useState<LocationCity | null>(null);
+  const [searchResults, setSearchResults] = useState<LocationCity[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const countryName = useMemo(
     () => resolveCountryNameByCode(store.birthCountry, countries) || t('auth.country'),
     [countries, store.birthCountry, t]
   );
 
+  // Server-side search when query is long enough
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    if (citySearch.trim().length < SEARCH_MIN_CHARS) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      const results = await searchLocationSettlements(store.birthCountry, citySearch.trim());
+      setSearchResults(results);
+      setIsSearching(false);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [citySearch, store.birthCountry]);
+
   const normalizedCitySearch = normalizeLocationSearchText(citySearch);
-  const filteredCities = cities.filter((c) =>
-    !normalizedCitySearch || normalizeLocationSearchText(c.name).includes(normalizedCitySearch)
-  );
+  // Use server search results when available, otherwise filter local cities
+  const filteredCities = searchResults !== null
+    ? searchResults
+    : cities.filter((c) =>
+        !normalizedCitySearch || normalizeLocationSearchText(c.name).includes(normalizedCitySearch)
+      );
 
   const districtList = pendingCity ? (DISTRICTS[pendingCity.name] ?? []) : [];
   const normalizedDistrictSearch = normalizeLocationSearchText(districtSearch);
@@ -247,7 +318,7 @@ export default function BirthCityScreen() {
   };
 
   const handleCloseCityList = () => {
-    if (hasCity) { setView('summary'); return; }
+    if (canContinue) { setView('summary'); return; }
     router.back();
   };
 
@@ -257,58 +328,76 @@ export default function BirthCityScreen() {
       <SafeScreen>
         <View style={listStyles.container}>
           <OnboardingBackground />
-        <View style={listStyles.header}>
-          <Text style={listStyles.headerTitle}>{t('auth.selectCity')}</Text>
+          <View style={listStyles.header}>
+            <Text style={listStyles.headerTitle}>{t('auth.selectCity')}</Text>
+          </View>
+
+          <View style={listStyles.searchContainer}>
+            <Ionicons name="search" size={18} color={colors.disabledText} />
+            <Text style={listStyles.countryPrefix}>{countryName}</Text>
+            <Text style={listStyles.separator}>|</Text>
+            <TextInput
+              style={listStyles.searchInput}
+              placeholder={t('auth.citySearch')}
+              placeholderTextColor={colors.disabledText}
+              value={citySearch}
+              onChangeText={setCitySearch}
+            />
+            {citySearch.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setCitySearch('')}
+                accessibilityLabel={t('auth.clearSearch')}
+                accessibilityRole="button"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="close" size={18} color={colors.disabledText} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {isSearching ? (
+            <ActivityIndicator style={{ marginTop: 24 }} color={colors.primary} />
+          ) : (
+            <FlatList
+              data={filteredCities}
+              keyExtractor={(item, index) => `${item.name}-${index}`}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={listStyles.listItem}
+                  onPress={() => handleCitySelect(item)}
+                  accessibilityLabel={t('auth.selectCityItem', { name: item.name })}
+                  accessibilityRole="button"
+                >
+                  <Text style={listStyles.listItemText}>{item.name}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.disabledText} />
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={listStyles.emptyText}>{t('auth.noCityFound')}</Text>}
+            />
+          )}
+        </View>
+
+        <View style={listStyles.footer}>
           <TouchableOpacity
+            style={listStyles.outlineButton}
             onPress={handleCloseCityList}
-            accessibilityLabel={t('common.close')}
+            accessibilityLabel={t('editBirthInfo.accessibilityBack')}
             accessibilityRole="button"
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="close" size={22} color={colors.subtext} />
+            <Text style={listStyles.outlineText}>{t('common.back')}</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={listStyles.searchContainer}>
-          <Ionicons name="search" size={18} color={colors.disabledText} />
-          <Text style={listStyles.countryPrefix}>{countryName}</Text>
-          <Text style={listStyles.separator}>|</Text>
-          <TextInput
-            style={listStyles.searchInput}
-            placeholder={t('auth.citySearch')}
-            placeholderTextColor={colors.disabledText}
-            value={citySearch}
-            onChangeText={setCitySearch}
-          />
-          {citySearch.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setCitySearch('')}
-              accessibilityLabel={t('auth.clearSearch')}
-              accessibilityRole="button"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="close" size={18} color={colors.disabledText} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <FlatList
-          data={filteredCities}
-          keyExtractor={(item) => item.name}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={listStyles.listItem}
-              onPress={() => handleCitySelect(item)}
-              accessibilityLabel={t('auth.selectCityItem', { name: item.name })}
-              accessibilityRole="button"
-            >
-              <Text style={listStyles.listItemText}>{item.name}</Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.disabledText} />
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={<Text style={listStyles.emptyText}>{t('auth.noCityFound')}</Text>}
-        />
+          <TouchableOpacity
+            style={[listStyles.primaryButton, !canContinue && listStyles.primaryDisabled]}
+            disabled={!canContinue}
+            onPress={() => router.push('/(auth)/gender')}
+            accessibilityLabel={t('common.continue')}
+            accessibilityRole="button"
+          >
+            <Text style={[listStyles.primaryText, !canContinue && listStyles.primaryTextDisabled]}>
+              {t('common.continue')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeScreen>
     );
@@ -320,64 +409,68 @@ export default function BirthCityScreen() {
       <SafeScreen>
         <View style={listStyles.container}>
           <OnboardingBackground />
-        <View style={listStyles.header}>
+          <View style={listStyles.header}>
+            <Text style={[listStyles.headerTitle, { flex: 1 }]}>
+              {pendingCity?.name} — {t('auth.districtSelect')}
+            </Text>
+          </View>
+
+          <View style={listStyles.searchContainer}>
+            <Ionicons name="search" size={18} color={colors.disabledText} />
+            <TextInput
+              style={listStyles.searchInput}
+              placeholder={t('auth.districtSearch')}
+              placeholderTextColor={colors.disabledText}
+              value={districtSearch}
+              onChangeText={setDistrictSearch}
+            />
+            {districtSearch.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setDistrictSearch('')}
+                accessibilityLabel={t('auth.clearSearch')}
+                accessibilityRole="button"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="close" size={18} color={colors.disabledText} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <FlatList
+            data={filteredDistricts}
+            keyExtractor={(item) => item}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={listStyles.listItem}
+                onPress={() => handleDistrictSelect(item)}
+                accessibilityLabel={t('auth.selectDistrictItem', { name: item })}
+                accessibilityRole="button"
+              >
+                <Text style={listStyles.listItemText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={<Text style={listStyles.emptyText}>{t('auth.noDistrictFound')}</Text>}
+          />
+        </View>
+
+        <View style={listStyles.footer}>
           <TouchableOpacity
+            style={listStyles.outlineButton}
             onPress={() => setView('city-list')}
-            style={{ padding: 2 }}
-            accessibilityLabel={t('auth.backToCityList')}
+            accessibilityLabel={t('editBirthInfo.accessibilityBack')}
             accessibilityRole="button"
           >
-            <Ionicons name="arrow-back" size={22} color={colors.primary} />
+            <Text style={listStyles.outlineText}>{t('common.back')}</Text>
           </TouchableOpacity>
-          <Text style={[listStyles.headerTitle, { flex: 1, marginLeft: 8 }]}>
-            {pendingCity?.name} — {t('auth.districtSelect')}
-          </Text>
-            <TouchableOpacity
-              onPress={handleSkipDistrict}
-              accessibilityLabel={t('auth.skipDistrict')}
-              accessibilityRole="button"
-            >
-            <Text style={listStyles.skipText}>{t('auth.skip')}</Text>
+          <TouchableOpacity
+            style={listStyles.primaryButton}
+            onPress={handleSkipDistrict}
+            accessibilityLabel={t('common.continue')}
+            accessibilityRole="button"
+          >
+            <Text style={listStyles.primaryText}>{t('common.continue')}</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={listStyles.searchContainer}>
-          <Ionicons name="search" size={18} color={colors.disabledText} />
-          <TextInput
-            style={listStyles.searchInput}
-            placeholder={t('auth.districtSearch')}
-            placeholderTextColor={colors.disabledText}
-            value={districtSearch}
-            onChangeText={setDistrictSearch}
-          />
-          {districtSearch.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setDistrictSearch('')}
-              accessibilityLabel={t('auth.clearSearch')}
-              accessibilityRole="button"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="close" size={18} color={colors.disabledText} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <FlatList
-          data={filteredDistricts}
-          keyExtractor={(item) => item}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={listStyles.listItem}
-              onPress={() => handleDistrictSelect(item)}
-              accessibilityLabel={t('auth.selectDistrictItem', { name: item })}
-              accessibilityRole="button"
-            >
-              <Text style={listStyles.listItemText}>{item}</Text>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={<Text style={listStyles.emptyText}>{t('auth.noDistrictFound')}</Text>}
-        />
         </View>
       </SafeScreen>
     );
@@ -388,7 +481,6 @@ export default function BirthCityScreen() {
   const locationLabel = cityLabel
     ? `${countryName}, ${cityLabel}${store.birthDistrict ? `, ${store.birthDistrict}` : ''}`
     : t('auth.countryCityPlaceholder');
-  const canContinue = Boolean(store.birthCity || store.birthCityManual);
 
   return (
     <SafeScreen>

@@ -114,6 +114,24 @@ export async function fetchLocationCities(countryCode: string): Promise<Location
   }
 }
 
+export async function searchLocationSettlements(
+  countryCode: string,
+  query: string,
+): Promise<LocationCity[]> {
+  const normalizedCountryCode = countryCode.trim().toUpperCase();
+  if (!normalizedCountryCode || !query.trim()) return [];
+
+  try {
+    const response = await api.get<LocationCity[]>(
+      `/api/v1/astrology/locations/countries/${encodeURIComponent(normalizedCountryCode)}/search`,
+      { params: { q: query.trim() } },
+    );
+    return response.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export function resolveCountryNameByCode(
   code: string | null | undefined,
   countries?: LocationCountry[] | null,

@@ -130,6 +130,19 @@ public class AstrologyController {
         return ResponseEntity.ok(locationCatalogService.listCities(countryCode));
     }
 
+    @GetMapping("/locations/countries/{countryCode}/districts")
+    public ResponseEntity<List<LocationCityResponse>> getLocationDistricts(@PathVariable String countryCode) {
+        return ResponseEntity.ok(locationCatalogService.listDistricts(countryCode));
+    }
+
+    @GetMapping("/locations/countries/{countryCode}/search")
+    public ResponseEntity<List<LocationCityResponse>> searchLocationSettlements(
+            @PathVariable String countryCode,
+            @RequestParam(required = false, defaultValue = "") String q
+    ) {
+        return ResponseEntity.ok(locationCatalogService.searchSettlements(countryCode, q));
+    }
+
     /**
      * Request periodic (daily/weekly/monthly) astrological analysis
      */

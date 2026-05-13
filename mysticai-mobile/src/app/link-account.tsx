@@ -38,16 +38,21 @@ import {
   trackProductEvent,
 } from '../services/productAnalytics';
 import { WEB_INPUT_RESET_STYLE } from '../utils/webInputReset';
+import {
+  isNativeGoogleSigninConfigurationError,
+  signInWithNativeGoogle,
+} from '../services/googleSignIn';
 
-const GOOGLE_IOS_CLIENT_ID =
-  process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
-  '607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID =
-  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
-  '607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com';
-const GOOGLE_WEB_CLIENT_ID =
-  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
-  '607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
+
+function presentGoogleLinkError(title: string, message: string) {
+  if (Platform.OS === 'android') {
+    setTimeout(() => Alert.alert(title, message), 50);
+    return;
+  }
+
+  Alert.alert(title, message);
+}
 
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -188,8 +193,6 @@ export default function LinkAccountScreen() {
 
   const redirectUri = makeRedirectUri({ path: 'oauth2/callback', scheme: 'mystic-ai' });
   const [, , googlePromptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     webClientId: GOOGLE_WEB_CLIENT_ID,
     redirectUri,
     scopes: ['openid', 'profile', 'email'],
@@ -323,14 +326,31 @@ export default function LinkAccountScreen() {
 
   const handleGoogleLink = async () => {
     try {
+      if (Platform.OS !== 'web') {
+        const idToken = await signInWithNativeGoogle();
+        if (!idToken) return;
+
+        await handleSocialLink('google', idToken);
+        return;
+      }
+
+      if (!GOOGLE_WEB_CLIENT_ID) {
+        presentGoogleLinkError(t('common.error'), t('linkAccount.googleConfigError'));
+        return;
+      }
+
       const result = await googlePromptAsync();
       if (result?.type === 'success') {
         const idToken = result.params?.id_token ?? result.authentication?.idToken;
         if (idToken) await handleSocialLink('google', idToken);
-        else Alert.alert(t('common.error'), t('linkAccount.genericError'));
+        else presentGoogleLinkError(t('common.error'), t('linkAccount.genericError'));
       }
-    } catch {
-      Alert.alert(t('common.error'), t('linkAccount.genericError'));
+    } catch (error) {
+      const message = isNativeGoogleSigninConfigurationError(error)
+        ? t('linkAccount.googleConfigError')
+        : t('linkAccount.genericError');
+
+      presentGoogleLinkError(t('common.error'), message);
     }
   };
 

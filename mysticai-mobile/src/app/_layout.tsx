@@ -73,6 +73,7 @@ import {
 } from '../utils/pushNotifications';
 import { RevenueCatProvider, useMonetizationStore, useGuruWalletStore } from '../features/monetization';
 import { initializeAdProvider } from '../features/monetization/providers/initProvider';
+import { warmNativeGoogleSigninConfig } from '../services/googleSignIn';
 
 const ADSENSE_CLIENT = 'ca-pub-2868466577339325';
 const ADSENSE_SCRIPT_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
@@ -728,6 +729,7 @@ export default function Layout() {
 
   useEffect(() => {
     hydrate();
+    warmNativeGoogleSigninConfig();
     initI18n().then(() => setI18nReady(true));
   }, []);
 

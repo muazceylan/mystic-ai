@@ -241,6 +241,17 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
         const isFirstScreenVisit = !hasVisitedScreen(scopeKey, lScreenKey);
         const isFirstAppOpen = !isFirstAppOpenHandled(scopeKey);
 
+        tutorialDebugLog('request_tutorial_for_screen', {
+          screen_key: screenKey,
+          locale_screen_key: lScreenKey,
+          reason,
+          is_first_screen_visit: isFirstScreenVisit,
+          tutorials: tutorials.map((t) => ({
+            id: t.tutorialId,
+            progress: getProgress(scopeKey, t.tutorialId),
+          })),
+        });
+
         for (const tutorial of tutorials) {
           const progress = getProgress(scopeKey, tutorial.tutorialId);
           const shouldStart = canStartTutorial(tutorial, {
@@ -248,6 +259,16 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
             progress,
             isFirstScreenVisit,
             isFirstAppOpen,
+          });
+
+          tutorialDebugLog('can_start_tutorial_result', {
+            tutorial_id: tutorial.tutorialId,
+            reason,
+            should_start: shouldStart,
+            is_first_screen_visit: isFirstScreenVisit,
+            last_seen_version: progress?.lastSeenVersion,
+            skipped_version: progress?.skippedVersion,
+            dont_show_again: progress?.dontShowAgain,
           });
 
           if (shouldStart) {
@@ -520,7 +541,14 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
     }));
 
     // Reset the locale-qualified screen-visited flag so the first_screen_visit trigger fires again.
-    resetScreenVisit(scopeKey, localeScreenKey(definition.screenKey));
+    const lsk = localeScreenKey(definition.screenKey);
+    tutorialDebugLog('skip_tutorial_reset', {
+      tutorial_id: definition.tutorialId,
+      screen_key: definition.screenKey,
+      locale_screen_key: lsk,
+      scope_key: scopeKey,
+    });
+    resetScreenVisit(scopeKey, lsk);
 
     viewedStepRef.current = null;
     activeSessionRef.current = null;
