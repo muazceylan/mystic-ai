@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "f1ee7665-fca5-48dd-b452-0ec057dfed60"
+      }
+    },
+    "android": {
+      "package": "com.astroguru.mmc"
+    }
+  }
+}

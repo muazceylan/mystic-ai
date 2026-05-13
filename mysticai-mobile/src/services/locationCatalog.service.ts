@@ -58,7 +58,11 @@ function mergeCountries(primary: LocationCountry[], fallback: LocationCountry[])
       : item);
   }
 
-  return [...merged.values()].sort((left, right) => left.name.localeCompare(right.name, 'tr'));
+  return [...merged.values()].sort((left, right) => {
+    if (left.code === 'TR') return -1;
+    if (right.code === 'TR') return 1;
+    return left.name.localeCompare(right.name, 'tr');
+  });
 }
 
 function mergeCities(primary: LocationCity[], fallback: LocationCity[]): LocationCity[] {

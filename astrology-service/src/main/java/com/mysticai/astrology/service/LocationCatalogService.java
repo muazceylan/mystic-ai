@@ -219,8 +219,11 @@ public class LocationCatalogService {
                 }
             }
 
+            Comparator<LocationCountryResponse> countryOrder = Comparator
+                    .<LocationCountryResponse, Integer>comparing(c -> "TR".equals(c.code()) ? 0 : 1)
+                    .thenComparing(LocationCountryResponse::name, String.CASE_INSENSITIVE_ORDER);
             List<LocationCountryResponse> sortedCountries = countries.stream()
-                    .sorted(Comparator.comparing(LocationCountryResponse::name, String.CASE_INSENSITIVE_ORDER))
+                    .sorted(countryOrder)
                     .toList();
 
             return new CatalogData(
