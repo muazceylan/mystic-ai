@@ -47,6 +47,7 @@ import {
   hasActiveSubscription,
   trackProductEvent,
 } from '../../services/productAnalytics';
+import BuildInfoText from '../../components/BuildInfoText';
 
 interface UserStats {
   plannedDays: number;
@@ -498,7 +499,7 @@ export function ProfileScreenContent() {
           <Text style={S.logoutText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
 
-        <Text style={S.versionText}>{t('profile.version')}</Text>
+        <BuildInfoText style={S.versionText} />
         </ScrollView>
       </View>
 

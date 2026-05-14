@@ -74,6 +74,7 @@ import {
 import { RevenueCatProvider, useMonetizationStore, useGuruWalletStore } from '../features/monetization';
 import { initializeAdProvider } from '../features/monetization/providers/initProvider';
 import { warmNativeGoogleSigninConfig } from '../services/googleSignIn';
+import { getBuildInfo } from '../services/buildInfo';
 
 const ADSENSE_CLIENT = 'ca-pub-2868466577339325';
 const ADSENSE_SCRIPT_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
@@ -278,6 +279,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
         <AppConfigBootstrap />
         <MonetizationBootstrap />
         <AmplitudeBootstrap />
+        <BuildInfoBootstrap />
         <TutorialBootstrap />
         <GuestSessionBootstrap />
         <ScreenTracker />
@@ -298,6 +300,23 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
 function AmplitudeBootstrap() {
   useEffect(() => {
     initializeClientAnalytics();
+  }, []);
+
+  return null;
+}
+
+function BuildInfoBootstrap() {
+  useEffect(() => {
+    const info = getBuildInfo();
+    console.info('[BuildInfo]', {
+      appVersion: info.appVersion,
+      buildNumber: info.buildNumber,
+      applicationId: info.applicationId,
+      platform: info.platform,
+      environment: info.environment,
+      updateChannel: info.updateChannel,
+      runtimeVersion: info.runtimeVersion,
+    });
   }, []);
 
   return null;

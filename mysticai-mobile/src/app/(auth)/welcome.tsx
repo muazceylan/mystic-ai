@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
 import { AuthLegalNotice } from '../../components/auth';
+import BuildInfoText from '../../components/BuildInfoText';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { usePendingGuestStore } from '../../store/usePendingGuestStore';
@@ -250,6 +251,11 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     legalNotice: {
       marginTop: 2,
+    },
+    buildInfo: {
+      marginTop: 6,
+      marginBottom: 4,
+      alignSelf: 'center',
     },
     socialButton: {
       backgroundColor: C.surface,
@@ -882,6 +888,7 @@ export default function WelcomeScreen() {
           </View>
 
           <AuthLegalNotice variant="inline" style={styles.legalNotice} />
+          <BuildInfoText style={styles.buildInfo} />
         </ScrollView>
 
       {(loading || quickStartLoading) && (
