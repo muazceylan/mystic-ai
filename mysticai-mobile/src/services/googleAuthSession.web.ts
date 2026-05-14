@@ -1,7 +1,10 @@
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
+import { Platform } from 'react-native';
 
 const GOOGLE_WEB_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
+const GOOGLE_ANDROID_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '').trim();
+const GOOGLE_IOS_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '').trim();
 
 export type GoogleAuthPromptResult = {
   type?: string;
@@ -12,6 +15,8 @@ export type GoogleAuthPromptResult = {
 type GooglePromptAsync = () => Promise<GoogleAuthPromptResult>;
 
 export function isGoogleAuthSessionConfigured(): boolean {
+  if (Platform.OS === 'android') return GOOGLE_ANDROID_CLIENT_ID.length > 0;
+  if (Platform.OS === 'ios') return GOOGLE_IOS_CLIENT_ID.length > 0;
   return GOOGLE_WEB_CLIENT_ID.length > 0;
 }
 
@@ -22,7 +27,9 @@ export function useGoogleIdTokenAuthRequest(): [GoogleAuthPromptResult, GooglePr
   });
 
   const [, response, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID || undefined,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
+    iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
     redirectUri,
     scopes: ['openid', 'profile', 'email'],
     selectAccount: true,

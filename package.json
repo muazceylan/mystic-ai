@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build:android:aab": "npm --prefix mysticai-mobile run build:android:aab"
+  },
   "dependencies": {
     "react-native-draggable-flatlist": "^4.0.3"
   },

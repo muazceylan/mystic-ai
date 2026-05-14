@@ -94,6 +94,10 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+        // The app only ships Turkish and English UI copy. Restricting packaged
+        // locale resources avoids flaky AAPT failures in bundled third-party
+        // translations and keeps the AAB smaller.
+        resConfigs "en", "tr"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
