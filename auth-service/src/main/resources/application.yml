@@ -79,7 +79,7 @@ jwt:
 
 auth:
   google:
-    allowed-client-ids: ${GOOGLE_ALLOWED_CLIENT_IDS:607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com,607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com,699117630000-ps0os3vtf47ld2ne8qdoer83i1dl3p8i.apps.googleusercontent.com}
+    allowed-client-ids: ${GOOGLE_ALLOWED_CLIENT_IDS:607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com,607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com},699117630000-ectgs3iqcqclqlhrn01e5vtodd0n3lrp.apps.googleusercontent.com,699117630000-ps0os3vtf47ld2ne8qdoer83i1dl3p8i.apps.googleusercontent.com
   verification:
     token-pepper: ${VERIFICATION_TOKEN_PEPPER:change-me-dev-pepper}
     token-bytes: ${VERIFICATION_TOKEN_BYTES:48}
