@@ -79,6 +79,7 @@ export function usePurchasePremium() {
         toRevenueCatSyncPayload(
           result.customerInfo,
           getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig),
+          result,
         ),
       );
       const refreshed = await refreshMonetizationState(queryClient, userId);

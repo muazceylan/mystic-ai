@@ -39,14 +39,20 @@ export function usePaywall() {
 
   const subscriptionProducts = useMemo(
     () => (paywall?.subscriptionProducts ?? []).map((product) =>
-      resolveRevenueCatProduct(product, offeringsQuery.data?.currentOffering ?? null)),
-    [offeringsQuery.data?.currentOffering, paywall?.subscriptionProducts],
+      resolveRevenueCatProduct(product, offeringsQuery.data?.defaultOffering ?? null))
+      .filter((product) => product.revenueCatPackage?.identifier === '$rc_monthly'
+        || product.revenueCatPackage?.identifier === '$rc_annual'),
+    [offeringsQuery.data?.defaultOffering, paywall?.subscriptionProducts],
   );
 
   const tokenProducts = useMemo(
     () => (paywall?.tokenProducts ?? []).map((product) =>
-      resolveRevenueCatProduct(product, offeringsQuery.data?.currentOffering ?? null)),
-    [offeringsQuery.data?.currentOffering, paywall?.tokenProducts],
+      resolveRevenueCatProduct(product, offeringsQuery.data?.tokenOffering ?? null))
+      .filter((product) => product.revenueCatPackage?.identifier === 'guru_tokens_50'
+        || product.revenueCatPackage?.identifier === 'guru_tokens_150'
+        || product.revenueCatPackage?.identifier === 'guru_tokens_500'
+        || product.revenueCatPackage?.identifier === 'guru_tokens_1200'),
+    [offeringsQuery.data?.tokenOffering, paywall?.tokenProducts],
   );
 
   const revenueCatDisabledReason = useMemo(() => {
@@ -62,12 +68,17 @@ export function usePaywall() {
       return 'not_initialized';
     }
 
-    if (!offeringsQuery.data?.currentOffering) {
+    // Don't flag as unavailable while still fetching — avoids a brief error flash
+    if (offeringsQuery.isLoading) {
+      return null;
+    }
+
+    if (!offeringsQuery.data?.defaultOffering) {
       return 'offerings_unavailable';
     }
 
     return null;
-  }, [offeringsQuery.data?.currentOffering, paywall?.revenueCatEnabled, revenueCatState]);
+  }, [offeringsQuery.data?.defaultOffering, offeringsQuery.isLoading, paywall?.revenueCatEnabled, revenueCatState]);
 
   return {
     ...paywallQuery,
@@ -76,6 +87,8 @@ export function usePaywall() {
     tokenProducts,
     offerings: offeringsQuery.data?.offerings ?? null,
     currentOffering: offeringsQuery.data?.currentOffering ?? null,
+    defaultOffering: offeringsQuery.data?.defaultOffering ?? null,
+    tokenOffering: offeringsQuery.data?.tokenOffering ?? null,
     offeringsLoading: offeringsQuery.isLoading,
     offeringsError: offeringsQuery.error,
     revenueCatState,
@@ -84,13 +97,15 @@ export function usePaywall() {
       paywall?.premiumEnabled
       && paywall?.revenueCatEnabled
       && revenueCatState.ready
-      && offeringsQuery.data?.currentOffering,
+      && offeringsQuery.data?.defaultOffering
+      && subscriptionProducts.length > 0,
     ),
     canPurchaseTokens: Boolean(
       paywall?.tokenPurchaseEnabled
       && paywall?.revenueCatEnabled
       && revenueCatState.ready
-      && offeringsQuery.data?.currentOffering,
+      && offeringsQuery.data?.tokenOffering
+      && tokenProducts.length > 0,
     ),
     refresh: async () => {
       await Promise.all([paywallQuery.refetch(), offeringsQuery.refetch()]);

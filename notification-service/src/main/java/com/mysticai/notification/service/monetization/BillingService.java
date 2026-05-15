@@ -297,7 +297,10 @@ public class BillingService {
             List<String> activeEntitlements,
             List<String> activeProductIds,
             String environment,
-            String fetchedAt
+            String fetchedAt,
+            String purchaseIdempotencyKey,
+            String purchasedProductId,
+            String storeTransactionId
     ) {}
 
     public record RestorePurchasesRequest(

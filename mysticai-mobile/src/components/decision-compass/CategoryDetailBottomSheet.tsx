@@ -27,6 +27,34 @@ function trimText(input: string | undefined, maxLen = 82) {
   return `${text.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
 }
 
+function normalizeActionText(input: string) {
+  return input
+    .toLocaleLowerCase('tr-TR')
+    .replace(/[İIı]/g, 'i')
+    .replace(/[Ğğ]/g, 'g')
+    .replace(/[Üü]/g, 'u')
+    .replace(/[Şş]/g, 's')
+    .replace(/[Öö]/g, 'o')
+    .replace(/[Çç]/g, 'c')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function uniqueActionItems(items: string[], maxItems = 3) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const item of items) {
+    const key = normalizeActionText(item);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+    if (result.length >= maxItems) break;
+  }
+
+  return result;
+}
+
 export function CategoryDetailBottomSheet({
   visible,
   onClose,
@@ -43,10 +71,9 @@ export function CategoryDetailBottomSheet({
 
   const doItems = useMemo(() => {
     if (!category) return [] as string[];
-    const derived = category.items
-      .slice(0, 3)
+    const derived = uniqueActionItems(category.items
       .map((item) => trimText(item.shortAdvice, 64))
-      .filter(Boolean);
+      .filter(Boolean));
     if (derived.length) return derived;
     return [t('decisionCompassScreen.doItemFallback1'), t('decisionCompassScreen.doItemFallback2')];
   }, [category]);

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import Purchases, {
   PURCHASES_ERROR_CODE,
   type CustomerInfo,
@@ -10,6 +11,7 @@ import { envConfig } from '../../../config/env';
 import type { MonetizationConfig, PaywallProduct } from '../types';
 import type {
   ResolvedPaywallProduct,
+  RevenueCatDiagnostics,
   RevenueCatOfferingSnapshot,
   RevenueCatSdkConfig,
   RevenueCatRuntimeState,
@@ -18,25 +20,26 @@ import type {
 
 let configuredAppUserId: string | null = null;
 
-export const REVENUECAT_GOOGLE_API_KEY = envConfig.revenueCat.googleApiKey;
 export const REVENUECAT_PREMIUM_ENTITLEMENT_ID = envConfig.revenueCat.premiumEntitlementId;
+export const REVENUECAT_DEFAULT_OFFERING_ID = 'default';
+export const REVENUECAT_TOKEN_OFFERING_ID = 'guru_tokens';
 
 const SUBSCRIPTION_PACKAGE_IDS_BY_PRODUCT_KEY: Record<string, string> = {
-  premium_monthly: 'monthly',
-  astroguru_premium_monthly: 'monthly',
-  premium_yearly: 'annual',
-  astroguru_premium_yearly: 'annual',
+  premium_monthly: '$rc_monthly',
+  astroguru_premium_monthly: '$rc_monthly',
+  premium_yearly: '$rc_annual',
+  astroguru_premium_yearly: '$rc_annual',
 };
 
 const TOKEN_PACKAGE_IDS_BY_PRODUCT_KEY: Record<string, string> = {
-  token_50: 'token_50',
-  guru_tokens_50: 'token_50',
-  token_150: 'token_150',
-  guru_tokens_150: 'token_150',
-  token_500: 'token_500',
-  guru_tokens_500: 'token_500',
-  token_1200: 'token_1200',
-  guru_tokens_1200: 'token_1200',
+  token_50: 'guru_tokens_50',
+  guru_tokens_50: 'guru_tokens_50',
+  token_150: 'guru_tokens_150',
+  guru_tokens_150: 'guru_tokens_150',
+  token_500: 'guru_tokens_500',
+  guru_tokens_500: 'guru_tokens_500',
+  token_1200: 'guru_tokens_1200',
+  guru_tokens_1200: 'guru_tokens_1200',
 };
 
 interface RevenueCatInitialStateOptions {
@@ -57,6 +60,7 @@ function getEnvRevenueCatConfig(): RevenueCatSdkConfig {
   return {
     iosApiKey: envConfig.revenueCat.iosApiKey || null,
     androidApiKey: envConfig.revenueCat.androidApiKey || null,
+    testApiKey: envConfig.revenueCat.testApiKey || null,
     environment: envConfig.revenueCat.env,
   };
 }
@@ -71,24 +75,78 @@ export function getRevenueCatSdkConfigFromMonetizationConfig(
   return {
     iosApiKey: normalizeOptionalValue(config.revenueCatIosApiKey),
     androidApiKey: normalizeOptionalValue(config.revenueCatAndroidApiKey),
+    testApiKey: envConfig.revenueCat.testApiKey || null,
     environment: normalizeOptionalValue(config.revenueCatEnvironment),
   };
 }
 
-function getPlatformRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): string | null {
-  const runtimeIosApiKey = normalizeOptionalValue(runtimeConfig?.iosApiKey);
-  const runtimeAndroidApiKey = normalizeOptionalValue(runtimeConfig?.androidApiKey);
+function isExpoGoRuntime(): boolean {
+  return Constants.appOwnership === 'expo';
+}
+
+function isProductionBuild(): boolean {
+  return envConfig.isProduction;
+}
+
+function getRevenueCatBuildProfile(): string | null {
+  return normalizeOptionalValue(process.env.EAS_BUILD_PROFILE)
+    ?? normalizeOptionalValue(process.env.EXPO_PUBLIC_EAS_BUILD_PROFILE)
+    ?? normalizeOptionalValue(process.env.EXPO_PUBLIC_BUILD_PROFILE);
+}
+
+function getRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): {
+  key: string | null;
+  source: RevenueCatDiagnostics['selectedKeySource'];
+} {
+  if (!isRevenueCatSupportedPlatform()) {
+    return { key: null, source: 'unsupported' };
+  }
+
+  if (isExpoGoRuntime()) {
+    return { key: null, source: 'expo_go' };
+  }
+
   const envApiKey = getEnvRevenueCatConfig();
+  const testKey = normalizeOptionalValue(runtimeConfig?.testApiKey) ?? normalizeOptionalValue(envApiKey.testApiKey);
+  const androidKey = normalizeOptionalValue(envApiKey.androidApiKey);
+  const iosKey = normalizeOptionalValue(envApiKey.iosApiKey);
 
-  if (Platform.OS === 'ios') {
-    return runtimeIosApiKey ?? normalizeOptionalValue(envApiKey.iosApiKey);
+  if (!isProductionBuild() && testKey) {
+    return { key: testKey, source: 'test' };
   }
 
-  if (Platform.OS === 'android') {
-    return runtimeAndroidApiKey ?? normalizeOptionalValue(envApiKey.androidApiKey);
+  if (Platform.OS === 'android' && androidKey) {
+    return { key: androidKey, source: 'android' };
   }
 
-  return null;
+  if (Platform.OS === 'ios' && iosKey) {
+    return { key: iosKey, source: 'ios' };
+  }
+
+  if (testKey) {
+    return { key: testKey, source: 'test-fallback' };
+  }
+
+  return { key: null, source: 'missing' };
+}
+
+export function getRevenueCatDiagnostics(
+  runtimeConfig?: RevenueCatSdkConfig | null,
+): RevenueCatRuntimeState['diagnostics'] {
+  const envApiKey = getEnvRevenueCatConfig();
+  const selected = getRevenueCatApiKey(runtimeConfig);
+  return {
+    platform: Platform.OS,
+    appEnv: envConfig.appEnv,
+    buildProfile: getRevenueCatBuildProfile(),
+    hasAndroidKey: Boolean(normalizeOptionalValue(envApiKey.androidApiKey)),
+    hasIosKey: Boolean(normalizeOptionalValue(envApiKey.iosApiKey)),
+    hasTestKey: Boolean(normalizeOptionalValue(runtimeConfig?.testApiKey) ?? normalizeOptionalValue(envApiKey.testApiKey)),
+    selectedKeySource: selected.source,
+    entitlementId: REVENUECAT_PREMIUM_ENTITLEMENT_ID,
+    offeringId: REVENUECAT_DEFAULT_OFFERING_ID,
+    tokenOfferingId: REVENUECAT_TOKEN_OFFERING_ID,
+  };
 }
 
 export function getRevenueCatInitialState(
@@ -101,15 +159,27 @@ export function getRevenueCatInitialState(
       configured: false,
       ready: false,
       disabledReason: 'unsupported_platform',
+      diagnostics: getRevenueCatDiagnostics(runtimeConfig),
     };
   }
 
-  if (!getPlatformRevenueCatApiKey(runtimeConfig)) {
+  if (isExpoGoRuntime()) {
+    return {
+      supported: false,
+      configured: false,
+      ready: false,
+      disabledReason: 'expo_go',
+      diagnostics: getRevenueCatDiagnostics(runtimeConfig),
+    };
+  }
+
+  if (!getRevenueCatApiKey(runtimeConfig).key) {
     return {
       supported: true,
       configured: false,
       ready: false,
       disabledReason: options?.remoteConfigResolved ? 'missing_api_key' : 'not_initialized',
+      diagnostics: getRevenueCatDiagnostics(runtimeConfig),
     };
   }
 
@@ -118,6 +188,7 @@ export function getRevenueCatInitialState(
     configured: false,
     ready: false,
     disabledReason: 'user_not_authenticated',
+    diagnostics: getRevenueCatDiagnostics(runtimeConfig),
   };
 }
 
@@ -149,7 +220,7 @@ export async function configureRevenueCat(
   appUserId: string,
   runtimeConfig?: RevenueCatSdkConfig | null,
 ): Promise<void> {
-  const apiKey = getPlatformRevenueCatApiKey(runtimeConfig);
+  const { key: apiKey } = getRevenueCatApiKey(runtimeConfig);
   if (!isRevenueCatSupportedPlatform()) {
     throw new Error('RevenueCat is only supported on native mobile builds.');
   }
@@ -190,21 +261,32 @@ export async function getRevenueCatCustomerInfo(): Promise<CustomerInfo> {
 
 export async function getRevenueCatOfferings(): Promise<RevenueCatOfferingSnapshot> {
   const offerings = await Purchases.getOfferings();
-  const currentOffering = offerings.current;
+  const defaultOffering = offerings.current ?? offerings.all?.[REVENUECAT_DEFAULT_OFFERING_ID] ?? null;
+  const tokenOffering = offerings.all?.[REVENUECAT_TOKEN_OFFERING_ID] ?? null;
   return {
     offerings,
-    currentOffering,
-    availablePackages: currentOffering?.availablePackages ?? [],
+    currentOffering: defaultOffering,
+    defaultOffering,
+    tokenOffering,
+    availablePackages: defaultOffering?.availablePackages ?? [],
+    tokenPackages: tokenOffering?.availablePackages ?? [],
   };
 }
 
 export async function purchaseRevenueCatPackage(
   revenueCatPackage: PurchasesPackage,
-): Promise<{ customerInfo: CustomerInfo; productIdentifier: string }> {
+): Promise<{
+  customerInfo: CustomerInfo;
+  productIdentifier: string;
+  transactionIdentifier: string | null;
+  purchaseToken: string | null;
+}> {
   const result = await Purchases.purchasePackage(revenueCatPackage);
   return {
     customerInfo: result.customerInfo,
     productIdentifier: result.productIdentifier,
+    transactionIdentifier: result.transaction?.transactionIdentifier ?? null,
+    purchaseToken: result.transaction?.purchaseToken ?? null,
   };
 }
 
@@ -233,7 +315,14 @@ export function isRevenueCatPurchaseCancelled(error: unknown): boolean {
 export function toRevenueCatSyncPayload(
   customerInfo: CustomerInfo,
   runtimeConfig?: RevenueCatSdkConfig | null,
+  purchase?: {
+    productIdentifier?: string | null;
+    transactionIdentifier?: string | null;
+    purchaseToken?: string | null;
+  },
 ): RevenueCatSyncPayload {
+  const storeTransactionId = purchase?.transactionIdentifier ?? purchase?.purchaseToken ?? null;
+  const purchasedProductId = purchase?.productIdentifier ?? null;
   return {
     appUserId: getConfiguredRevenueCatUserId(),
     originalAppUserId: customerInfo.originalAppUserId,
@@ -241,6 +330,11 @@ export function toRevenueCatSyncPayload(
     activeProductIds: customerInfo.activeSubscriptions ?? [],
     environment: normalizeRevenueCatEnvironment(runtimeConfig?.environment ?? getEnvRevenueCatConfig().environment),
     fetchedAt: customerInfo.requestDate ?? new Date().toISOString(),
+    purchaseIdempotencyKey: storeTransactionId || purchasedProductId
+      ? `revenuecat:${storeTransactionId ?? 'no-transaction'}:${purchasedProductId ?? 'no-product'}`
+      : null,
+    purchasedProductId,
+    storeTransactionId,
   };
 }
 
@@ -282,12 +376,17 @@ function getCandidatePackageIds(product: PaywallProduct): string[] {
 }
 
 function packageMatchesProductId(entry: PurchasesPackage, productId: string): boolean {
-  return entry.product.identifier === productId
-    || normalizeStoreProductId(entry.product.identifier) === normalizeStoreProductId(productId);
+  const entryId = entry.product.identifier;
+  const normalizedEntry = normalizeStoreProductId(entryId);
+  const normalizedProduct = normalizeStoreProductId(productId);
+  return entryId === productId
+    || normalizedEntry === normalizedProduct
+    || Boolean(normalizedEntry && normalizedProduct && normalizedEntry.startsWith(normalizedProduct))
+    || Boolean(normalizedEntry && normalizedProduct && normalizedProduct.startsWith(normalizedEntry));
 }
 
 export function resolveOfferingFromOfferings(offerings: PurchasesOfferings | null): PurchasesOffering | null {
-  return offerings?.current ?? null;
+  return offerings?.current ?? offerings?.all?.[REVENUECAT_DEFAULT_OFFERING_ID] ?? null;
 }
 
 export function resolveRevenueCatProduct(

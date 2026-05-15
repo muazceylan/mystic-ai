@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -26,6 +27,7 @@ import {
 import { trackMonetizationEvent } from '../features/monetization/analytics/monetizationAnalytics';
 import type { ResolvedPaywallProduct } from '../features/monetization/types/billing';
 import { ProductEventName, trackProductEvent } from '../services/productAnalytics';
+import { envConfig } from '../config/env';
 
 function useBenefitList(fallbackCount = 7) {
   const { t } = useTranslation();
@@ -216,6 +218,12 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       color: colors.primary,
       fontWeight: '700',
     },
+    debugText: {
+      fontSize: 11,
+      lineHeight: 17,
+      color: colors.subtext,
+      fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: undefined }),
+    },
     statusCard: {
       borderRadius: 18,
       padding: 16,
@@ -310,6 +318,9 @@ export default function PremiumScreen() {
     if (paywallQuery.revenueCatDisabledReason === 'unsupported_platform') {
       return t('premium.buildRequiredMessage');
     }
+    if (paywallQuery.revenueCatDisabledReason === 'expo_go') {
+      return t('premium.buildRequiredMessage');
+    }
     if (paywallQuery.revenueCatDisabledReason === 'offerings_unavailable') {
       return t('premium.offeringsUnavailableMessage');
     }
@@ -324,6 +335,28 @@ export default function PremiumScreen() {
     paywallQuery.revenueCatState.error,
     t,
   ]);
+
+  const revenueCatDebugLines = useMemo(() => {
+    if (envConfig.isProduction && !__DEV__) {
+      return [];
+    }
+    const diagnostics = paywallQuery.revenueCatState.diagnostics;
+    if (!diagnostics) {
+      return [];
+    }
+    return [
+      `Platform: ${diagnostics.platform}`,
+      `App env: ${diagnostics.appEnv}`,
+      `Build profile: ${diagnostics.buildProfile ?? 'unknown'}`,
+      `hasAndroidKey: ${String(diagnostics.hasAndroidKey)}`,
+      `hasIosKey: ${String(diagnostics.hasIosKey)}`,
+      `hasTestKey: ${String(diagnostics.hasTestKey)}`,
+      `selectedKeySource: ${diagnostics.selectedKeySource}`,
+      `entitlementId: ${diagnostics.entitlementId}`,
+      `offeringId: ${diagnostics.offeringId}`,
+      `tokenOfferingId: ${diagnostics.tokenOfferingId}`,
+    ];
+  }, [paywallQuery.revenueCatState.diagnostics]);
 
   const handlePremiumPurchase = async (product: ResolvedPaywallProduct) => {
     if (!isAuthenticated) {
@@ -371,6 +404,7 @@ export default function PremiumScreen() {
   );
 
   const isLoading = paywallQuery.isLoading && !paywallQuery.paywall;
+  const isOfferingsLoading = paywallQuery.offeringsLoading;
 
   return (
     <SafeScreen>
@@ -461,10 +495,19 @@ export default function PremiumScreen() {
           <View style={{ gap: 12 }}>
             <Text style={styles.sectionTitle}>{t('premium.selectPlan')}</Text>
             {plans.length === 0 ? (
-              <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>{t('premium.noPlansTitle')}</Text>
-                <Text style={styles.infoBody}>{purchaseDisabledMessage}</Text>
-              </View>
+              isOfferingsLoading ? (
+                <View style={styles.infoCard}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : (
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>{t('premium.noPlansTitle')}</Text>
+                  <Text style={styles.infoBody}>{purchaseDisabledMessage}</Text>
+                  {revenueCatDebugLines.map((line) => (
+                    <Text key={line} style={styles.debugText}>{line}</Text>
+                  ))}
+                </View>
+              )
             ) : (
               plans.map((product) => {
                 const featured = isFeaturedProduct(product);

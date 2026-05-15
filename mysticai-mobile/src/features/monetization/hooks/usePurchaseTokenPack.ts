@@ -15,6 +15,38 @@ import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import type { ResolvedPaywallProduct } from '../types/billing';
 
+const TOKEN_AMOUNTS_BY_PRODUCT_ID: Record<string, number> = {
+  guru_tokens_50: 50,
+  guru_tokens_150: 150,
+  guru_tokens_500: 500,
+  guru_tokens_1200: 1200,
+};
+
+function resolveTokenAmount(product: ResolvedPaywallProduct): number {
+  const identifiers = [
+    product.storeProductId,
+    product.revenueCatProductId,
+    product.androidProductId,
+    product.iosProductId,
+    product.productKey,
+  ].filter((value): value is string => Boolean(value));
+
+  for (const id of identifiers) {
+    const normalized = id.split(':', 1)[0];
+    const exact = TOKEN_AMOUNTS_BY_PRODUCT_ID[normalized];
+    if (exact) {
+      return exact;
+    }
+    const prefix = Object.entries(TOKEN_AMOUNTS_BY_PRODUCT_ID)
+      .find(([productId]) => normalized.startsWith(productId));
+    if (prefix) {
+      return prefix[1];
+    }
+  }
+
+  return (product.tokenAmount ?? 0) + (product.bonusTokenAmount ?? 0);
+}
+
 type PurchaseTokenStatus =
   | 'idle'
   | 'processing'
@@ -46,6 +78,7 @@ export function usePurchaseTokenPack() {
       trackMonetizationEvent('token_pack_purchase_started', {
         product_key: product.productKey,
         offering_id: product.offeringId,
+        token_amount: resolveTokenAmount(product),
       });
 
       const result = await purchaseRevenueCatPackage(product.revenueCatPackage);
@@ -53,6 +86,7 @@ export function usePurchaseTokenPack() {
         toRevenueCatSyncPayload(
           result.customerInfo,
           getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig),
+          result,
         ),
       );
       const refreshed = await refreshMonetizationState(queryClient, userId);
@@ -62,6 +96,7 @@ export function usePurchaseTokenPack() {
         trackMonetizationEvent('token_pack_purchase_completed', {
           product_key: product.productKey,
           store_product_id: result.productIdentifier,
+          token_amount: resolveTokenAmount(product),
           balance_after: nextBalance,
         });
         setStatus('success');
@@ -71,6 +106,7 @@ export function usePurchaseTokenPack() {
       trackMonetizationEvent('token_pack_purchase_completed', {
         product_key: product.productKey,
         store_product_id: result.productIdentifier,
+        token_amount: resolveTokenAmount(product),
         pending_backend: true,
       });
       setStatus('pending_backend');

@@ -8,6 +8,7 @@ import {
   addRevenueCatCustomerInfoListener,
   configureRevenueCat,
   getRevenueCatAppUserId,
+  getRevenueCatDiagnostics,
   getRevenueCatCustomerInfo,
   getRevenueCatInitialState,
   getRevenueCatSdkConfigFromMonetizationConfig,
@@ -97,6 +98,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
           initializedAt: new Date().toISOString(),
           activeAppUserId: appUserId,
           lastCustomerInfoAt: customerInfo.requestDate ?? new Date().toISOString(),
+          diagnostics: getRevenueCatDiagnostics(runtimeConfig),
         });
 
         await syncCustomerInfo(customerInfo, appUserId, runtimeConfig);
@@ -112,6 +114,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
           disabledReason: 'sdk_error',
           error: toSafeRevenueCatErrorMessage(error),
           activeAppUserId: appUserId,
+          diagnostics: getRevenueCatDiagnostics(runtimeConfig),
         });
       }
     };
@@ -126,6 +129,10 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const appUserId = getRevenueCatAppUserId(isAuthenticated ? userId : null);
     if (!isHydrated || !appUserId || !isRevenueCatSupportedPlatform()) {
+      return;
+    }
+
+    if (!useMonetizationStore.getState().revenueCat.ready) {
       return;
     }
 

@@ -714,7 +714,7 @@ export function CalendarScreenContent() {
     [windowWidth],
   );
   const styles = useMemo(() => makeStyles(colors, isDark, dockChipWidth), [colors, isDark, dockChipWidth]);
-  const isCompactHeaderLayout = windowWidth <= 390;
+  const isCompactHeaderLayout = windowWidth <= 430;
   const router = useRouter();
   const routeParams = useLocalSearchParams<{
     date?: string | string[];
@@ -2287,12 +2287,16 @@ export function CalendarScreenContent() {
                   <Text
                     style={[styles.headerLead, isCompactHeaderLayout && styles.headerLeadCompact]}
                     numberOfLines={isCompactHeaderLayout ? 3 : 2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.86}
                   >
                     {t('calendar.editorialSubtitle')}
                   </Text>
                   <Text
                     style={styles.headerSublead}
-                    numberOfLines={2}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.86}
                   >
                     {headerSubtitle}
                   </Text>
@@ -2567,7 +2571,9 @@ export function CalendarScreenContent() {
                     <View key={`${activeCosmicCategoryKey}-${item.subCategoryKey}`} style={styles.subLegendRow}>
                       <View style={styles.subLegendLeft}>
                         <View style={[styles.subLegendDot, { backgroundColor: item.colorHex }]} />
-                        <Text style={styles.subLegendText}>{item.label}</Text>
+                        <Text style={styles.subLegendText} numberOfLines={1} ellipsizeMode="tail">
+                          {item.label}
+                        </Text>
                       </View>
                       <Text style={styles.subLegendScore}>
                         %{typeof item.score === 'number' ? item.score : '--'}
@@ -3363,7 +3369,7 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
     headerHeroRowCompact: {
       flexDirection: 'column',
       alignItems: 'stretch',
-      gap: 12,
+      gap: 10,
     },
     headerHeroWrap: {
       overflow: 'hidden',
@@ -3378,8 +3384,9 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
       gap: 3,
     },
     headerMonetizationRow: {
-      paddingTop: 4,
+      paddingTop: 8,
       alignItems: 'flex-start',
+      minHeight: 54,
     },
     headerActionsRow: {
       flexDirection: 'row',
@@ -3401,17 +3408,19 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
       fontWeight: '700',
       fontFamily: SCORE_FONT,
       flexShrink: 1,
+      includeFontPadding: false,
     },
     headerLeadCompact: {
       fontSize: 16,
-      lineHeight: 20,
+      lineHeight: 21,
     },
     headerSublead: {
       color: C.subtext,
       fontSize: 12,
-      lineHeight: 15,
+      lineHeight: 16,
       fontFamily: UI_FONT,
       flexShrink: 1,
+      includeFontPadding: false,
     },
     headerScorePill: {
       width: 84,
@@ -3706,16 +3715,20 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
     scoreLegendRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 4,
+      justifyContent: 'flex-start',
+      flexWrap: 'wrap',
+      marginTop: 8,
+      marginBottom: 2,
       paddingHorizontal: 2,
-      gap: 8,
+      rowGap: 7,
+      columnGap: 14,
     },
     legendItem: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      flex: 1,
+      flexShrink: 0,
+      minHeight: 18,
     },
     legendSwatch: {
       width: 9,
@@ -3724,8 +3737,10 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
     },
     legendText: {
       color: C.subtext,
-      fontSize: 11,
+      fontSize: 10.5,
+      lineHeight: 15,
       fontFamily: UI_FONT,
+      includeFontPadding: false,
     },
     subLegendCard: {
       marginTop: 10,
@@ -3749,13 +3764,14 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: 8,
+      gap: 10,
     },
     subLegendLeft: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       flex: 1,
+      minWidth: 0,
     },
     subLegendDot: {
       width: 10,
@@ -3765,16 +3781,22 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
     subLegendText: {
       color: C.text,
       fontSize: 12,
+      lineHeight: 17,
       fontWeight: '600',
       fontFamily: UI_FONT,
+      flex: 1,
+      minWidth: 0,
+      includeFontPadding: false,
     },
     subLegendScore: {
       color: C.text,
       fontSize: 12,
+      lineHeight: 17,
       fontWeight: '700',
       fontFamily: UI_FONT,
       minWidth: 44,
       textAlign: 'right',
+      includeFontPadding: false,
     },
     dockHeader: {
       marginTop: 10,

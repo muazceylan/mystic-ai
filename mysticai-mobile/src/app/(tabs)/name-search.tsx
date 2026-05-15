@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { navigateWithOrigin } from '../../navigation';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -36,6 +36,16 @@ type SearchFilters = {
   startsWith: string;
   tag: string;
 };
+
+function createEmptyFilters(tag = ''): SearchFilters {
+  return {
+    gender: '',
+    origin: '',
+    quranFlag: undefined,
+    startsWith: '',
+    tag,
+  };
+}
 
 function formatGenderLabel(
   value: NameGender | '',
@@ -237,13 +247,7 @@ export default function NameSearchScreen() {
   const [page, setPage] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const closeFilters = useCallback(() => setShowFilters(false), []);
-  const [filters, setFilters] = useState<SearchFilters>({
-    gender: '',
-    origin: '',
-    quranFlag: undefined,
-    startsWith: '',
-    tag: initialTag,
-  });
+  const [filters, setFilters] = useState<SearchFilters>(() => createEmptyFilters(initialTag));
 
   const favorites = useNameFavorites();
   const { animatedStyle: filtersAnimatedStyle, gesture: filtersGesture } = useBottomSheetDragGesture({
@@ -297,16 +301,16 @@ export default function NameSearchScreen() {
     filters.tag ? `tag:${filters.tag}` : null,
   ].filter((item): item is string => !!item);
 
-  const resetFilters = () => {
-    setFilters({
-      gender: '',
-      origin: '',
-      quranFlag: undefined,
-      startsWith: '',
-      tag: '',
-    });
+  const resetFilters = useCallback(() => {
+    setFilters(createEmptyFilters());
     setPage(0);
-  };
+  }, []);
+
+  const resetSearchAndFilters = useCallback(() => {
+    setQueryInput('');
+    setQuery('');
+    resetFilters();
+  }, [resetFilters]);
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
@@ -376,7 +380,7 @@ export default function NameSearchScreen() {
                 title={t('discover.noResultsTitle')}
                 description={t('nameAnalysis.search.emptyDescription')}
                 actionLabel={t('nameAnalysis.search.clearFilters')}
-                onAction={resetFilters}
+                onAction={resetSearchAndFilters}
               />
             </View>
           ) : (
