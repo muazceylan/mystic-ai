@@ -43,7 +43,7 @@ export function usePurchaseTokenPack() {
       setStatus('processing');
       setError(null);
 
-      trackMonetizationEvent('token_purchase_started', {
+      trackMonetizationEvent('token_pack_purchase_started', {
         product_key: product.productKey,
         offering_id: product.offeringId,
       });
@@ -59,7 +59,7 @@ export function usePurchaseTokenPack() {
       const nextBalance = refreshed.entitlements?.tokenBalance ?? currentBalance;
 
       if (nextBalance > currentBalance) {
-        trackMonetizationEvent('token_purchase_success', {
+        trackMonetizationEvent('token_pack_purchase_completed', {
           product_key: product.productKey,
           store_product_id: result.productIdentifier,
           balance_after: nextBalance,
@@ -68,7 +68,7 @@ export function usePurchaseTokenPack() {
         return { status: 'success' as const };
       }
 
-      trackMonetizationEvent('token_purchase_success', {
+      trackMonetizationEvent('token_pack_purchase_completed', {
         product_key: product.productKey,
         store_product_id: result.productIdentifier,
         pending_backend: true,
@@ -82,7 +82,8 @@ export function usePurchaseTokenPack() {
       }
 
       const message = toSafeRevenueCatErrorMessage(purchaseError);
-      trackMonetizationEvent('token_purchase_failed', {
+      trackMonetizationEvent('purchase_failed', {
+        purchase_type: 'token_pack',
         product_key: product.productKey,
         reason: message,
       });

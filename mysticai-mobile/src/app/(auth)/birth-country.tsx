@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
+import { LanguageSwitcher } from '../../components/auth';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useTheme } from '../../context/ThemeContext';
 import { AppText, SafeScreen, TextField } from '../../components/ui';
@@ -25,9 +26,15 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       marginBottom: 16,
     },
     headerTitle: {
+      flex: 1,
       fontSize: 18,
       fontWeight: '600',
       color: C.text,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
     searchField: {
       backgroundColor: C.surface,
@@ -92,14 +99,17 @@ export default function BirthCountryScreen() {
           <AppText variant="H3" style={styles.headerTitle}>
             {t('auth.selectLocation')}
           </AppText>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            accessibilityLabel={t('editBirthInfo.accessibilityBack')}
-            accessibilityRole="button"
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons name="close" size={22} color={colors.subtext} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <LanguageSwitcher />
+            <TouchableOpacity
+              onPress={() => router.back()}
+              accessibilityLabel={t('editBirthInfo.accessibilityBack')}
+              accessibilityRole="button"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="close" size={22} color={colors.subtext} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TextField

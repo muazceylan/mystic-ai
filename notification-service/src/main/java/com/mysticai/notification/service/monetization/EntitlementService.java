@@ -21,9 +21,8 @@ import java.util.function.Consumer;
  *
  * Phase 1 contract:
  *   - The repository, snapshot record and read paths exist.
- *   - No code path writes entitlement rows yet (that lands in Phase 2 with the
- *     RevenueCat webhook), so for every existing user this returns the empty
- *     "no entitlement" snapshot.
+ *   - RevenueCat writes entitlement rows via the webhook. The entitlement key
+ *     must match the RevenueCat entitlement identifier exactly.
  *
  * The endpoint shape is deliberately the one we want to keep stable across
  * Phase 2 → Phase 4, so mobile can integrate against it without a rewrite.
@@ -33,15 +32,15 @@ import java.util.function.Consumer;
 @Slf4j
 public class EntitlementService {
 
-    public static final String DEFAULT_ENTITLEMENT_KEY = "premium";
+    public static final String DEFAULT_ENTITLEMENT_KEY = "Astro Guru Pro";
 
     private final SubscriptionEntitlementRepository entitlementRepository;
     private final MonetizationSettingsRepository settingsRepository;
     private final GuruWalletRepository walletRepository;
 
     /**
-     * Returns the user's currently-active entitlement for the default
-     * "premium" key, or an empty snapshot if none.
+     * Returns the user's currently-active entitlement for the configured
+     * RevenueCat premium entitlement key, or an empty snapshot if none.
      */
     @Transactional(readOnly = true)
     public EntitlementSnapshot getSnapshot(Long userId) {

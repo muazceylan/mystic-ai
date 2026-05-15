@@ -714,13 +714,23 @@ export default function NightSkyPosterPreviewScreen() {
           <Text style={[styles.emptySub, { color: colors.subtext }]}>
             {t('monetization.useGuruUnlock', { count: posterUnlockState.guruCost || 1 })}
           </Text>
+          {!showUnlockSheet ? (
+            <Pressable
+              style={[styles.primaryBtn, { backgroundColor: colors.violet }]}
+              onPress={() => setShowUnlockSheet(true)}
+            >
+              <Text style={styles.primaryBtnText}>
+                {t('monetization.useGuruUnlock', { count: posterUnlockState.guruCost || 1 })}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
         <ActionUnlockSheet
           visible={showUnlockSheet}
           moduleKey={FEATURE_MODULE_KEYS.NATAL_CHART}
           actionKey={FEATURE_ACTION_KEYS.BIRTH_NIGHT_POSTER_VIEW}
           title={t('natalChart.birthNightTitle')}
-          onClose={goBack}
+          onClose={() => setShowUnlockSheet(false)}
           onUnlocked={async () => {
             setIsUnlocked(true);
           }}

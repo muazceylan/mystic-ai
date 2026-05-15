@@ -6,6 +6,7 @@ import { syncRevenueCatBilling } from '../api/monetization.service';
 import { refreshMonetizationState } from '../services/monetizationRefresh';
 import {
   getRevenueCatSdkConfigFromMonetizationConfig,
+  isRevenueCatPremiumActive,
   isRevenueCatPurchaseCancelled,
   purchaseRevenueCatPackage,
   toRevenueCatSyncPayload,
@@ -46,7 +47,7 @@ export function usePurchasePremium() {
       setStatus('processing');
       setError(null);
 
-      trackMonetizationEvent('premium_purchase_started', {
+      trackMonetizationEvent('subscription_started', {
         product_key: product.productKey,
         offering_id: product.offeringId,
       });
@@ -73,6 +74,7 @@ export function usePurchasePremium() {
       }
 
       const result = await purchaseRevenueCatPackage(product.revenueCatPackage);
+      const revenueCatPremiumActive = isRevenueCatPremiumActive(result.customerInfo);
       await syncRevenueCatBilling(
         toRevenueCatSyncPayload(
           result.customerInfo,
@@ -81,13 +83,13 @@ export function usePurchasePremium() {
       );
       const refreshed = await refreshMonetizationState(queryClient, userId);
 
-      if (refreshed.entitlements?.premiumActive) {
-        if (refreshed.entitlements.trialing) {
+      if (revenueCatPremiumActive || refreshed.entitlements?.premiumActive) {
+        if (refreshed.entitlements?.trialing) {
           trackMonetizationEvent('trial_started', {
             product_key: product.productKey,
           });
         }
-        trackMonetizationEvent('premium_purchase_success', {
+        trackMonetizationEvent('subscription_purchase_completed', {
           product_key: product.productKey,
           store_product_id: result.productIdentifier,
         });
@@ -95,7 +97,7 @@ export function usePurchasePremium() {
         return { status: 'success' as const };
       }
 
-      trackMonetizationEvent('premium_purchase_success', {
+      trackMonetizationEvent('subscription_purchase_completed', {
         product_key: product.productKey,
         store_product_id: result.productIdentifier,
         pending_backend: true,
@@ -112,7 +114,8 @@ export function usePurchasePremium() {
       }
 
       const message = toSafeRevenueCatErrorMessage(purchaseError);
-      trackMonetizationEvent('premium_purchase_failed', {
+      trackMonetizationEvent('purchase_failed', {
+        purchase_type: 'subscription',
         product_key: product.productKey,
         reason: message,
       });

@@ -3,3 +3,4 @@ export * from './SecondaryButton';
 export * from './StatusBanner';
 export * from './ActionModal';
 export * from './AuthLegalNotice';
+export * from './LanguageSwitcher';

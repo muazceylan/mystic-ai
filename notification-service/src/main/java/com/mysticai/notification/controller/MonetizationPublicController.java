@@ -155,16 +155,10 @@ public class MonetizationPublicController {
             @RequestHeader(value = "X-User-Id", required = false) Long userId,
             @RequestBody PurchaseRequest request) {
         requireUserId(userId);
-        try {
-            GuruLedger entry = walletService.processPurchase(
-                    userId, request.guruAmount(), request.productKey(),
-                    request.platform(), request.locale(),
-                    request.idempotencyKey());
-            return ResponseEntity.ok(entry);
-        } catch (Exception e) {
-            log.error("Purchase processing failed: userId={}, error={}", userId, e.getMessage());
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+        log.warn("Client purchase credit endpoint rejected: userId={}, productKey={}",
+                userId, request != null ? request.productKey() : null);
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(new ErrorResponse("IAP purchases are credited only by verified RevenueCat webhooks."));
     }
 
     @PostMapping("/internal/signup-bonus")

@@ -270,6 +270,8 @@ public class RevenueCatWebhookService {
         if (productOpt.isEmpty()) {
             purchaseEvent.setProcessedStatus(PurchaseEvent.ProcessedStatus.FAILED);
             purchaseEvent.setFailureReason("PRODUCT_NOT_FOUND: " + event.productId());
+            log.warn("RevenueCat webhook unknown consumable product: eventId={} productId={} transactionId={}",
+                    event.eventId(), event.productId(), event.transactionId());
             return DispatchResult.FAILED;
         }
 
@@ -370,15 +372,36 @@ public class RevenueCatWebhookService {
 
     private Optional<GuruProductCatalog> lookupProduct(NormalizedPurchaseEvent event) {
         if (event.productId() == null) return Optional.empty();
+        String normalizedProductId = normalizeProductId(event.productId());
         // Try the explicit RevenueCat-mapped lookup first; fall back to store
         // ids and finally productKey, since admins commonly populate only one.
-        Optional<GuruProductCatalog> byProductKey = productRepository.findByProductKey(event.productId());
+        Optional<GuruProductCatalog> byProductKey = productRepository.findByProductKey(normalizedProductId);
         if (byProductKey.isPresent()) return byProductKey;
         return productRepository.findAll().stream()
-                .filter(p -> event.productId().equals(p.getRevenueCatProductId())
-                        || event.productId().equals(p.getIosProductId())
-                        || event.productId().equals(p.getAndroidProductId()))
+                .filter(p -> matchesProductId(normalizedProductId, p.getRevenueCatProductId())
+                        || matchesProductId(normalizedProductId, p.getIosProductId())
+                        || matchesProductId(normalizedProductId, p.getAndroidProductId())
+                        || matchesProductId(event.productId(), p.getRevenueCatProductId())
+                        || matchesProductId(event.productId(), p.getIosProductId())
+                        || matchesProductId(event.productId(), p.getAndroidProductId()))
                 .findFirst();
+    }
+
+    private static boolean matchesProductId(String eventProductId, String catalogProductId) {
+        if (eventProductId == null || catalogProductId == null) {
+            return false;
+        }
+        return eventProductId.equals(catalogProductId)
+                || normalizeProductId(eventProductId).equals(normalizeProductId(catalogProductId));
+    }
+
+    private static String normalizeProductId(String productId) {
+        if (productId == null) {
+            return null;
+        }
+        String trimmed = productId.trim();
+        int suffixIndex = trimmed.indexOf(':');
+        return suffixIndex >= 0 ? trimmed.substring(0, suffixIndex) : trimmed;
     }
 
     private String resolveEntitlementKey(NormalizedPurchaseEvent event) {

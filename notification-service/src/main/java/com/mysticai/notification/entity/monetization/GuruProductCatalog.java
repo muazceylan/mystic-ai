@@ -50,7 +50,8 @@ public class GuruProductCatalog {
     private String revenueCatProductId;
 
     /**
-     * Entitlement key this product grants when type=SUBSCRIPTION (e.g. "premium").
+     * Entitlement key this product grants when type=SUBSCRIPTION.
+     * Must match the RevenueCat entitlement identifier exactly.
      * Ignored for CONSUMABLE / BUNDLE token products.
      */
     private String entitlementKey;
@@ -105,7 +106,7 @@ public class GuruProductCatalog {
         BUNDLE,
         SUBSCRIPTION_BONUS,
         PROMOTIONAL,
-        /** Auto-renewable subscription (monthly / yearly premium). */
+        /** Auto-renewable subscription (monthly / yearly premium access). */
         SUBSCRIPTION,
         /** One-time non-consumable unlock (lifetime, etc.). */
         NON_CONSUMABLE

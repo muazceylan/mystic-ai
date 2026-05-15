@@ -43,12 +43,13 @@ export function useRestorePurchases() {
       );
       await refreshMonetizationState(queryClient, userId);
 
-      trackMonetizationEvent('restore_purchase_success', {});
+      trackMonetizationEvent('restore_purchases_completed', {});
       setStatus('success');
       return { status: 'success' as const };
     } catch (restoreError) {
       const message = toSafeRevenueCatErrorMessage(restoreError);
-      trackMonetizationEvent('restore_purchase_failed', {
+      trackMonetizationEvent('purchase_failed', {
+        purchase_type: 'restore',
         reason: message,
       });
       setStatus('failed');

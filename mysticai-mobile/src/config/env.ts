@@ -228,7 +228,11 @@ const androidGtmContainerId = (process.env.EXPO_PUBLIC_GTM_ANDROID_CONTAINER_ID 
 const webRewardedAdUnitPath = (process.env.EXPO_PUBLIC_GAM_REWARDED_AD_UNIT_PATH ?? '').trim();
 const webRewardedPlacementKey = (process.env.EXPO_PUBLIC_GAM_REWARDED_PLACEMENT_KEY ?? '').trim();
 const revenueCatIosApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '').trim();
-const revenueCatAndroidApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '').trim();
+const revenueCatGoogleApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY ?? '').trim();
+const revenueCatLegacyAndroidApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '').trim();
+const revenueCatPremiumEntitlementId = (
+  process.env.EXPO_PUBLIC_REVENUECAT_PREMIUM_ENTITLEMENT_ID ?? 'Astro Guru Pro'
+).trim() || 'Astro Guru Pro';
 const revenueCatEnv = normalizeRevenueCatEnv(process.env.EXPO_PUBLIC_REVENUECAT_ENV);
 
 export const envConfig = {
@@ -266,7 +270,9 @@ export const envConfig = {
   },
   revenueCat: {
     iosApiKey: revenueCatIosApiKey,
-    androidApiKey: revenueCatAndroidApiKey,
+    googleApiKey: revenueCatGoogleApiKey,
+    androidApiKey: revenueCatGoogleApiKey || revenueCatLegacyAndroidApiKey,
+    premiumEntitlementId: revenueCatPremiumEntitlementId,
     env: revenueCatEnv,
   },
 } as const;

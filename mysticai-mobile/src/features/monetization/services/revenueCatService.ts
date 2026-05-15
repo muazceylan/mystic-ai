@@ -18,6 +18,27 @@ import type {
 
 let configuredAppUserId: string | null = null;
 
+export const REVENUECAT_GOOGLE_API_KEY = envConfig.revenueCat.googleApiKey;
+export const REVENUECAT_PREMIUM_ENTITLEMENT_ID = envConfig.revenueCat.premiumEntitlementId;
+
+const SUBSCRIPTION_PACKAGE_IDS_BY_PRODUCT_KEY: Record<string, string> = {
+  premium_monthly: 'monthly',
+  astroguru_premium_monthly: 'monthly',
+  premium_yearly: 'annual',
+  astroguru_premium_yearly: 'annual',
+};
+
+const TOKEN_PACKAGE_IDS_BY_PRODUCT_KEY: Record<string, string> = {
+  token_50: 'token_50',
+  guru_tokens_50: 'token_50',
+  token_150: 'token_150',
+  guru_tokens_150: 'token_150',
+  token_500: 'token_500',
+  guru_tokens_500: 'token_500',
+  token_1200: 'token_1200',
+  guru_tokens_1200: 'token_1200',
+};
+
 interface RevenueCatInitialStateOptions {
   remoteConfigResolved?: boolean;
 }
@@ -118,6 +139,10 @@ export function getRevenueCatAppUserId(userId: string | number | null | undefine
 
 export function getConfiguredRevenueCatUserId(): string | null {
   return configuredAppUserId;
+}
+
+export function isRevenueCatPremiumActive(customerInfo: CustomerInfo): boolean {
+  return Boolean(customerInfo.entitlements.active?.[REVENUECAT_PREMIUM_ENTITLEMENT_ID]);
 }
 
 export async function configureRevenueCat(
@@ -230,6 +255,37 @@ function getCandidateProductIds(product: PaywallProduct): string[] {
   return ids.filter((value): value is string => Boolean(value && value.trim()));
 }
 
+function normalizeStoreProductId(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed.split(':', 1)[0] || trimmed;
+}
+
+function getCandidatePackageIds(product: PaywallProduct): string[] {
+  const keys = [
+    product.productKey,
+    product.revenueCatProductId,
+    Platform.OS === 'ios' ? product.iosProductId : product.androidProductId,
+    product.iosProductId,
+    product.androidProductId,
+  ]
+    .map(normalizeStoreProductId)
+    .filter((value): value is string => Boolean(value));
+
+  const packageIds = keys
+    .map((key) => SUBSCRIPTION_PACKAGE_IDS_BY_PRODUCT_KEY[key] ?? TOKEN_PACKAGE_IDS_BY_PRODUCT_KEY[key])
+    .filter((value): value is string => Boolean(value));
+
+  return Array.from(new Set(packageIds));
+}
+
+function packageMatchesProductId(entry: PurchasesPackage, productId: string): boolean {
+  return entry.product.identifier === productId
+    || normalizeStoreProductId(entry.product.identifier) === normalizeStoreProductId(productId);
+}
+
 export function resolveOfferingFromOfferings(offerings: PurchasesOfferings | null): PurchasesOffering | null {
   return offerings?.current ?? null;
 }
@@ -240,7 +296,11 @@ export function resolveRevenueCatProduct(
 ): ResolvedPaywallProduct {
   const availablePackages = offering?.availablePackages ?? [];
   const candidates = new Set(getCandidateProductIds(product));
-  const matchedPackage = availablePackages.find((entry) => candidates.has(entry.product.identifier)) ?? null;
+  const packageCandidates = new Set(getCandidatePackageIds(product));
+  const matchedPackage = availablePackages.find((entry) => packageCandidates.has(entry.identifier))
+    ?? availablePackages.find((entry) =>
+      Array.from(candidates).some((candidate) => packageMatchesProductId(entry, candidate)))
+    ?? null;
 
   return {
     ...product,

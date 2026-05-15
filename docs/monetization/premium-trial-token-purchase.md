@@ -195,7 +195,8 @@ Repo health gate yorumu:
 
 - `.env` içinde:
   - `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
-  - `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
+  - `EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY`
+  - `EXPO_PUBLIC_REVENUECAT_PREMIUM_ENTITLEMENT_ID`
   - `EXPO_PUBLIC_REVENUECAT_ENV=sandbox`
 - Development build veya internal build hazırla
 

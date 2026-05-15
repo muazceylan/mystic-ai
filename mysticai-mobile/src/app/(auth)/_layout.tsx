@@ -1,7 +1,9 @@
 import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LanguageSwitcher } from '../../components/auth';
 import OnboardingProgressBar from '../../components/OnboardingProgressBar';
 import { useTheme } from '../../context/ThemeContext';
 import { createAppStackScreenOptions } from '../../navigation/stackOptions';
@@ -21,6 +23,7 @@ const ONBOARDING_STEPS = [
 export default function AuthLayout() {
   const { colors, activeTheme } = useTheme();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   const stepInfo = useMemo(() => {
     const screenName = pathname.split('/').pop() || '';
@@ -28,6 +31,9 @@ export default function AuthLayout() {
     if (index === -1) return null;
     return { current: index + 1, total: ONBOARDING_STEPS.length };
   }, [pathname]);
+
+  const screenName = pathname.split('/').pop() || '';
+  const isLocationPicker = screenName === 'birth-country' || screenName === 'birth-city';
 
   return (
     <>
@@ -40,6 +46,19 @@ export default function AuthLayout() {
           />
         </SafeAreaView>
       )}
+      {!isLocationPicker ? (
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.languageHost,
+            {
+              top: stepInfo ? insets.top + 13 : insets.top + 10,
+            },
+          ]}
+        >
+          <LanguageSwitcher />
+        </View>
+      ) : null}
       <Stack
         screenOptions={createAppStackScreenOptions({
           backgroundColor: colors.bg,
@@ -66,3 +85,11 @@ export default function AuthLayout() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  languageHost: {
+    position: 'absolute',
+    right: 18,
+    zIndex: 40,
+  },
+});

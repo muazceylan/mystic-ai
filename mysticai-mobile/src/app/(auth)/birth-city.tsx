@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import OnboardingBackground from '../../components/OnboardingBackground';
+import { LanguageSwitcher } from '../../components/auth';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { DISTRICTS } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
@@ -33,9 +34,15 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       marginBottom: 16,
     },
     headerTitle: {
+      flex: 1,
       fontSize: 18,
       fontWeight: '600',
       color: C.text,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
     skipText: {
       fontSize: 14,
@@ -330,6 +337,9 @@ export default function BirthCityScreen() {
           <OnboardingBackground />
           <View style={listStyles.header}>
             <Text style={listStyles.headerTitle}>{t('auth.selectCity')}</Text>
+            <View style={listStyles.headerActions}>
+              <LanguageSwitcher />
+            </View>
           </View>
 
           <View style={listStyles.searchContainer}>
@@ -410,9 +420,12 @@ export default function BirthCityScreen() {
         <View style={listStyles.container}>
           <OnboardingBackground />
           <View style={listStyles.header}>
-            <Text style={[listStyles.headerTitle, { flex: 1 }]}>
+            <Text style={listStyles.headerTitle}>
               {pendingCity?.name} — {t('auth.districtSelect')}
             </Text>
+            <View style={listStyles.headerActions}>
+              <LanguageSwitcher />
+            </View>
           </View>
 
           <View style={listStyles.searchContainer}>

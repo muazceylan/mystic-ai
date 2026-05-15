@@ -481,7 +481,7 @@ class FeatureAccessServiceTest {
                 true,
                 false,
                 status,
-                "premium",
+                EntitlementService.DEFAULT_ENTITLEMENT_KEY,
                 "premium_monthly",
                 "REVENUECAT",
                 "APP_STORE",
@@ -493,7 +493,7 @@ class FeatureAccessServiceTest {
                 null,
                 null,
                 null,
-                java.util.List.of("premium"),
+                java.util.List.of(EntitlementService.DEFAULT_ENTITLEMENT_KEY),
                 0
         );
     }
@@ -503,7 +503,7 @@ class FeatureAccessServiceTest {
                 true,
                 true,
                 "TRIALING",
-                "premium",
+                EntitlementService.DEFAULT_ENTITLEMENT_KEY,
                 "premium_monthly",
                 "REVENUECAT",
                 "APP_STORE",
@@ -515,7 +515,7 @@ class FeatureAccessServiceTest {
                 null,
                 null,
                 null,
-                java.util.List.of("premium"),
+                java.util.List.of(EntitlementService.DEFAULT_ENTITLEMENT_KEY),
                 0
         );
     }
@@ -525,7 +525,7 @@ class FeatureAccessServiceTest {
                 false,
                 false,
                 status,
-                "premium",
+                EntitlementService.DEFAULT_ENTITLEMENT_KEY,
                 "premium_monthly",
                 "REVENUECAT",
                 "APP_STORE",

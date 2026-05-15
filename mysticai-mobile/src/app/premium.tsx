@@ -281,7 +281,7 @@ export default function PremiumScreen() {
   const restorePurchases = useRestorePurchases();
 
   useEffect(() => {
-    trackMonetizationEvent('paywall_view', {
+    trackMonetizationEvent('paywall_viewed', {
       source: 'premium_screen',
     });
     trackProductEvent(ProductEventName.PAYWALL_VIEWED, {

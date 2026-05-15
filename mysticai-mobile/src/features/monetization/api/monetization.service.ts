@@ -260,14 +260,3 @@ export async function consumeFeatureAccess(params: {
   const { data } = await api.post<FeatureAccessResponse>('/api/v1/monetization/access/consume', params);
   return data;
 }
-
-export async function processPurchase(params: {
-  guruAmount: number;
-  productKey: string;
-  platform: string;
-  locale: string;
-  idempotencyKey: string;
-}): Promise<GuruLedgerEntry> {
-  const { data } = await api.post<GuruLedgerEntry>('/api/v1/monetization/purchase', params);
-  return data;
-}

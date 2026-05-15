@@ -152,9 +152,9 @@ public class RevenueCatEventNormalizer {
     }
 
     private static String extractEntitlementKey(JsonNode event) {
-        // RevenueCat ships entitlement_ids as an array; we use the first one
-        // since our domain has a single "premium" entitlement today. When the
-        // product lists multiple, the catalog row's entitlement_key wins later.
+        // RevenueCat ships entitlement_ids as an array; this product has one
+        // premium entitlement ("Astro Guru Pro"). When the product lists
+        // multiple, the catalog row's entitlement_key wins later.
         if (event.has("entitlement_ids") && event.get("entitlement_ids").isArray()
                 && event.get("entitlement_ids").size() > 0) {
             return event.get("entitlement_ids").get(0).asText();

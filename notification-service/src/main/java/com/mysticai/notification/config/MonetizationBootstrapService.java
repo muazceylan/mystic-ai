@@ -185,7 +185,7 @@ public class MonetizationBootstrapService implements ApplicationRunner {
                 "astroguru_premium_monthly",
                 "astroguru_premium_monthly",
                 "astroguru_premium_monthly",
-                "premium",
+                "Astro Guru Pro",
                 3,
                 10,
                 null,
@@ -200,7 +200,7 @@ public class MonetizationBootstrapService implements ApplicationRunner {
                 "astroguru_premium_yearly",
                 "astroguru_premium_yearly",
                 "astroguru_premium_yearly",
-                "premium",
+                "Astro Guru Pro",
                 3,
                 20,
                 "En Populer",
@@ -281,8 +281,54 @@ public class MonetizationBootstrapService implements ApplicationRunner {
                              int sortOrder,
                              String badge,
                              String campaignLabel) {
-        if (productRepository.existsByProductKey(productKey)) {
-            log.debug("[MonetizationBootstrap] Product '{}' already exists, skipping", productKey);
+        Optional<GuruProductCatalog> existingOpt = productRepository.findByProductKey(productKey);
+        if (existingOpt.isPresent()) {
+            GuruProductCatalog existing = existingOpt.get();
+            boolean upgraded = false;
+
+            if (existing.getProductType() != productType) {
+                existing.setProductType(productType);
+                upgraded = true;
+            }
+            if (existing.getGuruAmount() != guruAmount) {
+                existing.setGuruAmount(guruAmount);
+                upgraded = true;
+            }
+            if (existing.getBonusGuruAmount() != bonusGuruAmount) {
+                existing.setBonusGuruAmount(bonusGuruAmount);
+                upgraded = true;
+            }
+            if (!same(existing.getRevenueCatProductId(), revenueCatProductId)) {
+                existing.setRevenueCatProductId(revenueCatProductId);
+                upgraded = true;
+            }
+            if (!same(existing.getIosProductId(), iosProductId)) {
+                existing.setIosProductId(iosProductId);
+                upgraded = true;
+            }
+            if (!same(existing.getAndroidProductId(), androidProductId)) {
+                existing.setAndroidProductId(androidProductId);
+                upgraded = true;
+            }
+            if (!same(existing.getEntitlementKey(), entitlementKey)) {
+                existing.setEntitlementKey(entitlementKey);
+                upgraded = true;
+            }
+            if (!existing.isEnabled()) {
+                existing.setEnabled(true);
+                upgraded = true;
+            }
+            if (existing.getRolloutStatus() != GuruProductCatalog.RolloutStatus.ENABLED) {
+                existing.setRolloutStatus(GuruProductCatalog.RolloutStatus.ENABLED);
+                upgraded = true;
+            }
+
+            if (upgraded) {
+                productRepository.save(existing);
+                log.info("[MonetizationBootstrap] Upgraded guru product '{}'", productKey);
+            } else {
+                log.debug("[MonetizationBootstrap] Product '{}' already exists, skipping", productKey);
+            }
             return;
         }
 
@@ -310,6 +356,12 @@ public class MonetizationBootstrapService implements ApplicationRunner {
 
         productRepository.save(product);
         log.info("[MonetizationBootstrap] Created guru product '{}'", productKey);
+    }
+
+    private static boolean same(String left, String right) {
+        String l = left == null ? "" : left.trim();
+        String r = right == null ? "" : right.trim();
+        return l.equals(r);
     }
 
     // ─── Actions (pilot actions) ────────────────────────────────────

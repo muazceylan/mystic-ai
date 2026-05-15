@@ -38,7 +38,7 @@ public class SubscriptionEntitlement {
     @Column(nullable = false)
     private Long userId;
 
-    /** Entitlement key the rest of the system gates on, e.g. "premium". */
+    /** Entitlement key the rest of the system gates on. */
     @Column(nullable = false)
     private String entitlementKey;
 
