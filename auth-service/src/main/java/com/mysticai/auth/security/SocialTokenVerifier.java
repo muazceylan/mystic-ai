@@ -59,6 +59,7 @@ public class SocialTokenVerifier {
                     .filter(value -> !value.isEmpty())
                     .collect(Collectors.toSet());
             if (audience == null || !allowedGoogleClientIds.contains(audience)) {
+                log.warn("Google token rejected — aud='{}', allowed={}", audience, allowedGoogleClientIds);
                 throw new IllegalArgumentException("Invalid Google token: invalid audience");
             }
 
