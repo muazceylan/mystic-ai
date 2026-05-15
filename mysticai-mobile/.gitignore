@@ -21,3 +21,9 @@ expo-env.d.ts
 !android/gradlew
 !android/gradlew.bat
 !**/gradle/wrapper/gradle-wrapper.jar
+
+# Android signing — never commit these
+android/app/release.keystore
+android/keystore.properties
+@mystic-apis-organization__mystic.jks
+@mystic-apis-organization__mystic_OLD_1.jks

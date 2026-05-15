@@ -1,9 +1,10 @@
-import { makeRedirectUri } from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
-const GOOGLE_WEB_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
-const GOOGLE_ANDROID_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '').trim();
-const GOOGLE_IOS_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '').trim();
+const FIREBASE_API_KEY = (process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? '').trim();
+const FIREBASE_AUTH_DOMAIN = (process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ?? '').trim();
+const FIREBASE_PROJECT_ID = (process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? '').trim();
+const FIREBASE_APP_ID = (process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '').trim();
 
 export type GoogleAuthPromptResult = {
   type?: string;
@@ -13,31 +14,51 @@ export type GoogleAuthPromptResult = {
 
 type GooglePromptAsync = () => Promise<GoogleAuthPromptResult>;
 
+function getFirebaseAuth() {
+  const existing = getApps().find(app => app.name === '[DEFAULT]');
+  const app = existing ?? initializeApp({
+    apiKey: FIREBASE_API_KEY,
+    authDomain: FIREBASE_AUTH_DOMAIN,
+    projectId: FIREBASE_PROJECT_ID,
+    appId: FIREBASE_APP_ID,
+  });
+  return getAuth(app);
+}
+
 export function isGoogleAuthSessionConfigured(): boolean {
-  return GOOGLE_WEB_CLIENT_ID.length > 0;
+  return Boolean(FIREBASE_API_KEY && FIREBASE_AUTH_DOMAIN && FIREBASE_PROJECT_ID && FIREBASE_APP_ID);
 }
 
 export function useGoogleIdTokenAuthRequest(): [GoogleAuthPromptResult, GooglePromptAsync] {
-  if (!isGoogleAuthSessionConfigured()) {
-    return [null, async () => null];
-  }
+  const promptAsync: GooglePromptAsync = async () => {
+    try {
+      const auth = getFirebaseAuth();
+      const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
 
-  const redirectUri = makeRedirectUri({
-    path: 'oauth2/callback',
-    scheme: 'mystic-ai',
-  });
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const idToken = credential?.idToken;
 
-  const [, response, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
-    iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
-    redirectUri,
-    scopes: ['openid', 'profile', 'email'],
-    selectAccount: true,
-  });
+      if (!idToken) return null;
 
-  return [
-    response as GoogleAuthPromptResult,
-    async () => (await promptAsync()) as GoogleAuthPromptResult,
-  ];
+      return {
+        type: 'success',
+        params: { id_token: idToken },
+        authentication: { idToken },
+      };
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code;
+      if (
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request'
+      ) {
+        return { type: 'cancel' };
+      }
+      throw error;
+    }
+  };
+
+  return [null, promptAsync];
 }

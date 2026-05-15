@@ -256,6 +256,17 @@ type PhaseKey =
   | 'new-moon' | 'full-moon' | 'first-quarter' | 'last-quarter'
   | 'waxing-crescent' | 'waxing-gibbous' | 'waning-gibbous' | 'waning-crescent';
 
+const PHASE_DISPLAY: Record<PhaseKey, { tr: string; en: string }> = {
+  'new-moon':        { tr: 'Yeni Ay',           en: 'New Moon' },
+  'waxing-crescent': { tr: 'Büyüyen Hilal',     en: 'Waxing Crescent' },
+  'first-quarter':   { tr: 'İlk Dördün',        en: 'First Quarter' },
+  'waxing-gibbous':  { tr: 'Büyüyen Şişkin Ay', en: 'Waxing Gibbous' },
+  'full-moon':       { tr: 'Dolunay',            en: 'Full Moon' },
+  'waning-gibbous':  { tr: 'Küçülen Şişkin Ay', en: 'Waning Gibbous' },
+  'last-quarter':    { tr: 'Son Dördün',         en: 'Last Quarter' },
+  'waning-crescent': { tr: 'Küçülen Hilal',      en: 'Waning Crescent' },
+};
+
 const PHASE_TEMPLATES_TR: Record<PhaseKey, readonly string[]> = {
   'new-moon': [
     "Yeni Ay {moon}'da; niyet tohumlarının 6 aylık etkisi bugünden başlıyor.",
@@ -571,10 +582,10 @@ function moonPhaseKey(phase: string | null | undefined): PhaseKey | null {
   if (norm.includes('full moon') || norm.includes('dolunay')) return 'full-moon';
   if (norm.includes('first quarter') || norm.includes('ilk dordun')) return 'first-quarter';
   if (norm.includes('last quarter') || norm.includes('third quarter') || norm.includes('son dordun')) return 'last-quarter';
-  if (norm.includes('waxing crescent') || norm.includes('buyuyen hilal')) return 'waxing-crescent';
-  if (norm.includes('waxing gibbous') || norm.includes('buyuyen siskin')) return 'waxing-gibbous';
-  if (norm.includes('waning gibbous') || norm.includes('kuculen siskin')) return 'waning-gibbous';
-  if (norm.includes('waning crescent') || norm.includes('kuculen hilal')) return 'waning-crescent';
+  if (norm.includes('waxing') && norm.includes('crescent') || norm.includes('buyuyen hilal')) return 'waxing-crescent';
+  if (norm.includes('waxing') && norm.includes('gibbous') || norm.includes('buyuyen siskin')) return 'waxing-gibbous';
+  if (norm.includes('waning') && norm.includes('gibbous') || norm.includes('kuculen siskin')) return 'waning-gibbous';
+  if (norm.includes('waning') && norm.includes('crescent') || norm.includes('hilal') && norm.includes('kuculen')) return 'waning-crescent';
   return null;
 }
 
@@ -785,28 +796,10 @@ function buildHeroInsightFromDaily(
 
 function localizeMoonPhase(value: string | null | undefined, locale: DashboardLocale): string {
   const phase = compactWhitespace(value);
-  if (!phase) {
-    return '';
-  }
-
-  const normalized = slugify(phase).replace(/-/g, ' ');
-  const map: Array<{ keys: string[]; tr: string; en: string }> = [
-    { keys: ['new moon', 'yeni ay'], tr: 'Yeni Ay', en: 'New Moon' },
-    { keys: ['waxing crescent', 'buyuyen hilal'], tr: 'Büyüyen Hilal', en: 'Waxing Crescent' },
-    { keys: ['first quarter', 'ilk dordun'], tr: 'İlk Dördün', en: 'First Quarter' },
-    { keys: ['waxing gibbous', 'buyuyen siskin ay', 'siskin ay'], tr: 'Büyüyen Şişkin Ay', en: 'Waxing Gibbous' },
-    { keys: ['full moon', 'dolunay'], tr: 'Dolunay', en: 'Full Moon' },
-    { keys: ['waning gibbous', 'kuculen siskin ay'], tr: 'Küçülen Şişkin Ay', en: 'Waning Gibbous' },
-    { keys: ['last quarter', 'third quarter', 'son dordun'], tr: 'Son Dördün', en: 'Last Quarter' },
-    { keys: ['waning crescent', 'kuculen hilal'], tr: 'Küçülen Hilal', en: 'Waning Crescent' },
-  ];
-
-  const matchedEntry = map.find((entry) => entry.keys.some((key) => normalized.includes(key)));
-  if (!matchedEntry) {
-    return phase;
-  }
-
-  return locale === 'en' ? matchedEntry.en : matchedEntry.tr;
+  if (!phase) return '';
+  const key = moonPhaseKey(phase);
+  if (!key) return phase;
+  return locale === 'en' ? PHASE_DISPLAY[key].en : PHASE_DISPLAY[key].tr;
 }
 
 function localizeMoonSign(skyPulse: SkyPulseResponse | null, locale: DashboardLocale): string {
@@ -814,9 +807,13 @@ function localizeMoonSign(skyPulse: SkyPulseResponse | null, locale: DashboardLo
     return '';
   }
 
-  return isEnglish(locale)
-    ? compactWhitespace(skyPulse.moonSign) || compactWhitespace(skyPulse.moonSignTurkish)
-    : compactWhitespace(skyPulse.moonSignTurkish) || compactWhitespace(skyPulse.moonSign);
+  const rawSign = compactWhitespace(skyPulse.moonSign) || compactWhitespace(skyPulse.moonSignTurkish);
+  if (!rawSign) return '';
+
+  const slug = strictSignSlug(rawSign);
+  if (!slug) return rawSign;
+
+  return localizeSignLabel(slug, locale);
 }
 
 function buildFallbackHeadline(moonSign: string, moonPhase: string, locale: DashboardLocale): string {

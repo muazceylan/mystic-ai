@@ -4,6 +4,12 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -92,7 +98,7 @@ android {
         applicationId 'com.astroguru.mmc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 18
         versionName "1.0.0"
         // The app only ships Turkish and English UI copy. Restricting packaged
         // locale resources avoids flaky AAPT failures in bundled third-party
@@ -108,15 +114,19 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file(keystoreProperties.getProperty('storeFile'))
+            storePassword keystoreProperties.getProperty('storePassword')
+            keyAlias keystoreProperties.getProperty('keyAlias')
+            keyPassword keystoreProperties.getProperty('keyPassword')
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
@@ -186,3 +196,23 @@ dependencies {
 }
 
 apply plugin: 'com.google.gms.google-services'
+
+// Produces a version-stamped copy of the AAB alongside the default app-release.aab.
+// Usage: ./gradlew bundleReleaseVersioned
+tasks.register('bundleReleaseVersioned') {
+    dependsOn 'bundleRelease'
+    doLast {
+        def vName = android.defaultConfig.versionName
+        def vCode = android.defaultConfig.versionCode
+        def outDir = file("${buildDir}/outputs/bundle/release")
+        def src = new File(outDir, "app-release.aab")
+        def dst = new File(outDir, "mysticai-${vName}-${vCode}.aab")
+        if (src.exists()) {
+            java.nio.file.Files.copy(
+                src.toPath(), dst.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            logger.lifecycle("AAB ready: ${dst.absolutePath}")
+        }
+    }
+}
