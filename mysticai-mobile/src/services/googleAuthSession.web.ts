@@ -41,7 +41,19 @@ export function useGoogleIdTokenAuthRequest(): [GoogleAuthPromptResult, GooglePr
       const credential = GoogleAuthProvider.credentialFromResult(result);
       const idToken = credential?.idToken;
 
-      if (!idToken) return null;
+      if (__DEV__) {
+        console.log('[GoogleAuth] signInWithPopup result:', {
+          userId: result.user?.uid,
+          email: result.user?.email,
+          credentialPresent: !!credential,
+          idTokenPresent: !!idToken,
+          idTokenAudience: idToken ? JSON.parse(atob(idToken.split('.')[1]))?.aud : null,
+        });
+      }
+
+      if (!idToken) {
+        throw new Error('Google Sign-In completed but no ID token received from credential.');
+      }
 
       return {
         type: 'success',
