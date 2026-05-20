@@ -15,6 +15,7 @@ export interface AdResult {
   completed: boolean;
   rewardType?: string;
   rewardAmount?: number;
+  transactionId?: string;
   error?: string;
 }
 

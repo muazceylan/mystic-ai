@@ -312,6 +312,12 @@ export function isRevenueCatPurchaseCancelled(error: unknown): boolean {
   );
 }
 
+function resolveStoreForPlatform(): 'APP_STORE' | 'PLAY_STORE' | null {
+  if (Platform.OS === 'ios') return 'APP_STORE';
+  if (Platform.OS === 'android') return 'PLAY_STORE';
+  return null;
+}
+
 export function toRevenueCatSyncPayload(
   customerInfo: CustomerInfo,
   runtimeConfig?: RevenueCatSdkConfig | null,
@@ -335,6 +341,7 @@ export function toRevenueCatSyncPayload(
       : null,
     purchasedProductId,
     storeTransactionId,
+    store: resolveStoreForPlatform(),
   };
 }
 

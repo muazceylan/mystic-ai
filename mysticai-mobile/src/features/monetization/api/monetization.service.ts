@@ -8,6 +8,11 @@ import type {
   PaywallResponse,
   PremiumBehavior,
   EntitlementStatus,
+  UnlockOptions,
+  TokenUnlockResponse,
+  RewardedAdCheckResponse,
+  CompleteRewardedAdPayload,
+  RewardedAdCompleteResponse,
 } from '../types';
 import type { RevenueCatSyncPayload } from '../types/billing';
 
@@ -258,5 +263,54 @@ export async function consumeFeatureAccess(params: {
   sourceScreen?: string;
 }): Promise<FeatureAccessResponse> {
   const { data } = await api.post<FeatureAccessResponse>('/api/v1/monetization/access/consume', params);
+  return data;
+}
+
+export async function getUnlockOptions(
+  moduleKey: string,
+  actionKey: string,
+): Promise<UnlockOptions> {
+  const { data } = await api.get<UnlockOptions>(
+    `/api/v1/monetization/modules/${moduleKey}/actions/${actionKey}/unlock-options`,
+  );
+  return data;
+}
+
+export async function unlockWithToken(
+  moduleKey: string,
+  actionKey: string,
+  params: {
+    platform: string;
+    locale: string;
+    idempotencyKey: string;
+    sourceScreen?: string;
+  },
+): Promise<TokenUnlockResponse> {
+  const { data } = await api.post<TokenUnlockResponse>(
+    `/api/v1/monetization/modules/${moduleKey}/actions/${actionKey}/unlock-with-token`,
+    params,
+  );
+  return data;
+}
+
+export async function checkRewardedAd(
+  moduleKey: string,
+  actionKey: string,
+): Promise<RewardedAdCheckResponse> {
+  const { data } = await api.post<RewardedAdCheckResponse>(
+    `/api/v1/monetization/modules/${moduleKey}/actions/${actionKey}/rewarded-ad/check`,
+  );
+  return data;
+}
+
+export async function completeRewardedAd(
+  moduleKey: string,
+  actionKey: string,
+  payload: CompleteRewardedAdPayload,
+): Promise<RewardedAdCompleteResponse> {
+  const { data } = await api.post<RewardedAdCompleteResponse>(
+    `/api/v1/monetization/modules/${moduleKey}/actions/${actionKey}/rewarded-ad/complete`,
+    payload,
+  );
   return data;
 }

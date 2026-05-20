@@ -415,10 +415,9 @@ public class RevenueCatWebhookService {
     }
 
     private static String ledgerKeyFor(NormalizedPurchaseEvent event) {
-        return "iap:REVENUECAT:"
-                + (event.store() != null ? event.store().name() : "UNKNOWN")
-                + ":" + (event.transactionId() != null ? event.transactionId() : event.eventId())
-                + ":" + (event.productId() != null ? event.productId() : "no-product");
+        String store = event.store() != null ? event.store().name() : null;
+        String txId = event.transactionId() != null ? event.transactionId() : event.eventId();
+        return BillingIdempotencyKeys.forConsumablePurchase(store, txId, event.productId());
     }
 
     private static boolean looksLikeConsumable(NormalizedPurchaseEvent event) {

@@ -5,6 +5,7 @@ import com.mysticai.notification.entity.monetization.GuruWallet;
 import com.mysticai.notification.service.monetization.FeatureAccessService;
 import com.mysticai.notification.service.monetization.GuruWalletService;
 import com.mysticai.notification.service.monetization.MonetizationConfigService;
+import com.mysticai.notification.service.monetization.RewardedContentUnlockService;
 import com.mysticai.notification.service.monetization.SignupBonusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class MonetizationPublicController {
     private final GuruWalletService walletService;
     private final FeatureAccessService featureAccessService;
     private final SignupBonusService signupBonusService;
+    private final RewardedContentUnlockService rewardedContentUnlockService;
 
     @Value("${internal.gateway.key}")
     private String internalGatewayKey;
@@ -45,6 +47,15 @@ public class MonetizationPublicController {
             @PathVariable String moduleKey) {
         var rule = configService.getModuleRule(moduleKey);
         return rule != null ? ResponseEntity.ok(rule) : ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/modules/{moduleKey}/actions/{actionKey}/unlock-options")
+    public ResponseEntity<RewardedContentUnlockService.UnlockOptionsResponse> getUnlockOptions(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @PathVariable String moduleKey,
+            @PathVariable String actionKey) {
+        requireUserId(userId);
+        return ResponseEntity.ok(rewardedContentUnlockService.getUnlockOptions(userId, moduleKey, actionKey));
     }
 
     // ─── AUTHENTICATED (X-User-Id required, enforced by gateway JWT) ──
@@ -82,6 +93,39 @@ public class MonetizationPublicController {
                 request.idempotencyKey(),
                 request.sourceScreen()
         ));
+    }
+
+    @PostMapping("/modules/{moduleKey}/actions/{actionKey}/unlock-with-token")
+    public ResponseEntity<RewardedContentUnlockService.TokenUnlockResponse> unlockWithToken(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @PathVariable String moduleKey,
+            @PathVariable String actionKey,
+            @RequestBody(required = false) RewardedContentUnlockService.TokenUnlockRequest request) {
+        requireUserId(userId);
+        RewardedContentUnlockService.TokenUnlockResponse response =
+                rewardedContentUnlockService.unlockWithToken(userId, moduleKey, actionKey, request);
+        return response.unlocked()
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.badRequest().body(response);
+    }
+
+    @PostMapping("/modules/{moduleKey}/actions/{actionKey}/rewarded-ad/check")
+    public ResponseEntity<RewardedContentUnlockService.RewardedAdCheckResponse> checkRewardedAdUnlock(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @PathVariable String moduleKey,
+            @PathVariable String actionKey) {
+        requireUserId(userId);
+        return ResponseEntity.ok(rewardedContentUnlockService.checkRewardedAd(userId, moduleKey, actionKey));
+    }
+
+    @PostMapping("/modules/{moduleKey}/actions/{actionKey}/rewarded-ad/complete")
+    public ResponseEntity<RewardedContentUnlockService.RewardedAdCompleteResponse> completeRewardedAdUnlock(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @PathVariable String moduleKey,
+            @PathVariable String actionKey,
+            @RequestBody RewardedContentUnlockService.RewardedAdCompleteRequest request) {
+        requireUserId(userId);
+        return ResponseEntity.ok(rewardedContentUnlockService.completeRewardedAd(userId, moduleKey, actionKey, request));
     }
 
     @GetMapping("/wallet")
@@ -225,6 +269,25 @@ public class MonetizationPublicController {
     ) {}
 
     public record ErrorResponse(String error) {}
+
+    public record RewardedUnlockErrorResponse(
+            boolean allowed,
+            String reason,
+            int retryAfterSeconds,
+            String message
+    ) {}
+
+    @ExceptionHandler(RewardedContentUnlockService.RewardedUnlockBlockedException.class)
+    public ResponseEntity<RewardedUnlockErrorResponse> handleRewardedUnlockBlocked(
+            RewardedContentUnlockService.RewardedUnlockBlockedException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new RewardedUnlockErrorResponse(
+                        false,
+                        ex.getReason(),
+                        ex.getRetryAfterSeconds(),
+                        ex.getMessage()
+                ));
+    }
 
     public record WalletResponse(
             int currentBalance,

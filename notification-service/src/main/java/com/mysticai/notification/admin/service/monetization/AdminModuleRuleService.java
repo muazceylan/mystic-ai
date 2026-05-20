@@ -44,6 +44,7 @@ public class AdminModuleRuleService {
         if (rule.getModuleKey() == null || rule.getModuleKey().isBlank()) {
             throw new IllegalArgumentException("moduleKey is required");
         }
+        normalizeRewardedAdFields(rule);
 
         rule.setCreatedByAdminId(adminId);
         rule.setUpdatedByAdminId(adminId);
@@ -64,6 +65,7 @@ public class AdminModuleRuleService {
     public ModuleMonetizationRule update(Long id, ModuleMonetizationRule updates,
                                           Long adminId, String adminEmail, AdminUser.Role role) {
         ModuleMonetizationRule existing = findById(id);
+        normalizeRewardedAdFields(updates);
 
         existing.setEnabled(updates.isEnabled());
         existing.setAdsEnabled(updates.isAdsEnabled());
@@ -84,6 +86,12 @@ public class AdminModuleRuleService {
         existing.setShowOfferOnSecondEntry(updates.isShowOfferOnSecondEntry());
         existing.setGuruRewardAmountPerCompletedAd(updates.getGuruRewardAmountPerCompletedAd());
         existing.setGuruCostsByActionJson(updates.getGuruCostsByActionJson());
+        existing.setRewardedAdEnabled(updates.getRewardedAdEnabled());
+        existing.setRewardedAdViewsRequired(updates.getRewardedAdViewsRequired());
+        existing.setRewardedAdHourlyLimit(updates.getRewardedAdHourlyLimit());
+        existing.setRewardedAdDailyLimit(updates.getRewardedAdDailyLimit());
+        existing.setRewardedAdCooldownMinutes(updates.getRewardedAdCooldownMinutes());
+        existing.setRewardedAdWindowMinutes(updates.getRewardedAdWindowMinutes());
         existing.setAllowFreePreview(updates.isAllowFreePreview());
         existing.setPreviewDepthMode(updates.getPreviewDepthMode());
         existing.setPremiumBehavior(updates.getPremiumBehavior() != null
@@ -120,5 +128,30 @@ public class AdminModuleRuleService {
 
         repository.delete(existing);
         log.info("Module monetization rule deleted: id={}, moduleKey={}", id, existing.getModuleKey());
+    }
+
+    private void normalizeRewardedAdFields(ModuleMonetizationRule rule) {
+        rule.setRewardedAdEnabled(rule.getRewardedAdEnabled() != null ? rule.getRewardedAdEnabled() : Boolean.TRUE);
+
+        if (rule.getRewardedAdViewsRequired() != null && rule.getRewardedAdViewsRequired() < 1) {
+            throw new IllegalArgumentException("rewardedAdViewsRequired must be >= 1 or null");
+        }
+
+        rule.setRewardedAdHourlyLimit(positiveOrDefault(rule.getRewardedAdHourlyLimit(), 3, "rewardedAdHourlyLimit"));
+        rule.setRewardedAdDailyLimit(positiveOrDefault(rule.getRewardedAdDailyLimit(), 10, "rewardedAdDailyLimit"));
+        rule.setRewardedAdCooldownMinutes(positiveOrDefault(rule.getRewardedAdCooldownMinutes(), 60, "rewardedAdCooldownMinutes"));
+        rule.setRewardedAdWindowMinutes(positiveOrDefault(rule.getRewardedAdWindowMinutes(), 60, "rewardedAdWindowMinutes"));
+
+        if (rule.getRewardedAdDailyLimit() < rule.getRewardedAdHourlyLimit()) {
+            throw new IllegalArgumentException("rewardedAdDailyLimit must be >= rewardedAdHourlyLimit");
+        }
+    }
+
+    private Integer positiveOrDefault(Integer value, int defaultValue, String fieldName) {
+        int resolved = value != null ? value : defaultValue;
+        if (resolved < 1) {
+            throw new IllegalArgumentException(fieldName + " must be >= 1");
+        }
+        return resolved;
     }
 }

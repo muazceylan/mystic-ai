@@ -54,6 +54,7 @@ export interface RevenueCatSyncPayload {
   purchaseIdempotencyKey?: string | null;
   purchasedProductId?: string | null;
   storeTransactionId?: string | null;
+  store?: 'APP_STORE' | 'PLAY_STORE' | null;
 }
 
 export interface RevenueCatOfferingSnapshot {

@@ -2270,62 +2270,91 @@ export function CalendarScreenContent() {
                 style={[styles.headerHeroRow, isCompactHeaderLayout && styles.headerHeroRowCompact]}
                 onLayout={(event) => {
                   const nextHeight = Math.ceil(event.nativeEvent.layout.height);
-                  if (nextHeight > headerHeroHeight) {
+                  if (nextHeight > 0 && Math.abs(nextHeight - headerHeroHeight) > 1) {
                     setHeaderHeroHeight(nextHeight);
                   }
                 }}
               >
-                <View style={styles.headerCopyBlock}>
-                  <Text
-                    style={styles.headerEyebrow}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.82}
+                {isCompactHeaderLayout ? (
+                  <LinearGradient
+                    colors={isDark ? ['rgba(244,211,94,0.22)', 'rgba(124,58,237,0.22)'] : ['rgba(163,127,255,0.18)', 'rgba(114,132,255,0.14)']}
+                    style={[styles.headerScorePill, styles.headerScorePillCompact]}
                   >
-                    {formatDateLabel(selectedDate, months)}
-                  </Text>
-                  <Text
-                    style={[styles.headerLead, isCompactHeaderLayout && styles.headerLeadCompact]}
-                    numberOfLines={isCompactHeaderLayout ? 3 : 2}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.86}
-                  >
-                    {t('calendar.editorialSubtitle')}
-                  </Text>
-                  <Text
-                    style={styles.headerSublead}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.86}
-                  >
-                    {headerSubtitle}
-                  </Text>
-                  <View style={styles.headerMonetizationRow}>
-                    <MonetizationQuickBar />
-                  </View>
-                </View>
+                    <View style={styles.headerScoreMetricGroup}>
+                      <MonetizationQuickBar style={styles.headerQuickBarInline} />
+                      <Text
+                        style={[styles.headerScoreValue, styles.headerScoreValueCompact]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.78}
+                      >
+                        %{selectedSummary.score}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[styles.headerScoreLabel, styles.headerScoreLabelCompact]}
+                      numberOfLines={2}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
+                    >
+                      {selectedCategoryLabel}
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <>
+                    <View style={styles.headerCopyBlock}>
+                      <Text
+                        style={styles.headerEyebrow}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.82}
+                      >
+                        {formatDateLabel(selectedDate, months)}
+                      </Text>
+                      <Text
+                        style={styles.headerLead}
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.86}
+                      >
+                        {t('calendar.editorialSubtitle')}
+                      </Text>
+                      <Text
+                        style={styles.headerSublead}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.86}
+                      >
+                        {headerSubtitle}
+                      </Text>
+                      <View style={styles.headerMonetizationRow}>
+                        <MonetizationQuickBar />
+                      </View>
+                    </View>
 
-                <LinearGradient
-                  colors={isDark ? ['rgba(244,211,94,0.22)', 'rgba(124,58,237,0.22)'] : ['rgba(163,127,255,0.18)', 'rgba(114,132,255,0.14)']}
-                  style={[styles.headerScorePill, isCompactHeaderLayout && styles.headerScorePillCompact]}
-                >
-                  <Text
-                    style={[styles.headerScoreValue, isCompactHeaderLayout && styles.headerScoreValueCompact]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.78}
-                  >
-                    %{selectedSummary.score}
-                  </Text>
-                  <Text
-                    style={[styles.headerScoreLabel, isCompactHeaderLayout && styles.headerScoreLabelCompact]}
-                    numberOfLines={2}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.72}
-                  >
-                    {selectedCategoryLabel}
-                  </Text>
-                </LinearGradient>
+                    <LinearGradient
+                      colors={isDark ? ['rgba(244,211,94,0.22)', 'rgba(124,58,237,0.22)'] : ['rgba(163,127,255,0.18)', 'rgba(114,132,255,0.14)']}
+                      style={styles.headerScorePill}
+                    >
+                      <Text
+                        style={styles.headerScoreValue}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.78}
+                      >
+                        %{selectedSummary.score}
+                      </Text>
+                      <Text
+                        style={styles.headerScoreLabel}
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.72}
+                      >
+                        {selectedCategoryLabel}
+                      </Text>
+                    </LinearGradient>
+                  </>
+                )}
               </View>
             </Animated.View>
 
@@ -3369,7 +3398,9 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
     headerHeroRowCompact: {
       flexDirection: 'column',
       alignItems: 'stretch',
-      gap: 10,
+      gap: 0,
+      paddingTop: 8,
+      paddingBottom: 10,
     },
     headerHeroWrap: {
       overflow: 'hidden',
@@ -3410,10 +3441,6 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
       flexShrink: 1,
       includeFontPadding: false,
     },
-    headerLeadCompact: {
-      fontSize: 16,
-      lineHeight: 21,
-    },
     headerSublead: {
       color: C.subtext,
       fontSize: 12,
@@ -3436,13 +3463,24 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
     },
     headerScorePillCompact: {
       width: '100%',
-      minHeight: 0,
+      minHeight: 66,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 14,
-      paddingVertical: 12,
+      paddingVertical: 8,
       gap: 12,
+    },
+    headerScoreMetricGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexShrink: 1,
+      minWidth: 0,
+      gap: 10,
+    },
+    headerQuickBarInline: {
+      alignSelf: 'center',
+      flexShrink: 0,
     },
     headerScoreValue: {
       color: C.text,
@@ -3456,6 +3494,7 @@ function makeStyles(C: ThemeColors, isDark: boolean, dockChipWidth: number) {
     headerScoreValueCompact: {
       width: 'auto',
       flexShrink: 0,
+      minWidth: 48,
     },
     headerScoreLabel: {
       color: C.subtext,

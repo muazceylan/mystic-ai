@@ -93,7 +93,7 @@ public class MonetizationBootstrapService implements ApplicationRunner {
                 .signupBonusTokenAmount(10)
                 .signupBonusLedgerReason("SIGNUP_BONUS")
                 .isSignupBonusOneTimeOnly(true)
-                .signupBonusHelperText("Yeni uyeler icin tek seferlik hos geldin Guru bakiyesi")
+                .signupBonusHelperText("Yeni üyeler için tek seferlik hoş geldin Guru bakiyesi")
                 .premiumEnabled(true)
                 .trialEnabled(true)
                 .defaultTrialDays(3)

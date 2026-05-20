@@ -61,6 +61,12 @@ export interface ModuleRule {
   showOfferOnDetailClick: boolean;
   showOfferOnSecondEntry: boolean;
   guruRewardAmountPerCompletedAd: number;
+  rewardedAdEnabled?: boolean;
+  rewardedAdViewsRequired?: number | null;
+  rewardedAdHourlyLimit?: number;
+  rewardedAdDailyLimit?: number;
+  rewardedAdCooldownMinutes?: number;
+  rewardedAdWindowMinutes?: number;
   allowFreePreview: boolean;
   previewDepthMode: string;
   premiumBehavior?: PremiumBehavior;
@@ -240,4 +246,59 @@ export interface PaywallResponse {
   tokenProducts: PaywallProduct[];
   benefits: string[];
   fetchedAt?: string;
+}
+
+export interface UnlockOptions {
+  moduleKey: string;
+  actionKey: string;
+  tokenRequirement: number;
+  userGuruBalance: number;
+  tokenUnlockEnabled: boolean;
+  rewardedAdEnabled: boolean;
+  rewardedAdViewsRequired: number;
+  rewardedAdProgress: {
+    completed: number;
+    required: number;
+  };
+  adAvailability: {
+    allowed: boolean;
+    reason?: string | null;
+    retryAfterSeconds: number;
+    message?: string | null;
+  };
+}
+
+export interface TokenUnlockResponse {
+  unlocked: boolean;
+  reason?: string | null;
+  message?: string | null;
+  spentGuru: number;
+  remainingGuru: number;
+}
+
+export interface RewardedAdCheckResponse {
+  allowed: boolean;
+  reason?: string | null;
+  requiredViews: number;
+  completedViews: number;
+  remainingViews: number;
+  retryAfterSeconds: number;
+  message?: string | null;
+}
+
+export interface CompleteRewardedAdPayload {
+  adNetwork: string;
+  placement: string;
+  transactionId?: string | null;
+  clientEventId: string;
+}
+
+export interface RewardedAdCompleteResponse {
+  completedViews: number;
+  requiredViews: number;
+  remainingViews: number;
+  unlocked: boolean;
+  unlockId?: string | null;
+  message?: string | null;
+  idempotentReplay?: boolean;
 }

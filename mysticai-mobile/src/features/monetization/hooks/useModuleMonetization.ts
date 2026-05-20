@@ -195,7 +195,13 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
           || action.unlockType === 'PURCHASE_ONLY'
         ),
       );
-      const adEnabledForAction = Boolean(action && supportsAd && adsEnabled && !adsSuppressedByPremium);
+      const adEnabledForAction = Boolean(
+        action
+        && supportsAd
+        && adsEnabled
+        && rule?.rewardedAdEnabled !== false
+        && !adsSuppressedByPremium,
+      );
       const purchaseEnabledForAction = Boolean(
         action
         && supportsPurchase

@@ -1,9 +1,12 @@
 import React from 'react';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Image, Pressable, Text, View, StyleSheet } from 'react-native';
 import { useTheme, ThemeColors } from '../../../context/ThemeContext';
 import { TYPOGRAPHY, SPACING, RADIUS, ACCESSIBILITY } from '../../../constants/tokens';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useTranslation } from 'react-i18next';
+
+const GURU_TOKEN_DARK = require('../../../../assets/guru_transparent_light.png');
+const GURU_TOKEN_LIGHT = require('../../../../assets/guru_transparent.png');
 
 interface GuruBalanceBadgeProps {
   onPress?: () => void;
@@ -12,18 +15,18 @@ interface GuruBalanceBadgeProps {
 
 export function GuruBalanceBadge({ onPress, size = 'md' }: GuruBalanceBadgeProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const s = createStyles(colors);
   const balance = useGuruWalletStore(state => state.getBalance());
 
   const content = (
     <View style={[s.container, size === 'sm' && s.containerSm]}>
-      <Text
+      <Image
+        source={isDark ? GURU_TOKEN_DARK : GURU_TOKEN_LIGHT}
         style={[s.icon, size === 'sm' && s.iconSm]}
-        maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-      >
-        {'✦'}
-      </Text>
+        resizeMode="contain"
+        accessibilityIgnoresInvertColors
+      />
       <Text
         style={[s.balance, size === 'sm' && s.balanceSm]}
         maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
@@ -66,11 +69,12 @@ function createStyles(C: ThemeColors) {
       paddingVertical: 2,
     },
     icon: {
-      fontSize: 14,
-      color: C.gold,
+      width: 24,
+      height: 24,
     },
     iconSm: {
-      fontSize: 12,
+      width: 20,
+      height: 20,
     },
     balance: {
       ...TYPOGRAPHY.SmallBold,

@@ -103,6 +103,70 @@ class AstrologyResponseListenerTest {
     }
 
     @Test
+    void shouldFlattenNestedDreamSynthesisSectionsAndObjectLists() {
+        UUID correlationId = UUID.randomUUID();
+        DreamEntry entry = DreamEntry.builder()
+                .id(78L)
+                .userId(11L)
+                .correlationId(correlationId)
+                .interpretationStatus("PENDING")
+                .build();
+
+        when(dreamEntryRepository.findByCorrelationId(correlationId)).thenReturn(Optional.of(entry));
+        when(dreamEntryRepository.save(any(DreamEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String aiPayload = """
+                {
+                  "interpretation": {
+                    "main": "Kapı eşiği, değişime hazır ama hâlâ bekleyen bir karar alanını gösteriyor.",
+                    "psychologicalReflection": "Ay katmanı, bastırılmış güven ihtiyacını görünür kılıyor.",
+                    "astrologicalInsight": "Neptün sisi, sezgiyi güçlendirirken acele hüküm riskini artırıyor."
+                  },
+                  "opportunities": [
+                    {
+                      "title": "Günlük adım",
+                      "description": "Sabah rüyanın ana sembolüyle ilgili tek bir niyet yaz."
+                    }
+                  ],
+                  "warnings": [
+                    {
+                      "title": "Sınır",
+                      "description": "Bugün belirsiz bir konuşmada hemen karar verme."
+                    }
+                  ]
+                }
+                """;
+
+        AiAnalysisResponseEvent event = new AiAnalysisResponseEvent(
+                correlationId,
+                11L,
+                "{}",
+                AiAnalysisEvent.SourceService.DREAM,
+                AiAnalysisEvent.AnalysisType.DREAM_SYNTHESIS,
+                aiPayload,
+                true,
+                null,
+                LocalDateTime.now()
+        );
+
+        listener.handleAiResponse(event);
+
+        ArgumentCaptor<DreamEntry> captor = ArgumentCaptor.forClass(DreamEntry.class);
+        verify(dreamEntryRepository).save(captor.capture());
+
+        DreamEntry saved = captor.getValue();
+        assertEquals("COMPLETED", saved.getInterpretationStatus());
+        String expectedInterpretation = String.join("\n\n",
+                "Kapı eşiği, değişime hazır ama hâlâ bekleyen bir karar alanını gösteriyor.",
+                "Ay katmanı, bastırılmış güven ihtiyacını görünür kılıyor.",
+                "Neptün sisi, sezgiyi güçlendirirken acele hüküm riskini artırıyor.");
+        assertEquals(expectedInterpretation, saved.getInterpretation());
+        assertFalse(saved.getInterpretation().trim().startsWith("{"));
+        assertEquals("[\"Günlük adım: Sabah rüyanın ana sembolüyle ilgili tek bir niyet yaz.\"]", saved.getOpportunitiesJson());
+        assertEquals("[\"Sınır: Bugün belirsiz bir konuşmada hemen karar verme.\"]", saved.getWarningsJson());
+    }
+
+    @Test
     void shouldFallbackWhenRelationshipInsightMentionsDifferentScore() {
         UUID correlationId = UUID.randomUUID();
         Synastry synastry = Synastry.builder()

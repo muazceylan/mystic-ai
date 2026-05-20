@@ -34,6 +34,12 @@ interface FormData {
   isGuruEnabled: boolean;
   isGuruPurchaseEnabled: boolean;
   guruRewardAmountPerCompletedAd: number;
+  rewardedAdEnabled: boolean;
+  rewardedAdViewsRequired: number | null;
+  rewardedAdHourlyLimit: number;
+  rewardedAdDailyLimit: number;
+  rewardedAdCooldownMinutes: number;
+  rewardedAdWindowMinutes: number;
   isAllowFreePreview: boolean;
   previewDepthMode: string;
   premiumBehavior: string;
@@ -78,6 +84,12 @@ export default function NewModuleRulePage() {
       isGuruEnabled: true,
       isGuruPurchaseEnabled: false,
       guruRewardAmountPerCompletedAd: 5,
+      rewardedAdEnabled: true,
+      rewardedAdViewsRequired: null,
+      rewardedAdHourlyLimit: 3,
+      rewardedAdDailyLimit: 10,
+      rewardedAdCooldownMinutes: 60,
+      rewardedAdWindowMinutes: 60,
       isAllowFreePreview: true,
       previewDepthMode: 'SUMMARY_ONLY',
       premiumBehavior: 'NO_CHANGE',
@@ -103,6 +115,22 @@ export default function NewModuleRulePage() {
     isPremiumAdFree,
   });
 
+  const sanitizePayload = (data: FormData): FormData => ({
+    ...data,
+    rewardedAdViewsRequired: Number.isFinite(data.rewardedAdViewsRequired)
+      ? data.rewardedAdViewsRequired
+      : null,
+  });
+
+  const submitForm = (data: FormData) => {
+    const payload = sanitizePayload(data);
+    if (payload.rewardedAdDailyLimit < payload.rewardedAdHourlyLimit) {
+      toast.error('Daily Ad Limit, Hourly Ad Limit değerinden küçük olamaz.');
+      return;
+    }
+    mutation.mutate(payload);
+  };
+
   return (
     <AdminLayout>
       <div className="flex items-center gap-3 mb-6">
@@ -111,7 +139,7 @@ export default function NewModuleRulePage() {
       </div>
 
       <div className="max-w-2xl">
-        <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-5 bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <form onSubmit={handleSubmit(submitForm)} className="space-y-5 bg-gray-900 border border-gray-800 rounded-xl p-6">
           {/* Temel Ayarlar */}
           <div className="border border-gray-700 rounded-lg p-4 space-y-4">
             <p className="text-xs text-gray-400 uppercase font-semibold">Temel Ayarlar</p>
@@ -205,6 +233,51 @@ export default function NewModuleRulePage() {
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Reklam Başına Guru Ödülü</label>
               <Input {...register('guruRewardAmountPerCompletedAd', { valueAsNumber: true })} type="number" min={0} />
+            </div>
+          </div>
+
+          {/* Rewarded Unlock */}
+          <div className="border border-purple-800/60 rounded-lg p-4 space-y-4 bg-purple-950/20">
+            <p className="text-xs text-purple-200 uppercase font-semibold">Rewarded Unlock</p>
+            <Controller name="rewardedAdEnabled" control={control} render={({ field }) => <Checkbox label="Rewarded Ad Enabled" value={!!field.value} onChange={field.onChange} />} />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Rewarded Ad Views Required</label>
+              <Input
+                {...register('rewardedAdViewsRequired', {
+                  setValueAs: (value) => value === '' || value === null ? null : Number(value),
+                  min: 1,
+                })}
+                type="number"
+                min={1}
+                placeholder="Action Guru cost kadar"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Boş bırakılırsa action Guru cost kadar reklam izletilir.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Hourly Ad Limit</label>
+                <Input {...register('rewardedAdHourlyLimit', { valueAsNumber: true, min: 1 })} type="number" min={1} />
+                <p className="text-xs text-gray-500 mt-1">Kullanıcının bu modül/action için pencere içinde izleyebileceği maksimum reklam sayısı.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Daily Ad Limit</label>
+                <Input {...register('rewardedAdDailyLimit', { valueAsNumber: true, min: 1 })} type="number" min={1} />
+                <p className="text-xs text-gray-500 mt-1">Kullanıcının bir günde izleyebileceği maksimum reklam sayısı.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Cooldown Minutes</label>
+                <Input {...register('rewardedAdCooldownMinutes', { valueAsNumber: true, min: 1 })} type="number" min={1} />
+                <p className="text-xs text-gray-500 mt-1">Limit dolunca tekrar reklam izlemek için bekleme süresi.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Window Minutes</label>
+                <Input {...register('rewardedAdWindowMinutes', { valueAsNumber: true, min: 1 })} type="number" min={1} />
+                <p className="text-xs text-gray-500 mt-1">Hourly limit hesabında kullanılacak hareketli zaman penceresi.</p>
+              </div>
             </div>
           </div>
 

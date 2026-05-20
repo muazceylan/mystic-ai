@@ -868,6 +868,12 @@ export interface ModuleMonetizationRule {
   isShowOfferOnSecondEntry: boolean;
   guruRewardAmountPerCompletedAd: number;
   guruCostsByActionJson?: string;
+  rewardedAdEnabled: boolean;
+  rewardedAdViewsRequired?: number | null;
+  rewardedAdHourlyLimit: number;
+  rewardedAdDailyLimit: number;
+  rewardedAdCooldownMinutes: number;
+  rewardedAdWindowMinutes: number;
   isAllowFreePreview: boolean;
   previewDepthMode: PreviewDepthMode;
   // Premium / trial behavior (Phase 1: foundation)

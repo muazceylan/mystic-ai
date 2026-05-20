@@ -1,5 +1,6 @@
 package com.mysticai.notification.service.monetization;
 
+import com.mysticai.notification.entity.monetization.GuruLedger;
 import com.mysticai.notification.entity.monetization.GuruProductCatalog;
 import com.mysticai.notification.entity.monetization.GuruWallet;
 import com.mysticai.notification.entity.monetization.MonetizationSettings;
@@ -8,6 +9,7 @@ import com.mysticai.notification.repository.GuruProductCatalogRepository;
 import com.mysticai.notification.repository.GuruWalletRepository;
 import com.mysticai.notification.repository.MonetizationSettingsRepository;
 import com.mysticai.notification.repository.SubscriptionEntitlementRepository;
+import com.mysticai.notification.service.billing.BillingIdempotencyKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class BillingService {
     private final GuruWalletRepository walletRepository;
     private final SubscriptionEntitlementRepository entitlementRepository;
     private final EntitlementService entitlementService;
+    private final GuruWalletService walletService;
 
     @Transactional(readOnly = true)
     public PaywallResponse getPaywall(Long userId) {
@@ -105,9 +108,16 @@ public class BillingService {
     }
 
     /**
-     * Mobile-side sync is observational only. The client may tell us which
-     * RevenueCat customer / product identifiers it sees, but access state
-     * remains server-authoritative and is still driven by verified webhooks.
+     * Mobile-side sync. Records the observed RevenueCat state on the
+     * entitlement row (for diagnostics) and — when the client reports a
+     * fresh consumable purchase — credits the wallet using the same
+     * idempotency key the webhook would produce. The unique constraint on
+     * GuruLedger.idempotency_key guarantees that whichever path arrives
+     * first credits, and the other is a no-op.
+     *
+     * Subscription state is still webhook-authoritative; we only credit
+     * consumables here so users do not have to wait for the webhook to
+     * see their token balance update.
      */
     @Transactional
     public MobileBillingStateResponse syncRevenueCat(Long userId, RevenueCatSyncRequest request) {
@@ -122,7 +132,83 @@ public class BillingService {
                 request != null ? request.environment() : null,
                 "sync");
 
+        if (request != null) {
+            creditConsumableIfPresent(userId, request);
+        }
+
         return MobileBillingStateResponse.from(entitlementService.getSnapshot(userId));
+    }
+
+    private void creditConsumableIfPresent(Long userId, RevenueCatSyncRequest request) {
+        String productId = request.purchasedProductId();
+        String transactionId = request.storeTransactionId();
+        if (productId == null || productId.isBlank() || transactionId == null || transactionId.isBlank()) {
+            return;
+        }
+
+        Optional<GuruProductCatalog> productOpt = findConsumableProduct(productId);
+        if (productOpt.isEmpty()) {
+            log.warn("Mobile sync purchase ignored — product not found in catalog: userId={} productId={} transactionId={}",
+                    userId, productId, transactionId);
+            return;
+        }
+
+        GuruProductCatalog product = productOpt.get();
+        if (product.getProductType() != GuruProductCatalog.ProductType.CONSUMABLE
+                && product.getProductType() != GuruProductCatalog.ProductType.BUNDLE
+                && product.getProductType() != GuruProductCatalog.ProductType.PROMOTIONAL) {
+            // Subscriptions are webhook-only.
+            return;
+        }
+
+        int amount = product.getGuruAmount() + Math.max(0, product.getBonusGuruAmount());
+        if (amount <= 0) {
+            log.warn("Mobile sync purchase ignored — invalid token amount: userId={} productKey={}",
+                    userId, product.getProductKey());
+            return;
+        }
+
+        String idempotencyKey = BillingIdempotencyKeys.forConsumablePurchase(
+                request.store(), transactionId, productId);
+
+        GuruLedger entry = walletService.processPurchase(
+                userId,
+                amount,
+                product.getProductKey(),
+                request.store(),
+                null,
+                idempotencyKey);
+
+        log.info("Mobile sync credited consumable: userId={} productKey={} amount={} idempotencyKey={} ledgerId={}",
+                userId, product.getProductKey(), amount, idempotencyKey,
+                entry != null && entry.getId() != null ? entry.getId() : "duplicate");
+    }
+
+    private Optional<GuruProductCatalog> findConsumableProduct(String productId) {
+        String normalized = normalizeProductId(productId);
+        Optional<GuruProductCatalog> byKey = productRepository.findByProductKey(normalized);
+        if (byKey.isPresent()) return byKey;
+        return productRepository.findAll().stream()
+                .filter(p -> matchesProductId(normalized, p.getRevenueCatProductId())
+                        || matchesProductId(normalized, p.getIosProductId())
+                        || matchesProductId(normalized, p.getAndroidProductId())
+                        || matchesProductId(productId, p.getRevenueCatProductId())
+                        || matchesProductId(productId, p.getIosProductId())
+                        || matchesProductId(productId, p.getAndroidProductId()))
+                .findFirst();
+    }
+
+    private static String normalizeProductId(String productId) {
+        if (productId == null) return null;
+        String trimmed = productId.trim();
+        int suffixIndex = trimmed.indexOf(':');
+        return suffixIndex >= 0 ? trimmed.substring(0, suffixIndex) : trimmed;
+    }
+
+    private static boolean matchesProductId(String eventProductId, String catalogProductId) {
+        if (eventProductId == null || catalogProductId == null) return false;
+        return eventProductId.equals(catalogProductId)
+                || normalizeProductId(eventProductId).equals(normalizeProductId(catalogProductId));
     }
 
     @Transactional
@@ -300,7 +386,8 @@ public class BillingService {
             String fetchedAt,
             String purchaseIdempotencyKey,
             String purchasedProductId,
-            String storeTransactionId
+            String storeTransactionId,
+            String store
     ) {}
 
     public record RestorePurchasesRequest(

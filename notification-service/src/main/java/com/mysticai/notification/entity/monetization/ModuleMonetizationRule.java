@@ -89,6 +89,23 @@ public class ModuleMonetizationRule {
     private String guruCostsByActionJson;
 
     @Builder.Default
+    private Boolean rewardedAdEnabled = true;
+
+    private Integer rewardedAdViewsRequired;
+
+    @Builder.Default
+    private Integer rewardedAdHourlyLimit = 3;
+
+    @Builder.Default
+    private Integer rewardedAdDailyLimit = 10;
+
+    @Builder.Default
+    private Integer rewardedAdCooldownMinutes = 60;
+
+    @Builder.Default
+    private Integer rewardedAdWindowMinutes = 60;
+
+    @Builder.Default
     @JsonProperty("isAllowFreePreview")
     private boolean isAllowFreePreview = true;
 

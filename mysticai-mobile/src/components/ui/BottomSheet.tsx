@@ -8,6 +8,9 @@ import {
   useWindowDimensions,
   KeyboardAvoidingView,
   Platform,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
 } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -27,9 +30,22 @@ interface BottomSheetProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  sheetStyle?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
+  titleStyle?: StyleProp<TextStyle>;
+  dragHandleStyle?: StyleProp<ViewStyle>;
 }
 
-export function BottomSheet({ visible, onClose, title, children }: BottomSheetProps) {
+export function BottomSheet({
+  visible,
+  onClose,
+  title,
+  children,
+  sheetStyle: sheetStyleOverride,
+  contentStyle,
+  titleStyle,
+  dragHandleStyle,
+}: BottomSheetProps) {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -86,14 +102,14 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[s.sheet, sheetStyle]}>
+        <Animated.View style={[s.sheet, sheetStyle, sheetStyleOverride]}>
           <GestureDetector gesture={gesture}>
             <View style={s.dragZone}>
-              <View style={s.dragHandle} />
-              {title ? <Text style={s.title}>{title}</Text> : null}
+              <View style={[s.dragHandle, dragHandleStyle]} />
+              {title ? <Text style={[s.title, titleStyle]}>{title}</Text> : null}
             </View>
           </GestureDetector>
-          <View style={s.content}>{children}</View>
+          <View style={[s.content, contentStyle]}>{children}</View>
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>

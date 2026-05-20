@@ -129,6 +129,66 @@ ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS premium
 ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS premium_token_cost INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS premium_ad_free BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS trial_unlock_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_views_required INTEGER;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_hourly_limit INTEGER NOT NULL DEFAULT 3;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_daily_limit INTEGER NOT NULL DEFAULT 10;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_cooldown_minutes INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE IF EXISTS module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_window_minutes INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE IF EXISTS rewarded_unlock_progress ADD COLUMN IF NOT EXISTS content_key VARCHAR(512);
+ALTER TABLE IF EXISTS rewarded_unlock_event ADD COLUMN IF NOT EXISTS content_key VARCHAR(512);
+
+CREATE TABLE IF NOT EXISTS rewarded_unlock_progress (
+    id UUID PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    module_key VARCHAR(255) NOT NULL,
+    action_key VARCHAR(255) NOT NULL,
+    content_key VARCHAR(512),
+    required_views INTEGER NOT NULL,
+    completed_views INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(40) NOT NULL DEFAULT 'IN_PROGRESS',
+    last_client_event_id VARCHAR(255),
+    last_transaction_id VARCHAR(255),
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6),
+    unlocked_at TIMESTAMP(6),
+    expires_at TIMESTAMP(6) NOT NULL,
+    version BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_rup_user_module_action_status
+    ON rewarded_unlock_progress (user_id, module_key, action_key, status);
+CREATE INDEX IF NOT EXISTS idx_rup_user_module_action_content_status
+    ON rewarded_unlock_progress (user_id, module_key, action_key, content_key, status);
+CREATE INDEX IF NOT EXISTS idx_rup_expires
+    ON rewarded_unlock_progress (expires_at);
+
+CREATE TABLE IF NOT EXISTS rewarded_unlock_event (
+    id UUID PRIMARY KEY,
+    progress_id UUID NOT NULL,
+    user_id BIGINT NOT NULL,
+    module_key VARCHAR(255) NOT NULL,
+    action_key VARCHAR(255) NOT NULL,
+    content_key VARCHAR(512),
+    client_event_id VARCHAR(255) NOT NULL,
+    transaction_id VARCHAR(255),
+    ad_network VARCHAR(80),
+    placement VARCHAR(255),
+    event_type VARCHAR(40) NOT NULL DEFAULT 'AD_COMPLETED',
+    created_at TIMESTAMP(6) NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rue_client_event_id
+    ON rewarded_unlock_event (client_event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rue_transaction_id
+    ON rewarded_unlock_event (transaction_id)
+    WHERE transaction_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_rue_progress
+    ON rewarded_unlock_event (progress_id);
+CREATE INDEX IF NOT EXISTS idx_rue_user_module_action_created
+    ON rewarded_unlock_event (user_id, module_key, action_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rue_user_module_action_content_created
+    ON rewarded_unlock_event (user_id, module_key, action_key, content_key, created_at DESC);
 
 ALTER TABLE IF EXISTS guru_product_catalog ADD COLUMN IF NOT EXISTS revenue_cat_product_id VARCHAR(255);
 ALTER TABLE IF EXISTS guru_product_catalog ADD COLUMN IF NOT EXISTS entitlement_key VARCHAR(120);

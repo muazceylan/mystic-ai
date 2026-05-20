@@ -14,6 +14,11 @@ export type {
   EntitlementSnapshot,
   PaywallProduct,
   PaywallResponse,
+  UnlockOptions,
+  TokenUnlockResponse,
+  RewardedAdCheckResponse,
+  CompleteRewardedAdPayload,
+  RewardedAdCompleteResponse,
 } from './types';
 
 // Stores
@@ -23,6 +28,7 @@ export { useGuruWalletStore } from './store/useGuruWalletStore';
 // Hooks
 export { useModuleMonetization } from './hooks/useModuleMonetization';
 export { useRewardedUnlock } from './hooks/useRewardedUnlock';
+export { useRewardedAdContentUnlock } from './hooks/useRewardedAdContentUnlock';
 export { useGuruUnlock } from './hooks/useGuruUnlock';
 export { useEntitlements } from './hooks/useEntitlements';
 export { usePaywall } from './hooks/usePaywall';
@@ -42,6 +48,10 @@ export {
   fetchEntitlements,
   syncRevenueCatBilling,
   restoreBilling,
+  getUnlockOptions,
+  unlockWithToken,
+  checkRewardedAd,
+  completeRewardedAd,
 } from './api/monetization.service';
 
 // Providers

@@ -118,7 +118,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         }
 
         // Check if path is public
-        if (isPublicPath(path)) {
+        if (isPublicPath(path, request.getMethod())) {
             return chain.filter(exchange);
         }
 
@@ -176,7 +176,10 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
 
-    private boolean isPublicPath(String path) {
+    private boolean isPublicPath(String path, HttpMethod method) {
+        if (path.startsWith("/api/v1/monetization/modules/")) {
+            return method == HttpMethod.GET && !path.contains("/actions/");
+        }
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
     }
 

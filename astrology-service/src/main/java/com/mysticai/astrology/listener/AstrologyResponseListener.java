@@ -43,6 +43,36 @@ public class AstrologyResponseListener {
     private final MonthlyDreamStoryRepository monthlyDreamStoryRepository;
     private final SynastryRepository synastryRepository;
     private final ObjectMapper objectMapper;
+
+    private static final List<String> DREAM_NARRATIVE_KEYS = List.of(
+            "interpretation", "yorum", "analysis", "message", "cosmicInterpretation", "dreamInterpretation",
+            "main", "summary", "insight", "insights", "meaning", "body", "content", "description",
+            "mainInterpretation", "main_interpretation", "psychological", "psychologicalReflection",
+            "psychological_reflection", "astrological", "astrologicalInsight", "astrological_insight",
+            "astrologicalInterpretation", "astrological_interpretation", "spiritualMessage", "spiritual_message",
+            "subconsciousMessage", "subconscious_message", "shadowMessage", "shadow_message",
+            "symbolAnalysis", "symbol_analysis", "symbolMeaning", "symbol_meaning", "advice"
+    );
+
+    private static final List<String> DREAM_OPPORTUNITY_KEYS = List.of(
+            "opportunities", "opportunity", "firsatlar", "fırsatlar", "firsat", "fırsat",
+            "actions", "guidance", "nextSteps", "next_steps", "recommendations", "suggestions",
+            "actionPlan", "action_plan"
+    );
+
+    private static final List<String> DREAM_WARNING_KEYS = List.of(
+            "warnings", "warning", "uyarilar", "uyarılar", "uyari", "uyarı", "cautions",
+            "risks", "riskler", "attentionPoints", "attention_points", "avoid"
+    );
+
+    private static final List<String> DREAM_LIST_ITEM_TITLE_KEYS = List.of(
+            "title", "label", "name", "heading", "symbol"
+    );
+
+    private static final List<String> DREAM_LIST_ITEM_BODY_KEYS = List.of(
+            "text", "body", "content", "description", "detail", "details", "message",
+            "meaning", "reason", "advice", "action", "guidance", "warning", "opportunity"
+    );
     private static final Pattern CANNED_HARMONY_INSIGHT_PATTERN = Pattern.compile(
             "(?is).*bu\\s+iki\\s+haritan[ıi]n\\s+uyumu\\s*\\d+\\s*puan.*güçlü\\s+bir\\s+çekim\\s+yarat[ıi]yor.*"
     );
@@ -192,42 +222,11 @@ public class AstrologyResponseListener {
             return DreamSynthesisContent.empty();
         }
 
-        String interpretation = firstNonBlank(
-                readDreamText(parsed, "interpretation"),
-                readDreamText(parsed, "yorum"),
-                readDreamText(parsed, "analysis"),
-                readDreamText(parsed, "message"),
-                readDreamText(parsed, "cosmicInterpretation"),
-                readDreamText(parsed, "dreamInterpretation"),
-                findLongestDreamNarrative(parsed)
-        );
-
-        List<String> opportunities = firstNonEmptyList(
-                readDreamList(parsed, "opportunities"),
-                readDreamList(parsed, "firsatlar"),
-                readDreamList(parsed, "fırsatlar"),
-                readDreamList(parsed, "actions"),
-                readDreamList(parsed, "guidance")
-        );
-
-        List<String> warnings = firstNonEmptyList(
-                readDreamList(parsed, "warnings"),
-                readDreamList(parsed, "uyarilar"),
-                readDreamList(parsed, "uyarılar"),
-                readDreamList(parsed, "cautions")
-        );
+        String interpretation = collectDreamNarrative(parsed);
+        List<String> opportunities = readFirstDreamList(parsed, DREAM_OPPORTUNITY_KEYS);
+        List<String> warnings = readFirstDreamList(parsed, DREAM_WARNING_KEYS);
 
         return new DreamSynthesisContent(blankToNull(interpretation), opportunities, warnings);
-    }
-
-    @SafeVarargs
-    private final List<String> firstNonEmptyList(List<String>... candidates) {
-        for (List<String> candidate : candidates) {
-            if (candidate != null && !candidate.isEmpty()) {
-                return candidate;
-            }
-        }
-        return List.of();
     }
 
     private String readDreamText(JsonNode root, String key) {
@@ -235,7 +234,17 @@ public class AstrologyResponseListener {
         if (node.isMissingNode() || node.isNull()) {
             return "";
         }
-        return normalizeDreamText(node.asText(""));
+        return normalizeDreamNarrative(node);
+    }
+
+    private List<String> readFirstDreamList(JsonNode root, List<String> keys) {
+        for (String key : keys) {
+            List<String> values = readDreamList(root, key);
+            if (!values.isEmpty()) {
+                return values;
+            }
+        }
+        return List.of();
     }
 
     private List<String> readDreamList(JsonNode root, String key) {
@@ -248,14 +257,19 @@ public class AstrologyResponseListener {
 
     private List<String> normalizeDreamList(JsonNode node) {
         List<String> values = new ArrayList<>();
-        if (node == null || node.isNull()) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
             return values;
         }
 
         if (node.isArray()) {
             for (JsonNode child : node) {
-                addDreamListValue(values, child == null ? "" : child.asText(""));
+                addDreamListNode(values, child);
             }
+            return values;
+        }
+
+        if (node.isObject()) {
+            addDreamListObjectValue(values, node);
             return values;
         }
 
@@ -270,17 +284,15 @@ public class AstrologyResponseListener {
             return values;
         }
 
-        if (rawText.startsWith("[") && rawText.endsWith("]")) {
-            try {
-                JsonNode parsed = objectMapper.readTree(rawText);
-                if (parsed.isArray()) {
-                    for (JsonNode child : parsed) {
-                        addDreamListValue(values, child == null ? "" : child.asText(""));
-                    }
-                    return values;
-                }
-            } catch (Exception ignored) {
-                // Fall through to plain-text splitting.
+        JsonNode parsed = tryParseDreamJsonText(rawText);
+        if (parsed != null) {
+            if (parsed.isArray()) {
+                parsed.forEach(child -> addDreamListNode(values, child));
+                return values;
+            }
+            if (parsed.isObject()) {
+                addDreamListObjectValue(values, parsed);
+                return values;
             }
         }
 
@@ -288,6 +300,61 @@ public class AstrologyResponseListener {
             addDreamListValue(values, part);
         }
         return values;
+    }
+
+    private void addDreamListNode(List<String> target, JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return;
+        }
+        if (node.isObject()) {
+            addDreamListObjectValue(target, node);
+            return;
+        }
+        if (node.isArray()) {
+            node.forEach(child -> addDreamListNode(target, child));
+            return;
+        }
+        addDreamListValue(target, node.asText(""));
+    }
+
+    private void addDreamListObjectValue(List<String> target, JsonNode node) {
+        String title = firstDreamObjectText(node, DREAM_LIST_ITEM_TITLE_KEYS);
+        List<String> parts = new ArrayList<>();
+
+        for (String key : DREAM_LIST_ITEM_BODY_KEYS) {
+            addDreamParagraph(parts, readDreamText(node, key));
+        }
+
+        var fields = node.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String key = field.getKey() == null ? "" : field.getKey();
+            String lowerKey = key.toLowerCase(Locale.ROOT);
+            if (DREAM_LIST_ITEM_TITLE_KEYS.contains(key)
+                    || DREAM_LIST_ITEM_BODY_KEYS.contains(key)
+                    || isDreamMetadataKey(lowerKey)
+                    || isDreamListKey(lowerKey)) {
+                continue;
+            }
+            addDreamParagraph(parts, normalizeDreamNarrative(field.getValue()));
+        }
+
+        String body = String.join(" ", parts).trim();
+        if (!title.isBlank() && !body.isBlank() && !body.startsWith(title)) {
+            addDreamListValue(target, title + ": " + body);
+            return;
+        }
+        addDreamListValue(target, body.isBlank() ? title : body);
+    }
+
+    private String firstDreamObjectText(JsonNode node, List<String> keys) {
+        for (String key : keys) {
+            String value = readDreamText(node, key);
+            if (!value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
     }
 
     private void addDreamListValue(List<String> target, String rawValue) {
@@ -299,40 +366,118 @@ public class AstrologyResponseListener {
         }
     }
 
-    private String findLongestDreamNarrative(JsonNode root) {
-        String best = "";
-        if (root == null || !root.isObject()) {
-            return best;
+    private String collectDreamNarrative(JsonNode root) {
+        return collectDreamNarrative(root, 0);
+    }
+
+    private String collectDreamNarrative(JsonNode root, int depth) {
+        if (root == null || root.isNull() || root.isMissingNode() || depth > 5) {
+            return "";
+        }
+
+        if (!root.isObject()) {
+            return normalizeDreamNarrative(root, depth + 1);
+        }
+
+        List<String> parts = new ArrayList<>();
+        for (String key : DREAM_NARRATIVE_KEYS) {
+            addDreamParagraph(parts, readDreamText(root, key));
         }
 
         var fields = root.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
-            String key = field.getKey() == null ? "" : field.getKey().toLowerCase(Locale.ROOT);
-            if (isDreamListKey(key)) {
+            String key = field.getKey() == null ? "" : field.getKey();
+            String lowerKey = key.toLowerCase(Locale.ROOT);
+            if (DREAM_NARRATIVE_KEYS.contains(key) || isDreamListKey(lowerKey) || isDreamMetadataKey(lowerKey)) {
                 continue;
             }
-            JsonNode value = field.getValue();
-            if (value != null && value.isTextual()) {
-                String candidate = normalizeDreamText(value.asText(""));
-                if (candidate.length() > best.length()) {
-                    best = candidate;
-                }
+            addDreamParagraph(parts, normalizeDreamNarrative(field.getValue(), depth + 1));
+        }
+        return String.join("\n\n", parts).trim();
+    }
+
+    private String normalizeDreamNarrative(JsonNode node) {
+        return normalizeDreamNarrative(node, 0);
+    }
+
+    private String normalizeDreamNarrative(JsonNode node, int depth) {
+        if (node == null || node.isNull() || node.isMissingNode() || depth > 5) {
+            return "";
+        }
+        if (node.isTextual()) {
+            String text = normalizeDreamText(node.asText(""));
+            JsonNode parsed = tryParseDreamJsonText(text);
+            return parsed == null ? text : normalizeDreamNarrative(parsed, depth + 1);
+        }
+        if (node.isArray()) {
+            List<String> parts = new ArrayList<>();
+            node.forEach(child -> addDreamParagraph(parts, normalizeDreamNarrative(child, depth + 1)));
+            return String.join("\n\n", parts).trim();
+        }
+        if (node.isObject()) {
+            return collectDreamNarrative(node, depth + 1);
+        }
+        return "";
+    }
+
+    private void addDreamParagraph(List<String> target, String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (!normalized.isBlank() && !target.contains(normalized)) {
+            target.add(normalized);
+        }
+    }
+
+    private JsonNode tryParseDreamJsonText(String rawText) {
+        if (rawText == null || rawText.isBlank()) {
+            return null;
+        }
+        String trimmed = stripMarkdown(rawText).trim();
+        if (!((trimmed.startsWith("{") && trimmed.endsWith("}"))
+                || (trimmed.startsWith("[") && trimmed.endsWith("]")))) {
+            return null;
+        }
+        try {
+            return objectMapper.readTree(trimmed);
+        } catch (Exception ignored) {
+            try {
+                return objectMapper.readTree(normalizeLooseJson(trimmed));
+            } catch (Exception ignoredAgain) {
+                return null;
             }
         }
-        return best;
     }
 
     private boolean isDreamListKey(String key) {
         return key.contains("warning")
                 || key.contains("uyarı")
                 || key.contains("uyari")
+                || key.contains("risk")
                 || key.contains("opportun")
                 || key.contains("fırsat")
                 || key.contains("firsat")
                 || key.contains("action")
                 || key.contains("guidance")
-                || key.contains("caution");
+                || key.contains("caution")
+                || key.contains("avoid");
+    }
+
+    private boolean isDreamMetadataKey(String key) {
+        return key.equals("id")
+                || key.equals("title")
+                || key.equals("label")
+                || key.equals("heading")
+                || key.equals("status")
+                || key.equals("locale")
+                || key.equals("language")
+                || key.equals("createdat")
+                || key.equals("created_at")
+                || key.equals("dreamdate")
+                || key.equals("dream_date")
+                || key.equals("correlationid")
+                || key.equals("correlation_id")
+                || key.endsWith("id")
+                || key.endsWith("_id");
     }
 
     private List<String> buildDreamJsonParseCandidates(String response) {
@@ -442,15 +587,6 @@ public class AstrologyResponseListener {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
-    }
-
-    private String firstNonBlank(String... candidates) {
-        for (String candidate : candidates) {
-            if (candidate != null && !candidate.isBlank()) {
-                return candidate.trim();
-            }
-        }
-        return "";
     }
 
     private void handleMonthlyDreamStoryResponse(AiAnalysisResponseEvent event) {

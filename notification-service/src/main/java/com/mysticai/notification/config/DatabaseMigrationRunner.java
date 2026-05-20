@@ -85,6 +85,60 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
             jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS is_signup_bonus_one_time_only BOOLEAN NOT NULL DEFAULT TRUE");
             jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_registration_source VARCHAR(255)");
             jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_helper_text TEXT");
+
+            jdbc.execute("ALTER TABLE module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_enabled BOOLEAN NOT NULL DEFAULT TRUE");
+            jdbc.execute("ALTER TABLE module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_views_required INTEGER");
+            jdbc.execute("ALTER TABLE module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_hourly_limit INTEGER NOT NULL DEFAULT 3");
+            jdbc.execute("ALTER TABLE module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_daily_limit INTEGER NOT NULL DEFAULT 10");
+            jdbc.execute("ALTER TABLE module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_cooldown_minutes INTEGER NOT NULL DEFAULT 60");
+            jdbc.execute("ALTER TABLE module_monetization_rules ADD COLUMN IF NOT EXISTS rewarded_ad_window_minutes INTEGER NOT NULL DEFAULT 60");
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS rewarded_unlock_progress (
+                        id UUID PRIMARY KEY,
+                        user_id BIGINT NOT NULL,
+                        module_key VARCHAR(255) NOT NULL,
+                        action_key VARCHAR(255) NOT NULL,
+                        content_key VARCHAR(512),
+                        required_views INTEGER NOT NULL,
+                        completed_views INTEGER NOT NULL DEFAULT 0,
+                        status VARCHAR(40) NOT NULL DEFAULT 'IN_PROGRESS',
+                        last_client_event_id VARCHAR(255),
+                        last_transaction_id VARCHAR(255),
+                        created_at TIMESTAMP(6) NOT NULL,
+                        updated_at TIMESTAMP(6),
+                        unlocked_at TIMESTAMP(6),
+                        expires_at TIMESTAMP(6) NOT NULL,
+                        version BIGINT
+                    )
+                    """);
+            jdbc.execute("ALTER TABLE rewarded_unlock_progress ADD COLUMN IF NOT EXISTS content_key VARCHAR(512)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_rup_user_module_action_status ON rewarded_unlock_progress (user_id, module_key, action_key, status)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_rup_user_module_action_content_status ON rewarded_unlock_progress (user_id, module_key, action_key, content_key, status)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_rup_expires ON rewarded_unlock_progress (expires_at)");
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS rewarded_unlock_event (
+                        id UUID PRIMARY KEY,
+                        progress_id UUID NOT NULL,
+                        user_id BIGINT NOT NULL,
+                        module_key VARCHAR(255) NOT NULL,
+                        action_key VARCHAR(255) NOT NULL,
+                        content_key VARCHAR(512),
+                        client_event_id VARCHAR(255) NOT NULL,
+                        transaction_id VARCHAR(255),
+                        ad_network VARCHAR(80),
+                        placement VARCHAR(255),
+                        event_type VARCHAR(40) NOT NULL DEFAULT 'AD_COMPLETED',
+                        created_at TIMESTAMP(6) NOT NULL
+                    )
+                    """);
+            jdbc.execute("ALTER TABLE rewarded_unlock_event ADD COLUMN IF NOT EXISTS content_key VARCHAR(512)");
+            jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_rue_client_event_id ON rewarded_unlock_event (client_event_id)");
+            jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_rue_transaction_id ON rewarded_unlock_event (transaction_id) WHERE transaction_id IS NOT NULL");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_rue_progress ON rewarded_unlock_event (progress_id)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_rue_user_module_action_created ON rewarded_unlock_event (user_id, module_key, action_key, created_at DESC)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_rue_user_module_action_content_created ON rewarded_unlock_event (user_id, module_key, action_key, content_key, created_at DESC)");
         } catch (Exception e) {
             log.warn("Could not extend monetization tables: {}", e.getMessage());
         }

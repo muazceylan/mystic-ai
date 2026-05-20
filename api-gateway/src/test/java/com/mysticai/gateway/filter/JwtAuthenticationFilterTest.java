@@ -12,6 +12,7 @@ import reactor.core.publisher.Mono;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 class JwtAuthenticationFilterTest {
 
@@ -51,5 +52,52 @@ class JwtAuthenticationFilterTest {
         }).block();
 
         assertThat(chainCalled).isTrue();
+    }
+
+    @Test
+    void moduleRuleRequest_isPublicWithoutAuthorization() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v1/monetization/modules/horoscope")
+        );
+        AtomicBoolean chainCalled = new AtomicBoolean(false);
+
+        filter.filter(exchange, webExchange -> {
+            chainCalled.set(true);
+            return Mono.empty();
+        }).block();
+
+        assertThat(chainCalled).isTrue();
+    }
+
+    @Test
+    void actionUnlockOptions_requiresAuthorization() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v1/monetization/modules/horoscope/actions/weekly/unlock-options")
+        );
+        AtomicBoolean chainCalled = new AtomicBoolean(false);
+
+        filter.filter(exchange, webExchange -> {
+            chainCalled.set(true);
+            return Mono.empty();
+        }).block();
+
+        assertThat(chainCalled).isFalse();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(UNAUTHORIZED);
+    }
+
+    @Test
+    void rewardedUnlockComplete_requiresAuthorization() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v1/monetization/modules/horoscope/actions/weekly/rewarded-ad/complete")
+        );
+        AtomicBoolean chainCalled = new AtomicBoolean(false);
+
+        filter.filter(exchange, webExchange -> {
+            chainCalled.set(true);
+            return Mono.empty();
+        }).block();
+
+        assertThat(chainCalled).isFalse();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(UNAUTHORIZED);
     }
 }

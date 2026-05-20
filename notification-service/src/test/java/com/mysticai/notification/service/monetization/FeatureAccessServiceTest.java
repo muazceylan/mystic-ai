@@ -5,12 +5,15 @@ import com.mysticai.notification.entity.monetization.GuruWallet;
 import com.mysticai.notification.entity.monetization.ModuleMonetizationRule;
 import com.mysticai.notification.entity.monetization.MonetizationAction;
 import com.mysticai.notification.entity.monetization.MonetizationSettings;
+import com.mysticai.notification.entity.monetization.RewardedUnlockProgress;
 import com.mysticai.notification.repository.GuruLedgerRepository;
 import com.mysticai.notification.repository.GuruWalletRepository;
 import com.mysticai.notification.repository.ModuleMonetizationRuleRepository;
 import com.mysticai.notification.repository.MonetizationActionRepository;
 import com.mysticai.notification.repository.MonetizationSettingsRepository;
+import com.mysticai.notification.repository.RewardedUnlockProgressRepository;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -28,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -46,8 +50,20 @@ class FeatureAccessServiceTest {
     @Mock GuruWalletService guruWalletService;
     @Mock EntitlementService entitlementService;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) MeterRegistry meterRegistry;
+    @Mock RewardedUnlockProgressRepository rewardedUnlockProgressRepository;
 
     @InjectMocks FeatureAccessService service;
+
+    @BeforeEach
+    void setUpRewardedUnlockDefault() {
+        lenient().when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                anyLong(),
+                any(),
+                any(),
+                eq(RewardedUnlockProgress.Status.UNLOCKED),
+                any(LocalDateTime.class)
+        )).thenReturn(Optional.empty());
+    }
 
     @Test
     void evaluateAccess_returnsSpendTokenWhenBalanceSufficient() {
@@ -94,6 +110,70 @@ class FeatureAccessServiceTest {
         assertThat(response.status()).isEqualTo(FeatureAccessService.AccessStatus.INSUFFICIENT_BALANCE.name());
         assertThat(response.actionType()).isEqualTo(FeatureAccessService.ActionType.WATCH_REWARDED_AD.name());
         assertThat(response.rewardTokenAmount()).isEqualTo(1);
+    }
+
+    @Test
+    void evaluateAccess_allowsWhenRewardedUnlockProgressIsUnlocked() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(rule()));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(actionWithGuruCost(2)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(0).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(noEntitlement());
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+        when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                eq(USER_ID),
+                eq(MODULE_KEY),
+                eq(ACTION_KEY),
+                eq(RewardedUnlockProgress.Status.UNLOCKED),
+                any(LocalDateTime.class)
+        )).thenReturn(Optional.of(RewardedUnlockProgress.builder()
+                .userId(USER_ID)
+                .moduleKey(MODULE_KEY)
+                .actionKey(ACTION_KEY)
+                .requiredViews(2)
+                .completedViews(2)
+                .status(RewardedUnlockProgress.Status.UNLOCKED)
+                .unlockedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .build()));
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.allowed()).isTrue();
+        assertThat(response.requiresToken()).isFalse();
+        assertThat(response.tokenCost()).isZero();
+        assertThat(response.actionType()).isEqualTo(FeatureAccessService.ActionType.CONTINUE.name());
+        assertThat(response.message()).isEqualTo("feature_rewarded_unlock_unlocked");
+        assertThat(response.originalTokenCost()).isEqualTo(2);
+        assertThat(response.chargedTokenAmount()).isZero();
+    }
+
+    @Test
+    void evaluateAccess_normalizesZeroGuruCostLockedActionToOneToken() {
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(rule()));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(actionWithGuruCost(0)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(1).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(noEntitlement());
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+
+        FeatureAccessService.FeatureAccessResponse response = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.requiresToken()).isTrue();
+        assertThat(response.tokenCost()).isEqualTo(1);
+        assertThat(response.originalTokenCost()).isEqualTo(1);
     }
 
     @Test

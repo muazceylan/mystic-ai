@@ -5,11 +5,13 @@ import com.mysticai.notification.entity.monetization.GuruWallet;
 import com.mysticai.notification.entity.monetization.ModuleMonetizationRule;
 import com.mysticai.notification.entity.monetization.MonetizationAction;
 import com.mysticai.notification.entity.monetization.MonetizationSettings;
+import com.mysticai.notification.entity.monetization.RewardedUnlockProgress;
 import com.mysticai.notification.repository.GuruLedgerRepository;
 import com.mysticai.notification.repository.GuruWalletRepository;
 import com.mysticai.notification.repository.ModuleMonetizationRuleRepository;
 import com.mysticai.notification.repository.MonetizationActionRepository;
 import com.mysticai.notification.repository.MonetizationSettingsRepository;
+import com.mysticai.notification.repository.RewardedUnlockProgressRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class FeatureAccessService {
     private final GuruWalletService guruWalletService;
     private final EntitlementService entitlementService;
     private final MeterRegistry meterRegistry;
+    private final RewardedUnlockProgressRepository rewardedUnlockProgressRepository;
 
     @Transactional(readOnly = true)
     public FeatureAccessResponse evaluateAccess(Long userId, String moduleKey, String actionKey) {
@@ -188,6 +191,11 @@ public class FeatureAccessService {
             );
         }
 
+        if (hasActiveRewardedUnlock(userId, context)) {
+            incrementMetric("feature_access.allowed", "mode", "rewarded_unlock", "featureKey", context.requestedActionKey());
+            return buildRewardedUnlockedResponse(context, decision, balance, dailyUsage, weeklyUsage);
+        }
+
         boolean actionIsFree = action.getUnlockType() == MonetizationAction.UnlockType.FREE;
         if (actionIsFree || !decision.requiresToken()) {
             String message = decision.premiumApplied()
@@ -275,7 +283,7 @@ public class FeatureAccessService {
         MonetizationAction action = context.action();
         MonetizationSettings settings = context.settings();
 
-        int originalTokenCost = Math.max(0, action.getGuruCost());
+        int originalTokenCost = resolveOriginalTokenCost(action);
         boolean premiumEligible = snapshot.premiumActive()
                 && (!snapshot.trialing() || rule.isTrialUnlockEnabled());
 
@@ -320,6 +328,18 @@ public class FeatureAccessService {
                 guruUnlockAvailable,
                 rewardedAdAvailable
         );
+    }
+
+    private boolean hasActiveRewardedUnlock(Long userId, MonetizationContext context) {
+        return rewardedUnlockProgressRepository
+                .findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                        userId,
+                        context.requestedModuleKey(),
+                        context.requestedActionKey(),
+                        RewardedUnlockProgress.Status.UNLOCKED,
+                        LocalDateTime.now()
+                )
+                .isPresent();
     }
 
     private MonetizationContext loadContext(String moduleKey, String actionKey) {
@@ -386,8 +406,8 @@ public class FeatureAccessService {
         return new FeatureAccessResponse(
                 false,
                 true,
-                action != null && Math.max(0, action.getGuruCost()) > 0,
-                action != null ? Math.max(0, action.getGuruCost()) : 0,
+                action != null && resolveOriginalTokenCost(action) > 0,
+                action != null ? resolveOriginalTokenCost(action) : 0,
                 0,
                 false,
                 action != null ? resolveRewardAmount(context.moduleKey(), context.actionKey(), action.getRewardAmount()) : 0,
@@ -412,9 +432,49 @@ public class FeatureAccessService {
                 "NONE",
                 false,
                 context.rule() != null ? context.rule().getPremiumBehavior().name() : null,
-                action != null ? Math.max(0, action.getGuruCost()) : 0,
-                action != null ? Math.max(0, action.getGuruCost()) : 0,
-                action != null ? Math.max(0, action.getGuruCost()) : 0
+                action != null ? resolveOriginalTokenCost(action) : 0,
+                action != null ? resolveOriginalTokenCost(action) : 0,
+                action != null ? resolveOriginalTokenCost(action) : 0
+        );
+    }
+
+    private FeatureAccessResponse buildRewardedUnlockedResponse(MonetizationContext context,
+                                                                GateDecision decision,
+                                                                int balance,
+                                                                long dailyUsage,
+                                                                long weeklyUsage) {
+        return new FeatureAccessResponse(
+                true,
+                true,
+                false,
+                0,
+                balance,
+                false,
+                context.rewardAmount(),
+                context.action().getActionKey(),
+                context.action().getModuleKey(),
+                ActionType.CONTINUE.name(),
+                AccessStatus.ALLOWED.name(),
+                "feature_rewarded_unlock_unlocked",
+                context.purchaseFallbackAvailable(),
+                false,
+                context.action().getAnalyticsKey(),
+                firstNonBlank(context.action().getDialogTitle(), context.action().getDisplayName()),
+                firstNonBlank(context.action().getDialogDescription(), context.action().getDescription()),
+                context.action().getPrimaryCtaLabel(),
+                context.action().getSecondaryCtaLabel(),
+                Math.max(0, context.action().getDailyLimit()),
+                Math.max(0, context.action().getWeeklyLimit()),
+                dailyUsage,
+                weeklyUsage,
+                decision.snapshot().premiumActive(),
+                decision.snapshot().trialing(),
+                decision.snapshot().status(),
+                decision.premiumApplied(),
+                decision.premiumBehavior().name(),
+                decision.originalTokenCost(),
+                decision.chargedTokenCost(),
+                0
         );
     }
 
@@ -513,6 +573,13 @@ public class FeatureAccessService {
                 GuruLedger.TransactionType.GURU_SPENT,
                 since
         );
+    }
+
+    private int resolveOriginalTokenCost(MonetizationAction action) {
+        if (action == null || action.getUnlockType() == MonetizationAction.UnlockType.FREE) {
+            return 0;
+        }
+        return Math.max(1, action.getGuruCost());
     }
 
     private String firstNonBlank(String primary, String fallback) {

@@ -60,17 +60,91 @@ const DREAM_INTERPRETATION_KEYS = [
 
 const DREAM_OPPORTUNITY_KEYS = [
   'opportunities',
+  'opportunity',
   'firsatlar',
   'fırsatlar',
+  'firsat',
+  'fırsat',
   'actions',
   'guidance',
+  'nextSteps',
+  'next_steps',
+  'recommendations',
+  'suggestions',
+  'actionPlan',
+  'action_plan',
 ] as const;
 
 const DREAM_WARNING_KEYS = [
   'warnings',
+  'warning',
   'uyarilar',
   'uyarılar',
+  'uyari',
+  'uyarı',
   'cautions',
+  'risks',
+  'riskler',
+  'attentionPoints',
+  'attention_points',
+  'avoid',
+] as const;
+
+const DREAM_EXTRA_NARRATIVE_KEYS = [
+  'main',
+  'summary',
+  'insight',
+  'insights',
+  'meaning',
+  'body',
+  'content',
+  'description',
+  'mainInterpretation',
+  'main_interpretation',
+  'psychological',
+  'psychologicalReflection',
+  'psychological_reflection',
+  'astrological',
+  'astrologicalInsight',
+  'astrological_insight',
+  'astrologicalInterpretation',
+  'astrological_interpretation',
+  'spiritualMessage',
+  'spiritual_message',
+  'subconsciousMessage',
+  'subconscious_message',
+  'shadowMessage',
+  'shadow_message',
+  'symbolAnalysis',
+  'symbol_analysis',
+  'symbolMeaning',
+  'symbol_meaning',
+  'advice',
+] as const;
+
+const DREAM_LIST_ITEM_TITLE_KEYS = [
+  'title',
+  'label',
+  'name',
+  'heading',
+  'symbol',
+] as const;
+
+const DREAM_LIST_ITEM_BODY_KEYS = [
+  'text',
+  'body',
+  'content',
+  'description',
+  'detail',
+  'details',
+  'message',
+  'meaning',
+  'reason',
+  'advice',
+  'action',
+  'guidance',
+  'warning',
+  'opportunity',
 ] as const;
 
 const DREAM_INTERPRET_ACTION_KEY = 'dream_interpret';
@@ -120,6 +194,13 @@ const extractJsonBlock = (raw: string) => {
   return raw.trim();
 };
 
+const extractJsonArrayBlock = (raw: string) => {
+  const start = raw.indexOf('[');
+  const end = raw.lastIndexOf(']');
+  if (start >= 0 && end > start) return raw.slice(start, end + 1).trim();
+  return '';
+};
+
 const normalizeLooseJson = (raw: string) =>
   raw
     .replace(/[“”]/g, '"')
@@ -143,16 +224,181 @@ const addParseCandidate = (target: string[], value: string) => {
   if (trimmed && !target.includes(trimmed)) target.push(trimmed);
 };
 
+const parseJsonText = (raw: string): unknown | null => {
+  const trimmed = stripMarkdownFence(raw).trim();
+  const candidates: string[] = [];
+
+  addParseCandidate(candidates, trimmed);
+  addParseCandidate(candidates, extractJsonBlock(trimmed));
+  addParseCandidate(candidates, extractJsonArrayBlock(trimmed));
+  addParseCandidate(candidates, normalizeLooseJson(extractJsonBlock(trimmed)));
+  addParseCandidate(candidates, normalizeLooseJson(extractJsonArrayBlock(trimmed)));
+
+  for (const candidate of candidates) {
+    if (!(candidate.startsWith('{') || candidate.startsWith('['))) continue;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Keep trying alternate candidates.
+    }
+  }
+  return null;
+};
+
 const normalizeText = (value: unknown) =>
   typeof value === 'string'
-    ? stripMarkdownFence(value).replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim()
+    ? stripMarkdownFence(value)
+        .replace(/\\n/g, '\n')
+        .replace(/[ \t\f\v]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]*\n[ \t]*/g, '\n')
+        .trim()
     : '';
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isDreamListKey = (key: string) => {
+  const lowerKey = key.toLowerCase();
+  return lowerKey.includes('warning') ||
+    lowerKey.includes('uyarı') ||
+    lowerKey.includes('uyari') ||
+    lowerKey.includes('risk') ||
+    lowerKey.includes('opportun') ||
+    lowerKey.includes('fırsat') ||
+    lowerKey.includes('firsat') ||
+    lowerKey.includes('action') ||
+    lowerKey.includes('guidance') ||
+    lowerKey.includes('caution') ||
+    lowerKey.includes('avoid');
+};
+
+const isDreamMetadataKey = (key: string) => {
+  const lowerKey = key.toLowerCase();
+  return lowerKey === 'id' ||
+    lowerKey === 'title' ||
+    lowerKey === 'label' ||
+    lowerKey === 'heading' ||
+    lowerKey === 'status' ||
+    lowerKey === 'locale' ||
+    lowerKey === 'language' ||
+    lowerKey === 'createdat' ||
+    lowerKey === 'created_at' ||
+    lowerKey === 'dreamdate' ||
+    lowerKey === 'dream_date' ||
+    lowerKey === 'correlationid' ||
+    lowerKey === 'correlation_id' ||
+    lowerKey.endsWith('id') ||
+    lowerKey.endsWith('_id');
+};
+
+const addUniqueText = (target: string[], value: string) => {
+  const normalized = value.trim();
+  if (normalized && !target.includes(normalized)) target.push(normalized);
+};
+
+const joinTextParts = (parts: string[]) => parts.join('\n\n').trim();
+
+const normalizeNarrativeValue = (value: unknown, depth = 0): string => {
+  if (depth > 5) return '';
+
+  const text = normalizeText(value);
+  if (text) {
+    const parsed = parseJsonText(text);
+    if (parsed !== null) {
+      const parsedText = normalizeNarrativeValue(parsed, depth + 1);
+      if (parsedText) return parsedText;
+    }
+    return text;
+  }
+
+  if (Array.isArray(value)) {
+    const parts: string[] = [];
+    value.forEach(item => addUniqueText(parts, normalizeNarrativeValue(item, depth + 1)));
+    return joinTextParts(parts);
+  }
+
+  if (isPlainObject(value)) {
+    return collectNarrativeValues(value, depth + 1);
+  }
+
+  return '';
+};
+
+const collectNarrativeValues = (parsed: Record<string, unknown>, depth = 0) => {
+  const parts: string[] = [];
+  const consumed = new Set<string>();
+  const orderedKeys = [...DREAM_INTERPRETATION_KEYS, ...DREAM_EXTRA_NARRATIVE_KEYS];
+
+  orderedKeys.forEach(key => {
+    if (!Object.prototype.hasOwnProperty.call(parsed, key)) return;
+    consumed.add(key);
+    addUniqueText(parts, normalizeNarrativeValue(parsed[key], depth + 1));
+  });
+
+  Object.entries(parsed).forEach(([key, value]) => {
+    if (consumed.has(key) || isDreamListKey(key) || isDreamMetadataKey(key)) return;
+    addUniqueText(parts, normalizeNarrativeValue(value, depth + 1));
+  });
+
+  return joinTextParts(parts);
+};
+
+const firstTextForKeys = (parsed: Record<string, unknown>, keys: readonly string[]) => {
+  for (const key of keys) {
+    const value = normalizeNarrativeValue(parsed[key]);
+    if (value) return value;
+  }
+  return '';
+};
+
+const formatListObject = (value: Record<string, unknown>) => {
+  const title = firstTextForKeys(value, DREAM_LIST_ITEM_TITLE_KEYS);
+  const bodyParts: string[] = [];
+  const consumed = new Set<string>(DREAM_LIST_ITEM_TITLE_KEYS);
+
+  DREAM_LIST_ITEM_BODY_KEYS.forEach(key => {
+    if (!Object.prototype.hasOwnProperty.call(value, key)) return;
+    consumed.add(key);
+    addUniqueText(bodyParts, normalizeNarrativeValue(value[key]));
+  });
+
+  Object.entries(value).forEach(([key, fieldValue]) => {
+    if (consumed.has(key) || isDreamMetadataKey(key) || isDreamListKey(key)) return;
+    addUniqueText(bodyParts, normalizeNarrativeValue(fieldValue));
+  });
+
+  const body = bodyParts.join(' ').trim();
+  if (title && body && !body.startsWith(title)) return `${title}: ${body}`;
+  return body || title;
+};
+
+const normalizeListItem = (value: unknown): string[] => {
+  const text = normalizeText(value);
+  if (text) {
+    const parsed = parseJsonText(text);
+    if (parsed !== null) return toStringArray(parsed);
+    return text
+      .split(/\r?\n|\s*[•;]\s*/)
+      .map(item => item.replace(/^[\-\•*\d.)\s]+/, '').trim())
+      .filter(Boolean);
+  }
+
+  if (Array.isArray(value)) return value.flatMap(item => normalizeListItem(item));
+
+  if (isPlainObject(value)) {
+    const formatted = formatListObject(value);
+    return formatted ? [formatted] : [];
+  }
+
+  return [];
+};
 
 const toStringArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value
-      .map(item => normalizeText(item))
-      .filter(Boolean);
+      .flatMap(item => normalizeListItem(item))
+      .filter((item, index, all) => item && all.indexOf(item) === index);
   }
 
   const rawText = typeof value === 'string'
@@ -160,55 +406,15 @@ const toStringArray = (value: unknown): string[] => {
     : '';
   if (!rawText) return [];
 
-  if (rawText.startsWith('[') && rawText.endsWith(']')) {
-    try {
-      const parsed = JSON.parse(rawText);
-      if (Array.isArray(parsed)) {
-        return parsed
-          .map(item => normalizeText(item))
-          .filter(Boolean);
-      }
-    } catch {
-      // Fall back to plain-text splitting below.
-    }
+  const parsed = parseJsonText(rawText);
+  if (parsed !== null) {
+    return toStringArray(parsed);
   }
 
   return rawText
     .split(/\r?\n|\s*[•;]\s*/)
     .map(item => item.replace(/^[\-\•*\d.)\s]+/, '').trim())
     .filter(Boolean);
-};
-
-const pickFirstText = (parsed: Record<string, unknown>, keys: readonly string[]) => {
-  for (const key of keys) {
-    const value = normalizeText(parsed[key]);
-    if (value) return value;
-  }
-
-  let longest = '';
-  for (const [key, value] of Object.entries(parsed)) {
-    const lowerKey = key.toLowerCase();
-    if (
-      lowerKey.includes('warning') ||
-      lowerKey.includes('uyarı') ||
-      lowerKey.includes('uyari') ||
-      lowerKey.includes('opportun') ||
-      lowerKey.includes('fırsat') ||
-      lowerKey.includes('firsat') ||
-      lowerKey.includes('action') ||
-      lowerKey.includes('guidance') ||
-      lowerKey.includes('caution')
-    ) {
-      continue;
-    }
-
-    const candidate = normalizeText(value);
-    if (candidate.length > longest.length) {
-      longest = candidate;
-    }
-  }
-
-  return longest;
 };
 
 const pickFirstArray = (parsed: Record<string, unknown>, keys: readonly string[]) => {
@@ -246,12 +452,14 @@ function parseInterpretation(dream: DreamEntryResponse): {
   }
 
   for (const candidate of candidates) {
-    if (!candidate.startsWith('{')) continue;
+    if (!(candidate.startsWith('{') || candidate.startsWith('['))) continue;
     try {
-      const parsed = JSON.parse(candidate) as Record<string, unknown>;
-      const interpretation = pickFirstText(parsed, DREAM_INTERPRETATION_KEYS);
-      const opportunities = pickFirstArray(parsed, DREAM_OPPORTUNITY_KEYS);
-      const warnings = pickFirstArray(parsed, DREAM_WARNING_KEYS);
+      const parsed = JSON.parse(candidate) as unknown;
+      const interpretation = isPlainObject(parsed)
+        ? collectNarrativeValues(parsed)
+        : normalizeNarrativeValue(parsed);
+      const opportunities = isPlainObject(parsed) ? pickFirstArray(parsed, DREAM_OPPORTUNITY_KEYS) : [];
+      const warnings = isPlainObject(parsed) ? pickFirstArray(parsed, DREAM_WARNING_KEYS) : [];
 
       if (interpretation || opportunities.length > 0 || warnings.length > 0) {
         return {
