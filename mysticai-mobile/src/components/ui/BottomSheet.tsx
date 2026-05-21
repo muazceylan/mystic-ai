@@ -13,6 +13,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
+import { BlurView } from 'expo-blur';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -34,6 +35,7 @@ interface BottomSheetProps {
   contentStyle?: StyleProp<ViewStyle>;
   titleStyle?: StyleProp<TextStyle>;
   dragHandleStyle?: StyleProp<ViewStyle>;
+  blurBackdrop?: boolean;
 }
 
 export function BottomSheet({
@@ -45,6 +47,7 @@ export function BottomSheet({
   contentStyle,
   titleStyle,
   dragHandleStyle,
+  blurBackdrop = false,
 }: BottomSheetProps) {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
@@ -99,6 +102,15 @@ export function BottomSheet({
         style={s.wrapper}
       >
         <Animated.View style={[s.backdrop, backdropStyle]}>
+          {blurBackdrop ? (
+            <BlurView
+              intensity={28}
+              tint="dark"
+              style={StyleSheet.absoluteFill}
+              experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+            />
+          ) : null}
+          <View style={s.backdropDim} pointerEvents="none" />
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
@@ -123,6 +135,9 @@ function createStyles(C: ThemeColors, maxSheetHeight: number, bottomPadding: num
       justifyContent: 'flex-end',
     },
     backdrop: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    backdropDim: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(0,0,0,0.45)',
     },

@@ -83,6 +83,7 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
   const trialing = snapshot?.trialing ?? paywall?.trialing ?? false;
   const entitlementStatus = (snapshot?.status ?? paywall?.entitlementStatus ?? 'NONE') as EntitlementStatus;
   const premiumBehavior = (rule?.premiumBehavior ?? 'NO_CHANGE') as PremiumBehavior;
+  const premiumAccessActive = premiumActive || trialing;
   const premiumCanUnlock = Boolean(
     premiumActive
     && (!trialing || rule?.trialUnlockEnabled),
@@ -93,7 +94,7 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
     || config?.guruPurchaseEnabled,
   );
   const adsSuppressedByPremium = Boolean(
-    premiumCanUnlock
+    premiumAccessActive
     && (
       premiumBehavior === 'AD_FREE_ONLY'
       || rule?.premiumAdFree

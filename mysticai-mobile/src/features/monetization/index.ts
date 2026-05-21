@@ -53,6 +53,7 @@ export {
   checkRewardedAd,
   completeRewardedAd,
 } from './api/monetization.service';
+export { openSubscriptionManagement } from './services/subscriptionManagement';
 
 // Providers
 export { getAdProvider, setAdProvider } from './providers/AdProviderAdapter';
@@ -71,6 +72,10 @@ export { GuruUnlockModal } from './components/GuruUnlockModal';
 export { FEATURE_ACTION_KEYS, FEATURE_MODULE_KEYS } from './featureKeys';
 export { PurchaseCatalogSheet } from './components/PurchaseCatalogSheet';
 export { MonetizationQuickBar } from './components/MonetizationQuickBar';
+export { PremiumProfileCard } from './components/PremiumProfileCard';
+export { PremiumPaywallSheet } from './components/PremiumPaywallSheet';
+export { PremiumPlanCard } from './components/PremiumPlanCard';
+export { PremiumBenefitRow } from './components/PremiumBenefitRow';
 
 // Analytics
 export { trackMonetizationEvent, MonetizationEvents } from './analytics/monetizationAnalytics';

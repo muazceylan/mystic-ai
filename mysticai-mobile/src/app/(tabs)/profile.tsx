@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -40,7 +40,13 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
-import { useMonetizationStore } from '../../features/monetization';
+import {
+  openSubscriptionManagement,
+  PremiumPaywallSheet,
+  PremiumProfileCard,
+  useEntitlements,
+  useMonetizationStore,
+} from '../../features/monetization';
 import {
   ProductEventName,
   computeDaysSince,
@@ -93,11 +99,13 @@ export function ProfileScreenContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectingAvatar, setSelectingAvatar] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPremiumSheet, setShowPremiumSheet] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const entitlements = useMonetizationStore((s) => s.entitlements);
   const paywall = useMonetizationStore((s) => s.paywall);
+  const entitlementState = useEntitlements();
 
   const isGuest = isGuestUser(user);
   const initials = isGuest
@@ -186,6 +194,65 @@ export function ProfileScreenContent() {
   const handlePressTutorialHelp = useCallback(() => {
     void reopenTutorialById(TUTORIAL_IDS.PROFILE_FOUNDATION, 'profile');
   }, [reopenTutorialById]);
+
+  const isPremiumActive = Boolean(
+    entitlementState.premiumActive
+    || entitlements?.premiumActive
+    || paywall?.premiumActive
+    || paywall?.trialing,
+  );
+  const annualPremiumBadgeLabel = useMemo(() => {
+    const annualProduct = paywall?.subscriptionProducts.find((product) => {
+      const identifiers = [
+        product.productKey,
+        product.revenueCatProductId,
+        product.iosProductId,
+        product.androidProductId,
+      ].filter(Boolean).join('|').toLowerCase();
+      return identifiers.includes('annual')
+        || identifiers.includes('yearly')
+        || identifiers.includes('astroguru_premium_yearly');
+    });
+
+    return annualProduct?.badge ?? annualProduct?.campaignLabel ?? null;
+  }, [paywall?.subscriptionProducts]);
+
+  const handlePremiumCardPress = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    trackEvent('premium_profile_card_clicked', {
+      source: 'profile',
+      is_premium_user: isPremiumActive,
+    });
+
+    if (isGuest || !user?.id) {
+      router.push('/(auth)/welcome');
+      return;
+    }
+
+    setShowPremiumSheet(true);
+  }, [isGuest, isPremiumActive, user?.id]);
+
+  const handleManageSubscription = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const productId = entitlementState.snapshot?.productId ?? null;
+    const payload = {
+      source: 'profile_card',
+      product_id: productId,
+    };
+
+    trackEvent('premium_manage_subscription_clicked', payload);
+    const result = await openSubscriptionManagement(productId);
+    if (result.status === 'opened') {
+      trackEvent('premium_manage_subscription_opened', payload);
+      return;
+    }
+
+    trackEvent('premium_manage_subscription_failed', {
+      ...payload,
+      reason: result.status === 'failed' ? result.error : 'unavailable',
+    });
+    Alert.alert(t('premium.paywall.manageUnavailableTitle'), t('premium.paywall.manageUnavailableBody'));
+  }, [entitlementState.snapshot?.productId, t]);
 
   const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -367,6 +434,13 @@ export function ProfileScreenContent() {
             <Text style={S.statLabel}>{t('profile.stats.dreamCount')}</Text>
           </View>
         </View>
+
+        <PremiumProfileCard
+          isPremium={isPremiumActive}
+          annualBadgeLabel={annualPremiumBadgeLabel}
+          onManageSubscription={handleManageSubscription}
+          onPress={handlePremiumCardPress}
+        />
 
         {/* ── Guest Banner ── */}
         {isGuestUser(user) && (
@@ -565,6 +639,12 @@ export function ProfileScreenContent() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <PremiumPaywallSheet
+        visible={showPremiumSheet}
+        onClose={() => setShowPremiumSheet(false)}
+        source="profile"
+      />
 
       </SafeScreen>
   );

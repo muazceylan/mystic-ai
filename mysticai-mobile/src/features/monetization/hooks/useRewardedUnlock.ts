@@ -60,9 +60,15 @@ function createClientEventId(): string {
 
 export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRewardedUnlockResult {
   const [status, setStatus] = useState<UnlockStatus>('idle');
-  const { config, getModuleRule, isAdsEnabledForModule, trackAdOffer, trackAdCompleted } =
+  const { config, entitlements, paywall, getModuleRule, isAdsEnabledForModule, trackAdOffer, trackAdCompleted } =
     useMonetizationStore();
   const { refreshBalance } = useGuruWalletStore();
+  const premiumAccessActive = Boolean(
+    entitlements?.premiumActive
+    || entitlements?.trialing
+    || paywall?.premiumActive
+    || paywall?.trialing,
+  );
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -79,6 +85,11 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
     if (!config) {
       setStatus('failed');
       return emitIneligible('config_not_loaded', moduleKey, actionKey);
+    }
+
+    if (premiumAccessActive) {
+      setStatus('failed');
+      return emitIneligible('premium_ad_free', moduleKey, actionKey, configVersion);
     }
 
     if (!config.enabled || !config.adsEnabled || !config.webAdsEnabled) {
@@ -235,6 +246,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
     getModuleRule,
     isAdsEnabledForModule,
     moduleKey,
+    premiumAccessActive,
     refreshBalance,
     trackAdCompleted,
     trackAdOffer,
@@ -251,6 +263,11 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
     if (!config) {
       setStatus('failed');
       return emitIneligible('config_not_loaded', moduleKey, actionKey);
+    }
+
+    if (premiumAccessActive) {
+      setStatus('failed');
+      return emitIneligible('premium_ad_free', moduleKey, actionKey, configVersion);
     }
 
     // ── Guard 2: global ads enabled ────────────────────────────────
@@ -398,6 +415,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
     config,
     getModuleRule,
     isAdsEnabledForModule,
+    premiumAccessActive,
     trackAdOffer,
     trackAdCompleted,
     refreshBalance,

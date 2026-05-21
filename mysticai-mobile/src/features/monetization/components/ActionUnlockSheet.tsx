@@ -130,7 +130,8 @@ export function ActionUnlockSheet({
   const tokenRequirement = Math.max(1, options?.tokenRequirement ?? unlockState.guruCost ?? 1);
   const userGuruBalance = options?.userGuruBalance ?? balance;
   const tokenUnlockEnabled = options?.tokenUnlockEnabled ?? unlockState.guruEnabled;
-  const rewardedAdEnabled = options?.rewardedAdEnabled ?? unlockState.adEnabled;
+  const premiumAccessActive = monetization.premiumActive || monetization.trialing;
+  const rewardedAdEnabled = !premiumAccessActive && (options?.rewardedAdEnabled ?? unlockState.adEnabled);
   const rewardedAdViewsRequired = options?.rewardedAdViewsRequired ?? Math.max(1, tokenRequirement);
   const rewardAnalyticsContext = useMemo(() => ({
     contentKey,
