@@ -91,7 +91,39 @@ class HoroscopeFusionServiceTest {
 
         HoroscopeResponse response = service.getHoroscope("aries", "daily", "tr");
 
-        assertEquals(rawEnglish, response.getSections().getGeneral());
+        assertEquals(
+                "Koç için bugün, enerjini dağıtmadan en önemli konuya odaklanmak iyi gelebilir. "
+                        + "Duygularını bastırmak yerine sakin bir dille ifade et; böylece hem ilişkilerde hem günlük işlerinde daha rahat ilerlersin.",
+                response.getSections().getGeneral()
+        );
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldRepairScreenshotStyleMixedTranslationWithoutWholeFallback() {
+        String rawEnglish = "Dear Aquarius, harmony and healing can support your week.";
+        ohmandaClient.next = source("ohmanda", rawEnglish);
+
+        mockServer.expect(requestTo("http://orchestrator.test/api/ai/horoscope/translate-editorial"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(
+                        "### Dearest Kova, Favorit seni deyar Kova bu vibe ile harmony ve healing duygularıyla dolduracak.",
+                        new MediaType("text", "plain", StandardCharsets.UTF_8)
+                ));
+
+        HoroscopeResponse response = service.getHoroscope("aquarius", "weekly", "tr");
+        String general = response.getSections().getGeneral().toLowerCase(Locale.ROOT);
+
+        assertEquals(
+                "Sevgili Kova bu hava ile uyum ve iyileşme duygularıyla dolduracak.",
+                response.getSections().getGeneral()
+        );
+        assertFalse(general.contains("dearest"));
+        assertFalse(general.contains("harmony"));
+        assertFalse(general.contains("healing"));
+        assertFalse(general.contains("vibe"));
+        assertFalse(general.contains("favorit"));
+        assertFalse(general.contains("deyar"));
         mockServer.verify();
     }
 

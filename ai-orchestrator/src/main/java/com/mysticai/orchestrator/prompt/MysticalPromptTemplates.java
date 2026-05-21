@@ -691,6 +691,10 @@ public class MysticalPromptTemplates {
                 Tüm yorumları akıcı, edebi ve tamamen Türkçe bir dille yaz.
                 Latince veya İngilizce burç/açı adlarını asla kullanma.
                 Kullanıcıya bir bilge/rehber gibi hitap et — sohbet değil, derin bir kılavuz.
+                Kullanıcının tek okumada anlayacağı doğal Türkçe kullan; çeviri kokan, kırık veya yarı İngilizce cümle kurma.
+                "dearest", "dream", "vibe", "harmony", "healing", "frustration", "shadow", "subconscious",
+                "opportunity", "warning" gibi İngilizce kelimeler KESİNLİKLE YASAKTIR.
+                Markdown başlığı, ###, madde başı sembolü veya açıklayıcı ön metin yazma.
                 ══════════════════════════════════════════
 
                 ══════════════════════════════════════════

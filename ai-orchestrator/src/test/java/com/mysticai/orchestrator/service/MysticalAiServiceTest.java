@@ -135,6 +135,44 @@ class MysticalAiServiceTest {
         assertTrue(fallbackService.lastPrompt.contains("Genel synastry baz skoru: 84"));
     }
 
+    @Test
+    void shouldSanitizeMixedEnglishDreamSynthesisForTurkishLocale() throws Exception {
+        RecordingFallbackService fallbackService = new RecordingFallbackService("""
+                {
+                  "interpretation": "Dream vibe Ay ile harmony ve healing ihtiyacını anlatıyor; frustrationları büyütme.",
+                  "opportunities": ["Bugün shadow yerine sakin bir not al."],
+                  "warnings": ["Subconscious yoğunlaşırsa acele etme."]
+                }
+                """);
+        MysticalAiService service = new MysticalAiService(
+                fallbackService,
+                new MysticalPromptTemplates(),
+                new ObjectMapper()
+        );
+
+        String result = service.generateInterpretation(new AiAnalysisEvent(
+                182L,
+                dreamPayload(),
+                AiAnalysisEvent.SourceService.DREAM,
+                AiAnalysisEvent.AnalysisType.DREAM_SYNTHESIS
+        ));
+
+        ObjectMapper mapper = new ObjectMapper();
+        var json = mapper.readTree(result);
+        String combined = result.toLowerCase();
+
+        assertTrue(json.path("interpretation").asText().contains("uyum"));
+        assertTrue(json.path("interpretation").asText().contains("iyileşme"));
+        assertFalse(combined.contains("harmony"));
+        assertFalse(combined.contains("healing"));
+        assertFalse(combined.contains("frustration"));
+        assertFalse(combined.contains("vibe"));
+        assertFalse(combined.contains("dream"));
+        assertFalse(combined.contains("shadow"));
+        assertFalse(combined.contains("subconscious"));
+        assertTrue(fallbackService.lastPrompt.contains("İngilizce kelimeler KESİNLİKLE YASAKTIR"));
+    }
+
     private String natalPayload(String locale) {
         return """
                 {
@@ -189,6 +227,21 @@ class MysticalAiServiceTest {
                   "locale": "tr"
                 }
                 """.formatted(selectedModuleScore, baseHarmonyScore);
+    }
+
+    private String dreamPayload() {
+        return """
+                {
+                  "dreamText": "Karanlık bir kapıdan geçip su kenarına yürüdüm.",
+                  "recurringSymbols": "'Kapı' (2 kez görüldü)",
+                  "moonSign": "Aquarius",
+                  "risingSign": "Gemini",
+                  "twelfthHousePlanets": "12. Ev: Pisces",
+                  "neptuneTransit": "Neptune Pisces 29°",
+                  "currentTransits": "Venus Taurus 10°, Jupiter Cancer 4°",
+                  "locale": "tr"
+                }
+                """;
     }
 
     private static final class RecordingFallbackService extends AiFallbackService {

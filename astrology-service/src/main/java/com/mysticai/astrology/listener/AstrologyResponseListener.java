@@ -1,6 +1,7 @@
 package com.mysticai.astrology.listener;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.entity.DreamEntry;
@@ -80,6 +81,11 @@ public class AstrologyResponseListener {
             Pattern.compile("(?i)\\b(\\d{1,3})\\s*puan(?:lık)?\\b");
     private static final Pattern HARMONY_SCORE_FRACTION_PATTERN =
             Pattern.compile("(?i)\\b(\\d{1,3})\\s*/\\s*100\\b");
+    private static final String[] DREAM_ENGLISH_REMAINDER_TOKENS = {
+            "dearest", "favorite", "favourite", "vibe", "harmony", "healing",
+            "frustration", "procrastination", "opportunity", "opportunities",
+            "warning", "warnings", "journey", "dream", "shadow", "subconscious"
+    };
 
     @RabbitListener(queues = "ai.responses.astrology.queue")
     public void handleAiResponse(AiAnalysisResponseEvent event) {
@@ -169,18 +175,22 @@ public class AstrologyResponseListener {
             DreamSynthesisContent content = parseDreamSynthesisContent(aiJson);
             try {
                 if (content.hasContent()) {
-                    entry.setInterpretation(content.interpretation());
-                    entry.setOpportunitiesJson(objectMapper.writeValueAsString(content.opportunities()));
-                    entry.setWarningsJson(objectMapper.writeValueAsString(content.warnings()));
+                    DreamSynthesisContent safeContent = makeDreamContentUserFriendly(content, entry);
+                    entry.setInterpretation(safeContent.interpretation());
+                    entry.setOpportunitiesJson(objectMapper.writeValueAsString(safeContent.opportunities()));
+                    entry.setWarningsJson(objectMapper.writeValueAsString(safeContent.warnings()));
                 } else {
                     throw new IllegalArgumentException("Dream synthesis payload was empty after normalization");
                 }
             } catch (Exception parseEx) {
                 // Preserve raw narrative if normalization fails so the journal never stays blank.
                 log.warn("Dream synthesis response could not be normalized, storing raw text");
-                entry.setInterpretation(stripMarkdown(aiJson));
-                entry.setOpportunitiesJson("[]");
-                entry.setWarningsJson("[]");
+                String rawText = normalizeDreamText(aiJson);
+                entry.setInterpretation(isUserFriendlyTurkishDreamText(rawText)
+                        ? rawText
+                        : buildFallbackDreamInterpretation(entry));
+                entry.setOpportunitiesJson(objectMapper.writeValueAsString(buildFallbackDreamOpportunities(entry)));
+                entry.setWarningsJson(objectMapper.writeValueAsString(buildFallbackDreamWarnings()));
             }
 
             entry.setInterpretationStatus("COMPLETED");
@@ -579,10 +589,231 @@ public class AstrologyResponseListener {
         if (raw == null) {
             return "";
         }
-        return stripMarkdown(raw)
+        return replaceDreamLanguageArtifacts(stripMarkdown(raw)
                 .replace("\\n", "\n")
-                .replaceAll("\\s+", " ")
-                .trim();
+                .replaceAll("[\\t\\x0B\\f\\r]+", " ")
+                .replaceAll("[ ]*\\n+[ ]*", "\n\n")
+                .replaceAll(" {2,}", " ")
+                .trim());
+    }
+
+    private DreamSynthesisContent makeDreamContentUserFriendly(DreamSynthesisContent content, DreamEntry entry) {
+        String interpretation = repairDreamNarrativeOrFallback(content.interpretation(), entry);
+
+        List<String> opportunities = normalizeDreamActionList(
+                content.opportunities(),
+                buildFallbackDreamOpportunities(entry),
+                2
+        );
+        List<String> warnings = normalizeDreamActionList(
+                content.warnings(),
+                buildFallbackDreamWarnings(),
+                2
+        );
+
+        return new DreamSynthesisContent(interpretation, opportunities, warnings);
+    }
+
+    private String repairDreamNarrativeOrFallback(String raw, DreamEntry entry) {
+        String normalized = normalizeDreamText(raw);
+        if (isUserFriendlyTurkishDreamText(normalized)) {
+            return normalized;
+        }
+
+        List<String> repaired = new ArrayList<>();
+        for (String segment : normalized.split("(?<=[.!?])\\s+")) {
+            String cleaned = normalizeDreamText(segment);
+            if (isUserFriendlyTurkishDreamText(cleaned)) {
+                repaired.add(cleaned);
+            } else if (!cleaned.isBlank()) {
+                repaired.add(buildFallbackDreamSentence(entry));
+            }
+        }
+
+        String joined = String.join(" ", repaired).replaceAll(" {2,}", " ").trim();
+        return joined.isBlank() ? buildFallbackDreamInterpretation(entry) : joined;
+    }
+
+    private List<String> normalizeDreamActionList(List<String> rawValues, List<String> fallback, int targetSize) {
+        List<String> output = new ArrayList<>();
+        if (rawValues != null) {
+            for (String rawValue : rawValues) {
+                if (output.size() >= targetSize) {
+                    break;
+                }
+                String normalized = normalizeDreamText(rawValue);
+                if (isUserFriendlyTurkishDreamText(normalized) && !output.contains(normalized)) {
+                    output.add(normalized);
+                }
+            }
+        }
+        if (!output.isEmpty()) {
+            return output;
+        }
+
+        int idx = 0;
+        while (output.size() < targetSize && idx < fallback.size()) {
+            String fallbackValue = fallback.get(idx++);
+            if (!output.contains(fallbackValue)) {
+                output.add(fallbackValue);
+            }
+        }
+        return output;
+    }
+
+    private boolean isUserFriendlyTurkishDreamText(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String lower = text.toLowerCase(Locale.ROOT);
+        if (lower.contains("###") || lower.contains("```")) {
+            return false;
+        }
+        if (looksEnglishDominant(text)) {
+            return false;
+        }
+        if (containsDreamEnglishRemainderToken(text)) {
+            return false;
+        }
+        return !containsSevereDreamTranslationArtifact(text);
+    }
+
+    private boolean containsDreamEnglishRemainderToken(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        for (String token : DREAM_ENGLISH_REMAINDER_TOKENS) {
+            if (text.matches("(?iu).*\\b" + Pattern.quote(token) + "\\p{L}*\\b.*")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsSevereDreamTranslationArtifact(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        return text.matches("(?iu).*\\b(favorit|deyar|allarl|kızımlağ|kizimlag)\\p{L}*\\b.*");
+    }
+
+    private String replaceDreamLanguageArtifacts(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String text = raw;
+        text = text.replaceAll("(?m)^#{1,6}\\s*", "");
+        text = text.replaceAll("(?iu)\\baries\\b", "Koç");
+        text = text.replaceAll("(?iu)\\btaurus\\b", "Boğa");
+        text = text.replaceAll("(?iu)\\bgemini\\b", "İkizler");
+        text = text.replaceAll("(?iu)\\bcancer\\b", "Yengeç");
+        text = text.replaceAll("(?iu)\\bleo\\b", "Aslan");
+        text = text.replaceAll("(?iu)\\bvirgo\\b", "Başak");
+        text = text.replaceAll("(?iu)\\blibra\\b", "Terazi");
+        text = text.replaceAll("(?iu)\\bscorpio\\b", "Akrep");
+        text = text.replaceAll("(?iu)\\bsagittarius\\b", "Yay");
+        text = text.replaceAll("(?iu)\\bcapricorn\\b", "Oğlak");
+        text = text.replaceAll("(?iu)\\baquarius\\b", "Kova");
+        text = text.replaceAll("(?iu)\\bpisces\\b", "Balık");
+        text = text.replaceAll("(?iu)\\bmoon\\b", "Ay");
+        text = text.replaceAll("(?iu)\\bsun\\b", "Güneş");
+        text = text.replaceAll("(?iu)\\bmercury\\b", "Merkür");
+        text = text.replaceAll("(?iu)\\bvenus\\b", "Venüs");
+        text = text.replaceAll("(?iu)\\bjupiter\\b", "Jüpiter");
+        text = text.replaceAll("(?iu)\\bsaturn\\b", "Satürn");
+        text = text.replaceAll("(?iu)\\buranus\\b", "Uranüs");
+        text = text.replaceAll("(?iu)\\bneptune\\b", "Neptün");
+        text = text.replaceAll("(?iu)\\bpluto\\b", "Plüton");
+        text = text.replaceAll("(?iu)\\bchiron\\b", "Kiron");
+        text = text.replaceAll("(?iu)\\bdearest\\b", "Sevgili");
+        text = text.replaceAll("(?iu)\\bfavou?rite\\b", "sevgili");
+        text = text.replaceAll("(?iu)\\bfavorit\\b", "sevgili");
+        text = text.replaceAll("(?iu)\\bdeyar\\b", "sevgili");
+        text = text.replaceAll("(?iu)\\ballarl\\p{L}*\\b", "rahatlayacaksın");
+        text = text.replaceAll("(?iu)\\bkızımlağ\\p{L}*\\b", "gerilimin");
+        text = text.replaceAll("(?iu)\\bkizimlag\\p{L}*\\b", "gerilimin");
+        text = text.replaceAll("(?iu)\\bvibe\\b", "hava");
+        text = text.replaceAll("(?iu)\\bharmony\\b", "uyum");
+        text = text.replaceAll("(?iu)\\bhealing\\b", "iyileşme");
+        text = text.replaceAll("(?iu)\\bfrustration\\p{L}*\\b", "gerilim");
+        text = text.replaceAll("(?iu)\\bprocrastination\\b", "erteleme");
+        text = text.replaceAll("(?iu)\\bprokrastinasyon\\b", "erteleme");
+        text = text.replaceAll("(?iu)\\bdream\\b", "rüya");
+        text = text.replaceAll("(?iu)\\bjourney\\b", "yolculuk");
+        text = text.replaceAll("(?iu)\\bshadow\\b", "gölge");
+        text = text.replaceAll("(?iu)\\bsubconscious\\b", "bilinçaltı");
+        text = text.replaceAll("(?iu)\\bopportunities\\b", "fırsatlar");
+        text = text.replaceAll("(?iu)\\bopportunity\\b", "fırsat");
+        text = text.replaceAll("(?iu)\\bwarnings\\b", "uyarılar");
+        text = text.replaceAll("(?iu)\\bwarning\\b", "uyarı");
+        text = text.replaceAll("(?iu)\\bsevgili\\s+seni\\s+sevgili\\s+([\\p{L}ÇĞİÖŞÜçğıöşü]+)\\b", "Sevgili $1");
+        text = text.replaceAll("(?iu)\\bsevgili\\s+seni\\s+ve\\s+sevgili\\s+([\\p{L}ÇĞİÖŞÜçğıöşü]+)\\b", "Sevgili $1");
+        text = text.replaceAll("(?iu)\\bsevgili\\s+([\\p{L}ÇĞİÖŞÜçğıöşü]+),\\s*sevgili\\s+\\1\\b", "Sevgili $1");
+        text = text.replaceAll(" {2,}", " ");
+        return text.trim();
+    }
+
+    private String buildFallbackDreamSentence(DreamEntry entry) {
+        return describeDreamSymbols(entry)
+                + " teması burada, duygunu daha sakin okumaya ve küçük bir adımla kendini toparlamaya çağırıyor.";
+    }
+
+    private String buildFallbackDreamInterpretation(DreamEntry entry) {
+        String symbols = describeDreamSymbols(entry);
+        return "Bu rüya, zihninin gece boyunca işlemeye çalıştığı duygu ve ihtiyaçları görünür kılıyor. "
+                + symbols + " öne çıktığı için yorumun merkezinde güven, yön bulma ve içsel rahatlama ihtiyacı var. "
+                + "Bunu kesin bir işaret gibi değil, kendini daha iyi anlamana yardım eden sakin bir iç mesaj gibi okuyabilirsin. "
+                + "Bugün rüyadan kalan duyguyu not etmek ve seni yoran konuyu küçük bir adımla sadeleştirmek iyi gelebilir.";
+    }
+
+    private List<String> buildFallbackDreamOpportunities(DreamEntry entry) {
+        String symbols = describeDreamSymbols(entry);
+        return List.of(
+                "Bugün rüyadan aklında kalan en güçlü sembolü not al ve bu sembolün sende hangi duyguyu uyandırdığını tek cümleyle yaz.",
+                symbols + " teması üzerinden, gün içinde seni rahatlatacak küçük ve uygulanabilir bir adım seç."
+        );
+    }
+
+    private List<String> buildFallbackDreamWarnings() {
+        return List.of(
+                "Bu rüyayı tek başına kesin bir karar ya da kehanet gibi yorumlama; önce duygunun ne söylediğini anlamaya çalış.",
+                "Yoğun bir his yükselirse hemen tepki vermek yerine kısa bir mola ver ve konuyu daha sakin bir anda ele al."
+        );
+    }
+
+    private String describeDreamSymbols(DreamEntry entry) {
+        List<String> recurring = readDreamStringList(entry != null ? entry.getRecurringSymbolsJson() : null);
+        List<String> extracted = readDreamStringList(entry != null ? entry.getExtractedSymbolsJson() : null);
+        List<String> symbols = !recurring.isEmpty() ? recurring : extracted;
+        if (symbols.isEmpty()) {
+            return "Rüyadaki ana imgeler";
+        }
+
+        List<String> cleaned = new ArrayList<>();
+        for (String symbol : symbols) {
+            String value = normalizeDreamText(symbol);
+            if (!value.isBlank() && !cleaned.contains(value)) {
+                cleaned.add(value);
+            }
+            if (cleaned.size() >= 3) {
+                break;
+            }
+        }
+        if (cleaned.isEmpty()) {
+            return "Rüyadaki ana imgeler";
+        }
+        return String.join(", ", cleaned);
+    }
+
+    private List<String> readDreamStringList(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception ignored) {
+            return List.of();
+        }
     }
 
     private String blankToNull(String value) {

@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -164,6 +165,112 @@ class AstrologyResponseListenerTest {
         assertFalse(saved.getInterpretation().trim().startsWith("{"));
         assertEquals("[\"Günlük adım: Sabah rüyanın ana sembolüyle ilgili tek bir niyet yaz.\"]", saved.getOpportunitiesJson());
         assertEquals("[\"Sınır: Bugün belirsiz bir konuşmada hemen karar verme.\"]", saved.getWarningsJson());
+    }
+
+    @Test
+    void shouldCleanMixedEnglishDreamSynthesisBeforeSaving() {
+        UUID correlationId = UUID.randomUUID();
+        DreamEntry entry = DreamEntry.builder()
+                .id(79L)
+                .userId(11L)
+                .correlationId(correlationId)
+                .interpretationStatus("PENDING")
+                .extractedSymbolsJson("[\"Kapı\",\"Su\"]")
+                .build();
+
+        when(dreamEntryRepository.findByCorrelationId(correlationId)).thenReturn(Optional.of(entry));
+        when(dreamEntryRepository.save(any(DreamEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String aiPayload = """
+                {
+                  "interpretation": "Rüyadaki kapı harmony ve healing ihtiyacını gösteriyor; frustrationları büyütmeden ilerle.",
+                  "opportunities": ["Bugün bu vibe yerine sakin bir not al."],
+                  "warnings": ["Shadow yoğunlaşırsa acele karar verme."]
+                }
+                """;
+
+        AiAnalysisResponseEvent event = new AiAnalysisResponseEvent(
+                correlationId,
+                11L,
+                "{}",
+                AiAnalysisEvent.SourceService.DREAM,
+                AiAnalysisEvent.AnalysisType.DREAM_SYNTHESIS,
+                aiPayload,
+                true,
+                null,
+                LocalDateTime.now()
+        );
+
+        listener.handleAiResponse(event);
+
+        ArgumentCaptor<DreamEntry> captor = ArgumentCaptor.forClass(DreamEntry.class);
+        verify(dreamEntryRepository).save(captor.capture());
+
+        DreamEntry saved = captor.getValue();
+        String allText = (saved.getInterpretation() + " " + saved.getOpportunitiesJson() + " " + saved.getWarningsJson())
+                .toLowerCase();
+        assertEquals("COMPLETED", saved.getInterpretationStatus());
+        assertFalse(allText.contains("harmony"));
+        assertFalse(allText.contains("healing"));
+        assertFalse(allText.contains("frustration"));
+        assertFalse(allText.contains("vibe"));
+        assertFalse(allText.contains("shadow"));
+        assertTrue(saved.getInterpretation().contains("uyum"));
+        assertTrue(saved.getInterpretation().contains("iyileşme"));
+    }
+
+    @Test
+    void shouldRepairBrokenDreamTranslationArtifactsWithoutWholeFallback() {
+        UUID correlationId = UUID.randomUUID();
+        DreamEntry entry = DreamEntry.builder()
+                .id(80L)
+                .userId(11L)
+                .correlationId(correlationId)
+                .interpretationStatus("PENDING")
+                .extractedSymbolsJson("[\"Deniz\",\"Ev\"]")
+                .build();
+
+        when(dreamEntryRepository.findByCorrelationId(correlationId)).thenReturn(Optional.of(entry));
+        when(dreamEntryRepository.save(any(DreamEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String aiPayload = """
+                {
+                  "interpretation": "### Dearest Kova, Favorit seni ve deyar Kova bu vibe ile allarl.",
+                  "opportunities": ["harmony ve healing bekle"],
+                  "warnings": ["frustrationları çöz"]
+                }
+                """;
+
+        AiAnalysisResponseEvent event = new AiAnalysisResponseEvent(
+                correlationId,
+                11L,
+                "{}",
+                AiAnalysisEvent.SourceService.DREAM,
+                AiAnalysisEvent.AnalysisType.DREAM_SYNTHESIS,
+                aiPayload,
+                true,
+                null,
+                LocalDateTime.now()
+        );
+
+        listener.handleAiResponse(event);
+
+        ArgumentCaptor<DreamEntry> captor = ArgumentCaptor.forClass(DreamEntry.class);
+        verify(dreamEntryRepository).save(captor.capture());
+
+        DreamEntry saved = captor.getValue();
+        String allText = (saved.getInterpretation() + " " + saved.getOpportunitiesJson() + " " + saved.getWarningsJson())
+                .toLowerCase();
+        assertEquals("COMPLETED", saved.getInterpretationStatus());
+        assertFalse(saved.getInterpretation().startsWith("Bu rüya,"));
+        assertTrue(saved.getInterpretation().contains("Sevgili Kova"));
+        assertTrue(saved.getInterpretation().contains("rahatlayacaksın"));
+        assertFalse(allText.contains("dearest"));
+        assertFalse(allText.contains("favorit"));
+        assertFalse(allText.contains("vibe"));
+        assertFalse(allText.contains("harmony"));
+        assertTrue(saved.getOpportunitiesJson().contains("uyum ve iyileşme"));
+        assertTrue(saved.getWarningsJson().contains("gerilim"));
     }
 
     @Test

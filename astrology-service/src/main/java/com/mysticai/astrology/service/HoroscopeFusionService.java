@@ -58,7 +58,13 @@ public class HoroscopeFusionService {
             "metnin çevirisi",
             "source text",
             "output:",
-            "```"
+            "```",
+            "###"
+    };
+    private static final String[] ENGLISH_REMAINDER_TOKENS = {
+            "dearest", "favorite", "favourite", "vibe", "harmony", "healing",
+            "frustration", "procrastination", "leadership", "opportunities",
+            "warnings", "romantic", "interactions", "practice", "journey"
     };
     private static final String[] MIXED_ASTRO_TOKENS = {
             "aries", "taurus", "gemini", "cancer", "leo", "virgo", "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces",
@@ -179,23 +185,31 @@ public class HoroscopeFusionService {
         }
 
         String editorial = translateEditorialToTurkish(baseText, sign, period);
-        if (passesTurkishQualityGate(editorial)) {
-            return editorial;
+        String repairedEditorial = repairTurkishTextSegments(editorial, sign, period);
+        if (passesTurkishQualityGate(repairedEditorial) || isUsableRepairedTurkish(repairedEditorial)) {
+            return repairedEditorial;
         }
         if (nonBlank(editorial)) {
-            log.warn("Editorial localization rejected by quality gate, trying legacy fallback");
+            log.warn("Editorial localization could not be repaired enough, trying legacy fallback");
         }
 
         String legacy = translateToTurkishLegacy(baseText);
-        if (passesTurkishQualityGate(legacy)) {
+        String repairedLegacy = repairTurkishTextSegments(legacy, sign, period);
+        if (passesTurkishQualityGate(repairedLegacy) || isUsableRepairedTurkish(repairedLegacy)) {
             log.info("Using legacy TR translation after editorial fallback");
-            return legacy;
+            return repairedLegacy;
         }
         if (nonBlank(legacy)) {
-            log.warn("Legacy translation rejected by quality gate, using raw upstream text");
+            log.warn("Legacy translation could not be repaired enough, using normalized upstream text");
         }
 
-        return normalizeMixedAstroTermsForTurkish(baseText);
+        String normalizedFallback = repairTurkishTextSegments(baseText, sign, period);
+        if (passesTurkishQualityGate(normalizedFallback) || isUsableRepairedTurkish(normalizedFallback)) {
+            return normalizedFallback;
+        }
+
+        log.warn("Using deterministic Turkish horoscope fallback for {} {}", sign, period);
+        return buildTurkishFallbackText(sign, period);
     }
 
     private String translateEditorialToTurkish(String sourceText, String sign, String period) {
@@ -294,6 +308,9 @@ public class HoroscopeFusionService {
         if (containsMixedAstroToken(text)) {
             return false;
         }
+        if (containsEnglishRemainderToken(text)) {
+            return false;
+        }
         if (containsSuspiciousTurkishArtifacts(text)) {
             return false;
         }
@@ -322,6 +339,18 @@ public class HoroscopeFusionService {
         return false;
     }
 
+    private boolean containsEnglishRemainderToken(String text) {
+        if (!nonBlank(text)) {
+            return false;
+        }
+        for (String token : ENGLISH_REMAINDER_TOKENS) {
+            if (text.matches("(?iu).*\\b" + java.util.regex.Pattern.quote(token) + "\\p{L}*\\b.*")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean containsSuspiciousTurkishArtifacts(String text) {
         if (!nonBlank(text)) {
             return false;
@@ -335,7 +364,24 @@ public class HoroscopeFusionService {
         if (text.matches("(?iu).*\\b(" + TURKISH_SIGN_ALTERNATION + ")\\s+ayı\\b.*")) {
             return true;
         }
+        if (text.matches("(?iu).*\\b(favorit|deyar|allarl|kızımlağ|kizimlag)\\p{L}*\\b.*")) {
+            return true;
+        }
         return text.matches("(?iu).*\\bsenin\\s+şakalara\\b.*");
+    }
+
+    private boolean isUsableRepairedTurkish(String candidate) {
+        if (!nonBlank(candidate)) {
+            return false;
+        }
+        String text = candidate.trim();
+        if (text.length() < MIN_EDITORIAL_TEXT_LENGTH) {
+            return false;
+        }
+        if (containsTemplateArtifact(text) || containsSuspiciousTurkishArtifacts(text)) {
+            return false;
+        }
+        return !looksEnglishDominant(text) && !containsMixedAstroToken(text) && !containsEnglishRemainderToken(text);
     }
 
     private boolean isLikelyTurkish(String text) {
@@ -415,6 +461,27 @@ public class HoroscopeFusionService {
         normalized = normalized.replaceAll("(?iu)\\bchiron\\b", "Kiron");
         normalized = normalized.replaceAll("(?iu)\\bkheiron\\b", "Kiron");
         normalized = normalized.replaceAll("(?iu)\\bunique\\b", "özgün");
+        normalized = normalized.replaceAll("(?iu)\\bdearest\\b", "Sevgili");
+        normalized = normalized.replaceAll("(?iu)\\bfavou?rite\\b", "sevgili");
+        normalized = normalized.replaceAll("(?iu)\\bfavorit\\b", "sevgili");
+        normalized = normalized.replaceAll("(?iu)\\bdeyar\\b", "sevgili");
+        normalized = normalized.replaceAll("(?iu)\\ballarl\\p{L}*\\b", "rahatlayacaksın");
+        normalized = normalized.replaceAll("(?iu)\\bkızımlağ\\p{L}*\\b", "gerilimin");
+        normalized = normalized.replaceAll("(?iu)\\bkizimlag\\p{L}*\\b", "gerilimin");
+        normalized = normalized.replaceAll("(?iu)\\bvibe\\b", "hava");
+        normalized = normalized.replaceAll("(?iu)\\bharmony\\b", "uyum");
+        normalized = normalized.replaceAll("(?iu)\\bhealing\\b", "iyileşme");
+        normalized = normalized.replaceAll("(?iu)\\bfrustration\\p{L}*\\b", "gerilim");
+        normalized = normalized.replaceAll("(?iu)\\bprocrastination\\b", "erteleme");
+        normalized = normalized.replaceAll("(?iu)\\bprokrastinasyon\\b", "erteleme");
+        normalized = normalized.replaceAll("(?iu)\\bleadership\\b", "liderlik");
+        normalized = normalized.replaceAll("(?iu)\\bopportunities\\b", "fırsatlar");
+        normalized = normalized.replaceAll("(?iu)\\bwarnings\\b", "uyarılar");
+        normalized = normalized.replaceAll("(?iu)\\bromantic\\b", "romantik");
+        normalized = normalized.replaceAll("(?iu)\\binteractions\\b", "etkileşimler");
+        normalized = normalized.replaceAll("(?iu)\\bpractices\\b", "pratikler");
+        normalized = normalized.replaceAll("(?iu)\\bpractice\\b", "pratik");
+        normalized = normalized.replaceAll("(?iu)\\bjourney\\b", "yolculuk");
         normalized = normalized.replaceAll("(?iu)\\bconjunction\\b", "kavuşum");
         normalized = normalized.replaceAll("(?iu)\\bsextile\\b", "altmışlık");
         normalized = normalized.replaceAll("(?iu)\\bsquare\\b", "kare");
@@ -422,11 +489,99 @@ public class HoroscopeFusionService {
         normalized = normalized.replaceAll("(?iu)\\bopposition\\b", "karşıt");
         normalized = normalized.replaceAll("(?iu)\\b(" + TURKISH_SIGN_ALTERNATION + ")['’]l[ıiuü]\\b", "$1 burcu");
         normalized = normalized.replaceAll("(?iu)\\b(" + TURKISH_SIGN_ALTERNATION + ")\\s+ayı\\b", "$1 burcundaki Ay");
+        normalized = normalized.replaceAll("(?iu)\\bsevgili\\s+seni\\s+sevgili\\s+(" + TURKISH_SIGN_ALTERNATION + ")\\b", "Sevgili $1");
+        normalized = normalized.replaceAll("(?iu)\\bsevgili\\s+seni\\s+ve\\s+sevgili\\s+(" + TURKISH_SIGN_ALTERNATION + ")\\b", "Sevgili $1");
+        normalized = normalized.replaceAll("(?iu)\\bsevgili\\s+(" + TURKISH_SIGN_ALTERNATION + "),\\s*sevgili\\s+\\1\\b", "Sevgili $1");
         normalized = normalized.replaceAll("(?iu)\\bsenin\\s+şakalara\\b", "şakalarına");
         normalized = normalized.replaceAll("(?iu)\\btuhaf\\b", "özgün");
         normalized = normalized.replaceAll("(?iu)\\bgarip\\b", "alışılmadık");
         normalized = normalized.replaceAll("(?iu)\\bözgün\\s+ve\\s+özgün\\b", "en özgün");
+        normalized = normalized.replaceAll("(?m)^#{1,6}\\s*", "");
+        normalized = normalized.replaceAll("\\s{2,}", " ").trim();
         return normalized;
+    }
+
+    private String repairTurkishTextSegments(String text, String sign, String period) {
+        if (!nonBlank(text)) {
+            return null;
+        }
+        String normalized = cleanupLocalizedText(text);
+        if (!nonBlank(normalized)) {
+            return null;
+        }
+        if (isUsableRepairedTurkish(normalized)) {
+            return normalized;
+        }
+
+        String[] segments = normalized.split("(?<=[.!?])\\s+");
+        List<String> repaired = new ArrayList<>();
+        boolean keptAnyOriginalSegment = false;
+        for (String segment : segments) {
+            String cleaned = normalizeMixedAstroTermsForTurkish(segment);
+            if (isUsableRepairedTurkish(cleaned) || isShortButTurkish(cleaned)) {
+                repaired.add(cleaned);
+                keptAnyOriginalSegment = true;
+            } else if (nonBlank(cleaned)) {
+                repaired.add(buildTurkishFallbackSentence(sign, period));
+            }
+        }
+        if (!keptAnyOriginalSegment) {
+            return null;
+        }
+        String joined = String.join(" ", repaired).replaceAll("\\s{2,}", " ").trim();
+        return nonBlank(joined) ? joined : null;
+    }
+
+    private boolean isShortButTurkish(String text) {
+        if (!nonBlank(text)) {
+            return false;
+        }
+        return text.toLowerCase(Locale.ROOT).matches(".*[çğıöşü].*")
+                && !containsTemplateArtifact(text)
+                && !containsSuspiciousTurkishArtifacts(text)
+                && !containsEnglishRemainderToken(text)
+                && !containsMixedAstroToken(text)
+                && !looksEnglishDominant(text);
+    }
+
+    private String buildTurkishFallbackSentence(String sign, String period) {
+        String signName = turkishSignName(sign);
+        if ("weekly".equalsIgnoreCase(period)) {
+            return signName + " için bu bölümde ana mesaj, acele etmeden önceliklerini sadeleştirmen ve iletişimde net kalman.";
+        }
+        return signName + " için bu bölümde ana mesaj, bugün enerjini dağıtmadan sakin ve uygulanabilir bir adım seçmen.";
+    }
+
+    private String buildTurkishFallbackText(String sign, String period) {
+        String signName = turkishSignName(sign);
+        if ("weekly".equalsIgnoreCase(period)) {
+            return signName + " için bu hafta, acele kararlar yerine sade ve net adımlar daha destekleyici görünüyor. "
+                    + "Önceliklerini toparla, seni yoran konuları tek tek ele al ve iletişimde açık kal. "
+                    + "Küçük ama düzenli ilerleme, hafta sonunda kendini daha dengede hissetmeni sağlayabilir.";
+        }
+        return signName + " için bugün, enerjini dağıtmadan en önemli konuya odaklanmak iyi gelebilir. "
+                + "Duygularını bastırmak yerine sakin bir dille ifade et; böylece hem ilişkilerde hem günlük işlerinde daha rahat ilerlersin.";
+    }
+
+    private String turkishSignName(String sign) {
+        if (sign == null) {
+            return "Bugün";
+        }
+        return switch (sign.toLowerCase(Locale.ROOT)) {
+            case "aries" -> "Koç";
+            case "taurus" -> "Boğa";
+            case "gemini" -> "İkizler";
+            case "cancer" -> "Yengeç";
+            case "leo" -> "Aslan";
+            case "virgo" -> "Başak";
+            case "libra" -> "Terazi";
+            case "scorpio" -> "Akrep";
+            case "sagittarius" -> "Yay";
+            case "capricorn" -> "Oğlak";
+            case "aquarius" -> "Kova";
+            case "pisces" -> "Balık";
+            default -> sign;
+        };
     }
 
     private HoroscopeResponse tryStaleCache(String cacheKey, String sign, String period,

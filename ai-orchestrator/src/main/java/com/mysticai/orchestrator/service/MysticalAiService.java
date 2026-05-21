@@ -91,6 +91,10 @@ public class MysticalAiService {
             // For English responses, keep the original English terms.
             if (!hasLocale || locale.toLowerCase().startsWith("tr")) {
                 response = replaceTurkishTerms(response);
+                if (event.analysisType() == AiAnalysisEvent.AnalysisType.DREAM_SYNTHESIS
+                        || event.analysisType() == AiAnalysisEvent.AnalysisType.MONTHLY_DREAM_STORY) {
+                    response = sanitizeAiLanguageArtifacts(response);
+                }
             }
 
             logger.info("Interpretation generated for correlationId: {}, length: {}",
@@ -1682,6 +1686,22 @@ public class MysticalAiService {
         s = s.replaceAll("(?iu)\\bkheiron\\b", "Kiron");
         s = s.replaceAll("(?iu)\\bchiron\\b", "Kiron");
         s = s.replaceAll("(?iu)\\bunique\\b", "özgün");
+        s = s.replaceAll("(?iu)\\bdearest\\b", "Sevgili");
+        s = s.replaceAll("(?iu)\\bfavou?rite\\b", "sevgili");
+        s = s.replaceAll("(?iu)\\bvibe\\b", "hava");
+        s = s.replaceAll("(?iu)\\bharmony\\b", "uyum");
+        s = s.replaceAll("(?iu)\\bhealing\\b", "iyileşme");
+        s = s.replaceAll("(?iu)\\bfrustration\\p{L}*\\b", "gerilim");
+        s = s.replaceAll("(?iu)\\bprocrastination\\b", "erteleme");
+        s = s.replaceAll("(?iu)\\bprokrastinasyon\\b", "erteleme");
+        s = s.replaceAll("(?iu)\\bdream\\b", "rüya");
+        s = s.replaceAll("(?iu)\\bjourney\\b", "yolculuk");
+        s = s.replaceAll("(?iu)\\bshadow\\b", "gölge");
+        s = s.replaceAll("(?iu)\\bsubconscious\\b", "bilinçaltı");
+        s = s.replaceAll("(?iu)\\bopportunities\\b", "fırsatlar");
+        s = s.replaceAll("(?iu)\\bopportunity\\b", "fırsat");
+        s = s.replaceAll("(?iu)\\bwarnings\\b", "uyarılar");
+        s = s.replaceAll("(?iu)\\bwarning\\b", "uyarı");
         s = s.replaceAll("(?iu)\\bsometimes\\b", "bazen");
         s = s.replaceAll("(?iu)\\boften\\b", "sık sık");
         s = s.replaceAll("(?iu)\\brarely\\b", "nadiren");
