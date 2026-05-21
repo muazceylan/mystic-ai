@@ -220,6 +220,10 @@ export default function NumerologyScreen() {
     () => String(user?.id ?? user?.username ?? data?.name ?? 'guest'),
     [data?.name, user?.id, user?.username],
   );
+  const advancedAnalysisContentKey = useMemo(
+    () => `numerology:advanced_analysis:${userScopeId}:${effectiveDate}`,
+    [effectiveDate, userScopeId],
+  );
 
   const dominantNumber = getDominantNumber(data);
   const mainNumber = findCoreNumber(data, data?.combinedProfile?.dominantNumberId ?? 'lifePath');
@@ -864,6 +868,7 @@ export default function NumerologyScreen() {
         visible={showGuruModal}
         moduleKey="numerology"
         actionKey="advanced_analysis"
+        contentKey={advancedAnalysisContentKey}
         onUnlocked={() => {
           setShowGuruModal(false);
           setAdvancedVisible(true);

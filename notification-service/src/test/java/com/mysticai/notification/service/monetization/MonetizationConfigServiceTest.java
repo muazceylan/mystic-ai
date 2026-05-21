@@ -237,7 +237,7 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_monetizationDisabled_returnsDisabledReason() {
-        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view", null))
                 .thenReturn(featureAccessResponse(
                         false,
                         false,
@@ -263,7 +263,7 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_actionNotFound_returnsActionNotFound() {
-        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "nonexistent"))
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "nonexistent", null))
                 .thenReturn(featureAccessResponse(
                         false,
                         true,
@@ -289,7 +289,7 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_adEligible_whenEntryCountMeetsThreshold() {
-        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view", null))
                 .thenReturn(featureAccessResponse(
                         false,
                         true,
@@ -316,7 +316,7 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_adNotEligible_withinFreeEntries() {
-        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view", null))
                 .thenReturn(featureAccessResponse(
                         false,
                         true,
@@ -342,7 +342,7 @@ class MonetizationConfigServiceTest {
 
     @Test
     void checkActionEligibility_guruUnlockAvailable_whenBalanceSufficient() {
-        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view"))
+        when(featureAccessService.evaluateAccess(USER_ID, "dreams", "view", null))
                 .thenReturn(featureAccessResponse(
                         true,
                         true,

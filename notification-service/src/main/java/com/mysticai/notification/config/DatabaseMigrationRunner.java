@@ -78,6 +78,22 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
             jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS is_reward_fallback_enabled BOOLEAN NOT NULL DEFAULT FALSE");
             jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS daily_limit INTEGER NOT NULL DEFAULT 0");
             jdbc.execute("ALTER TABLE monetization_actions ADD COLUMN IF NOT EXISTS weekly_limit INTEGER NOT NULL DEFAULT 0");
+            jdbc.execute("""
+                    UPDATE monetization_actions
+                    SET is_reward_fallback_enabled = TRUE,
+                        reward_amount = CASE WHEN reward_amount <= 0 THEN 1 ELSE reward_amount END
+                    WHERE module_key IN ('share_cards', 'natal_chart', 'compatibility', 'horoscope')
+                      AND action_key IN (
+                          'shareable_card_create',
+                          'natal_chart_detail_view',
+                          'compatibility_view',
+                          'person_add',
+                          'birth_night_poster_view',
+                          'horoscope_view'
+                      )
+                      AND is_reward_fallback_enabled = FALSE
+                      AND COALESCE(updated_by_admin_id, 0) = 0
+                    """);
 
             jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS is_signup_bonus_enabled BOOLEAN NOT NULL DEFAULT FALSE");
             jdbc.execute("ALTER TABLE monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_token_amount INTEGER NOT NULL DEFAULT 10");

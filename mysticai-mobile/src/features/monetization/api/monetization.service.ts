@@ -131,9 +131,10 @@ export async function checkEligibility(
   moduleKey: string,
   actionKey: string,
   entryCount: number,
+  contentKey?: string,
 ): Promise<EligibilityResult> {
   const { data } = await api.get<EligibilityResult>('/api/v1/monetization/eligibility', {
-    params: { moduleKey, actionKey, entryCount },
+    params: { moduleKey, actionKey, entryCount, ...(contentKey ? { contentKey } : {}) },
   });
   return data;
 }
@@ -261,6 +262,7 @@ export async function consumeFeatureAccess(params: {
   locale: string;
   idempotencyKey: string;
   sourceScreen?: string;
+  contentKey?: string;
 }): Promise<FeatureAccessResponse> {
   const { data } = await api.post<FeatureAccessResponse>('/api/v1/monetization/access/consume', params);
   return data;
@@ -269,9 +271,11 @@ export async function consumeFeatureAccess(params: {
 export async function getUnlockOptions(
   moduleKey: string,
   actionKey: string,
+  contentKey?: string,
 ): Promise<UnlockOptions> {
   const { data } = await api.get<UnlockOptions>(
     `/api/v1/monetization/modules/${moduleKey}/actions/${actionKey}/unlock-options`,
+    { params: contentKey ? { contentKey } : undefined },
   );
   return data;
 }
@@ -284,6 +288,7 @@ export async function unlockWithToken(
     locale: string;
     idempotencyKey: string;
     sourceScreen?: string;
+    contentKey?: string;
   },
 ): Promise<TokenUnlockResponse> {
   const { data } = await api.post<TokenUnlockResponse>(
@@ -296,9 +301,11 @@ export async function unlockWithToken(
 export async function checkRewardedAd(
   moduleKey: string,
   actionKey: string,
+  contentKey?: string,
 ): Promise<RewardedAdCheckResponse> {
   const { data } = await api.post<RewardedAdCheckResponse>(
     `/api/v1/monetization/modules/${moduleKey}/actions/${actionKey}/rewarded-ad/check`,
+    contentKey ? { contentKey } : undefined,
   );
   return data;
 }

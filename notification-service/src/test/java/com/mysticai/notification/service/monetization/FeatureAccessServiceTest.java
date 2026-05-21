@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -56,10 +57,11 @@ class FeatureAccessServiceTest {
 
     @BeforeEach
     void setUpRewardedUnlockDefault() {
-        lenient().when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+        lenient().when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
                 anyLong(),
                 any(),
                 any(),
+                isNull(),
                 eq(RewardedUnlockProgress.Status.UNLOCKED),
                 any(LocalDateTime.class)
         )).thenReturn(Optional.empty());
@@ -126,10 +128,11 @@ class FeatureAccessServiceTest {
         when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
                 eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
                 .thenReturn(0L);
-        when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+        when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
                 eq(USER_ID),
                 eq(MODULE_KEY),
                 eq(ACTION_KEY),
+                isNull(),
                 eq(RewardedUnlockProgress.Status.UNLOCKED),
                 any(LocalDateTime.class)
         )).thenReturn(Optional.of(RewardedUnlockProgress.builder()
@@ -152,6 +155,59 @@ class FeatureAccessServiceTest {
         assertThat(response.message()).isEqualTo("feature_rewarded_unlock_unlocked");
         assertThat(response.originalTokenCost()).isEqualTo(2);
         assertThat(response.chargedTokenAmount()).isZero();
+    }
+
+    @Test
+    void evaluateAccess_rewardedUnlockContentKeyMustMatch() {
+        String geminiKey = "horoscope:weekly:gemini:2026-W21";
+        String ariesKey = "horoscope:weekly:aries:2026-W21";
+
+        when(settingsRepository.findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED))
+                .thenReturn(Optional.of(settings()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, 3))
+                .thenReturn(Optional.of(rule()));
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(actionWithGuruCost(2)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(0).build()));
+        when(entitlementService.getSnapshot(USER_ID)).thenReturn(noEntitlement());
+        when(ledgerRepository.countByUserIdAndModuleKeyAndActionKeyAndTransactionTypeSince(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(GuruLedger.TransactionType.GURU_SPENT), any(LocalDateTime.class)))
+                .thenReturn(0L);
+        when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                eq(USER_ID),
+                eq(MODULE_KEY),
+                eq(ACTION_KEY),
+                eq(geminiKey),
+                eq(RewardedUnlockProgress.Status.UNLOCKED),
+                any(LocalDateTime.class)
+        )).thenReturn(Optional.of(RewardedUnlockProgress.builder()
+                .userId(USER_ID)
+                .moduleKey(MODULE_KEY)
+                .actionKey(ACTION_KEY)
+                .contentKey(geminiKey)
+                .requiredViews(2)
+                .completedViews(2)
+                .status(RewardedUnlockProgress.Status.UNLOCKED)
+                .unlockedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .build()));
+        when(rewardedUnlockProgressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                eq(USER_ID),
+                eq(MODULE_KEY),
+                eq(ACTION_KEY),
+                eq(ariesKey),
+                eq(RewardedUnlockProgress.Status.UNLOCKED),
+                any(LocalDateTime.class)
+        )).thenReturn(Optional.empty());
+
+        FeatureAccessService.FeatureAccessResponse gemini = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY, geminiKey);
+        FeatureAccessService.FeatureAccessResponse aries = service.evaluateAccess(USER_ID, MODULE_KEY, ACTION_KEY, ariesKey);
+
+        assertThat(gemini.allowed()).isTrue();
+        assertThat(gemini.tokenCost()).isZero();
+        assertThat(aries.allowed()).isFalse();
+        assertThat(aries.status()).isEqualTo(FeatureAccessService.AccessStatus.INSUFFICIENT_BALANCE.name());
     }
 
     @Test

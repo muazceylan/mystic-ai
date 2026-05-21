@@ -34,6 +34,7 @@ public class RewardedUnlockProgress {
     @Column(nullable = false)
     private String actionKey;
 
+    @Column(length = 512)
     private String contentKey;
 
     @Column(nullable = false)

@@ -26,6 +26,22 @@ import {
   useModuleMonetization,
 } from '../../monetization';
 
+function getLocalDateKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getIsoWeekKey(date = new Date()): string {
+  const utc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = utc.getUTCDay() || 7;
+  utc.setUTCDate(utc.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((utc.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${utc.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
 export default function HoroscopeDetailScreen() {
   const { sign: signParam, period: periodParam } = useLocalSearchParams<{ sign: string; period?: string }>();
   const sign = resolveZodiacSign(signParam ?? 'aries') ?? 'aries';
@@ -58,6 +74,10 @@ export default function HoroscopeDetailScreen() {
 
   const signData = ZODIAC_MAP.get(sign);
   const signName = signData ? (lang.startsWith('en') ? signData.nameEn : signData.nameTr) : sign;
+  const horoscopeContentKey = React.useMemo(
+    () => `horoscope:${period}:${sign}:${period === 'weekly' ? getIsoWeekKey() : getLocalDateKey()}`,
+    [period, sign],
+  );
 
   useEffect(() => {
     if (!horoscopeUnlockState.usesMonetization) {
@@ -185,6 +205,7 @@ export default function HoroscopeDetailScreen() {
         visible={showUnlockSheet}
         moduleKey={FEATURE_MODULE_KEYS.HOROSCOPE}
         actionKey={FEATURE_ACTION_KEYS.HOROSCOPE_VIEW}
+        contentKey={horoscopeContentKey}
         title={signName}
         onClose={() => {
           setShowUnlockSheet(false);

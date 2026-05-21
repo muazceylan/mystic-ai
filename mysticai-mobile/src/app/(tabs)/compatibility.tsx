@@ -493,6 +493,23 @@ export default function CompatibilityScreen() {
 
   const activeRelationshipType =
     currentSynastry?.relationshipType ?? selectedType ?? relationshipTypeParam ?? 'FRIENDSHIP';
+  const compatibilityContentKey = useMemo(() => {
+    const personBId = selectedPerson?.id
+      ?? currentSynastry?.personBId
+      ?? currentSynastry?.savedPersonId
+      ?? personBIdParam;
+    if (!personBId) return undefined;
+    const personAKey = personAIdParam ?? userId ?? 'self';
+    return `compatibility:ai_compare:${personAKey}:${personBId}:${activeRelationshipType}`;
+  }, [
+    activeRelationshipType,
+    currentSynastry?.personBId,
+    currentSynastry?.savedPersonId,
+    personAIdParam,
+    personBIdParam,
+    selectedPerson?.id,
+    userId,
+  ]);
 
   const personAFromSaved = useMemo(() => {
     if (!personAIdParam) return null;
@@ -824,6 +841,7 @@ export default function CompatibilityScreen() {
         visible={showUnlockSheet}
         moduleKey={FEATURE_MODULE_KEYS.COMPATIBILITY}
         actionKey={FEATURE_ACTION_KEYS.COMPATIBILITY_VIEW}
+        contentKey={compatibilityContentKey}
         title={t('compatibility.aiCompare')}
         onClose={() => setShowUnlockSheet(false)}
         onUnlocked={executeAnalyze}

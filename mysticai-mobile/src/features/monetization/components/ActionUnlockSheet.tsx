@@ -14,7 +14,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { BottomSheet } from '../../../components/ui/BottomSheet';
-import { useTheme, type ThemeColors } from '../../../context/ThemeContext';
 import { ACCESSIBILITY, RADIUS, SPACING, TYPOGRAPHY } from '../../../constants/tokens';
 import { getUnlockOptions, unlockWithToken } from '../api/monetization.service';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
@@ -23,8 +22,9 @@ import { useRewardedAdContentUnlock } from '../hooks/useRewardedAdContentUnlock'
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import type { UnlockOptions } from '../types';
 
-const GURU_TOKEN_DARK = require('../../../../assets/guru_transparent_light.png');
-const GURU_TOKEN_LIGHT = require('../../../../assets/guru_transparent.png');
+const GURU_TOKEN_BALANCE = require('../../../../assets/guru-token-balance.png');
+const GURU_TOKEN_CARD = require('../../../../assets/guru-token-card.png');
+const REWARDED_VIDEO_CARD = require('../../../../assets/rewarded-video-card.png');
 
 const STAR_POINTS = [
   { top: '8%', left: '18%', opacity: 0.42 },
@@ -43,6 +43,7 @@ interface ActionUnlockSheetProps {
   visible: boolean;
   moduleKey: string;
   actionKey: string;
+  contentKey?: string;
   title?: string;
   onClose: () => void;
   onUnlocked: () => void | Promise<void>;
@@ -64,10 +65,43 @@ function getApiMessage(error: unknown): string | null {
   return typeof message === 'string' && message.trim() ? message : null;
 }
 
+function isGenericEnglishMessage(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  return normalized.includes('unexpected error')
+    || normalized.includes('internal server error')
+    || normalized.includes('please try again later')
+    || normalized === 'network error';
+}
+
+function toPremiumUserMessage(message: string | null | undefined, fallback: string): string {
+  if (!message || !message.trim() || isGenericEnglishMessage(message)) {
+    return fallback;
+  }
+
+  const normalized = message.trim();
+  const lower = normalized.toLowerCase();
+  if (lower.includes('ad load') || lower.includes('load failed')) {
+    return 'Reklam yüklenemedi. Bağlantını kontrol edip tekrar deneyebilirsin.';
+  }
+  if (lower.includes('not completed') || lower.includes('dismiss') || lower.includes('cancel')) {
+    return 'Reklam tamamlanmadı.\nİçeriği açmak için videoyu sonuna kadar izlemelisin.';
+  }
+  if (lower.includes('missing_ad_unit') || lower.includes('native_module') || lower.includes('sdk_not_initialized')) {
+    return 'Reklam şu anda hazır değil. Lütfen biraz sonra tekrar deneyin.';
+  }
+
+  return normalized;
+}
+
+function getFriendlyApiMessage(error: unknown, fallback: string): string {
+  return toPremiumUserMessage(getApiMessage(error), fallback);
+}
+
 export function ActionUnlockSheet({
   visible,
   moduleKey,
   actionKey,
+  contentKey,
   title,
   onClose,
   onUnlocked,
@@ -75,8 +109,7 @@ export function ActionUnlockSheet({
   closeLabel,
 }: ActionUnlockSheetProps) {
   const { t, i18n } = useTranslation();
-  const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(), []);
   const monetization = useModuleMonetization(moduleKey);
   const unlockState = monetization.getActionUnlockState(actionKey);
   const action = unlockState.action;
@@ -93,7 +126,6 @@ export function ActionUnlockSheet({
   const rewardInFlightRef = useRef(false);
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sheetVisible = visible && !hiddenAfterUnlock;
-  const tokenIcon = isDark ? GURU_TOKEN_DARK : GURU_TOKEN_LIGHT;
   const effectiveTitle = title || action?.dialogTitle || action?.displayName || actionKey;
   const tokenRequirement = Math.max(1, options?.tokenRequirement ?? unlockState.guruCost ?? 1);
   const userGuruBalance = options?.userGuruBalance ?? balance;
@@ -101,11 +133,12 @@ export function ActionUnlockSheet({
   const rewardedAdEnabled = options?.rewardedAdEnabled ?? unlockState.adEnabled;
   const rewardedAdViewsRequired = options?.rewardedAdViewsRequired ?? Math.max(1, tokenRequirement);
   const rewardAnalyticsContext = useMemo(() => ({
+    contentKey,
     tokenRequirement,
     userGuruBalance,
     rewardedAdViewsRequired,
-  }), [rewardedAdViewsRequired, tokenRequirement, userGuruBalance]);
-  const rewardedUnlock = useRewardedAdContentUnlock(moduleKey, actionKey, rewardAnalyticsContext);
+  }), [contentKey, rewardedAdViewsRequired, tokenRequirement, userGuruBalance]);
+  const rewardedUnlock = useRewardedAdContentUnlock(moduleKey, actionKey, contentKey, rewardAnalyticsContext);
   const rewardedProgress = rewardedUnlock.progress ?? options?.rewardedAdProgress ?? null;
   const hasVisibleOptions = tokenUnlockEnabled || rewardedAdEnabled || optionsLoading;
   const isRewardBusy = rewardedUnlock.status === 'checking'
@@ -125,14 +158,14 @@ export function ActionUnlockSheet({
     setOptionsLoading(true);
     setInlineMessage(null);
     try {
-      const nextOptions = await getUnlockOptions(moduleKey, actionKey);
+      const nextOptions = await getUnlockOptions(moduleKey, actionKey, contentKey);
       setOptions(nextOptions);
     } catch (error) {
-      setInlineMessage(getApiMessage(error) ?? t('monetization.unlockOptionsUnavailableHint'));
+      setInlineMessage(getFriendlyApiMessage(error, t('monetization.unlockOptionsUnavailableHint')));
     } finally {
       setOptionsLoading(false);
     }
-  }, [actionKey, moduleKey, t]);
+  }, [actionKey, contentKey, moduleKey, t]);
 
   useEffect(() => {
     if (!sheetVisible) return;
@@ -163,11 +196,12 @@ export function ActionUnlockSheet({
     trackMonetizationEvent('unlock_modal_viewed', {
       moduleKey,
       actionKey,
+      contentKey,
       tokenRequirement,
       userGuruBalance,
       rewardedAdViewsRequired,
     });
-  }, [actionKey, moduleKey, rewardedAdViewsRequired, sheetVisible, tokenRequirement, userGuruBalance]);
+  }, [actionKey, contentKey, moduleKey, rewardedAdViewsRequired, sheetVisible, tokenRequirement, userGuruBalance]);
 
   const completeUnlock = useCallback(async () => {
     setHiddenAfterUnlock(true);
@@ -202,6 +236,7 @@ export function ActionUnlockSheet({
     trackMonetizationEvent('unlock_with_token_clicked', {
       moduleKey,
       actionKey,
+      contentKey,
       tokenRequirement,
       userGuruBalance,
       rewardedAdViewsRequired,
@@ -213,6 +248,7 @@ export function ActionUnlockSheet({
       trackMonetizationEvent('unlock_with_token_failed', {
         moduleKey,
         actionKey,
+        contentKey,
         reason: 'INSUFFICIENT_GURU',
         tokenRequirement,
         userGuruBalance,
@@ -230,13 +266,15 @@ export function ActionUnlockSheet({
         locale: i18n.language,
         idempotencyKey: createId('content_unlock_token'),
         sourceScreen: moduleKey,
+        contentKey,
       });
 
       if (!response.unlocked) {
-        setInlineMessage(response.message ?? t('monetization.guruFailedError'));
+        setInlineMessage(toPremiumUserMessage(response.message, t('monetization.guruFailedError')));
         trackMonetizationEvent('unlock_with_token_failed', {
           moduleKey,
           actionKey,
+          contentKey,
           reason: response.reason ?? 'TOKEN_UNLOCK_FAILED',
           tokenRequirement,
           userGuruBalance,
@@ -252,6 +290,7 @@ export function ActionUnlockSheet({
       trackMonetizationEvent('unlock_with_token_success', {
         moduleKey,
         actionKey,
+        contentKey,
         tokenRequirement,
         userGuruBalance,
         spentGuru: response.spentGuru,
@@ -260,11 +299,12 @@ export function ActionUnlockSheet({
       });
       await completeUnlock();
     } catch (error) {
-      const message = getApiMessage(error) ?? t('monetization.guruFailedError');
+      const message = getFriendlyApiMessage(error, t('monetization.guruFailedError'));
       setInlineMessage(message);
       trackMonetizationEvent('unlock_with_token_failed', {
         moduleKey,
         actionKey,
+        contentKey,
         reason: message,
         tokenRequirement,
         userGuruBalance,
@@ -277,6 +317,7 @@ export function ActionUnlockSheet({
   }, [
     actionKey,
     completeUnlock,
+    contentKey,
     i18n.language,
     isBusy,
     moduleKey,
@@ -296,6 +337,7 @@ export function ActionUnlockSheet({
     trackMonetizationEvent('rewarded_unlock_clicked', {
       moduleKey,
       actionKey,
+      contentKey,
       tokenRequirement,
       userGuruBalance,
       rewardedAdViewsRequired,
@@ -308,19 +350,20 @@ export function ActionUnlockSheet({
       if (!result.response?.unlocked) {
         const fallback = result.status === 'cancelled'
           ? `${t('monetization.adNotCompletedTitle')}\n${t('monetization.adNotCompletedBody')}`
-          : result.message ?? t('monetization.adNotReadyMessage');
+          : toPremiumUserMessage(result.message, t('monetization.adNotReadyMessage'));
         setInlineMessage(fallback);
         return;
       }
       await completeUnlock();
     } catch (error) {
-      setInlineMessage(getApiMessage(error) ?? t('monetization.rewardedUnlockFailed'));
+      setInlineMessage(getFriendlyApiMessage(error, t('monetization.rewardedUnlockFailed')));
     } finally {
       rewardInFlightRef.current = false;
     }
   }, [
     actionKey,
     completeUnlock,
+    contentKey,
     isBusy,
     moduleKey,
     rewardedAdEnabled,
@@ -381,7 +424,7 @@ export function ActionUnlockSheet({
 
           <View style={styles.balanceRow}>
             <Image
-              source={tokenIcon}
+              source={GURU_TOKEN_BALANCE}
               style={styles.balanceIcon}
               resizeMode="contain"
               accessibilityIgnoresInvertColors
@@ -402,9 +445,10 @@ export function ActionUnlockSheet({
           ) : null}
 
           {!optionsLoading && !hasVisibleOptions ? (
-            <Text style={styles.inlineMessage}>
-              {t('monetization.unlockOptionsUnavailableHint')}
-            </Text>
+            <PremiumMessage
+              styles={styles}
+              message={t('monetization.unlockOptionsUnavailableHint')}
+            />
           ) : null}
 
           <View style={styles.cardStack}>
@@ -418,14 +462,18 @@ export function ActionUnlockSheet({
                 {tokenProcessing ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <View style={styles.tokenCardInner}>
-                    <Text style={styles.cardNumber}>{tokenRequirement}</Text>
-                    <Image
-                      source={tokenIcon}
-                      style={styles.cardTokenIcon}
-                      resizeMode="contain"
-                      accessibilityIgnoresInvertColors
-                    />
+                  <View style={styles.cardInner}>
+                    <View style={styles.cardIconTile}>
+                      <Image
+                        source={GURU_TOKEN_CARD}
+                        style={styles.cardTileImage}
+                        resizeMode="contain"
+                        accessibilityIgnoresInvertColors
+                      />
+                    </View>
+                    <View style={styles.cardNumberSlot}>
+                      <Text style={styles.cardNumber}>{tokenRequirement}</Text>
+                    </View>
                   </View>
                 )}
               </UnlockCard>
@@ -441,11 +489,18 @@ export function ActionUnlockSheet({
                 {isRewardBusy ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <View style={styles.videoCardInner}>
-                    <View style={styles.videoIconBox}>
-                      <Ionicons name="play" size={26} color="#F7E8FF" />
+                  <View style={styles.cardInner}>
+                    <View style={styles.cardIconTile}>
+                      <Image
+                        source={REWARDED_VIDEO_CARD}
+                        style={styles.cardTileImage}
+                        resizeMode="contain"
+                        accessibilityIgnoresInvertColors
+                      />
                     </View>
-                    <Text style={styles.cardNumber}>{rewardedAdViewsRequired}</Text>
+                    <View style={styles.cardNumberSlot}>
+                      <Text style={styles.cardNumber}>{rewardedAdViewsRequired}</Text>
+                    </View>
                   </View>
                 )}
               </UnlockCard>
@@ -466,9 +521,13 @@ export function ActionUnlockSheet({
           ) : null}
 
           {inlineMessage || rewardedUnlock.message ? (
-            <Text style={styles.inlineMessage}>
-              {inlineMessage ?? rewardedUnlock.message}
-            </Text>
+            <PremiumMessage
+              styles={styles}
+              message={toPremiumUserMessage(
+                inlineMessage ?? rewardedUnlock.message,
+                t('monetization.rewardedUnlockFailed'),
+              )}
+            />
           ) : null}
 
           <TouchableOpacity
@@ -508,19 +567,62 @@ function UnlockCard({
       accessibilityLabel={accessibilityLabel}
       activeOpacity={0.86}
     >
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(131, 35, 210, 0.70)', 'rgba(68, 13, 126, 0.62)', 'rgba(97, 29, 156, 0.56)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cardGradient}
+      />
+      <View pointerEvents="none" style={styles.cardTopGlow} />
+      <View pointerEvents="none" style={styles.cardDotField}>
+        {Array.from({ length: 18 }).map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.cardDot,
+              {
+                top: `${12 + (index % 6) * 12}%`,
+                left: `${60 + Math.floor(index / 6) * 9}%`,
+                opacity: 0.12 + (index % 3) * 0.07,
+              },
+            ]}
+          />
+        ))}
+      </View>
       <View style={styles.cardContent}>{children}</View>
-      <Ionicons name="chevron-forward" size={26} color="#F4E9FF" />
+      <Ionicons name="chevron-forward" size={34} color="#F7ECFF" style={styles.chevronIcon} />
     </TouchableOpacity>
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function PremiumMessage({
+  message,
+  styles,
+}: {
+  message: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.messagePill}>
+      <Ionicons name="alert-circle" size={18} color="#FFD6F2" />
+      <Text
+        style={styles.messageText}
+        maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+      >
+        {message}
+      </Text>
+    </View>
+  );
+}
+
+function createStyles() {
   return StyleSheet.create({
     sheet: {
       backgroundColor: 'transparent',
       overflow: 'hidden',
-      borderTopLeftRadius: 34,
-      borderTopRightRadius: 34,
+      borderTopLeftRadius: 40,
+      borderTopRightRadius: 40,
     },
     sheetContent: {
       paddingHorizontal: 0,
@@ -529,11 +631,12 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: '#7D39D6',
       width: 54,
       height: 6,
+      borderRadius: 999,
       marginBottom: 0,
     },
     gradient: {
-      borderTopLeftRadius: 34,
-      borderTopRightRadius: 34,
+      borderTopLeftRadius: 40,
+      borderTopRightRadius: 40,
       borderWidth: 1,
       borderColor: 'rgba(179, 83, 255, 0.46)',
       shadowColor: '#AD4CFF',
@@ -544,10 +647,10 @@ function createStyles(colors: ThemeColors) {
       overflow: 'hidden',
     },
     scrollContent: {
-      paddingHorizontal: SPACING.xl,
-      paddingTop: SPACING.xl,
-      paddingBottom: SPACING.lg,
-      gap: SPACING.lg,
+      paddingHorizontal: 36,
+      paddingTop: 34,
+      paddingBottom: 28,
+      gap: 22,
     },
     star: {
       position: 'absolute',
@@ -560,33 +663,39 @@ function createStyles(colors: ThemeColors) {
       shadowRadius: 6,
     },
     title: {
-      ...TYPOGRAPHY.H1,
+      fontSize: 34,
+      lineHeight: 42,
       color: '#FFFFFF',
+      fontWeight: '900',
       letterSpacing: 0,
     },
     balanceRow: {
-      minHeight: 58,
-      borderRadius: 26,
+      minHeight: 72,
+      borderRadius: 32,
       borderWidth: 1,
-      borderColor: 'rgba(202, 142, 255, 0.42)',
-      backgroundColor: 'rgba(131, 38, 204, 0.42)',
+      borderColor: 'rgba(218, 132, 255, 0.52)',
+      backgroundColor: 'rgba(129, 35, 203, 0.60)',
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: SPACING.lg,
-      gap: SPACING.sm,
+      paddingHorizontal: 26,
+      gap: 14,
       shadowColor: '#F0B7FF',
-      shadowOpacity: 0.22,
-      shadowRadius: 18,
+      shadowOpacity: 0.34,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 8 },
       overflow: 'hidden',
     },
     balanceIcon: {
-      width: 28,
-      height: 28,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
     },
     balanceText: {
-      ...TYPOGRAPHY.H2,
+      fontSize: 34,
+      lineHeight: 40,
       color: '#FFFFFF',
-      fontWeight: '800',
+      fontWeight: '900',
+      letterSpacing: 0,
     },
     loadingRow: {
       minHeight: 58,
@@ -600,91 +709,141 @@ function createStyles(colors: ThemeColors) {
       color: '#EBD9FF',
     },
     cardStack: {
-      gap: SPACING.md,
+      gap: 20,
+      marginTop: 8,
     },
     unlockCard: {
-      minHeight: 132,
-      borderRadius: 24,
+      minHeight: 162,
+      borderRadius: 30,
       borderWidth: 1,
-      borderColor: 'rgba(218, 128, 255, 0.54)',
-      backgroundColor: 'rgba(86, 19, 156, 0.52)',
+      borderColor: 'rgba(224, 129, 255, 0.56)',
+      backgroundColor: 'rgba(87, 19, 156, 0.64)',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: SPACING.lg,
+      paddingHorizontal: 26,
       shadowColor: '#D46BFF',
-      shadowOpacity: 0.32,
-      shadowRadius: 22,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 10,
+      shadowOpacity: 0.38,
+      shadowRadius: 26,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 14,
       overflow: 'hidden',
+    },
+    cardGradient: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: 30,
+    },
+    cardTopGlow: {
+      position: 'absolute',
+      top: -24,
+      left: 24,
+      right: 28,
+      height: 68,
+      borderRadius: 60,
+      backgroundColor: 'rgba(194, 67, 255, 0.20)',
+      shadowColor: '#F7B3FF',
+      shadowOpacity: 0.35,
+      shadowRadius: 32,
+    },
+    cardDotField: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: '48%',
+    },
+    cardDot: {
+      position: 'absolute',
+      width: 2,
+      height: 2,
+      borderRadius: 1,
+      backgroundColor: '#F8E9FF',
     },
     cardContent: {
       flex: 1,
-      minHeight: 96,
+      minHeight: 116,
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'stretch',
     },
-    tokenCardInner: {
+    cardInner: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.md,
+      minHeight: 116,
     },
-    videoCardInner: {
-      flexDirection: 'row',
+    cardIconTile: {
+      width: 116,
+      height: 116,
+      borderRadius: 28,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: SPACING.xl,
-    },
-    videoIconBox: {
-      width: 74,
-      height: 74,
-      borderRadius: 22,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(108, 33, 196, 0.8)',
       borderWidth: 1,
-      borderColor: 'rgba(207, 130, 255, 0.44)',
+      borderColor: 'rgba(155, 66, 244, 0.58)',
+      overflow: 'hidden',
+      shadowColor: '#A94CFF',
+      shadowOpacity: 0.42,
+      shadowRadius: 18,
+    },
+    cardTileImage: {
+      width: 116,
+      height: 116,
+      borderRadius: 28,
+    },
+    cardNumberSlot: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingRight: 26,
     },
     cardNumber: {
-      ...TYPOGRAPHY.Display,
+      fontSize: 64,
+      lineHeight: 74,
       color: '#FFFFFF',
       fontWeight: '900',
       letterSpacing: 0,
     },
-    cardTokenIcon: {
-      width: 76,
-      height: 76,
+    chevronIcon: {
+      marginLeft: 4,
     },
     progressText: {
       ...TYPOGRAPHY.SmallBold,
       color: '#EBD9FF',
       textAlign: 'center',
     },
-    inlineMessage: {
-      ...TYPOGRAPHY.SmallBold,
-      color: '#FFFFFF',
-      textAlign: 'center',
-      lineHeight: 20,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-      borderRadius: RADIUS.md,
-      backgroundColor: 'rgba(255,255,255,0.1)',
+    messagePill: {
+      minHeight: 52,
+      borderRadius: RADIUS.lg,
+      backgroundColor: 'rgba(91, 32, 92, 0.72)',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.14)',
-      overflow: 'hidden',
-    },
-    closeButton: {
-      minHeight: 44,
+      borderColor: 'rgba(255, 156, 214, 0.28)',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: SPACING.xs,
+      gap: 10,
+      shadowColor: '#FF7BD5',
+      shadowOpacity: 0.18,
+      shadowRadius: 14,
+    },
+    messageText: {
+      ...TYPOGRAPHY.SmallBold,
+      color: '#FFF2FA',
+      textAlign: 'center',
+      lineHeight: 20,
+      flexShrink: 1,
+    },
+    closeButton: {
+      minHeight: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 4,
     },
     closeText: {
-      ...TYPOGRAPHY.H3,
+      fontSize: 24,
+      lineHeight: 30,
       color: '#B56BFF',
-      fontWeight: '800',
+      fontWeight: '900',
+      letterSpacing: 0,
     },
     disabled: {
       opacity: 0.54,

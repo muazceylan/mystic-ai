@@ -97,7 +97,16 @@ public class MonetizationConfigService {
     @Transactional(readOnly = true)
     public EligibilityCheckResponse checkActionEligibility(Long userId, String moduleKey,
                                                              String actionKey, int entryCount) {
-        FeatureAccessService.FeatureAccessResponse access = featureAccessService.evaluateAccess(userId, moduleKey, actionKey);
+        return checkActionEligibility(userId, moduleKey, actionKey, entryCount, null);
+    }
+
+    @Transactional(readOnly = true)
+    public EligibilityCheckResponse checkActionEligibility(Long userId,
+                                                           String moduleKey,
+                                                           String actionKey,
+                                                           int entryCount,
+                                                           String contentKey) {
+        FeatureAccessService.FeatureAccessResponse access = featureAccessService.evaluateAccess(userId, moduleKey, actionKey, contentKey);
         return new EligibilityCheckResponse(
                 access.monetizationActive(),
                 access.rewardedAdAvailable(),

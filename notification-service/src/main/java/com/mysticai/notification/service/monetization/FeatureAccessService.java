@@ -39,7 +39,12 @@ public class FeatureAccessService {
 
     @Transactional(readOnly = true)
     public FeatureAccessResponse evaluateAccess(Long userId, String moduleKey, String actionKey) {
-        MonetizationContext context = loadContext(moduleKey, actionKey);
+        return evaluateAccess(userId, moduleKey, actionKey, null);
+    }
+
+    @Transactional(readOnly = true)
+    public FeatureAccessResponse evaluateAccess(Long userId, String moduleKey, String actionKey, String contentKey) {
+        MonetizationContext context = loadContext(moduleKey, actionKey, contentKey);
         if (!context.ready()) {
             return buildUnavailableResponse(context);
         }
@@ -54,7 +59,19 @@ public class FeatureAccessService {
                                                String locale,
                                                String idempotencyKey,
                                                String sourceScreen) {
-        MonetizationContext context = loadContext(moduleKey, actionKey);
+        return consumeAccess(userId, moduleKey, actionKey, platform, locale, idempotencyKey, sourceScreen, null);
+    }
+
+    @Transactional
+    public FeatureAccessResponse consumeAccess(Long userId,
+                                               String moduleKey,
+                                               String actionKey,
+                                               String platform,
+                                               String locale,
+                                               String idempotencyKey,
+                                               String sourceScreen,
+                                               String contentKey) {
+        MonetizationContext context = loadContext(moduleKey, actionKey, contentKey);
         if (!context.ready()) {
             return buildUnavailableResponse(context);
         }
@@ -332,37 +349,39 @@ public class FeatureAccessService {
 
     private boolean hasActiveRewardedUnlock(Long userId, MonetizationContext context) {
         return rewardedUnlockProgressRepository
-                .findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                .findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
                         userId,
                         context.requestedModuleKey(),
                         context.requestedActionKey(),
+                        context.contentKey(),
                         RewardedUnlockProgress.Status.UNLOCKED,
                         LocalDateTime.now()
                 )
                 .isPresent();
     }
 
-    private MonetizationContext loadContext(String moduleKey, String actionKey) {
+    private MonetizationContext loadContext(String moduleKey, String actionKey, String contentKey) {
+        String normalizedContentKey = normalizeContentKey(contentKey);
         MonetizationSettings settings = settingsRepository
                 .findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED)
                 .orElse(null);
         if (settings == null || !settings.isEnabled()) {
-            return MonetizationContext.disabled(moduleKey, actionKey);
+            return MonetizationContext.disabled(moduleKey, actionKey, normalizedContentKey);
         }
 
         MonetizationAction action = actionRepository.findByActionKeyAndModuleKey(actionKey, moduleKey).orElse(null);
         if (action == null || !action.isEnabled()) {
-            return MonetizationContext.actionMissing(settings, moduleKey, actionKey);
+            return MonetizationContext.actionMissing(settings, moduleKey, actionKey, normalizedContentKey);
         }
 
         ModuleMonetizationRule rule = ruleRepository
                 .findByModuleKeyAndConfigVersion(moduleKey, settings.getConfigVersion())
                 .orElse(null);
         if (rule == null || !rule.isEnabled() || rule.getRolloutStatus() == ModuleMonetizationRule.RolloutStatus.DISABLED) {
-            return MonetizationContext.ruleMissing(settings, action, moduleKey, actionKey);
+            return MonetizationContext.ruleMissing(settings, action, moduleKey, actionKey, normalizedContentKey);
         }
 
-        return new MonetizationContext(settings, rule, action, moduleKey, actionKey, true, null);
+        return new MonetizationContext(settings, rule, action, moduleKey, actionKey, normalizedContentKey, true, null);
     }
 
     private FeatureAccessResponse buildUnavailableResponse(MonetizationContext context) {
@@ -589,6 +608,13 @@ public class FeatureAccessService {
         return fallback;
     }
 
+    private String normalizeContentKey(String contentKey) {
+        if (contentKey == null || contentKey.isBlank()) {
+            return null;
+        }
+        return contentKey.trim();
+    }
+
     private String buildConsumeMetadataJson(String sourceScreen, String analyticsKey) {
         String safeSourceScreen = sourceScreen == null ? "" : sourceScreen.replace("\"", "'");
         String safeAnalyticsKey = analyticsKey == null ? "" : analyticsKey.replace("\"", "'");
@@ -670,22 +696,24 @@ public class FeatureAccessService {
             MonetizationAction action,
             String requestedModuleKey,
             String requestedActionKey,
+            String contentKey,
             boolean ready,
             String failureReason
     ) {
-        static MonetizationContext disabled(String moduleKey, String actionKey) {
-            return new MonetizationContext(null, null, null, moduleKey, actionKey, false, "monetization_disabled");
+        static MonetizationContext disabled(String moduleKey, String actionKey, String contentKey) {
+            return new MonetizationContext(null, null, null, moduleKey, actionKey, contentKey, false, "monetization_disabled");
         }
 
-        static MonetizationContext actionMissing(MonetizationSettings settings, String moduleKey, String actionKey) {
-            return new MonetizationContext(settings, null, null, moduleKey, actionKey, false, "feature_not_found");
+        static MonetizationContext actionMissing(MonetizationSettings settings, String moduleKey, String actionKey, String contentKey) {
+            return new MonetizationContext(settings, null, null, moduleKey, actionKey, contentKey, false, "feature_not_found");
         }
 
         static MonetizationContext ruleMissing(MonetizationSettings settings,
                                                MonetizationAction action,
                                                String moduleKey,
-                                               String actionKey) {
-            return new MonetizationContext(settings, null, action, moduleKey, actionKey, false, "feature_disabled");
+                                               String actionKey,
+                                               String contentKey) {
+            return new MonetizationContext(settings, null, action, moduleKey, actionKey, contentKey, false, "feature_disabled");
         }
 
         boolean rewardFallbackAvailable() {

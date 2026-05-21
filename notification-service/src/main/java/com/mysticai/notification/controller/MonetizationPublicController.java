@@ -53,9 +53,10 @@ public class MonetizationPublicController {
     public ResponseEntity<RewardedContentUnlockService.UnlockOptionsResponse> getUnlockOptions(
             @RequestHeader(value = "X-User-Id", required = false) Long userId,
             @PathVariable String moduleKey,
-            @PathVariable String actionKey) {
+            @PathVariable String actionKey,
+            @RequestParam(required = false) String contentKey) {
         requireUserId(userId);
-        return ResponseEntity.ok(rewardedContentUnlockService.getUnlockOptions(userId, moduleKey, actionKey));
+        return ResponseEntity.ok(rewardedContentUnlockService.getUnlockOptions(userId, moduleKey, actionKey, contentKey));
     }
 
     // ─── AUTHENTICATED (X-User-Id required, enforced by gateway JWT) ──
@@ -65,18 +66,20 @@ public class MonetizationPublicController {
             @RequestHeader(value = "X-User-Id", required = false) Long userId,
             @RequestParam String moduleKey,
             @RequestParam String actionKey,
-            @RequestParam(defaultValue = "0") int entryCount) {
+            @RequestParam(defaultValue = "0") int entryCount,
+            @RequestParam(required = false) String contentKey) {
         requireUserId(userId);
-        return ResponseEntity.ok(configService.checkActionEligibility(userId, moduleKey, actionKey, entryCount));
+        return ResponseEntity.ok(configService.checkActionEligibility(userId, moduleKey, actionKey, entryCount, contentKey));
     }
 
     @GetMapping("/access")
     public ResponseEntity<FeatureAccessService.FeatureAccessResponse> evaluateFeatureAccess(
             @RequestHeader(value = "X-User-Id", required = false) Long userId,
             @RequestParam String moduleKey,
-            @RequestParam String actionKey) {
+            @RequestParam String actionKey,
+            @RequestParam(required = false) String contentKey) {
         requireUserId(userId);
-        return ResponseEntity.ok(featureAccessService.evaluateAccess(userId, moduleKey, actionKey));
+        return ResponseEntity.ok(featureAccessService.evaluateAccess(userId, moduleKey, actionKey, contentKey));
     }
 
     @PostMapping("/access/consume")
@@ -91,7 +94,8 @@ public class MonetizationPublicController {
                 request.platform(),
                 request.locale(),
                 request.idempotencyKey(),
-                request.sourceScreen()
+                request.sourceScreen(),
+                request.contentKey()
         ));
     }
 
@@ -113,9 +117,15 @@ public class MonetizationPublicController {
     public ResponseEntity<RewardedContentUnlockService.RewardedAdCheckResponse> checkRewardedAdUnlock(
             @RequestHeader(value = "X-User-Id", required = false) Long userId,
             @PathVariable String moduleKey,
-            @PathVariable String actionKey) {
+            @PathVariable String actionKey,
+            @RequestBody(required = false) RewardedContentUnlockService.RewardedAdCheckRequest request) {
         requireUserId(userId);
-        return ResponseEntity.ok(rewardedContentUnlockService.checkRewardedAd(userId, moduleKey, actionKey));
+        return ResponseEntity.ok(rewardedContentUnlockService.checkRewardedAd(
+                userId,
+                moduleKey,
+                actionKey,
+                request != null ? request.contentKey() : null
+        ));
     }
 
     @PostMapping("/modules/{moduleKey}/actions/{actionKey}/rewarded-ad/complete")
@@ -253,7 +263,8 @@ public class MonetizationPublicController {
             String platform,
             String locale,
             String idempotencyKey,
-            String sourceScreen
+            String sourceScreen,
+            String contentKey
     ) {}
 
     public record PurchaseRequest(

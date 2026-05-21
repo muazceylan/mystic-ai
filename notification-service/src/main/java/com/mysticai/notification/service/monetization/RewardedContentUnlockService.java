@@ -26,6 +26,7 @@ public class RewardedContentUnlockService {
     private static final int DEFAULT_COOLDOWN_MINUTES = 60;
     private static final int DEFAULT_WINDOW_MINUTES = 60;
     private static final int DEFAULT_PROGRESS_TTL_HOURS = 24;
+    private static final int MAX_CONTENT_KEY_LENGTH = 512;
 
     private final MonetizationSettingsRepository settingsRepository;
     private final ModuleMonetizationRuleRepository ruleRepository;
@@ -37,8 +38,13 @@ public class RewardedContentUnlockService {
 
     @Transactional(readOnly = true)
     public UnlockOptionsResponse getUnlockOptions(Long userId, String moduleKey, String actionKey) {
-        UnlockContext context = loadContext(moduleKey, actionKey);
-        RewardedUnlockProgress progress = findActiveProgress(userId, moduleKey, actionKey).orElse(null);
+        return getUnlockOptions(userId, moduleKey, actionKey, null);
+    }
+
+    @Transactional(readOnly = true)
+    public UnlockOptionsResponse getUnlockOptions(Long userId, String moduleKey, String actionKey, String contentKey) {
+        UnlockContext context = loadContext(moduleKey, actionKey, contentKey);
+        RewardedUnlockProgress progress = findActiveProgress(userId, context).orElse(null);
         int requiredViews = resolveRequiredViews(context.rule(), context.tokenRequirement());
         int completedViews = progress != null ? Math.min(progress.getCompletedViews(), requiredViews) : 0;
         AdAvailabilityDto availability = resolveAvailability(userId, context, completedViews, requiredViews);
@@ -46,6 +52,7 @@ public class RewardedContentUnlockService {
         return new UnlockOptionsResponse(
                 moduleKey,
                 actionKey,
+                context.contentKey(),
                 context.tokenRequirement(),
                 walletBalance(userId),
                 context.tokenUnlockEnabled(),
@@ -61,7 +68,7 @@ public class RewardedContentUnlockService {
                                                String moduleKey,
                                                String actionKey,
                                                TokenUnlockRequest request) {
-        UnlockContext context = loadContext(moduleKey, actionKey);
+        UnlockContext context = loadContext(moduleKey, actionKey, request != null ? request.contentKey() : null);
         if (!context.tokenUnlockEnabled()) {
             return TokenUnlockResponse.failed(
                     "TOKEN_UNLOCK_DISABLED",
@@ -91,7 +98,8 @@ public class RewardedContentUnlockService {
                 request != null ? request.platform() : null,
                 request != null ? request.locale() : null,
                 idempotencyKey,
-                request != null ? request.sourceScreen() : "unlock_sheet"
+                request != null ? request.sourceScreen() : "unlock_sheet",
+                context.contentKey()
         );
 
         if (access.allowed()
@@ -100,6 +108,7 @@ public class RewardedContentUnlockService {
             int spent = FeatureAccessService.AccessStatus.TOKEN_CONSUMED.name().equals(access.status())
                     ? Math.max(0, access.chargedTokenAmount())
                     : 0;
+            grantTokenContentUnlock(userId, context);
             return new TokenUnlockResponse(
                     true,
                     null,
@@ -118,9 +127,14 @@ public class RewardedContentUnlockService {
 
     @Transactional(readOnly = true)
     public RewardedAdCheckResponse checkRewardedAd(Long userId, String moduleKey, String actionKey) {
-        UnlockContext context = loadContext(moduleKey, actionKey);
+        return checkRewardedAd(userId, moduleKey, actionKey, null);
+    }
+
+    @Transactional(readOnly = true)
+    public RewardedAdCheckResponse checkRewardedAd(Long userId, String moduleKey, String actionKey, String contentKey) {
+        UnlockContext context = loadContext(moduleKey, actionKey, contentKey);
         int requiredViews = resolveRequiredViews(context.rule(), context.tokenRequirement());
-        RewardedUnlockProgress progress = findActiveProgress(userId, moduleKey, actionKey).orElse(null);
+        RewardedUnlockProgress progress = findActiveProgress(userId, context).orElse(null);
         int completedViews = progress != null ? Math.min(progress.getCompletedViews(), requiredViews) : 0;
         AdAvailabilityDto availability = resolveAvailability(userId, context, completedViews, requiredViews);
         int remaining = Math.max(0, requiredViews - completedViews);
@@ -140,7 +154,7 @@ public class RewardedContentUnlockService {
                                                          String moduleKey,
                                                          String actionKey,
                                                          RewardedAdCompleteRequest request) {
-        UnlockContext context = loadContext(moduleKey, actionKey);
+        UnlockContext context = loadContext(moduleKey, actionKey, request != null ? request.contentKey() : null);
         int requiredViews = resolveRequiredViews(context.rule(), context.tokenRequirement());
 
         String clientEventId = normalizeRequired(request != null ? request.clientEventId() : null, "clientEventId");
@@ -155,7 +169,7 @@ public class RewardedContentUnlockService {
             return buildIdempotentCompleteResponse(existingEvent.get(), requiredViews);
         }
 
-        RewardedAdCheckResponse capacity = checkRewardedAd(userId, moduleKey, actionKey);
+        RewardedAdCheckResponse capacity = checkRewardedAd(userId, moduleKey, actionKey, context.contentKey());
         if (!capacity.allowed()) {
             throw new RewardedUnlockBlockedException(
                     capacity.reason() != null ? capacity.reason() : "REWARDED_AD_BLOCKED",
@@ -165,18 +179,12 @@ public class RewardedContentUnlockService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        RewardedUnlockProgress progress = progressRepository
-                .findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                        userId,
-                        moduleKey,
-                        actionKey,
-                        RewardedUnlockProgress.Status.IN_PROGRESS,
-                        now
-                )
+        RewardedUnlockProgress progress = findActiveProgress(userId, context)
                 .orElseGet(() -> progressRepository.save(RewardedUnlockProgress.builder()
                         .userId(userId)
                         .moduleKey(moduleKey)
                         .actionKey(actionKey)
+                        .contentKey(context.contentKey())
                         .requiredViews(requiredViews)
                         .completedViews(0)
                         .status(RewardedUnlockProgress.Status.IN_PROGRESS)
@@ -188,6 +196,7 @@ public class RewardedContentUnlockService {
                 .userId(userId)
                 .moduleKey(moduleKey)
                 .actionKey(actionKey)
+                .contentKey(context.contentKey())
                 .clientEventId(clientEventId)
                 .transactionId(transactionId)
                 .adNetwork(firstNonBlank(request != null ? request.adNetwork() : null, "admob"))
@@ -330,7 +339,8 @@ public class RewardedContentUnlockService {
         );
     }
 
-    private UnlockContext loadContext(String moduleKey, String actionKey) {
+    private UnlockContext loadContext(String moduleKey, String actionKey, String contentKey) {
+        String normalizedContentKey = normalizeContentKey(contentKey);
         MonetizationSettings settings = settingsRepository
                 .findFirstByStatusOrderByConfigVersionDesc(MonetizationSettings.Status.PUBLISHED)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Monetization config bulunamadı."));
@@ -362,18 +372,49 @@ public class RewardedContentUnlockService {
                 || action.getUnlockType() == MonetizationAction.UnlockType.AD_OR_GURU
                 || action.isRewardFallbackEnabled());
 
-        return new UnlockContext(settings, rule, action, moduleKey, actionKey, tokenRequirement, tokenUnlockEnabled, rewardedAdEnabled);
+        return new UnlockContext(settings, rule, action, moduleKey, actionKey, normalizedContentKey, tokenRequirement, tokenUnlockEnabled, rewardedAdEnabled);
     }
 
-    private Optional<RewardedUnlockProgress> findActiveProgress(Long userId, String moduleKey, String actionKey) {
+    private Optional<RewardedUnlockProgress> findActiveProgress(Long userId, UnlockContext context) {
         return progressRepository
-                .findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                .findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
                         userId,
-                        moduleKey,
-                        actionKey,
+                        context.moduleKey(),
+                        context.actionKey(),
+                        context.contentKey(),
                         RewardedUnlockProgress.Status.IN_PROGRESS,
                         LocalDateTime.now()
                 );
+    }
+
+    private Optional<RewardedUnlockProgress> findUnlockedProgress(Long userId, UnlockContext context) {
+        return progressRepository
+                .findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                        userId,
+                        context.moduleKey(),
+                        context.actionKey(),
+                        context.contentKey(),
+                        RewardedUnlockProgress.Status.UNLOCKED,
+                        LocalDateTime.now()
+                );
+    }
+
+    private void grantTokenContentUnlock(Long userId, UnlockContext context) {
+        if (findUnlockedProgress(userId, context).isPresent()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        progressRepository.save(RewardedUnlockProgress.builder()
+                .userId(userId)
+                .moduleKey(context.moduleKey())
+                .actionKey(context.actionKey())
+                .contentKey(context.contentKey())
+                .requiredViews(0)
+                .completedViews(0)
+                .status(RewardedUnlockProgress.Status.UNLOCKED)
+                .unlockedAt(now)
+                .expiresAt(now.plusHours(DEFAULT_PROGRESS_TTL_HOURS))
+                .build());
     }
 
     private void lockUserWallet(Long userId) {
@@ -414,6 +455,14 @@ public class RewardedContentUnlockService {
         return value.trim();
     }
 
+    private String normalizeContentKey(String value) {
+        String normalized = normalizeOptional(value);
+        if (normalized != null && normalized.length() > MAX_CONTENT_KEY_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "contentKey must be at most " + MAX_CONTENT_KEY_LENGTH + " characters");
+        }
+        return normalized;
+    }
+
     private String firstNonBlank(String primary, String fallback) {
         return primary != null && !primary.isBlank() ? primary.trim() : fallback;
     }
@@ -434,6 +483,7 @@ public class RewardedContentUnlockService {
     public record UnlockOptionsResponse(
             String moduleKey,
             String actionKey,
+            String contentKey,
             Integer tokenRequirement,
             Integer userGuruBalance,
             Boolean tokenUnlockEnabled,
@@ -456,7 +506,8 @@ public class RewardedContentUnlockService {
             String platform,
             String locale,
             String idempotencyKey,
-            String sourceScreen
+            String sourceScreen,
+            String contentKey
     ) {}
 
     public record TokenUnlockResponse(
@@ -481,11 +532,14 @@ public class RewardedContentUnlockService {
             String message
     ) {}
 
+    public record RewardedAdCheckRequest(String contentKey) {}
+
     public record RewardedAdCompleteRequest(
             String adNetwork,
             String placement,
             String transactionId,
-            String clientEventId
+            String clientEventId,
+            String contentKey
     ) {}
 
     public record RewardedAdCompleteResponse(
@@ -523,6 +577,7 @@ public class RewardedContentUnlockService {
             MonetizationAction action,
             String moduleKey,
             String actionKey,
+            String contentKey,
             int tokenRequirement,
             boolean tokenUnlockEnabled,
             boolean rewardedAdEnabled

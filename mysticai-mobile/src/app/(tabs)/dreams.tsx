@@ -482,6 +482,13 @@ function parseInterpretation(dream: DreamEntryResponse): {
 
 // ─── Date helpers ────────────────────────────────────────────────────
 const toIso = (d: Date) => d.toISOString().slice(0, 10);
+const stableHash = (value: string) => {
+  let hash = 5381;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(index);
+  }
+  return (hash >>> 0).toString(36);
+};
 const fmtDate = (d: Date, locale: string) =>
   d.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long' });
 const isToday = (d: Date) =>
@@ -570,6 +577,15 @@ export default function DreamsScreen() {
   const micGlow  = useSharedValue(0);
 
   const userId = user?.id ?? 0;
+  const dreamInterpretContentKey = useMemo(() => {
+    const dateKey = toIso(selectedDate);
+    const payload = `${userId}:${dateKey}:${dreamTitle.trim()}:${dreamText.trim()}`;
+    return `dream:interpret:${dateKey}:${stableHash(payload)}`;
+  }, [dreamText, dreamTitle, selectedDate, userId]);
+  const monthlyStoryContentKey = useMemo(
+    () => `dream:monthly_story:${bookYear}-${String(bookMonth).padStart(2, '0')}`,
+    [bookMonth, bookYear],
+  );
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.DREAMS);
   const tutorialBootstrapRef = useRef<string | null>(null);
@@ -1754,6 +1770,7 @@ export default function DreamsScreen() {
         visible={showDreamUnlockSheet}
         moduleKey="dreams"
         actionKey={DREAM_INTERPRET_ACTION_KEY}
+        contentKey={dreamInterpretContentKey}
         title={t('dreams.unlockTitle')}
         onClose={closeDreamUnlockSheet}
         onUnlocked={submitDreamEntry}
@@ -1781,6 +1798,7 @@ export default function DreamsScreen() {
         visible={showGuruModal}
         moduleKey="dreams"
         actionKey="monthly_dream_story"
+        contentKey={monthlyStoryContentKey}
         onUnlocked={() => {
           setShowGuruModal(false);
           void executeBookGenerate();

@@ -5,6 +5,7 @@ interface GuruUnlockModalProps {
   visible: boolean;
   moduleKey: string;
   actionKey: string;
+  contentKey?: string;
   onUnlocked: () => void;
   onDismiss: () => void;
   onShowAdOffer?: () => void;
@@ -15,6 +16,7 @@ export function GuruUnlockModal({
   visible,
   moduleKey,
   actionKey,
+  contentKey,
   onUnlocked,
   onDismiss,
   onShowPurchase,
@@ -24,6 +26,7 @@ export function GuruUnlockModal({
       visible={visible}
       moduleKey={moduleKey}
       actionKey={actionKey}
+      contentKey={contentKey}
       onUnlocked={onUnlocked}
       onClose={onDismiss}
       onShowPurchase={onShowPurchase}

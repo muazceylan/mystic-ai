@@ -251,6 +251,7 @@ export interface PaywallResponse {
 export interface UnlockOptions {
   moduleKey: string;
   actionKey: string;
+  contentKey?: string | null;
   tokenRequirement: number;
   userGuruBalance: number;
   tokenUnlockEnabled: boolean;
@@ -291,6 +292,7 @@ export interface CompleteRewardedAdPayload {
   placement: string;
   transactionId?: string | null;
   clientEventId: string;
+  contentKey?: string | null;
 }
 
 export interface RewardedAdCompleteResponse {

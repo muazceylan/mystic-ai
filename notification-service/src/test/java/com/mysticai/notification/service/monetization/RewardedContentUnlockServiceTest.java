@@ -15,6 +15,7 @@ import com.mysticai.notification.repository.RewardedUnlockProgressRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,8 +28,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,8 +69,8 @@ class RewardedContentUnlockServiceTest {
                 .thenReturn(Optional.of(rule(null)));
         when(walletRepository.findByUserId(USER_ID))
                 .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(6).build()));
-        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
 
         RewardedContentUnlockService.UnlockOptionsResponse response =
@@ -86,8 +89,8 @@ class RewardedContentUnlockServiceTest {
                 .thenReturn(Optional.of(rule(1)));
         when(walletRepository.findByUserId(USER_ID))
                 .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(6).build()));
-        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
 
         RewardedContentUnlockService.UnlockOptionsResponse response =
@@ -99,6 +102,56 @@ class RewardedContentUnlockServiceTest {
     }
 
     @Test
+    void unlockOptions_allowsRewardedAdForGuruSpendActionsWithRewardFallback() {
+        when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
+                .thenReturn(Optional.of(guruSpendRewardFallbackAction()));
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
+                .thenReturn(Optional.of(rule(null)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(6).build()));
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+
+        RewardedContentUnlockService.UnlockOptionsResponse response =
+                service.getUnlockOptions(USER_ID, MODULE_KEY, ACTION_KEY);
+
+        assertThat(response.tokenUnlockEnabled()).isTrue();
+        assertThat(response.rewardedAdEnabled()).isTrue();
+        assertThat(response.rewardedAdViewsRequired()).isEqualTo(2);
+    }
+
+    @Test
+    void unlockOptions_usesContentKeyScopedProgress() {
+        String contentKey = "horoscope:weekly:gemini:2026-W21";
+        RewardedUnlockProgress progress = RewardedUnlockProgress.builder()
+                .userId(USER_ID)
+                .moduleKey(MODULE_KEY)
+                .actionKey(ACTION_KEY)
+                .contentKey(contentKey)
+                .requiredViews(2)
+                .completedViews(1)
+                .status(RewardedUnlockProgress.Status.IN_PROGRESS)
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .build();
+
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
+                .thenReturn(Optional.of(rule(null)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(6).build()));
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(contentKey), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(progress));
+
+        RewardedContentUnlockService.UnlockOptionsResponse response =
+                service.getUnlockOptions(USER_ID, MODULE_KEY, ACTION_KEY, contentKey);
+
+        assertThat(response.contentKey()).isEqualTo(contentKey);
+        assertThat(response.rewardedAdProgress().completed()).isEqualTo(1);
+        assertThat(response.rewardedAdProgress().required()).isEqualTo(2);
+    }
+
+    @Test
     void unlockOptions_normalizesZeroGuruCostToOneTokenRequirement() {
         when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
                 .thenReturn(Optional.of(action(0)));
@@ -106,8 +159,8 @@ class RewardedContentUnlockServiceTest {
                 .thenReturn(Optional.of(rule(null)));
         when(walletRepository.findByUserId(USER_ID))
                 .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(6).build()));
-        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
 
         RewardedContentUnlockService.UnlockOptionsResponse response =
@@ -124,8 +177,8 @@ class RewardedContentUnlockServiceTest {
 
         when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
                 .thenReturn(Optional.of(rule(null)));
-        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
                 .thenAnswer(invocation -> Optional.ofNullable(activeProgress.get())
                         .filter(progress -> progress.getStatus() == RewardedUnlockProgress.Status.IN_PROGRESS));
         when(progressRepository.save(any(RewardedUnlockProgress.class))).thenAnswer(invocation -> {
@@ -194,8 +247,8 @@ class RewardedContentUnlockServiceTest {
         UUID progressId = UUID.randomUUID();
         when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
                 .thenReturn(Optional.of(rule(1)));
-        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
         when(progressRepository.save(any(RewardedUnlockProgress.class))).thenAnswer(invocation -> {
             RewardedUnlockProgress progress = invocation.getArgument(0);
@@ -215,14 +268,56 @@ class RewardedContentUnlockServiceTest {
     }
 
     @Test
+    void completeRewardedAd_persistsContentKeyOnProgressAndEvent() {
+        String contentKey = "dream:monthly_story:2026-05";
+        UUID progressId = UUID.randomUUID();
+
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
+                .thenReturn(Optional.of(rule(1)));
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(contentKey), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+        when(progressRepository.save(any(RewardedUnlockProgress.class))).thenAnswer(invocation -> {
+            RewardedUnlockProgress progress = invocation.getArgument(0);
+            if (progress.getId() == null) {
+                progress.setId(progressId);
+            }
+            return progress;
+        });
+        when(eventRepository.save(any(RewardedUnlockEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.completeRewardedAd(
+                USER_ID,
+                MODULE_KEY,
+                ACTION_KEY,
+                new RewardedContentUnlockService.RewardedAdCompleteRequest(
+                        "admob",
+                        MODULE_KEY + "_" + ACTION_KEY + "_unlock",
+                        "tx-content",
+                        "client-content",
+                        contentKey
+                )
+        );
+
+        ArgumentCaptor<RewardedUnlockProgress> progressCaptor = ArgumentCaptor.forClass(RewardedUnlockProgress.class);
+        ArgumentCaptor<RewardedUnlockEvent> eventCaptor = ArgumentCaptor.forClass(RewardedUnlockEvent.class);
+        verify(progressRepository, atLeastOnce()).save(progressCaptor.capture());
+        verify(eventRepository).save(eventCaptor.capture());
+        assertThat(progressCaptor.getAllValues())
+                .extracting(RewardedUnlockProgress::getContentKey)
+                .containsOnly(contentKey);
+        assertThat(eventCaptor.getValue().getContentKey()).isEqualTo(contentKey);
+    }
+
+    @Test
     void checkRewardedAd_blocksWhenHourlyWindowLimitReached() {
         RewardedUnlockEvent oldest = completedEvent(LocalDateTime.now().minusMinutes(50));
         RewardedUnlockEvent latest = completedEvent(LocalDateTime.now().minusMinutes(5));
 
         when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
                 .thenReturn(Optional.of(rule(null)));
-        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
         when(eventRepository.countCompletedSince(eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), any(LocalDateTime.class)))
                 .thenReturn(0L, 3L);
@@ -246,8 +341,8 @@ class RewardedContentUnlockServiceTest {
     void checkRewardedAd_blocksWhenDailyLimitReached() {
         when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
                 .thenReturn(Optional.of(rule(null)));
-        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
-                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), isNull(), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
         when(eventRepository.countCompletedSince(eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), any(LocalDateTime.class)))
                 .thenReturn(10L);
@@ -274,7 +369,7 @@ class RewardedContentUnlockServiceTest {
         assertThat(response.unlocked()).isFalse();
         assertThat(response.reason()).isEqualTo("INSUFFICIENT_GURU");
         assertThat(response.message()).contains("Yeterli Guru Token yok");
-        verify(featureAccessService, never()).consumeAccess(any(), any(), any(), any(), any(), any(), any());
+        verify(featureAccessService, never()).consumeAccess(any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     private MonetizationSettings settings() {
@@ -316,12 +411,26 @@ class RewardedContentUnlockServiceTest {
                 .build();
     }
 
+    private MonetizationAction guruSpendRewardFallbackAction() {
+        return MonetizationAction.builder()
+                .actionKey(ACTION_KEY)
+                .moduleKey(MODULE_KEY)
+                .displayName("Weekly Horoscope")
+                .unlockType(MonetizationAction.UnlockType.GURU_SPEND)
+                .guruCost(2)
+                .rewardAmount(1)
+                .isRewardFallbackEnabled(true)
+                .isEnabled(true)
+                .build();
+    }
+
     private RewardedContentUnlockService.RewardedAdCompleteRequest completeRequest(String clientEventId, String transactionId) {
         return new RewardedContentUnlockService.RewardedAdCompleteRequest(
                 "admob",
                 MODULE_KEY + "_" + ACTION_KEY + "_unlock",
                 transactionId,
-                clientEventId
+                clientEventId,
+                null
         );
     }
 
