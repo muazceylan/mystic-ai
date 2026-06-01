@@ -172,6 +172,7 @@ export const weeklyHoroscopeApi = {
   update: (id: number, data: unknown) => api.put(`/api/admin/v1/weekly-horoscopes/${id}`, data),
   publish: (id: number) => api.post(`/api/admin/v1/weekly-horoscopes/${id}/publish`),
   archive: (id: number) => api.post(`/api/admin/v1/weekly-horoscopes/${id}/archive`),
+  delete: (id: number) => api.delete(`/api/admin/v1/weekly-horoscopes/${id}`),
   ingest: (zodiacSign: string, weekStartDate: string, locale: string) =>
     api.post('/api/admin/v1/weekly-horoscopes/ingest', { zodiacSign, weekStartDate, locale }),
   ingestStatus: (locale = 'tr') =>
@@ -186,6 +187,7 @@ export const dailyHoroscopeApi = {
   update: (id: number, data: unknown) => api.put(`/api/admin/v1/daily-horoscopes/${id}`, data),
   publish: (id: number) => api.post(`/api/admin/v1/daily-horoscopes/${id}/publish`),
   archive: (id: number) => api.post(`/api/admin/v1/daily-horoscopes/${id}/archive`),
+  delete: (id: number) => api.delete(`/api/admin/v1/daily-horoscopes/${id}`),
   ingest: (zodiacSign: string, date: string, locale: string) =>
     api.post('/api/admin/v1/daily-horoscopes/ingest', { zodiacSign, date, locale }),
   ingestStatus: (locale = 'tr') =>

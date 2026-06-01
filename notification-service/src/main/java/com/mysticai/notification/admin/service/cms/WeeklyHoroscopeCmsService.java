@@ -142,6 +142,15 @@ public class WeeklyHoroscopeCmsService {
         return saved;
     }
 
+    @Transactional
+    public void delete(Long id, Long adminId, String adminEmail, AdminUser.Role role) {
+        WeeklyHoroscopeCms existing = findById(id);
+        repository.delete(existing);
+        auditLogService.log(adminId, adminEmail, role,
+                AuditLog.ActionType.WEEKLY_HOROSCOPE_DELETED, AuditLog.EntityType.WEEKLY_HOROSCOPE,
+                id.toString(), existing.getZodiacSign() + " " + existing.getWeekStartDate(), existing, null);
+    }
+
     private WeeklyHoroscopeCms cloneForAudit(WeeklyHoroscopeCms src) {
         return WeeklyHoroscopeCms.builder()
                 .id(src.getId()).zodiacSign(src.getZodiacSign()).weekStartDate(src.getWeekStartDate())

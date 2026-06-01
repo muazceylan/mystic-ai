@@ -129,6 +129,15 @@ public class DailyHoroscopeCmsService {
         return saved;
     }
 
+    @Transactional
+    public void delete(Long id, Long adminId, String adminEmail, AdminUser.Role role) {
+        DailyHoroscopeCms existing = findById(id);
+        repository.delete(existing);
+        auditLogService.log(adminId, adminEmail, role,
+                AuditLog.ActionType.DAILY_HOROSCOPE_DELETED, AuditLog.EntityType.DAILY_HOROSCOPE,
+                id.toString(), existing.getZodiacSign() + " " + existing.getDate(), existing, null);
+    }
+
     private DailyHoroscopeCms cloneForAudit(DailyHoroscopeCms src) {
         return DailyHoroscopeCms.builder()
                 .id(src.getId()).zodiacSign(src.getZodiacSign()).date(src.getDate())

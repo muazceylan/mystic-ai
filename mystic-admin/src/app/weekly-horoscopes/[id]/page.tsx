@@ -9,14 +9,16 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import { ArrowLeft, Save, Globe } from 'lucide-react';
+import { ArrowLeft, Save, Globe, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, use, useEffect } from 'react';
 
 export default function WeeklyHoroscopeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const toast = useToast();
   const qc = useQueryClient();
+  const router = useRouter();
 
   const { data: h, isLoading } = useQuery<WeeklyHoroscope>({
     queryKey: ['weekly-horoscope', id],
@@ -78,6 +80,16 @@ export default function WeeklyHoroscopeDetailPage({ params }: { params: Promise<
     onError: () => toast.error('Arşivleme başarısız.'),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: () => weeklyHoroscopeApi.delete(Number(id)),
+    onSuccess: () => {
+      toast.success('Silindi.');
+      qc.invalidateQueries({ queryKey: ['weekly-horoscopes'] });
+      router.push('/weekly-horoscopes');
+    },
+    onError: () => toast.error('Silme başarısız.'),
+  });
+
   const textArea = (key: keyof typeof form, label: string) => (
     <div>
       <label className="block text-xs text-gray-400 mb-1">{label}</label>
@@ -125,6 +137,15 @@ export default function WeeklyHoroscopeDetailPage({ params }: { params: Promise<
                 Arşivle
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-400 hover:text-red-300 hover:bg-red-950/40"
+              onClick={() => { if (confirm('Bu kaydı kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) deleteMut.mutate(); }}
+              disabled={deleteMut.isPending}
+            >
+              <Trash2 className="w-3 h-3" /> Sil
+            </Button>
           </div>
         )}
       </div>

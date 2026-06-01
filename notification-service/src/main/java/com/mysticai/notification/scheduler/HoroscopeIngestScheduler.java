@@ -40,30 +40,35 @@ public class HoroscopeIngestScheduler {
     private static final WeeklyHoroscopeCms.ZodiacSign[] SIGNS = WeeklyHoroscopeCms.ZodiacSign.values();
 
     /**
-     * On startup: checks each sign×locale individually and ingests only the missing ones.
-     * A record is considered "missing" if it doesn't exist OR has a non-null ingestError.
-     * This way partial failures from a previous run are retried without re-running success cases.
+     * On startup: checks each sign×locale individually and ingests missing or incomplete records.
+     * A record is re-ingested if: it doesn't exist, has an ingestError, OR its fullContent is
+     * truncated (does not end with a sentence terminator — indicates an AI token-limit cut-off).
+     * The ingest service itself enforces the final skip/re-ingest decision based on content completeness.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void ingestOnStartup() {
         LocalDate today = LocalDate.now();
         LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        log.info("[Scheduler] Startup check — scanning for missing horoscopes (daily={}, weekStart={})", today, weekStart);
+        log.info("[Scheduler] Startup check — scanning for missing or truncated horoscopes (daily={}, weekStart={})", today, weekStart);
 
         for (String locale : LOCALES) {
             for (WeeklyHoroscopeCms.ZodiacSign sign : SIGNS) {
-                // Daily
-                if (!dailyRepo.existsByZodiacSignAndDateAndLocaleAndIngestErrorIsNull(sign, today, locale)) {
-                    log.info("[Startup] Missing daily: {} {} {} — ingesting", sign, today, locale);
+                // Daily: ingest if missing, errored, or content is incomplete
+                boolean dailyNeedsIngest = !dailyRepo.existsByZodiacSignAndDateAndLocaleAndIngestErrorIsNull(sign, today, locale)
+                        || isDailyContentIncomplete(sign, today, locale);
+                if (dailyNeedsIngest) {
+                    log.info("[Startup] Daily {} {} {} needs ingest (missing or truncated)", sign, today, locale);
                     try {
                         ingestService.ingestDaily(sign, today, locale);
                     } catch (Exception e) {
                         log.warn("[Startup] Failed daily {} {} {}: {}", sign, today, locale, e.getMessage());
                     }
                 }
-                // Weekly
-                if (!weeklyRepo.existsByZodiacSignAndWeekStartDateAndLocaleAndIngestErrorIsNull(sign, weekStart, locale)) {
-                    log.info("[Startup] Missing weekly: {} {} {} — ingesting", sign, weekStart, locale);
+                // Weekly: ingest if missing, errored, or content is incomplete
+                boolean weeklyNeedsIngest = !weeklyRepo.existsByZodiacSignAndWeekStartDateAndLocaleAndIngestErrorIsNull(sign, weekStart, locale)
+                        || isWeeklyContentIncomplete(sign, weekStart, locale);
+                if (weeklyNeedsIngest) {
+                    log.info("[Startup] Weekly {} {} {} needs ingest (missing or truncated)", sign, weekStart, locale);
                     try {
                         ingestService.ingestWeekly(sign, weekStart, locale);
                     } catch (Exception e) {
@@ -73,6 +78,26 @@ public class HoroscopeIngestScheduler {
             }
         }
         log.info("[Scheduler] Startup check complete");
+    }
+
+    private boolean isDailyContentIncomplete(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale) {
+        return dailyRepo.findByZodiacSignAndDateAndLocale(sign, date, locale)
+                .map(r -> !isContentComplete(r.getFullContent()))
+                .orElse(false);
+    }
+
+    private boolean isWeeklyContentIncomplete(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate weekStart, String locale) {
+        return weeklyRepo.findByZodiacSignAndWeekStartDateAndLocale(sign, weekStart, locale)
+                .map(r -> !isContentComplete(r.getFullContent()))
+                .orElse(false);
+    }
+
+    private boolean isContentComplete(String content) {
+        if (content == null || content.isBlank()) return false;
+        String trimmed = content.trim();
+        if (trimmed.length() < 50) return false;
+        char last = trimmed.charAt(trimmed.length() - 1);
+        return last == '.' || last == '!' || last == '?' || last == '…';
     }
 
     /**

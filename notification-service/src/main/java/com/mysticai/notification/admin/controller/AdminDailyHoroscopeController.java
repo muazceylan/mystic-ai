@@ -90,6 +90,17 @@ public class AdminDailyHoroscopeController {
         return ResponseEntity.ok(service.archive(id, admin.getId(), admin.getEmail(), admin.getRole()));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        AdminUser admin = adminUser(auth);
+        try {
+            service.delete(id, admin.getId(), admin.getEmail(), admin.getRole());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/ingest-status")
     public ResponseEntity<Map<String, Object>> ingestStatus(
             @RequestParam(defaultValue = "tr") String locale) {
