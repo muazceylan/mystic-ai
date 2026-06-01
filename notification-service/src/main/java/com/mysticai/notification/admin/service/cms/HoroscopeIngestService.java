@@ -55,14 +55,21 @@ public class HoroscopeIngestService {
 
     private DailyHoroscopeCms ingestDailyInternal(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale,
                                                     Long adminId, String adminEmail, AdminUser.Role role) {
-        // Check existing — skip if already published with content (admin edits are preserved)
+        // Check existing — skip if already published with complete content (admin edits are preserved)
         var existing = dailyRepo.findByZodiacSignAndDateAndLocale(sign, date, locale);
         if (existing.isPresent()) {
             DailyHoroscopeCms rec = existing.get();
             if (rec.isOverrideActive()
-                    || (rec.getStatus() == DailyHoroscopeCms.Status.PUBLISHED && rec.getIngestError() == null)) {
-                log.debug("Skipping ingest for daily {} {} {} — already published or override active", sign, date, locale);
+                    || (rec.getStatus() == DailyHoroscopeCms.Status.PUBLISHED
+                        && rec.getIngestError() == null
+                        && isContentComplete(rec.getFullContent()))) {
+                log.debug("Skipping ingest for daily {} {} {} — already published with complete content or override active", sign, date, locale);
                 return rec;
+            }
+            if (rec.getStatus() == DailyHoroscopeCms.Status.PUBLISHED
+                    && rec.getIngestError() == null
+                    && !isContentComplete(rec.getFullContent())) {
+                log.warn("Re-ingesting daily {} {} {} — stored content appears truncated (does not end with sentence terminator)", sign, date, locale);
             }
         }
 
@@ -157,9 +164,16 @@ public class HoroscopeIngestService {
         if (existing.isPresent()) {
             WeeklyHoroscopeCms rec = existing.get();
             if (rec.isOverrideActive()
-                    || (rec.getStatus() == WeeklyHoroscopeCms.Status.PUBLISHED && rec.getIngestError() == null)) {
-                log.debug("Skipping ingest for weekly {} {} {} — already published or override active", sign, weekStart, locale);
+                    || (rec.getStatus() == WeeklyHoroscopeCms.Status.PUBLISHED
+                        && rec.getIngestError() == null
+                        && isContentComplete(rec.getFullContent()))) {
+                log.debug("Skipping ingest for weekly {} {} {} — already published with complete content or override active", sign, weekStart, locale);
                 return rec;
+            }
+            if (rec.getStatus() == WeeklyHoroscopeCms.Status.PUBLISHED
+                    && rec.getIngestError() == null
+                    && !isContentComplete(rec.getFullContent())) {
+                log.warn("Re-ingesting weekly {} {} {} — stored content appears truncated (does not end with sentence terminator)", sign, weekStart, locale);
             }
         }
 
@@ -255,6 +269,18 @@ public class HoroscopeIngestService {
         } catch (JsonProcessingException e) {
             return null;
         }
+    }
+
+    /**
+     * Returns true when stored content is long enough and ends with a sentence terminator.
+     * Records that fail this check were likely truncated by an AI token limit and should be re-ingested.
+     */
+    private boolean isContentComplete(String content) {
+        if (content == null || content.isBlank()) return false;
+        String trimmed = content.trim();
+        if (trimmed.length() < 50) return false;
+        char last = trimmed.charAt(trimmed.length() - 1);
+        return last == '.' || last == '!' || last == '?' || last == '…';
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

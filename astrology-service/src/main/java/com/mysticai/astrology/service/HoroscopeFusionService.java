@@ -186,16 +186,20 @@ public class HoroscopeFusionService {
 
         String editorial = translateEditorialToTurkish(baseText, sign, period);
         String repairedEditorial = repairTurkishTextSegments(editorial, sign, period);
-        if (passesTurkishQualityGate(repairedEditorial) || isUsableRepairedTurkish(repairedEditorial)) {
+        if ((passesTurkishQualityGate(repairedEditorial) || isUsableRepairedTurkish(repairedEditorial))
+                && endsWithSentenceTerminator(repairedEditorial)) {
             return repairedEditorial;
         }
-        if (nonBlank(editorial)) {
+        if (nonBlank(editorial) && !endsWithSentenceTerminator(repairedEditorial)) {
+            log.warn("Editorial localization appears truncated (does not end with sentence terminator), trying legacy fallback");
+        } else if (nonBlank(editorial)) {
             log.warn("Editorial localization could not be repaired enough, trying legacy fallback");
         }
 
         String legacy = translateToTurkishLegacy(baseText);
         String repairedLegacy = repairTurkishTextSegments(legacy, sign, period);
-        if (passesTurkishQualityGate(repairedLegacy) || isUsableRepairedTurkish(repairedLegacy)) {
+        if ((passesTurkishQualityGate(repairedLegacy) || isUsableRepairedTurkish(repairedLegacy))
+                && endsWithSentenceTerminator(repairedLegacy)) {
             log.info("Using legacy TR translation after editorial fallback");
             return repairedLegacy;
         }
@@ -422,6 +426,13 @@ public class HoroscopeFusionService {
 
     private boolean nonBlank(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private boolean endsWithSentenceTerminator(String text) {
+        if (!nonBlank(text)) return false;
+        String trimmed = text.trim();
+        char last = trimmed.charAt(trimmed.length() - 1);
+        return last == '.' || last == '!' || last == '?' || last == '…';
     }
 
     private String repairMojibake(String input) {

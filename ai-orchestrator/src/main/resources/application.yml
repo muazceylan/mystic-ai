@@ -86,7 +86,7 @@ ai:
       cooldown-seconds: ${AI_GROQ_FAST_COOLDOWN:90}
       priority: 3
       temperature: ${AI_GROQ_FAST_TEMPERATURE:0.7}
-      max-output-tokens: ${AI_GROQ_FAST_MAX_OUTPUT_TOKENS:1024}
+      max-output-tokens: ${AI_GROQ_FAST_MAX_OUTPUT_TOKENS:2048}
 
     openrouter:
       enabled: ${AI_OPENROUTER_ENABLED:true}
@@ -114,7 +114,7 @@ ai:
       cooldown-seconds: ${AI_LOCAL_LLM_COOLDOWN:30}
       priority: 5
       temperature: ${AI_LOCAL_LLM_TEMPERATURE:0.7}
-      max-output-tokens: ${AI_LOCAL_LLM_MAX_OUTPUT_TOKENS:1024}
+      max-output-tokens: ${AI_LOCAL_LLM_MAX_OUTPUT_TOKENS:2048}
 
 eureka:
   client:

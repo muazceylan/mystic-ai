@@ -139,6 +139,17 @@ public class GeminiProvider implements AiModelProvider {
                         null
                 );
             }
+            if ("MAX_TOKENS".equalsIgnoreCase(finishReason)) {
+                log.warn("[{}] Gemini response truncated by token limit (finishReason=MAX_TOKENS) — triggering provider fallback", providerKey);
+                throw new ProviderCallException(
+                        "[" + providerKey + "] response truncated by token limit (MAX_TOKENS)",
+                        AiFailureType.EMPTY_RESPONSE,
+                        statusCode,
+                        contentType,
+                        snippet(raw),
+                        null
+                );
+            }
 
             String content = extractContent(root);
             if (content.isBlank()) {

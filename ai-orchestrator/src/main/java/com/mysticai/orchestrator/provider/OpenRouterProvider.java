@@ -2,6 +2,10 @@ package com.mysticai.orchestrator.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mysticai.orchestrator.service.AiFailureType;
+import com.mysticai.orchestrator.service.ProviderCallException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -14,6 +18,8 @@ import java.util.Map;
  * OpenRouter provider using OpenAI-compatible chat completions API.
  */
 public class OpenRouterProvider implements AiModelProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenRouterProvider.class);
 
     private final String providerKey;
     private final String name;
@@ -97,10 +103,32 @@ public class OpenRouterProvider implements AiModelProvider {
                     .retrieve()
                     .body(String.class);
 
+            if (raw == null || raw.isBlank()) {
+                throw new ProviderCallException(
+                        "[" + providerKey + "] empty response body",
+                        AiFailureType.EMPTY_RESPONSE, null, null, null, null);
+            }
             JsonNode root = objectMapper.readTree(raw);
-            return root.at("/choices/0/message/content").asText("");
+            String finishReason = root.path("choices").path(0).path("finish_reason").asText("");
+            if ("length".equalsIgnoreCase(finishReason)) {
+                log.warn("[{}] OpenRouter response truncated by max_tokens limit (finish_reason=length) — triggering provider fallback", providerKey);
+                throw new ProviderCallException(
+                        "[" + providerKey + "] response truncated by token limit (finish_reason=length)",
+                        AiFailureType.EMPTY_RESPONSE, null, null, null, null);
+            }
+            String content = root.at("/choices/0/message/content").asText("").trim();
+            if (content.isBlank()) {
+                throw new ProviderCallException(
+                        "[" + providerKey + "] empty content in response",
+                        AiFailureType.EMPTY_RESPONSE, null, null, null, null);
+            }
+            return content;
+        } catch (ProviderCallException ex) {
+            throw ex;
         } catch (Exception e) {
-            throw new RuntimeException("[" + providerKey + "] request failed: " + e.getMessage(), e);
+            throw new ProviderCallException(
+                    "[" + providerKey + "] request failed: " + e.getMessage(),
+                    AiFailureType.UNKNOWN, null, null, null, e);
         }
     }
 }

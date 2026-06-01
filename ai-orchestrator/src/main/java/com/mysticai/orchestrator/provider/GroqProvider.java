@@ -119,6 +119,18 @@ public class GroqProvider implements AiModelProvider {
             }
 
             JsonNode root = parseJson(raw, statusCode, contentType);
+            String finishReason = root.path("choices").path(0).path("finish_reason").asText("");
+            if ("length".equalsIgnoreCase(finishReason)) {
+                log.warn("[{}] Groq response truncated by max_tokens limit (finish_reason=length) — triggering provider fallback", providerKey);
+                throw new ProviderCallException(
+                        "[" + providerKey + "] response truncated by token limit (finish_reason=length)",
+                        AiFailureType.EMPTY_RESPONSE,
+                        statusCode,
+                        contentType,
+                        snippet(raw),
+                        null
+                );
+            }
             String content = extractContent(root).trim();
             if (content.isBlank()) {
                 if (log.isDebugEnabled()) {
