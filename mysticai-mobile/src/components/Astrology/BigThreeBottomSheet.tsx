@@ -225,22 +225,21 @@ export default function BigThreeBottomSheet({ visible, role, sign, onClose }: Pr
         </TouchableWithoutFeedback>
 
         <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
-          <Reanimated.View style={animatedStyle}>
+          <GestureDetector gesture={gesture}>
+            <Reanimated.View style={animatedStyle}>
             <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-              <GestureDetector gesture={gesture}>
-                <View>
-                  <View style={s.handleBar} />
-                  <View style={s.hero}>
-                    <View style={[s.heroBadge, { backgroundColor: colors.violetBg }]}>
-                      <Text style={[s.heroBadgeText, { color: colors.violet }]}>{meta.icon} {meta.label}</Text>
-                    </View>
-                    <Text style={s.heroTitle}>
-                      {t('bigThreeSheet.heroTitle', { role: meta.label, symbol: built.signInfo.symbol, sign: built.signInfo.name })}
-                    </Text>
-                    <Text style={s.heroDesc}>{meta.hook}</Text>
+              <View>
+                <View style={s.handleBar} />
+                <View style={s.hero}>
+                  <View style={[s.heroBadge, { backgroundColor: colors.violetBg }]}>
+                    <Text style={[s.heroBadgeText, { color: colors.violet }]}>{meta.icon} {meta.label}</Text>
                   </View>
+                  <Text style={s.heroTitle}>
+                    {t('bigThreeSheet.heroTitle', { role: meta.label, symbol: built.signInfo.symbol, sign: built.signInfo.name })}
+                  </Text>
+                  <Text style={s.heroDesc}>{meta.hook}</Text>
                 </View>
-              </GestureDetector>
+              </View>
 
               <View style={s.pillRow}>
                 <View style={[s.pill, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
@@ -305,7 +304,8 @@ export default function BigThreeBottomSheet({ visible, role, sign, onClose }: Pr
                 <Text style={s.closeBtnText}>{t('bigThreeSheet.closeBtn')}</Text>
               </Pressable>
             </ScrollView>
-          </Reanimated.View>
+            </Reanimated.View>
+          </GestureDetector>
         </Animated.View>
       </View>
     </Modal>

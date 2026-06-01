@@ -596,22 +596,21 @@ export default function CustomSetDetailScreen() {
       <Modal visible={showAddModal} animationType="slide" transparent onRequestClose={closeAddModal}>
         <View style={S.modalOverlay}>
           <SafeAreaView style={S.modalSafe}>
-            <Animated.View style={[S.modalContent, addModalAnimatedStyle]}>
+            <GestureDetector gesture={addModalGesture}>
+              <Animated.View style={[S.modalContent, addModalAnimatedStyle]}>
               <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
               >
               {/* Modal header */}
-                <GestureDetector gesture={addModalGesture}>
-                  <View>
-                    <View style={S.modalHandle} />
-                    <View style={S.modalHeader}>
-                      <Text style={S.modalTitle}>{totalCount > 0 ? t('spiritual.customSet.editItems') : t('spiritual.customSet.addItems')}</Text>
-                      <Pressable onPress={closeAddModal} hitSlop={10}>
-                        <Ionicons name="close" size={22} color={colors.text} />
-                      </Pressable>
-                    </View>
+                <View>
+                  <View style={S.modalHandle} />
+                  <View style={S.modalHeader}>
+                    <Text style={S.modalTitle}>{totalCount > 0 ? t('spiritual.customSet.editItems') : t('spiritual.customSet.addItems')}</Text>
+                    <Pressable onPress={closeAddModal} hitSlop={10}>
+                      <Ionicons name="close" size={22} color={colors.text} />
+                    </Pressable>
                   </View>
-                </GestureDetector>
+                </View>
 
               {/* Tab chips */}
               <View style={S.chipRow}>
@@ -823,7 +822,8 @@ export default function CustomSetDetailScreen() {
                 }
               />
               </KeyboardAvoidingView>
-            </Animated.View>
+              </Animated.View>
+            </GestureDetector>
           </SafeAreaView>
         </View>
       </Modal>

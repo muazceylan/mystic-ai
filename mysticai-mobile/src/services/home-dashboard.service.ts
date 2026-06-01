@@ -401,6 +401,7 @@ function getStaticQuickActions(locale: DashboardLocale): HomeDashboardQuickActio
 
 function clampText(value: string | null | undefined, max = 96): string {
   const text = value?.trim() ?? '';
+  if (max <= 0) return text;
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1).trimEnd()}…`;
 }
@@ -1001,7 +1002,7 @@ function buildDashboardFromSources(
 ): HomeDashboardResponse {
   const userName = user?.firstName?.trim() || user?.name?.trim() || user?.username?.trim() || (isEnglish(locale) ? 'Guest' : 'Misafir');
   const userSign = user?.zodiacSign || localizeMoonSign(skyPulse, locale) || '';
-  const weeklySignSlug = signSlug(userSign);
+  const userSignSlug = signSlug(userSign);
   const retroCount = skyPulse?.retrogradePlanets?.length ?? 0;
 
   const weeklyItems = mapSwotToWeekly(weeklySwot, locale);
@@ -1015,7 +1016,7 @@ function buildDashboardFromSources(
   const cmsAdvice = extractCmsAdvice(cmsDaily, locale);
   const transitHeadline = firstStrongText(
     locale,
-    88,
+    0,
     cmsTheme,
     homeBrief?.transitHeadline,
     homeBrief?.dailyEnergy,
@@ -1023,7 +1024,7 @@ function buildDashboardFromSources(
   );
   const transitAdvice = firstStrongText(
     locale,
-    88,
+    0,
     cmsAdvice,
     homeBrief?.actionMessage,
     homeBrief?.transitPoints?.[0],
@@ -1058,13 +1059,13 @@ function buildDashboardFromSources(
         label: isEnglish(locale) ? 'Daily reading' : 'Günlük yorum',
         themeText: transitHeadline,
         adviceText: transitAdvice,
-        route: '/(tabs)/horoscope',
+        route: `/(tabs)/horoscope/${userSignSlug}?period=daily`,
       },
       weekly: {
         signName: userSign || '',
         label: isEnglish(locale) ? 'Weekly reading' : 'Haftalık yorum',
         shortText: clampText(weeklySwot?.opportunity?.headline ?? weeklySwot?.flashInsight?.headline, 56),
-        routeToWeeklyHoroscope: `/(tabs)/horoscope/${weeklySignSlug}?period=weekly`,
+        routeToWeeklyHoroscope: `/(tabs)/horoscope/${userSignSlug}?period=weekly`,
       },
     },
     transitsToday: {

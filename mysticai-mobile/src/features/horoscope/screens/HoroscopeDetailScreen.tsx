@@ -16,7 +16,7 @@ import { SafeScreen } from '../../../components/ui/SafeScreen';
 import { useBackNavigation } from '../../../hooks/useBackNavigation';
 import { useHoroscopeStore } from '../store/useHoroscopeStore';
 import { ZODIAC_MAP, resolveZodiacSign } from '../utils/zodiacData';
-import { ZodiacSign, HoroscopePeriod } from '../types/horoscope.types';
+import type { HoroscopePeriod, HoroscopeResponse } from '../types/horoscope.types';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { HoroscopeDetailSkeleton } from '../components/HoroscopeSkeleton';
 import {
@@ -25,6 +25,22 @@ import {
   FEATURE_MODULE_KEYS,
   useModuleMonetization,
 } from '../../monetization';
+
+type HoroscopeSectionKey = keyof HoroscopeResponse['sections'];
+type HoroscopeSectionConfig = {
+  key: HoroscopeSectionKey;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  accent: keyof Pick<ThemeColors, 'horoscopeAccent' | 'pink' | 'gold' | 'green' | 'red'>;
+};
+
+const HOROSCOPE_SECTION_CONFIG: HoroscopeSectionConfig[] = [
+  { key: 'general', icon: 'sparkles-outline', accent: 'horoscopeAccent' },
+  { key: 'love', icon: 'heart-outline', accent: 'pink' },
+  { key: 'career', icon: 'briefcase-outline', accent: 'green' },
+  { key: 'money', icon: 'cash-outline', accent: 'gold' },
+  { key: 'health', icon: 'fitness-outline', accent: 'red' },
+  { key: 'advice', icon: 'bulb-outline', accent: 'horoscopeAccent' },
+];
 
 function getLocalDateKey(date = new Date()): string {
   const year = date.getFullYear();
@@ -69,8 +85,10 @@ export default function HoroscopeDetailScreen() {
   } = useHoroscopeStore();
 
   useEffect(() => {
-    if (periodParam === 'weekly') setPeriod('weekly');
-  }, []);
+    if (periodParam === 'daily' || periodParam === 'weekly') {
+      setPeriod(periodParam);
+    }
+  }, [periodParam, setPeriod]);
 
   const signData = ZODIAC_MAP.get(sign);
   const signName = signData ? (lang.startsWith('en') ? signData.nameEn : signData.nameTr) : sign;
@@ -105,11 +123,22 @@ export default function HoroscopeDetailScreen() {
   const favKey = `${sign}:${period}:${current?.date ?? ''}`;
   const isFav = favorites.includes(favKey);
 
-  const horoscopeText = current?.sections?.general ?? '';
+  const horoscopeText = current?.sections?.general?.trim() ?? '';
+  const horoscopeSections = HOROSCOPE_SECTION_CONFIG
+    .map((section) => ({
+      ...section,
+      title: t(`horoscope.${section.key}`),
+      content: current?.sections?.[section.key]?.trim() ?? '',
+      accentColor: colors[section.accent],
+    }))
+    .filter((section) => section.content.length > 0);
+  const horoscopeShareText = horoscopeSections
+    .map((section) => `${section.title}\n${section.content}`)
+    .join('\n\n') || horoscopeText;
 
   const handleShare = useCallback(async () => {
     if (!current) return;
-    const text = `${signData?.emoji} ${signName}\n${current.date}\n\n${horoscopeText}\n\n— Astro Guru`;
+    const text = `${signData?.emoji} ${signName}\n${current.date}\n\n${horoscopeShareText}\n\n— Astro Guru`;
     try {
       await Sharing.shareAsync('data:text/plain;base64,' + btoa(unescape(encodeURIComponent(text))), {
         mimeType: 'text/plain',
@@ -118,7 +147,7 @@ export default function HoroscopeDetailScreen() {
     } catch {
       // user cancelled
     }
-  }, [current, signName, signData, horoscopeText]);
+  }, [current, signName, signData, horoscopeShareText]);
 
   return (
     <SafeScreen>
@@ -176,16 +205,17 @@ export default function HoroscopeDetailScreen() {
           contentContainerStyle={S.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Horoscope text */}
-          <View style={S.card}>
-            <View style={S.cardHeader}>
-              <Ionicons name="sunny-outline" size={20} color={colors.horoscopeAccent} />
-              <Text style={S.cardTitle}>
-                {period === 'daily' ? t('horoscope.today') : t('horoscope.thisWeek')}
-              </Text>
+          {horoscopeSections.map((section) => (
+            <View key={section.key} style={S.card}>
+              <View style={S.cardHeader}>
+                <View style={[S.cardIconWrap, { backgroundColor: `${section.accentColor}1A` }]}>
+                  <Ionicons name={section.icon} size={18} color={section.accentColor} />
+                </View>
+                <Text style={S.cardTitle}>{section.title}</Text>
+              </View>
+              <Text style={S.bodyText}>{section.content}</Text>
             </View>
-            <Text style={S.bodyText}>{horoscopeText}</Text>
-          </View>
+          ))}
 
           {/* Source badge */}
           {current.sources && current.sources.length > 0 && (
@@ -287,6 +317,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     /* Main content */
     scrollContent: {
       paddingHorizontal: SPACING.lg,
+      gap: SPACING.md,
     },
     card: {
       backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : C.surface,
@@ -301,9 +332,17 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       alignItems: 'center',
       gap: SPACING.sm,
     },
+    cardIconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     cardTitle: {
       ...TYPOGRAPHY.H3,
       color: C.text,
+      flex: 1,
     },
     bodyText: {
       ...TYPOGRAPHY.Body,

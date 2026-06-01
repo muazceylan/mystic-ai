@@ -161,42 +161,41 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
         </TouchableWithoutFeedback>
 
         <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
-          <Reanimated.View style={animatedStyle}>
+          <GestureDetector gesture={gesture}>
+            <Reanimated.View style={animatedStyle}>
             <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
-              <GestureDetector gesture={gesture}>
-                <View>
-                  <View style={s.handleBar} />
-                  <View style={s.header}>
-                    <View style={s.headerLeft}>
-                      <Text style={s.planetEmoji}>{signInfo.symbol}</Text>
-                      <View>
-                        <Text style={s.planetTitle}>{t('planetSheet.positionAnalysis', { planet: planetName })}</Text>
-                        <Text style={s.planetSubtitle}>
-                          {t('planetSheet.positionSubtitle', {
-                            sign: signInfo.name,
-                            degree: String(Math.floor(planet.degree)),
-                            minutes: String(planet.minutes),
-                            seconds: String(planet.seconds ?? 0),
-                            house: String(planet.house),
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={s.badges}>
-                      <View style={s.houseBadge}>
-                        <Text style={s.houseBadgeText}>{t('planetSheet.houseBadge', { house: String(planet.house) })}</Text>
-                      </View>
-                      {planet.retrograde && (
-                        <View style={s.retroBadge}>
-                          <Text style={s.retroBadgeText}>Rx</Text>
-                        </View>
-                      )}
+              <View>
+                <View style={s.handleBar} />
+                <View style={s.header}>
+                  <View style={s.headerLeft}>
+                    <Text style={s.planetEmoji}>{signInfo.symbol}</Text>
+                    <View>
+                      <Text style={s.planetTitle}>{t('planetSheet.positionAnalysis', { planet: planetName })}</Text>
+                      <Text style={s.planetSubtitle}>
+                        {t('planetSheet.positionSubtitle', {
+                          sign: signInfo.name,
+                          degree: String(Math.floor(planet.degree)),
+                          minutes: String(planet.minutes),
+                          seconds: String(planet.seconds ?? 0),
+                          house: String(planet.house),
+                        })}
+                      </Text>
                     </View>
                   </View>
-
-                  <Text style={s.personalizedText}>{personalizedText}</Text>
+                  <View style={s.badges}>
+                    <View style={s.houseBadge}>
+                      <Text style={s.houseBadgeText}>{t('planetSheet.houseBadge', { house: String(planet.house) })}</Text>
+                    </View>
+                    {planet.retrograde && (
+                      <View style={s.retroBadge}>
+                        <Text style={s.retroBadgeText}>Rx</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </GestureDetector>
+
+                <Text style={s.personalizedText}>{personalizedText}</Text>
+              </View>
 
               <LineInfo title={t('planetSheet.cardCharacter')} text={characterText} accent={colors.violet} />
               <LineInfo title={t('planetSheet.cardEffect')}    text={effectText} accent={colors.blue} />
@@ -255,7 +254,8 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
                 <Text style={s.closeButtonText}>{t('planetSheet.closeBtn')}</Text>
               </TouchableOpacity>
             </ScrollView>
-          </Reanimated.View>
+            </Reanimated.View>
+          </GestureDetector>
         </Animated.View>
       </View>
     </Modal>

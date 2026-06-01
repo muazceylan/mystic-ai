@@ -58,12 +58,14 @@ export default function NewBannerPage() {
         <RouteSelector
           value={form.routeKey}
           onChange={(key) => setForm(p => ({ ...p, routeKey: key }))}
-          label="Route Key"
+          label="Route Path"
+          valueMode="path"
         />
         <RouteSelector
           value={form.fallbackRouteKey}
           onChange={(key) => setForm(p => ({ ...p, fallbackRouteKey: key }))}
-          label="Fallback Route"
+          label="Fallback Route Path"
+          valueMode="path"
         />
       </div>
       <button onClick={() => createMut.mutate(form)} disabled={createMut.isPending}

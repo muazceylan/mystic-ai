@@ -2865,8 +2865,8 @@ export function CalendarScreenContent() {
           <View style={styles.sheetModalRoot}>
             <Pressable style={styles.sheetBackdrop} onPress={closeDetailPanel} />
 
-            <Animated.View style={[styles.detailSheet, detailSheetStaticStyle, detailSheetStyle]}>
-              <GestureDetector gesture={detailSheetDragGesture}>
+            <GestureDetector gesture={detailSheetDragGesture}>
+              <Animated.View style={[styles.detailSheet, detailSheetStaticStyle, detailSheetStyle]}>
                 <View>
                   <View style={styles.sheetHandle} />
 
@@ -2896,7 +2896,6 @@ export function CalendarScreenContent() {
                     </View>
                   </View>
                 </View>
-              </GestureDetector>
 
               <ScrollView
                 style={styles.detailScrollView}
@@ -3308,7 +3307,8 @@ export function CalendarScreenContent() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
+              </Animated.View>
+            </GestureDetector>
           </View>
         </Modal>
         </View>

@@ -285,6 +285,13 @@ export function getDiscoverVisualForCmsCard(card: ExploreCardVisualInput): Disco
   ].filter(Boolean);
 
   for (const fragment of normalizedFragments) {
+    if (fragment.includes('dream') || fragment.includes('ruya')) {
+      return {
+        icon: MODULE_ICONS.dream_diary,
+        ...TONES.lunar,
+      };
+    }
+
     const inferredKey = inferModuleKey(fragment);
     if (inferredKey) {
       return MODULE_VISUALS[inferredKey];

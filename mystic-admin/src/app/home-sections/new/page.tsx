@@ -72,12 +72,14 @@ export default function NewHomeSectionPage() {
         <RouteSelector
           value={form.routeKey}
           onChange={(key) => setForm(f => ({ ...f, routeKey: key }))}
-          label="Route Key"
+          label="Route Path"
+          valueMode="path"
         />
         <RouteSelector
           value={form.fallbackRouteKey}
           onChange={(key) => setForm(f => ({ ...f, fallbackRouteKey: key }))}
-          label="Fallback Route Key"
+          label="Fallback Route Path"
+          valueMode="path"
         />
         <div className="grid grid-cols-2 gap-4">
           {field('ctaLabel', 'CTA Label')}

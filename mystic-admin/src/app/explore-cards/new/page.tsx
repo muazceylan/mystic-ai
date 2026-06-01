@@ -46,12 +46,14 @@ export default function NewExploreCardPage() {
         <RouteSelector
           value={form.routeKey}
           onChange={(key) => setForm(p => ({ ...p, routeKey: key }))}
-          label="Route Key"
+          label="Route Path"
+          valueMode="path"
         />
         <RouteSelector
           value={form.fallbackRouteKey}
           onChange={(key) => setForm(p => ({ ...p, fallbackRouteKey: key }))}
-          label="Fallback Route"
+          label="Fallback Route Path"
+          valueMode="path"
         />
         <div className="grid grid-cols-2 gap-4">
           {inp('ctaLabel', 'CTA Label')}

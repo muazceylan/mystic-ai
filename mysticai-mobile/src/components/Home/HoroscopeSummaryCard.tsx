@@ -213,12 +213,12 @@ export function HoroscopeSummaryCard({
           ) : (
             <>
               {themeText ? (
-                <Text numberOfLines={2} style={styles.line}>
+                <Text style={styles.line}>
                   <Text style={styles.lineLabel}>{t('homeSurface.horoscopeSummary.themeLabel')}</Text> {themeText}
                 </Text>
               ) : null}
               {adviceText ? (
-                <Text numberOfLines={2} style={styles.line}>
+                <Text style={styles.line}>
                   <Text style={styles.lineLabel}>{t('homeSurface.horoscopeSummary.adviceLabel')}</Text> {adviceText}
                 </Text>
               ) : null}

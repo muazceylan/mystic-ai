@@ -646,19 +646,19 @@ public class AstrologyService {
                     String tripleLabel = planetName + " + " + signName + " + " + planet.house() + ". Ev";
 
                     String summary = "Senin " + planetName + "'in " + signName + " burcunda ve " + planet.house()
-                            + ". evde. Bu üçlü kombinasyon, " + houseTheme.toLowerCase()
+                            + ". evde. Bu üçlü kombinasyon, " + turkishLower(houseTheme)
                             + " alanında enerjini daha çok " + signStyle + " çalıştırdığını gösterir.";
 
                     String characterLine = tripleLabel + " kombinasyonu sende " + signTone
                             + " bir karakter ifadesi oluşturur. " + planetCore;
 
-                    String effectLine = planetName + " yerleşimin " + houseTheme.toLowerCase()
+                    String effectLine = planetName + " yerleşimin " + turkishLower(houseTheme)
                             + " başlıklarında kararlarını " + signStyle
                             + " şekillendirme eğilimi verir; bu yüzden davranışın çoğu zaman aynı temayı tekrar eder.";
 
                     String cautionLine = planet.retrograde()
                             ? planetName + " retro olduğu için bu konuda önce içine dönüp sonra hareket etme eğilimin artabilir. Kararı netleştirmeden hızlanmamaya çalış."
-                            : "Bu yerleşimde aşırı yük bindiğinde " + houseTheme.toLowerCase()
+                            : "Bu yerleşimde aşırı yük bindiğinde " + turkishLower(houseTheme)
                             + " alanında tek bakış açısına sıkışabilirsin. Esneklik ve geri bildirim denge sağlar.";
 
                     List<String> strengths = new ArrayList<>();
@@ -699,11 +699,11 @@ public class AstrologyService {
                             .filter(p -> p.house() == house.houseNumber())
                             .toList();
 
-                    String introLine = house.houseNumber() + ". Ev: " + houseTheme + ". Burası hayatında bu temaların nasıl çalıştığını anlatır.";
-                    String characterLine = "Bu evin " + signName + " ile başlaması, " + houseTheme.toLowerCase()
-                            + " alanında yaklaşımının " + signTone.toLowerCase() + " bir ton taşıdığını gösterir.";
-                    String effectLine = houseTheme + " konusu günlük seçimlerini doğrudan etkiler; çoğu zaman " + signStyle
-                            + " ilerleyerek güven ararsın.";
+                    String introLine = houseIntroLine(house.houseNumber(), houseTheme);
+                    String characterLine = signName + " başlangıcı bu alanı " + turkishLower(signTone)
+                            + " çalıştırır. " + houseCharacterFocus(house.houseNumber());
+                    String effectLine = houseEffectLine(house.houseNumber())
+                            + " Bu yüzden " + signStyle + " ilerleme eğilimin bu evde belirginleşir.";
                     String cautionLine = houseCautionLine(house.houseNumber());
                     List<String> strengths = houseStrengthKeywords(house.houseNumber());
                     String comboSummary = buildHouseComboSummary(house, housePlanets, houseTheme);
@@ -726,16 +726,96 @@ public class AstrologyService {
 
     private String buildHouseComboSummary(HousePlacement house, List<PlanetPosition> housePlanets, String houseTheme) {
         if (housePlanets == null || housePlanets.isEmpty()) {
-            return "Bu evde görünür gezegen yerleşimi az olabilir; yine de " + signNameTr(house.sign())
-                    + " başlangıç tonu, " + houseTheme.toLowerCase() + " temasını nasıl yaşadığını belirler.";
+            return "Bu evde yerleşik gezegen yoksa tema pasif değildir; " + signNameTr(house.sign())
+                    + " kapısı transitlerle tetiklendiğinde " + turkishLower(houseTheme)
+                    + " konularını " + signDecisionStyle(house.sign()) + " açar.";
         }
 
         return housePlanets.stream()
                 .limit(3)
                 .map(p -> planetNameTr(p.planet()) + " " + signNameTr(p.sign()) + " burcunda " + house.houseNumber()
-                        + ". evde: " + houseTheme.toLowerCase() + " temasını " + signDecisionStyle(p.sign()) + " çalıştırır.")
+                        + ". evde: " + turkishLower(houseTheme) + " alanına "
+                        + planetHouseActionPhrase(p.planet()) + " getirir; bunu "
+                        + signDecisionStyle(p.sign()) + " çalıştırır.")
                 .reduce((a, b) -> a + " " + b)
                 .orElse(houseTheme);
+    }
+
+    private String houseIntroLine(int houseNumber, String houseTheme) {
+        return houseNumber + ". Ev: " + switch (houseNumber) {
+            case 1 -> "imaj, beden dili ve ilk refleks. Haritanın giriş kapısıdır; hayata ilk temasın burada okunur.";
+            case 2 -> "para refleksi, öz değer ve sahip oldukların. Güveni nasıl somutlaştırdığını gösterir.";
+            case 3 -> "zihin temposu, söz ve yakın çevre. Bilgiyi nasıl aldığını ve nasıl dolaşıma soktuğunu anlatır.";
+            case 4 -> "kök aile, mahrem alan ve iç güven. Kendini nerede ait ve korunmuş hissettiğini gösterir.";
+            case 5 -> "yaratım, flört ve sahne alma. Keyif, aşk ve yaratıcı risk iştahını gösterir.";
+            case 6 -> "iş disiplini, sağlık rutini ve fayda. Günlük hayatı hangi sistemle toparladığını anlatır.";
+            case 7 -> "partnerlik, sözleşme ve açık rakipler. Karşı tarafa nasıl yaklaştığını gösterir.";
+            case 8 -> "kriz, mahremiyet ve ortak para. Kontrol, güven ve dönüşüm eşiğini gösterir.";
+            case 9 -> "inanç sistemi, uzaklar ve yüksek eğitim. Hayata hangi anlam haritasıyla baktığını gösterir.";
+            case 10 -> "kariyer yönü, otorite ve itibar. Toplum önündeki rolünü nasıl inşa ettiğini gösterir.";
+            case 11 -> "ağlar, ekipler ve gelecek planı. Kişisel hedefini kolektif alana nasıl taşıdığını anlatır.";
+            case 12 -> "bilinçdışı, kapanış ve inziva. Görünmeyen yükleri ve içsel arka planı gösterir.";
+            default -> turkishLower(houseTheme) + ". Bu alan haritada belirgin bir yaşam konusunu açar.";
+        };
+    }
+
+    private String houseCharacterFocus(int houseNumber) {
+        return switch (houseNumber) {
+            case 1 -> "İnsanlar seni önce bu tavırla okur; fiziksel duruş, mimik ve ilk hamle burada keskinleşir.";
+            case 2 -> "Kaynaklarını seçme, tutma ve koruma biçimin bu burcun refleksiyle çalışır.";
+            case 3 -> "Konuşma hızın, öğrenme yöntemin ve yakın çevreyle bağ kurma tarzın burada görünür olur.";
+            case 4 -> "Ev, aile ve mahremiyet konularına yaklaşımın bu burcun savunma mekanizmasıyla şekillenir.";
+            case 5 -> "Sevilme, fark edilme, üretme ve oyun kurma biçimin bu burcun imzasını taşır.";
+            case 6 -> "Çalışma biçimin, beden bakımın ve fayda üretme tarzın burada netleşir.";
+            case 7 -> "İlişkide neyi müzakere ettiğin, neyi aynaladığın ve kimi partner seçtiğin burada okunur.";
+            case 8 -> "Yakınlık, sır, borç-alacak, miras ve psikolojik derinlik konularına bu burcun savunmasıyla girersin.";
+            case 9 -> "Fikirlerini büyütme, öğrenme, öğretme ve yabancı kültürlerle temas etme biçimin burada belirginleşir.";
+            case 10 -> "Hedef koyma, sorumluluk alma ve görünür başarı üretme biçimin bu burcun diliyle çalışır.";
+            case 11 -> "Arkadaşlık, network, ekip ve topluluk içindeki rolün burada şekillenir.";
+            case 12 -> "Yalnız kalınca çalışan sezgilerin, kaçış reflekslerin ve ruhsal savunmaların burada görünür olur.";
+            default -> "Bu evdeki burç, ilgili yaşam alanına giriş tarzını belirginleştirir.";
+        };
+    }
+
+    private String houseEffectLine(int houseNumber) {
+        return switch (houseNumber) {
+            case 1 -> "Kararların görünürlük, öz savunma ve “ben buradayım” deme biçimin üzerinden hızla okunur.";
+            case 2 -> "Kazanç, harcama, yetenek ve öz değer kararlarında güven ihtiyacın doğrudan devreye girer.";
+            case 3 -> "Gündelik kararların çoğu bilgi toplama, soru sorma, anlatma ve bağlantı kurma refleksinden beslenir.";
+            case 4 -> "Duygusal kararların çoğu çocukluk hafızası, aidiyet ihtiyacı ve iç huzur arayışı üzerinden çalışır.";
+            case 5 -> "Romantizmde, hobilerde ve kendini gösterdiğin alanlarda kalbini nasıl sahneye koyduğun belirginleşir.";
+            case 6 -> "Rutin, görev, verimlilik ve hizmet kararlarında küçük alışkanlıkların büyük sonuç üretebilir.";
+            case 7 -> "Evlilik, ortaklık, müşteri ve açık rekabet alanlarında ben-sen dengesi ana karar motorun olur.";
+            case 8 -> "Kriz anında neyi tuttuğun, neyi bıraktığın ve kiminle kaynak paylaştığın netleşir.";
+            case 9 -> "Akademi, yayıncılık, yolculuk, etik ve dünya görüşü kararlarında ufuk genişletme ihtiyacı çalışır.";
+            case 10 -> "Meslek, statü, yönetici figürleri ve uzun vadeli hedeflerde görünür sonuç alma ihtiyacın belirginleşir.";
+            case 11 -> "Projeler, sosyal çevre ve gelecek planlarında kiminle yürüdüğün en az hedefin kadar belirleyici olur.";
+            case 12 -> "Dinlenme, kapanış, affetme ve içe çekilme dönemlerinde psikolojik temizlik ihtiyacı belirginleşir.";
+            default -> "Bu ev aktif olduğunda ilgili yaşam alanındaki seçimlerin daha görünür hale gelir.";
+        };
+    }
+
+    private String planetHouseActionPhrase(String planet) {
+        if (planet == null) return "gezegen enerjisini";
+        return switch (planet) {
+            case "Sun" -> "öz ifade ve görünürlük ihtiyacını";
+            case "Moon" -> "duygusal güven refleksini";
+            case "Mercury" -> "zihin, söz ve öğrenme temposunu";
+            case "Venus" -> "ilişki, zevk ve değer seçimini";
+            case "Mars" -> "ataklık, öfke ve mücadele gücünü";
+            case "Jupiter" -> "büyüme iştahı ve inanç alanını";
+            case "Saturn" -> "sınır, sorumluluk ve olgunlaşma dersini";
+            case "Uranus" -> "özgürleşme ve kopuş ihtiyacını";
+            case "Neptune" -> "idealizasyon, sezgi ve belirsizlik hassasiyetini";
+            case "Pluto" -> "güç, kriz ve dönüşüm basıncını";
+            case "Chiron" -> "hassasiyet ve iyileştirme bilgisini";
+            case "NorthNode" -> "gelişim yönünü";
+            default -> "gezegen enerjisini";
+        };
+    }
+
+    private String turkishLower(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.forLanguageTag("tr"));
     }
 
     private boolean hasText(String value) {
@@ -783,18 +863,18 @@ public class AstrologyService {
     private String signTonePhrase(String sign) {
         if (sign == null) return "dengeli ve gözlemci";
         return switch (sign.toUpperCase()) {
-            case "ARIES" -> "hızlı, atak ve doğrudan";
-            case "TAURUS" -> "sakin, dayanıklı ve güven odaklı";
-            case "GEMINI" -> "meraklı, konuşkan ve değişken";
-            case "CANCER" -> "koruyucu, sezgisel ve hassas";
-            case "LEO" -> "yaratıcı, görünür ve sıcak";
-            case "VIRGO" -> "analitik, düzenli ve fayda odaklı";
-            case "LIBRA" -> "uyum arayan, diplomatik ve estetik";
-            case "SCORPIO" -> "derin, kontrollü ve sezgisel";
-            case "SAGITTARIUS" -> "anlam arayan, açık ve özgür";
-            case "CAPRICORN" -> "planlı, sorumlu ve hedef odaklı";
-            case "AQUARIUS" -> "özgün, mesafeli ve fikir odaklı";
-            case "PISCES" -> "empatik, hayal gücü yüksek ve akışkan";
+            case "ARIES" -> "atak, doğrudan ve sabırsız";
+            case "TAURUS" -> "sabit, bedensel ve güven arayan";
+            case "GEMINI" -> "hızlı, meraklı ve bağlantı kuran";
+            case "CANCER" -> "koruyucu, hafızalı ve duygusal güven odaklı";
+            case "LEO" -> "görünür, sıcak ve gururlu";
+            case "VIRGO" -> "analitik, seçici ve işlev odaklı";
+            case "LIBRA" -> "ilişki odaklı, estetik ve denge arayan";
+            case "SCORPIO" -> "yoğun, kontrollü ve derin";
+            case "SAGITTARIUS" -> "ufuk açan, açık sözlü ve anlam arayan";
+            case "CAPRICORN" -> "stratejik, ölçülü ve sonuç odaklı";
+            case "AQUARIUS" -> "özgün, mesafeli ve sistem dışı düşünen";
+            case "PISCES" -> "sezgisel, geçirgen ve şefkatli";
             default -> "kendine özgü";
         };
     }
@@ -803,17 +883,17 @@ public class AstrologyService {
         if (sign == null) return "içgüdüsel biçimde";
         return switch (sign.toUpperCase()) {
             case "ARIES" -> "hızlı ve doğrudan";
-            case "TAURUS" -> "sabırlı ve güven arayan";
-            case "GEMINI" -> "bilgi toplayarak ve konuşarak";
+            case "TAURUS" -> "temkinli ve güven arayarak";
+            case "GEMINI" -> "konuşarak, kıyaslayarak ve bilgi toplayarak";
             case "CANCER" -> "duygusal güveni kontrol ederek";
-            case "LEO" -> "kalbini ortaya koyarak";
-            case "VIRGO" -> "detayları analiz ederek";
-            case "LIBRA" -> "denge kurarak";
-            case "SCORPIO" -> "derin gözlem yaparak";
-            case "SAGITTARIUS" -> "anlam ve vizyon arayarak";
-            case "CAPRICORN" -> "plan kurarak";
+            case "LEO" -> "görünürlük ve kalp cesaretiyle";
+            case "VIRGO" -> "detayları ayıklayıp işlev kurarak";
+            case "LIBRA" -> "denge, estetik ve karşı tarafı hesaba katarak";
+            case "SCORPIO" -> "derin gözlem ve kontrol ihtiyacıyla";
+            case "SAGITTARIUS" -> "anlam, özgürlük ve büyük resim arayarak";
+            case "CAPRICORN" -> "plan, sınır ve somut sonuç üzerinden";
             case "AQUARIUS" -> "mesafe alıp objektif bakarak";
-            case "PISCES" -> "sezgiyi dinleyerek";
+            case "PISCES" -> "sezgi, empati ve akış hissiyle";
             default -> "kendine göre";
         };
     }
@@ -877,34 +957,34 @@ public class AstrologyService {
 
     private String houseThemeShort(int houseNumber) {
         return switch (houseNumber) {
-            case 1 -> "Kimlik, beden ve kendini ortaya koyuş";
-            case 2 -> "Maddi kaynaklar ve öz değer";
-            case 3 -> "İletişim, yakın çevre ve öğrenme";
-            case 4 -> "Kökler, aile ve iç güven";
-            case 5 -> "Yaratıcılık, aşk ve ifade";
-            case 6 -> "Günlük düzen, çalışma ve bakım";
-            case 7 -> "İlişkiler ve ortaklıklar";
-            case 8 -> "Paylaşılan kaynaklar ve dönüşüm";
-            case 9 -> "İnançlar, eğitim ve ufuk genişletme";
-            case 10 -> "Kariyer, statü ve görünür hedefler";
-            case 11 -> "Sosyal çevre, ekipler ve gelecek planları";
-            case 12 -> "Bilinçdışı, kapanışlar ve içe dönüş";
+            case 1 -> "İmaj, beden dili ve ilk refleks";
+            case 2 -> "Para refleksi, öz değer ve sahip oldukların";
+            case 3 -> "Zihin temposu, söz ve yakın çevre";
+            case 4 -> "Kök aile, mahrem alan ve iç güven";
+            case 5 -> "Yaratım, flört ve sahne alma";
+            case 6 -> "İş disiplini, sağlık rutini ve fayda";
+            case 7 -> "Partnerlik, sözleşme ve açık rakipler";
+            case 8 -> "Kriz, mahremiyet ve ortak para";
+            case 9 -> "İnanç sistemi, uzaklar ve yüksek eğitim";
+            case 10 -> "Kariyer yönü, otorite ve itibar";
+            case 11 -> "Ağlar, ekipler ve gelecek planı";
+            case 12 -> "Bilinçdışı, kapanış ve inziva";
             default -> houseNumber + ". ev teması";
         };
     }
 
     private String houseStrengthKeyword(int houseNumber) {
         return switch (houseNumber) {
-            case 1 -> "öz güven inşası";
+            case 1 -> "kişisel marka";
             case 2 -> "kaynak yönetimi";
-            case 3 -> "bağlantı kurma";
-            case 4 -> "aidiyet geliştirme";
-            case 5 -> "yaratıcı akış";
+            case 3 -> "iletişim çevikliği";
+            case 4 -> "aidiyet kurma";
+            case 5 -> "yaratıcı ifade";
             case 6 -> "ritim kurma";
-            case 7 -> "ilişki dengesi";
+            case 7 -> "müzakere becerisi";
             case 8 -> "kriz yönetimi";
-            case 9 -> "anlam arayışı";
-            case 10 -> "sorumluluk alma";
+            case 9 -> "vizyon kurma";
+            case 10 -> "stratejik hedef";
             case 11 -> "network kurma";
             case 12 -> "iç gözlem";
             default -> "denge kurma";
@@ -912,29 +992,37 @@ public class AstrologyService {
     }
 
     private List<String> houseStrengthKeywords(int houseNumber) {
-        List<String> items = new ArrayList<>();
-        items.add(houseStrengthKeyword(houseNumber));
-        items.add(switch (houseNumber) {
-            case 2, 8 -> "değer farkındalığı";
-            case 3, 9 -> "öğrenme kapasitesi";
-            case 4, 10 -> "temel ve hedef dengesi";
-            case 5, 11 -> "yaratıcı sosyal ifade";
-            case 6, 12 -> "ritim ve dinlenme dengesi";
-            case 1, 7 -> "ben-sen dengesi";
-            default -> "farkındalık";
-        });
-        items.add("esnek yorumlama");
-        return items;
+        return switch (houseNumber) {
+            case 1 -> List.of("kişisel marka", "ilk hamle cesareti", "beden farkındalığı");
+            case 2 -> List.of("kaynak yönetimi", "öz değer farkındalığı", "somut güven kurma");
+            case 3 -> List.of("iletişim çevikliği", "öğrenme kapasitesi", "yakın çevre yönetimi");
+            case 4 -> List.of("aidiyet kurma", "duygusal köklenme", "özel alan bilinci");
+            case 5 -> List.of("yaratıcı ifade", "romantik canlılık", "risk alma cesareti");
+            case 6 -> List.of("ritim kurma", "işlevsel zeka", "beden-rutin takibi");
+            case 7 -> List.of("müzakere becerisi", "partner seçimi farkındalığı", "ben-sen dengesi");
+            case 8 -> List.of("kriz yönetimi", "psikolojik derinlik", "mahremiyet sezgisi");
+            case 9 -> List.of("vizyon kurma", "öğretme kapasitesi", "anlam üretme");
+            case 10 -> List.of("stratejik hedef", "itibar inşası", "sorumluluk alma");
+            case 11 -> List.of("network kurma", "kolektif zeka", "gelecek vizyonu");
+            case 12 -> List.of("iç gözlem", "sezgisel temizlik", "geri çekilme bilgeliği");
+            default -> List.of("denge kurma", "farkındalık", "esnek yorumlama");
+        };
     }
 
     private String houseCautionLine(int houseNumber) {
         return switch (houseNumber) {
-            case 2 -> "Öz değerini sadece maddi sonuçlara bağlamamaya dikkat et.";
-            case 6 -> "Verimlilik ararken bedenini ve dinlenme ihtiyacını ihmal etmemeye çalış.";
-            case 7 -> "Uyum ararken kendi sınırlarını geri plana itmemek ilişkiyi daha sağlıklı yapar.";
-            case 8 -> "Kontrol ihtiyacı yükseldiğinde güveni adım adım kurmak daha kalıcı sonuç verir.";
-            case 10 -> "Başarı baskısı arttığında iç ritmini ve özel hayatını tamamen ikinci plana atma.";
-            case 12 -> "İçe çekilme ihtiyacı uzadığında destek istemek veya paylaşmak denge sağlar.";
+            case 1 -> "Kendini kanıtlama baskısı yükseldiğinde doğal sıcaklığını performansa çevirmemeye dikkat et.";
+            case 2 -> "Değerini banka hesabı, sahip oldukların veya başkalarının onayıyla ölçmeye başladığında alan daralır.";
+            case 3 -> "Zihnin hızlandığında dağılma, fazla açıklama veya aynı konuyu tekrar tekrar çevirme eğilimini izle.";
+            case 4 -> "Geçmişi korumak isterken bugünkü ihtiyaçlarını susturmamaya dikkat et.";
+            case 5 -> "Takdir arayışı yükseldiğinde keyfi yarışa, flörtü de onay testine çevirmemeye dikkat et.";
+            case 6 -> "Düzen kurma isteği bedeni dinlemeyi bastırdığında yorgunluk birikir.";
+            case 7 -> "Uyum uğruna kendi pozisyonunu silikleştirirsen ilişki dengesi yüzeyde kalır.";
+            case 8 -> "Güven ararken her şeyi kontrol etmeye çalışırsan dönüşüm değil kilitlenme üretirsin.";
+            case 9 -> "Haklı olma arzusu yükseldiğinde fikrini mutlak doğruya çevirmemeye dikkat et.";
+            case 10 -> "Başarı baskısı özel hayatını ve iç ritmini tamamen gölgede bırakırsa hedef mekanikleşir.";
+            case 11 -> "Gruba ait olma isteği özgün fikrini yumuşatıyorsa yönünü yeniden kalibre et.";
+            case 12 -> "Sessizliği iyileşme alanı yerine kaçış alanına çevirdiğinde destek istemeyi geciktirebilirsin.";
             default -> "Bu ev temasında tek bir doğruya sıkışmak yerine ritmini gözlemlemek daha sağlıklıdır.";
         };
     }

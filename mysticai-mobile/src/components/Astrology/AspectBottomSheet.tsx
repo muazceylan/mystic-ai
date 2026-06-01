@@ -18,9 +18,8 @@ import { PlanetaryAspect } from '../../services/astrology.service';
 import { getPlanetName } from '../../constants/zodiac';
 import { getPlanetGlossary } from '../../constants/astrology-glossary';
 import {
-  getAspectGlossary,
-  getAspectHookText,
-  isHarmoniousAspect,
+  getAspectOrbStrength,
+  getAspectReading,
 } from '../../constants/aspect-glossary';
 import { formatAspectAngleHuman, labelAspectType, translateAstroTermsForUi } from '../../constants/astroLabelMap';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
@@ -36,7 +35,26 @@ const PLANET_SYMBOLS: Record<string, string> = {
 
 const ASPECT_SYMBOLS: Record<string, string> = {
   CONJUNCTION: '\u260C', OPPOSITION: '\u260D', TRINE: '\u25B3', SQUARE: '\u25A1',
+  SEXTILE: '\u26B9', QUINCUNX: '\u26BB',
 };
+
+function getAspectAccent(type: string, colors: ThemeColors): string {
+  switch (type) {
+    case 'TRINE':
+      return colors.trine;
+    case 'SEXTILE':
+      return colors.harmonious;
+    case 'SQUARE':
+      return colors.amber;
+    case 'OPPOSITION':
+      return colors.redBright;
+    case 'QUINCUNX':
+      return colors.textMuted;
+    case 'CONJUNCTION':
+    default:
+      return colors.violet;
+  }
+}
 
 interface AspectBottomSheetProps {
   visible: boolean;
@@ -94,9 +112,7 @@ export default function AspectBottomSheet({
   const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
   const isEnglish = locale.toLowerCase().startsWith('en');
 
-  const glossary = getAspectGlossary(aspect.type, locale);
-  const harmonious = isHarmoniousAspect(aspect.type);
-  const accentColor = harmonious ? colors.violet : colors.harmonious;
+  const accentColor = getAspectAccent(aspect.type, colors);
 
   const p1Sym = PLANET_SYMBOLS[aspect.planet1] ?? '?';
   const p2Sym = PLANET_SYMBOLS[aspect.planet2] ?? '?';
@@ -105,9 +121,9 @@ export default function AspectBottomSheet({
   const p2Name = getPlanetName(aspect.planet2, locale);
   const p1Glossary = getPlanetGlossary(aspect.planet1, locale);
   const p2Glossary = getPlanetGlossary(aspect.planet2, locale);
-  const hookText = getAspectHookText(aspect.planet1, aspect.planet2, aspect.type, locale);
-  const aspectLabel = labelAspectType(aspect.type, false, locale);
   const richAspectLabel = labelAspectType(aspect.type, true, locale);
+  const aspectReading = getAspectReading(aspect.planet1, aspect.planet2, aspect.type, locale);
+  const orbStrength = getAspectOrbStrength(aspect.orb, locale);
   const renderLocalizedText = (value: string) => (isEnglish ? value : translateAstroTermsForUi(value));
 
   return (
@@ -124,46 +140,37 @@ export default function AspectBottomSheet({
         <Animated.View
           style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}
         >
-          <Reanimated.View style={animatedStyle}>
+          <GestureDetector gesture={gesture}>
+            <Reanimated.View style={animatedStyle}>
             <ScrollView
               bounces={false}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={s.scrollContent}
             >
-              <GestureDetector gesture={gesture}>
-                <View>
-                  <View style={s.handleBar} />
-                  <View style={s.header}>
-                    <View style={s.symbolRow}>
-                      <Text style={[s.planetSymbol, { color: accentColor }]}>{p1Sym}</Text>
-                      <Text style={[s.aspectSymbol, { color: accentColor }]}>{aspSym}</Text>
-                      <Text style={[s.planetSymbol, { color: accentColor }]}>{p2Sym}</Text>
-                    </View>
-                    <Text style={s.typeTitle}>{richAspectLabel}</Text>
-                    <Text style={s.angleText}>
-                      {formatAspectAngleHuman(aspect, locale)}
-                    </Text>
+              <View>
+                <View style={s.handleBar} />
+                <View style={s.header}>
+                  <View style={s.symbolRow}>
+                    <Text style={[s.planetSymbol, { color: accentColor }]}>{p1Sym}</Text>
+                    <Text style={[s.aspectSymbol, { color: accentColor }]}>{aspSym}</Text>
+                    <Text style={[s.planetSymbol, { color: accentColor }]}>{p2Sym}</Text>
                   </View>
+                  <Text style={s.typeTitle}>{richAspectLabel}</Text>
+                  <Text style={s.angleText}>
+                    {formatAspectAngleHuman(aspect, locale)}
+                  </Text>
                 </View>
-              </GestureDetector>
+              </View>
 
               <View style={s.section}>
                 <Text style={[s.sectionLabel, { color: accentColor }]}>{t('aspectSheet.meaningTitle')}</Text>
-                <Text style={s.sectionText}>{renderLocalizedText(glossary.longDesc)}</Text>
+                <Text style={s.sectionText}>{aspectReading.meaning}</Text>
+                <Text style={s.orbDetailText}>{orbStrength.detail}</Text>
               </View>
 
               <View style={[s.summaryBox, { backgroundColor: accentColor + '12', borderColor: accentColor + '25' }]}>
                 <Text style={[s.summaryTitle, { color: accentColor }]}>{t('aspectSheet.summaryTitle')}</Text>
-                <Text style={s.summaryText}>
-                  {t('aspectSheet.summaryText', {
-                    p1: p1Name,
-                    p2: p2Name,
-                    aspect: aspectLabel.toLowerCase(),
-                    theme: harmonious
-                      ? t('aspectSheet.harmoniousTheme')
-                      : t('aspectSheet.challengingTheme'),
-                  })}
-                </Text>
+                <Text style={s.summaryText}>{aspectReading.dynamic}</Text>
               </View>
 
               {p1Glossary && (
@@ -171,7 +178,9 @@ export default function AspectBottomSheet({
                   <Text style={[s.sectionLabel, { color: accentColor }]}>
                     {p1Sym} {p1Name}
                   </Text>
-                  <Text style={s.sectionText}>{renderLocalizedText(p1Glossary.longDesc)}</Text>
+                  <Text style={s.sectionText}>
+                    {renderLocalizedText(`${p1Glossary.shortDesc}. ${p1Glossary.longDesc}`)}
+                  </Text>
                 </View>
               )}
 
@@ -180,13 +189,17 @@ export default function AspectBottomSheet({
                   <Text style={[s.sectionLabel, { color: accentColor }]}>
                     {p2Sym} {p2Name}
                   </Text>
-                  <Text style={s.sectionText}>{renderLocalizedText(p2Glossary.longDesc)}</Text>
+                  <Text style={s.sectionText}>
+                    {renderLocalizedText(`${p2Glossary.shortDesc}. ${p2Glossary.longDesc}`)}
+                  </Text>
                 </View>
               )}
 
               <View style={[s.hookSection, { backgroundColor: accentColor + '0F' }]}>
                 <Text style={[s.hookLabel, { color: accentColor }]}>{t('aspectSheet.personalTitle')}</Text>
-                <Text style={s.hookText}>{renderLocalizedText(hookText)}</Text>
+                <Text style={s.hookText}>{aspectReading.personal}</Text>
+                <Text style={[s.hookLabel, s.hookWarningLabel, { color: accentColor }]}>{t('aspectSheet.cautionTitle')}</Text>
+                <Text style={s.hookText}>{aspectReading.caution}</Text>
               </View>
 
               <TouchableOpacity
@@ -198,7 +211,8 @@ export default function AspectBottomSheet({
                 <Text style={s.closeButtonText}>{t('aspectSheet.closeBtn')}</Text>
               </TouchableOpacity>
             </ScrollView>
-          </Reanimated.View>
+            </Reanimated.View>
+          </GestureDetector>
         </Animated.View>
       </View>
     </Modal>
@@ -245,6 +259,13 @@ function createStyles(C: ThemeColors) {
       color: C.textMuted,
       lineHeight: 20,
     },
+    orbDetailText: {
+      marginTop: 8,
+      fontSize: 12.5,
+      color: C.textSlate,
+      lineHeight: 18,
+      fontWeight: '700',
+    },
     hookSection: {
       padding: 14,
       borderRadius: 14,
@@ -260,6 +281,7 @@ function createStyles(C: ThemeColors) {
     summaryTitle: { fontSize: 12.5, fontWeight: '800' },
     summaryText: { fontSize: 12.5, lineHeight: 18, color: C.textMuted },
     hookLabel: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
+    hookWarningLabel: { marginTop: 12 },
     hookText: {
       fontSize: 13,
       color: C.textDark,

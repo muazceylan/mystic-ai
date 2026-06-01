@@ -140,6 +140,11 @@ function toRoute(route: string | null | undefined): string | null {
   return value.startsWith('/') ? value : `/${value}`;
 }
 
+function isGenericHoroscopeRoute(route: string | null): boolean {
+  const normalized = route?.split('?')[0]?.replace(/\/+$/g, '');
+  return normalized === '/horoscope' || normalized === '/(tabs)/horoscope';
+}
+
 function resolveSignSlug(signName: string | undefined): string {
   const token = normalizeToken(signName);
   return SIGN_SLUG_MAP[token] ?? 'pisces';
@@ -373,7 +378,10 @@ export default function HomeScreen() {
     return fromToday || fromWeekly || fromUser;
   }, [dashboard, user?.zodiacSign]);
 
-  const todayRoute = toRoute(dashboard?.horoscopeSummary?.today?.route) || resolveDailyHoroscopeRoute(signName);
+  const dashboardTodayRoute = toRoute(dashboard?.horoscopeSummary?.today?.route);
+  const todayRoute = dashboardTodayRoute && !isGenericHoroscopeRoute(dashboardTodayRoute)
+    ? dashboardTodayRoute
+    : resolveDailyHoroscopeRoute(signName);
   const weeklyHoroscopeRoute =
     toRoute(dashboard?.horoscopeSummary?.weekly?.routeToWeeklyHoroscope) || resolveWeeklyHoroscopeRoute(signName);
   const weeklyAnalysisRoute = toRoute(dashboard?.weeklyHighlights?.route) || WEEKLY_ANALYSIS_ROUTE_FALLBACK;

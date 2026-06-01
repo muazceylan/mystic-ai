@@ -73,7 +73,7 @@ export default function HoroscopeHubScreen() {
             sign={userSign}
             lang={lang}
             onPress={handleUserCardPress}
-            summary={current?.sign === userSign ? current.sections.general?.slice(0, 120) + '...' : undefined}
+            summary={current?.sign === userSign ? current.sections.general : undefined}
           />
         )}
 

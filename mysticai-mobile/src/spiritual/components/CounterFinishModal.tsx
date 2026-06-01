@@ -67,8 +67,8 @@ export const CounterFinishModal = memo(function CounterFinishModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.overlay}
       >
-        <Animated.View style={[styles.sheet, { backgroundColor: surfaceColor }, animatedStyle]}>
-          <GestureDetector gesture={gesture}>
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[styles.sheet, { backgroundColor: surfaceColor }, animatedStyle]}>
             <View>
               <View style={styles.handle} />
               <View style={styles.header}>
@@ -79,7 +79,6 @@ export const CounterFinishModal = memo(function CounterFinishModal({
                 </Pressable>
               </View>
             </View>
-          </GestureDetector>
 
           {/* Summary */}
           <View style={[styles.summaryRow, { backgroundColor: bgColor + 'CC', borderColor: accentColor + '33' }]}>
@@ -119,7 +118,8 @@ export const CounterFinishModal = memo(function CounterFinishModal({
           >
             <Text style={styles.saveBtnText}>{t('spiritual.finishModal.save')}</Text>
           </Pressable>
-        </Animated.View>
+          </Animated.View>
+        </GestureDetector>
       </KeyboardAvoidingView>
     </Modal>
   );

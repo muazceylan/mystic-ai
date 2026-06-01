@@ -12,13 +12,15 @@ interface RouteSelectorProps {
   onChange: (key: string) => void;
   label?: string;
   required?: boolean;
+  valueMode?: 'key' | 'path';
 }
 
-export function RouteSelector({ value, onChange, label = 'Route', required }: RouteSelectorProps) {
+export function RouteSelector({ value, onChange, label = 'Route', required, valueMode = 'key' }: RouteSelectorProps) {
   const [routes, setRoutes] = useState<AppRoute[]>([]);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const selected = routes.find((r) => r.routeKey === value);
+  const selected = routes.find((r) => r.routeKey === value || r.path === value);
+  const routeValue = (route: AppRoute) => valueMode === 'path' ? route.path : route.routeKey;
 
   useEffect(() => {
     routesApi.listActive().then((res) => setRoutes(res.data));
@@ -75,10 +77,10 @@ export function RouteSelector({ value, onChange, label = 'Route', required }: Ro
               <li key={r.routeKey}>
                 <button
                   type="button"
-                  onClick={() => { onChange(r.routeKey); setOpen(false); setSearch(''); }}
+                  onClick={() => { onChange(routeValue(r)); setOpen(false); setSearch(''); }}
                   className={cn(
                     'w-full px-3 py-2 text-sm text-left hover:bg-gray-700 flex items-center justify-between gap-2',
-                    r.routeKey === value && 'bg-purple-900/40'
+                    (r.routeKey === value || r.path === value) && 'bg-purple-900/40'
                   )}
                 >
                   <div>

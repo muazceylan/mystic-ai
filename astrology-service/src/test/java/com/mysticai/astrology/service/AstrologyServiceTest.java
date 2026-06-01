@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.dto.HousePlacement;
 import com.mysticai.astrology.dto.NatalChartRequest;
 import com.mysticai.astrology.dto.NatalChartResponse;
+import com.mysticai.astrology.dto.NatalHouseComboInsight;
 import com.mysticai.astrology.dto.PlanetPosition;
 import com.mysticai.astrology.entity.NatalChart;
 import com.mysticai.astrology.repository.NatalChartRepository;
@@ -20,7 +21,9 @@ import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -193,6 +196,38 @@ class AstrologyServiceTest {
         assertEquals(32L, response.id());
         verify(natalChartRepository, times(3)).save(any());
         verify(rabbitTemplate, times(2)).convertAndSend(eq("ai.exchange"), eq("ai.request"), any(Object.class));
+    }
+
+    @Test
+    void shouldGenerateSharperTurkishHouseInsightsForStoredChart() throws Exception {
+        NatalChart chart = baseChart(40L, "COMPLETED", "tr", "Doğum haritan net bir aks kuruyor.");
+        ObjectMapper mapper = new ObjectMapper();
+        chart.setHousePlacementsJson(mapper.writeValueAsString(List.of(
+                new HousePlacement(1, "LEO", 16.0, "Sun"),
+                new HousePlacement(8, "PISCES", 8.0, "Neptune")
+        )));
+        chart.setPlanetPositionsJson(mapper.writeValueAsString(List.of(
+                new PlanetPosition("Moon", "VIRGO", 12.0, 0, 0, false, 8, 162.0)
+        )));
+        when(natalChartRepository.findAllByUserIdOrderByCalculatedAtDescIdDesc("42"))
+                .thenReturn(List.of(chart));
+
+        NatalChartResponse response = service.getLatestNatalChartByUserId(42L, "tr");
+
+        NatalHouseComboInsight firstHouse = response.houseComboInsights().stream()
+                .filter(item -> item.houseNumber() == 1)
+                .findFirst()
+                .orElseThrow();
+        NatalHouseComboInsight eighthHouse = response.houseComboInsights().stream()
+                .filter(item -> item.houseNumber() == 8)
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(firstHouse.introLine().contains("imaj, beden dili ve ilk refleks"));
+        assertTrue(firstHouse.characterLine().contains("Aslan başlangıcı"));
+        assertFalse(firstHouse.introLine().contains("Burası hayatında"));
+        assertEquals(List.of("kriz yönetimi", "psikolojik derinlik", "mahremiyet sezgisi"), eighthHouse.strengths());
+        assertTrue(eighthHouse.comboSummary().contains("Ay Başak burcunda 8. evde: kriz, mahremiyet ve ortak para alanına duygusal güven refleksini getirir"));
     }
 
     private NatalChartRequest baseRequest(String locale) {

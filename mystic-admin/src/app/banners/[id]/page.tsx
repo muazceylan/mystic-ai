@@ -107,8 +107,8 @@ export default function BannerDetailPage() {
             <div><label className="block text-sm text-gray-400 mb-1">Bitiş Tarihi</label>
               <input type="datetime-local" value={form.endDate ?? ''} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm" /></div>
           </div>
-          <RouteSelector value={form.routeKey ?? ''} onChange={(key) => setForm(f => ({ ...f, routeKey: key }))} label="Route Key" />
-          <RouteSelector value={form.fallbackRouteKey ?? ''} onChange={(key) => setForm(f => ({ ...f, fallbackRouteKey: key }))} label="Fallback Route" />
+          <RouteSelector value={form.routeKey ?? ''} onChange={(key) => setForm(f => ({ ...f, routeKey: key }))} label="Route Path" valueMode="path" />
+          <RouteSelector value={form.fallbackRouteKey ?? ''} onChange={(key) => setForm(f => ({ ...f, fallbackRouteKey: key }))} label="Fallback Route Path" valueMode="path" />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

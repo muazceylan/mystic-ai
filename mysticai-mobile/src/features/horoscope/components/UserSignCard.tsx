@@ -43,9 +43,7 @@ export function UserSignCard({ sign, lang, onPress, summary }: Props) {
             <Ionicons name="chevron-forward" size={20} color={colors.horoscopeAccent} />
           </View>
         </View>
-        {summary ? (
-          <Text style={S.summary} numberOfLines={2}>{summary}</Text>
-        ) : null}
+        {summary ? <Text style={S.summary}>{summary}</Text> : null}
       </LinearGradient>
     </Pressable>
   );

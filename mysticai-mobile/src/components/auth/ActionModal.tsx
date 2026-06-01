@@ -50,14 +50,13 @@ export function ActionModal({
     >
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onRequestClose} />
-        <Animated.View style={[styles.sheet, animatedStyle]}>
-          <GestureDetector gesture={gesture}>
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[styles.sheet, animatedStyle]}>
             <View>
               <View style={styles.handle} />
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.description}>{description}</Text>
             </View>
-          </GestureDetector>
 
           <View style={styles.actions}>
             {actions.map((action) =>
@@ -82,7 +81,8 @@ export function ActionModal({
               )
             )}
           </View>
-        </Animated.View>
+          </Animated.View>
+        </GestureDetector>
       </View>
     </Modal>
   );

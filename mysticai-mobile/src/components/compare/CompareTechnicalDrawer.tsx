@@ -47,8 +47,8 @@ export default function CompareTechnicalDrawer({
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        <Animated.View style={[styles.sheet, animatedStyle]}>
-          <GestureDetector gesture={gesture}>
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[styles.sheet, animatedStyle]}>
             <View>
               <View style={styles.handle} />
               <View style={styles.head}>
@@ -60,7 +60,6 @@ export default function CompareTechnicalDrawer({
                 </Pressable>
               </View>
             </View>
-          </GestureDetector>
 
           <AccessibleText style={styles.item} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
             {t('compare.technicalDrawerVersion', { v: safeVersion })}
@@ -93,7 +92,8 @@ export default function CompareTechnicalDrawer({
               {safeMissingBirthTimeImpact}
             </AccessibleText>
           ) : null}
-        </Animated.View>
+          </Animated.View>
+        </GestureDetector>
       </View>
     </Modal>
   );

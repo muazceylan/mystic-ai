@@ -301,7 +301,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     sectionIntro: {
       alignItems: 'center',
       padding: SPACING.xl,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.xl,
       borderRadius: RADIUS.lg,
       overflow: 'hidden',
       borderWidth: 1,
@@ -379,15 +379,15 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
 
     /* Cards */
     cardsWrap: {
-      gap: SPACING.md,
+      gap: SPACING.lgXl,
     },
     card: {
-      padding: SPACING.lgXl,
+      padding: SPACING.xl,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(148,163,184,0.12)' : C.border,
       backgroundColor: isDark ? 'rgba(30,41,59,0.55)' : C.surface,
-      gap: SPACING.smMd,
+      gap: SPACING.lg,
     },
     cardHeader: {
       flexDirection: 'row',
@@ -408,25 +408,26 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     cardHeadline: {
       ...TYPOGRAPHY.BodyLarge,
       color: C.text,
-      lineHeight: 24,
+      lineHeight: 28,
     },
     cardSubtext: {
-      ...TYPOGRAPHY.Body,
+      ...TYPOGRAPHY.BodyMid,
       color: C.subtext,
-      lineHeight: 20,
+      lineHeight: 24,
     },
     tipRow: {
       flexDirection: 'row',
-      gap: SPACING.sm,
+      alignItems: 'flex-start',
+      gap: SPACING.smMd,
       borderLeftWidth: 2,
-      paddingLeft: SPACING.smMd,
-      paddingVertical: SPACING.xs,
-      marginTop: SPACING.xs,
+      paddingLeft: SPACING.md,
+      paddingVertical: SPACING.sm,
+      marginTop: SPACING.xsSm,
     },
     tipText: {
-      ...TYPOGRAPHY.Caption,
+      ...TYPOGRAPHY.Small,
       color: C.subtext,
-      lineHeight: 18,
+      lineHeight: 22,
       fontStyle: 'italic',
       flex: 1,
     },

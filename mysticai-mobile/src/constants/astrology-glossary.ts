@@ -70,75 +70,75 @@ export const PLANET_GLOSSARY: Record<string, GlossaryEntry> = {
 export const HOUSE_GLOSSARY: Record<number, GlossaryEntry> = {
   1: {
     term: '1. Ev (Yükselen)',
-    shortDesc: 'Kendilik, görünüm ve ilk izlenim',
+    shortDesc: 'İmaj, beden dili ve ilk refleks',
     longDesc:
-      'Birinci ev, dış dünyadaki imajını ve insanların seni nasıl gördüğünü belirler. Fiziksel görünümün ve hayata yaklaşım tarzın burada şekillenir.',
+      'Birinci ev haritanın giriş kapısıdır: beden dili, ilk tepki, dış görünüm ve insanların seni ilk anda nasıl okuduğu burada belirginleşir.',
   },
   2: {
     term: '2. Ev',
-    shortDesc: 'Değerler, para ve maddi güvenlik',
+    shortDesc: 'Para refleksi, öz değer ve sahip oldukların',
     longDesc:
-      'İkinci ev, maddi kaynaklarını, kazanma biçimini ve neye değer verdiğini gösterir. Finansal güvenlik anlayışın burada belirlenir.',
+      'İkinci ev kazanç üretme biçimini, para tutma refleksini, yeteneklerini ve kendi değerini hangi somut ölçülerle kurduğunu gösterir.',
   },
   3: {
     term: '3. Ev',
-    shortDesc: 'İletişim, kardeşler ve yakın çevre',
+    shortDesc: 'Zihin temposu, söz ve yakın çevre',
     longDesc:
-      'Üçüncü ev, günlük iletişimini, kısa yolculuklarını ve öğrenme tarzını temsil eder. Kardeşlerle ve komşularla ilişkilerin burada şekillenir.',
+      'Üçüncü ev zihnin hızını, konuşma tarzını, öğrenme refleksini, kardeşler ve yakın çevreyle kurduğun gündelik trafiği anlatır.',
   },
   4: {
     term: '4. Ev',
-    shortDesc: 'Yuva, aile ve kökler',
+    shortDesc: 'Kök aile, mahrem alan ve iç güven',
     longDesc:
-      'Dördüncü ev, aile bağlarını, ev yaşamını ve duygusal temellerini gösterir. İç huzurun kaynağı ve çocukluk anıların burada yer alır.',
+      'Dördüncü ev aile köklerini, çocukluk hafızasını, ev içindeki savunma biçimini ve kendini nerede gerçekten güvende hissettiğini gösterir.',
   },
   5: {
     term: '5. Ev',
-    shortDesc: 'Yaratıcılık, aşk ve eğlence',
+    shortDesc: 'Yaratım, flört ve sahne alma',
     longDesc:
-      'Beşinci ev, yaratıcı ifadeni, romantik maceralarını ve keyif aldığın aktiviteleri temsil eder. Çocuklarla ilişkin de burada belirlenir.',
+      'Beşinci ev yaratıcı risk alma biçimini, romantik çekim dilini, sahneye çıkma isteğini ve keyif üzerinden kendini nasıl gösterdiğini anlatır.',
   },
   6: {
     term: '6. Ev',
-    shortDesc: 'Sağlık, rutin ve hizmet',
+    shortDesc: 'İş disiplini, sağlık rutini ve fayda',
     longDesc:
-      'Altıncı ev, günlük rutinlerini, sağlık alışkanlıklarını ve iş ortamını gösterir. Başkalarına nasıl hizmet ettiğin burada yansır.',
+      'Altıncı ev iş akışını, gündelik disiplinini, beden bakımını ve verimlilik uğruna kendini nasıl organize ettiğini gösterir.',
   },
   7: {
     term: '7. Ev',
-    shortDesc: 'Ortaklıklar, evlilik ve ilişkiler',
+    shortDesc: 'Partnerlik, sözleşme ve açık rakipler',
     longDesc:
-      'Yedinci ev, birebir ilişkilerini, evliliğini ve iş ortaklıklarını temsil eder. Partnerinde ne aradığın burada belirlenir.',
+      'Yedinci ev birebir ilişkileri, evlilik ve iş ortaklıklarını, danışan-müşteri hattını ve açık rakiplerle kurduğun dengeyi gösterir.',
   },
   8: {
     term: '8. Ev',
-    shortDesc: 'Dönüşüm, gizem ve ortak kaynaklar',
+    shortDesc: 'Kriz, mahremiyet ve ortak para',
     longDesc:
-      'Sekizinci ev, derin dönüşümleri, gizli bilgiyi ve başkalarıyla paylaşılan kaynakları gösterir. Psikolojik derinliğin burada yansır.',
+      'Sekizinci ev ortak para, borç, miras, mahremiyet, kriz yönetimi ve psikolojik dönüşüm alanında ne kadar derine indiğini anlatır.',
   },
   9: {
     term: '9. Ev',
-    shortDesc: 'Felsefe, uzak yolculuklar ve yüksek öğrenim',
+    shortDesc: 'İnanç sistemi, uzaklar ve yüksek eğitim',
     longDesc:
-      'Dokuzuncu ev, dünya görüşünü, uzak seyahatlerini ve manevi arayışını temsil eder. Yüksek öğrenim ve öğretmenlik burada yer alır.',
+      'Dokuzuncu ev dünya görüşünü, inanç sistemini, akademi-yayıncılık hattını, yabancılarla teması ve uzak yolculukların açtığı anlam arayışını gösterir.',
   },
   10: {
     term: '10. Ev (Tepe Noktası)',
-    shortDesc: 'Kariyer, toplumsal statü ve amaç',
+    shortDesc: 'Kariyer yönü, otorite ve itibar',
     longDesc:
-      'Onuncu ev, kariyer hedeflerini, toplumsal konumunu ve hayat amacını gösterir. Profesyonel başarıların burada şekillenir.',
+      'Onuncu ev toplum önündeki rolünü, mesleki hedefini, otoriteyle ilişkini ve itibarını hangi yoldan inşa ettiğini gösterir.',
   },
   11: {
     term: '11. Ev',
-    shortDesc: 'Topluluk, umutlar ve gelecek',
+    shortDesc: 'Ağlar, ekipler ve gelecek planı',
     longDesc:
-      'On birinci ev, arkadaş gruplarını, toplumsal idealleri ve gelecek hayallerini temsil eder. Sosyal çevrende nasıl yer aldığın burada belirlenir.',
+      'On birinci ev arkadaş çevresini, network kapasiteni, ekip içindeki rolünü ve kişisel hedeflerini kolektif bir zemine nasıl taşıdığını anlatır.',
   },
   12: {
     term: '12. Ev',
-    shortDesc: 'Bilinçaltı, maneviyat ve yalnızlık',
+    shortDesc: 'Bilinçdışı, kapanış ve inziva',
     longDesc:
-      'On ikinci ev, bilinçaltı kalıplarını, manevi gelişimini ve içsel yolculuğunu gösterir. Gizli yeteneklerin ve karmik borçların burada saklanır.',
+      'On ikinci ev bilinçdışı kalıpları, gizli korkuları, kapanış süreçlerini, inzivayı ve yalnız kaldığında ruhunun nasıl çalıştığını gösterir.',
   },
 };
 

@@ -114,15 +114,15 @@ export function BottomSheet({
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[s.sheet, sheetStyle, sheetStyleOverride]}>
-          <GestureDetector gesture={gesture}>
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[s.sheet, sheetStyle, sheetStyleOverride]}>
             <View style={s.dragZone}>
               <View style={[s.dragHandle, dragHandleStyle]} />
               {title ? <Text style={[s.title, titleStyle]}>{title}</Text> : null}
             </View>
-          </GestureDetector>
-          <View style={[s.content, contentStyle]}>{children}</View>
-        </Animated.View>
+            <View style={[s.content, contentStyle]}>{children}</View>
+          </Animated.View>
+        </GestureDetector>
       </KeyboardAvoidingView>
     </Modal>
   );

@@ -173,8 +173,8 @@ export default function HomeSectionDetailPage() {
                 className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
-          <RouteSelector value={form.routeKey ?? ''} onChange={(key) => setForm(f => ({ ...f, routeKey: key }))} label="Route Key" />
-          <RouteSelector value={form.fallbackRouteKey ?? ''} onChange={(key) => setForm(f => ({ ...f, fallbackRouteKey: key }))} label="Fallback Route Key" />
+          <RouteSelector value={form.routeKey ?? ''} onChange={(key) => setForm(f => ({ ...f, routeKey: key }))} label="Route Path" valueMode="path" />
+          <RouteSelector value={form.fallbackRouteKey ?? ''} onChange={(key) => setForm(f => ({ ...f, fallbackRouteKey: key }))} label="Fallback Route Path" valueMode="path" />
           <div>
             <label className="block text-sm text-gray-400 mb-1">Payload JSON</label>
             <textarea value={form.payloadJson ?? ''} onChange={e => setForm(f => ({ ...f, payloadJson: e.target.value }))} rows={3}

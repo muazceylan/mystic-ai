@@ -2,12 +2,12 @@ import type { AspectType, PlanetaryAspect } from '../services/astrology.service'
 import { PLANET_ENGLISH, PLANET_TURKISH, ZODIAC_ENGLISH, ZODIAC_TURKISH } from './zodiac';
 
 export const ASPECT_TYPE_LABEL_MAP: Record<AspectType, { short: string; rich: string; exact: number }> = {
-  CONJUNCTION: { short: 'Kavuşum', rich: 'Kavuşum (Güç Birliği)', exact: 0 },
-  SEXTILE: { short: 'Altıgen', rich: 'Altıgen (Fırsat Akışı)', exact: 60 },
-  SQUARE: { short: 'Kare', rich: 'Kare (Gelişim Gerilimi)', exact: 90 },
-  TRINE: { short: 'Üçgen', rich: 'Üçgen (Doğal Akış)', exact: 120 },
-  QUINCUNX: { short: 'Yay Açısı', rich: 'Yay Açısı (Süregelen Uyum)', exact: 150 },
-  OPPOSITION: { short: 'Karşıt', rich: 'Karşıt (Denge Dersi)', exact: 180 },
+  CONJUNCTION: { short: 'Kavuşum', rich: 'Kavuşum (Tek Güç)', exact: 0 },
+  SEXTILE: { short: 'Altıgen', rich: 'Altıgen (Açık Kapı)', exact: 60 },
+  SQUARE: { short: 'Kare', rich: 'Kare (Gelişim Baskısı)', exact: 90 },
+  TRINE: { short: 'Üçgen', rich: 'Üçgen (Doğal Yetenek)', exact: 120 },
+  QUINCUNX: { short: 'Quincunx', rich: 'Quincunx (İnce Ayar)', exact: 150 },
+  OPPOSITION: { short: 'Karşıt', rich: 'Karşıt (Denge Baskısı)', exact: 180 },
 };
 
 export const ASPECT_TYPE_LABEL_MAP_EN: Record<AspectType, { short: string; rich: string; exact: number }> = {
@@ -133,18 +133,21 @@ export function formatAspectAngleHuman(aspect: PlanetaryAspect | { angle: number
   const map = isEnglish ? ASPECT_TYPE_LABEL_MAP_EN : ASPECT_TYPE_LABEL_MAP;
   const exact = map[type].exact;
   const deviation = Math.abs(angle - exact);
+  const strengthValue = orb ?? deviation;
   const closeness =
     isEnglish
-      ? deviation <= 0.3 ? 'exact hit'
-        : deviation <= 1.0 ? 'very close'
-        : deviation <= 2.0 ? 'close'
-        : 'wide orb'
-      : deviation <= 0.3 ? 'tam isabet'
-        : deviation <= 1.0 ? 'çok yakın'
-        : deviation <= 2.0 ? 'yakın'
-        : 'geniş orb';
-  const orbText = orb != null ? ` • orb ${orb.toFixed(1)}°` : '';
-  return `${labelAspectType(type, false, locale)}: ${closeness} (${angle.toFixed(1)}°)${orbText}`;
+      ? strengthValue <= 0.8 ? 'very sharp influence'
+        : strengthValue <= 2.0 ? 'strong influence'
+        : strengthValue <= 4.0 ? 'clear influence'
+        : 'background influence'
+      : strengthValue <= 0.8 ? 'çok keskin etki'
+        : strengthValue <= 2.0 ? 'güçlü etki'
+        : strengthValue <= 4.0 ? 'net ama esnek etki'
+        : 'arka plan etkisi';
+  const strengthText = isEnglish
+    ? (orb != null ? `${orb.toFixed(1)}° off exact` : `${deviation.toFixed(1)}° off exact`)
+    : (orb != null ? `${orb.toFixed(1)}° sapma` : `${deviation.toFixed(1)}° sapma`);
+  return `${labelAspectType(type, false, locale)} · ${closeness} · ${strengthText}`;
 }
 
 export function cleanAstroHeading(raw: string | null | undefined): string {

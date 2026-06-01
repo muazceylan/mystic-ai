@@ -765,8 +765,8 @@ public class WeeklySwotService {
                 Map.entry("Libra", "Terazi"), Map.entry("Scorpio", "Akrep"), Map.entry("Sagittarius", "Yay"),
                 Map.entry("Capricorn", "Oğlak"), Map.entry("Aquarius", "Kova"), Map.entry("Pisces", "Balık"));
         private static final Map<String, String> ASPECT_TR = Map.of(
-                "TRINE", "üçgen", "SEXTILE", "altıgen", "CONJUNCTION", "kavuşum",
-                "SQUARE", "kare", "OPPOSITION", "karşıt", "QUINCUNX", "yay-dördün");
+                "TRINE", "üçgen", "SEXTILE", "sekstil", "CONJUNCTION", "kavuşum",
+                "SQUARE", "kare", "OPPOSITION", "karşıt", "QUINCUNX", "150'lik");
         private static final Map<String, String> ASPECT_EN = Map.of(
                 "TRINE", "trine", "SEXTILE", "sextile", "CONJUNCTION", "conjunction",
                 "SQUARE", "square", "OPPOSITION", "opposition", "QUINCUNX", "quincunx");
@@ -790,6 +790,114 @@ public class WeeklySwotService {
         private String aspectName(String type) {
             return en ? ASPECT_EN.getOrDefault(type, type.toLowerCase(Locale.ROOT))
                       : ASPECT_TR.getOrDefault(type, type);
+        }
+
+        private String aspectHeadlineLabel(AspectEvidence evidence) {
+            String label = planetName(evidence.transitPlanet()) + "-natal " + planetName(evidence.natalPoint());
+            if (en) return label + " " + aspectName(evidence.aspect().type().name());
+            return label + " " + switch (evidence.aspect().type()) {
+                case TRINE -> "üçgeni";
+                case SEXTILE -> "sekstili";
+                case CONJUNCTION -> "kavuşumu";
+                case SQUARE -> "karesi";
+                case OPPOSITION -> "karşıtlığı";
+                case QUINCUNX -> "150'liği";
+            };
+        }
+
+        private String orbQualifier(AspectEvidence evidence) {
+            double orb = evidence.aspect().orb();
+            if (en) {
+                if (orb <= 1.0) return "With a tight orb,";
+                if (orb <= 3.0) return "With a noticeable orb,";
+                return "With a wider orb,";
+            }
+            if (orb <= 1.0) return "Çok yakın orbla";
+            if (orb <= 3.0) return "Yakın orbla";
+            return "Daha geniş orbla";
+        }
+
+        private String areaTopic(String area) {
+            if (en || area == null || area.isBlank()) return area;
+            String normalized = area.replace("ilgili yaşam alanın", "ilgili yaşam alanı");
+            if ("ilgili yaşam alanı".equals(normalized)) return normalized;
+            return normalized
+                    .replace(" alanın", "")
+                    .replace(" alanı", "");
+        }
+
+        private String areaBridgeText(
+                AspectEvidence evidence,
+                String trCrossAction,
+                String trSameAction,
+                String enCrossAction,
+                String enSameAction
+        ) {
+            String natalArea = areaTopic(pointAreaLabel(evidence.natalPoint(), evidence.natalHouse()));
+            String qualifier = orbQualifier(evidence);
+            if (evidence.transitHouse() != null && !evidence.transitHouse().equals(evidence.natalHouse())) {
+                String transitArea = areaTopic(houseAreaLabel(evidence.transitHouse()));
+                return en ? qualifier + " it can " + enCrossAction + " from " + transitArea + " into " + natalArea + "."
+                          : qualifier + " " + transitArea + " ile " + natalArea + " arasında " + trCrossAction + ".";
+            }
+            return en ? qualifier + " " + natalArea + " can " + enSameAction + "."
+                      : qualifier + " " + natalArea + " teması " + trSameAction + ".";
+        }
+
+        private String supportiveFrame(String transitPlanet) {
+            if (en) return switch (transitPlanet) {
+                case "Jupiter" -> "Jupiter adds perspective, faith, and growth without needing force.";
+                case "Sun" -> "The Sun brings vitality and visibility to what is ready to be owned.";
+                default -> "The supporting planet gives this part of the chart more coherence.";
+            };
+            return switch (transitPlanet) {
+                case "Jupiter" -> "Jüpiter perspektif, inanç ve büyüme alanı açar.";
+                case "Sun" -> "Güneş canlılık ve görünürlük verir; sahiplenilen şey daha net parlar.";
+                default -> "Destekleyici gezegen bu bölgeye daha tutarlı bir akış verir.";
+            };
+        }
+
+        private String opportunityFrame(String transitPlanet) {
+            if (en) return switch (transitPlanet) {
+                case "Venus" -> "Venus works through attraction, ease, and relational timing.";
+                case "Jupiter" -> "Jupiter widens the field, but the useful opening still needs structure.";
+                case "Uranus" -> "Uranus opens the door through a new method or an unexpected contact.";
+                default -> "The opportunity is subtle, but it becomes useful when named clearly.";
+            };
+            return switch (transitPlanet) {
+                case "Venus" -> "Venüs çekim, uyum ve ilişki zamanlaması üzerinden çalışır.";
+                case "Jupiter" -> "Jüpiter alanı büyütür; faydalı fırsat yine de plan ister.";
+                case "Uranus" -> "Uranüs yeni yöntem veya beklenmedik temasla kapı açar.";
+                default -> "Fırsat ince çalışır; adını koyduğunda kullanışlı hale gelir.";
+            };
+        }
+
+        private String challengeFrame(String transitPlanet) {
+            if (en) return switch (transitPlanet) {
+                case "Saturn" -> "Saturn exposes where time, duty, and boundaries need clearer structure.";
+                case "Neptune" -> "Neptune can blur certainty, so clarity matters more than intuition alone.";
+                case "Chiron" -> "Chiron touches a sensitive layer and asks for care rather than over-defense.";
+                default -> "The challenging signal asks for pace control and cleaner boundaries.";
+            };
+            return switch (transitPlanet) {
+                case "Saturn" -> "Satürn zaman, sorumluluk ve sınır ihtiyacını görünür kılar.";
+                case "Neptune" -> "Neptün netliği dağıtabilir; yalnız sezgi değil açıklık da gerekir.";
+                case "Chiron" -> "Kiron hassas bir katmanı temas eder; aşırı savunma yerine bakım ister.";
+                default -> "Zorlayıcı sinyal tempo kontrolü ve daha temiz sınır ister.";
+            };
+        }
+
+        private String threatFrame(String transitPlanet) {
+            if (en) return switch (transitPlanet) {
+                case "Mars" -> "Mars increases reaction speed; the risk rises when impulse leads the room.";
+                case "Mercury" -> "Mercury pressure shows up through words, timing, and small misunderstandings.";
+                default -> "The risk is less about fate and more about haste, noise, and low tolerance.";
+            };
+            return switch (transitPlanet) {
+                case "Mars" -> "Mars tepki hızını artırır; dürtü öne geçtiğinde risk büyür.";
+                case "Mercury" -> "Merkür baskısı söz, zamanlama ve küçük yanlış anlamalarla görünür.";
+                default -> "Risk kaderden çok acele, gürültü ve düşük tolerans üzerinden büyür.";
+            };
         }
 
         // ── timing ───────────────────────────────────────────────────────────────
@@ -891,27 +999,35 @@ public class WeeklySwotService {
         // ── subtexts ─────────────────────────────────────────────────────────────
 
         String supportiveSubtext(AspectEvidence evidence) {
-            return crossAreaSupportText(evidence,
-                    "destekleyebilir", "daha akışkan çalışabilir",
-                    "supports", "flows more smoothly this week");
+            return supportiveFrame(evidence.transitPlanet()) + " " + areaBridgeText(evidence,
+                    "daha rahat bağlantı kurulabilir",
+                    "daha toparlayıcı ve kendini besleyen bir akış kazanabilir",
+                    "carry confidence and coherence",
+                    "gain a steadier and more self-supporting flow");
         }
 
         String opportunitySubtext(AspectEvidence evidence) {
-            return crossAreaSupportText(evidence,
-                    "için fırsat üretebilir", "daha görünür hale gelebilir",
-                    "can generate opportunities for", "becomes more visible this week");
+            return opportunityFrame(evidence.transitPlanet()) + " " + areaBridgeText(evidence,
+                    "somut fırsat zemini oluşabilir",
+                    "davet, teklif veya karar fırsatı üretebilir",
+                    "create a practical opening",
+                    "produce an invitation, offer, or decision point");
         }
 
         String challengingSubtext(AspectEvidence evidence) {
-            return crossAreaPressureText(evidence,
-                    "baskı oluşturabilir", "hassaslaşabilir",
-                    "may strain", "becomes more sensitive");
+            return challengeFrame(evidence.transitPlanet()) + " " + areaBridgeText(evidence,
+                    "yük ve sınır ihtiyacı belirginleşebilir",
+                    "daha fazla yapı, sabır ve sadeleşme isteyebilir",
+                    "make load and boundary needs more visible",
+                    "need more structure, patience, and simplification");
         }
 
         String threatSubtext(AspectEvidence evidence) {
-            return crossAreaPressureText(evidence,
-                    "hata payını artırabilir", "daha çabuk gerilebilir",
-                    "increases the margin for error in", "is more prone to friction");
+            return threatFrame(evidence.transitPlanet()) + " " + areaBridgeText(evidence,
+                    "acele karar ve hata payı artabilir",
+                    "daha hızlı gerilim ve yanlış okuma üretebilir",
+                    "increase haste and the margin for error",
+                    "become more prone to friction and misreading");
         }
 
         String retroThreatSubtext(AspectEvidence evidence, Integer mercuryRetroHouse) {
@@ -947,23 +1063,23 @@ public class WeeklySwotService {
         }
 
         String supportiveHeadline(AspectEvidence evidence, LocalDate weekStart) {
-            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectSentenceEn(evidence.aspect(), "building strength")
-                      : weekTiming(evidence.date(), weekStart) + " " + aspectSentenceTr(evidence.aspect(), "kuruyor");
+            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectHeadlineLabel(evidence) + " strengthens inner resources"
+                      : weekTiming(evidence.date(), weekStart) + " " + aspectHeadlineLabel(evidence) + " içsel kaynakları güçlendiriyor";
         }
 
         String opportunityHeadline(AspectEvidence evidence, LocalDate weekStart) {
-            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectSentenceEn(evidence.aspect(), "opening opportunity")
-                      : weekTiming(evidence.date(), weekStart) + " " + aspectSentenceTr(evidence.aspect(), "açıyor");
+            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectHeadlineLabel(evidence) + " opens a visible opportunity window"
+                      : weekTiming(evidence.date(), weekStart) + " " + aspectHeadlineLabel(evidence) + " görünür bir fırsat penceresi açıyor";
         }
 
         String challengingHeadline(AspectEvidence evidence, LocalDate weekStart) {
-            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectSentenceEn(evidence.aspect(), "creating tension")
-                      : weekTiming(evidence.date(), weekStart) + " " + aspectSentenceTr(evidence.aspect(), "baskı yaratıyor");
+            return en ? weekTiming(evidence.date(), weekStart) + ": " + aspectHeadlineLabel(evidence) + " tests the balance point"
+                      : weekTiming(evidence.date(), weekStart) + " " + aspectHeadlineLabel(evidence) + " denge noktasını test ediyor";
         }
 
         String retroThreatHeadline(AspectEvidence evidence, LocalDate weekStart) {
-            return en ? weekTiming(evidence.date(), weekStart) + ": Mercury Rx + " + aspectSentenceEn(evidence.aspect(), "pulling back")
-                      : weekTiming(evidence.date(), weekStart) + " Merkür retrosu ile " + aspectSentenceTr(evidence.aspect(), "geriyor");
+            return en ? weekTiming(evidence.date(), weekStart) + ": Mercury Rx sharpens the risk around " + aspectHeadlineLabel(evidence)
+                      : weekTiming(evidence.date(), weekStart) + " Merkür retrosu " + aspectHeadlineLabel(evidence) + " üzerinden hata payını büyütüyor";
         }
 
         String retroOnlyHeadline(WeeklyProfile profile, LocalDate weekStart, LocalDate mercuryRetroDay) {
@@ -981,8 +1097,8 @@ public class WeeklySwotService {
         }
 
         String houseOpportunityHeadline(HouseEvidence houseEvidence, LocalDate weekStart) {
-            return en ? weekTiming(houseEvidence.date(), weekStart) + ": Venus activates " + houseEvidence.house() + "th house themes"
-                      : weekTiming(houseEvidence.date(), weekStart) + " Venüs " + houseEvidence.house() + ". ev temalarını canlandırıyor";
+            return en ? weekTiming(houseEvidence.date(), weekStart) + ": Venus activates " + houseEvidence.house() + "th house opportunity themes"
+                      : weekTiming(houseEvidence.date(), weekStart) + " Venüs " + houseEvidence.house() + ". ev temasında fırsat alanını canlandırıyor";
         }
 
         // ── tips ─────────────────────────────────────────────────────────────────

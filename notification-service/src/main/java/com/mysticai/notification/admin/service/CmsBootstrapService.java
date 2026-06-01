@@ -204,11 +204,17 @@ public class CmsBootstrapService implements ApplicationRunner {
                 "Yaşam yolu sayın, kişisel yıl enerjisi, kader sayısı ve günlük numeroloji rehberin tek ekranda.",
                 "/numerology", null, "Sayıları Gör",
                 false, false, 4);
+        n += upsertCard("dream_journal_card",    "self_discovery_cms",
+                "Rüya Günlüğü",              "Rüyalarını kaydet ve yorumla",
+                "Rüyalarını kaydet, sembolleri takip et ve AI destekli yorumlarını günlüğünde biriktir.",
+                "/(tabs)/dreams", null, "Rüya Ekle",
+                false, false, 5);
         n += upsertCard("decision_compass_card", "self_discovery_cms",
                 "Karar Pusulası",            "Anlık karar rehberi",
                 "Önemli bir karar mı veriyorsun? Kozmik enerji ve kişisel sayılarına göre anlık rehberlik al.",
                 "/decision-compass", null, "Pusulayı Aç",
-                false, false, 5);
+                false, false, 6);
+        n += moveDefaultCardSortOrder("decision_compass_card", 5, 6);
 
         // ── spiritual_cms ────────────────────────────────────────────────────
         // Remove old prayer/esma cards — replaced by dua/esma/sure cards
@@ -300,6 +306,20 @@ public class CmsBootstrapService implements ApplicationRunner {
             exploreCardRepo.delete(opt.get());
             log.info("[CmsBootstrap] ExploreCard REMOVED: {}", key);
             return 1;
+        }
+        return 0;
+    }
+
+    private int moveDefaultCardSortOrder(String key, int fromSortOrder, int toSortOrder) {
+        var opt = exploreCardRepo.findByCardKey(key);
+        if (opt.isPresent()) {
+            ExploreCard c = opt.get();
+            if (c.getSortOrder() == fromSortOrder && c.getUpdatedByAdminId() == null) {
+                c.setSortOrder(toSortOrder);
+                exploreCardRepo.save(c);
+                log.info("[CmsBootstrap] ExploreCard SORT ENRICHED: {} {}→{}", key, fromSortOrder, toSortOrder);
+                return 1;
+            }
         }
         return 0;
     }

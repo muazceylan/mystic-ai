@@ -668,8 +668,8 @@ function GuideDetailModal({ activity, onClose }: GuideDetailModalProps) {
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={S.backdropRoot}>
         <Pressable style={S.backdrop} onPress={onClose} />
-        <Animated.View style={[S.sheet, animatedStyle]}>
-          <GestureDetector gesture={gesture}>
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[S.sheet, animatedStyle]}>
             <View>
               <View style={S.handle} />
               <View style={S.sheetHeader}>
@@ -682,7 +682,6 @@ function GuideDetailModal({ activity, onClose }: GuideDetailModalProps) {
                 </Pressable>
               </View>
             </View>
-          </GestureDetector>
 
           <View style={S.heroCard}>
             <View style={S.heroRow}>
@@ -731,7 +730,8 @@ function GuideDetailModal({ activity, onClose }: GuideDetailModalProps) {
               </View>
             ) : null}
           </ScrollView>
-        </Animated.View>
+          </Animated.View>
+        </GestureDetector>
       </View>
     </Modal>
   );

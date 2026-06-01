@@ -930,21 +930,21 @@ function MiniSynastryModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
         <Pressable onPress={() => {}}>
-          <Reanimated.View
-            style={[
-              {
-                maxHeight: '78%',
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-                backgroundColor: colors.bg,
-                paddingHorizontal: 18,
-                paddingTop: 14,
-                paddingBottom: 18,
-              },
-              animatedStyle,
-            ]}
-          >
-            <GestureDetector gesture={gesture}>
+          <GestureDetector gesture={gesture}>
+            <Reanimated.View
+              style={[
+                {
+                  maxHeight: '78%',
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                  backgroundColor: colors.bg,
+                  paddingHorizontal: 18,
+                  paddingTop: 14,
+                  paddingBottom: 18,
+                },
+                animatedStyle,
+              ]}
+            >
               <View style={{ alignItems: 'center', gap: 12 }}>
                 <View style={{ width: 42, height: 4, borderRadius: 999, backgroundColor: colors.border }} />
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -957,7 +957,6 @@ function MiniSynastryModal({
                   </Pressable>
                 </View>
               </View>
-            </GestureDetector>
 
             <LinearGradient colors={[gradA, gradB]} style={{ marginTop: 14, borderRadius: 16, padding: 14 }}>
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{scoreChipText(profile.compatibilityScore, profile, tFn)}</Text>
@@ -988,7 +987,8 @@ function MiniSynastryModal({
                 </View>
               ))}
             </ScrollView>
-          </Reanimated.View>
+            </Reanimated.View>
+          </GestureDetector>
         </Pressable>
       </Pressable>
     </Modal>

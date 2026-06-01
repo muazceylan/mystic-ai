@@ -114,8 +114,8 @@ export default function ExploreCardDetailPage() {
           </div>
           <div><label className="block text-sm text-gray-400 mb-1">Görsel URL</label>
             <input value={form.imageUrl ?? ''} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm" /></div>
-          <RouteSelector value={form.routeKey ?? ''} onChange={(key) => setForm(f => ({ ...f, routeKey: key }))} label="Route Key" />
-          <RouteSelector value={form.fallbackRouteKey ?? ''} onChange={(key) => setForm(f => ({ ...f, fallbackRouteKey: key }))} label="Fallback Route" />
+          <RouteSelector value={form.routeKey ?? ''} onChange={(key) => setForm(f => ({ ...f, routeKey: key }))} label="Route Path" valueMode="path" />
+          <RouteSelector value={form.fallbackRouteKey ?? ''} onChange={(key) => setForm(f => ({ ...f, fallbackRouteKey: key }))} label="Fallback Route Path" valueMode="path" />
           <div><label className="block text-sm text-gray-400 mb-1">Açıklama</label>
             <textarea value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm" /></div>
           <div><label className="block text-sm text-gray-400 mb-1">Payload JSON</label>

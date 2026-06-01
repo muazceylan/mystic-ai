@@ -192,10 +192,9 @@ export default function DreamDictionary({ userId }: Props) {
         onRequestClose={closeSymbolModal}
       >
         <View style={s.modalOverlay}>
-          <Animated.View style={[s.modalSheet, animatedStyle]}>
-            <GestureDetector gesture={gesture}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={[s.modalSheet, animatedStyle]}>
               <View style={s.modalHandle} />
-            </GestureDetector>
 
             <TouchableOpacity
               style={s.modalClose}
@@ -263,7 +262,8 @@ export default function DreamDictionary({ userId }: Props) {
                 ) : null}
               </ScrollView>
             )}
-          </Animated.View>
+            </Animated.View>
+          </GestureDetector>
         </View>
       </Modal>
     </View>

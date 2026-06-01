@@ -80,9 +80,10 @@ import {
   normalizeLocationSearchText,
   resolveCountryNameByCode,
 } from '../../services/locationCatalog.service';
-import { getZodiacInfo } from '../../constants/zodiac';
+import { getPlanetName, getZodiacInfo } from '../../constants/zodiac';
 import { getHouseGlossary } from '../../constants/astrology-glossary';
-import { formatAspectAngleHuman, labelAspectType } from '../../constants/astroLabelMap';
+import { labelAspectType } from '../../constants/astroLabelMap';
+import { getAspectOrbStrength, getAspectReading } from '../../constants/aspect-glossary';
 import PlanetBottomSheet from '../../components/Astrology/PlanetBottomSheet';
 import HouseBottomSheet from '../../components/Astrology/HouseBottomSheet';
 import BigThreeBottomSheet from '../../components/Astrology/BigThreeBottomSheet';
@@ -479,6 +480,8 @@ function getAspectInfo(C: ReturnType<typeof useTheme>['colors'], t: (k: string) 
     OPPOSITION: { symbol: '☍', label: t('natalChart.opposition'), color: C.redBright },
     TRINE: { symbol: '△', label: t('natalChart.trine'), color: C.trine },
     SQUARE: { symbol: '□', label: t('natalChart.square'), color: C.amber },
+    SEXTILE: { symbol: '⚹', label: t('natalChart.sextile'), color: C.harmonious },
+    QUINCUNX: { symbol: '⚻', label: t('natalChart.quincunx'), color: C.textMuted },
   } as Record<string, { symbol: string; label: string; color: string }>;
 }
 
@@ -2409,11 +2412,15 @@ export function NatalChartScreenContent() {
                   const info = ASPECT_INFO[asp.type] ?? ASPECT_INFO.CONJUNCTION;
                   const p1Sym = PLANET_SYMBOLS[asp.planet1] ?? '?';
                   const p2Sym = PLANET_SYMBOLS[asp.planet2] ?? '?';
+                  const aspectReading = getAspectReading(asp.planet1, asp.planet2, asp.type, i18n.language);
+                  const orbStrength = getAspectOrbStrength(asp.orb, i18n.language);
+                  const p1Name = getPlanetName(asp.planet1, i18n.language);
+                  const p2Name = getPlanetName(asp.planet2, i18n.language);
                   return (
                     <Pressable
                       key={`asp-${i}`}
                       onPress={() => openAspectSheet(asp)}
-                      accessibilityLabel={t('natalChart.aspectDetailsLabel', { label: labelAspectType(asp.type, false, i18n.language) })}
+                      accessibilityLabel={t('natalChart.aspectDetailsLabel', { label: `${p1Name} ${labelAspectType(asp.type, false, i18n.language)} ${p2Name}` })}
                       accessibilityRole="button"
                     >
                       <View style={styles.aspectTag}>
@@ -2435,9 +2442,14 @@ export function NatalChartScreenContent() {
                           </View>
                         </View>
                         <Text style={[styles.aspectLabel, { color: info.color }]}>
-                          {labelAspectType(asp.type, false, i18n.language)}
+                          {aspectReading.cardTitle}
                         </Text>
-                        <Text style={styles.aspectOrb}>{formatAspectAngleHuman(asp, i18n.language)}</Text>
+                        <Text style={styles.aspectSummary} numberOfLines={2}>
+                          {aspectReading.cardSummary}
+                        </Text>
+                        <Text style={styles.aspectOrb}>
+                          {labelAspectType(asp.type, false, i18n.language)} · {orbStrength.label}
+                        </Text>
                       </View>
                     </Pressable>
                   );
@@ -3022,8 +3034,8 @@ export function NatalChartScreenContent() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.modalSheetWrapper}
           >
-            <Reanimated.View style={[styles.modalSheet, companionModalAnimatedStyle]}>
-              <GestureDetector gesture={companionModalGesture}>
+            <GestureDetector gesture={companionModalGesture}>
+              <Reanimated.View style={[styles.modalSheet, companionModalAnimatedStyle]}>
                 <View style={styles.modalDragZone}>
                   <View style={styles.modalSheetHandle} />
                   <View style={styles.modalHeaderRow}>
@@ -3040,7 +3052,6 @@ export function NatalChartScreenContent() {
                     </Pressable>
                   </View>
                 </View>
-              </GestureDetector>
 
               <ScrollView
                 ref={companionFormScrollRef}
@@ -3435,7 +3446,8 @@ export function NatalChartScreenContent() {
                   </Text>
                 </Pressable>
               </View>
-            </Reanimated.View>
+              </Reanimated.View>
+            </GestureDetector>
           </KeyboardAvoidingView>
         </View>
       </Modal>
@@ -4770,7 +4782,10 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 1,
-    minWidth: 82,
+    minWidth: 156,
+    maxWidth: 220,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   aspectSymbolRow: {
     flexDirection: 'row',
@@ -4802,12 +4817,21 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     fontWeight: '800',
   },
   aspectLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  aspectSummary: {
+    fontSize: 10.5,
+    lineHeight: 14,
+    color: C.textMuted,
+    textAlign: 'center',
   },
   aspectOrb: {
-    fontSize: 9,
+    fontSize: 9.5,
     color: C.muted,
+    textAlign: 'center',
+    fontWeight: '700',
   },
 
   // ── House Grid ────────────────────────────────────────────────────

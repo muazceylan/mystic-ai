@@ -442,13 +442,12 @@ export default function NameSearchScreen() {
 
         <Modal visible={showFilters} transparent animationType="slide" onRequestClose={closeFilters}>
           <View style={styles.modalOverlay}>
-            <Animated.View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, filtersAnimatedStyle]}>
-              <GestureDetector gesture={filtersGesture}>
+            <GestureDetector gesture={filtersGesture}>
+              <Animated.View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }, filtersAnimatedStyle]}>
                 <View style={styles.modalDragZone}>
                   <View style={styles.modalHandle} />
                   <Text style={[styles.modalTitle, { color: colors.text }]}>{t('nameAnalysis.search.filtersTitle')}</Text>
                 </View>
-              </GestureDetector>
 
               <Text style={[styles.groupTitle, { color: colors.subtext }]}>{t('nameAnalysis.search.gender')}</Text>
               <View style={styles.chipsWrap}>
@@ -528,7 +527,8 @@ export default function NameSearchScreen() {
                   <Text style={[styles.modalActionText, { color: colors.white }]}>{t('nameAnalysis.search.apply')}</Text>
                 </Pressable>
               </View>
-            </Animated.View>
+              </Animated.View>
+            </GestureDetector>
           </View>
         </Modal>
       </View>
