@@ -43,6 +43,9 @@
         "RECORD_AUDIO",
         "VIBRATE"
       ],
+      "blockedPermissions": [
+        "android.permission.ACTIVITY_RECOGNITION"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/app-icons/android/astro-guru-icon-adaptive-foreground.png",
         "backgroundImage": "./assets/brand/app-icons/android/astro-guru-icon-adaptive-background.png"

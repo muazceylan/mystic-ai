@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -58,12 +58,18 @@ export function BottomSheet({
   const translateY = useSharedValue(height);
   const backdropOpacity = useSharedValue(0);
 
+  // Use ref so height changes don't retrigger the visibility animation effect
+  const heightRef = useRef(height);
+  useEffect(() => {
+    heightRef.current = height;
+  }, [height]);
+
   const handleClose = useCallback(() => {
-    translateY.value = withTiming(height, { duration: 250, easing: Easing.in(Easing.cubic) }, () => {
+    translateY.value = withTiming(heightRef.current, { duration: 250, easing: Easing.in(Easing.cubic) }, () => {
       runOnJS(onClose)();
     });
     backdropOpacity.value = withTiming(0, { duration: 200 });
-  }, [backdropOpacity, height, onClose, translateY]);
+  }, [backdropOpacity, onClose, translateY]);
 
   const { dragOffset, gesture } = useBottomSheetDragGesture({
     enabled: visible,
@@ -72,13 +78,17 @@ export function BottomSheet({
 
   useEffect(() => {
     if (visible) {
+      // Always snap to off-screen first so re-opens start from a clean state
+      translateY.value = heightRef.current;
+      backdropOpacity.value = 0;
       translateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
       backdropOpacity.value = withTiming(1, { duration: 200 });
     } else {
-      translateY.value = withTiming(height, { duration: 250, easing: Easing.in(Easing.cubic) });
+      translateY.value = withTiming(heightRef.current, { duration: 250, easing: Easing.in(Easing.cubic) });
       backdropOpacity.value = withTiming(0, { duration: 200 });
     }
-  }, [visible, height]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value + dragOffset.value }],

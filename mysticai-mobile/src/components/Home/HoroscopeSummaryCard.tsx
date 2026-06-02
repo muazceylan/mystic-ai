@@ -226,11 +226,11 @@ export function HoroscopeSummaryCard({
                 <Pressable
                   onPress={onPressDetails}
                   accessibilityRole="button"
-                  accessibilityLabel={t('homeSurface.horoscopeSummary.detailsAccessibility')}
+                  accessibilityLabel={t('horoscope.allSigns')}
                   hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
                   style={({ pressed }) => [styles.detailBtn, pressed && styles.pressed]}
                 >
-                  <Text style={styles.detailText}>{t('homeSurface.horoscopeSummary.detailsCta')}</Text>
+                  <Text style={styles.detailText}>{t('horoscope.allSigns')}</Text>
                   <Ionicons name="chevron-forward" size={spacing.sm + spacing.xs} color={colors.primary} />
                 </Pressable>
               </View>

@@ -568,12 +568,12 @@ export default function HomeScreen() {
 
   const handlePressHoroscopeDetails = useCallback(() => {
     trackEvent('home_today_cta_click', {
-      source: 'details_link',
+      source: 'all_signs_link',
       surface: 'horoscope_card',
-      destination: 'horoscope_daily',
+      destination: 'horoscope_hub',
     });
-    pushRoute(todayRoute);
-  }, [pushRoute, todayRoute]);
+    pushRoute('/(tabs)/horoscope');
+  }, [pushRoute]);
 
   const handlePressTransits = useCallback(() => {
     trackEvent('home_today_transits_click', {
