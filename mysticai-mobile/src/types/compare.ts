@@ -43,6 +43,13 @@ export type DistributionWarningKey =
 
 export type MetricStatus = 'strong' | 'balanced' | 'watch' | 'growth' | 'intense';
 
+export type CompatibilityStatus =
+  | 'challenging'
+  | 'attention'
+  | 'balanced'
+  | 'compatible'
+  | 'strong';
+
 export interface CompareOverallDTO {
   score: number;
   levelLabel: string;
@@ -139,6 +146,8 @@ export interface ComparisonCardDTO {
   relationshipType: RelationshipType;
   themeGroup: ThemeGroup;
   title: string;
+  score?: number | null;
+  status?: CompatibilityStatus | null;
   leftPerson: { name: string; trait: string };
   intersection: { plain: string };
   rightPerson: { name: string; trait: string };
@@ -152,6 +161,34 @@ export interface ComparisonCardDTO {
     orb?: number;
     planets?: string[];
     houses?: string[];
+  };
+}
+
+export interface CompatibilityDimensionPerson {
+  name: string;
+  initial?: string;
+  need: string;
+  challenge?: string;
+  ratio?: number | null;
+}
+
+export interface CompatibilityDimension {
+  id: string;
+  title: string;
+  score: number | null;
+  status?: CompatibilityStatus;
+  headline: string;
+  summary: string;
+  personA: CompatibilityDimensionPerson;
+  personB: CompatibilityDimensionPerson;
+  balanceLabel: string;
+  balanceSummary: string;
+  risk?: string;
+  advice: string;
+  detail?: {
+    why?: string;
+    tension?: string;
+    balance?: string;
   };
 }
 

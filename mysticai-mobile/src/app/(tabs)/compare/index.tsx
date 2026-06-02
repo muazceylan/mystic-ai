@@ -44,7 +44,7 @@ function moduleTitle(type: RelationshipType): string {
 
 function mapScoreLabel(score: number): Label {
   if (score >= 75) return 'Uyumlu';
-  if (score <= 54) return 'Dikkat';
+  if (score < 60) return 'Dikkat';
   return 'Gelişim';
 }
 
@@ -883,6 +883,7 @@ function buildOverviewSections(
       relationshipType,
       themeGroup: template.themeGroup,
       title: template.title,
+      score,
       leftPerson: {
         name: leftName,
         trait: compactText(traits.leftTrait, `${leftName}: bu ritimde daha fazla netlik ister`, null),
@@ -939,6 +940,7 @@ function buildOverviewSections(
           relationshipType,
           themeGroup: relationshipType === 'work' ? 'İş Bölümü' : relationshipType === 'rival' ? 'Rekabet & Strateji' : 'Aşk & Çekim',
           title: 'Genel Uyum Akışı',
+          score: 60,
           leftPerson: {
             name: leftName,
             trait: `${leftName}: netlik arayışıyla ilerler`,

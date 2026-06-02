@@ -664,7 +664,7 @@ function splitIntoSentences(text: string): string[] {
 
 function extractCmsTheme(cms: CmsDailyHoroscope | null, locale: DashboardLocale): string {
   if (!cms) return '';
-  const summary = compactWhitespace(cms.shortSummary ?? cms.fullContent ?? '');
+  const summary = compactWhitespace(cms.fullContent ?? cms.shortSummary ?? '');
   if (summary && matchesRequestedLocale(summary, locale)) {
     const sentences = splitIntoSentences(summary);
     const first = sentences[0];
@@ -677,7 +677,7 @@ function extractCmsTheme(cms: CmsDailyHoroscope | null, locale: DashboardLocale)
 
 function extractCmsAdvice(cms: CmsDailyHoroscope | null, locale: DashboardLocale): string {
   if (!cms) return '';
-  const summary = compactWhitespace(cms.shortSummary ?? cms.fullContent ?? '');
+  const summary = compactWhitespace(cms.fullContent ?? cms.shortSummary ?? '');
   if (!summary || !matchesRequestedLocale(summary, locale)) return '';
   const sentences = splitIntoSentences(summary);
   const second = sentences[1];

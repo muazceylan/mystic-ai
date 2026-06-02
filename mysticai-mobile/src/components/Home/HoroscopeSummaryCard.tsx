@@ -326,11 +326,14 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       paddingHorizontal: spacing.cardPadding,
       paddingVertical: spacing.sm,
       gap: spacing.xs,
+      alignItems: 'stretch',
     },
     line: {
       ...typography.Body,
       color: C.body,
       paddingRight: spacing.xs,
+      flexShrink: 0,
+      width: '100%',
     },
     lineLabel: {
       fontWeight: '700',
