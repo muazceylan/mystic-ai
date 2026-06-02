@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Sharing from 'expo-sharing';
 import { useTheme, ThemeColors } from '../../../context/ThemeContext';
@@ -64,13 +64,12 @@ export default function HoroscopeDetailScreen() {
 
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
-  const router = useRouter();
   const goBack = useBackNavigation();
   const S = makeStyles(colors, isDark);
   const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase();
   const monetization = useModuleMonetization(FEATURE_MODULE_KEYS.HOROSCOPE);
   const horoscopeUnlockState = monetization.getActionUnlockState(FEATURE_ACTION_KEYS.HOROSCOPE_VIEW);
-  const [isUnlocked, setIsUnlocked] = React.useState(false);
+  const [unlockedContentKey, setUnlockedContentKey] = React.useState<string | null>(null);
   const [showUnlockSheet, setShowUnlockSheet] = React.useState(false);
 
   const {
@@ -96,16 +95,20 @@ export default function HoroscopeDetailScreen() {
     () => `horoscope:${period}:${sign}:${period === 'weekly' ? getIsoWeekKey() : getLocalDateKey()}`,
     [period, sign],
   );
+  const isUnlocked = !horoscopeUnlockState.usesMonetization || unlockedContentKey === horoscopeContentKey;
 
   useEffect(() => {
     if (!horoscopeUnlockState.usesMonetization) {
-      setIsUnlocked(true);
+      setUnlockedContentKey(horoscopeContentKey);
       setShowUnlockSheet(false);
       return;
     }
-    setIsUnlocked(false);
+    if (unlockedContentKey === horoscopeContentKey) {
+      setShowUnlockSheet(false);
+      return;
+    }
     setShowUnlockSheet(true);
-  }, [horoscopeUnlockState.usesMonetization, sign]);
+  }, [horoscopeContentKey, horoscopeUnlockState.usesMonetization, unlockedContentKey]);
 
   useEffect(() => {
     if (!isUnlocked) return;
@@ -116,9 +119,18 @@ export default function HoroscopeDetailScreen() {
     fetchHoroscope(sign, period);
   }, [sign, period, fetchHoroscope]);
 
+  const handleOpenUnlockSheet = useCallback(() => {
+    if (!isUnlocked && horoscopeUnlockState.usesMonetization) {
+      setShowUnlockSheet(true);
+    }
+  }, [horoscopeUnlockState.usesMonetization, isUnlocked]);
+
   const handlePeriodChange = useCallback((p: HoroscopePeriod) => {
     setPeriod(p);
-  }, [setPeriod]);
+    if (horoscopeUnlockState.usesMonetization && (!isUnlocked || p !== period)) {
+      setShowUnlockSheet(true);
+    }
+  }, [horoscopeUnlockState.usesMonetization, isUnlocked, period, setPeriod]);
 
   const favKey = `${sign}:${period}:${current?.date ?? ''}`;
   const isFav = favorites.includes(favKey);
@@ -179,9 +191,16 @@ export default function HoroscopeDetailScreen() {
       </View>
 
       {!isUnlocked && (
-        <View style={S.errorBox}>
+        <Pressable
+          onPress={handleOpenUnlockSheet}
+          style={({ pressed }) => [S.errorBox, S.unlockPrompt, pressed && S.unlockPromptPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t('horoscope.unlockPrompt', 'Burç yorumunu görmek için kilidi aç')}
+        >
+          <Ionicons name="lock-closed-outline" size={24} color={colors.error} />
           <Text style={S.errorText}>{t('horoscope.subtitle', 'Burç yorumunu görmek için kilidi aç')}</Text>
-        </View>
+          <Text style={S.unlockHintText}>{t('horoscope.unlockHint', 'Guru harca ya da video izle')}</Text>
+        </Pressable>
       )}
 
       {loading && isUnlocked && (
@@ -239,10 +258,10 @@ export default function HoroscopeDetailScreen() {
         title={signName}
         onClose={() => {
           setShowUnlockSheet(false);
-          router.back();
         }}
         onUnlocked={async () => {
-          setIsUnlocked(true);
+          setUnlockedContentKey(horoscopeContentKey);
+          setShowUnlockSheet(false);
           await fetchHoroscope(sign, period);
         }}
       />
@@ -301,7 +320,25 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     errorText: {
       ...TYPOGRAPHY.Body,
       color: C.error,
-      marginBottom: SPACING.md,
+      textAlign: 'center',
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.xs,
+    },
+    unlockPrompt: {
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : C.border,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : C.surface,
+      paddingHorizontal: SPACING.lg,
+    },
+    unlockPromptPressed: {
+      opacity: 0.82,
+    },
+    unlockHintText: {
+      ...TYPOGRAPHY.CaptionBold,
+      color: C.horoscopeAccent,
+      textAlign: 'center',
     },
     retryBtn: {
       backgroundColor: C.horoscopeAccent,

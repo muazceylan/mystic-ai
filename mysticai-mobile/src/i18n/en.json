@@ -305,8 +305,8 @@
       "loading": "Readings are being prepared…",
       "themeLabel": "Theme:",
       "adviceLabel": "Advice:",
-      "detailsAccessibility": "Open daily horoscope details",
-      "detailsCta": "Details",
+      "detailsAccessibility": "Open all horoscope signs",
+      "detailsCta": "All Signs",
       "cardAccessibility": "Open details for {{title}}"
     },
     "dailyTransits": {
@@ -2678,6 +2678,9 @@
     "loading": "Reading the stars...",
     "error": "Could not load horoscope.",
     "retry": "Try Again",
+    "subtitle": "Unlock to read your horoscope",
+    "unlockPrompt": "Unlock to read your horoscope",
+    "unlockHint": "Spend Guru or watch a video",
     "highlights": "Highlights",
     "dailyForecast": "Daily Forecast",
     "weeklyForecast": "Weekly Forecast",

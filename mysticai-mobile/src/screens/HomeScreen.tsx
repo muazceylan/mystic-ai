@@ -382,8 +382,10 @@ export default function HomeScreen() {
   const todayRoute = dashboardTodayRoute && !isGenericHoroscopeRoute(dashboardTodayRoute)
     ? dashboardTodayRoute
     : resolveDailyHoroscopeRoute(signName);
-  const weeklyHoroscopeRoute =
-    toRoute(dashboard?.horoscopeSummary?.weekly?.routeToWeeklyHoroscope) || resolveWeeklyHoroscopeRoute(signName);
+  const dashboardWeeklyRoute = toRoute(dashboard?.horoscopeSummary?.weekly?.routeToWeeklyHoroscope);
+  const weeklyHoroscopeRoute = dashboardWeeklyRoute && !isGenericHoroscopeRoute(dashboardWeeklyRoute)
+    ? dashboardWeeklyRoute
+    : resolveWeeklyHoroscopeRoute(signName);
   const weeklyAnalysisRoute = toRoute(dashboard?.weeklyHighlights?.route) || WEEKLY_ANALYSIS_ROUTE_FALLBACK;
   const transitsRoute = toRoute(dashboard?.transitsToday?.route) || TRANSITS_ROUTE_FALLBACK;
 

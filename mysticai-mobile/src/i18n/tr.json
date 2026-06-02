@@ -305,8 +305,8 @@
       "loading": "Yorumlar hazırlanıyor…",
       "themeLabel": "Tema:",
       "adviceLabel": "Öneri:",
-      "detailsAccessibility": "Günlük burç detaylarını aç",
-      "detailsCta": "Detaylar",
+      "detailsAccessibility": "Tüm burçlar ekranını aç",
+      "detailsCta": "Tüm Burçlar",
       "cardAccessibility": "{{title}} detaylarını aç"
     },
     "dailyTransits": {
@@ -2677,6 +2677,9 @@
     "loading": "Yıldızlar okunuyor...",
     "error": "Burç yorumu yüklenemedi.",
     "retry": "Tekrar Dene",
+    "subtitle": "Burç yorumunu görmek için kilidi aç",
+    "unlockPrompt": "Burç yorumunu görmek için kilidi aç",
+    "unlockHint": "Guru harca ya da video izle",
     "highlights": "Öne Çıkanlar",
     "dailyForecast": "Günlük Yorum",
     "weeklyForecast": "Haftalık Yorum",

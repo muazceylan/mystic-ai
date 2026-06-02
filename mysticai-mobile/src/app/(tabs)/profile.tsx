@@ -282,12 +282,6 @@ export function ProfileScreenContent() {
 
     Haptics.selectionAsync();
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(t('common.error'), t('profile.avatar.permissionDenied'));
-      return;
-    }
-
     setSelectingAvatar(true);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({

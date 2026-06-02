@@ -38,13 +38,14 @@
       "permissions": [
         "INTERNET",
         "MODIFY_AUDIO_SETTINGS",
-        "READ_MEDIA_IMAGES",
-        "READ_MEDIA_VISUAL_USER_SELECTED",
         "RECORD_AUDIO",
         "VIBRATE"
       ],
       "blockedPermissions": [
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/app-icons/android/astro-guru-icon-adaptive-foreground.png",

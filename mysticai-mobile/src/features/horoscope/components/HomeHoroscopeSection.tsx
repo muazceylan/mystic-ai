@@ -73,7 +73,7 @@ export function HomeHoroscopeSection() {
           isDark={isDark}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push(`/horoscope/${userSign}` as any);
+            router.push({ pathname: `/horoscope/${userSign}` as any, params: { period: 'daily' } });
           }}
         />
         <HoroscopeCard
