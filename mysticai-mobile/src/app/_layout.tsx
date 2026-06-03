@@ -133,6 +133,10 @@ const PUBLIC_INFO_PATHS = new Set([
   '/en/account-deletion',
 ]);
 
+const DEV_PREVIEW_PATHS = new Set([
+  '/dev/compare-card-preview',
+]);
+
 /**
  * App-level default:
  * We manage top spacing via SafeAreaProvider + SafeScreen, so iOS auto inset
@@ -229,18 +233,19 @@ function useProtectedRoute(i18nReady: boolean) {
     const currentRoute = topLevelRoute(pathname);
     const inAuthRoute = AUTH_ROUTES.has(currentRoute);
     const inPublicInfoRoute = PUBLIC_INFO_PATHS.has(pathname);
+    const inDevPreviewRoute = __DEV__ && DEV_PREVIEW_PATHS.has(pathname);
     const inOnboardingFlow = ONBOARDING_AUTH_ROUTES.has(currentRoute);
     const onboardingRequired = needsOnboarding(user);
 
     if (!isAuthenticated) {
-      if (!inAuthRoute && !inPublicInfoRoute) {
+      if (!inAuthRoute && !inPublicInfoRoute && !inDevPreviewRoute) {
         router.replace('/(auth)/welcome');
       }
       return;
     }
 
     if (onboardingRequired) {
-      if (!inOnboardingFlow) {
+      if (!inOnboardingFlow && !inDevPreviewRoute) {
         router.replace('/(auth)/birth-date');
       }
       return;

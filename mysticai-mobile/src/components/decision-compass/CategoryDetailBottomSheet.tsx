@@ -148,8 +148,22 @@ export function CategoryDetailBottomSheet({
 
         <View style={S.ctaRow}>
           <Pressable onPress={onOpenCalendar} style={({ pressed }) => [S.secondaryBtn, pressed && S.pressed]}>
-            <Ionicons name="calendar-outline" size={16} color={colors.subtext} />
-            <Text style={S.secondaryBtnText}>{t('decisionCompassScreen.goToCalendarBtn')}</Text>
+            <LinearGradient
+              pointerEvents="none"
+              colors={
+                isDark
+                  ? ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.00)']
+                  : ['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.00)']
+              }
+              start={{ x: 0.12, y: 0 }}
+              end={{ x: 0.85, y: 1 }}
+              style={S.secondaryBtnSheen}
+            />
+            <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+            <Text style={S.secondaryBtnText} numberOfLines={1}>{t('decisionCompassScreen.goToCalendarBtn')}</Text>
+            <View style={S.premiumMark}>
+              <Ionicons name="diamond" size={10} color={isDark ? '#FDE68A' : colors.primary} />
+            </View>
           </Pressable>
           <SoftActionButton
             label={t('decisionCompassScreen.moreDetailBtn')}
@@ -158,6 +172,7 @@ export function CategoryDetailBottomSheet({
             borderColor={T.border.soft}
             textColor={colors.primary}
             iconColor={colors.primary}
+            leadingIcon="diamond"
             style={S.primaryCta}
           />
         </View>
@@ -294,20 +309,47 @@ function styles(C: ReturnType<typeof useTheme>['colors'], isDark: boolean, T: Re
     },
     secondaryBtn: {
       flex: 1,
-      minHeight: 42,
+      minHeight: 46,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: T.border.soft,
-      backgroundColor: T.surface.glass,
+      borderColor: isDark ? 'rgba(216, 191, 255, 0.40)' : 'rgba(122, 91, 234, 0.24)',
+      backgroundColor: isDark ? 'rgba(180,148,255,0.12)' : 'rgba(255,255,255,0.90)',
       alignItems: 'center',
       justifyContent: 'center',
       flexDirection: 'row',
       gap: 6,
+      paddingHorizontal: 12,
+      overflow: 'hidden',
+      shadowColor: isDark ? '#000000' : '#C8AEF0',
+      shadowOpacity: isDark ? 0.22 : 0.14,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: isDark ? 4 : 2,
+    },
+    secondaryBtnSheen: {
+      position: 'absolute',
+      top: 1,
+      left: 1,
+      right: 1,
+      height: 22,
+      borderRadius: 999,
     },
     secondaryBtnText: {
-      color: C.subtext,
-      fontSize: 13,
-      fontWeight: '700',
+      flexShrink: 1,
+      color: C.text,
+      fontSize: 12.8,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    premiumMark: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(253,230,138,0.14)' : 'rgba(122,91,234,0.10)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(253,230,138,0.30)' : 'rgba(122,91,234,0.18)',
     },
     primaryCta: {
       flex: 1.3,

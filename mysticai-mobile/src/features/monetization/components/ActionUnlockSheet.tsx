@@ -155,6 +155,11 @@ export function ActionUnlockSheet({
     }
   }, []);
 
+  const completeUnlock = useCallback(async () => {
+    setHiddenAfterUnlock(true);
+    await onUnlocked();
+  }, [onUnlocked]);
+
   const loadOptions = useCallback(async () => {
     setOptionsLoading(true);
     setInlineMessage(null);
@@ -204,10 +209,14 @@ export function ActionUnlockSheet({
     });
   }, [actionKey, contentKey, moduleKey, rewardedAdViewsRequired, sheetVisible, tokenRequirement, userGuruBalance]);
 
-  const completeUnlock = useCallback(async () => {
-    setHiddenAfterUnlock(true);
-    await onUnlocked();
-  }, [onUnlocked]);
+  useEffect(() => {
+    if (!sheetVisible || !options?.alreadyUnlocked || hasTriggeredAutoUnlock.current) {
+      return;
+    }
+
+    hasTriggeredAutoUnlock.current = true;
+    void completeUnlock();
+  }, [completeUnlock, options?.alreadyUnlocked, sheetVisible]);
 
   useEffect(() => {
     if (!sheetVisible || !unlockState.isFree || hasTriggeredAutoUnlock.current) {

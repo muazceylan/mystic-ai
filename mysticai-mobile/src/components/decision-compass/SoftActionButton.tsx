@@ -13,6 +13,8 @@ interface SoftActionButtonProps {
   borderColor: string;
   textColor: string;
   iconColor: string;
+  leadingIcon?: React.ComponentProps<typeof Ionicons>['name'];
+  trailingIcon?: React.ComponentProps<typeof Ionicons>['name'];
   large?: boolean;
   style?: ViewStyle;
 }
@@ -24,6 +26,8 @@ export function SoftActionButton({
   borderColor,
   textColor,
   iconColor,
+  leadingIcon,
+  trailingIcon = 'chevron-forward',
   large = false,
   style,
 }: SoftActionButtonProps) {
@@ -44,8 +48,9 @@ export function SoftActionButton({
         />
         {/* Ambient top glow orb */}
         <View pointerEvents="none" style={S.ambientGlow} />
-        <Text style={S.label}>{label}</Text>
-        <Ionicons name="chevron-forward" size={large ? 17 : 14} color={iconColor} />
+        {leadingIcon ? <Ionicons name={leadingIcon} size={large ? 17 : 14} color={iconColor} /> : null}
+        <Text style={S.label} numberOfLines={1}>{label}</Text>
+        {trailingIcon ? <Ionicons name={trailingIcon} size={large ? 17 : 14} color={iconColor} /> : null}
       </LinearGradient>
     </Pressable>
   );
@@ -99,6 +104,7 @@ function styles(
       borderRadius: 999,
     },
     label: {
+      flexShrink: 1,
       color: textColor,
       fontSize: large ? 16.5 : 14,
       fontWeight: '900',

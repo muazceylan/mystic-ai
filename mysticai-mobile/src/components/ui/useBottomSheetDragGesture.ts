@@ -8,9 +8,9 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
-const DEFAULT_CLOSE_DISTANCE = 110;
-const DEFAULT_CLOSE_VELOCITY = 900;
-const DEFAULT_ACTIVATION_DISTANCE = 8;
+const DEFAULT_CLOSE_DISTANCE = 72;
+const DEFAULT_CLOSE_VELOCITY = 650;
+const DEFAULT_ACTIVATION_DISTANCE = 4;
 const DEFAULT_VERTICAL_DOMINANCE = 1.15;
 const UPWARD_ACTIVATION_GUARD = -100000;
 
@@ -37,7 +37,9 @@ export function useBottomSheetDragGesture({
     () =>
       Gesture.Pan()
         .enabled(enabled)
+        .minDistance(activationDistance)
         .activeOffsetY([UPWARD_ACTIVATION_GUARD, activationDistance])
+        .cancelsTouchesInView(false)
         .onUpdate((event) => {
           if (event.translationY <= 0) {
             dragOffset.value = 0;
@@ -53,8 +55,8 @@ export function useBottomSheetDragGesture({
           dragOffset.value = event.translationY;
         })
         .onEnd((event) => {
-          const translationY = Math.max(0, event.translationY);
-          const shouldClose = translationY > closeDistance || event.velocityY > closeVelocity;
+          const translationY = Math.max(0, event.translationY, dragOffset.value);
+          const shouldClose = translationY >= closeDistance || event.velocityY >= closeVelocity;
 
           if (shouldClose) {
             dragOffset.value = 0;

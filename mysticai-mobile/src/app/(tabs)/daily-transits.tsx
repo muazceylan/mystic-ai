@@ -1,19 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeScreen, Skeleton, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
+import { SafeScreen, TabHeader } from '../../components/ui';
 import {
-  HeroCard,
-  QuickFactChip,
-  RetroList,
-  SectionCard,
-  TransitItemCard,
+  HeroInsightCard,
+  PremiumStatusCard,
+  SkyDataCard,
+  TodayInfluenceLoadingState,
+  TodayInfluenceMiniPlanCard,
+  TodaySummaryCards,
+  TransitCardsSection,
+  getTodayInfluenceBackground,
+  type InsightStatus,
+  type TodayInfluenceViewModel,
+  type TransitFilterKey,
+  type TransitFilterOption,
 } from '../../components/daily';
 import { useTheme } from '../../context/ThemeContext';
-import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
+import { SPACING } from '../../constants/tokens';
 import { queryKeys } from '../../lib/queryKeys';
 import { getDailyTransits, getTodayIsoDate, sendFeedback } from '../../services/daily.service';
 import type { DailyFeedbackPayload, DailyTransitsDTO } from '../../types/daily.types';
@@ -25,9 +30,7 @@ import { getZodiacInfo } from '../../constants/zodiac';
 import {
   DAILY_TRANSITS_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
-  TUTORIAL_IDS,
   TUTORIAL_SCREEN_KEYS,
-  useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
 import { useTranslation } from 'react-i18next';
@@ -38,11 +41,8 @@ const SIX_HOURS = 1000 * 60 * 60 * 6;
 const ONE_DAY = 1000 * 60 * 60 * 24;
 const MAX_TODAY_ITEMS = 2;
 const MAX_FOCUS_ITEMS = 3;
-const MAX_TRANSITS_PER_THEME = 2;
-const GROUP_STATE_STORAGE_PREFIX = 'dailyTransits:expandedThemes';
 
 type TransitItem = DailyTransitsDTO['transits'][number];
-type TransitThemeGroup = { theme: string; items: TransitItem[] };
 type HeroPersonalization = {
   seed: string;
   firstName?: string;
@@ -745,45 +745,366 @@ function compareTransitItems(left: TransitItem, right: TransitItem): number {
   return left.titlePlain.localeCompare(right.titlePlain, 'tr');
 }
 
-function groupTransits(items: TransitItem[], locale: DailyLocale): TransitThemeGroup[] {
-  const byTheme = new Map<string, TransitItem[]>();
-  items.forEach((item) => {
-    const localizedTheme = localizeTheme(item.theme, locale);
-    const current = byTheme.get(localizedTheme) ?? [];
-    current.push(item);
-    byTheme.set(localizedTheme, current);
-  });
+type ProcessedDailyContent = {
+  todayItems: string[];
+  focusItems: string[];
+  transits: TransitItem[];
+};
 
-  const orderedThemeSequence = THEME_SEQUENCE.map((theme) => THEME_METADATA[theme][locale]);
-  const orderedThemeSet = new Set(orderedThemeSequence);
-
-  const orderedThemes = [
-    ...orderedThemeSequence.filter((theme) => byTheme.has(theme)),
-    ...Array.from(byTheme.keys())
-      .filter((theme) => !orderedThemeSet.has(theme))
-      .sort((a, b) => a.localeCompare(b, 'tr')),
-  ];
-
-  return orderedThemes.map((theme) => ({
-    theme,
-    items: (byTheme.get(theme) ?? []).slice().sort(compareTransitItems),
-  }));
+function ensureSentenceEnd(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
-function LoadingState() {
-  return (
-    <View style={styles.loadingWrap}>
-      <Skeleton height={180} borderRadius={RADIUS.lg} />
-      <View style={styles.quickRow}>
-        <Skeleton height={84} borderRadius={RADIUS.lg} style={{ flex: 1 }} />
-        <Skeleton height={84} borderRadius={RADIUS.lg} style={{ flex: 1 }} />
-        <Skeleton height={84} borderRadius={RADIUS.lg} style={{ flex: 1 }} />
-      </View>
-      <Skeleton height={132} borderRadius={RADIUS.lg} />
-      <Skeleton height={152} borderRadius={RADIUS.lg} />
-      <Skeleton height={164} borderRadius={RADIUS.lg} />
-    </View>
-  );
+function compactText(text: string, maxChars: number): string {
+  const value = text.trim().replace(/\s+/g, ' ');
+  if (value.length <= maxChars) return value;
+  const truncated = value.slice(0, maxChars - 1).trimEnd();
+  const lastSpace = truncated.lastIndexOf(' ');
+  return `${truncated.slice(0, lastSpace > 40 ? lastSpace : truncated.length).trimEnd()}…`;
+}
+
+function compactSentencesFromText(text: string, maxSentences: number, maxChars: number): string {
+  const sentences = splitSentences(text).map(ensureSentenceEnd);
+  const selected = sentences.length > 0 ? sentences.slice(0, maxSentences).join(' ') : text;
+  return compactText(selected, maxChars);
+}
+
+function localizedScreenTitle(locale: DailyLocale): string {
+  return locale === 'en' ? 'What Is Influencing You Today' : 'Bugün Seni Neler Etkiliyor';
+}
+
+function fallbackCopy(locale: DailyLocale) {
+  return locale === 'en'
+    ? {
+        heroTitle: 'Move boldly, but with measure',
+        heroSummary: 'Balanced energy management works in your favor today. Keep the first step simple and review plans before committing.',
+        brave: 'Bold',
+        supportiveFlow: 'Supportive Flow',
+        retroCheck: 'Retro check',
+        clearFlow: 'Clear flow',
+        moodLabel: 'Mood',
+        moodValue: 'Calm power',
+        focusLabel: 'Focus Area',
+        focusValue: 'Energy management',
+        cautionLabel: 'Watch Point',
+        cautionValue: 'Review plans',
+        miniPlanTitle: 'Energy-focused mini plan',
+        miniPlanItems: [
+          'Refresh your energy with a short walk',
+          'Use one supportive transit for a simple step',
+          'Start a delayed task with a focused 15-minute block',
+        ],
+        cta: 'How should you move today?',
+        retroCalm: 'Calm',
+        retroCount: (count: number) => `${count} effect${count === 1 ? '' : 's'}`,
+        all: 'All',
+        supportive: 'Supportive',
+        attention: 'Caution',
+        meaningFallback: 'This influence shows where the day asks for a clearer rhythm and a more intentional response.',
+        personalFallback: 'Your personal chart can feel this as a small but noticeable shift in daily priorities.',
+        helpsAttention: ['Simplify one priority', 'Check details before sending or deciding', 'Use a short pause before reacting'],
+        helpsSupportive: ['Use the opening with one small action', 'Keep communication short and clear', 'Let the day support a steady rhythm'],
+        avoidAttention: ['Opening too many tasks at once', 'Reacting from the first emotion'],
+        avoidSupportive: ['Waiting for perfect conditions', 'Scattering energy across small distractions'],
+      }
+    : {
+        heroTitle: 'Cesur ama ölçülü ilerle',
+        heroSummary: 'Enerjini dengeli yönetmek bugün avantaj sağlar. İlk adımı sade tuttuğunda akış hızlanır. Retro etkiler planlarını gözden geçirmeni istiyor.',
+        brave: 'Cesur',
+        supportiveFlow: 'Destekleyici Akış',
+        retroCheck: 'Retro kontrolü',
+        clearFlow: 'Net akış',
+        moodLabel: 'Ruh Hali',
+        moodValue: 'Sakin güç',
+        focusLabel: 'Odak Alanı',
+        focusValue: 'Enerji yönetimi',
+        cautionLabel: 'Dikkat Noktası',
+        cautionValue: 'Planları gözden geçir',
+        miniPlanTitle: 'Enerji odaklı mini plan',
+        miniPlanItems: [
+          'Kısa bir yürüyüşle enerjini tazele',
+          'Destekleyici bir etkiyi küçük bir adımla kullan',
+          'Ertelediğin bir işi 15 dakikalık blokla başlat',
+        ],
+        cta: 'Bugün nasıl ilerlersin?',
+        retroCalm: 'Sakin',
+        retroCount: (count: number) => `${count} etki`,
+        all: 'Tümü',
+        supportive: 'Destekleyici',
+        attention: 'Dikkat',
+        meaningFallback: 'Bu etki, günün senden daha net bir ritim ve daha bilinçli bir tepki istediğini gösterir.',
+        personalFallback: 'Kişisel haritanda bu tema günlük önceliklerinde küçük ama hissedilir bir yön değişimi yaratabilir.',
+        helpsAttention: ['Tek önceliği sadeleştir', 'Karar veya mesaj öncesi detay kontrolü yap', 'Tepkiden önce kısa bir duraklama kullan'],
+        helpsSupportive: ['Açılan alanı küçük bir adımla değerlendir', 'İletişimi kısa ve net tut', 'Günün ritmini dengeli ilerlet'],
+        avoidAttention: ['Aynı anda çok başlık açmak', 'İlk duyguyla ani tepki vermek'],
+        avoidSupportive: ['Mükemmel şartları beklemek', 'Enerjiyi küçük dikkat dağınıklıklarına bölmek'],
+      };
+}
+
+function shortHeroTitle(
+  hero: DailyTransitsDTO['hero'],
+  primaryTheme: CanonicalTransitTheme,
+  locale: DailyLocale,
+): string {
+  const firstSentence = splitSentences(hero.headline)[0] ?? hero.headline?.trim();
+  if (firstSentence && firstSentence.length <= 58 && !hasTrailingEllipsis(firstSentence)) {
+    return ensureSentenceEnd(firstSentence).replace(/[.]$/, '');
+  }
+
+  const mood = canonicalizeMoodTag(hero.moodTag);
+  const byMood: Record<ReturnType<typeof canonicalizeMoodTag>, string> = locale === 'en'
+    ? {
+        bold: 'Move boldly, but with measure',
+        focus: 'Keep one clear focus',
+        emotional: 'Slow the feeling, find clarity',
+        social: 'Keep connections simple',
+        calm: 'Move with calm power',
+      }
+    : {
+        bold: 'Cesur ama ölçülü ilerle',
+        focus: 'Net odağını koru',
+        emotional: 'Duyguyu yavaşlat, netleş',
+        social: 'Bağlarını sade tut',
+        calm: 'Sakin güçle ilerle',
+      };
+
+  if (mood !== 'calm') return byMood[mood];
+  if (primaryTheme === 'energy') return locale === 'en' ? 'Manage your energy gently' : 'Enerjini yumuşak yönet';
+  if (primaryTheme === 'communication') return locale === 'en' ? 'Say less, land clearer' : 'Az söyle, net ilerle';
+  return byMood.calm;
+}
+
+function summaryMoodValue(tag: string, locale: DailyLocale): string {
+  const mood = canonicalizeMoodTag(tag);
+  const values: Record<ReturnType<typeof canonicalizeMoodTag>, string> = locale === 'en'
+    ? {
+        bold: 'Measured courage',
+        focus: 'Clear focus',
+        emotional: 'Soft balance',
+        social: 'Open contact',
+        calm: 'Calm power',
+      }
+    : {
+        bold: 'Ölçülü cesaret',
+        focus: 'Net odak',
+        emotional: 'Yumuşak denge',
+        social: 'Açık temas',
+        calm: 'Sakin güç',
+      };
+  return values[mood];
+}
+
+function focusTitleForTheme(theme: CanonicalTransitTheme, locale: DailyLocale): string {
+  const focus = getThemeFocusText(theme, locale);
+  return focus.charAt(0).toLocaleUpperCase(locale === 'tr' ? 'tr-TR' : 'en-US') + focus.slice(1);
+}
+
+function findQuickFactValue(data: DailyTransitsDTO, variants: string[]): string | undefined {
+  const variantTokens = variants.map(normalizeDailyToken);
+  const fact = data.quickFacts.find((item) => {
+    const token = normalizeDailyToken(`${item.id} ${item.icon} ${item.label}`);
+    return variantTokens.some((variant) => token.includes(variant));
+  });
+  return fact?.value?.trim() || undefined;
+}
+
+function buildHeroSummary(
+  data: DailyTransitsDTO,
+  hero: DailyTransitsDTO['hero'],
+  processed: ProcessedDailyContent,
+  locale: DailyLocale,
+): string {
+  const fallback = fallbackCopy(locale).heroSummary;
+  const candidates = dedupeSentences([
+    ...splitSentences(hero.supporting),
+    ...processed.focusItems.slice(0, 1),
+    ...splitSentences(data.todayCanDo.body).slice(0, 1),
+    ...splitSentences(hero.headline).slice(0, 1),
+  ]);
+  const summary = candidates.map(ensureSentenceEnd).slice(0, 3).join(' ');
+  return compactText(summary || fallback, 280);
+}
+
+function resolveHeroIcon(icon: DailyTransitsDTO['hero']['icon']): TodayInfluenceViewModel['hero']['icon'] {
+  switch (icon) {
+    case 'moon':
+      return 'moon';
+    case 'venus':
+      return 'heart';
+    case 'mars':
+      return 'flash';
+    case 'mercury':
+      return 'chatbubble-ellipses';
+    case 'jupiter':
+    case 'sun':
+      return 'sunny';
+    case 'saturn':
+    default:
+      return 'planet';
+  }
+}
+
+function buildTransitDetails(
+  item: TransitItem,
+  status: InsightStatus,
+  locale: DailyLocale,
+): TodayInfluenceViewModel['transits'][number]['details'] {
+  const copy = fallbackCopy(locale);
+  const technical = item.technical;
+  const meaning = compactSentencesFromText(item.impactPlain || copy.meaningFallback, 2, 260);
+  const technicalFacts = technical
+    ? [
+        { label: locale === 'en' ? 'Transit' : 'Transit', value: technical.transitPlanet },
+        { label: locale === 'en' ? 'Natal Point' : 'Natal Nokta', value: technical.natalPoint },
+        { label: locale === 'en' ? 'Aspect' : 'Açı', value: technical.aspect },
+        ...(technical.house ? [{ label: locale === 'en' ? 'House' : 'Ev', value: technical.house }] : []),
+      ].filter((fact) => fact.value && fact.value !== '-')
+    : [];
+
+  const personalEffect = technical
+    ? (
+        locale === 'en'
+          ? `${technical.transitPlanet} touching ${technical.natalPoint} can make the ${localizeTheme(item.theme, locale).toLowerCase()} area more noticeable today.`
+          : `${technical.transitPlanet} - ${technical.natalPoint} teması bugün ${localizeTheme(item.theme, locale).toLocaleLowerCase('tr-TR')} alanını daha görünür hale getirebilir.`
+      )
+    : copy.personalFallback;
+
+  return {
+    meaning,
+    helps: status === 'attention' ? copy.helpsAttention : copy.helpsSupportive,
+    avoid: status === 'attention' ? copy.avoidAttention : copy.avoidSupportive,
+    personalEffect,
+    facts: technicalFacts,
+  };
+}
+
+function mapTransitStatus(item: TransitItem): InsightStatus {
+  if (isCautionLabel(item.label)) return 'attention';
+  if (isSupportiveLabel(item.label)) return 'supportive';
+  if (item.confidence >= 82) return 'intense';
+  if (item.confidence <= 38) return 'low';
+  return 'neutral';
+}
+
+function mapTodayInfluenceResponseToViewModel(
+  data: DailyTransitsDTO,
+  hero: DailyTransitsDTO['hero'],
+  processed: ProcessedDailyContent,
+  locale: DailyLocale,
+): TodayInfluenceViewModel {
+  const copy = fallbackCopy(locale);
+  const primaryTheme = resolvePrimaryThemeLocalized(hero, processed.transits);
+  const supportiveCount = processed.transits.filter((item) => isSupportiveLabel(item.label)).length;
+  const cautionCount = processed.transits.filter((item) => isCautionLabel(item.label)).length;
+  const cautionTitle = processed.transits.find((item) => isCautionLabel(item.label))?.titlePlain;
+  const retroCount = data.retrogrades.length;
+  const moonPhase = findQuickFactValue(data, ['moonPhase', 'moon phase', 'ay fazi']);
+  const moonSign = findQuickFactValue(data, ['moonSign', 'zodiac', 'ay burcu']);
+  const retroFact = findQuickFactValue(data, ['retro']);
+
+  const miniPlanItems = dedupeSentences([
+    ...processed.todayItems,
+    processed.transits.find((item) => isSupportiveLabel(item.label))?.titlePlain ?? '',
+    ...processed.focusItems,
+    ...copy.miniPlanItems,
+  ]).slice(0, 3);
+
+  return {
+    hero: {
+      title: shortHeroTitle(hero, primaryTheme, locale) || copy.heroTitle,
+      summary: buildHeroSummary(data, hero, processed, locale),
+      score: typeof hero.intensity === 'number' ? hero.intensity : undefined,
+      icon: resolveHeroIcon(hero.icon),
+      chips: [
+        { label: localizeMoodTag(hero.moodTag, locale) || copy.brave, type: 'neutral', icon: 'sparkles' },
+        {
+          label: supportiveCount >= cautionCount ? copy.supportiveFlow : copy.attention,
+          type: supportiveCount >= cautionCount ? 'positive' : 'warning',
+          icon: supportiveCount >= cautionCount ? 'leaf-outline' : 'alert-circle-outline',
+        },
+        {
+          label: retroCount > 0 ? copy.retroCheck : copy.clearFlow,
+          type: retroCount > 0 ? 'warning' : 'positive',
+          icon: retroCount > 0 ? 'repeat' : 'checkmark-circle-outline',
+        },
+      ],
+    },
+    summaryCards: [
+      {
+        label: copy.moodLabel,
+        value: summaryMoodValue(hero.moodTag, locale) || copy.moodValue,
+        icon: 'moon',
+      },
+      {
+        label: copy.focusLabel,
+        value: focusTitleForTheme(primaryTheme, locale) || copy.focusValue,
+        icon: 'locate',
+      },
+      {
+        label: copy.cautionLabel,
+        value: compactText(processed.focusItems[0] || cautionTitle || copy.cautionValue, 42),
+        icon: 'alert-circle',
+      },
+    ],
+    miniPlan: {
+      title: data.todayCanDo.headline || copy.miniPlanTitle,
+      items: miniPlanItems.length > 0 ? miniPlanItems : copy.miniPlanItems,
+      ctaLabel: data.todayCanDo.ctaText || copy.cta,
+    },
+    skyData: {
+      moonPhase,
+      moonSign,
+      retroLabel: retroCount > 0 ? copy.retroCount(retroCount) : (retroFact || copy.retroCalm),
+    },
+    transits: processed.transits.map((item) => {
+      const status = mapTransitStatus(item);
+      return {
+        id: item.id,
+        category: localizeTheme(item.theme, locale),
+        status,
+        title: item.titlePlain,
+        description: compactSentencesFromText(item.impactPlain, 3, 280),
+        timeWindow: item.timeWindow,
+        details: buildTransitDetails(item, status, locale),
+      };
+    }),
+  };
+}
+
+function buildFilterOptions(viewModel: TodayInfluenceViewModel, locale: DailyLocale): TransitFilterOption[] {
+  const categorySet = new Set(viewModel.transits.map((item) => item.category));
+  const orderedCategories = [
+    ...THEME_SEQUENCE.map((theme) => THEME_METADATA[theme][locale]).filter((theme) => categorySet.has(theme)),
+    ...Array.from(categorySet)
+      .filter((theme) => !THEME_SEQUENCE.map((item) => THEME_METADATA[item][locale]).includes(theme))
+      .sort((a, b) => a.localeCompare(b, locale === 'tr' ? 'tr' : 'en')),
+  ];
+  const copy = fallbackCopy(locale);
+
+  return [
+    { key: 'all', label: copy.all },
+    { key: 'supportive', label: copy.supportive, tone: 'supportive' },
+    { key: 'attention', label: copy.attention, tone: 'attention' },
+    ...orderedCategories.map((category) => ({
+      key: `category:${category}` as TransitFilterKey,
+      label: category,
+    })),
+  ];
+}
+
+function filterTransits(
+  transits: TodayInfluenceViewModel['transits'],
+  selectedFilter: TransitFilterKey,
+): TodayInfluenceViewModel['transits'] {
+  if (selectedFilter === 'supportive') return transits.filter((item) => item.status === 'supportive');
+  if (selectedFilter === 'attention') return transits.filter((item) => item.status === 'attention');
+  if (selectedFilter.startsWith('category:')) {
+    const category = selectedFilter.slice('category:'.length);
+    return transits.filter((item) => item.category === category);
+  }
+  return transits;
 }
 
 export default function DailyTransitsScreen() {
@@ -797,7 +1118,6 @@ export default function DailyTransitsScreen() {
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
   const user = useAuthStore((state) => state.user);
   const userScopeKey = resolveUserScopeKey(user);
-  const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.DAILY_TRANSITS);
   const chart = useNatalChartStore((state) => state.chart);
   const date = useMemo(() => getTodayIsoDate(), []);
@@ -805,8 +1125,7 @@ export default function DailyTransitsScreen() {
   const errorEventSentRef = useRef<string | null>(null);
   const loadEventSentRef = useRef<string | null>(null);
   const tutorialBootstrapRef = useRef<string | null>(null);
-  const expandedThemesHydratedKeyRef = useRef<string | null>(null);
-  const [expandedThemes, setExpandedThemes] = useState<Record<string, boolean>>({});
+  const [selectedFilter, setSelectedFilter] = useState<TransitFilterKey>('all');
 
   const dailyTransitsQuery = useQuery({
     queryKey: queryKeys.dailyTransits(date, resolvedLocale, userScopeKey),
@@ -815,48 +1134,6 @@ export default function DailyTransitsScreen() {
     staleTime: SIX_HOURS,
     gcTime: ONE_DAY,
   });
-
-  useEffect(() => {
-    let active = true;
-    const key = `${GROUP_STATE_STORAGE_PREFIX}:${userScopeKey}:${resolvedLocale}:${date}`;
-    expandedThemesHydratedKeyRef.current = null;
-    setExpandedThemes({});
-
-    const restoreGroupState = async () => {
-      try {
-        const raw = await AsyncStorage.getItem(key);
-        if (!active) return;
-        if (!raw) {
-          setExpandedThemes({});
-          expandedThemesHydratedKeyRef.current = key;
-          return;
-        }
-        const parsed = JSON.parse(raw) as Record<string, boolean> | null;
-        if (parsed && typeof parsed === 'object') {
-          setExpandedThemes(parsed);
-          expandedThemesHydratedKeyRef.current = key;
-          return;
-        }
-        setExpandedThemes({});
-        expandedThemesHydratedKeyRef.current = key;
-      } catch {
-        if (active) {
-          setExpandedThemes({});
-          expandedThemesHydratedKeyRef.current = key;
-        }
-      }
-    };
-    void restoreGroupState();
-    return () => {
-      active = false;
-    };
-  }, [date, resolvedLocale, userScopeKey]);
-
-  useEffect(() => {
-    const key = `${GROUP_STATE_STORAGE_PREFIX}:${userScopeKey}:${resolvedLocale}:${date}`;
-    if (expandedThemesHydratedKeyRef.current !== key) return;
-    void AsyncStorage.setItem(key, JSON.stringify(expandedThemes));
-  }, [date, expandedThemes, resolvedLocale, userScopeKey]);
 
   useEffect(() => {
     if (!dailyTransitsQuery.data) return;
@@ -965,10 +1242,6 @@ export default function DailyTransitsScreen() {
     void dailyTransitsQuery.refetch();
   };
 
-  const handlePressTutorialHelp = useCallback(() => {
-    void reopenTutorialById(TUTORIAL_IDS.DAILY_TRANSITS_FOUNDATION, 'daily_transits');
-  }, [reopenTutorialById]);
-
   const data = dailyTransitsQuery.data;
   const hasDailyData = Boolean(data);
   const isEmpty = !!data && data.transits.length === 0;
@@ -1008,11 +1281,13 @@ export default function DailyTransitsScreen() {
       return {
         todayItems: [] as string[],
         focusItems: [] as string[],
-        groupedTransits: [] as TransitThemeGroup[],
+        transits: [] as TransitItem[],
       };
     }
 
-    const uniqueTransits = dedupeTransits(data.transits).map((item) => localizeTransitItem(item, resolvedLocale));
+    const uniqueTransits = dedupeTransits(data.transits)
+      .map((item) => localizeTransitItem(item, resolvedLocale))
+      .sort(compareTransitItems);
 
     const todayCandidates = splitSentences(data.todayCanDo.body);
     // Avoid intermediate `filter().map()` allocations.
@@ -1029,169 +1304,107 @@ export default function DailyTransitsScreen() {
     return {
       todayItems,
       focusItems,
-      groupedTransits: groupTransits(uniqueTransits, resolvedLocale),
+      transits: uniqueTransits,
     };
   }, [data?.transits, data?.todayCanDo.body, data?.focusPoints, resolvedLocale]);
 
-  const hasTransitCards = processedContent.groupedTransits.length > 0;
+  const todayInfluenceViewModel = useMemo(() => {
+    if (!data || !heroForRender) return null;
+    return mapTodayInfluenceResponseToViewModel(data, heroForRender, processedContent, resolvedLocale);
+  }, [data, heroForRender, processedContent, resolvedLocale]);
 
-  const toggleThemeExpanded = useCallback((theme: string) => {
-    setExpandedThemes((prev) => ({
-      ...prev,
-      [theme]: !prev[theme],
-    }));
-  }, []);
+  const filterOptions = useMemo(
+    () => (todayInfluenceViewModel ? buildFilterOptions(todayInfluenceViewModel, resolvedLocale) : []),
+    [resolvedLocale, todayInfluenceViewModel],
+  );
+
+  useEffect(() => {
+    if (selectedFilter === 'all') return;
+    if (!filterOptions.some((option) => option.key === selectedFilter)) {
+      setSelectedFilter('all');
+    }
+  }, [filterOptions, selectedFilter]);
+
+  const filteredTransits = useMemo(
+    () => todayInfluenceViewModel ? filterTransits(todayInfluenceViewModel.transits, selectedFilter) : [],
+    [selectedFilter, todayInfluenceViewModel],
+  );
+
+  const hasTransitCards = (todayInfluenceViewModel?.transits.length ?? 0) > 0;
+  const screenBackground = getTodayInfluenceBackground(colors, isDark);
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
+    <SafeScreen
+      edges={['top', 'left', 'right']}
+      style={{ backgroundColor: screenBackground }}
+      showStandardBackground={false}
+    >
       <TabHeader
-        title={data?.title ?? t('homeSurface.dailyTransits.title')}
+        title={localizedScreenTitle(resolvedLocale)}
         subtitle={formatDateLabel(data?.date ?? date, i18n.language)}
         onBack={goBack}
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {dailyTransitsQuery.isLoading ? <LoadingState /> : null}
+        {dailyTransitsQuery.isLoading ? <TodayInfluenceLoadingState /> : null}
 
         {dailyTransitsQuery.isError ? (
-          <View style={[styles.statusCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF' }]}>
-            <Text style={[styles.statusTitle, { color: colors.text }]}>{t('dailyTransits.errorTitle')}</Text>
-            <Text style={[styles.statusBody, { color: colors.subtext }]}>{t('dailyTransits.errorBody')}</Text>
-            <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
-              <Text style={styles.retryText}>{t('dailyTransits.retry')}</Text>
-            </Pressable>
-          </View>
+          <PremiumStatusCard
+            icon="cloud-offline-outline"
+            title={resolvedLocale === 'en' ? "Today's influences could not load" : 'Bugünün etkileri yüklenemedi'}
+            body={resolvedLocale === 'en' ? 'You can try again shortly.' : 'Kısa süre sonra tekrar deneyebilirsin.'}
+            buttonLabel={t('dailyTransits.retry')}
+            onPress={onRetry}
+          />
         ) : null}
 
         {isEmpty || (data != null && !hasTransitCards) ? (
-          <View style={[styles.statusCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF' }]}>
-            <Text style={[styles.statusTitle, { color: colors.text }]}>{t('dailyTransits.emptyTitle')}</Text>
-            <Text style={[styles.statusBody, { color: colors.subtext }]}>
-              {t('dailyTransits.emptyBody')}
-            </Text>
-            <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
-              <Text style={styles.retryText}>{t('dailyTransits.refresh')}</Text>
-            </Pressable>
-          </View>
+          <PremiumStatusCard
+            icon="moon-outline"
+            title={resolvedLocale === 'en' ? 'No transits found for today' : 'Bugün için transit bulunamadı'}
+            body={
+              resolvedLocale === 'en'
+                ? "The day's energy will appear here when it is ready."
+                : 'Günün enerjisi hazır olduğunda burada görünecek.'
+            }
+            buttonLabel={t('dailyTransits.refresh')}
+            onPress={onRetry}
+          />
         ) : null}
 
-        {data && !isEmpty && hasTransitCards ? (
+        {data && todayInfluenceViewModel && !isEmpty && hasTransitCards ? (
           <>
             <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HERO_SUMMARY}>
-              <HeroCard hero={heroForRender ?? data.hero} />
+              <HeroInsightCard hero={todayInfluenceViewModel.hero} />
             </SpotlightTarget>
 
-            <View style={styles.quickRow}>
-              {data.quickFacts.map((fact) => (
-                <QuickFactChip key={fact.id} item={fact} />
-              ))}
-            </View>
-
-            <SectionCard title={data.todayCanDo.headline} icon="sunny-outline">
-              {processedContent.todayItems.length > 0 ? (
-                <View style={styles.todayList}>
-                  {processedContent.todayItems.map((item, index) => (
-                    <View key={`${item}-${index}`} style={styles.focusRow}>
-                      <View style={[styles.focusDot, { backgroundColor: colors.primary }]} />
-                      <Text style={[styles.focusText, { color: colors.subtext }]}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text style={[styles.sectionBody, { color: colors.subtext }]}>{t('dailyTransits.preparingExtra')}</Text>
-              )}
-              <Pressable
-                style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
-                onPress={() => router.push(actionsRoute as never)}
-              >
-                <Text style={styles.ctaText}>{data.todayCanDo.ctaText}</Text>
-                <Ionicons name="arrow-forward" size={15} color="#FFF" />
-              </Pressable>
-            </SectionCard>
+            <TodaySummaryCards items={todayInfluenceViewModel.summaryCards} />
 
             <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.IMPACT_ZONES}>
-              <SectionCard title={t('dailyTransits.cautionSectionTitle')} icon="flash">
-                {processedContent.focusItems.length > 0 ? (
-                  <View style={styles.focusList}>
-                    {processedContent.focusItems.map((point, index) => (
-                      <View key={`${point}-${index}`} style={styles.focusRow}>
-                        <View style={[styles.focusDot, { backgroundColor: colors.primary }]} />
-                        <Text style={[styles.focusText, { color: colors.subtext }]}>{point}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={[styles.sectionBody, { color: colors.subtext }]}>{t('dailyTransits.preparingExtra')}</Text>
-                )}
-              </SectionCard>
+              <TodayInfluenceMiniPlanCard
+                plan={todayInfluenceViewModel.miniPlan}
+                onPressCta={() => router.push(actionsRoute as never)}
+              />
             </SpotlightTarget>
 
-            <SectionCard title={t('dailyTransits.retroSectionTitle')} icon="repeat">
-              <RetroList items={data.retrogrades} />
-            </SectionCard>
+            <SkyDataCard skyData={todayInfluenceViewModel.skyData} />
 
             <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.TRANSIT_CARDS}>
-              <SectionCard title={t('dailyTransits.transitCardsSectionTitle')} icon="planet">
-                <View style={styles.transitGroupsWrap}>
-                  {processedContent.groupedTransits.map((group) => {
-                    const themeKey = normalizeSentence(group.theme);
-                    const expanded = Boolean(expandedThemes[themeKey]);
-                    const canExpand = group.items.length > MAX_TRANSITS_PER_THEME;
-                    const visibleItems =
-                      canExpand && !expanded ? group.items.slice(0, MAX_TRANSITS_PER_THEME) : group.items;
-
-                    return (
-                      <View key={group.theme} style={styles.themeGroup}>
-                        <View style={styles.themeHeaderRow}>
-                          <Text style={[styles.themeHeaderText, { color: colors.text }]}>{group.theme}</Text>
-                          {canExpand ? (
-                            <Pressable
-                              onPress={() => toggleThemeExpanded(themeKey)}
-                              hitSlop={8}
-                              style={styles.themeToggleBtn}
-                              accessibilityRole="button"
-                              accessibilityLabel={
-                                expanded ? t('dailyTransits.collapseThemeA11y', { theme: group.theme }) : t('dailyTransits.expandThemeA11y', { theme: group.theme })
-                              }
-                            >
-                              <Text style={[styles.themeToggleText, { color: colors.primary }]}>
-                                {expanded ? t('dailyTransits.showLess') : t('dailyTransits.showAll')}
-                              </Text>
-                              <Ionicons
-                                name={expanded ? 'chevron-up' : 'chevron-down'}
-                                size={14}
-                                color={colors.primary}
-                              />
-                            </Pressable>
-                          ) : null}
-                        </View>
-
-                        <View style={styles.transitList}>
-                          {visibleItems.map((item) => (
-                            <TransitItemCard
-                              key={item.id}
-                              transit={item}
-                              date={data.date}
-                              onDetailOpened={(transitId) =>
-                                trackEvent('transit_detail_opened', {
-                                  date: data.date,
-                                  transit_id: transitId,
-                                  surface: 'daily_transits',
-                                  destination: 'daily_transits_detail',
-                                })}
-                              onFeedback={handleFeedback}
-                            />
-                          ))}
-                        </View>
-                      </View>
-                    );
+              <TransitCardsSection
+                transits={filteredTransits}
+                filters={filterOptions}
+                selectedFilter={selectedFilter}
+                onSelectFilter={setSelectedFilter}
+                date={data.date}
+                onDetailOpened={(transitId) =>
+                  trackEvent('transit_detail_opened', {
+                    date: data.date,
+                    transit_id: transitId,
+                    surface: 'daily_transits',
+                    destination: 'daily_transits_detail',
                   })}
-
-                  {processedContent.groupedTransits.length === 0 ? (
-                    <Text style={[styles.sectionBody, { color: colors.subtext }]}>{t('dailyTransits.preparingExtra')}</Text>
-                  ) : null}
-                </View>
-              </SectionCard>
+                onFeedback={handleFeedback}
+              />
             </SpotlightTarget>
           </>
         ) : null}
@@ -1201,148 +1414,10 @@ export default function DailyTransitsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  navBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  headerTitle: {
-    ...TYPOGRAPHY.H2,
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  headerDate: {
-    ...TYPOGRAPHY.Small,
-    fontSize: 15,
-  },
-  headerSpacer: {
-    width: 40,
-  },
   content: {
     paddingHorizontal: SPACING.lg,
-    paddingBottom: 120,
+    paddingTop: SPACING.md,
+    paddingBottom: 132,
     gap: SPACING.md,
-  },
-  loadingWrap: {
-    gap: SPACING.md,
-  },
-  quickRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-  },
-  sectionBody: {
-    ...TYPOGRAPHY.BodyMid,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  todayList: {
-    gap: SPACING.sm,
-  },
-  ctaBtn: {
-    marginTop: SPACING.xsSm,
-    alignSelf: 'flex-start',
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.mdLg,
-    paddingVertical: SPACING.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xsSm,
-  },
-  ctaText: {
-    ...TYPOGRAPHY.SmallBold,
-    color: '#FFF',
-    fontSize: 14,
-  },
-  focusList: {
-    gap: SPACING.sm,
-  },
-  focusRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SPACING.sm,
-  },
-  focusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    marginTop: 8,
-  },
-  focusText: {
-    ...TYPOGRAPHY.BodyMid,
-    fontSize: 15,
-    lineHeight: 22,
-    flex: 1,
-  },
-  transitList: {
-    gap: SPACING.sm,
-  },
-  transitGroupsWrap: {
-    gap: SPACING.md,
-  },
-  themeGroup: {
-    gap: SPACING.sm,
-  },
-  themeHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  themeHeaderText: {
-    ...TYPOGRAPHY.BodyBold,
-    fontSize: 17,
-    lineHeight: 23,
-  },
-  themeToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 44,
-    paddingHorizontal: SPACING.xs,
-    gap: SPACING.xs,
-  },
-  themeToggleText: {
-    ...TYPOGRAPHY.CaptionBold,
-    fontSize: 12,
-  },
-  statusCard: {
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  statusTitle: {
-    ...TYPOGRAPHY.BodyBold,
-    fontSize: 19,
-  },
-  statusBody: {
-    ...TYPOGRAPHY.BodyMid,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  retryBtn: {
-    alignSelf: 'flex-start',
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.mdLg,
-    paddingVertical: SPACING.sm,
-    marginTop: SPACING.xsSm,
-  },
-  retryText: {
-    ...TYPOGRAPHY.SmallBold,
-    color: '#FFF',
-    fontSize: 14,
   },
 });

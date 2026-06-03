@@ -451,12 +451,14 @@ export default function CompatibilityScreen() {
 
     // Check monetization gate on CTA click
     if (analyzeUnlockState.usesMonetization) {
+      if (analyzeUnlockState.guruEnabled || analyzeUnlockState.adEnabled) {
+        setShowUnlockSheet(true);
+        return;
+      }
       if (analyzeUnlockState.purchaseEnabled) {
         setShowPurchaseSheet(true);
         return;
       }
-      setShowUnlockSheet(true);
-      return;
     }
 
     // No monetization gate configured — proceed directly

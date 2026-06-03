@@ -98,6 +98,7 @@ import NatalChartHeroCard, {
 import BirthNightSkyPoster from '../../components/Astrology/BirthNightSkyPoster';
 import { posterTokens } from '../../features/nightSkyPoster/poster.tokens';
 import { useTranslation } from 'react-i18next';
+import { navigateWithOrigin } from '../../navigation';
 import { getUniversalDownloadUrl } from '../../utils/publicUrl';
 import { useTheme } from '../../context/ThemeContext';
 import { AccordionSection, SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
@@ -1977,7 +1978,7 @@ export function NatalChartScreenContent() {
       houses: chart.houses ?? [],
       createdAt: Date.now(),
     });
-    router.push('/(tabs)/night-sky-poster-preview' as any);
+    navigateWithOrigin({ pathname: '/(tabs)/night-sky-poster-preview', from: '/(tabs)/natal-chart' });
   };
 
   const openNatalVisualsPreview = (presetKey: 'wheel' | 'matrix' | 'balance' = 'wheel') => {
@@ -1992,9 +1993,10 @@ export function NatalChartScreenContent() {
       planets: chart.planets ?? [],
       houses: chart.houses ?? [],
       aspects: chart.aspects ?? [],
+      planetComboInsights: chart.planetComboInsights ?? [],
       createdAt: Date.now(),
     });
-    router.push('/(tabs)/natal-visuals-preview' as any);
+    navigateWithOrigin({ pathname: '/(tabs)/natal-visuals-preview', from: '/(tabs)/natal-chart' });
   };
 
   const renderSectionDragHandle = (
@@ -2209,30 +2211,24 @@ export function NatalChartScreenContent() {
             lazy
             deferBodyMount
             headerRight={headerRight}
+            variant="birthChart"
           >
-            <NatalChartProPanels
-              planets={chart?.planets ?? []}
-              houses={chart?.houses ?? []}
-              aspects={chart?.aspects ?? []}
-              risingSign={chart?.risingSign}
-              planetNames={planetNames}
-              onAspectPress={openAspectSheet}
-              panels={['wheel']}
-            />
-            <View style={styles.posterModuleActions}>
-              <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.DETAIL_ACTION}>
-                <Pressable
-                  style={styles.posterBtn}
-                  onPress={() => openNatalVisualsPreview('wheel')}
-                  accessibilityLabel={t('natalChart.chartVisualFullA11y')}
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="scan-outline" size={16} color={colors.goldDark} />
-                  <Text style={styles.posterBtnText}>{t('natalChart.chartVisualFullBtn')}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.goldDark} />
-                </Pressable>
-              </SpotlightTarget>
-            </View>
+            <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.DETAIL_ACTION}>
+              <NatalChartProPanels
+                planets={chart?.planets ?? []}
+                houses={chart?.houses ?? []}
+                aspects={chart?.aspects ?? []}
+                planetComboInsights={chart?.planetComboInsights}
+                risingSign={chart?.risingSign}
+                planetNames={planetNames}
+                onAspectPress={openAspectSheet}
+                onOpenFull={() => openNatalVisualsPreview('wheel')}
+                onDownload={() => openNatalVisualsPreview('wheel')}
+                onViewAllInterpretation={() => setOpenAccordionKey('ai_interpretation')}
+                panels={['wheel']}
+                presentation="premium"
+              />
+            </SpotlightTarget>
           </AccordionSection>
         );
 

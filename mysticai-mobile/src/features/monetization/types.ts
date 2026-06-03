@@ -267,6 +267,7 @@ export interface UnlockOptions {
     retryAfterSeconds: number;
     message?: string | null;
   };
+  alreadyUnlocked?: boolean | null;
 }
 
 export interface TokenUnlockResponse {

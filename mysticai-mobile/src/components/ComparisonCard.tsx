@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronDown, ChevronUp, Heart, Info, Lightbulb, Sparkles } from 'lucide-react-native';
 import { AccessibleText } from './ui';
 import { ACCESSIBILITY, RADIUS, SPACING, TYPOGRAPHY } from '../constants/tokens';
@@ -684,13 +684,17 @@ function DetailRow({ title, body }: { title: string; body: string }) {
   );
 }
 
-function CompatibilityDimensionCard({ dimension }: { dimension: CompatibilityDimension }) {
+export function CompatibilityDimensionCard({
+  dimension,
+  initiallyExpanded = false,
+}: {
+  dimension: CompatibilityDimension;
+  initiallyExpanded?: boolean;
+}) {
   const { colors, isDark } = useTheme();
-  const { width } = useWindowDimensions();
-  const [isDetailOpen, setDetailOpen] = useState(false);
+  const [isDetailOpen, setDetailOpen] = useState(initiallyExpanded);
   const status = dimension.status ?? getCompatibilityStatus(dimension.score);
   const statusColors = getCompatibilityStatusColors(status, colors, isDark);
-  const isCompact = width < 390;
   const scoreText = dimension.score == null ? '--' : `%${dimension.score}`;
 
   return (
@@ -756,7 +760,7 @@ function CompatibilityDimensionCard({ dimension }: { dimension: CompatibilityDim
         </View>
       </View>
 
-      <View style={[styles.personPanels, isCompact ? styles.personPanelsStack : null]}>
+      <View style={[styles.personPanels, { flexDirection: 'row' }]}>
         <PersonNeedCard person={dimension.personA} statusColors={statusColors} />
         <PersonNeedCard person={dimension.personB} statusColors={statusColors} />
       </View>
@@ -875,16 +879,14 @@ const styles = StyleSheet.create({
     color: '#514B5F',
   },
   personPanels: {
-    flexDirection: 'row',
     alignItems: 'stretch',
+    flexWrap: 'wrap',
     gap: SPACING.md,
-  },
-  personPanelsStack: {
-    flexDirection: 'column',
   },
   personPanel: {
     flex: 1,
-    minWidth: 0,
+    flexBasis: 0,
+    minWidth: 132,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: '#ECE6F4',

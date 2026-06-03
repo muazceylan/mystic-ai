@@ -2437,6 +2437,14 @@
     "analysisStartErrorTitle": "Analysis Error",
     "analysisStartErrorMessage": "The synastry analysis could not be started."
   },
+  "tutorial": {
+    "actions": {
+      "skip": "Skip"
+    },
+    "accessibility": {
+      "skip": "Skip guide"
+    }
+  },
   "tutorialCenter": {
     "refreshAccessibility": "Refresh guide center",
     "heroTitle": "Manage All Guides From Here",

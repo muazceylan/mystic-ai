@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { HousePlacement, PlanetPosition, PlanetaryAspect } from '../services/astrology.service';
+import type { HousePlacement, NatalPlanetComboInsight, PlanetPosition, PlanetaryAspect } from '../services/astrology.service';
 
 export type NatalVisualPresetKey = 'wheel' | 'matrix' | 'balance';
 
@@ -13,6 +13,7 @@ export type NatalVisualsDraft = {
   planets: PlanetPosition[];
   houses: HousePlacement[];
   aspects: PlanetaryAspect[];
+  planetComboInsights?: NatalPlanetComboInsight[];
   createdAt: number;
 };
 

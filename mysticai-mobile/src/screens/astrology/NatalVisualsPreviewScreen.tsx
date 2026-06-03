@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   runOnJS,
@@ -108,6 +109,7 @@ function buildVisualsPdfHtml(imageUri: string, title: string, options?: { bare?:
 export default function NatalVisualsPreviewScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { width } = useWindowDimensions();
   const draft = useNatalVisualsStore((s) => s.draft);
   const clearDraft = useNatalVisualsStore((s) => s.clearDraft);
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
@@ -122,6 +124,8 @@ export default function NatalVisualsPreviewScreen() {
   const isWheelPreset = presetKey === 'wheel';
   const useNativePreviewZoom = Platform.OS === 'ios';
   const maxZoomScale = isWheelPreset ? 4 : 3;
+  const liveWheelWidth = Math.max(320, width - 32);
+  const screenBackground = isWheelPreset ? colors.birthChart.screenBackground : colors.background;
 
   const zoomScale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -446,7 +450,7 @@ export default function NatalVisualsPreviewScreen() {
   }
 
   return (
-    <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeScreen edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: screenBackground }}>
       <View pointerEvents="none" style={styles.captureHost}>
         <ViewShot
           ref={viewShotRef}
@@ -465,7 +469,7 @@ export default function NatalVisualsPreviewScreen() {
               styles.captureCard,
               isWheelPreset && styles.captureCardWheel,
               {
-                backgroundColor: colors.background,
+                backgroundColor: screenBackground,
                 borderColor: isWheelPreset ? 'transparent' : colors.border,
                 minHeight: captureCanvasHeight,
               },
@@ -494,6 +498,7 @@ export default function NatalVisualsPreviewScreen() {
                 planets={draft.planets}
                 houses={draft.houses}
                 aspects={draft.aspects}
+                planetComboInsights={draft.planetComboInsights}
                 risingSign={draft.risingSign}
                 panels={preset.panels}
                 renderWidthOverride={isWheelPreset ? preset.canvasWidth - 2 : preset.canvasWidth - 40}
@@ -548,7 +553,29 @@ export default function NatalVisualsPreviewScreen() {
             { backgroundColor: isWheelPreset ? 'transparent' : colors.surface, borderColor: isWheelPreset ? 'transparent' : colors.border },
           ]}
         >
-          {loading ? (
+          {isWheelPreset ? (
+            <View style={styles.liveWheelWrap}>
+              <NatalChartProPanels
+                planets={draft.planets}
+                houses={draft.houses}
+                aspects={draft.aspects}
+                planetComboInsights={draft.planetComboInsights}
+                risingSign={draft.risingSign}
+                panels={['wheel']}
+                renderWidthOverride={liveWheelWidth}
+                presentation="premium"
+                showPremiumActions={false}
+              />
+              {loading ? (
+                <View style={[styles.liveWheelStatus, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <ActivityIndicator size="small" color={colors.violet} />
+                  <Text style={[styles.liveWheelStatusText, { color: colors.subtext }]}>
+                    {t('natalVisualsPreview.loaderSubtitle', { preset: preset.label })}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : loading ? (
             <View style={styles.loaderWrap}>
               <View style={[styles.loaderGhost, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]} />
               <ActivityIndicator size="large" color={colors.violet} />
@@ -841,6 +868,25 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     padding: 0,
     gap: 0,
+  },
+  liveWheelWrap: {
+    gap: 12,
+  },
+  liveWheelStatus: {
+    minHeight: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  liveWheelStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   previewImageWrap: {
     borderRadius: 18,

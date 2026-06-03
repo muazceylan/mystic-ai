@@ -2068,7 +2068,7 @@
     "saveToGallery": "Galeriye Kaydet",
     "presets": {
       "wheel": {
-        "label": "Natal Wheel Poster",
+        "label": "Natal Çark Posteri",
         "sub": "Sadece dairesel doğum haritası"
       },
       "matrix": {
@@ -2435,6 +2435,14 @@
     "retryAnalysisAccessibility": "Analizi tekrar dene",
     "analysisStartErrorTitle": "Analiz Hatası",
     "analysisStartErrorMessage": "Sinastri analizi başlatılamadı."
+  },
+  "tutorial": {
+    "actions": {
+      "skip": "Geç"
+    },
+    "accessibility": {
+      "skip": "Rehberi geç"
+    }
   },
   "tutorialCenter": {
     "refreshAccessibility": "Rehber merkezini yenile",

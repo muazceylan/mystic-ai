@@ -48,6 +48,7 @@ public class RewardedContentUnlockService {
         int requiredViews = resolveRequiredViews(context.rule(), context.tokenRequirement());
         int completedViews = progress != null ? Math.min(progress.getCompletedViews(), requiredViews) : 0;
         AdAvailabilityDto availability = resolveAvailability(userId, context, completedViews, requiredViews);
+        boolean alreadyUnlocked = findUnlockedProgress(userId, context).isPresent();
 
         return new UnlockOptionsResponse(
                 moduleKey,
@@ -59,7 +60,8 @@ public class RewardedContentUnlockService {
                 context.rewardedAdEnabled(),
                 requiredViews,
                 new RewardedAdProgressDto(completedViews, requiredViews),
-                availability
+                availability,
+                alreadyUnlocked
         );
     }
 
@@ -490,7 +492,8 @@ public class RewardedContentUnlockService {
             Boolean rewardedAdEnabled,
             Integer rewardedAdViewsRequired,
             RewardedAdProgressDto rewardedAdProgress,
-            AdAvailabilityDto adAvailability
+            AdAvailabilityDto adAvailability,
+            Boolean alreadyUnlocked
     ) {}
 
     public record RewardedAdProgressDto(int completed, int required) {}

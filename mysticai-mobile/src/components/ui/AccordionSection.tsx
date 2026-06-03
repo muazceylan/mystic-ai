@@ -23,6 +23,7 @@ type Props = {
   deferBodyMount?: boolean;
   placeholder?: React.ReactNode;
   children?: React.ReactNode;
+  variant?: 'default' | 'birthChart';
 };
 
 function AccordionSection({
@@ -41,10 +42,13 @@ function AccordionSection({
   deferBodyMount = false,
   placeholder,
   children,
+  variant = 'default',
 }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const birthChart = colors.birthChart;
   const [bodyReady, setBodyReady] = useState(!lazy);
+  const isBirthChart = variant === 'birthChart';
 
   const handleLayout = (e: LayoutChangeEvent) => {
     if (!onLayout) return;
@@ -80,6 +84,23 @@ function AccordionSection({
   }, [lazy, expanded, bodyReady, deferBodyMount]);
 
   const renderSectionIcon = () => {
+    if (isBirthChart) {
+      return (
+        <View
+          style={[
+            styles.birthChartIconWrap,
+            {
+              backgroundColor: birthChart.iconBadgeBackground,
+              borderColor: birthChart.iconBadgeBorder,
+              shadowColor: birthChart.glow,
+            },
+          ]}
+        >
+          <Ionicons name={icon} size={20} color={birthChart.primaryAccent} />
+        </View>
+      );
+    }
+
     if (iconStyle !== 'premium') {
       return (
         <View style={[styles.iconWrap, { backgroundColor: colors.violetBg }]}>
@@ -96,9 +117,9 @@ function AccordionSection({
       style={[
         styles.wrap,
         {
-          backgroundColor: colors.card,
-          borderColor: expanded ? colors.violet + '55' : colors.border,
-          shadowColor: colors.shadow,
+          backgroundColor: isBirthChart ? birthChart.accordionBackground : colors.card,
+          borderColor: isBirthChart ? birthChart.accordionBorder : expanded ? colors.violet + '55' : colors.border,
+          shadowColor: isBirthChart ? birthChart.shadow : colors.shadow,
         },
       ]}
       onLayout={handleLayout}
@@ -116,11 +137,11 @@ function AccordionSection({
         <View style={styles.headerLeft}>
           {renderSectionIcon()}
           <View style={styles.headerTextCol}>
-            <AppText variant="SmallBold" color="primary" numberOfLines={2} ellipsizeMode="tail" weight="800">
+            <AppText variant="SmallBold" color={isBirthChart ? birthChart.textPrimary : 'primary'} numberOfLines={2} ellipsizeMode="tail" weight="800">
               {title}
             </AppText>
             {subtitle ? (
-              <AppText variant="CaptionSmall" color="secondary" numberOfLines={2} ellipsizeMode="tail" style={styles.subtitle}>
+              <AppText variant="CaptionSmall" color={isBirthChart ? birthChart.textSecondary : 'secondary'} numberOfLines={2} ellipsizeMode="tail" style={styles.subtitle}>
                 {subtitle}
               </AppText>
             ) : null}
@@ -132,7 +153,7 @@ function AccordionSection({
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={16}
-            color={colors.textMuted}
+            color={isBirthChart ? birthChart.textPrimary : colors.textMuted}
           />
         </View>
       </Pressable>
@@ -189,6 +210,18 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  birthChartIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    elevation: 3,
   },
   subtitle: {
     marginTop: 1,

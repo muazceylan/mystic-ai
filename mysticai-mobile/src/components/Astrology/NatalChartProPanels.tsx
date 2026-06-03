@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -12,36 +12,66 @@ import Svg, {
   G,
   Line,
   Path,
+  Rect,
   Text as SvgText,
   Defs,
   LinearGradient as SvgLinearGradient,
   Stop,
 } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type {
   HousePlacement,
+  NatalPlanetComboInsight,
   PlanetPosition,
   PlanetaryAspect,
   AspectType,
 } from '../../services/astrology.service';
-import { getZodiacInfo, PLANET_TURKISH, SIGN_MODALITY_KEY, type ElementKey, type ModalityKey } from '../../constants/zodiac';
+import { getPlanetDescription, getZodiacInfo, PLANET_TURKISH, SIGN_MODALITY_KEY, type ElementKey, type ModalityKey } from '../../constants/zodiac';
 import { labelPlanet } from '../../constants/astroLabelMap';
 import { useTheme } from '../../context/ThemeContext';
+
+type BirthChartMode = 'simple' | 'detailed';
 
 type NatalChartProPanelsProps = {
   planets: PlanetPosition[];
   houses: HousePlacement[];
   aspects: PlanetaryAspect[];
+  planetComboInsights?: NatalPlanetComboInsight[];
   planetNames?: Record<string, string>;
   risingSign?: string | null;
   onAspectPress?: (aspect: PlanetaryAspect) => void;
+  onOpenFull?: () => void;
+  onDownload?: () => void;
+  onViewAllInterpretation?: () => void;
   mode?: 'full' | 'hero';
   panels?: Array<'wheel' | 'matrix' | 'balance' | 'positions'>;
   renderWidthOverride?: number;
-  presentation?: 'default' | 'poster';
+  presentation?: 'default' | 'poster' | 'premium';
+  showPremiumActions?: boolean;
 };
 
 type AspectCell = PlanetaryAspect | null;
+type BirthChartTheme = ReturnType<typeof useTheme>['colors']['birthChart'];
+
+type PremiumPlacement =
+  | {
+      id: string;
+      kind: 'planet';
+      planet: PlanetPosition;
+      label: string;
+      sign: string;
+      house?: number;
+      glyph: string;
+    }
+  | {
+      id: string;
+      kind: 'ascendant';
+      label: string;
+      sign: string | null;
+      house?: number;
+      glyph: string;
+    };
 
 // ElementKey and ModalityKey imported from zodiac.ts ('fire'|'water'|'earth'|'air' and 'cardinal'|'fixed'|'mutable')
 
@@ -85,54 +115,48 @@ const PLANET_GLYPHS: Record<string, string> = {
 
 const ASPECT_META: Record<
   AspectType,
-  { symbol: string; exact: number; maxOrb: number; colorLight: string; colorDark: string; label: string }
+  { symbol: string; exact: number; maxOrb: number; category: 'harmonious' | 'neutral' | 'challenging'; label: string }
 > = {
   CONJUNCTION: {
     symbol: '☌',
     exact: 0,
     maxOrb: 8,
-    colorLight: '#7C3AED',
-    colorDark: '#C4B5FD',
+    category: 'neutral',
     label: 'natalChart.panels.aspectConjunction',
   },
   SEXTILE: {
     symbol: '⚹',
     exact: 60,
     maxOrb: 6,
-    colorLight: '#2563EB',
-    colorDark: '#93C5FD',
+    category: 'harmonious',
     label: 'natalChart.panels.aspectSextile',
   },
   SQUARE: {
     symbol: '□',
     exact: 90,
     maxOrb: 8,
-    colorLight: '#D97706',
-    colorDark: '#FCD34D',
+    category: 'challenging',
     label: 'natalChart.panels.aspectSquare',
   },
   TRINE: {
     symbol: '△',
     exact: 120,
     maxOrb: 8,
-    colorLight: '#059669',
-    colorDark: '#6EE7B7',
+    category: 'harmonious',
     label: 'natalChart.panels.aspectTrine',
   },
   QUINCUNX: {
     symbol: '⚻',
     exact: 150,
     maxOrb: 3,
-    colorLight: '#0F766E',
-    colorDark: '#5EEAD4',
+    category: 'neutral',
     label: 'natalChart.panels.aspectQuincunx',
   },
   OPPOSITION: {
     symbol: '☍',
     exact: 180,
     maxOrb: 8,
-    colorLight: '#DC2626',
-    colorDark: '#FCA5A5',
+    category: 'challenging',
     label: 'natalChart.panels.aspectOpposition',
   },
 };
@@ -168,21 +192,6 @@ const SIGN_KEYS_IN_ORDER = [
 ] as const;
 
 // SIGN_MODALITY_KEY imported from zodiac.ts (ASCII keys: cardinal/fixed/mutable)
-
-const SIGN_ACCENT_COLORS: Record<string, string> = {
-  ARIES: '#EF4444',
-  TAURUS: '#43A047',
-  GEMINI: '#F59E0B',
-  CANCER: '#2F80ED',
-  LEO: '#F97316',
-  VIRGO: '#2E9F62',
-  LIBRA: '#F59E0B',
-  SCORPIO: '#2563EB',
-  SAGITTARIUS: '#F97316',
-  CAPRICORN: '#2E8B57',
-  AQUARIUS: '#F59E0B',
-  PISCES: '#3B82F6',
-};
 
 const PLANET_WEIGHTS: Record<string, number> = {
   Sun: 3.4,
@@ -240,9 +249,36 @@ function compactPlanetLabel(planetKey: string, labels?: Record<string, string>) 
   return label.length > 4 ? label.slice(0, 3) : label;
 }
 
-function signAccentColor(sign: string | null | undefined) {
-  if (!sign) return '#64748B';
-  return SIGN_ACCENT_COLORS[sign.toUpperCase()] ?? '#64748B';
+function aspectColor(type: AspectType, birthChart: BirthChartTheme) {
+  const category = ASPECT_META[type]?.category;
+  if (category === 'harmonious') return birthChart.aspectHarmonious;
+  if (category === 'challenging') return birthChart.aspectChallenging;
+  return birthChart.aspectNeutral;
+}
+
+function withAlpha(color: string, alpha: number) {
+  const opacity = clamp(alpha, 0, 1);
+  if (color.startsWith('#') && (color.length === 7 || color.length === 4)) {
+    const full = color.length === 4
+      ? color
+        .slice(1)
+        .split('')
+        .map((part) => part + part)
+        .join('')
+      : color.slice(1);
+    const value = Number.parseInt(full, 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  if (color.startsWith('rgba(')) {
+    return color.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, `rgba($1,$2,$3,${opacity})`);
+  }
+  if (color.startsWith('rgb(')) {
+    return color.replace('rgb(', 'rgba(').replace(')', `, ${opacity})`);
+  }
+  return color;
 }
 
 function formatPlanetDegreeMinute(planet: PlanetPosition) {
@@ -328,6 +364,66 @@ function nudgePointTangential(point: { x: number; y: number }, degrees: number, 
     x: point.x - Math.sin(rad) * offset,
     y: point.y + Math.cos(rad) * offset,
   };
+}
+
+type LabelDistributionPlanet = PlanetPosition & {
+  absLon: number;
+  markerRadialOffset: number;
+  labelRadialOffset: number;
+  labelTangentialOffset: number;
+  connector: boolean;
+};
+
+function distributePlanetLabels(
+  sortedPlanets: Array<PlanetPosition & { absLon: number }>,
+  options: { compact: boolean; poster: boolean; simple: boolean },
+): LabelDistributionPlanet[] {
+  if (!sortedPlanets.length) return [];
+
+  const threshold = options.compact ? 5.5 : options.simple ? 8 : 9.5;
+  const groups: Array<typeof sortedPlanets> = [];
+  let currentGroup: typeof sortedPlanets = [];
+
+  sortedPlanets.forEach((planet) => {
+    const last = currentGroup[currentGroup.length - 1];
+    if (!last || circularDistance(last.absLon, planet.absLon) <= threshold) {
+      currentGroup.push(planet);
+      return;
+    }
+
+    groups.push(currentGroup);
+    currentGroup = [planet];
+  });
+
+  if (currentGroup.length) groups.push(currentGroup);
+
+  if (
+    groups.length > 1
+    && circularDistance(groups[0][0].absLon, groups[groups.length - 1][groups[groups.length - 1].length - 1].absLon) <= threshold
+  ) {
+    groups[0] = [...groups[groups.length - 1], ...groups[0]];
+    groups.pop();
+  }
+
+  return groups.flatMap((group) => {
+    const center = (group.length - 1) / 2;
+    const radialUnit = options.compact ? 5 : options.poster ? 8 : 7;
+    const labelRadialUnit = options.compact ? 8 : options.poster ? 16 : 12;
+    const labelTangentialUnit = options.compact ? 10 : options.poster ? 21 : 16;
+
+    return group.map((planet, index) => {
+      const relativeIndex = index - center;
+      const layer = Math.max(0, Math.ceil(Math.abs(relativeIndex)));
+
+      return {
+        ...planet,
+        markerRadialOffset: relativeIndex === 0 ? 0 : Math.sign(relativeIndex) * radialUnit * layer,
+        labelRadialOffset: layer * labelRadialUnit,
+        labelTangentialOffset: relativeIndex * labelTangentialUnit,
+        connector: group.length > 1,
+      };
+    });
+  });
 }
 
 function donutSegmentPath(
@@ -551,6 +647,9 @@ function NatalWheel({
   aspects,
   planetNames,
   mode = 'full',
+  chartMode = 'detailed',
+  selectedPlanetId,
+  onPlanetPress,
   renderWidthOverride,
   showMetaRow = false,
   showAuras = true,
@@ -560,6 +659,9 @@ function NatalWheel({
   aspects: PlanetaryAspect[];
   planetNames?: Record<string, string>;
   mode?: 'full' | 'hero';
+  chartMode?: BirthChartMode;
+  selectedPlanetId?: string | null;
+  onPlanetPress?: (planet: PlanetPosition) => void;
   renderWidthOverride?: number;
   showMetaRow?: boolean;
   showAuras?: boolean;
@@ -570,6 +672,8 @@ function NatalWheel({
   const { width } = useWindowDimensions();
   const isHero = mode === 'hero';
   const isPoster = !isHero && !showMetaRow && !showAuras;
+  const isSimple = chartMode === 'simple';
+  const birthChart = colors.birthChart;
   const layoutWidth = renderWidthOverride ?? width;
   const size = isHero
     ? clamp(layoutWidth - 34, 232, 282)
@@ -592,14 +696,21 @@ function NatalWheel({
   const planetGlyphRadius = isHero ? 10.5 : isPoster ? 14 : 12.5;
   const degreeLabelSize = isHero ? 8 : isPoster ? 10.5 : 9.5;
   const planetNameSize = isHero ? 6.4 : 7.4;
-  const posterLine = '#111827';
-  const posterMinor = '#CBD5E1';
-  const posterMuted = '#64748B';
-  const posterSurface = '#FFFFFF';
+  const posterLine = birthChart.chartText;
+  const posterMinor = birthChart.chartMutedLine;
+  const posterMuted = birthChart.chartTextMuted;
+  const posterSurface = birthChart.chartBackground;
 
   const aspectList = useMemo(
-    () => (aspects.length ? effectiveAspects(aspects) : calculateFallbackAspects(planets)),
-    [aspects, planets],
+    () => {
+      const nextAspects = aspects.length ? effectiveAspects(aspects) : calculateFallbackAspects(planets);
+      if (!isSimple) return nextAspects;
+      const majorTypes = new Set<AspectType>(['CONJUNCTION', 'SEXTILE', 'SQUARE', 'TRINE', 'OPPOSITION']);
+      return nextAspects
+        .filter((aspect) => majorTypes.has(aspect.type))
+        .slice(0, 9);
+    },
+    [aspects, isSimple, planets],
   );
 
   const orderedPlanets = useMemo(() => {
@@ -625,50 +736,34 @@ function NatalWheel({
       .map((p) => ({ ...p, absLon: planetAbsoluteLongitude(p) }))
       .sort((a, b) => a.absLon - b.absLon);
 
-    if (!sorted.length) return [];
+    return distributePlanetLabels(sorted, { compact: isHero, poster: isPoster, simple: isSimple });
+  }, [isHero, isPoster, isSimple, orderedPlanets]);
 
-    const threshold = isHero ? 5.5 : 7;
-    const groups: Array<typeof sorted> = [];
-    let currentGroup: typeof sorted = [];
+  const showPlanetLabel = useCallback((planet: PlanetPosition) => {
+    if (isPoster || !isSimple) return true;
+    return planet.planet === 'Sun' || planet.planet === 'Moon' || planet.planet === 'Mercury' || planet.planet === 'Venus' || planet.planet === 'Mars';
+  }, [isPoster, isSimple]);
 
-    sorted.forEach((planet) => {
-      const last = currentGroup[currentGroup.length - 1];
-      if (!last || circularDistance(last.absLon, planet.absLon) <= threshold) {
-        currentGroup.push(planet);
-        return;
-      }
+  const planetA11yLabel = useCallback((planet: PlanetPosition) => {
+    const planetLabel = shortPlanetLabel(planet.planet, planetNames);
+    const zodiac = getZodiacInfo(planet.sign, locale);
+    const houseLabel = planet.house ? t('natalChart.panels.housePosition', { number: planet.house }) : '';
+    return [planetLabel, zodiac.name, houseLabel].filter(Boolean).join(', ');
+  }, [locale, planetNames, t]);
 
-      groups.push(currentGroup);
-      currentGroup = [planet];
-    });
+  const planetMarkerPoint = useCallback((planet: LabelDistributionPlanet) => {
+    const angle = toWheelAngle(planet.absLon);
+    return polarPoint(cx, cy, planetR + planet.markerRadialOffset, angle);
+  }, [cx, cy, planetR, toWheelAngle]);
 
-    if (currentGroup.length) {
-      groups.push(currentGroup);
-    }
-
-    if (
-      groups.length > 1
-      && circularDistance(groups[0][0].absLon, groups[groups.length - 1][groups[groups.length - 1].length - 1].absLon) <= threshold
-    ) {
-      groups[0] = [...groups[groups.length - 1], ...groups[0]];
-      groups.pop();
-    }
-
-    return groups.flatMap((group) => group.map((planet, index) => {
-      const center = (group.length - 1) / 2;
-      const relativeIndex = index - center;
-      const layer = Math.max(0, Math.round(Math.abs(relativeIndex)));
-      const radialUnit = isHero ? 6 : isPoster ? 10 : 8;
-      const tangentialUnit = isHero ? 8 : isPoster ? 16 : 12;
-
-      return {
-        ...planet,
-        radialOffset: relativeIndex === 0 ? 0 : Math.sign(relativeIndex) * radialUnit * layer,
-        tangentialOffset: relativeIndex * tangentialUnit,
-        labelTangentialOffset: relativeIndex * (tangentialUnit + 2),
-      };
-    }));
-  }, [isHero, orderedPlanets]);
+  const planetLabelPoint = useCallback((planet: LabelDistributionPlanet) => {
+    const angle = toWheelAngle(planet.absLon);
+    return nudgePointTangential(
+      polarPoint(cx, cy, planetR + (isPoster ? -24 : 34) + planet.labelRadialOffset, angle),
+      angle,
+      planet.labelTangentialOffset,
+    );
+  }, [cx, cy, isPoster, planetR, toWheelAngle]);
 
   return (
     <View style={stylesLocal.wheelWrap}>
@@ -679,21 +774,21 @@ function NatalWheel({
           {
             width: size,
             height: size,
-            backgroundColor: colors.surface,
-            borderColor: colors.borderLight,
-            shadowColor: colors.shadow,
+            backgroundColor: isPoster ? posterSurface : birthChart.chartBackground,
+            borderColor: birthChart.cardBorder,
+            shadowColor: birthChart.shadow,
           },
         ]}
       >
-        {showAuras ? <View style={[stylesLocal.wheelAuraPrimary, { backgroundColor: colors.horoscopeGlow }]} /> : null}
-        {showAuras ? <View style={[stylesLocal.wheelAuraSecondary, { backgroundColor: colors.blueBg }]} /> : null}
+        {showAuras ? <View style={[stylesLocal.wheelAuraPrimary, { backgroundColor: birthChart.glow }]} /> : null}
+        {showAuras ? <View style={[stylesLocal.wheelAuraSecondary, { backgroundColor: withAlpha(birthChart.infoAccent, 0.14) }]} /> : null}
 
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <Defs>
             <SvgLinearGradient id="wheelRing" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor={colors.violet} stopOpacity={0.24} />
-              <Stop offset="48%" stopColor={colors.goldLight} stopOpacity={0.12} />
-              <Stop offset="100%" stopColor={colors.blue} stopOpacity={0.1} />
+              <Stop offset="0%" stopColor={birthChart.primaryAccent} stopOpacity={isSimple ? 0.16 : 0.22} />
+              <Stop offset="48%" stopColor={birthChart.goldAccent} stopOpacity={isSimple ? 0.09 : 0.13} />
+              <Stop offset="100%" stopColor={birthChart.infoAccent} stopOpacity={isSimple ? 0.07 : 0.11} />
             </SvgLinearGradient>
           </Defs>
 
@@ -702,7 +797,7 @@ function NatalWheel({
             cy={cy}
             r={outerR}
             fill={isPoster ? posterSurface : 'url(#wheelRing)'}
-            stroke={isPoster ? posterLine : colors.border}
+            stroke={isPoster ? posterLine : birthChart.chartLine}
             strokeWidth={isPoster ? 1.35 : 1.2}
           />
           <Circle
@@ -710,7 +805,7 @@ function NatalWheel({
             cy={cy}
             r={signR}
             fill="transparent"
-            stroke={isPoster ? posterMinor : colors.borderLight}
+            stroke={isPoster ? posterMinor : birthChart.chartMutedLine}
             strokeWidth={1}
           />
           <Circle
@@ -718,7 +813,7 @@ function NatalWheel({
             cy={cy}
             r={houseR}
             fill="transparent"
-            stroke={isPoster ? posterMinor : colors.borderLight}
+            stroke={isPoster ? posterMinor : birthChart.chartMutedLine}
             strokeWidth={1}
           />
           <Circle
@@ -726,15 +821,15 @@ function NatalWheel({
             cy={cy}
             r={planetR + (isPoster ? 10 : 14)}
             fill="transparent"
-            stroke={isPoster ? posterMinor : colors.borderLight}
+            stroke={isPoster ? posterMinor : birthChart.chartMutedLine}
             strokeWidth={0.85}
           />
           <Circle
             cx={cx}
             cy={cy}
             r={aspectR + 18}
-            fill={isPoster ? posterSurface : colors.card}
-            stroke={isPoster ? posterLine : colors.borderLight}
+            fill={isPoster ? posterSurface : birthChart.chartBackground}
+            stroke={isPoster ? posterLine : birthChart.chartMutedLine}
             strokeWidth={1}
           />
 
@@ -798,7 +893,7 @@ function NatalWheel({
                   y1={outer.y}
                   x2={inner.x}
                   y2={inner.y}
-                  stroke={isPoster ? posterLine : colors.border}
+                  stroke={isPoster ? posterLine : birthChart.chartLine}
                   strokeWidth={1}
                 />
                 <SvgText
@@ -806,7 +901,7 @@ function NatalWheel({
                   y={(isPoster ? glyphPoint.y : mid.y) + (isPoster ? 8 : 5)}
                   fontSize={signGlyphSize}
                   fontWeight="700"
-                  fill={isPoster ? signAccentColor(SIGN_KEYS_IN_ORDER[i]) : colors.text}
+                  fill={isPoster ? birthChart.primaryAccent : birthChart.chartText}
                   textAnchor="middle"
                 >
                   {signInfo.symbol}
@@ -815,7 +910,7 @@ function NatalWheel({
                   x={isPoster ? posterNamePoint.x : mid.x}
                   y={isPoster ? posterNamePoint.y + 3 : mid.y + (isHero ? 12 : 15)}
                   fontSize={isPoster ? 8.4 : signNameSize}
-                  fill={isPoster ? posterMuted : colors.textMuted}
+                  fill={isPoster ? posterMuted : birthChart.chartTextMuted}
                   textAnchor="middle"
                 >
                   {signInfo.name}
@@ -840,8 +935,8 @@ function NatalWheel({
                     isPoster
                       ? posterLine
                       : cusp.house === 1 || cusp.house === 10
-                        ? colors.violet
-                        : colors.borderMuted
+                        ? birthChart.primaryAccent
+                        : birthChart.chartHouseLine
                   }
                   strokeWidth={cusp.house === 1 || cusp.house === 10 ? 1.8 : 1}
                 />
@@ -850,7 +945,7 @@ function NatalWheel({
                   y={labelPt.y + 4}
                   fontSize={houseLabelSize}
                   fontWeight="700"
-                  fill={isPoster ? posterLine : colors.textMuted}
+                  fill={isPoster ? posterLine : birthChart.chartTextMuted}
                   textAnchor="middle"
                 >
                   {String(cusp.house)}
@@ -868,11 +963,12 @@ function NatalWheel({
             const p1Pt = polarPoint(cx, cy, aspectR, a1);
             const p2Pt = polarPoint(cx, cy, aspectR, a2);
             const meta = ASPECT_META[aspect.type];
-            const lineColor = meta
-              ? isPoster
-                ? meta.colorLight
-                : (colors.statusBar === 'dark' ? meta.colorDark : meta.colorLight)
-              : colors.violet;
+            const isSelectedAspect = Boolean(
+              selectedPlanetId && (aspect.planet1 === selectedPlanetId || aspect.planet2 === selectedPlanetId),
+            );
+            const lineColor = isSelectedAspect
+              ? birthChart.aspectSelected
+              : meta ? aspectColor(aspect.type, birthChart) : birthChart.aspectNeutral;
             return (
               <Line
                 key={`aspect-line-${idx}`}
@@ -881,91 +977,123 @@ function NatalWheel({
                 x2={p2Pt.x}
                 y2={p2Pt.y}
                 stroke={lineColor}
-                strokeOpacity={0.76}
-                strokeWidth={aspect.orb <= 2 ? 1.8 : 1.15}
+                strokeOpacity={selectedPlanetId ? (isSelectedAspect ? 0.92 : 0.18) : isSimple ? 0.48 : 0.72}
+                strokeWidth={isSelectedAspect ? 2.15 : aspect.orb <= 2 ? 1.65 : 1.05}
               />
             );
           })}
 
           {displayedPlanets.map((planet) => {
-            const angle = toWheelAngle(planet.absLon);
-            const point = nudgePointTangential(
-              polarPoint(cx, cy, planetR + planet.radialOffset, angle),
-              angle,
-              planet.tangentialOffset,
-            );
-            const degreePoint = nudgePointTangential(
-              polarPoint(
-                cx,
-                cy,
-                (isPoster ? planetR - 22 : planetR + 22) + planet.radialOffset,
-                angle,
-              ),
-              angle,
-              planet.labelTangentialOffset,
-            );
-            const namePoint = nudgePointTangential(
-              polarPoint(cx, cy, planetR + 36 + planet.radialOffset, angle),
-              angle,
-              planet.labelTangentialOffset * 1.1,
-            );
+            const markerPoint = planetMarkerPoint(planet);
+            const labelPoint = planetLabelPoint(planet);
             const glyph = PLANET_GLYPHS[planet.planet] ?? '•';
+            const selected = selectedPlanetId === planet.planet;
+            const label = compactPlanetLabel(planet.planet, planetNames);
+            const chipWidth = clamp(label.length * (isPoster ? 8 : 7) + (isPoster ? 36 : 30), isPoster ? 48 : 42, isPoster ? 86 : 72);
+            const chipHeight = isPoster ? 26 : isSimple ? 22 : 30;
+            const shouldShowLabel = showPlanetLabel(planet) || selected;
             return (
               <G key={`planet-${planet.planet}`}>
+                {planet.connector && shouldShowLabel ? (
+                  <Line
+                    x1={markerPoint.x}
+                    y1={markerPoint.y}
+                    x2={labelPoint.x}
+                    y2={labelPoint.y}
+                    stroke={isPoster ? posterMinor : birthChart.chartMutedLine}
+                    strokeOpacity={selected ? 0.78 : 0.52}
+                    strokeWidth={selected ? 1.15 : 0.75}
+                  />
+                ) : null}
                 <Circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={planetGlyphRadius}
-                  fill={isPoster ? posterSurface : colors.card}
-                  stroke={isPoster ? posterLine : colors.border}
-                  strokeWidth={1}
+                  cx={markerPoint.x}
+                  cy={markerPoint.y}
+                  r={selected ? planetGlyphRadius + 3 : planetGlyphRadius}
+                  fill={isPoster ? posterSurface : selected ? birthChart.selectedPlanetBackground : birthChart.planetMarkerBackground}
+                  stroke={isPoster ? posterLine : selected ? birthChart.selectedPlanetBorder : birthChart.planetMarkerBorder}
+                  strokeWidth={selected ? 1.8 : 1}
                 />
                 <SvgText
-                  x={point.x}
-                  y={point.y + 4}
+                  x={markerPoint.x}
+                  y={markerPoint.y + 4}
                   fontSize={planetGlyphSize}
                   fontWeight="700"
-                  fill={isPoster ? posterLine : colors.text}
+                  fill={isPoster ? posterLine : selected ? birthChart.selectedPlanetBorder : birthChart.chartText}
                   textAnchor="middle"
                 >
                   {glyph}
                 </SvgText>
-                <SvgText
-                  x={degreePoint.x}
-                  y={degreePoint.y + 3}
-                  fontSize={degreeLabelSize}
-                  fill={isPoster ? signAccentColor(planet.sign) : colors.textMuted}
-                  textAnchor="middle"
-                >
-                  {isPoster ? formatPlanetDegreeMinute(planet) : `${Math.floor(planet.degree)}°`}
-                </SvgText>
-                {!isPoster ? (
-                  <SvgText
-                    x={namePoint.x}
-                    y={namePoint.y + 3}
-                    fontSize={planetNameSize}
-                    fill={colors.textMuted}
-                    textAnchor="middle"
-                  >
-                    {compactPlanetLabel(planet.planet, planetNames)}
-                  </SvgText>
+                {shouldShowLabel ? (
+                  <G>
+                    {!isPoster ? (
+                      <Rect
+                        x={labelPoint.x - chipWidth / 2}
+                        y={labelPoint.y - chipHeight / 2}
+                        width={chipWidth}
+                        height={chipHeight}
+                        rx={chipHeight / 2}
+                        fill={selected ? birthChart.selectedPlanetBackground : birthChart.planetMarkerBackground}
+                        stroke={selected ? birthChart.selectedPlanetBorder : birthChart.planetMarkerBorder}
+                        strokeWidth={selected ? 1.2 : 0.8}
+                      />
+                    ) : null}
+                    <SvgText
+                      x={labelPoint.x}
+                      y={labelPoint.y + (isPoster ? -1 : 3)}
+                      fontSize={isPoster ? degreeLabelSize : planetNameSize}
+                      fontWeight={selected ? '800' : '700'}
+                      fill={isPoster ? birthChart.primaryAccent : selected ? birthChart.selectedPlanetBorder : birthChart.chartTextMuted}
+                      textAnchor="middle"
+                    >
+                      {isPoster ? formatPlanetDegreeMinute(planet) : label}
+                    </SvgText>
+                    {!isPoster && !isSimple ? (
+                      <SvgText
+                        x={labelPoint.x}
+                        y={labelPoint.y + 14}
+                        fontSize={degreeLabelSize - 1}
+                        fill={birthChart.chartTextMuted}
+                        textAnchor="middle"
+                      >
+                        {`${Math.floor(planet.degree)}°`}
+                      </SvgText>
+                    ) : null}
+                  </G>
                 ) : null}
               </G>
             );
           })}
         </Svg>
+        {onPlanetPress ? displayedPlanets.map((planet) => {
+          const markerPoint = planetMarkerPoint(planet);
+          return (
+            <Pressable
+              key={`planet-hit-${planet.planet}`}
+              style={[
+                stylesLocal.planetHitTarget,
+                {
+                  left: markerPoint.x - 22,
+                  top: markerPoint.y - 22,
+                },
+              ]}
+              onPress={() => onPlanetPress(planet)}
+              accessibilityLabel={planetA11yLabel(planet)}
+              accessibilityRole="button"
+            />
+          );
+        }) : null}
       </View>
 
       {!isHero && showMetaRow ? (
         <View style={stylesLocal.wheelMetaRow}>
-          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.primaryTint, borderColor: colors.borderLight }]}>
-            <Text style={[stylesLocal.wheelMetaLabel, { color: colors.violet }]}>Premium Wheel</Text>
+          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: birthChart.cardSoft, borderColor: birthChart.cardBorder }]}>
+            <Text style={[stylesLocal.wheelMetaLabel, { color: birthChart.primaryAccent }]}>{t('natalChart.panels.premiumWheelLabel')}</Text>
           </View>
-          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
-            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>{t('natalChart.panels.tropicalLabel')}</Text>
+          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: birthChart.cardSoft, borderColor: birthChart.cardBorder }]}>
+            <Text style={[stylesLocal.wheelMetaText, { color: birthChart.textMuted }]}>{t('natalChart.panels.tropicalLabel')}</Text>
           </View>
-          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.borderLight }]}>
-            <Text style={[stylesLocal.wheelMetaText, { color: colors.textMuted }]}>{t('natalChart.panels.placidusLabel')}</Text>
+          <View style={[stylesLocal.wheelMetaPill, { backgroundColor: birthChart.cardSoft, borderColor: birthChart.cardBorder }]}>
+            <Text style={[stylesLocal.wheelMetaText, { color: birthChart.textMuted }]}>{t('natalChart.panels.placidusLabel')}</Text>
           </View>
         </View>
       ) : null}
@@ -1154,7 +1282,7 @@ function AspectMatrix({
                 }
 
                 const meta = aspect ? ASPECT_META[aspect.type] : null;
-                const accent = meta ? (colors.statusBar === 'dark' ? meta.colorDark : meta.colorLight) : colors.muted;
+                const accent = aspect ? aspectColor(aspect.type, colors.birthChart) : colors.muted;
                 const bg = aspect ? `${accent}18` : colors.surface;
 
                 const content = (
@@ -1207,7 +1335,7 @@ function AspectMatrix({
       <View style={stylesLocal.aspectLegendWrap}>
         {(Object.keys(ASPECT_META) as AspectType[]).map((type) => {
           const meta = ASPECT_META[type];
-          const color = colors.statusBar === 'dark' ? meta.colorDark : meta.colorLight;
+          const color = aspectColor(type, colors.birthChart);
           return (
             <View key={`legend-${type}`} style={stylesLocal.aspectLegendItem}>
               <Text style={[stylesLocal.aspectLegendSymbol, { color }]}>{meta.symbol}</Text>
@@ -1286,17 +1414,628 @@ function CosmicBalance({
   );
 }
 
+function makePlanetPlacement(
+  planet: PlanetPosition | undefined,
+  planetNames: Record<string, string> | undefined,
+): PremiumPlacement | null {
+  if (!planet) return null;
+  return {
+    id: `planet:${planet.planet}`,
+    kind: 'planet',
+    planet,
+    label: shortPlanetLabel(planet.planet, planetNames),
+    sign: planet.sign,
+    house: planet.house,
+    glyph: PLANET_GLYPHS[planet.planet] ?? '•',
+  };
+}
+
+function makeAscendantPlacement(risingSign?: string | null): PremiumPlacement {
+  return {
+    id: 'axis:ascendant',
+    kind: 'ascendant',
+    label: 'ASC',
+    sign: risingSign ?? null,
+    house: risingSign ? 1 : undefined,
+    glyph: '↗',
+  };
+}
+
+function ModeToggle({
+  value,
+  onChange,
+}: {
+  value: BirthChartMode;
+  onChange: (next: BirthChartMode) => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const bc = colors.birthChart;
+  const modes: BirthChartMode[] = ['simple', 'detailed'];
+
+  return (
+    <View style={[stylesLocal.modeToggle, { backgroundColor: bc.cardSoft, borderColor: bc.cardBorder }]}>
+      {modes.map((mode) => {
+        const selected = mode === value;
+        return (
+          <Pressable
+            key={mode}
+            style={[
+              stylesLocal.modeToggleItem,
+              {
+                borderColor: selected ? bc.cardBorderStrong : bc.cardBorder,
+              },
+              selected && {
+                backgroundColor: value === 'simple' ? bc.cardBackground : bc.selectedPlanetBackground,
+              },
+            ]}
+            onPress={() => onChange(mode)}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={mode === 'simple' ? t('natalChart.panels.simpleMode', 'Basit') : t('natalChart.panels.detailedMode', 'Detaylı')}
+          >
+            <Text
+              style={[
+                stylesLocal.modeToggleText,
+                { color: selected ? (value === 'simple' ? bc.primaryAccent : bc.textPrimary) : bc.textSecondary },
+              ]}
+            >
+              {mode === 'simple' ? t('natalChart.panels.simpleMode', 'Basit') : t('natalChart.panels.detailedMode', 'Detaylı')}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function PlacementPill({ placement }: { placement: PremiumPlacement }) {
+  const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
+  const bc = colors.birthChart;
+  const signInfo = getZodiacInfo(placement.sign, i18n.resolvedLanguage ?? i18n.language);
+  const houseLabel = placement.house
+    ? t('natalChart.panels.housePosition', { number: placement.house })
+    : null;
+
+  return (
+    <View style={stylesLocal.placementPillStack}>
+      <Text style={[stylesLocal.placementPillSign, { color: bc.textPrimary }]}>
+        {placement.sign ? `${signInfo.name} ${signInfo.symbol}` : t('natalChart.panels.ascUnavailable', 'Hesaplanamadı')}
+      </Text>
+      {houseLabel ? (
+        <View style={[stylesLocal.placementHouseBadge, { backgroundColor: bc.cardSoft, borderColor: bc.cardBorder }]}>
+          <Text style={[stylesLocal.placementHouseBadgeText, { color: bc.primaryAccent }]}>{houseLabel}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function BigThreeSummaryCards({
+  sun,
+  moon,
+  ascendant,
+  selectedId,
+  onSelect,
+}: {
+  sun: PremiumPlacement | null;
+  moon: PremiumPlacement | null;
+  ascendant: PremiumPlacement;
+  selectedId: string | null;
+  onSelect: (placement: PremiumPlacement) => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const bc = colors.birthChart;
+  const cards = [
+    { key: 'sun', placement: sun, title: t('natalChart.sun'), icon: 'sunny-outline' as const, accent: bc.goldAccent },
+    { key: 'moon', placement: moon, title: t('natalChart.moon'), icon: 'moon-outline' as const, accent: bc.primaryAccent },
+    { key: 'asc', placement: ascendant, title: t('natalChart.panels.ascTitle', 'ASC Yükselen'), icon: 'navigate-outline' as const, accent: bc.successAccent },
+  ];
+
+  return (
+    <View style={stylesLocal.bigThreeGrid}>
+      {cards.map(({ key, placement, title, icon, accent }) => {
+        const isSelected = placement ? placement.id === selectedId : false;
+        return (
+          <Pressable
+            key={key}
+            disabled={!placement}
+            style={[
+              stylesLocal.bigThreeCard,
+              {
+                backgroundColor: isSelected ? bc.cardElevated : bc.cardBackground,
+                borderColor: isSelected ? accent : bc.cardBorder,
+                shadowColor: bc.shadow,
+              },
+            ]}
+            onPress={() => placement && onSelect(placement)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected, disabled: !placement }}
+            accessibilityLabel={title}
+          >
+            <View style={[stylesLocal.bigThreeIconBadge, { backgroundColor: bc.iconBadgeBackground, borderColor: bc.iconBadgeBorder }]}>
+              <Ionicons name={icon} size={24} color={accent} />
+            </View>
+            <View style={stylesLocal.bigThreeTextCol}>
+              <Text style={[stylesLocal.bigThreeTitle, { color: bc.textPrimary }]} numberOfLines={1}>{title}</Text>
+              {placement ? <PlacementPill placement={placement} /> : null}
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function getPlacementInsight(
+  placement: PremiumPlacement | null,
+  insights: NatalPlanetComboInsight[] | undefined,
+  locale: string,
+  t: (key: string, options?: any) => string,
+) {
+  if (!placement) return null;
+  if (placement.kind === 'planet') {
+    const insight = insights?.find(
+      (item) =>
+        item.planet === placement.planet.planet &&
+        item.sign === placement.planet.sign &&
+        item.house === placement.planet.house,
+    );
+    const planetDescription = getPlanetDescription(placement.planet.planet, locale);
+    const signInfo = getZodiacInfo(placement.planet.sign, locale);
+
+    return {
+      body: insight?.summary
+        ?? insight?.effectLine
+        ?? planetDescription?.meaning
+        ?? t('natalChart.panels.genericPlacementBody', {
+          planet: placement.label,
+          sign: signInfo.name,
+          defaultValue: '{{planet}} yerleşimin, {{sign}} teması üzerinden karakterinde belirgin bir odak oluşturur.',
+        }),
+      strengths: insight?.strengths?.length
+        ? insight.strengths.slice(0, 2)
+        : [
+          t('natalChart.panels.genericStrengthOne', 'Özgün bakış açısı'),
+          t('natalChart.panels.genericStrengthTwo', 'Potansiyelini bilinçli kullanma'),
+        ],
+      cautions: [
+        insight?.cautionLine ?? t('natalChart.panels.genericCautionOne', 'Bu enerjiyi aşırı zorladığında iç dengen yorulabilir.'),
+        t('natalChart.panels.genericCautionTwo', 'Esneklik ve geri bildirim denge sağlar.'),
+      ].filter(Boolean),
+    };
+  }
+
+  const signInfo = getZodiacInfo(placement.sign, locale);
+  return {
+    body: placement.sign
+      ? t('natalChart.panels.ascInsightBody', {
+        sign: signInfo.name,
+        defaultValue: '{{sign}} yükselen, dünyaya verdiğin ilk izlenimde sezgisel duruşunu ve başlangıç enerjini belirginleştirir.',
+      })
+      : t('natalChart.panels.ascMissingInsight', 'Yükselen için doğum saati bilgisi gerekir; saat olmadığında bu alan hesaplanamaz.'),
+    strengths: [
+      t('natalChart.panels.ascStrengthOne', 'İlk izlenimini bilinçli yönetme'),
+      t('natalChart.panels.ascStrengthTwo', 'Yaşam yönünü daha net okuma'),
+    ],
+    cautions: [
+      t('natalChart.panels.ascCautionOne', 'Doğum saati netliği yükselen yorumunu değiştirir.'),
+    ],
+  };
+}
+
+function SelectedPlacementInsightCard({
+  placement,
+  insights,
+}: {
+  placement: PremiumPlacement | null;
+  insights?: NatalPlanetComboInsight[];
+}) {
+  const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
+  const bc = colors.birthChart;
+  const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
+  const insight = getPlacementInsight(placement, insights, locale, t);
+
+  if (!placement || !insight) {
+    return (
+      <View style={[stylesLocal.insightCard, { backgroundColor: bc.cardElevated, borderColor: bc.cardBorder }]}>
+        <Text style={[stylesLocal.insightTitle, { color: bc.textPrimary }]}>{t('natalChart.panels.emptyChartTitle', 'Doğum haritası verisi hazırlanıyor')}</Text>
+        <Text style={[stylesLocal.insightBody, { color: bc.textSecondary }]}>{t('natalChart.panels.emptyChartSub', 'Gezegen yerleşimleri geldiğinde bu alan otomatik güncellenir.')}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[stylesLocal.insightCard, { backgroundColor: bc.cardElevated, borderColor: bc.cardBorderStrong, shadowColor: bc.shadow }]}>
+      <View style={stylesLocal.insightHeader}>
+        <View style={[stylesLocal.insightIconBadge, { backgroundColor: bc.iconBadgeBackground, borderColor: bc.iconBadgeBorder }]}>
+          <Text style={[stylesLocal.insightGlyph, { color: bc.goldAccent }]}>{placement.glyph}</Text>
+        </View>
+        <View style={stylesLocal.insightTitleCol}>
+          <Text style={[stylesLocal.insightTitle, { color: bc.textPrimary }]}>{placement.label}</Text>
+          <PlacementPill placement={placement} />
+        </View>
+        <Ionicons name="star-outline" size={24} color={bc.goldAccent} />
+      </View>
+
+      <Text style={[stylesLocal.insightBody, { color: bc.textPrimary }]}>{insight.body}</Text>
+
+      <View style={[stylesLocal.insightMiniBox, { backgroundColor: withAlpha(bc.primaryAccent, 0.10), borderColor: withAlpha(bc.primaryAccent, 0.28) }]}>
+        <View style={stylesLocal.insightMiniTitleRow}>
+          <Ionicons name="diamond-outline" size={16} color={bc.primaryAccent} />
+          <Text style={[stylesLocal.insightMiniTitle, { color: bc.primaryAccent }]}>{t('natalChart.panels.strengthsTitle', 'Güçlü Yönlerin')}</Text>
+        </View>
+        {insight.strengths.map((item) => (
+          <Text key={`strength-${item}`} style={[stylesLocal.insightBullet, { color: bc.textPrimary }]}>• {item}</Text>
+        ))}
+      </View>
+
+      <View style={[stylesLocal.insightMiniBox, { backgroundColor: withAlpha(bc.dangerAccent, 0.10), borderColor: withAlpha(bc.dangerAccent, 0.28) }]}>
+        <View style={stylesLocal.insightMiniTitleRow}>
+          <Ionicons name="alert-circle-outline" size={16} color={bc.dangerAccent} />
+          <Text style={[stylesLocal.insightMiniTitle, { color: bc.dangerAccent }]}>{t('natalChart.panels.cautionsTitle', 'Dikkat Edilmesi Gereken')}</Text>
+        </View>
+        {insight.cautions.slice(0, 2).map((item) => (
+          <Text key={`caution-${item}`} style={[stylesLocal.insightBullet, { color: bc.textPrimary }]}>• {item}</Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function AspectLegendBar({ selected }: { selected: boolean }) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const bc = colors.birthChart;
+  const items = [
+    { key: 'harmonious', label: t('natalChart.panels.legendHarmonious', 'Uyumlu'), color: bc.aspectHarmonious },
+    { key: 'neutral', label: t('natalChart.panels.legendNeutral', 'Nötr'), color: bc.aspectNeutral },
+    { key: 'challenging', label: t('natalChart.panels.legendChallenging', 'Zorlayıcı'), color: bc.aspectChallenging },
+    { key: 'selected', label: t('natalChart.panels.legendSelected', 'Seçili'), color: bc.aspectSelected, muted: !selected },
+  ];
+
+  return (
+    <View style={[stylesLocal.premiumLegendBar, { backgroundColor: bc.cardSoft, borderColor: bc.cardBorder }]}>
+      {items.map((item) => (
+        <View key={item.key} style={[stylesLocal.premiumLegendItem, item.muted && stylesLocal.premiumLegendItemMuted]}>
+          <View style={[stylesLocal.premiumLegendDot, { backgroundColor: item.color }]} />
+          <Text style={[stylesLocal.premiumLegendText, { color: bc.textSecondary }]}>{item.label}</Text>
+        </View>
+      ))}
+      <Ionicons name="information-circle-outline" size={16} color={bc.textMuted} />
+    </View>
+  );
+}
+
+function buildHighlightedThemes(
+  planets: PlanetPosition[],
+  planetNames: Record<string, string> | undefined,
+  locale: string,
+  t: (key: string, options?: any) => string,
+) {
+  const counts = planets.reduce<Record<string, number>>((acc, planet) => {
+    if (!planet.sign) return acc;
+    acc[planet.sign] = (acc[planet.sign] ?? 0) + 1;
+    return acc;
+  }, {});
+  const dominantSign = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? planets[0]?.sign;
+  const dominantInfo = getZodiacInfo(dominantSign, locale);
+  const twelfthHouseCount = planets.filter((planet) => planet.house === 12).length;
+  const venus = planets.find((planet) => planet.planet === 'Venus');
+  const careerPlanet = planets.find((planet) => planet.planet === 'Saturn') ?? planets.find((planet) => planet.planet === 'Mars') ?? planets[0];
+  const venusSign = getZodiacInfo(venus?.sign, locale);
+  const careerLabel = careerPlanet ? shortPlanetLabel(careerPlanet.planet, planetNames) : t('natalChart.panels.careerThemeFallbackPlanet', 'Satürn');
+
+  return [
+    {
+      key: 'dominant',
+      icon: 'sparkles-outline' as const,
+      accent: 'primary',
+      title: t('natalChart.panels.themeDominantTitle', {
+        sign: dominantInfo.name,
+        defaultValue: '{{sign}} Vurgusu',
+      }),
+      body: t('natalChart.panels.themeDominantBody', {
+        sign: dominantInfo.name,
+        defaultValue: '{{sign}} teması haritada daha görünür; kararlarında bu burcun dili öne çıkıyor.',
+      }),
+    },
+    {
+      key: 'inner',
+      icon: 'moon-outline' as const,
+      accent: 'success',
+      title: t('natalChart.panels.themeInnerTitle', 'İç Dünya'),
+      body: twelfthHouseCount > 0
+        ? t('natalChart.panels.themeInnerTwelfthBody', '12. ev etkisi sezgileri artırır, yalnız kalma ihtiyacını güçlendirir.')
+        : t('natalChart.panels.themeInnerBody', 'Ay yerleşimin duygusal ritmini ve güven ihtiyacını görünür kılar.'),
+    },
+    {
+      key: 'relationships',
+      icon: 'heart-outline' as const,
+      accent: 'danger',
+      title: t('natalChart.panels.themeRelationshipsTitle', 'İlişkiler'),
+      body: venus
+        ? t('natalChart.panels.themeRelationshipsBody', {
+          sign: venusSign.name,
+          defaultValue: 'Venüs yerleşimin, {{sign}} temasıyla yakınlık ve değer ihtiyacını gösterir.',
+        })
+        : t('natalChart.panels.themeRelationshipsFallbackBody', 'Venüs yerleşimin yakınlık, güven ve estetik ihtiyaçlarını gösterir.'),
+    },
+    {
+      key: 'career',
+      icon: 'briefcase-outline' as const,
+      accent: 'gold',
+      title: t('natalChart.panels.themeCareerTitle', 'Kariyer'),
+      body: t('natalChart.panels.themeCareerBody', {
+        planet: careerLabel,
+        defaultValue: '{{planet}} vurgusu üretken ve sorumlu yönünü iş hayatında belirginleştirir.',
+      }),
+    },
+  ];
+}
+
+function HighlightedThemesSection({
+  planets,
+  planetNames,
+  onPressViewAll,
+}: {
+  planets: PlanetPosition[];
+  planetNames?: Record<string, string>;
+  onPressViewAll?: () => void;
+}) {
+  const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
+  const bc = colors.birthChart;
+  const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
+  const themes = useMemo(() => buildHighlightedThemes(planets, planetNames, locale, t), [locale, planetNames, planets, t]);
+
+  const accentFor = (accent: string) => {
+    if (accent === 'success') return bc.successAccent;
+    if (accent === 'danger') return bc.dangerAccent;
+    if (accent === 'gold') return bc.goldAccent;
+    return bc.primaryAccent;
+  };
+
+  return (
+    <View style={[stylesLocal.highlightSection, { backgroundColor: bc.cardBackground, borderColor: bc.cardBorder }]}>
+      <View style={stylesLocal.highlightHeader}>
+        <View style={stylesLocal.highlightTitleRow}>
+          <Ionicons name="sparkles-outline" size={20} color={bc.goldAccent} />
+          <Text style={[stylesLocal.highlightTitle, { color: bc.textPrimary }]}>{t('natalChart.panels.highlightedThemesTitle', 'Öne Çıkan Temalar')}</Text>
+        </View>
+        {onPressViewAll ? (
+          <Pressable style={stylesLocal.highlightViewAll} onPress={onPressViewAll} accessibilityRole="button">
+            <Text style={[stylesLocal.highlightViewAllText, { color: bc.primaryAccent }]}>{t('natalChart.panels.viewAllInterpretation', 'Tüm Yorumu Gör')}</Text>
+            <Ionicons name="chevron-forward" size={16} color={bc.primaryAccent} />
+          </Pressable>
+        ) : null}
+      </View>
+      <View style={stylesLocal.highlightGrid}>
+        {themes.map((theme) => {
+          const accent = accentFor(theme.accent);
+          return (
+            <View key={theme.key} style={[stylesLocal.themeCard, { backgroundColor: bc.cardElevated, borderColor: withAlpha(accent, 0.32) }]}>
+              <View style={[stylesLocal.themeIconBadge, { backgroundColor: withAlpha(accent, 0.12), borderColor: withAlpha(accent, 0.26) }]}>
+                <Ionicons name={theme.icon} size={20} color={accent} />
+              </View>
+              <View style={stylesLocal.themeTextCol}>
+                <Text style={[stylesLocal.themeCardTitle, { color: accent }]}>{theme.title}</Text>
+                <Text style={[stylesLocal.themeCardBody, { color: bc.textSecondary }]}>{theme.body}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function BirthChartActionBar({
+  onOpenFull,
+  onDownload,
+}: {
+  onOpenFull?: () => void;
+  onDownload?: () => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const bc = colors.birthChart;
+
+  return (
+    <View style={[stylesLocal.actionBar, { backgroundColor: bc.ctaBackground, borderColor: bc.ctaBorder, shadowColor: bc.shadow }]}>
+      <Pressable
+        style={stylesLocal.actionBarButton}
+        onPress={onOpenFull}
+        accessibilityRole="button"
+        accessibilityLabel={t('natalChart.panels.fullScreenAction', 'Tam Ekran Gör')}
+      >
+        <Ionicons name="scan-outline" size={22} color={bc.ctaText} />
+        <Text style={[stylesLocal.actionBarText, { color: bc.ctaText }]}>{t('natalChart.panels.fullScreenAction', 'Tam Ekran Gör')}</Text>
+      </Pressable>
+      <View style={[stylesLocal.actionBarDivider, { backgroundColor: withAlpha(bc.ctaBorder, 0.48) }]} />
+      <Pressable
+        style={stylesLocal.actionBarButton}
+        onPress={onDownload}
+        accessibilityRole="button"
+        accessibilityLabel={t('natalChart.panels.downloadAction', 'İndir')}
+      >
+        <Ionicons name="download-outline" size={22} color={bc.ctaText} />
+        <Text style={[stylesLocal.actionBarText, { color: bc.ctaText }]}>{t('natalChart.panels.downloadAction', 'İndir')}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function PremiumBirthChartPanel({
+  planets,
+  houses,
+  aspects,
+  planetComboInsights,
+  planetNames,
+  risingSign,
+  renderWidthOverride,
+  onOpenFull,
+  onDownload,
+  onViewAllInterpretation,
+  showActions = true,
+}: {
+  planets: PlanetPosition[];
+  houses: HousePlacement[];
+  aspects: PlanetaryAspect[];
+  planetComboInsights?: NatalPlanetComboInsight[];
+  planetNames?: Record<string, string>;
+  risingSign?: string | null;
+  renderWidthOverride?: number;
+  onOpenFull?: () => void;
+  onDownload?: () => void;
+  onViewAllInterpretation?: () => void;
+  showActions?: boolean;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const bc = colors.birthChart;
+  const { width } = useWindowDimensions();
+  const [chartMode, setChartMode] = useState<BirthChartMode>('simple');
+  const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
+
+  const chartPlanets = useMemo(() => {
+    const byKey = new Map(planets.map((p) => [p.planet, p] as const));
+    return PLANET_ORDER.map((key) => byKey.get(key)).filter((p): p is PlanetPosition => Boolean(p));
+  }, [planets]);
+
+  const sunPlacement = useMemo(() => makePlanetPlacement(chartPlanets.find((planet) => planet.planet === 'Sun'), planetNames), [chartPlanets, planetNames]);
+  const moonPlacement = useMemo(() => makePlanetPlacement(chartPlanets.find((planet) => planet.planet === 'Moon'), planetNames), [chartPlanets, planetNames]);
+  const ascendantPlacement = useMemo(() => makeAscendantPlacement(risingSign), [risingSign]);
+  const placements = useMemo(
+    () => [
+      ...chartPlanets.map((planet) => makePlanetPlacement(planet, planetNames)).filter((item): item is PremiumPlacement => Boolean(item)),
+      ascendantPlacement,
+    ],
+    [ascendantPlacement, chartPlanets, planetNames],
+  );
+  const defaultSelectedId = sunPlacement?.id ?? placements[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!placements.length) {
+      setSelectedPlacementId(null);
+      return;
+    }
+    setSelectedPlacementId((current) => (current && placements.some((placement) => placement.id === current) ? current : defaultSelectedId));
+  }, [defaultSelectedId, placements]);
+
+  const selectedPlacement = placements.find((placement) => placement.id === selectedPlacementId) ?? null;
+  const selectedPlanetId = selectedPlacement?.kind === 'planet' ? selectedPlacement.planet.planet : null;
+  const isWide = (renderWidthOverride ?? width) >= 720;
+
+  const handleSelectPlacement = useCallback((placement: PremiumPlacement) => {
+    setSelectedPlacementId(placement.id);
+  }, []);
+
+  const handleWheelPlanetPress = useCallback((planet: PlanetPosition) => {
+    const placement = makePlanetPlacement(planet, planetNames);
+    if (placement) setSelectedPlacementId(placement.id);
+  }, [planetNames]);
+
+  if (!chartPlanets.length) {
+    return (
+      <View style={[stylesLocal.premiumCard, { backgroundColor: bc.cardBackground, borderColor: bc.cardBorder }]}>
+        <Text style={[stylesLocal.emptyPremiumTitle, { color: bc.textPrimary }]}>{t('natalChart.panels.emptyChartTitle', 'Doğum haritası hazırlanamadı')}</Text>
+        <Text style={[stylesLocal.emptyPremiumSub, { color: bc.textSecondary }]}>
+          {t('natalChart.panels.emptyChartDetail', 'Doğum saati, doğum yeri veya tarih bilgilerini kontrol ederek tekrar deneyebilirsin.')}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={stylesLocal.premiumStack}>
+      <View style={[stylesLocal.premiumCard, { backgroundColor: bc.cardBackground, borderColor: bc.cardBorder, shadowColor: bc.shadow }]}>
+        <View style={stylesLocal.premiumDecorLayer} pointerEvents="none">
+          <View style={[stylesLocal.premiumGlowOne, { backgroundColor: bc.glow }]} />
+          <View style={[stylesLocal.premiumGlowTwo, { backgroundColor: withAlpha(bc.goldAccent, 0.12) }]} />
+        </View>
+
+        <View style={stylesLocal.premiumCardHeader}>
+          <View style={stylesLocal.premiumHeaderTextCol}>
+            <Text style={[stylesLocal.premiumCardTitle, { color: bc.textPrimary }]}>{t('natalChart.panels.birthChartTitle')}</Text>
+            <Text style={[stylesLocal.premiumCardSubtitle, { color: bc.textSecondary }]}>{t('natalChart.panels.birthChartSubtitle')}</Text>
+          </View>
+          <ModeToggle value={chartMode} onChange={setChartMode} />
+        </View>
+
+        <BigThreeSummaryCards
+          sun={sunPlacement}
+          moon={moonPlacement}
+          ascendant={ascendantPlacement}
+          selectedId={selectedPlacementId}
+          onSelect={handleSelectPlacement}
+        />
+
+        <View style={[stylesLocal.premiumContentLayout, isWide && stylesLocal.premiumContentLayoutWide]}>
+          <View style={stylesLocal.premiumChartColumn}>
+            <NatalWheel
+              planets={chartPlanets}
+              houses={houses}
+              aspects={aspects}
+              planetNames={planetNames}
+              mode="full"
+              chartMode={chartMode}
+              selectedPlanetId={selectedPlanetId}
+              onPlanetPress={handleWheelPlanetPress}
+              renderWidthOverride={isWide ? Math.min((renderWidthOverride ?? width) * 0.58, 560) : renderWidthOverride}
+              showMetaRow={false}
+              showAuras
+            />
+            <AspectLegendBar selected={Boolean(selectedPlanetId)} />
+          </View>
+
+          {isWide ? (
+            <View style={stylesLocal.premiumInsightColumn}>
+              <SelectedPlacementInsightCard placement={selectedPlacement} insights={planetComboInsights} />
+            </View>
+          ) : null}
+        </View>
+
+        {!isWide ? (
+          <SelectedPlacementInsightCard placement={selectedPlacement} insights={planetComboInsights} />
+        ) : null}
+      </View>
+
+      <HighlightedThemesSection
+        planets={chartPlanets}
+        planetNames={planetNames}
+        onPressViewAll={onViewAllInterpretation}
+      />
+
+      {showActions ? (
+        <BirthChartActionBar
+          onOpenFull={onOpenFull}
+          onDownload={onDownload ?? onOpenFull}
+        />
+      ) : null}
+    </View>
+  );
+}
+
 export default function NatalChartProPanels({
   planets,
   houses,
   aspects,
+  planetComboInsights,
   planetNames,
   risingSign,
   onAspectPress,
+  onOpenFull,
+  onDownload,
+  onViewAllInterpretation,
   mode = 'full',
   panels,
   renderWidthOverride,
   presentation = 'default',
+  showPremiumActions = true,
 }: NatalChartProPanelsProps) {
   const { t } = useTranslation();
   const chartPlanets = useMemo(
@@ -1312,6 +2051,24 @@ export default function NatalChartProPanels({
   if (!chartPlanets.length) return null;
 
   const enabledPanels = new Set(panels ?? ['wheel', 'matrix', 'balance']);
+
+  if (presentation === 'premium') {
+    return (
+      <PremiumBirthChartPanel
+        planets={chartPlanets}
+        houses={houses}
+        aspects={chartAspects}
+        planetComboInsights={planetComboInsights}
+        planetNames={planetNames}
+        risingSign={risingSign}
+        renderWidthOverride={renderWidthOverride}
+        onOpenFull={onOpenFull}
+        onDownload={onDownload}
+        onViewAllInterpretation={onViewAllInterpretation}
+        showActions={showPremiumActions}
+      />
+    );
+  }
 
   if (mode === 'hero') {
     return (
@@ -1413,6 +2170,360 @@ const stylesLocal = StyleSheet.create({
   sectionGroup: {
     gap: 16,
   },
+  premiumStack: {
+    gap: 18,
+  },
+  premiumCard: {
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 18,
+    gap: 18,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.12,
+    shadowRadius: 28,
+    elevation: 3,
+  },
+  premiumDecorLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  premiumGlowOne: {
+    position: 'absolute',
+    top: -34,
+    right: -30,
+    width: 148,
+    height: 148,
+    borderRadius: 999,
+    opacity: 0.72,
+  },
+  premiumGlowTwo: {
+    position: 'absolute',
+    bottom: 24,
+    left: -44,
+    width: 132,
+    height: 132,
+    borderRadius: 999,
+    opacity: 0.8,
+  },
+  premiumCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 14,
+    flexWrap: 'wrap',
+  },
+  premiumHeaderTextCol: {
+    flex: 1,
+    minWidth: 210,
+    gap: 4,
+  },
+  premiumCardTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+  },
+  premiumCardSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  modeToggle: {
+    minHeight: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  modeToggleItem: {
+    minWidth: 92,
+    minHeight: 38,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  modeToggleText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  bigThreeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  bigThreeCard: {
+    flex: 1,
+    minWidth: 172,
+    minHeight: 104,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  bigThreeIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bigThreeTextCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 5,
+  },
+  bigThreeTitle: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  placementPillStack: {
+    gap: 6,
+    alignItems: 'flex-start',
+  },
+  placementPillSign: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  placementHouseBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  placementHouseBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  premiumContentLayout: {
+    gap: 16,
+  },
+  premiumContentLayoutWide: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  premiumChartColumn: {
+    flex: 1.6,
+    minWidth: 0,
+    gap: 12,
+    alignItems: 'center',
+  },
+  premiumInsightColumn: {
+    flex: 0.92,
+    minWidth: 246,
+  },
+  premiumLegendBar: {
+    width: '100%',
+    minHeight: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+  },
+  premiumLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  premiumLegendItemMuted: {
+    opacity: 0.72,
+  },
+  premiumLegendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  premiumLegendText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  insightCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 3,
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  insightIconBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightGlyph: {
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  insightTitleCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  insightTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  insightBody: {
+    fontSize: 14,
+    lineHeight: 23,
+    fontWeight: '500',
+  },
+  insightMiniBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+    gap: 7,
+  },
+  insightMiniTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  insightMiniTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  insightBullet: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  highlightSection: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
+  },
+  highlightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  highlightTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  highlightTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  highlightViewAll: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+  },
+  highlightViewAllText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  highlightGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  themeCard: {
+    flex: 1,
+    minWidth: 152,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 13,
+    gap: 10,
+  },
+  themeIconBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeTextCol: {
+    gap: 5,
+  },
+  themeCardTitle: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  themeCardBody: {
+    fontSize: 12.5,
+    lineHeight: 19,
+    fontWeight: '500',
+  },
+  actionBar: {
+    minHeight: 64,
+    borderRadius: 28,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 3,
+  },
+  actionBarButton: {
+    flex: 1,
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 8,
+  },
+  actionBarText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  actionBarDivider: {
+    width: 1,
+    height: 32,
+  },
+  emptyPremiumTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  emptyPremiumSub: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   card: {
     borderRadius: 20,
     borderWidth: 1,
@@ -1460,6 +2571,12 @@ const stylesLocal = StyleSheet.create({
     marginHorizontal: 0,
   },
   wheelStageHero: {
+    borderRadius: 22,
+  },
+  planetHitTarget: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
     borderRadius: 22,
   },
   wheelAuraPrimary: {

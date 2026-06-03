@@ -2,6 +2,7 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../context/ThemeContext';
 import { TUTORIAL_DEFAULTS } from '../domain/tutorial.constants';
 import type { TutorialStep } from '../domain/tutorial.types';
@@ -35,6 +36,8 @@ export function TutorialTooltipCard({
   onToggleDontShowAgain,
 }: TutorialTooltipCardProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+  const skipLabel = t('tutorial.actions.skip');
   const iconName = (step.iconKey ?? 'sparkles-outline') as React.ComponentProps<typeof Ionicons>['name'];
   const bodyLineCount = variant === 'fullscreen' ? TUTORIAL_DEFAULTS.CARD_MAX_BODY_LINES + 1 : TUTORIAL_DEFAULTS.CARD_MAX_BODY_LINES;
 
@@ -73,11 +76,11 @@ export function TutorialTooltipCard({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Skip"
+          accessibilityLabel={t('tutorial.accessibility.skip')}
           onPress={onSkip}
           style={({ pressed }) => [styles.skipChip, pressed && styles.pressed]}
         >
-          <Text style={[styles.skipChipText, { color: colors.textMuted }]}>Skip</Text>
+          <Text style={[styles.skipChipText, { color: colors.textMuted }]}>{skipLabel}</Text>
         </Pressable>
       </View>
 

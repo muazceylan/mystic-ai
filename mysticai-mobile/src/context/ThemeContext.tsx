@@ -121,6 +121,46 @@ export interface ThemeColors {
   horoscopeSurface: string;
   horoscopeAccent: string;
   horoscopeGlow: string;
+  birthChart: {
+    screenBackground: string;
+    accordionBackground: string;
+    accordionBorder: string;
+    cardBackground: string;
+    cardElevated: string;
+    cardSoft: string;
+    cardBorder: string;
+    cardBorderStrong: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    primaryAccent: string;
+    secondaryAccent: string;
+    goldAccent: string;
+    dangerAccent: string;
+    successAccent: string;
+    infoAccent: string;
+    iconBadgeBackground: string;
+    iconBadgeBorder: string;
+    chartBackground: string;
+    chartLine: string;
+    chartMutedLine: string;
+    chartHouseLine: string;
+    chartText: string;
+    chartTextMuted: string;
+    planetMarkerBackground: string;
+    planetMarkerBorder: string;
+    selectedPlanetBackground: string;
+    selectedPlanetBorder: string;
+    aspectHarmonious: string;
+    aspectNeutral: string;
+    aspectChallenging: string;
+    aspectSelected: string;
+    ctaBackground: string;
+    ctaBorder: string;
+    ctaText: string;
+    shadow: string;
+    glow: string;
+  };
 }
 
 export const LIGHT: ThemeColors = {
@@ -236,6 +276,46 @@ export const LIGHT: ThemeColors = {
   horoscopeSurface: '#F5F0FA',
   horoscopeAccent: '#9D4EDD',
   horoscopeGlow: 'rgba(157,78,221,0.15)',
+  birthChart: {
+    screenBackground: '#FAF7FF',
+    accordionBackground: '#FFFFFF',
+    accordionBorder: '#E7D8FF',
+    cardBackground: '#FFFFFF',
+    cardElevated: '#FFFCFF',
+    cardSoft: '#F8F2FF',
+    cardBorder: '#E7D8FF',
+    cardBorderStrong: '#C9A7FF',
+    textPrimary: '#252033',
+    textSecondary: '#6F6680',
+    textMuted: '#9A90AA',
+    primaryAccent: '#7C4DFF',
+    secondaryAccent: '#A46BFF',
+    goldAccent: '#C99622',
+    dangerAccent: '#FF4F73',
+    successAccent: '#2FBF8F',
+    infoAccent: '#4D9EFF',
+    iconBadgeBackground: '#F1E7FF',
+    iconBadgeBorder: '#D9C3FF',
+    chartBackground: '#FFFFFF',
+    chartLine: '#D8C7F3',
+    chartMutedLine: '#ECE4F8',
+    chartHouseLine: '#DACCF1',
+    chartText: '#453B5C',
+    chartTextMuted: '#8E82A3',
+    planetMarkerBackground: '#FFFFFF',
+    planetMarkerBorder: '#DDD0F2',
+    selectedPlanetBackground: '#F1E7FF',
+    selectedPlanetBorder: '#A46BFF',
+    aspectHarmonious: '#4D9EFF',
+    aspectNeutral: '#34C59F',
+    aspectChallenging: '#FF6B8A',
+    aspectSelected: '#7C4DFF',
+    ctaBackground: '#FFF9EA',
+    ctaBorder: '#E5B84D',
+    ctaText: '#A17100',
+    shadow: 'rgba(90, 54, 140, 0.14)',
+    glow: 'rgba(164, 107, 255, 0.22)',
+  },
 };
 
 export const DARK: ThemeColors = {
@@ -351,6 +431,46 @@ export const DARK: ThemeColors = {
   horoscopeSurface: '#1E1040',
   horoscopeAccent: '#A855F7',
   horoscopeGlow: 'rgba(168,85,247,0.25)',
+  birthChart: {
+    screenBackground: '#110B1F',
+    accordionBackground: '#171124',
+    accordionBorder: '#493568',
+    cardBackground: '#1B132C',
+    cardElevated: '#211735',
+    cardSoft: '#24183A',
+    cardBorder: '#493568',
+    cardBorderStrong: '#8B65FF',
+    textPrimary: '#FFFFFF',
+    textSecondary: '#D6CDEC',
+    textMuted: '#9D91B8',
+    primaryAccent: '#A66CFF',
+    secondaryAccent: '#7C5CFF',
+    goldAccent: '#FFD978',
+    dangerAccent: '#FF5C85',
+    successAccent: '#4FD18B',
+    infoAccent: '#44A3FF',
+    iconBadgeBackground: '#33214F',
+    iconBadgeBorder: '#8B65FF',
+    chartBackground: '#151021',
+    chartLine: '#57427A',
+    chartMutedLine: '#33264C',
+    chartHouseLine: '#493568',
+    chartText: '#E7DFFF',
+    chartTextMuted: '#A99BC8',
+    planetMarkerBackground: '#2B1E43',
+    planetMarkerBorder: '#6F4E9A',
+    selectedPlanetBackground: '#3C2468',
+    selectedPlanetBorder: '#B985FF',
+    aspectHarmonious: '#44A3FF',
+    aspectNeutral: '#4FD18B',
+    aspectChallenging: '#FF5C85',
+    aspectSelected: '#B985FF',
+    ctaBackground: '#211735',
+    ctaBorder: '#FFD978',
+    ctaText: '#FFD978',
+    shadow: 'rgba(0, 0, 0, 0.35)',
+    glow: 'rgba(166, 108, 255, 0.28)',
+  },
 };
 
 const STORAGE_KEY = 'mysticai_theme_pref';

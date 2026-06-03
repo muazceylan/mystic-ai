@@ -24,6 +24,10 @@ import {
 } from '../../features/tutorial';
 import type { CustomSetItem } from '../types';
 
+type ThemeColorStringKey = {
+  [K in keyof ThemeColors]: ThemeColors[K] extends string ? K : never;
+}[keyof ThemeColors];
+
 /* ─── Navigation items (labels/subs resolved via t() in component) ─── */
 const MAIN_FEATURES: ReadonlyArray<{
   key: string;
@@ -31,8 +35,8 @@ const MAIN_FEATURES: ReadonlyArray<{
   icon: React.ComponentProps<typeof Ionicons>['name'];
   labelKey: string;
   subKey: string;
-  accentKey: keyof ThemeColors;
-  bgKey: keyof ThemeColors;
+  accentKey: ThemeColorStringKey;
+  bgKey: ThemeColorStringKey;
 }> = [
   {
     key: 'dua',

@@ -152,6 +152,39 @@ class RewardedContentUnlockServiceTest {
     }
 
     @Test
+    void unlockOptions_marksContentAsAlreadyUnlockedWhenProgressIsActive() {
+        String contentKey = "horoscope:daily:capricorn:2026-06-03";
+        RewardedUnlockProgress unlockedProgress = RewardedUnlockProgress.builder()
+                .userId(USER_ID)
+                .moduleKey(MODULE_KEY)
+                .actionKey(ACTION_KEY)
+                .contentKey(contentKey)
+                .requiredViews(0)
+                .completedViews(0)
+                .status(RewardedUnlockProgress.Status.UNLOCKED)
+                .unlockedAt(LocalDateTime.now().minusMinutes(5))
+                .expiresAt(LocalDateTime.now().plusHours(20))
+                .build();
+
+        when(ruleRepository.findByModuleKeyAndConfigVersion(MODULE_KEY, CONFIG_VERSION))
+                .thenReturn(Optional.of(rule(null)));
+        when(walletRepository.findByUserId(USER_ID))
+                .thenReturn(Optional.of(GuruWallet.builder().userId(USER_ID).currentBalance(6).build()));
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(contentKey), eq(RewardedUnlockProgress.Status.IN_PROGRESS), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+        when(progressRepository.findFirstByUserIdAndModuleKeyAndActionKeyAndContentKeyAndStatusAndExpiresAtAfterOrderByUnlockedAtDesc(
+                eq(USER_ID), eq(MODULE_KEY), eq(ACTION_KEY), eq(contentKey), eq(RewardedUnlockProgress.Status.UNLOCKED), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(unlockedProgress));
+
+        RewardedContentUnlockService.UnlockOptionsResponse response =
+                service.getUnlockOptions(USER_ID, MODULE_KEY, ACTION_KEY, contentKey);
+
+        assertThat(response.contentKey()).isEqualTo(contentKey);
+        assertThat(response.alreadyUnlocked()).isTrue();
+    }
+
+    @Test
     void unlockOptions_normalizesZeroGuruCostToOneTokenRequirement() {
         when(actionRepository.findByActionKeyAndModuleKey(ACTION_KEY, MODULE_KEY))
                 .thenReturn(Optional.of(action(0)));

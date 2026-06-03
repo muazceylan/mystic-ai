@@ -13,8 +13,6 @@ import {
 } from 'react-native';
 import { AppHeader, SafeScreen } from '../../components/ui';
 import * as Haptics from '../../utils/haptics';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import ViewShot from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -55,36 +53,11 @@ import {
   useModuleMonetization,
 } from '../../features/monetization';
 
-type ShareAction = 'share' | 'instagram' | 'save' | 'pdf' | null;
+type ShareAction = 'share' | 'instagram' | 'save' | null;
 type VariantOption = { key: NightSkyPosterVariant; label: string; sub: string };
 
 const META_INSTAGRAM_STORY_APP_ID =
   process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || process.env.EXPO_PUBLIC_META_APP_ID || undefined;
-
-function buildPosterPdfHtml(imageUri: string, title: string) {
-  return `
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width,initial-scale=1" />
-      <style>
-        body { margin:0; padding:0; background:#0a0d14; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; }
-        .page { width:100%; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:18px; box-sizing:border-box; }
-        .wrap { width:100%; max-width:720px; }
-        .title { color:#f8fafc; text-align:center; font-size:18px; margin:0 0 12px; letter-spacing:0.3px; }
-        img { width:100%; height:auto; border-radius:16px; display:block; box-shadow: 0 10px 36px rgba(0,0,0,.35); }
-      </style>
-    </head>
-    <body>
-      <div class="page">
-        <div class="wrap">
-          <p class="title">${title}</p>
-          <img src="${imageUri}" />
-        </div>
-      </div>
-    </body>
-  </html>`;
-}
 
 export default function NightSkyPosterPreviewScreen() {
   const { colors } = useTheme();
@@ -589,63 +562,6 @@ export default function NightSkyPosterPreviewScreen() {
     });
   };
 
-  const handleExportPdf = async () => {
-    await runShareAction('pdf', t('nightSkyPosterPreview.pdfErrorTitle'), async () => {
-      const posterUri = await capturePosterImage();
-      const pdfDisplayName = draft?.isGuest ? null : draft?.fullName ?? null;
-      const pdfTitle = pdfDisplayName
-        ? t('nightSkyPosterPreview.pdfTitleWithName', { name: pdfDisplayName })
-        : t('nightSkyPosterPreview.pdfTitle');
-
-      if (isWeb) {
-        const popup = typeof window !== 'undefined' ? window.open('', '_blank', 'noopener,noreferrer') : null;
-        if (!popup) {
-          throw new Error(t('nightSkyPosterPreview.unexpectedError'));
-        }
-
-        popup.document.open();
-        popup.document.write(buildPosterPdfHtml(posterUri, pdfTitle));
-        popup.document.close();
-        popup.focus();
-
-        const printAfterLoad = () => {
-          popup.focus();
-          popup.print();
-        };
-
-        if (popup.document.readyState === 'complete') {
-          printAfterLoad();
-        } else {
-          popup.onload = printAfterLoad;
-        }
-
-        await notifySuccess(t('nightSkyPosterPreview.successPrintOpened'));
-        return;
-      }
-
-      // expo-print WebView cannot load local file:// URIs — convert to base64 data URI first
-      let embedUri = posterUri;
-      try {
-        const fs = require('expo-file-system');
-        const base64: string = await fs.readAsStringAsync(posterUri, { encoding: 'base64' });
-        embedUri = `data:image/png;base64,${base64}`;
-      } catch {
-        // fall back to raw URI
-      }
-
-      const html = buildPosterPdfHtml(embedUri, pdfTitle);
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: t('nightSkyPosterPreview.pdfDialogTitle'),
-        });
-      }
-      await notifySuccess(t('nightSkyPosterPreview.successPdf'));
-    });
-  };
-
   const handleRegenerate = async () => {
     setSuccessText(null);
     try {
@@ -969,25 +885,6 @@ export default function NightSkyPosterPreviewScreen() {
                     </Text>
                   </Pressable>
                 </View>
-
-                <Pressable
-                  style={[
-                    styles.secondaryWideBtn,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                    actionButtonsBusy && styles.btnDisabled,
-                  ]}
-                  onPress={handleExportPdf}
-                  disabled={actionButtonsBusy}
-                >
-                  {actionLoading === 'pdf' ? (
-                    <ActivityIndicator size="small" color={colors.text} />
-                  ) : (
-                    <Ionicons name="document-text-outline" size={16} color={colors.text} />
-                  )}
-                  <Text style={[styles.secondaryWideBtnText, { color: colors.text }]}>
-                    {t('nightSkyPosterPreview.pdf')}
-                  </Text>
-                </Pressable>
 
                 <Pressable
                   style={[styles.secondaryWideBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
