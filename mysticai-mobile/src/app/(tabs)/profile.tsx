@@ -29,6 +29,7 @@ import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
 import { navigateWithOrigin } from '../../navigation';
 import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
+import { envConfig } from '../../config/env';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
 import { openSupportEmail } from '../../utils/supportEmail';
@@ -77,6 +78,21 @@ function StatSkeleton({ colors }: { colors: { surfaceAlt: string } }) {
   return <View style={{ width: 36, height: 24, borderRadius: 6, backgroundColor: colors.surfaceAlt, marginBottom: 4 }} />;
 }
 
+// Backend returns an absolute avatarUrl based on API_PUBLIC_URL (e.g. http://localhost:8080).
+// On physical devices/Android emulators, localhost refers to the device itself, not the dev
+// machine, so the Image component can't load it. Rewrite the origin to the configured API
+// base URL so the Image component uses the same host that the axios client uses.
+function rewriteAvatarUrl(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl || !envConfig.apiBaseUrl) return avatarUrl ?? null;
+  try {
+    const parsed = new URL(avatarUrl);
+    const base = envConfig.apiBaseUrl.replace(/\/+$/, '');
+    return base + parsed.pathname + parsed.search;
+  } catch {
+    return avatarUrl;
+  }
+}
+
 function getZodiacFromBirthDate(birthDate?: string): string {
   if (!birthDate) return '';
   try {
@@ -113,7 +129,7 @@ export function ProfileScreenContent() {
     : `${user?.firstName ? user.firstName[0] : '?'}${user?.lastName ? user.lastName[0] : ''}`.toUpperCase();
 
   const zodiac = user?.zodiacSign || getZodiacFromBirthDate(user?.birthDate);
-  const avatarUri = user?.avatarUri || user?.avatarUrl || null;
+  const avatarUri = rewriteAvatarUrl(user?.avatarUri || user?.avatarUrl || null);
 
   const fetchStats = useCallback(async (isRefresh = false) => {
     if (!user?.id) { setLoadingStats(false); return; }
@@ -268,7 +284,8 @@ export function ProfileScreenContent() {
   };
 
   const applyUserFromServer = useCallback((incomingUser: Record<string, any>) => {
-    const resolvedAvatar = incomingUser?.avatarUrl ?? incomingUser?.avatarUri ?? null;
+    const rawAvatar = incomingUser?.avatarUrl ?? incomingUser?.avatarUri ?? null;
+    const resolvedAvatar = rewriteAvatarUrl(rawAvatar);
     setUser({
       ...(user ?? {}),
       ...incomingUser,

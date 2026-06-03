@@ -77,7 +77,10 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             // Billing webhooks authenticate via their own shared secret, not JWT
             "/api/webhooks/",
             // Public name search (name analysis feature)
-            "/api/numerology/names"
+            "/api/numerology/names",
+            // Avatar images are loaded directly by the mobile Image component without auth headers
+            "/api/v1/auth/profile/avatar/",
+            "/api/auth/profile/avatar/"
     );
 
     public JwtAuthenticationFilter(GatewaySecurityMetrics securityMetrics) {
