@@ -14,9 +14,9 @@ export function AuthLegalNotice({ style, variant = 'default' }: AuthLegalNoticeP
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const termsLabel = t('terms.title');
-  const privacyLabel = t('profile.menu.privacy');
   const isInline = variant === 'inline';
+  const termsLabel = isInline ? t('auth.legal.termsLink') : t('terms.title');
+  const privacyLabel = t('profile.menu.privacy');
 
   return (
     <View style={[isInline ? styles.inlineContainer : styles.container, style]}>
@@ -33,6 +33,8 @@ export function AuthLegalNotice({ style, variant = 'default' }: AuthLegalNoticeP
           {!isInline ? <Ionicons name="document-text-outline" size={16} color={colors.primary} /> : null}
           <Text style={[styles.linkText, isInline && styles.inlineLinkText]}>{termsLabel}</Text>
         </TouchableOpacity>
+
+        {isInline ? <Text style={styles.inlineSeparator}>|</Text> : null}
 
         <TouchableOpacity
           style={[styles.linkButton, isInline && styles.inlineLinkButton]}
@@ -71,8 +73,8 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       alignItems: 'center',
     },
     inlineCopy: {
-      fontSize: 11.5,
-      lineHeight: 16,
+      fontSize: 11.8,
+      lineHeight: 17,
     },
     linkRow: {
       width: '100%',
@@ -83,7 +85,7 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     },
     inlineLinkRow: {
       width: 'auto',
-      gap: 12,
+      gap: 16,
     },
     linkButton: {
       minHeight: 44,
@@ -112,6 +114,12 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     inlineLinkText: {
       fontSize: 12,
       textDecorationLine: 'underline',
+    },
+    inlineSeparator: {
+      color: C.subtext,
+      fontSize: 13,
+      lineHeight: 22,
+      opacity: 0.55,
     },
   });
 }

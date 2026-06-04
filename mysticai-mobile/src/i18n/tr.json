@@ -1269,7 +1269,7 @@
   },
   "auth": {
     "welcomeTitle": "Hoş Geldiniz",
-    "welcomeSubtitle": "Yıldızlarınızla tanışmaya hazır mısınız?",
+    "welcomeSubtitle": "Yıldız rehberinize giriş yapın",
     "welcomeEyebrow": "Kişisel Kozmik Erişim",
     "welcomeSignal": "Kişisel ve güvenli",
     "welcomeBlurb": "Haritanı, rüya arşivini ve günlük rehberliğini sana özel tasarlanmış tek bir özenli alanda buluştur.",
@@ -1279,10 +1279,10 @@
     "memberAccessEyebrow": "Üye girişi",
     "altAccessEyebrow": "Daha hızlı giriş",
     "altAccessSubtitle": "Güvenilir hesabınla devam et ya da misafir olarak keşfet.",
-    "quickStartTitle": "Hızlı giriş",
+    "quickStartTitle": "Misafir olarak devam et",
     "quickStartHint": "",
     "loginWithApple": "Apple ile Giriş Yap",
-    "loginWithGoogle": "Google ile Giriş Yap",
+    "loginWithGoogle": "Google ile devam et",
     "loginWithEmail": "E-posta ile Giriş Yap",
     "noAccount": "Hesabın yok mu? ",
     "signUp": "Kayıt Ol",
@@ -1297,7 +1297,7 @@
     "confirmPassword": "Şifre Tekrar",
     "passwordsMatch": "Şifreler eşleşmiyor",
     "goToLogin": "Giriş ekranına git",
-    "forgotPassword": "Şifreni mi unuttun?",
+    "forgotPassword": "Şifremi unuttum",
     "passwordReset": {
       "title": "Şifre sıfırla",
       "subtitle": "Hesap e-postanı gir. Kayıtlıysa sıfırlama linki göndereceğiz.",
@@ -1388,7 +1388,7 @@
       "conflictChangeEmail": "Emaili değiştir"
     },
     "legal": {
-      "description": "Devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.",
+      "description": "Devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul edersiniz.",
       "termsLink": "Kullanım Koşulları",
       "privacyLink": "Gizlilik Politikası",
       "termsLinkA11y": "Kullanım Koşulları'nı aç",

@@ -11,21 +11,18 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import OnboardingBackground from '../../components/OnboardingBackground';
+import Svg, { Circle, Defs, Line, Path, RadialGradient, Stop } from 'react-native-svg';
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles, UserRound } from 'lucide-react-native';
 import { AuthLegalNotice } from '../../components/auth';
-import BuildInfoText from '../../components/BuildInfoText';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { usePendingGuestStore } from '../../store/usePendingGuestStore';
 import { socialLogin, login as loginApi, quickStart as quickStartApi } from '../../services/auth';
-import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
 import { trackEvent } from '../../services/analytics';
 import {
@@ -47,12 +44,170 @@ import {
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
+const CONCEPT_VERSION_LABEL = 'v54.0.8 (416) · dev';
 const HERO_PREMIUM_ICON = require('../../../assets/brand/logo/astro-guru-logo-small-optimized.png');
 const HERO_DISPLAY_FONT = Platform.select({
   ios: 'Georgia',
   android: 'serif',
   default: 'Georgia',
 });
+const AUTH_WEB_TEXT_INPUT_STYLE =
+  Platform.OS === 'web'
+    ? ({
+        background: 'transparent',
+        backgroundColor: 'transparent',
+        borderColor: 'transparent',
+        borderWidth: 0,
+        boxShadow: 'none',
+        outlineColor: 'transparent',
+        outlineStyle: 'none',
+        outlineWidth: 0,
+        WebkitAppearance: 'none',
+        WebkitBoxShadow: 'none',
+      } as any)
+    : null;
+
+const AUTH_COLORS = {
+  bgTop: '#FCFAFF',
+  bgMid: '#F6F1FC',
+  bgBottom: '#FBF8FF',
+  surface: 'rgba(255,255,255,0.92)',
+  surfaceSoft: '#F9F4FD',
+  inputSurface: '#FBF7FE',
+  surfaceGlass: 'rgba(255,255,255,0.72)',
+  border: 'rgba(213,194,241,0.76)',
+  borderSoft: 'rgba(226,214,247,0.72)',
+  text: '#27135C',
+  textDeep: '#1F114C',
+  subtext: '#8E86A6',
+  muted: '#9B94AE',
+  primary: '#8542F4',
+  primaryDeep: '#4E18B9',
+  primarySoft: '#EEE7FF',
+  primaryGlow: 'rgba(154,77,255,0.26)',
+  pinkGlow: 'rgba(224,100,255,0.2)',
+  white: '#FFFFFF',
+  error: '#D65274',
+  shadow: '#5F30B7',
+  icon: '#7B68A8',
+} as const;
+
+const SUN_RAYS = Array.from({ length: 22 }, (_, index) => {
+  const angle = (-18 + index * 6.8) * (Math.PI / 180);
+  return {
+    id: `sun-ray-${index}`,
+    x1: 18 + Math.cos(angle) * 28,
+    y1: 78 + Math.sin(angle) * 28,
+    x2: 18 + Math.cos(angle) * 92,
+    y2: 78 + Math.sin(angle) * 92,
+    opacity: index % 3 === 0 ? 0.28 : 0.16,
+  };
+});
+
+function CosmicBackdrop() {
+  return (
+    <View pointerEvents="none" style={cosmicStyles.root}>
+      <LinearGradient
+        colors={[AUTH_COLORS.bgTop, AUTH_COLORS.bgMid, AUTH_COLORS.bgBottom]}
+        locations={[0, 0.54, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={cosmicStyles.topGlow} />
+      <View style={cosmicStyles.violetVeil} />
+      <View style={cosmicStyles.centerGlow} />
+      <View style={cosmicStyles.logoMist} />
+      <View style={cosmicStyles.cardMist} />
+      <View style={cosmicStyles.lowerGlow} />
+      <View style={cosmicStyles.rightMist} />
+
+      <Svg
+        pointerEvents="none"
+        width="100%"
+        height="100%"
+        viewBox="0 0 390 844"
+        preserveAspectRatio="xMidYMid slice"
+        style={StyleSheet.absoluteFill}
+      >
+        <Defs>
+          <RadialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.88" />
+            <Stop offset="0.72" stopColor="#CDBBFF" stopOpacity="0.24" />
+            <Stop offset="1" stopColor="#CDBBFF" stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+
+        {SUN_RAYS.map((ray) => (
+          <Line
+            key={ray.id}
+            x1={ray.x1}
+            y1={ray.y1}
+            x2={ray.x2}
+            y2={ray.y2}
+            stroke="#FFFFFF"
+            strokeWidth="0.9"
+            strokeOpacity={ray.opacity + 0.04}
+          />
+        ))}
+        <Circle cx="18" cy="78" r="35" fill="transparent" stroke="#FFFFFF" strokeWidth="0.8" strokeOpacity="0.27" />
+        <Circle cx="18" cy="78" r="50" fill="transparent" stroke="#FFFFFF" strokeWidth="0.7" strokeOpacity="0.18" />
+
+        <Path
+          d="M-26 167 C 64 123, 113 83, 116 -28"
+          fill="transparent"
+          stroke="#FFFFFF"
+          strokeWidth="0.9"
+          strokeOpacity="0.39"
+        />
+        <Path
+          d="M-38 178 C 76 142, 142 74, 153 -34"
+          fill="transparent"
+          stroke="#CDBBFF"
+          strokeWidth="0.8"
+          strokeOpacity="0.26"
+        />
+        <Circle cx="122" cy="119" r="4.5" fill="transparent" stroke="#FFFFFF" strokeWidth="0.9" strokeOpacity="0.35" />
+
+        <Circle cx="345" cy="184" r="24" fill="rgba(255,255,255,0.64)" />
+        <Circle cx="357" cy="176" r="24" fill={AUTH_COLORS.bgMid} opacity="0.94" />
+
+        <Path
+          d="M290 823 C 328 773, 373 753, 423 753"
+          fill="transparent"
+          stroke="#FFFFFF"
+          strokeWidth="0.8"
+          strokeOpacity="0.4"
+        />
+        <Path
+          d="M270 844 C 310 775, 358 735, 431 724"
+          fill="transparent"
+          stroke="#CDBBFF"
+          strokeWidth="0.7"
+          strokeOpacity="0.22"
+        />
+        <Circle cx="356" cy="776" r="3.8" fill="transparent" stroke="#FFFFFF" strokeOpacity="0.42" />
+
+        <Circle cx="92" cy="66" r="9" fill="url(#starGlow)" opacity="0.72" />
+        <Path d="M92 52 L95 63 L106 66 L95 69 L92 80 L89 69 L78 66 L89 63 Z" fill="#FFFFFF" opacity="0.88" />
+        <Path d="M322 86 L324 94 L332 96 L324 98 L322 106 L320 98 L312 96 L320 94 Z" fill="#FFFFFF" opacity="0.62" />
+        <Path d="M300 271 L302 279 L310 281 L302 283 L300 291 L298 283 L290 281 L298 279 Z" fill="#FFFFFF" opacity="0.58" />
+        <Path d="M58 286 L60 294 L68 296 L60 298 L58 306 L56 298 L48 296 L56 294 Z" fill="#BCA6F7" opacity="0.62" />
+        <Path d="M146 30 L148 36 L154 38 L148 40 L146 46 L144 40 L138 38 L144 36 Z" fill="#FFFFFF" opacity="0.42" />
+        <Path d="M374 779 L376 786 L383 788 L376 790 L374 797 L372 790 L365 788 L372 786 Z" fill="#FFFFFF" opacity="0.72" />
+      </Svg>
+    </View>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" accessibilityRole="image">
+      <Path fill="#4285F4" d="M22.56 12.25c0-.77-.07-1.5-.2-2.21H12v4.18h5.92a5.06 5.06 0 0 1-2.19 3.32v2.71h3.55c2.08-1.9 3.28-4.71 3.28-8z" />
+      <Path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.75l-3.55-2.71c-.98.65-2.23 1.04-3.73 1.04-2.86 0-5.29-1.9-6.16-4.47H2.18v2.8A10.99 10.99 0 0 0 12 23z" />
+      <Path fill="#FBBC05" d="M5.84 14.11a6.54 6.54 0 0 1 0-4.22v-2.8H2.18a10.86 10.86 0 0 0 0 9.82l3.66-2.8z" />
+      <Path fill="#EA4335" d="M12 5.42c1.62 0 3.07.55 4.21 1.64l3.15-3.1A10.68 10.68 0 0 0 12 1 10.99 10.99 0 0 0 2.18 7.09l3.66 2.8C6.71 7.32 9.14 5.42 12 5.42z" />
+    </Svg>
+  );
+}
 
 function firstParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) {
@@ -81,261 +236,440 @@ function extractIdTokenFromPopupMessage(payload: unknown): string | undefined {
   return typeof idToken === 'string' && idToken.trim().length > 0 ? idToken : undefined;
 }
 
-function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
+const cosmicStyles = StyleSheet.create({
+  root: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: AUTH_COLORS.bgMid,
+    overflow: 'hidden',
+  },
+  topGlow: {
+    position: 'absolute',
+    top: -86,
+    left: -74,
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: 'rgba(211,190,255,0.22)',
+  },
+  violetVeil: {
+    position: 'absolute',
+    top: -18,
+    left: -34,
+    width: 190,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(226,211,250,0.23)',
+  },
+  centerGlow: {
+    position: 'absolute',
+    top: 88,
+    alignSelf: 'center',
+    width: 296,
+    height: 296,
+    borderRadius: 148,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  logoMist: {
+    position: 'absolute',
+    top: 82,
+    alignSelf: 'center',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(211,157,255,0.18)',
+  },
+  cardMist: {
+    position: 'absolute',
+    top: 430,
+    left: -48,
+    width: 260,
+    height: 310,
+    borderRadius: 160,
+    backgroundColor: 'rgba(236,224,252,0.18)',
+  },
+  lowerGlow: {
+    position: 'absolute',
+    right: -104,
+    bottom: -134,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(198,164,255,0.13)',
+  },
+  rightMist: {
+    position: 'absolute',
+    right: -74,
+    top: 208,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+});
+
+function makeStyles(compact: boolean) {
+  const logoSize = compact ? 84 : 98;
+  const logoInner = compact ? 60 : 70;
+
   return StyleSheet.create({
+    safeScreen: {
+      backgroundColor: AUTH_COLORS.bgMid,
+    },
     container: {
       flex: 1,
-      backgroundColor: C.bg,
-      paddingHorizontal: 20,
+      backgroundColor: AUTH_COLORS.bgMid,
     },
     scrollContent: {
       flexGrow: 1,
-      paddingTop: 14,
-      paddingBottom: 16,
-      gap: 10,
+      paddingTop: compact ? 30 : 70,
+      paddingBottom: 18,
+      paddingHorizontal: 24,
+    },
+    screenShell: {
+      width: '100%',
+      maxWidth: 430,
+      flexGrow: 1,
+      alignSelf: 'center',
+      alignItems: 'center',
     },
     heroSection: {
+      width: '100%',
       alignItems: 'center',
-      gap: 10,
-      paddingTop: 6,
-      paddingBottom: 4,
+      paddingTop: compact ? 0 : 12,
     },
     heroMarkWrap: {
-      width: 78,
-      height: 78,
-      shadowColor: C.primary700,
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.12,
-      shadowRadius: 16,
-      elevation: 6,
+      width: logoSize,
+      height: logoSize,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: compact ? 22 : 30,
+      shadowColor: AUTH_COLORS.primary,
+      shadowOffset: { width: 0, height: 18 },
+      shadowOpacity: 0.2,
+      shadowRadius: 26,
+      elevation: 10,
+    },
+    heroMarkHalo: {
+      position: 'absolute',
+      width: logoSize + 38,
+      height: logoSize + 38,
+      borderRadius: (logoSize + 38) / 2,
+      backgroundColor: AUTH_COLORS.primaryGlow,
+      opacity: 0.68,
     },
     heroMarkFrame: {
-      flex: 1,
-      borderRadius: 25,
-      padding: 1.5,
+      width: logoSize,
+      height: logoSize,
+      borderRadius: compact ? 30 : 34,
+      padding: 7,
+      borderWidth: 1,
+      borderColor: 'rgba(222,204,255,0.85)',
     },
     heroMarkCore: {
       flex: 1,
-      borderRadius: 24,
-      backgroundColor: 'rgba(255,255,255,0.88)',
-      borderWidth: 1,
-      borderColor: 'rgba(187,147,255,0.26)',
+      borderRadius: compact ? 24 : 28,
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
+      backgroundColor: AUTH_COLORS.primaryDeep,
     },
-    heroMarkGlow: {
+    heroOrbit: {
       position: 'absolute',
-      width: 54,
-      height: 54,
-      borderRadius: 27,
-      backgroundColor: 'rgba(181,107,255,0.08)',
+      width: logoInner + 22,
+      height: logoInner + 22,
+      opacity: 0.78,
     },
     heroMarkViewport: {
-      width: 56,
-      height: 56,
-      borderRadius: 18,
+      width: logoInner,
+      height: logoInner,
+      borderRadius: compact ? 20 : 23,
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
     },
     heroMarkImage: {
-      width: 62,
-      height: 62,
+      width: logoInner + 12,
+      height: logoInner + 12,
       resizeMode: 'cover',
-      transform: [{ scale: 1.04 }],
+      transform: [{ scale: 1.03 }],
     },
     heroTextWrap: {
+      width: '100%',
       alignItems: 'center',
-      gap: 2,
-      maxWidth: 260,
+    },
+    titleRow: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: compact ? 8 : 10,
+    },
+    titleSparkle: {
+      opacity: 0.62,
+      marginTop: 8,
     },
     heading: {
       fontFamily: HERO_DISPLAY_FONT,
-      fontSize: 30,
-      lineHeight: 34,
+      fontSize: compact ? 38 : 42,
+      lineHeight: compact ? 45 : 50,
       fontWeight: Platform.OS === 'ios' ? '700' : '600',
-      color: C.text,
-      letterSpacing: -0.8,
+      color: AUTH_COLORS.textDeep,
+      textAlign: 'center',
+      letterSpacing: 0,
     },
     subheading: {
+      marginTop: 4,
       fontFamily: 'MysticInter-Regular',
-      fontSize: 13,
-      lineHeight: 19,
-      letterSpacing: 0.1,
-      color: C.subtext,
+      fontSize: compact ? 16 : 18,
+      lineHeight: compact ? 22 : 25,
+      letterSpacing: 0,
+      color: AUTH_COLORS.subtext,
       textAlign: 'center',
     },
     card: {
-      borderRadius: 16,
+      width: '100%',
+      marginTop: compact ? 24 : 34,
+      borderRadius: 28,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      backgroundColor: C.surface,
-      padding: 10,
-      gap: 6,
+      borderColor: AUTH_COLORS.borderSoft,
+      backgroundColor: AUTH_COLORS.surface,
+      padding: compact ? 18 : 22,
+      gap: compact ? 13 : 15,
+      shadowColor: AUTH_COLORS.shadow,
+      shadowOffset: { width: 0, height: 22 },
+      shadowOpacity: 0.13,
+      shadowRadius: 34,
+      elevation: 10,
     },
     form: {
       width: '100%',
-      gap: 6,
-    },
-    fieldGroup: {
-      gap: 4,
+      gap: compact ? 12 : 14,
     },
     inputContainer: {
-      backgroundColor: C.inputBg,
+      width: '100%',
+      minHeight: compact ? 56 : 62,
+      borderRadius: 19,
       borderWidth: 1,
-      borderColor: C.border,
-      borderRadius: 14,
+      borderColor: AUTH_COLORS.border,
+      backgroundColor: AUTH_COLORS.inputSurface,
       flexDirection: 'row',
       alignItems: 'center',
-      minHeight: 48,
+      paddingHorizontal: 16,
+      overflow: 'hidden',
+      shadowColor: AUTH_COLORS.primaryDeep,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.025,
+      shadowRadius: 9,
+      elevation: 1,
+    },
+    inputIconSlot: {
+      width: 30,
+      height: 30,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
     },
     input: {
       flex: 1,
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      fontSize: 16,
-      color: C.text,
+      minWidth: 0,
+      minHeight: compact ? 54 : 60,
+      paddingVertical: 0,
+      paddingHorizontal: 6,
+      fontFamily: 'MysticInter-Regular',
+      fontSize: compact ? 17 : 18,
+      lineHeight: 24,
+      color: AUTH_COLORS.text,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+    },
+    passwordInput: {
+      paddingRight: 52,
     },
     eyeButton: {
-      paddingHorizontal: 14,
-      paddingVertical: 14,
+      position: 'absolute',
+      right: 10,
+      top: 0,
+      bottom: 0,
+      width: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     forgotRow: {
       alignItems: 'flex-end',
       marginTop: -2,
+      marginBottom: 4,
     },
     forgotLink: {
-      color: C.primary,
-      fontSize: 13,
-      fontWeight: '600',
+      color: AUTH_COLORS.primary,
+      fontSize: 15,
+      lineHeight: 20,
+      fontFamily: 'MysticInter-SemiBold',
+      letterSpacing: 0,
     },
     errorText: {
-      color: C.error,
+      color: AUTH_COLORS.error,
       fontSize: 13,
+      lineHeight: 18,
+      fontFamily: 'MysticInter-SemiBold',
       textAlign: 'center',
+      marginTop: -2,
     },
     loginButton: {
-      borderRadius: 16,
+      width: '100%',
+      borderRadius: 18,
       overflow: 'hidden',
       marginTop: 2,
+      shadowColor: AUTH_COLORS.primary,
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: 0.3,
+      shadowRadius: 28,
+      elevation: 11,
     },
     loginButtonDisabled: {
-      opacity: 0.55,
-      shadowOpacity: 0,
-      elevation: 0,
+      opacity: 1,
     },
     loginGradient: {
-      minHeight: 48,
+      minHeight: compact ? 56 : 60,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 18,
+      paddingHorizontal: 20,
+    },
+    buttonSparkleLeft: {
+      position: 'absolute',
+      left: 30,
+      top: 18,
+      opacity: 0.18,
+    },
+    buttonSparkleRight: {
+      position: 'absolute',
+      right: 92,
+      bottom: 17,
+      opacity: 0.14,
+    },
+    buttonSheen: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 26,
+      opacity: 0.28,
     },
     loginButtonText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: C.white,
-      letterSpacing: 0.2,
+      fontSize: compact ? 19 : 21,
+      lineHeight: 27,
+      fontFamily: 'MysticInter-SemiBold',
+      color: AUTH_COLORS.white,
+      letterSpacing: 0,
+      textAlign: 'center',
     },
-    loginButtonRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    loginButtonTextDisabled: {
-      color: C.white,
-    },
-    socialSection: {
-      width: '100%',
-      gap: 6,
-    },
-    legalNotice: {
-      marginTop: 2,
-    },
-    buildInfo: {
-      marginTop: 6,
-      marginBottom: 4,
-      alignSelf: 'center',
-    },
-    socialButton: {
-      backgroundColor: C.surface,
-      borderWidth: 1,
-      borderColor: C.border,
-      borderRadius: 14,
-      minHeight: 48,
-      paddingVertical: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-    },
-    appleButton: {
-      backgroundColor: C.appleBlack,
-      borderColor: C.appleBlack,
-    },
-    icon: {
+    buttonArrowWrap: {
       position: 'absolute',
-      left: 20,
-    },
-    socialText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: C.text,
-    },
-    appleText: {
-      color: C.white,
-    },
-    quickStartButton: {
-      borderRadius: 16,
-      overflow: 'hidden',
-    },
-    quickStartGradient: {
-      minHeight: 62,
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-    },
-    quickStartContent: {
-      flex: 1,
-      gap: 2,
-    },
-    quickStartTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: C.white,
-    },
-    quickStartHint: {
-      fontSize: 11,
-      lineHeight: 14,
-      color: 'rgba(255,255,255,0.82)',
-    },
-    quickStartArrow: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
+      right: 22,
+      width: 34,
+      height: 34,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(255,255,255,0.16)',
     },
     divider: {
+      width: '100%',
       flexDirection: 'row',
       alignItems: 'center',
-      marginVertical: 0,
+      gap: 16,
+      paddingVertical: compact ? 2 : 4,
+      marginTop: compact ? 2 : 4,
     },
     dividerLine: {
       flex: 1,
       height: 1,
-      backgroundColor: C.border,
+      backgroundColor: 'rgba(209,199,230,0.72)',
     },
     dividerText: {
-      marginHorizontal: 10,
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 0.6,
-      color: C.subtext,
-      textTransform: 'uppercase',
+      fontSize: 14,
+      lineHeight: 20,
+      color: AUTH_COLORS.muted,
+      fontFamily: 'MysticInter-SemiBold',
+      letterSpacing: 0,
+    },
+    googleButton: {
+      width: '100%',
+      minHeight: compact ? 54 : 58,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: AUTH_COLORS.border,
+      backgroundColor: 'rgba(255,255,255,0.96)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 14,
+      shadowColor: AUTH_COLORS.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.05,
+      shadowRadius: 18,
+      elevation: 3,
+    },
+    socialText: {
+      fontSize: compact ? 16 : 17,
+      lineHeight: 23,
+      fontFamily: 'MysticInter-SemiBold',
+      color: '#17152C',
+      letterSpacing: 0,
+    },
+    guestLink: {
+      minHeight: 44,
+      marginTop: 20,
+      paddingHorizontal: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    guestText: {
+      color: AUTH_COLORS.primary,
+      fontSize: 16,
+      lineHeight: 22,
+      fontFamily: 'MysticInter-SemiBold',
+      letterSpacing: 0,
+    },
+    footerCluster: {
+      width: '100%',
+      alignItems: 'center',
+      marginTop: 6,
+    },
+    signupPrompt: {
+      minHeight: 34,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      marginTop: 4,
+    },
+    signupMuted: {
+      color: AUTH_COLORS.subtext,
+      fontSize: 15,
+      lineHeight: 21,
+      fontFamily: 'MysticInter-Regular',
+      letterSpacing: 0,
+    },
+    signupLink: {
+      color: AUTH_COLORS.primary,
+      fontSize: 15,
+      lineHeight: 21,
+      fontFamily: 'MysticInter-SemiBold',
+      letterSpacing: 0,
+    },
+    legalNotice: {
+      marginTop: 12,
+      width: '100%',
+      maxWidth: 360,
+    },
+    versionText: {
+      color: AUTH_COLORS.subtext,
+      fontSize: 11.5,
+      lineHeight: 16,
+      fontFamily: 'MysticInter-Regular',
+      textAlign: 'center',
+      marginTop: 12,
+      marginBottom: 0,
+      opacity: 0.72,
     },
     loadingOverlay: {
       position: 'absolute',
@@ -343,25 +677,9 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: C.dim,
+      backgroundColor: 'rgba(248,244,252,0.54)',
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    footer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingTop: 0,
-      paddingBottom: 2,
-    },
-    footerText: {
-      fontSize: 13,
-      color: C.subtext,
-    },
-    footerLink: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: C.primary,
     },
   });
 }
@@ -377,7 +695,7 @@ function presentGoogleAuthError(title: string, message: string) {
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { height } = useWindowDimensions();
   const storeLogin = useAuthStore((s) => s.login);
   const pendingEmail = useAuthStore((s) => s.pendingEmail);
   const setPendingEmail = useAuthStore((s) => s.setPendingEmail);
@@ -392,9 +710,8 @@ export default function WelcomeScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const handledGoogleTokenRef = useRef<string | null>(null);
   const authTransitionRef = useRef(false);
-  const styles = makeStyles(colors);
+  const styles = makeStyles(height < 900);
   const isFormValid = email.trim().length > 0 && password.length > 0;
-  const quickStartHint = t('auth.quickStartHint').trim();
 
   useFocusEffect(
     useCallback(() => {
@@ -549,35 +866,6 @@ export default function WelcomeScreen() {
     };
   }, [handleSocialLoginResult]);
 
-  const handleAppleLogin = async () => {
-    try {
-      trackProductEvent(ProductEventName.LOGIN_STARTED, {
-        'login method': 'apple',
-        'entry point': 'welcome_screen',
-        'is returning user': true,
-      });
-      const nonce = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        Math.random().toString(36)
-      );
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce,
-      });
-
-      if (credential.identityToken) {
-        await handleSocialLoginResult('apple', credential.identityToken);
-      }
-    } catch (error: any) {
-      if (error.code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert(t('common.error'), t('auth.appleLoginError'));
-      }
-    }
-  };
-
   const handleEmailLogin = async () => {
     if (!isFormValid || loading || authTransitionRef.current) return;
     setErrorMessage(null);
@@ -676,54 +964,82 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <SafeScreen>
+    <SafeScreen style={styles.safeScreen}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <OnboardingBackground />
+        <CosmicBackdrop />
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.heroSection}>
-            <View style={styles.heroMarkWrap}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.98)', 'rgba(230,218,255,0.92)', 'rgba(186,141,255,0.55)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.heroMarkFrame}
-              >
-                <View style={styles.heroMarkCore}>
-                  <View style={styles.heroMarkGlow} />
-                  <View style={styles.heroMarkViewport}>
-                    <Image
-                      source={HERO_PREMIUM_ICON}
-                      style={styles.heroMarkImage}
-                      accessibilityLabel={t('appBrand.logoA11y')}
-                      accessibilityRole="image"
-                    />
-                  </View>
-                </View>
-              </LinearGradient>
-            </View>
-            <View style={styles.heroTextWrap}>
-              <Text style={styles.heading}>{t('auth.welcomeTitle')}</Text>
-              <Text style={styles.subheading}>{t('auth.welcomeSubtitle')}</Text>
-            </View>
-          </View>
+          <View style={styles.screenShell}>
+            <View style={styles.heroSection}>
+              <View style={styles.heroMarkWrap}>
+                <View style={styles.heroMarkHalo} />
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.98)', 'rgba(237,224,255,0.96)', 'rgba(196,151,255,0.74)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.heroMarkFrame}
+                >
+                  <LinearGradient
+                    colors={['#3A118B', '#5A22D6', '#2B0E73']}
+                    start={{ x: 0.15, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.heroMarkCore}
+                  >
+                    <Svg width="100%" height="100%" viewBox="0 0 92 92" style={styles.heroOrbit}>
+                      <Circle cx="46" cy="46" r="31" fill="transparent" stroke="#FFFFFF" strokeOpacity="0.22" strokeWidth="0.8" />
+                      <Circle cx="46" cy="46" r="22" fill="transparent" stroke="#D8C4FF" strokeOpacity="0.2" strokeWidth="0.7" />
+                      <Path d="M14 47 C 31 20, 62 18, 78 43" fill="transparent" stroke="#FFFFFF" strokeOpacity="0.22" strokeWidth="0.8" />
+                      <Path d="M24 64 C 40 75, 64 71, 76 52" fill="transparent" stroke="#D8C4FF" strokeOpacity="0.18" strokeWidth="0.7" />
+                      <Circle cx="73" cy="42" r="1.8" fill="#FFFFFF" opacity="0.76" />
+                      <Circle cx="25" cy="65" r="1.3" fill="#FFFFFF" opacity="0.58" />
+                    </Svg>
+                    <View style={styles.heroMarkViewport}>
+                      <Image
+                        source={HERO_PREMIUM_ICON}
+                        style={styles.heroMarkImage}
+                        accessibilityLabel={t('appBrand.logoA11y')}
+                        accessibilityRole="image"
+                      />
+                    </View>
+                  </LinearGradient>
+                </LinearGradient>
+              </View>
 
-          <View style={styles.card}>
-            <View style={styles.form}>
-              <View style={styles.fieldGroup}>
+              <View style={styles.heroTextWrap}>
+                <View style={styles.titleRow}>
+                  <Sparkles size={15} color="#B6A0F4" strokeWidth={1.7} style={styles.titleSparkle} />
+                  <Text
+                    style={styles.heading}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.82}
+                  >
+                    {t('auth.welcomeTitle')}
+                  </Text>
+                  <Sparkles size={15} color="#B6A0F4" strokeWidth={1.7} style={styles.titleSparkle} />
+                </View>
+                <Text style={styles.subheading}>{t('auth.welcomeSubtitle')}</Text>
+              </View>
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.form}>
                 <View style={styles.inputContainer}>
+                  <View style={styles.inputIconSlot}>
+                    <Mail size={23} color={AUTH_COLORS.icon} strokeWidth={1.8} />
+                  </View>
                   <TextInput
-                    style={[styles.input, WEB_INPUT_RESET_STYLE]}
+                    style={[styles.input, WEB_INPUT_RESET_STYLE, AUTH_WEB_TEXT_INPUT_STYLE]}
                     placeholder={t('auth.email')}
-                    placeholderTextColor={colors.subtext}
+                    placeholderTextColor={AUTH_COLORS.subtext}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -732,14 +1048,15 @@ export default function WelcomeScreen() {
                     editable={!loading}
                   />
                 </View>
-              </View>
 
-              <View style={styles.fieldGroup}>
                 <View style={styles.inputContainer}>
+                  <View style={styles.inputIconSlot}>
+                    <Lock size={23} color={AUTH_COLORS.icon} strokeWidth={1.8} />
+                  </View>
                   <TextInput
-                    style={[styles.input, WEB_INPUT_RESET_STYLE]}
+                    style={[styles.input, styles.passwordInput, WEB_INPUT_RESET_STYLE, AUTH_WEB_TEXT_INPUT_STYLE]}
                     placeholder={t('auth.password')}
-                    placeholderTextColor={colors.subtext}
+                    placeholderTextColor={AUTH_COLORS.subtext}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -753,149 +1070,123 @@ export default function WelcomeScreen() {
                     accessibilityRole="button"
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={colors.subtext}
-                    />
+                    {showPassword ? (
+                      <EyeOff size={23} color={AUTH_COLORS.icon} strokeWidth={1.9} />
+                    ) : (
+                      <Eye size={23} color={AUTH_COLORS.icon} strokeWidth={1.9} />
+                    )}
                   </TouchableOpacity>
                 </View>
-              </View>
 
-              <View style={styles.forgotRow}>
+                <View style={styles.forgotRow}>
+                  <TouchableOpacity
+                    onPress={handleForgotPassword}
+                    disabled={loading}
+                    accessibilityLabel={t('auth.forgotPassword')}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
                 <TouchableOpacity
-                  onPress={handleForgotPassword}
-                  disabled={loading}
-                  accessibilityLabel={t('auth.forgotPassword')}
+                  style={[styles.loginButton, (!isFormValid || loading) && styles.loginButtonDisabled]}
+                  disabled={!isFormValid || loading}
+                  onPress={handleEmailLogin}
+                  accessibilityLabel={t('auth.loginTitle')}
                   accessibilityRole="button"
+                  activeOpacity={0.88}
                 >
-                  <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
+                  <LinearGradient
+                    colors={['#E26BF7', '#A246F3', '#631FCE']}
+                    locations={[0, 0.52, 1]}
+                    start={{ x: 0, y: 0.08 }}
+                    end={{ x: 1, y: 0.9 }}
+                    style={styles.loginGradient}
+                  >
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.38)', 'rgba(255,255,255,0)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.buttonSheen}
+                    />
+                    <Sparkles size={19} color="#FFFFFF" strokeWidth={1.5} style={styles.buttonSparkleLeft} />
+                    <Sparkles size={17} color="#FFFFFF" strokeWidth={1.4} style={styles.buttonSparkleRight} />
+                    {loading ? (
+                      <ActivityIndicator color={AUTH_COLORS.white} />
+                    ) : (
+                      <>
+                        <Text style={styles.loginButtonText}>{t('auth.loginTitle')}</Text>
+                        <View style={styles.buttonArrowWrap}>
+                          <ArrowRight size={30} color={AUTH_COLORS.white} strokeWidth={1.8} />
+                        </View>
+                      </>
+                    )}
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
 
-              {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('common.or')}</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
               <TouchableOpacity
-                style={[styles.loginButton, (!isFormValid || loading) && styles.loginButtonDisabled]}
-                disabled={!isFormValid || loading}
-                onPress={handleEmailLogin}
-                accessibilityLabel={t('auth.loginTitle')}
+                style={styles.googleButton}
+                onPress={handleGoogleLogin}
+                disabled={loading || quickStartLoading}
+                accessibilityLabel={t('auth.loginWithGoogle')}
                 accessibilityRole="button"
+                activeOpacity={0.84}
               >
-                <LinearGradient
-                  colors={['#B56BFF', '#8E4DFF', '#6A31D8']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0.9 }}
-                  style={styles.loginGradient}
-                >
-                  {loading ? (
-                    <ActivityIndicator color={colors.white} />
-                  ) : (
-                    <View style={styles.loginButtonRow}>
-                      <Text
-                        style={[
-                          styles.loginButtonText,
-                          (!isFormValid || loading) && styles.loginButtonTextDisabled,
-                        ]}
-                      >
-                        {t('auth.loginTitle')}
-                      </Text>
-                      <Ionicons name="arrow-forward" size={18} color={colors.white} />
-                    </View>
-                  )}
-                </LinearGradient>
+                <GoogleMark />
+                <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
               </TouchableOpacity>
+            </View>
 
-              <View style={styles.footer} pointerEvents={loading ? 'none' : 'auto'}>
-                <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
+            <TouchableOpacity
+              style={styles.guestLink}
+              onPress={handleQuickStart}
+              disabled={loading || quickStartLoading}
+              accessibilityLabel={t('quickStart.accessibilityLabel')}
+              accessibilityRole="button"
+              activeOpacity={0.78}
+            >
+              {quickStartLoading ? (
+                <ActivityIndicator size="small" color={AUTH_COLORS.primary} />
+              ) : (
+                <UserRound size={22} color={AUTH_COLORS.primary} strokeWidth={1.8} />
+              )}
+              <Text style={styles.guestText}>{t('auth.quickStartTitle')}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.footerCluster}>
+              <View style={styles.signupPrompt} pointerEvents={loading ? 'none' : 'auto'}>
+                <Text style={styles.signupMuted}>{t('auth.noAccount')}</Text>
                 <TouchableOpacity
                   onPress={handleRegister}
                   disabled={loading}
                   accessibilityLabel={t('auth.signUp')}
                   accessibilityRole="button"
                 >
-                  <Text style={styles.footerLink}>{t('auth.signUp')}</Text>
+                  <Text style={styles.signupLink}>{t('auth.signUp')}</Text>
                 </TouchableOpacity>
               </View>
+
+              <AuthLegalNotice variant="inline" style={styles.legalNotice} />
+              <Text style={styles.versionText}>{CONCEPT_VERSION_LABEL}</Text>
             </View>
           </View>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{t('common.or')}</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.socialSection}>
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={[styles.socialButton, styles.appleButton]}
-                  onPress={handleAppleLogin}
-                  disabled={loading || quickStartLoading}
-                  accessibilityLabel={t('auth.loginWithApple')}
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="logo-apple" size={22} color={colors.white} style={styles.icon} />
-                  <Text style={[styles.socialText, styles.appleText]}>{t('auth.loginWithApple')}</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={handleGoogleLogin}
-                disabled={loading || quickStartLoading}
-                accessibilityLabel={t('auth.loginWithGoogle')}
-                accessibilityRole="button"
-              >
-                <Ionicons name="logo-google" size={22} color={colors.googleRed} style={styles.icon} />
-                <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickStartButton}
-                onPress={handleQuickStart}
-                disabled={loading || quickStartLoading}
-                accessibilityLabel={t('quickStart.accessibilityLabel')}
-                accessibilityRole="button"
-                activeOpacity={0.88}
-              >
-                <LinearGradient
-                  colors={['#A15AF7', '#7C3AED', '#4F46E5']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.quickStartGradient}
-                >
-                  {quickStartLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <View style={styles.quickStartContent}>
-                        <Text style={styles.quickStartTitle}>{t('auth.quickStartTitle')}</Text>
-                        {quickStartHint ? (
-                          <Text style={styles.quickStartHint}>{quickStartHint}</Text>
-                        ) : null}
-                      </View>
-
-                      <View style={styles.quickStartArrow}>
-                        <Ionicons name="arrow-forward" size={18} color="#fff" />
-                      </View>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <AuthLegalNotice variant="inline" style={styles.legalNotice} />
-          <BuildInfoText style={styles.buildInfo} />
         </ScrollView>
 
-      {(loading || quickStartLoading) && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
+        {(loading || quickStartLoading) && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={AUTH_COLORS.primary} />
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeScreen>
   );

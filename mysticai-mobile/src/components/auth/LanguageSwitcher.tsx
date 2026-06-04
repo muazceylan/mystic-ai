@@ -9,7 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import { CheckCircle2, ChevronDown, Globe2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGE_STORAGE_KEY } from '../../i18n';
@@ -25,6 +25,8 @@ const LANGUAGES: Array<{ code: LocaleCode; labelKey: string }> = [
   { code: 'tr', labelKey: 'language.turkish' },
   { code: 'en', labelKey: 'language.english' },
 ];
+
+const LANGUAGE_PILL_PURPLE = '#7B3FF2';
 
 function normalizeLocale(language?: string): LocaleCode {
   return language?.toLowerCase().startsWith('tr') ? 'tr' : 'en';
@@ -68,9 +70,9 @@ export function LanguageSwitcher({ style }: LanguageSwitcherProps) {
         accessibilityLabel={t('language.changeA11y')}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons name="globe-outline" size={14} color={colors.primary} />
+        <Globe2 size={22} color={LANGUAGE_PILL_PURPLE} strokeWidth={2} />
         <Text style={s.buttonText}>{currentLocale.toUpperCase()}</Text>
-        <Ionicons name="chevron-down" size={13} color={colors.primary} />
+        <ChevronDown size={16} color={LANGUAGE_PILL_PURPLE} strokeWidth={2.2} />
       </TouchableOpacity>
 
       <Modal
@@ -112,7 +114,7 @@ export function LanguageSwitcher({ style }: LanguageSwitcherProps) {
                     </Text>
                   </View>
                   {isActive ? (
-                    <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                    <CheckCircle2 size={22} color={colors.primary} strokeWidth={2} />
                   ) : null}
                 </TouchableOpacity>
               );
@@ -127,28 +129,28 @@ export function LanguageSwitcher({ style }: LanguageSwitcherProps) {
 function makeStyles(C: ReturnType<typeof useTheme>['colors'], bottomPadding: number) {
   return StyleSheet.create({
     button: {
-      width: 68,
-      height: 34,
+      width: 94,
+      height: 46,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: C.surfaceGlassBorder,
-      backgroundColor: 'rgba(255,255,255,0.82)',
+      borderColor: 'rgba(209,190,244,0.62)',
+      backgroundColor: 'rgba(255,255,255,0.84)',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 4,
+      gap: 7,
       shadowColor: C.shadow,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.12,
-      shadowRadius: 12,
-      elevation: 4,
+      shadowOffset: { width: 0, height: 9 },
+      shadowOpacity: 0.1,
+      shadowRadius: 17,
+      elevation: 5,
     },
     buttonText: {
-      color: C.primary,
-      fontSize: 12,
-      lineHeight: 16,
+      color: LANGUAGE_PILL_PURPLE,
+      fontSize: 18,
+      lineHeight: 24,
       fontFamily: 'MysticInter-SemiBold',
-      letterSpacing: 0.2,
+      letterSpacing: 0,
     },
     modalRoot: {
       flex: 1,
