@@ -1,6 +1,7 @@
 package com.mysticai.notification.scheduler;
 
 import com.mysticai.notification.admin.service.cms.HoroscopeIngestService;
+import com.mysticai.notification.admin.service.cms.HoroscopeContentGuard;
 import com.mysticai.notification.entity.cms.IngestLog;
 import com.mysticai.notification.entity.cms.WeeklyHoroscopeCms;
 import com.mysticai.notification.repository.DailyHoroscopeCmsRepository;
@@ -40,35 +41,35 @@ public class HoroscopeIngestScheduler {
     private static final WeeklyHoroscopeCms.ZodiacSign[] SIGNS = WeeklyHoroscopeCms.ZodiacSign.values();
 
     /**
-     * On startup: checks each sign×locale individually and ingests missing or incomplete records.
+     * On startup: checks each sign×locale individually and ingests missing or invalid records.
      * A record is re-ingested if: it doesn't exist, has an ingestError, OR its fullContent is
-     * truncated (does not end with a sentence terminator — indicates an AI token-limit cut-off).
-     * The ingest service itself enforces the final skip/re-ingest decision based on content completeness.
+     * incomplete or directly addresses another zodiac sign.
+     * The ingest service itself enforces the final skip/re-ingest decision.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void ingestOnStartup() {
         LocalDate today = LocalDate.now();
         LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        log.info("[Scheduler] Startup check — scanning for missing or truncated horoscopes (daily={}, weekStart={})", today, weekStart);
+        log.info("[Scheduler] Startup check — scanning for missing or invalid horoscopes (daily={}, weekStart={})", today, weekStart);
 
         for (String locale : LOCALES) {
             for (WeeklyHoroscopeCms.ZodiacSign sign : SIGNS) {
-                // Daily: ingest if missing, errored, or content is incomplete
+                // Daily: ingest if missing, errored, incomplete, or sign-mismatched
                 boolean dailyNeedsIngest = !dailyRepo.existsByZodiacSignAndDateAndLocaleAndIngestErrorIsNull(sign, today, locale)
-                        || isDailyContentIncomplete(sign, today, locale);
+                        || isDailyContentInvalid(sign, today, locale);
                 if (dailyNeedsIngest) {
-                    log.info("[Startup] Daily {} {} {} needs ingest (missing or truncated)", sign, today, locale);
+                    log.info("[Startup] Daily {} {} {} needs ingest (missing, incomplete, or sign-mismatched)", sign, today, locale);
                     try {
                         ingestService.ingestDaily(sign, today, locale);
                     } catch (Exception e) {
                         log.warn("[Startup] Failed daily {} {} {}: {}", sign, today, locale, e.getMessage());
                     }
                 }
-                // Weekly: ingest if missing, errored, or content is incomplete
+                // Weekly: ingest if missing, errored, incomplete, or sign-mismatched
                 boolean weeklyNeedsIngest = !weeklyRepo.existsByZodiacSignAndWeekStartDateAndLocaleAndIngestErrorIsNull(sign, weekStart, locale)
-                        || isWeeklyContentIncomplete(sign, weekStart, locale);
+                        || isWeeklyContentInvalid(sign, weekStart, locale);
                 if (weeklyNeedsIngest) {
-                    log.info("[Startup] Weekly {} {} {} needs ingest (missing or truncated)", sign, weekStart, locale);
+                    log.info("[Startup] Weekly {} {} {} needs ingest (missing, incomplete, or sign-mismatched)", sign, weekStart, locale);
                     try {
                         ingestService.ingestWeekly(sign, weekStart, locale);
                     } catch (Exception e) {
@@ -80,24 +81,16 @@ public class HoroscopeIngestScheduler {
         log.info("[Scheduler] Startup check complete");
     }
 
-    private boolean isDailyContentIncomplete(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale) {
+    private boolean isDailyContentInvalid(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale) {
         return dailyRepo.findByZodiacSignAndDateAndLocale(sign, date, locale)
-                .map(r -> !isContentComplete(r.getFullContent()))
+                .map(r -> !HoroscopeContentGuard.isContentUsableForSign(r.getFullContent(), sign, locale))
                 .orElse(false);
     }
 
-    private boolean isWeeklyContentIncomplete(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate weekStart, String locale) {
+    private boolean isWeeklyContentInvalid(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate weekStart, String locale) {
         return weeklyRepo.findByZodiacSignAndWeekStartDateAndLocale(sign, weekStart, locale)
-                .map(r -> !isContentComplete(r.getFullContent()))
+                .map(r -> !HoroscopeContentGuard.isContentUsableForSign(r.getFullContent(), sign, locale))
                 .orElse(false);
-    }
-
-    private boolean isContentComplete(String content) {
-        if (content == null || content.isBlank()) return false;
-        String trimmed = content.trim();
-        if (trimmed.length() < 50) return false;
-        char last = trimmed.charAt(trimmed.length() - 1);
-        return last == '.' || last == '!' || last == '?' || last == '…';
     }
 
     /**
@@ -111,7 +104,8 @@ public class HoroscopeIngestScheduler {
 
         for (String locale : LOCALES) {
             for (WeeklyHoroscopeCms.ZodiacSign sign : SIGNS) {
-                if (dailyRepo.existsByZodiacSignAndDateAndLocaleAndIngestErrorIsNull(sign, today, locale)) continue;
+                if (dailyRepo.existsByZodiacSignAndDateAndLocaleAndIngestErrorIsNull(sign, today, locale)
+                        && !isDailyContentInvalid(sign, today, locale)) continue;
                 try {
                     ingestService.ingestDaily(sign, today, locale);
                     success++;
@@ -137,7 +131,8 @@ public class HoroscopeIngestScheduler {
 
         for (String locale : LOCALES) {
             for (WeeklyHoroscopeCms.ZodiacSign sign : SIGNS) {
-                if (weeklyRepo.existsByZodiacSignAndWeekStartDateAndLocaleAndIngestErrorIsNull(sign, weekStart, locale)) continue;
+                if (weeklyRepo.existsByZodiacSignAndWeekStartDateAndLocaleAndIngestErrorIsNull(sign, weekStart, locale)
+                        && !isWeeklyContentInvalid(sign, weekStart, locale)) continue;
                 try {
                     ingestService.ingestWeekly(sign, weekStart, locale);
                     success++;

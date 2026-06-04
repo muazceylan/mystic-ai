@@ -62,14 +62,14 @@ public class HoroscopeIngestService {
             if (rec.isOverrideActive()
                     || (rec.getStatus() == DailyHoroscopeCms.Status.PUBLISHED
                         && rec.getIngestError() == null
-                        && isContentComplete(rec.getFullContent()))) {
+                        && HoroscopeContentGuard.isContentUsableForSign(rec.getFullContent(), sign, locale))) {
                 log.debug("Skipping ingest for daily {} {} {} — already published with complete content or override active", sign, date, locale);
                 return rec;
             }
             if (rec.getStatus() == DailyHoroscopeCms.Status.PUBLISHED
                     && rec.getIngestError() == null
-                    && !isContentComplete(rec.getFullContent())) {
-                log.warn("Re-ingesting daily {} {} {} — stored content appears truncated (does not end with sentence terminator)", sign, date, locale);
+                    && !HoroscopeContentGuard.isContentUsableForSign(rec.getFullContent(), sign, locale)) {
+                log.warn("Re-ingesting daily {} {} {} — stored content appears incomplete or sign-mismatched", sign, date, locale);
             }
         }
 
@@ -83,6 +83,15 @@ public class HoroscopeIngestService {
         } catch (Exception e) {
             fetchError = e.getMessage();
             log.warn("Failed to fetch daily {} {} {} from astrology-service: {}", sign, date, locale, fetchError);
+        }
+        if (fetchedResponse != null) {
+            try {
+                validateFetchedResponse(fetchedResponse, sign, locale);
+            } catch (Exception e) {
+                fetchError = e.getMessage();
+                fetchedResponse = null;
+                log.warn("Rejected daily {} {} {} from astrology-service: {}", sign, date, locale, fetchError);
+            }
         }
 
         // If fetch failed — save placeholder with error info
@@ -166,14 +175,14 @@ public class HoroscopeIngestService {
             if (rec.isOverrideActive()
                     || (rec.getStatus() == WeeklyHoroscopeCms.Status.PUBLISHED
                         && rec.getIngestError() == null
-                        && isContentComplete(rec.getFullContent()))) {
+                        && HoroscopeContentGuard.isContentUsableForSign(rec.getFullContent(), sign, locale))) {
                 log.debug("Skipping ingest for weekly {} {} {} — already published with complete content or override active", sign, weekStart, locale);
                 return rec;
             }
             if (rec.getStatus() == WeeklyHoroscopeCms.Status.PUBLISHED
                     && rec.getIngestError() == null
-                    && !isContentComplete(rec.getFullContent())) {
-                log.warn("Re-ingesting weekly {} {} {} — stored content appears truncated (does not end with sentence terminator)", sign, weekStart, locale);
+                    && !HoroscopeContentGuard.isContentUsableForSign(rec.getFullContent(), sign, locale)) {
+                log.warn("Re-ingesting weekly {} {} {} — stored content appears incomplete or sign-mismatched", sign, weekStart, locale);
             }
         }
 
@@ -186,6 +195,15 @@ public class HoroscopeIngestService {
         } catch (Exception e) {
             fetchError = e.getMessage();
             log.warn("Failed to fetch weekly {} {} {} from astrology-service: {}", sign, weekStart, locale, fetchError);
+        }
+        if (fetchedResponse != null) {
+            try {
+                validateFetchedResponse(fetchedResponse, sign, locale);
+            } catch (Exception e) {
+                fetchError = e.getMessage();
+                fetchedResponse = null;
+                log.warn("Rejected weekly {} {} {} from astrology-service: {}", sign, weekStart, locale, fetchError);
+            }
         }
 
         if (fetchedResponse == null) {
@@ -271,16 +289,22 @@ public class HoroscopeIngestService {
         }
     }
 
-    /**
-     * Returns true when stored content is long enough and ends with a sentence terminator.
-     * Records that fail this check were likely truncated by an AI token limit and should be re-ingested.
-     */
-    private boolean isContentComplete(String content) {
-        if (content == null || content.isBlank()) return false;
-        String trimmed = content.trim();
-        if (trimmed.length() < 50) return false;
-        char last = trimmed.charAt(trimmed.length() - 1);
-        return last == '.' || last == '!' || last == '?' || last == '…';
+    private void validateFetchedResponse(AstrologyHoroscopeResponse response,
+                                         WeeklyHoroscopeCms.ZodiacSign expectedSign,
+                                         String locale) {
+        if (!HoroscopeContentGuard.responseSignMatches(response.sign(), expectedSign)) {
+            throw new IllegalStateException("Astrology response sign mismatch: expected "
+                    + expectedSign + " but got " + response.sign());
+        }
+        String general = response.sections() != null ? response.sections().get("general") : null;
+        if (!HoroscopeContentGuard.isContentComplete(general)) {
+            throw new IllegalStateException("Astrology response general content is incomplete");
+        }
+        HoroscopeContentGuard.findWrongDirectSignReference(general, expectedSign, locale)
+                .ifPresent(wrongSign -> {
+                    throw new IllegalStateException("Astrology response addresses " + wrongSign
+                            + " while ingesting " + expectedSign);
+                });
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

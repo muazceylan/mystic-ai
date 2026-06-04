@@ -20,6 +20,8 @@ public final class HoroscopeFusionPrompt {
         7. If sources contradict, soften/nuance rather than pick one.
         8. Tone: warm, empowering, specific. Avoid vague platitudes.
         9. Never mention the source texts or that you are fusing multiple sources.
+        10. Address only the requested Sign. If a source text addresses another zodiac sign,
+            correct the direct address to the requested Sign instead of copying it.
 
         Return ONLY valid JSON in this exact structure:
         {

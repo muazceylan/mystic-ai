@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -73,6 +74,64 @@ public class HoroscopeFusionService {
     };
     private static final String TURKISH_SIGN_ALTERNATION =
             "koç|boğa|ikizler|yengeç|aslan|başak|terazi|akrep|yay|oğlak|kova|balık";
+    private static final String ENGLISH_SIGN_ALTERNATION =
+            "aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces";
+    private static final Map<String, String> TURKISH_SIGN_NAMES = Map.ofEntries(
+            Map.entry("aries", "Koç"),
+            Map.entry("taurus", "Boğa"),
+            Map.entry("gemini", "İkizler"),
+            Map.entry("cancer", "Yengeç"),
+            Map.entry("leo", "Aslan"),
+            Map.entry("virgo", "Başak"),
+            Map.entry("libra", "Terazi"),
+            Map.entry("scorpio", "Akrep"),
+            Map.entry("sagittarius", "Yay"),
+            Map.entry("capricorn", "Oğlak"),
+            Map.entry("aquarius", "Kova"),
+            Map.entry("pisces", "Balık")
+    );
+    private static final Map<String, String> ENGLISH_SIGN_NAMES = Map.ofEntries(
+            Map.entry("aries", "Aries"),
+            Map.entry("taurus", "Taurus"),
+            Map.entry("gemini", "Gemini"),
+            Map.entry("cancer", "Cancer"),
+            Map.entry("leo", "Leo"),
+            Map.entry("virgo", "Virgo"),
+            Map.entry("libra", "Libra"),
+            Map.entry("scorpio", "Scorpio"),
+            Map.entry("sagittarius", "Sagittarius"),
+            Map.entry("capricorn", "Capricorn"),
+            Map.entry("aquarius", "Aquarius"),
+            Map.entry("pisces", "Pisces")
+    );
+    private static final Pattern TURKISH_DIRECT_SALUTATION = Pattern.compile(
+            "\\bsevgili\\s+(" + TURKISH_SIGN_ALTERNATION + ")(\\s+burcu)?\\b",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    private static final Pattern ENGLISH_DIRECT_SALUTATION = Pattern.compile(
+            "\\bdear\\s+(" + ENGLISH_SIGN_ALTERNATION + ")(\\s+sign)?\\b",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    private static final Pattern TURKISH_DIRECT_SUBJECT = Pattern.compile(
+            "(^|(?<=[.!?…])\\s+)(" + TURKISH_SIGN_ALTERNATION + ")\\s+burcu"
+                    + "(?=\\s*(?:,|için\\b|olarak\\b|bugün\\b|bu\\s+(?:hafta|dönem)\\b))",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    private static final Pattern TURKISH_DIRECT_PLURAL = Pattern.compile(
+            "(^|(?<=[.!?…])\\s+)(" + TURKISH_SIGN_ALTERNATION + ")(?:lar|ler)"
+                    + "(?=\\s+(?:bugün|bu\\s+(?:hafta|dönem)|için|olarak)\\b|[,.;:])",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    private static final Pattern TURKISH_DIRECT_SIGN_SUBJECT = Pattern.compile(
+            "(^|(?<=[.!?…])\\s+)(" + TURKISH_SIGN_ALTERNATION + ")"
+                    + "(?=\\s+(?:için\\b|bugün\\b|bu\\s+(?:hafta|dönem)\\b|olarak\\b))",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
+    private static final Pattern ENGLISH_DIRECT_SUBJECT = Pattern.compile(
+            "(^|(?<=[.!?…])\\s+)(" + ENGLISH_SIGN_ALTERNATION + ")(\\s+sign)?"
+                    + "(?=\\s*(?:,|today\\b|this\\s+(?:week|period)\\b|for\\b|as\\b))",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+    );
 
     @PostConstruct
     void configureAiRestTemplate() {
@@ -99,7 +158,7 @@ public class HoroscopeFusionService {
                     cachedResponse = objectMapper.convertValue(cached, HoroscopeResponse.class);
                 }
                 if (cachedResponse.getSources() != null) {
-                    return normalizeResponse(cachedResponse);
+                    return normalizeResponse(cachedResponse, sign, lang);
                 }
                 log.info("Cached response missing sources, re-fetching: {}", cacheKey);
             }
@@ -160,7 +219,7 @@ public class HoroscopeFusionService {
                 .sections(HoroscopeSections.builder().general(finalText).build())
                 .meta(null)
                 .sources(sources)
-                .build());
+                .build(), sign, lang);
 
         // 5. Cache
         Duration ttl = period.equals("weekly") ? WEEKLY_TTL : DAILY_TTL;
@@ -174,19 +233,19 @@ public class HoroscopeFusionService {
     }
 
     private String localizeGeneralTextForTurkish(String rawText, String sign, String period) {
-        String baseText = normalizeText(rawText);
+        String baseText = alignDirectSignReferencesForTurkish(normalizeText(rawText), sign);
         if (!nonBlank(baseText)) {
             return rawText;
         }
 
-        if (isLikelyTurkish(baseText) && passesTurkishQualityGate(baseText)) {
+        if (isLikelyTurkish(baseText) && passesTurkishQualityGate(baseText, sign)) {
             log.debug("Skipping editorial localization because source already passes Turkish quality gate");
-            return normalizeMixedAstroTermsForTurkish(baseText);
+            return alignDirectSignReferencesForTurkish(normalizeMixedAstroTermsForTurkish(baseText), sign);
         }
 
         String editorial = translateEditorialToTurkish(baseText, sign, period);
         String repairedEditorial = repairTurkishTextSegments(editorial, sign, period);
-        if ((passesTurkishQualityGate(repairedEditorial) || isUsableRepairedTurkish(repairedEditorial))
+        if ((passesTurkishQualityGate(repairedEditorial, sign) || isUsableRepairedTurkish(repairedEditorial, sign))
                 && endsWithSentenceTerminator(repairedEditorial)) {
             return repairedEditorial;
         }
@@ -198,7 +257,7 @@ public class HoroscopeFusionService {
 
         String legacy = translateToTurkishLegacy(baseText);
         String repairedLegacy = repairTurkishTextSegments(legacy, sign, period);
-        if ((passesTurkishQualityGate(repairedLegacy) || isUsableRepairedTurkish(repairedLegacy))
+        if ((passesTurkishQualityGate(repairedLegacy, sign) || isUsableRepairedTurkish(repairedLegacy, sign))
                 && endsWithSentenceTerminator(repairedLegacy)) {
             log.info("Using legacy TR translation after editorial fallback");
             return repairedLegacy;
@@ -208,7 +267,7 @@ public class HoroscopeFusionService {
         }
 
         String normalizedFallback = repairTurkishTextSegments(baseText, sign, period);
-        if (passesTurkishQualityGate(normalizedFallback) || isUsableRepairedTurkish(normalizedFallback)) {
+        if (passesTurkishQualityGate(normalizedFallback, sign) || isUsableRepairedTurkish(normalizedFallback, sign)) {
             return normalizedFallback;
         }
 
@@ -321,6 +380,11 @@ public class HoroscopeFusionService {
         return !containsTemplateArtifact(text);
     }
 
+    private boolean passesTurkishQualityGate(String candidate, String sign) {
+        return passesTurkishQualityGate(candidate)
+                && !containsWrongDirectSignReference(candidate, sign);
+    }
+
     private boolean containsTemplateArtifact(String text) {
         String lower = " " + text.toLowerCase(Locale.ROOT) + " ";
         for (String marker : TEMPLATE_ARTIFACT_MARKERS) {
@@ -386,6 +450,11 @@ public class HoroscopeFusionService {
             return false;
         }
         return !looksEnglishDominant(text) && !containsMixedAstroToken(text) && !containsEnglishRemainderToken(text);
+    }
+
+    private boolean isUsableRepairedTurkish(String candidate, String sign) {
+        return isUsableRepairedTurkish(candidate)
+                && !containsWrongDirectSignReference(candidate, sign);
     }
 
     private boolean isLikelyTurkish(String text) {
@@ -516,11 +585,11 @@ public class HoroscopeFusionService {
         if (!nonBlank(text)) {
             return null;
         }
-        String normalized = cleanupLocalizedText(text);
+        String normalized = alignDirectSignReferencesForTurkish(cleanupLocalizedText(text), sign);
         if (!nonBlank(normalized)) {
             return null;
         }
-        if (isUsableRepairedTurkish(normalized)) {
+        if (isUsableRepairedTurkish(normalized, sign)) {
             return normalized;
         }
 
@@ -528,8 +597,8 @@ public class HoroscopeFusionService {
         List<String> repaired = new ArrayList<>();
         boolean keptAnyOriginalSegment = false;
         for (String segment : segments) {
-            String cleaned = normalizeMixedAstroTermsForTurkish(segment);
-            if (isUsableRepairedTurkish(cleaned) || isShortButTurkish(cleaned)) {
+            String cleaned = alignDirectSignReferencesForTurkish(normalizeMixedAstroTermsForTurkish(segment), sign);
+            if (isUsableRepairedTurkish(cleaned, sign) || isShortButTurkish(cleaned, sign)) {
                 repaired.add(cleaned);
                 keptAnyOriginalSegment = true;
             } else if (nonBlank(cleaned)) {
@@ -555,6 +624,10 @@ public class HoroscopeFusionService {
                 && !looksEnglishDominant(text);
     }
 
+    private boolean isShortButTurkish(String text, String sign) {
+        return isShortButTurkish(text) && !containsWrongDirectSignReference(text, sign);
+    }
+
     private String buildTurkishFallbackSentence(String sign, String period) {
         String signName = turkishSignName(sign);
         if ("weekly".equalsIgnoreCase(period)) {
@@ -575,24 +648,110 @@ public class HoroscopeFusionService {
     }
 
     private String turkishSignName(String sign) {
-        if (sign == null) {
-            return "Bugün";
+        String signKey = normalizeSignKey(sign);
+        if (signKey == null) {
+            return sign == null ? "Bugün" : sign;
         }
-        return switch (sign.toLowerCase(Locale.ROOT)) {
-            case "aries" -> "Koç";
-            case "taurus" -> "Boğa";
-            case "gemini" -> "İkizler";
-            case "cancer" -> "Yengeç";
-            case "leo" -> "Aslan";
-            case "virgo" -> "Başak";
-            case "libra" -> "Terazi";
-            case "scorpio" -> "Akrep";
-            case "sagittarius" -> "Yay";
-            case "capricorn" -> "Oğlak";
-            case "aquarius" -> "Kova";
-            case "pisces" -> "Balık";
-            default -> sign;
+        return TURKISH_SIGN_NAMES.get(signKey);
+    }
+
+    private String englishSignName(String sign) {
+        String signKey = normalizeSignKey(sign);
+        if (signKey == null) {
+            return sign == null ? "Today" : sign;
+        }
+        return ENGLISH_SIGN_NAMES.get(signKey);
+    }
+
+    private String normalizeSignKey(String sign) {
+        if (!nonBlank(sign)) {
+            return null;
+        }
+        String normalized = sign.trim().toLowerCase(Locale.ROOT)
+                .replace("\u0307", "")
+                .replace("ğ", "g")
+                .replace("ü", "u")
+                .replace("ş", "s")
+                .replace("ı", "i")
+                .replace("ö", "o")
+                .replace("ç", "c")
+                .replaceAll("[^a-z]", "");
+        return switch (normalized) {
+            case "aries", "koc" -> "aries";
+            case "taurus", "boga" -> "taurus";
+            case "gemini", "ikizler" -> "gemini";
+            case "cancer", "yengec" -> "cancer";
+            case "leo", "aslan" -> "leo";
+            case "virgo", "basak" -> "virgo";
+            case "libra", "terazi" -> "libra";
+            case "scorpio", "akrep" -> "scorpio";
+            case "sagittarius", "yay" -> "sagittarius";
+            case "capricorn", "oglak" -> "capricorn";
+            case "aquarius", "kova" -> "aquarius";
+            case "pisces", "balik" -> "pisces";
+            default -> null;
         };
+    }
+
+    private String alignDirectSignReferences(String text, String sign, String lang) {
+        if (lang != null && lang.toLowerCase(Locale.ROOT).startsWith("tr")) {
+            return alignDirectSignReferencesForTurkish(text, sign);
+        }
+        return alignDirectSignReferencesForEnglish(text, sign);
+    }
+
+    private String alignDirectSignReferencesForTurkish(String text, String sign) {
+        if (!nonBlank(text) || normalizeSignKey(sign) == null) {
+            return text;
+        }
+        String expected = turkishSignName(sign);
+        String aligned = TURKISH_DIRECT_SALUTATION.matcher(text)
+                .replaceAll(match -> "Sevgili " + expected + (match.group(2) == null ? "" : match.group(2)));
+        aligned = ENGLISH_DIRECT_SALUTATION.matcher(aligned)
+                .replaceAll(match -> "Sevgili " + expected);
+        aligned = TURKISH_DIRECT_SUBJECT.matcher(aligned)
+                .replaceAll(match -> match.group(1) + expected + " burcu");
+        aligned = TURKISH_DIRECT_PLURAL.matcher(aligned)
+                .replaceAll(match -> match.group(1) + expected + " burcu");
+        aligned = TURKISH_DIRECT_SIGN_SUBJECT.matcher(aligned)
+                .replaceAll(match -> match.group(1) + expected);
+        return aligned;
+    }
+
+    private String alignDirectSignReferencesForEnglish(String text, String sign) {
+        if (!nonBlank(text) || normalizeSignKey(sign) == null) {
+            return text;
+        }
+        String expected = englishSignName(sign);
+        String aligned = ENGLISH_DIRECT_SALUTATION.matcher(text)
+                .replaceAll(match -> "Dear " + expected + (match.group(2) == null ? "" : match.group(2)));
+        aligned = ENGLISH_DIRECT_SUBJECT.matcher(aligned)
+                .replaceAll(match -> match.group(1) + expected + (match.group(3) == null ? "" : match.group(3)));
+        return aligned;
+    }
+
+    private boolean containsWrongDirectSignReference(String text, String sign) {
+        String expectedKey = normalizeSignKey(sign);
+        if (!nonBlank(text) || expectedKey == null) {
+            return false;
+        }
+        return containsWrongDirectSignReference(text, expectedKey, TURKISH_DIRECT_SALUTATION, 1)
+                || containsWrongDirectSignReference(text, expectedKey, ENGLISH_DIRECT_SALUTATION, 1)
+                || containsWrongDirectSignReference(text, expectedKey, TURKISH_DIRECT_SUBJECT, 2)
+                || containsWrongDirectSignReference(text, expectedKey, TURKISH_DIRECT_PLURAL, 2)
+                || containsWrongDirectSignReference(text, expectedKey, TURKISH_DIRECT_SIGN_SUBJECT, 2)
+                || containsWrongDirectSignReference(text, expectedKey, ENGLISH_DIRECT_SUBJECT, 2);
+    }
+
+    private boolean containsWrongDirectSignReference(String text, String expectedKey, Pattern pattern, int signGroup) {
+        var matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            String matchedKey = normalizeSignKey(matcher.group(signGroup));
+            if (matchedKey != null && !matchedKey.equals(expectedKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private HoroscopeResponse tryStaleCache(String cacheKey, String sign, String period,
@@ -603,8 +762,8 @@ public class HoroscopeFusionService {
             Object stale = redisTemplate.opsForValue().get(staleKey);
             if (stale != null) {
                 log.info("Returning stale cache for {}", staleKey);
-                if (stale instanceof HoroscopeResponse hr) return normalizeResponse(hr);
-                return normalizeResponse(objectMapper.convertValue(stale, HoroscopeResponse.class));
+                if (stale instanceof HoroscopeResponse hr) return normalizeResponse(hr, sign, lang);
+                return normalizeResponse(objectMapper.convertValue(stale, HoroscopeResponse.class), sign, lang);
             }
         } catch (Exception ignored) {}
 
@@ -616,12 +775,13 @@ public class HoroscopeFusionService {
         return String.format("horoscope:%s:%s:%s:%s", period, sign, lang, date);
     }
 
-    private HoroscopeResponse normalizeResponse(HoroscopeResponse response) {
+    private HoroscopeResponse normalizeResponse(HoroscopeResponse response, String expectedSign, String lang) {
         if (response == null) return null;
 
         HoroscopeSections sections = response.getSections();
         if (sections != null) {
-            sections.setGeneral(normalizeText(sections.getGeneral()));
+            String normalizedGeneral = normalizeText(sections.getGeneral());
+            sections.setGeneral(alignDirectSignReferences(normalizedGeneral, expectedSign, lang));
         }
 
         if (response.getSources() != null) {

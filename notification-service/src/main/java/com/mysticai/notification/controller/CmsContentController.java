@@ -5,6 +5,7 @@ import com.mysticai.notification.admin.service.ExploreCardService;
 import com.mysticai.notification.admin.service.HomeSectionService;
 import com.mysticai.notification.admin.service.PlacementBannerService;
 import com.mysticai.notification.admin.service.cms.DailyHoroscopeCmsService;
+import com.mysticai.notification.admin.service.cms.HoroscopeContentGuard;
 import com.mysticai.notification.admin.service.cms.HoroscopeIngestService;
 import com.mysticai.notification.admin.service.cms.PrayerContentService;
 import com.mysticai.notification.admin.service.cms.WeeklyHoroscopeCmsService;
@@ -61,27 +62,36 @@ public class CmsContentController {
             return ResponseEntity.badRequest().body("Invalid zodiac sign: " + sign);
         }
 
-        // CMS DB first — any PUBLISHED record is authoritative (including admin edits)
+        // CMS DB first — a usable PUBLISHED record is authoritative (including admin edits)
         var existing = dailyService.findAll(zodiacSign,
                 DailyHoroscopeCms.Status.PUBLISHED, null, locale, date, date,
                 org.springframework.data.domain.PageRequest.of(0, 1)).getContent();
 
         if (!existing.isEmpty()) {
             DailyHoroscopeCms record = existing.get(0);
-            log.info("[CMS] daily {} {} {} → SOURCE: DB | id={} sourceType={} overrideActive={}",
-                    zodiacSign, date, locale, record.getId(), record.getSourceType(), record.isOverrideActive());
-            return ResponseEntity.ok(record);
+            if (HoroscopeContentGuard.isContentUsableForSign(record.getFullContent(), zodiacSign, locale)) {
+                log.info("[CMS] daily {} {} {} → SOURCE: DB | id={} sourceType={} overrideActive={}",
+                        zodiacSign, date, locale, record.getId(), record.getSourceType(), record.isOverrideActive());
+                return ResponseEntity.ok(record);
+            }
+            log.warn("[CMS] daily {} {} {} → PUBLISHED record id={} is incomplete or sign-mismatched, re-ingesting",
+                    zodiacSign, date, locale, record.getId());
         }
 
-        // No published record in DB — fall back to live ingest from astrology-service
-        log.info("[CMS] daily {} {} {} → no PUBLISHED record, ingesting from astrology-service", zodiacSign, date, locale);
+        // No usable published record in DB — fall back to live ingest from astrology-service
+        log.info("[CMS] daily {} {} {} → no usable PUBLISHED record, ingesting from astrology-service", zodiacSign, date, locale);
         try {
             DailyHoroscopeCms ingested = ingestService.ingestDaily(zodiacSign, date, locale);
-            if (ingested != null && ingested.getIngestError() == null) {
+            if (ingested != null
+                    && ingested.getIngestError() == null
+                    && HoroscopeContentGuard.isContentUsableForSign(ingested.getFullContent(), zodiacSign, locale)) {
                 log.info("[CMS] daily {} {} {} → SOURCE: ASTROLOGY-API (freshly ingested)", zodiacSign, date, locale);
                 return ResponseEntity.ok(ingested);
             }
-            if (ingested != null) {
+            if (ingested != null && ingested.getIngestError() == null) {
+                log.warn("[CMS] daily {} {} {} → ingested record is still incomplete or sign-mismatched", zodiacSign, date, locale);
+            }
+            if (ingested != null && ingested.getIngestError() != null) {
                 log.warn("[CMS] daily {} {} {} → ingest failed: {}", zodiacSign, date, locale, ingested.getIngestError());
             }
         } catch (Exception e) {
@@ -114,27 +124,36 @@ public class CmsContentController {
             return ResponseEntity.badRequest().body("Invalid zodiac sign: " + sign);
         }
 
-        // CMS DB first — any PUBLISHED record is authoritative
+        // CMS DB first — a usable PUBLISHED record is authoritative
         var existing = weeklyService.findAll(zodiacSign,
                 WeeklyHoroscopeCms.Status.PUBLISHED, null, locale, weekStart, weekStart,
                 org.springframework.data.domain.PageRequest.of(0, 1)).getContent();
 
         if (!existing.isEmpty()) {
             WeeklyHoroscopeCms record = existing.get(0);
-            log.info("[CMS] weekly {} {} {} → SOURCE: DB | id={} sourceType={} overrideActive={}",
-                    zodiacSign, weekStart, locale, record.getId(), record.getSourceType(), record.isOverrideActive());
-            return ResponseEntity.ok(record);
+            if (HoroscopeContentGuard.isContentUsableForSign(record.getFullContent(), zodiacSign, locale)) {
+                log.info("[CMS] weekly {} {} {} → SOURCE: DB | id={} sourceType={} overrideActive={}",
+                        zodiacSign, weekStart, locale, record.getId(), record.getSourceType(), record.isOverrideActive());
+                return ResponseEntity.ok(record);
+            }
+            log.warn("[CMS] weekly {} {} {} → PUBLISHED record id={} is incomplete or sign-mismatched, re-ingesting",
+                    zodiacSign, weekStart, locale, record.getId());
         }
 
-        // No published record in DB — fall back to live ingest
-        log.info("[CMS] weekly {} {} {} → no PUBLISHED record, ingesting from astrology-service", zodiacSign, weekStart, locale);
+        // No usable published record in DB — fall back to live ingest
+        log.info("[CMS] weekly {} {} {} → no usable PUBLISHED record, ingesting from astrology-service", zodiacSign, weekStart, locale);
         try {
             WeeklyHoroscopeCms ingested = ingestService.ingestWeekly(zodiacSign, weekStart, locale);
-            if (ingested != null && ingested.getIngestError() == null) {
+            if (ingested != null
+                    && ingested.getIngestError() == null
+                    && HoroscopeContentGuard.isContentUsableForSign(ingested.getFullContent(), zodiacSign, locale)) {
                 log.info("[CMS] weekly {} {} {} → SOURCE: ASTROLOGY-API (freshly ingested)", zodiacSign, weekStart, locale);
                 return ResponseEntity.ok(ingested);
             }
-            if (ingested != null) {
+            if (ingested != null && ingested.getIngestError() == null) {
+                log.warn("[CMS] weekly {} {} {} → ingested record is still incomplete or sign-mismatched", zodiacSign, weekStart, locale);
+            }
+            if (ingested != null && ingested.getIngestError() != null) {
                 log.warn("[CMS] weekly {} {} {} → ingest failed: {}", zodiacSign, weekStart, locale, ingested.getIngestError());
             }
         } catch (Exception e) {

@@ -15,6 +15,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -124,6 +125,73 @@ class HoroscopeFusionServiceTest {
         assertFalse(general.contains("vibe"));
         assertFalse(general.contains("favorit"));
         assertFalse(general.contains("deyar"));
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldAlignEditorialDirectSignReferenceToRequestedSign() {
+        String rawEnglish = "Today your relationships can benefit from a calmer rhythm.";
+        ohmandaClient.next = source("ohmanda", rawEnglish);
+
+        mockServer.expect(requestTo("http://orchestrator.test/api/ai/horoscope/translate-editorial"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(
+                        "Sevgili Boğa burcu, bugün ilişkilerinde daha sakin bir ritim kurman destekleyici olabilir.",
+                        new MediaType("text", "plain", StandardCharsets.UTF_8)
+                ));
+
+        HoroscopeResponse response = service.getHoroscope("capricorn", "daily", "tr");
+
+        assertEquals(
+                "Sevgili Oğlak burcu, bugün ilişkilerinde daha sakin bir ritim kurman destekleyici olabilir.",
+                response.getSections().getGeneral()
+        );
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldAlignTurkishDirectSignReferenceForAllRequestedSigns() {
+        Map<String, String> expectedNames = Map.ofEntries(
+                Map.entry("aries", "Koç"),
+                Map.entry("taurus", "Boğa"),
+                Map.entry("gemini", "İkizler"),
+                Map.entry("cancer", "Yengeç"),
+                Map.entry("leo", "Aslan"),
+                Map.entry("virgo", "Başak"),
+                Map.entry("libra", "Terazi"),
+                Map.entry("scorpio", "Akrep"),
+                Map.entry("sagittarius", "Yay"),
+                Map.entry("capricorn", "Oğlak"),
+                Map.entry("aquarius", "Kova"),
+                Map.entry("pisces", "Balık")
+        );
+
+        for (Map.Entry<String, String> sign : expectedNames.entrySet()) {
+            ohmandaClient.next = source("ohmanda",
+                    "Sevgili Boğa burcu, bugün enerjini dengede tutman ilişkilerinde ve günlük işlerinde daha sakin ilerlemene destek olabilir.");
+
+            HoroscopeResponse response = service.getHoroscope(sign.getKey(), "daily", "tr");
+
+            assertEquals(
+                    "Sevgili " + sign.getValue() + " burcu, bugün enerjini dengede tutman ilişkilerinde ve günlük işlerinde daha sakin ilerlemene destek olabilir.",
+                    response.getSections().getGeneral()
+            );
+        }
+
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldAlignTurkishDirectSignSubjectWithoutBurcuWord() {
+        ohmandaClient.next = source("ohmanda",
+                "Boğa için bugün enerjini dengede tutman ilişkilerinde ve günlük işlerinde daha sakin ilerlemene destek olabilir.");
+
+        HoroscopeResponse response = service.getHoroscope("capricorn", "daily", "tr");
+
+        assertEquals(
+                "Oğlak için bugün enerjini dengede tutman ilişkilerinde ve günlük işlerinde daha sakin ilerlemene destek olabilir.",
+                response.getSections().getGeneral()
+        );
         mockServer.verify();
     }
 

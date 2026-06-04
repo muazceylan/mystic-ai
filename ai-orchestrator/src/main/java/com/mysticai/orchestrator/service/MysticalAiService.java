@@ -398,6 +398,7 @@ public class MysticalAiService {
                 - Ton uzman, sıcak, dengeli ve psikoloji-first olsun.
                 - Deterministik kader dili kullanma; "olabilir", "destekleyebilir", "işaret edebilir" gibi olasılık dili kullan.
                 - Burç ve astroloji terimlerini Türkçe ve tutarlı kullan.
+                - Nihai metin yalnızca bağlamdaki burca hitap etsin. Kaynak metin yanlışlıkla başka bir burca "Dear ...", "Sevgili ...", "... burcu" diye sesleniyorsa bunu bağlamdaki burca düzelt.
                 - Karma dil, bozuk çeviri ve yabancı kelime kalıntılarını temizle (örn: Luna, Kheiron, unique gibi ifadeleri doğal Türkçe karşılıklarıyla düzelt).
                 - "Libra'lı", "Akrep Ayı", "Moon square Uranus" gibi melez/ham ifadeleri doğal Türkçe astroloji diline çevir.
                 - Çıktı tek paragraf düz metin olsun. Başlık, liste, emoji, markdown, kod bloğu veya açıklama notu ekleme.
