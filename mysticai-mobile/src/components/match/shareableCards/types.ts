@@ -83,6 +83,9 @@ export interface NumerologyPreviewModel {
   headline: string;
   personalYear: number;
   shortTheme: string;
+  mainInsight: string;
+  panelTitle: string;
+  panelBody: string;
   brandLabel: string;
   themeVariant: ShareCardThemeKey;
   aspectRatio: ShareCardAspectRatioKey;

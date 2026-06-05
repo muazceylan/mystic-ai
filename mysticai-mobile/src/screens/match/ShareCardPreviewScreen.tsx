@@ -59,6 +59,7 @@ import { useSynastryStore } from '../../store/useSynastryStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useHoroscopeStore } from '../../features/horoscope/store/useHoroscopeStore';
 import { fetchNumerology, type NumerologyShareCardPayload } from '../../services/numerology.service';
+import { buildNumerologyShareCardCopy } from '../../services/numerology.viewmodel';
 import { ZODIAC_MAP, getSignEmoji, getSignFromBirthDate, getSignName, resolveZodiacSign } from '../../features/horoscope/utils/zodiacData';
 import type { ZodiacSign } from '../../features/horoscope/types/horoscope.types';
 import {
@@ -71,11 +72,8 @@ import * as Haptics from '../../utils/haptics';
 import { radius, spacing } from '../../theme';
 import {
   useModuleMonetization,
-  ActionUnlockSheet,
-  FEATURE_ACTION_KEYS,
   FEATURE_MODULE_KEYS,
   MonetizationQuickBar,
-  PurchaseCatalogSheet,
 } from '../../features/monetization';
 import { trackEvent } from '../../services/analytics';
 import { useNotificationStore } from '../../store/useNotificationStore';
@@ -111,7 +109,6 @@ type PreviewSeed = {
 };
 
 const MODULE_KEY = FEATURE_MODULE_KEYS.SHARE_CARDS;
-const ACTION_KEY_EXPORT = FEATURE_ACTION_KEYS.SHAREABLE_CARD_CREATE;
 
 const CAPTURE_WIDTH = 1080;
 const CANVAS_WIDTH = 360;
@@ -300,6 +297,7 @@ export default function ShareCardPreviewScreen() {
     overallScore?: string;
     relationshipType?: string;
     relationLabel?: string;
+    tab?: string;
   }>();
 
   const { colors } = useTheme();
@@ -310,13 +308,8 @@ export default function ShareCardPreviewScreen() {
 
   // ── Monetization ──
   const monetization = useModuleMonetization(MODULE_KEY);
-  const exportUnlockState = monetization.getActionUnlockState(ACTION_KEY_EXPORT);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const { onOpenNotifications } = useSurfaceNavigationActions();
-  const [showUnlockSheet, setShowUnlockSheet] = useState(false);
-  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
-  const [featureUnlocked, setFeatureUnlocked] = useState(false);
-  const pendingProtectedActionRef = useRef<'share' | 'save' | 'download' | null>(null);
   const screenTrackedRef = useRef(false);
   const notificationBadgeText = unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null;
 
@@ -359,13 +352,19 @@ export default function ShareCardPreviewScreen() {
     ? Number(parseParamValue(params.overallScore))
     : null;
 
+  const initialTab = useMemo<ShareableCardsTabKey>(() => {
+    const raw = parseParamValue(params.tab);
+    if (raw === 'numerology' || raw === 'daily') return raw;
+    return 'compatibility';
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [meta, setMeta] = useState<SynastryCardMeta>({
     relationshipType: relationshipTypeParam,
     relationLabel: relationLabelParam,
     scoreBreakdown: null,
     displayMetrics: null,
   });
-  const [selectedTab, setSelectedTab] = useState<ShareableCardsTabKey>('compatibility');
+  const [selectedTab, setSelectedTab] = useState<ShareableCardsTabKey>(initialTab);
   const fixedCardType: ShareCardTypeKey = 'guru_card';
   const appliedTheme: ShareCardThemeKey = 'romantic_night';
   const appliedAspectRatio: ShareCardAspectRatioKey = 'story';
@@ -574,7 +573,6 @@ export default function ShareCardPreviewScreen() {
 
   const tabs = useMemo<ShareableCardsTabItem[]>(
     () => [
-      { key: 'all', label: t('shareableCards.tabs.all'), iconName: 'apps-outline' },
       { key: 'compatibility', label: t('shareableCards.tabs.compatibility'), iconName: 'heart-outline' },
       { key: 'daily', label: t('shareableCards.tabs.daily'), iconName: 'sunny-outline' },
       { key: 'numerology', label: t('shareableCards.tabs.numerology'), iconName: 'keypad-outline' },
@@ -882,18 +880,31 @@ export default function ShareCardPreviewScreen() {
   // ── Numerology preview model ──
   const numerologyPreviewModel = useMemo<NumerologyPreviewModel | null>(() => {
     if (!numerologyPayload) return null;
+    const shareCardCopy = buildNumerologyShareCardCopy(
+      numerologyPayload.personalYear,
+      i18n.language,
+      {
+        mainInsight: numerologyPayload.headline,
+        panelTitle: numerologyPayload.shortTheme,
+        panelBody: numerologyPayload.headline,
+      },
+    );
+
     return {
       title: t('shareableCards.preview.numerologyTitle'),
       name: numerologyPayload.name,
       mainNumber: numerologyPayload.mainNumber,
-      headline: numerologyPayload.headline,
+      headline: shareCardCopy.mainInsight,
       personalYear: numerologyPayload.personalYear,
-      shortTheme: numerologyPayload.shortTheme,
+      shortTheme: shareCardCopy.panelTitle,
+      mainInsight: shareCardCopy.mainInsight,
+      panelTitle: shareCardCopy.panelTitle,
+      panelBody: shareCardCopy.panelBody,
       brandLabel: t('shareableCards.preview.brand'),
       themeVariant: appliedTheme,
       aspectRatio: appliedAspectRatio,
     };
-  }, [numerologyPayload, appliedTheme, appliedAspectRatio, t]);
+  }, [numerologyPayload, i18n.language, appliedTheme, appliedAspectRatio, t]);
 
   // ── Which preview is active ──
   const activeCardTab = selectedTab === 'all' ? 'compatibility' : selectedTab;
@@ -955,7 +966,16 @@ export default function ShareCardPreviewScreen() {
       return ['daily', horoscopePreviewModel.sign, horoscopePreviewModel.date, horoscopePreviewModel.themeVariant, horoscopePreviewModel.aspectRatio].join('|');
     }
     if (activeCardTab === 'numerology' && numerologyPreviewModel) {
-      return ['num', numerologyPreviewModel.mainNumber, numerologyPreviewModel.name, numerologyPreviewModel.themeVariant, numerologyPreviewModel.aspectRatio].join('|');
+      return [
+        'num',
+        numerologyPreviewModel.mainNumber,
+        numerologyPreviewModel.personalYear,
+        numerologyPreviewModel.name,
+        numerologyPreviewModel.mainInsight,
+        numerologyPreviewModel.panelBody,
+        numerologyPreviewModel.themeVariant,
+        numerologyPreviewModel.aspectRatio,
+      ].join('|');
     }
     if (isGuruCardActive && guruCardProps) {
       return [
@@ -1110,15 +1130,7 @@ export default function ShareCardPreviewScreen() {
    * Monetization gate: checks if the export action requires Guru/ad unlock.
    * Returns true if the action should proceed, false if a gate was shown.
    */
-  const checkMonetizationGate = useCallback((pendingAction: 'share' | 'save' | 'download'): boolean => {
-    if (featureUnlocked || !exportUnlockState.usesMonetization) return true;
-    pendingProtectedActionRef.current = pendingAction;
-    setShowUnlockSheet(true);
-    return false;
-  }, [exportUnlockState.usesMonetization, featureUnlocked]);
-
   const handleShare = useCallback(async () => {
-    if (!checkMonetizationGate('share')) return;
     trackEvent('share_cards_action', { action: 'share' });
     await runShareAction('share', t('shareableCards.alerts.shareTitle'), async () => {
       const result = await shareImage(imageUri!);
@@ -1130,19 +1142,9 @@ export default function ShareCardPreviewScreen() {
       });
       await notifySuccess(t('shareableCards.success.share'));
     });
-  }, [checkMonetizationGate, imageUri, matchId, notifySuccess, runShareAction, t]);
-
-  const handleSave = useCallback(async () => {
-    if (!checkMonetizationGate('save')) return;
-    trackEvent('share_cards_action', { action: 'save' });
-    await runShareAction('save', t('shareableCards.alerts.saveTitle'), async () => {
-      await saveToGallery(imageUri!);
-      await notifySuccess(t('shareableCards.success.save'));
-    });
-  }, [checkMonetizationGate, imageUri, notifySuccess, runShareAction, t]);
+  }, [imageUri, matchId, notifySuccess, runShareAction, t]);
 
   const handleDownload = useCallback(async () => {
-    if (!checkMonetizationGate('download')) return;
     trackEvent('share_cards_action', { action: 'download' });
     await runShareAction('download', t('shareableCards.alerts.downloadTitle'), async () => {
       let embedUri = imageUri!;
@@ -1168,23 +1170,8 @@ export default function ShareCardPreviewScreen() {
       }
       await notifySuccess(t('shareableCards.success.download'));
     });
-  }, [checkMonetizationGate, imageUri, notifySuccess, previewModel?.relationshipLabel, previewModel?.title, runShareAction, t]);
+  }, [imageUri, notifySuccess, previewModel?.relationshipLabel, previewModel?.title, runShareAction, t]);
 
-  const replayPendingProtectedAction = useCallback(() => {
-    const pendingAction = pendingProtectedActionRef.current;
-    pendingProtectedActionRef.current = null;
-    if (pendingAction === 'share') {
-      void handleShare();
-      return;
-    }
-    if (pendingAction === 'save') {
-      void handleSave();
-      return;
-    }
-    if (pendingAction === 'download') {
-      void handleDownload();
-    }
-  }, [handleDownload, handleSave, handleShare]);
 
   const handleRetry = useCallback(async () => {
     autoGeneratedForKeyRef.current = null;
@@ -1221,23 +1208,13 @@ export default function ShareCardPreviewScreen() {
   const primaryActions = useMemo<ShareableCardsActionItem[]>(
     () => [
       {
-        key: 'save',
-        label: t('shareableCards.actions.save'),
-        iconName: 'bookmark-outline',
-        onPress: () => {
-          void handleSave();
-        },
-        disabled: primaryActionsDisabled || actionLoading === 'share' || actionLoading === 'download',
-        loading: actionLoading === 'save',
-      },
-      {
         key: 'download',
         label: t('shareableCards.actions.download'),
         iconName: 'download-outline',
         onPress: () => {
           void handleDownload();
         },
-        disabled: primaryActionsDisabled || actionLoading === 'share' || actionLoading === 'save',
+        disabled: primaryActionsDisabled || actionLoading === 'share',
         loading: actionLoading === 'download',
       },
       {
@@ -1247,7 +1224,7 @@ export default function ShareCardPreviewScreen() {
         onPress: () => {
           void handleShare();
         },
-        disabled: primaryActionsDisabled || actionLoading === 'save' || actionLoading === 'download',
+        disabled: primaryActionsDisabled || actionLoading === 'download',
         loading: actionLoading === 'share',
         tone: 'accent',
       },
@@ -1255,7 +1232,6 @@ export default function ShareCardPreviewScreen() {
     [
       actionLoading,
       handleDownload,
-      handleSave,
       handleShare,
       primaryActionsDisabled,
       t,
@@ -1627,28 +1603,6 @@ export default function ShareCardPreviewScreen() {
         </ScrollView>
       </View>
 
-      {/* ── Monetization modals ── */}
-      <ActionUnlockSheet
-        visible={showUnlockSheet}
-        moduleKey={MODULE_KEY}
-        actionKey={ACTION_KEY_EXPORT}
-        title={t('shareableCards.title')}
-        onClose={() => setShowUnlockSheet(false)}
-        onUnlocked={async () => {
-          setFeatureUnlocked(true);
-          trackEvent('share_cards_guru_unlocked');
-          replayPendingProtectedAction();
-        }}
-        onShowPurchase={exportUnlockState.purchaseEnabled ? () => {
-          setShowUnlockSheet(false);
-          setShowPurchaseSheet(true);
-        } : undefined}
-      />
-
-      <PurchaseCatalogSheet
-        visible={showPurchaseSheet}
-        onDismiss={() => setShowPurchaseSheet(false)}
-      />
     </SafeScreen>
   );
 }

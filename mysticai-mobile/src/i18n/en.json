@@ -853,6 +853,18 @@
       "reset": "Reset",
       "apply": "Apply"
     },
+    "tags": {
+      "modern": "Modern",
+      "classic": "Classic",
+      "quranic": "Quranic",
+      "nature": "Nature",
+      "strong": "Strong",
+      "soft": "Gentle",
+      "timeless": "Timeless",
+      "minimalist": "Minimalist",
+      "light": "Light",
+      "wisdom": "Wisdom"
+    },
     "detail": {
       "invalidRecordTitle": "Invalid record",
       "invalidRecordDescription": "The name detail could not be opened.",
@@ -2228,7 +2240,7 @@
       "horoscopeError": "Could not load daily horoscope"
     },
     "numerologyCard": {
-      "personalYear": "Personal Year: {{year}}",
+      "personalYear": "Personal Year Number: {{year}}",
       "loadingNumerology": "Calculating numerology…",
       "numerologyError": "Could not load numerology data"
     }

@@ -1229,6 +1229,7 @@ export default function DailyTransitsScreen() {
         locale: resolvedLocale,
       });
       Alert.alert(t('dailyTransits.feedbackFailedTitle'), error?.message ?? t('dailyTransits.feedbackRetryMsg'));
+      throw error;
     }
   };
 

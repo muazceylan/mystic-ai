@@ -119,10 +119,7 @@ export function NumerologyHeroCard(props: {
   cacheStatus: NumerologyCacheStatus;
   generatedAt?: string;
   onShare: () => void;
-  onSaveSnapshot: () => void;
   onOpenTrust: () => void;
-  shareLoading?: boolean;
-  savingSnapshot?: boolean;
 }) {
   const { t } = useTranslation();
   const styles = createStyles(useTheme().colors);
@@ -191,13 +188,6 @@ export function NumerologyHeroCard(props: {
           icon="share-social-outline"
           label={t('numerology.shareCta')}
           onPress={props.onShare}
-          loading={props.shareLoading}
-        />
-        <ActionButton
-          icon="bookmark-outline"
-          label={t('numerology.snapshotCta')}
-          onPress={props.onSaveSnapshot}
-          loading={props.savingSnapshot}
         />
         <ActionButton
           icon="information-circle-outline"

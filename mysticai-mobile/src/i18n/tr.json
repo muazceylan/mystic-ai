@@ -847,10 +847,22 @@
       "originPlaceholder": "örn: Arapça",
       "startsWith": "Harfle Başlama",
       "startsWithPlaceholder": "örn: E",
-      "tag": "Tag",
+      "tag": "Etiket",
       "quranFlag": "Kur'an'da geçiyor",
       "reset": "Sıfırla",
       "apply": "Uygula"
+    },
+    "tags": {
+      "modern": "Modern",
+      "classic": "Klasik",
+      "quranic": "Kurani",
+      "nature": "Doğa",
+      "strong": "Güçlü",
+      "soft": "Narin",
+      "timeless": "Zamansız",
+      "minimalist": "Minimalist",
+      "light": "Işık",
+      "wisdom": "Bilgelik"
     },
     "detail": {
       "invalidRecordTitle": "Geçersiz kayıt",
@@ -2227,7 +2239,7 @@
       "horoscopeError": "Günlük yorum alınamadı"
     },
     "numerologyCard": {
-      "personalYear": "Kişisel Yıl: {{year}}",
+      "personalYear": "Kişisel Yıl Sayısı: {{year}}",
       "loadingNumerology": "Numeroloji hesaplanıyor…",
       "numerologyError": "Numeroloji verisi alınamadı"
     }

@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { navigateWithOrigin } from '../../navigation';
+import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
@@ -238,6 +239,7 @@ export default function NameSearchScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/name-analysis' });
   const params = useLocalSearchParams<{ q?: string; tag?: string }>();
   const initialQuery = typeof params.q === 'string' ? params.q : '';
   const initialTag = typeof params.tag === 'string' ? params.tag : '';
@@ -265,16 +267,11 @@ export default function NameSearchScreen() {
       origin: filters.origin || undefined,
       quranFlag: filters.quranFlag,
       startsWith: filters.startsWith || undefined,
+      tag: filters.tag || undefined,
     }),
   });
 
-  const content = useMemo(() => {
-    const tagToken = filters.tag.trim().toLocaleLowerCase('tr-TR');
-    if (!tagToken) return searchQuery.data?.content ?? [];
-    return (searchQuery.data?.content ?? []).filter((item) =>
-      (item.tags ?? []).some((tag) => tag.tagValue.toLocaleLowerCase('tr-TR') === tagToken)
-    );
-  }, [searchQuery.data?.content, filters.tag]);
+  const content = searchQuery.data?.content ?? [];
 
   useEffect(() => {
     trackEvent('name_module_opened', {
@@ -317,6 +314,7 @@ export default function NameSearchScreen() {
       <View style={styles.container}>
         <TabHeader
           title={t('surfaceTitles.nameSearch')}
+          onBack={goBack}
           rightActions={(
             <SurfaceHeaderIconButton
               iconName="heart-outline"
@@ -486,7 +484,7 @@ export default function NameSearchScreen() {
                 {TAG_OPTIONS.map((tag) => (
                   <NameTagChip
                     key={tag}
-                    label={tag}
+                    label={t(`nameAnalysis.tags.${tag}`, tag)}
                     selected={filters.tag === tag}
                     onPress={() => setFilters((prev) => ({ ...prev, tag: prev.tag === tag ? '' : tag }))}
                   />

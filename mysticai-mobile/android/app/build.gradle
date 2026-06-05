@@ -98,7 +98,7 @@ android {
         applicationId 'com.astroguru.mmc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 31
+        versionCode 32
         versionName "1.0.0"
         // The app only ships Turkish and English UI copy. Restricting packaged
         // locale resources avoids flaky AAPT failures in bundled third-party

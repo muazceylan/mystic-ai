@@ -46,6 +46,7 @@ export interface NameSearchParams {
   origin?: string;
   quranFlag?: boolean;
   startsWith?: string;
+  tag?: string;
   status?: NameStatus;
   page?: number;
   size?: number;
@@ -214,6 +215,7 @@ export async function searchNames(params: NameSearchParams): Promise<PageResult<
   if (params.gender) query.gender = params.gender;
   if (params.origin?.trim()) query.origin = params.origin.trim();
   if (params.quranFlag !== undefined) query.quranFlag = params.quranFlag;
+  if (params.tag?.trim()) query.tag = params.tag.trim();
 
   const response = await api.get(NAMES_BASE, { params: query });
 

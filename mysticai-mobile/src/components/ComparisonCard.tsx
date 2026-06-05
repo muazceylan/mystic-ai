@@ -269,7 +269,7 @@ function inferHeadline(card: ComparisonCardDTO, score: number | null): string {
   }
 
   const [firstSentence] = splitSentences(card.intersection?.plain);
-  return compactText(firstSentence, `${card.title} alanındaki ana ritim görünürleşiyor.`, 92);
+  return firstSentence?.trim() || `${card.title} alanındaki ana ritim görünürleşiyor.`;
 }
 
 function inferSummary(card: ComparisonCardDTO, leftName: string, rightName: string): string {
@@ -868,11 +868,13 @@ const styles = StyleSheet.create({
   insightCopy: {
     flex: 1,
     minWidth: 0,
+    alignSelf: 'stretch',
     gap: SPACING.xs,
   },
   headline: {
     ...TYPOGRAPHY.SmallBold,
     color: '#1C181F',
+    flexShrink: 0,
   },
   summary: {
     ...TYPOGRAPHY.Small,

@@ -5,6 +5,7 @@ export * from './ShareCardCreatePanel';
 export * from './ShareCardPreview';
 export * from './ShareCardPreviewGuru';
 export * from './ShareCardPreviewHoroscope';
+export * from './NumerologyShareCardPremium';
 export * from './ShareCardPreviewNumerology';
 export * from './ShareCardActionRows';
 export * from './ShareableCardsStateCard';

@@ -147,6 +147,11 @@ export function ActionUnlockSheet({
     || rewardedUnlock.status === 'showing_ad'
     || rewardedUnlock.status === 'completing';
   const isBusy = optionsLoading || tokenProcessing || isRewardBusy;
+  const waitingForContentUnlockOptions = sheetVisible && Boolean(contentKey) && options === null && !inlineMessage;
+  const shouldRenderSheet = sheetVisible
+    && !unlockState.isFree
+    && !options?.alreadyUnlocked
+    && !waitingForContentUnlockOptions;
 
   const clearRedirectTimer = useCallback(() => {
     if (redirectTimerRef.current) {
@@ -197,7 +202,7 @@ export function ActionUnlockSheet({
   }, [clearRedirectTimer]);
 
   useEffect(() => {
-    if (!sheetVisible || hasTrackedOpen.current) return;
+    if (!shouldRenderSheet || hasTrackedOpen.current) return;
     hasTrackedOpen.current = true;
     trackMonetizationEvent('unlock_modal_viewed', {
       moduleKey,
@@ -207,7 +212,7 @@ export function ActionUnlockSheet({
       userGuruBalance,
       rewardedAdViewsRequired,
     });
-  }, [actionKey, contentKey, moduleKey, rewardedAdViewsRequired, sheetVisible, tokenRequirement, userGuruBalance]);
+  }, [actionKey, contentKey, moduleKey, rewardedAdViewsRequired, shouldRenderSheet, tokenRequirement, userGuruBalance]);
 
   useEffect(() => {
     if (!sheetVisible || !options?.alreadyUnlocked || hasTriggeredAutoUnlock.current) {
@@ -385,7 +390,7 @@ export function ActionUnlockSheet({
     userGuruBalance,
   ]);
 
-  if (!sheetVisible || unlockState.isFree) {
+  if (!shouldRenderSheet) {
     return null;
   }
 

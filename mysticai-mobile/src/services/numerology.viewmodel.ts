@@ -87,6 +87,11 @@ export const NUMBER_TYPE_DESC: Record<string, string> = {
 // ─── Personal Year Context ─────────────────────────────────────────────────────
 
 type YearContext = { title: string; desc: string; heroText: string };
+export type NumerologyShareCardCopy = {
+  mainInsight: string;
+  panelTitle: string;
+  panelBody: string;
+};
 
 const PERSONAL_YEAR_MAP: Record<number, YearContext> = {
   1: {
@@ -135,6 +140,171 @@ const PERSONAL_YEAR_MAP: Record<number, YearContext> = {
     heroText: 'Bu yıl bir döngü kapanıyor. Bırakmak, tamamlamak ve sıfırlanmak bu yılın derin teması.',
   },
 };
+
+const SHARE_CARD_YEAR_COPY_TR: Record<number, NumerologyShareCardCopy> = {
+  1: {
+    mainInsight: 'Kişisel yıl sayın 1.\nBu dönem yeni başlangıçlar, cesaret ve net seçimler öne çıkıyor.',
+    panelTitle: 'YENİ BAŞLANGIÇLAR VE YÖN',
+    panelBody: 'Bu yıl kendi yönünü seçmek, cesur adımlar atmak ve yeni bir döngüyü başlatmak ön planda.',
+  },
+  2: {
+    mainInsight: 'Kişisel yıl sayın 2.\nBu dönem ilişkiler, sabır ve denge temaları öne çıkıyor.',
+    panelTitle: 'İLİŞKİ, SABIR VE DENGE',
+    panelBody: 'Bu yıl uyum kurmak, ilişkileri güçlendirmek ve iç dengeni korumak ön planda.',
+  },
+  3: {
+    mainInsight: 'Kişisel yıl sayın 3.\nBu dönem ifade, yaratıcılık ve görünürlük temaları öne çıkıyor.',
+    panelTitle: 'İFADE, YARATICILIK VE GÖRÜNÜRLÜK',
+    panelBody: 'Bu yıl sesini duyurmak, üretmek ve kendini daha özgür biçimde göstermek ön planda.',
+  },
+  4: {
+    mainInsight: 'Kişisel yıl sayın 4.\nBu dönem düzen, emek ve sağlam temel kurma temaları öne çıkıyor.',
+    panelTitle: 'DÜZEN, EMEK VE SAĞLAM TEMEL',
+    panelBody: 'Bu yıl plan yapmak, yapını güçlendirmek ve uzun vadeli istikrarı beslemek ön planda.',
+  },
+  5: {
+    mainInsight: 'Kişisel yıl sayın 5.\nBu dönem değişim, esneklik ve yenilenme temaları öne çıkıyor.',
+    panelTitle: 'DEĞİŞİM, ESNEKLİK VE YENİLENME',
+    panelBody: 'Bu yıl yeni deneyimlere açılmak, ritmini tazelemek ve değişime uyumlanmak ön planda.',
+  },
+  6: {
+    mainInsight: 'Kişisel yıl sayın 6.\nBu dönem bağlılık, bakım ve sorumluluk temaları öne çıkıyor.',
+    panelTitle: 'BAĞLILIK, BAKIM VE SORUMLULUK',
+    panelBody: 'Bu yıl yakın bağları beslemek, destek vermek ve ev-yaşam dengesini kurmak ön planda.',
+  },
+  7: {
+    mainInsight: 'Kişisel yıl sayın 7.\nBu dönem içe dönüş, sezgi ve anlam arayışı temaları öne çıkıyor.',
+    panelTitle: 'İÇE DÖNÜŞ, SEZGİ VE ANLAM',
+    panelBody: 'Bu yıl yavaşlamak, iç sesini dinlemek ve derinleşen sorulara alan açmak ön planda.',
+  },
+  8: {
+    mainInsight: 'Kişisel yıl sayın 8.\nBu dönem güç, sonuç alma ve görünür başarı temaları öne çıkıyor.',
+    panelTitle: 'GÜÇ, SONUÇ VE BAŞARI',
+    panelBody: 'Bu yıl emeğinin karşılığını toplamak, kaynaklarını yönetmek ve etkin durmak ön planda.',
+  },
+  9: {
+    mainInsight: 'Kişisel yıl sayın 9.\nBu dönem tamamlama, bırakma ve arınma temaları öne çıkıyor.',
+    panelTitle: 'TAMAMLAMA, BIRAKMA VE ARINMA',
+    panelBody: 'Bu yıl döngüleri kapatmak, yükleri hafifletmek ve yeni alana hazırlanmak ön planda.',
+  },
+  11: {
+    mainInsight: 'Kişisel yıl sayın 11.\nBu dönem sezgi, ilham ve hassas farkındalık temaları öne çıkıyor.',
+    panelTitle: 'SEZGİ, İLHAM VE FARKINDALIK',
+    panelBody: 'Bu yıl içsel rehberliği duymak, ilhamını korumak ve hassasiyetini güce çevirmek ön planda.',
+  },
+  22: {
+    mainInsight: 'Kişisel yıl sayın 22.\nBu dönem büyük vizyon, yapı kurma ve somutlaştırma temaları öne çıkıyor.',
+    panelTitle: 'VİZYON, YAPI VE SOMUT ADIM',
+    panelBody: 'Bu yıl büyük fikirleri düzenli adımlarla hayata geçirmek ve kalıcı yapı kurmak ön planda.',
+  },
+  33: {
+    mainInsight: 'Kişisel yıl sayın 33.\nBu dönem şefkat, hizmet ve iyileştirici bağ temaları öne çıkıyor.',
+    panelTitle: 'ŞEFKAT, HİZMET VE İYİLEŞME',
+    panelBody: 'Bu yıl destek olmak, kalpten üretmek ve ilişkilerde iyileştirici bir alan açmak ön planda.',
+  },
+};
+
+const SHARE_CARD_YEAR_COPY_EN: Record<number, NumerologyShareCardCopy> = {
+  1: {
+    mainInsight: 'Your personal year number is 1.\nThis period highlights new beginnings, courage, and clear choices.',
+    panelTitle: 'NEW BEGINNINGS AND DIRECTION',
+    panelBody: 'This year favors choosing your path, taking brave steps, and opening a new cycle.',
+  },
+  2: {
+    mainInsight: 'Your personal year number is 2.\nThis period highlights relationships, patience, and balance.',
+    panelTitle: 'RELATIONSHIP, PATIENCE AND BALANCE',
+    panelBody: 'This year favors building harmony, strengthening relationships, and protecting inner balance.',
+  },
+  3: {
+    mainInsight: 'Your personal year number is 3.\nThis period highlights expression, creativity, and visibility.',
+    panelTitle: 'EXPRESSION, CREATIVITY AND VISIBILITY',
+    panelBody: 'This year favors sharing your voice, creating, and showing more of yourself.',
+  },
+  4: {
+    mainInsight: 'Your personal year number is 4.\nThis period highlights order, effort, and stable foundations.',
+    panelTitle: 'ORDER, EFFORT AND FOUNDATION',
+    panelBody: 'This year favors planning, strengthening your structure, and building long-term steadiness.',
+  },
+  5: {
+    mainInsight: 'Your personal year number is 5.\nThis period highlights change, flexibility, and renewal.',
+    panelTitle: 'CHANGE, FLEXIBILITY AND RENEWAL',
+    panelBody: 'This year favors new experiences, refreshed rhythm, and graceful adaptation.',
+  },
+  6: {
+    mainInsight: 'Your personal year number is 6.\nThis period highlights devotion, care, and responsibility.',
+    panelTitle: 'DEVOTION, CARE AND RESPONSIBILITY',
+    panelBody: 'This year favors nurturing close bonds, offering support, and restoring life balance.',
+  },
+  7: {
+    mainInsight: 'Your personal year number is 7.\nThis period highlights reflection, intuition, and meaning.',
+    panelTitle: 'REFLECTION, INTUITION AND MEANING',
+    panelBody: 'This year favors slowing down, listening inward, and making room for deeper questions.',
+  },
+  8: {
+    mainInsight: 'Your personal year number is 8.\nThis period highlights power, results, and visible achievement.',
+    panelTitle: 'POWER, RESULTS AND ACHIEVEMENT',
+    panelBody: 'This year favors gathering results, managing resources, and standing in your authority.',
+  },
+  9: {
+    mainInsight: 'Your personal year number is 9.\nThis period highlights completion, release, and renewal.',
+    panelTitle: 'COMPLETION, RELEASE AND RENEWAL',
+    panelBody: 'This year favors closing cycles, lightening old weight, and preparing space for what comes next.',
+  },
+  11: {
+    mainInsight: 'Your personal year number is 11.\nThis period highlights intuition, inspiration, and subtle awareness.',
+    panelTitle: 'INTUITION, INSPIRATION AND AWARENESS',
+    panelBody: 'This year favors hearing inner guidance, protecting inspiration, and turning sensitivity into strength.',
+  },
+  22: {
+    mainInsight: 'Your personal year number is 22.\nThis period highlights big vision, structure, and material progress.',
+    panelTitle: 'VISION, STRUCTURE AND ACTION',
+    panelBody: 'This year favors turning large ideas into steady action and building something lasting.',
+  },
+  33: {
+    mainInsight: 'Your personal year number is 33.\nThis period highlights compassion, service, and healing connection.',
+    panelTitle: 'COMPASSION, SERVICE AND HEALING',
+    panelBody: 'This year favors offering support, creating from the heart, and opening a healing field in relationships.',
+  },
+};
+
+function sanitizeShareCardText(value: string): string {
+  const calibrationYearPattern = new RegExp(['ayar', 'yılı'].join(' '), 'gi');
+
+  return value
+    .replace(/\b\d+\s+kişisel yılında\s*/gi, '')
+    .replace(calibrationYearPattern, 'denge')
+    .replace(/calibration/gi, 'balance')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function buildNumerologyShareCardCopy(
+  personalYear: number,
+  locale?: string | null,
+  fallback?: Partial<NumerologyShareCardCopy>,
+): NumerologyShareCardCopy {
+  const english = (locale ?? '').toLowerCase().startsWith('en');
+  const map = english ? SHARE_CARD_YEAR_COPY_EN : SHARE_CARD_YEAR_COPY_TR;
+  const mapped = map[personalYear];
+
+  if (mapped) {
+    return mapped;
+  }
+
+  const fallbackTitle = sanitizeShareCardText(fallback?.panelTitle ?? '');
+  const fallbackBody = sanitizeShareCardText(fallback?.panelBody ?? fallback?.mainInsight ?? '');
+  const mainInsight = sanitizeShareCardText(fallback?.mainInsight ?? fallbackBody);
+
+  return {
+    mainInsight: mainInsight || (english
+      ? `Your personal year number is ${personalYear}.`
+      : `Kişisel yıl sayın ${personalYear}.`),
+    panelTitle: fallbackTitle.toLocaleUpperCase(english ? 'en' : 'tr') || (english ? 'PERSONAL YEAR THEME' : 'KİŞİSEL YIL TEMASI'),
+    panelBody: fallbackBody || (english
+      ? 'This year invites you to notice your rhythm and move with more inner balance.'
+      : 'Bu yıl ritmini fark etmek ve daha dengeli ilerlemek ön planda.'),
+  };
+}
 
 // ─── Angel / Signal Number Meanings ────────────────────────────────────────────
 

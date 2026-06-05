@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { navigateWithOrigin } from '../../navigation';
+import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
@@ -59,6 +59,7 @@ export default function NameFavoritesScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/name-analysis' });
   const favorites = useNameFavorites();
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export default function NameFavoritesScreen() {
       <View style={styles.container}>
         <TabHeader
           title={t('surfaceTitles.nameFavorites')}
+          onBack={goBack}
           rightActions={<Text style={styles.count}>{favorites.favorites.length}</Text>}
         />
 

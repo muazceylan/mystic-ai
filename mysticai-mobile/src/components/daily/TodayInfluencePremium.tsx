@@ -409,10 +409,15 @@ export function SkyDataCard({ skyData }: { skyData: TodayInfluenceViewModel['sky
                   <Ionicons name={item.icon} size={22} color={P.purpleDark} />
                 </View>
                 <View style={styles.skyTextWrap}>
-                  <Text style={[styles.skyLabel, { color: P.textMuted }]} numberOfLines={1}>
+                  <Text style={[styles.skyLabel, { color: P.textMuted }]} numberOfLines={2}>
                     {item.label}
                   </Text>
-                  <Text style={[styles.skyValue, { color: P.textPrimary }]} numberOfLines={1}>
+                  <Text
+                    style={[styles.skyValue, { color: P.textPrimary }]}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.88}
+                  >
                     {item.value}
                   </Text>
                 </View>
@@ -529,11 +534,13 @@ export function TransitInsightCard({
   transit: TodayInfluenceViewModel['transits'][number];
   date: string;
   onDetailOpened?: (transitId: string) => void;
-  onFeedback?: (payload: DailyFeedbackPayload) => void;
+  onFeedback?: (payload: DailyFeedbackPayload) => void | Promise<void>;
 }) {
   const P = usePremiumPalette();
   const text = usePremiumText();
   const [expanded, setExpanded] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<DailyFeedbackPayload['sentiment'] | null>(null);
+  const [feedbackPending, setFeedbackPending] = useState(false);
   const iconName: IoniconName = transit.status === 'attention' ? 'flash-outline' : 'chatbubble-ellipses-outline';
 
   const toggleExpanded = () => {
@@ -543,6 +550,23 @@ export function TransitInsightCard({
       onDetailOpened?.(transit.id);
     }
   };
+
+  const submitFeedback = async (sentiment: DailyFeedbackPayload['sentiment']) => {
+    if (!onFeedback || feedbackPending || selectedFeedback === sentiment) return;
+    const previousFeedback = selectedFeedback;
+    setSelectedFeedback(sentiment);
+    setFeedbackPending(true);
+    try {
+      await onFeedback({ date, itemType: 'transit', itemId: transit.id, sentiment });
+    } catch {
+      setSelectedFeedback(previousFeedback);
+    } finally {
+      setFeedbackPending(false);
+    }
+  };
+
+  const helpfulSelected = selectedFeedback === 'up';
+  const notForMeSelected = selectedFeedback === 'down';
 
   return (
     <Animated.View layout={Layout.springify().damping(18)} entering={FadeIn.duration(220)}>
@@ -628,24 +652,38 @@ export function TransitInsightCard({
         {onFeedback ? (
           <View style={styles.feedbackRow}>
             <Pressable
-              onPress={() => onFeedback({ date, itemType: 'transit', itemId: transit.id, sentiment: 'up' })}
+              onPress={() => { void submitFeedback('up'); }}
+              disabled={feedbackPending}
+              accessibilityRole="button"
+              accessibilityState={{ selected: helpfulSelected, disabled: feedbackPending }}
               style={({ pressed }) => [
                 styles.feedbackBtn,
-                { borderColor: P.border, backgroundColor: pressed ? P.cardSoft : P.card },
+                {
+                  borderColor: helpfulSelected ? P.purpleDark : P.border,
+                  backgroundColor: helpfulSelected ? P.lavender : pressed ? P.cardSoft : P.card,
+                  opacity: feedbackPending ? 0.72 : 1,
+                },
               ]}
             >
-              <Ionicons name="thumbs-up-outline" size={13} color={P.purpleDark} />
+              <Ionicons name={helpfulSelected ? 'thumbs-up' : 'thumbs-up-outline'} size={13} color={P.purpleDark} />
               <Text style={[styles.feedbackText, { color: P.purpleDark }]}>{text.helpful}</Text>
             </Pressable>
             {expanded ? (
               <Pressable
-                onPress={() => onFeedback({ date, itemType: 'transit', itemId: transit.id, sentiment: 'down' })}
+                onPress={() => { void submitFeedback('down'); }}
+                disabled={feedbackPending}
+                accessibilityRole="button"
+                accessibilityState={{ selected: notForMeSelected, disabled: feedbackPending }}
                 style={({ pressed }) => [
                   styles.feedbackBtn,
-                  { borderColor: P.border, backgroundColor: pressed ? P.cardSoft : P.card },
+                  {
+                    borderColor: notForMeSelected ? P.textMuted : P.border,
+                    backgroundColor: notForMeSelected ? P.cardSoft : pressed ? P.cardSoft : P.card,
+                    opacity: feedbackPending ? 0.72 : 1,
+                  },
                 ]}
               >
-                <Ionicons name="thumbs-down-outline" size={13} color={P.textMuted} />
+                <Ionicons name={notForMeSelected ? 'thumbs-down' : 'thumbs-down-outline'} size={13} color={P.textMuted} />
                 <Text style={[styles.feedbackText, { color: P.textMuted }]}>{text.notForMe}</Text>
               </Pressable>
             ) : null}
@@ -671,7 +709,7 @@ export function TransitCardsSection({
   onSelectFilter: (filter: TransitFilterKey) => void;
   date: string;
   onDetailOpened?: (transitId: string) => void;
-  onFeedback?: (payload: DailyFeedbackPayload) => void;
+  onFeedback?: (payload: DailyFeedbackPayload) => void | Promise<void>;
 }) {
   const P = usePremiumPalette();
   const text = usePremiumText();
@@ -983,25 +1021,24 @@ const styles = StyleSheet.create({
   },
   skyColumns: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   skyColumn: {
     flex: 1,
     minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: SPACING.sm,
   },
   skyIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   skyTextWrap: {
-    flex: 1,
+    width: '100%',
     minWidth: 0,
   },
   skyLabel: {
@@ -1011,12 +1048,12 @@ const styles = StyleSheet.create({
   },
   skyValue: {
     ...TYPOGRAPHY.SmallBold,
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 20,
   },
   skyDivider: {
     width: 1,
-    height: 42,
+    alignSelf: 'stretch',
     marginHorizontal: SPACING.sm,
   },
   filterScroller: {

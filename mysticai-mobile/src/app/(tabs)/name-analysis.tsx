@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
 import { NameTagChip } from '../../components/NameModule';
+import { navigateWithOrigin } from '../../navigation';
 import { trackEvent } from '../../services/analytics';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
@@ -204,9 +205,10 @@ export default function NameLandingScreen() {
 
   const goToSearch = (preset?: string) => {
     const token = (preset ?? query).trim();
-    router.push({
+    navigateWithOrigin({
       pathname: '/(tabs)/name-search',
-      params: token ? { q: token } : {},
+      from: '/(tabs)/name-analysis',
+      extraParams: token ? { q: token } : {},
     });
   };
 
@@ -248,7 +250,7 @@ export default function NameLandingScreen() {
                 <Pressable style={styles.primaryButton} onPress={() => goToSearch()}>
                   <Text style={styles.primaryButtonText}>{t('nameAnalysis.landing.searchButton')}</Text>
                 </Pressable>
-                <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/name-favorites')}>
+                <Pressable style={styles.secondaryButton} onPress={() => navigateWithOrigin({ pathname: '/(tabs)/name-favorites', from: '/(tabs)/name-analysis' })}>
                   <Text style={styles.secondaryButtonText}>{t('nameAnalysis.landing.favoritesButton')}</Text>
                 </Pressable>
               </View>
@@ -262,8 +264,8 @@ export default function NameLandingScreen() {
                 {POPULAR_TAGS.map((tag) => (
                   <NameTagChip
                     key={tag}
-                    label={tag}
-                    onPress={() => router.push({ pathname: '/(tabs)/name-search', params: { tag } })}
+                    label={t(`nameAnalysis.tags.${tag}`, tag)}
+                    onPress={() => navigateWithOrigin({ pathname: '/(tabs)/name-search', from: '/(tabs)/name-analysis', extraParams: { tag } })}
                   />
                 ))}
               </View>

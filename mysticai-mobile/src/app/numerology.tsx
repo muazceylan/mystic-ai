@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import ViewShot from 'react-native-view-shot';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from '../utils/haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/useAuthStore';
 import { GuestGate, useGuestGate } from '../components/GuestGate';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../components/ui';
-import { useGenerateMatchImage } from '../hooks/useGenerateMatchImage';
 import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
 import { useNumerology } from '../hooks/useNumerology';
 import { getAnalyticsSessionDepth, trackEvent } from '../services/analytics';
@@ -33,20 +31,11 @@ import {
   findCoreNumber,
   getDominantNumber,
   getNumerologyCheckInState,
-  getNumerologySnapshot,
   hasNumerologyCheckInOnDate,
   isPremiumUser,
   markNumerologyCheckIn,
-  saveNumerologySnapshot,
 } from '../services/numerology.service';
 import { buildNumerologyViewModel } from '../services/numerology.viewmodel';
-import {
-  instagramStory,
-  saveToGallery,
-  shareImage,
-  ShareServiceError,
-  type ShareChannel,
-} from '../services/share.service';
 import {
   GuidanceCard,
   NumberInsightCard,
@@ -57,7 +46,6 @@ import {
   NumerologyHeroCard,
   NumerologyLoadingSkeleton,
   NumerologySnapshotCard,
-  NumerologyShareCard,
   NumerologyStateCard,
   NumerologyTimingCard,
   ProfileInsightCard,
@@ -71,7 +59,6 @@ type EmptyConfig = {
   route: string;
 };
 
-type ShareVariant = 'story_vertical' | 'standard_square';
 type TimingConcept = 'personalYear' | 'universalYear' | 'cycleProgress';
 
 function normalizeEntryPoint(value: string | string[] | undefined): string {
@@ -150,11 +137,6 @@ function createStyles(C: ReturnType<typeof useTheme>['colors']) {
       fontSize: 14,
       lineHeight: 21,
     },
-    shareShotWrap: {
-      position: 'absolute',
-      top: 0,
-      left: -5000,
-    },
   });
 }
 
@@ -175,8 +157,6 @@ export default function NumerologyScreen() {
   const [advancedVisible, setAdvancedVisible] = useState(false);
   const [conceptVisible, setConceptVisible] = useState(false);
   const [activeConcept, setActiveConcept] = useState<TimingConcept>('personalYear');
-  const [savingSnapshot, setSavingSnapshot] = useState(false);
-  const [snapshotExists, setSnapshotExists] = useState<boolean | null>(null);
   const [checkInDates, setCheckInDates] = useState<string[]>([]);
 
   // ── Monetization ──
@@ -259,24 +239,6 @@ export default function NumerologyScreen() {
     return map[activeConcept];
   }, [activeConcept, t]);
 
-  const storyShotRef = useRef<ViewShot | null>(null);
-  const squareShotRef = useRef<ViewShot | null>(null);
-
-  const { loading: storyShareLoading, generate: generateStoryCard } = useGenerateMatchImage(storyShotRef, {
-    width: 1080,
-    height: 1920,
-    cacheSubdir: 'numerology-share',
-    filePrefix: 'numerology-story-card',
-  });
-
-  const { loading: squareShareLoading, generate: generateSquareCard } = useGenerateMatchImage(squareShotRef, {
-    width: 1080,
-    height: 1080,
-    cacheSubdir: 'numerology-share',
-    filePrefix: 'numerology-standard-card',
-  });
-
-  const shareLoading = storyShareLoading || squareShareLoading;
   const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
 
   // Track monetization module entry (once per stack screen mount)
@@ -295,28 +257,6 @@ export default function NumerologyScreen() {
     tutorialBootstrapRef.current = scope;
     void triggerInitialTutorials();
   }, [triggerInitialTutorials, user?.id]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const resolveSnapshot = async () => {
-      if (!data?.annualSnapshotKey) {
-        if (!cancelled) setSnapshotExists(null);
-        return;
-      }
-      try {
-        const snapshot = await getNumerologySnapshot(user?.id ?? user?.username ?? data.name, data.annualSnapshotKey);
-        if (!cancelled) setSnapshotExists(Boolean(snapshot));
-      } catch {
-        if (!cancelled) setSnapshotExists(null);
-      }
-    };
-
-    void resolveSnapshot();
-    return () => {
-      cancelled = true;
-    };
-  }, [data?.annualSnapshotKey, data?.name, user?.id, user?.username]);
 
   useEffect(() => {
     let cancelled = false;
@@ -349,7 +289,6 @@ export default function NumerologyScreen() {
       response_version: data?.contentVersion ?? data?.version ?? null,
       guidance_period: guidancePeriod,
       cache_status: numerology.cacheStatus,
-      snapshot_exists: snapshotExists,
       locale: data?.locale ?? numerology.locale ?? i18n.language ?? null,
       checked_in_today: checkedInToday,
       weekly_checkin_count: weeklyCheckIns,
@@ -369,7 +308,6 @@ export default function NumerologyScreen() {
       numerology.locale,
       numerology.missingFields,
       premium,
-      snapshotExists,
       weeklyCheckIns,
     ],
   );
@@ -555,75 +493,12 @@ export default function NumerologyScreen() {
     }
   };
 
-  const executeShare = async (variant: ShareVariant, channel: ShareChannel) => {
-    if (!data?.shareCardPayload) return;
-
+  const handleShare = () => {
     trackEvent('numerology_share_clicked', {
       ...commonEventProps,
-      share_format: variant,
-      share_channel: channel,
-      payload_version: data.shareCardPayload.payloadVersion,
+      payload_version: data?.shareCardPayload?.payloadVersion ?? null,
     });
-
-    try {
-      const uri = variant === 'story_vertical' ? await generateStoryCard() : await generateSquareCard();
-      if (channel === 'gallery') {
-        await saveToGallery(uri);
-      } else if (channel === 'instagram_story') {
-        await instagramStory(uri);
-      } else {
-        await shareImage(uri);
-      }
-      if (channel !== 'gallery') {
-        trackProductEvent(ProductEventName.GUIDANCE_SHARED, {
-          'guidance type': 'numerology',
-          'share channel': channel,
-          'is personalized': true,
-          'content id': `numerology:${effectiveDate}`,
-        });
-      }
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      const message = error instanceof ShareServiceError ? error.message : t('numerology.shareError');
-      Alert.alert(t('common.error'), message);
-    }
-  };
-
-  const handleShare = () => {
-    if (!data?.shareCardPayload) return;
-
-    Alert.alert(
-      t('numerology.shareMenuTitle'),
-      t('numerology.shareMenuDescription'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('numerology.shareOptionStory'), onPress: () => { void executeShare('story_vertical', 'instagram_story'); } },
-        { text: t('numerology.shareOptionStandard'), onPress: () => { void executeShare('standard_square', 'system'); } },
-        { text: t('numerology.shareOptionGallery'), onPress: () => { void executeShare('standard_square', 'gallery'); } },
-      ],
-    );
-  };
-
-  const handleSaveSnapshot = async () => {
-    if (!data) return;
-
-    trackEvent('numerology_save_snapshot_clicked', {
-      ...commonEventProps,
-      snapshot_scope: 'annual',
-      snapshot_year: data.annualSnapshotKey?.slice(-4) ?? null,
-    });
-
-    try {
-      setSavingSnapshot(true);
-      await saveNumerologySnapshot({ userId: user?.id ?? user?.username ?? data.name, response: data });
-      setSnapshotExists(true);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(t('common.saved'), t('numerology.snapshotSaved'));
-    } catch {
-      Alert.alert(t('common.error'), t('numerology.snapshotSaveError'));
-    } finally {
-      setSavingSnapshot(false);
-    }
+    router.push({ pathname: '/share-card-preview', params: { tab: 'numerology' } } as any);
   };
 
   const handleNameAnalysis = () => {
@@ -695,10 +570,7 @@ export default function NumerologyScreen() {
                     cacheStatus={numerology.cacheStatus}
                     generatedAt={data.generatedAt}
                     onShare={handleShare}
-                    onSaveSnapshot={handleSaveSnapshot}
                     onOpenTrust={handleOpenTrust}
-                    shareLoading={shareLoading}
-                    savingSnapshot={savingSnapshot}
                   />
                 </SpotlightTarget>
 
@@ -849,17 +721,6 @@ export default function NumerologyScreen() {
           karmicDebt={data?.karmicDebt}
         />
 
-        {data?.shareCardPayload ? (
-          <View style={styles.shareShotWrap} pointerEvents="none">
-            <ViewShot ref={storyShotRef} options={{ format: 'png', quality: 1, result: 'tmpfile' }}>
-              <NumerologyShareCard payload={data.shareCardPayload} variant="story_vertical" />
-            </ViewShot>
-            <View style={{ height: 18 }} />
-            <ViewShot ref={squareShotRef} options={{ format: 'png', quality: 1, result: 'tmpfile' }}>
-              <NumerologyShareCard payload={data.shareCardPayload} variant="standard_square" />
-            </ViewShot>
-          </View>
-        ) : null}
       </View>
 
       <GuestGate {...premiumGateProps} />

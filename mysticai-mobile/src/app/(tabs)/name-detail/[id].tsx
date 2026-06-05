@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { SafeScreen, SurfaceHeaderIconButton, TabHeader } from '../../../components/ui';
 import { useTheme } from '../../../context/ThemeContext';
 import { useSmartBackNavigation } from '../../../hooks/useSmartBackNavigation';
+import { navigateWithOrigin } from '../../../navigation';
 import {
   CharacterInsightCard,
   EmptyState,
@@ -177,7 +178,7 @@ export default function NameDetailScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
+  const goBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/name-search' });
   const params = useLocalSearchParams<{ id?: string; source?: string; position?: string }>();
   const nameId = Number(params.id);
   const sourceScreen = typeof params.source === 'string' ? params.source : 'search';
@@ -266,10 +267,11 @@ export default function NameDetailScreen() {
       <View style={styles.container}>
         <TabHeader
           title={t('surfaceTitles.nameDetail')}
+          onBack={goBack}
           rightActions={(
             <SurfaceHeaderIconButton
               iconName="bookmark-outline"
-              onPress={() => router.push('/(tabs)/name-favorites')}
+              onPress={() => navigateWithOrigin({ pathname: '/(tabs)/name-favorites', from: '/(tabs)/name-search' })}
               accessibilityLabel={t('nameAnalysis.search.favoritesAccessibility')}
             />
           )}
@@ -358,9 +360,10 @@ export default function NameDetailScreen() {
                       to_name_id: item.id,
                       position: index,
                     });
-                    router.push({
+                    navigateWithOrigin({
                       pathname: '/(tabs)/name-detail/[id]',
-                      params: { id: String(item.id), source: 'similar' },
+                      from: '/(tabs)/name-search',
+                      extraParams: { id: String(item.id), source: 'similar' },
                     });
                   }}
                 />
