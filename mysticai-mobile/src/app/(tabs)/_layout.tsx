@@ -407,7 +407,6 @@ export default function TabsLayout() {
 
   const pagerRef = useRef<MainTabPagerHandle>(null);
   const pathname = usePathname();
-  const lastPagerIdxRef = useRef(0);
   const cleanedPathname = useMemo(() => pathname.replace(/\/+$/, ''), [pathname]);
   const currentRouteSegment = useMemo(() => cleanedPathname.split('/').pop() ?? '', [cleanedPathname]);
 
@@ -416,6 +415,9 @@ export default function TabsLayout() {
   }, [currentRouteSegment]);
 
   const isMainTabActive = currentMainIdx >= 0;
+  const lastPagerIdxRef = useRef(Math.max(0, currentMainIdx));
+  const currentRouteSegmentRef = useRef(currentRouteSegment);
+  currentRouteSegmentRef.current = currentRouteSegment;
   // Keep a ref so the pager callback can read the latest value without
   // being recreated on every render (avoids PagerView re-attaching the listener).
   const isMainTabActiveRef = useRef(isMainTabActive);
@@ -434,9 +436,26 @@ export default function TabsLayout() {
     // Without this guard the native pager can fire onPageSelected during the
     // overlay hide transition and navigate back to the home tab unexpectedly.
     if (!isMainTabActiveRef.current) return;
-    lastPagerIdxRef.current = index;
     const targetTab = MAIN_TAB_ORDER[index];
-    if (targetTab) {
+    if (!targetTab) {
+      return;
+    }
+
+    const previousIndex = lastPagerIdxRef.current;
+    const currentRouteIndex = mainTabIndex(currentRouteSegmentRef.current);
+    const routeAlreadyMatchesTarget = currentRouteSegmentRef.current === targetTab;
+    const previousMatchesCurrentRoute = currentRouteIndex < 0 || previousIndex === currentRouteIndex;
+    const isAdjacentPagerMove = Math.abs(index - previousIndex) <= 1;
+
+    if (!routeAlreadyMatchesTarget && (!previousMatchesCurrentRoute || !isAdjacentPagerMove)) {
+      if (currentRouteIndex >= 0) {
+        lastPagerIdxRef.current = currentRouteIndex;
+      }
+      return;
+    }
+
+    lastPagerIdxRef.current = index;
+    if (!routeAlreadyMatchesTarget) {
       router.navigate(`/(tabs)/${targetTab}` as any);
     }
   }, []);

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuthStore } from '../store/useAuthStore';
+import { useNavigationHistoryStore } from '../store/useNavigationHistoryStore';
 import { needsOnboarding } from '../utils/authOnboarding';
 import BrandHomeWebScreen from '../screens/BrandHomeWebScreen';
 
 export default function Index() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
+  const lastTabPath = useNavigationHistoryStore((state) => state.lastTabPath);
   const [isHydrated, setIsHydrated] = useState(useAuthStore.persist.hasHydrated());
 
   useEffect(() => {
@@ -29,9 +31,9 @@ export default function Index() {
     ? '/(auth)/welcome'
     : needsOnboarding(user)
       ? '/(auth)/birth-date'
-      : '/(tabs)/home';
+      : lastTabPath ?? '/(tabs)/home';
 
   return (
-    <Redirect href={redirectHref} />
+    <Redirect href={redirectHref as any} />
   );
 }

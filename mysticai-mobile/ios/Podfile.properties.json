@@ -1,8 +1,9 @@
 {
   "expo.jsEngine": "hermes",
   "EX_DEV_CLIENT_NETWORK_INSPECTOR": "true",
+  "ios.deploymentTarget": "15.1",
   "ios.useFrameworks": "static",
-  "ios.forceStaticLinking": "[]",
+  "ios.forceStaticLinking": "[\"RNFBApp\",\"RNFBAnalytics\"]",
   "apple.extraPods": "[{\"name\":\"GoogleUtilities\",\"modular_headers\":true}]",
   "apple.privacyManifestAggregationEnabled": "true"
 }

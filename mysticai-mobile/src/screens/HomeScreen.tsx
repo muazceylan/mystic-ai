@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { DailyTransitsCard } from '../components/Home/DailyTransitsCard';
 import { GreetingRow } from '../components/Home/GreetingRow';
 import { HoroscopeSummaryCard } from '../components/Home/HoroscopeSummaryCard';
-import { OracleStatusChip } from '../components/Home/OracleStatusChip';
 import { QuickActionGrid } from '../components/Home/QuickActionGrid';
 import { SkyHeroCard } from '../components/Home/SkyHeroCard';
 import { WeeklyHighlightsCompact } from '../components/Home/WeeklyHighlightsCompact';
@@ -621,7 +620,6 @@ export default function HomeScreen() {
     notificationCount > 0
       ? t('homeSurface.header.notificationsUnread', { count: notificationCount })
       : t('profile.menu.notifications');
-  const showOracleStatusChip = envConfig.appEnv === 'dev';
   const visibleCmsSections = useMemo(
     () => cmsSections.filter((section) => !HIDDEN_HOME_SECTION_KEYS.has(section.sectionKey)),
     [cmsSections],
@@ -872,12 +870,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {showOracleStatusChip && dashboard?.oracleStatus?.label ? (
-          <OracleStatusChip
-            label={dashboard.oracleStatus.label}
-            enabled={dashboard.oracleStatus.enabled}
-          />
-        ) : null}
+        {null}
 
         {showRetry ? (
           <View style={styles.retryWrap}>

@@ -780,6 +780,7 @@ export function CalendarScreenContent() {
 
   const detailProgress = useSharedValue(0);
   const detailDragOffset = useSharedValue(0);
+  const detailScrollAtTop = useSharedValue(true);
   const skeletonPulse = useSharedValue(0.72);
   const headerHeroCollapseProgress = useSharedValue(0);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -969,6 +970,7 @@ export function CalendarScreenContent() {
     setDetailSheetMode(mode);
     setDetailMounted(true);
     detailDragOffset.value = 0;
+    detailScrollAtTop.value = true;
     detailProgress.value = withTiming(1, {
       duration: 280,
       easing: Easing.out(Easing.cubic),
@@ -1544,6 +1546,7 @@ export function CalendarScreenContent() {
 
   const onDetailContentScroll = useCallback((event: any) => {
     const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+    detailScrollAtTop.value = offsetY <= 0;
 
     if (!detailMounted) return;
     if (showDetailSkeleton) return;
@@ -1574,6 +1577,7 @@ export function CalendarScreenContent() {
     }
   }, [
     detailMounted,
+    detailScrollAtTop,
     selectedCosmicSubcategoryList,
     selectedCosmicDetailRequestKey,
     selectedDateKey,
@@ -1821,11 +1825,15 @@ export function CalendarScreenContent() {
   const detailSheetDragGesture = useMemo(
     () => Gesture.Pan()
       .minDistance(DETAIL_SHEET_DRAG_ACTIVATION)
+      .activeOffsetY([-100000, DETAIL_SHEET_DRAG_ACTIVATION])
+      .cancelsTouchesInView(false)
       .onUpdate((event) => {
         if (event.translationY <= 0) {
           detailDragOffset.value = 0;
           return;
         }
+
+        if (!detailScrollAtTop.value) return;
 
         const absDx = Math.abs(event.translationX);
         const absDy = Math.abs(event.translationY);
@@ -1837,10 +1845,12 @@ export function CalendarScreenContent() {
       })
       .onEnd((event) => {
         const translationY = Math.max(0, event.translationY);
-        const shouldClose = translationY > DETAIL_SHEET_CLOSE_DISTANCE
-          || event.velocityY > DETAIL_SHEET_CLOSE_VELOCITY;
+        const shouldClose = (translationY > DETAIL_SHEET_CLOSE_DISTANCE
+          || event.velocityY > DETAIL_SHEET_CLOSE_VELOCITY)
+          && detailScrollAtTop.value;
 
         if (shouldClose) {
+          detailDragOffset.value = 0;
           runOnJS(closeDetailPanel)();
           return;
         }
@@ -1858,7 +1868,7 @@ export function CalendarScreenContent() {
           });
         }
       }),
-    [closeDetailPanel, detailDragOffset],
+    [closeDetailPanel, detailDragOffset, detailScrollAtTop],
   );
 
   const detailSheetStyle = useAnimatedStyle(() => ({

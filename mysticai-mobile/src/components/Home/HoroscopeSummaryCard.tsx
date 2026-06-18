@@ -150,7 +150,7 @@ function TopShortcutCard({
           <Text style={styles.signIcon}>{signIcon}</Text>
           <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.shortcutSignText}>{sign}</Text>
         </View>
-        <Text numberOfLines={1} style={styles.shortcutSubtitle}>{subtitle}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.shortcutSubtitle}>{subtitle}</Text>
       </View>
       <Ionicons name="chevron-forward" size={spacing.md + spacing.xs} color={chevronColor} />
     </Pressable>

@@ -1,4 +1,4 @@
-import api from '../../../services/api';
+import api, { withSuppressedGlobalApiErrorLog } from '../../../services/api';
 import type {
   MonetizationConfig,
   GuruWallet,
@@ -43,6 +43,27 @@ const DEFAULT_CONFIG: MonetizationConfig = {
   fetchedAt: new Date().toISOString(),
 };
 
+const DEFAULT_PAYWALL: PaywallResponse = {
+  premiumEnabled: false,
+  trialEnabled: false,
+  trialEligible: false,
+  defaultTrialDays: 0,
+  tokenPurchaseEnabled: false,
+  revenueCatEnabled: false,
+  hideAdsForPremiumUsers: false,
+  allowPremiumAndTokenTogether: true,
+  premiumActive: false,
+  trialing: false,
+  entitlementStatus: 'NONE',
+  trialEndsAt: null,
+  currentPeriodEndsAt: null,
+  tokenBalance: 0,
+  subscriptionProducts: [],
+  tokenProducts: [],
+  benefits: [],
+  fetchedAt: new Date().toISOString(),
+};
+
 export async function fetchMonetizationConfig(): Promise<MonetizationConfig> {
   if (cachedConfig && Date.now() - lastFetchedAt < CACHE_TTL) {
     return cachedConfig;
@@ -77,8 +98,19 @@ export async function fetchWallet(): Promise<GuruWallet> {
 }
 
 export async function fetchPaywall(): Promise<PaywallResponse> {
-  const { data } = await api.get<PaywallResponse>('/api/v1/monetization/paywall');
-  return data;
+  try {
+    const { data } = await api.get<PaywallResponse>(
+      '/api/v1/monetization/paywall',
+      withSuppressedGlobalApiErrorLog(),
+    );
+    return data;
+  } catch (error) {
+    console.warn('[Monetization] Paywall fetch failed, using fallback', error);
+    return {
+      ...DEFAULT_PAYWALL,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
 }
 
 export async function fetchEntitlements(): Promise<EntitlementSnapshot> {
