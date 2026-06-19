@@ -6,7 +6,7 @@ import type { Locale } from '@/lib/i18n';
 import { faqJsonLd, featurePageJsonLd } from '@/lib/jsonLd';
 
 function getSupportSubject(locale: Locale) {
-  return locale === 'tr' ? 'Hesap Silme Talebi' : 'Account Deletion Request';
+  return locale === 'tr' ? 'AstroGuru Hesap Silme Talebi' : 'AstroGuru Account Deletion Request';
 }
 
 function getContactHref(locale: Locale) {
@@ -16,7 +16,7 @@ function getContactHref(locale: Locale) {
 export function AccountDeletionPage({ locale }: { locale: Locale }) {
   const content = getAccountDeletionContent(locale);
   const pageUrl = getAccountDeletionUrl(locale);
-  const supportMailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(getSupportSubject(locale))}`;
+  const supportMailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(getSupportSubject(locale))}&body=${encodeURIComponent(content.help.supportCard.mailtoBody)}`;
 
   return (
     <>
@@ -108,14 +108,21 @@ export function AccountDeletionPage({ locale }: { locale: Locale }) {
         <section className="mt-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-3xl border border-zinc-200 p-8 dark:border-zinc-800 sm:p-10">
             <h2 className="text-2xl font-bold tracking-tight">{content.afterDeletion.title}</h2>
-            <ul className="mt-6 space-y-4">
-              {content.afterDeletion.items.map((item) => (
-                <li key={item} className="flex gap-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
-                  <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-purple-500 dark:bg-purple-400" />
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500 dark:text-zinc-400">
+              {content.afterDeletion.deletedDataTitle}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {content.afterDeletion.deletedDataItems.map((item) => (
+                <li key={item} className="flex gap-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                  <span className="mt-[7px] h-2 w-2 shrink-0 rounded-full bg-purple-500 dark:bg-purple-400" />
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
+            <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/60">
+              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">{content.afterDeletion.retainedNote}</p>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-zinc-400 dark:text-zinc-500">{content.afterDeletion.processingTime}</p>
           </div>
 
           <aside className="rounded-3xl border border-zinc-200 bg-zinc-50 p-8 dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-10">
@@ -140,7 +147,7 @@ export function AccountDeletionPage({ locale }: { locale: Locale }) {
               </p>
               <a
                 href={supportMailto}
-                className="mt-5 inline-flex items-center text-sm font-medium text-purple-700 hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"
+                className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600 dark:bg-purple-500 dark:hover:bg-purple-400"
               >
                 {content.help.supportCard.mailtoLabel}
               </a>

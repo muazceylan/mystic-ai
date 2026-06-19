@@ -24,48 +24,48 @@ const CONTENT: Record<ScreenLocale, {
   supportButton: string;
 }> = {
   tr: {
-    title: 'Hesap Silme',
-    description: 'Hesap silme islemi uygulama icinden tamamlanir. Silme sonrasinda ayni giris bilgileriyle devam edilmez; tekrar giris yaparsaniz yeni kullanici gibi baslarsiniz.',
-    badge: 'Uygulama ici hesap silme bilgisi',
-    pathLabel: 'Uygulama ici yol',
-    pathValue: 'Profil -> Hesabi Kalici Olarak Sil',
-    stepsTitle: 'Nasil yapilir?',
+    title: 'Hesap ve Veri Silme',
+    description: 'AstroGuru hesabınızı ve ilişkili kişisel verilerinizi uygulama içinden kalıcı olarak silebilirsiniz.',
+    badge: 'Uygulama içi hesap silme bilgisi',
+    pathLabel: 'Uygulama içi yol',
+    pathValue: 'Profil → Hesabı Kalıcı Olarak Sil',
+    stepsTitle: 'Nasıl yapılır?',
     steps: [
-      'AstroGuru uygulamasini acin ve hesabiniza giris yapin.',
-      'Profil ekranina gidin.',
-      'Hesabi Kalici Olarak Sil secenegini acin ve onayi tamamlayin.',
+      'AstroGuru uygulamasını açın ve hesabınıza giriş yapın.',
+      'Profil ekranına gidin.',
+      '"Hesabı Kalıcı Olarak Sil" seçeneğini açın ve onayı tamamlayın.',
     ],
-    afterTitle: 'Silme sonrasinda ne olur?',
+    afterTitle: 'Silme sonrasında ne olur?',
     afterItems: [
-      'Mevcut hesabiniz kapatilir ve giris kimlikleri deleted durumuna cekilir.',
-      'Ayni e-posta, Google veya Apple hesabi ile tekrar giris yaparsaniz yeni kullanici akisi baslar.',
-      'Eski kayit sistemde deleted olarak tutulur; aktif hesaba geri donmez.',
+      'Hesap bilgileri, e-posta adresi, profil detayları, doğum tarihi/saati/yeri, astroloji ve numeroloji verileri, rüya kayıtları, bildirim token\'ları ve uygulama tercihleri silinir veya anonimleştirilir.',
+      'Hesap silme işleminden sonra hesabınız aktif kullanıcı hesabı olarak kullanılamaz.',
+      'Güvenlik, yasal yükümlülük veya denetim gerektiren durumlarda sınırlı kayıtlar belirli bir süre saklanabilir; bu kayıtlar aktif hesap olarak kullanılmaz.',
     ],
-    supportTitle: 'Sorun yasarsaniz',
-    supportBody: 'Uygulamaya erisemiyorsaniz veya silme akisi beklediginiz gibi calismiyorsa destek ekibine yazin.',
-    supportButton: 'Destek E-postasi Gonder',
+    supportTitle: 'Uygulamaya erişemiyorsanız',
+    supportBody: 'Uygulamaya giriş yapamıyorsanız veya silme akışı beklediğiniz gibi çalışmıyorsa aşağıdaki butona tıklayarak e-posta gönderebilirsiniz.',
+    supportButton: 'Hesap Silme Talebi Gönder',
   },
   en: {
-    title: 'Account Deletion',
-    description: 'Account deletion is completed inside the app. After deletion, the same sign-in details do not reopen the old account; signing in again starts a new-user flow.',
+    title: 'Account and Data Deletion',
+    description: 'You can permanently delete your AstroGuru account and associated personal data from inside the app.',
     badge: 'In-app account deletion info',
     pathLabel: 'In-app path',
-    pathValue: 'Profile -> Permanently Delete Account',
+    pathValue: 'Profile → Permanently Delete Account',
     stepsTitle: 'How it works',
     steps: [
       'Open AstroGuru and sign in to the account you want to remove.',
       'Go to the Profile screen.',
-      'Open Permanently Delete Account and complete the confirmation.',
+      'Select "Permanently Delete Account" and complete the confirmation.',
     ],
     afterTitle: 'What happens after deletion?',
     afterItems: [
-      'Your current account is closed and its sign-in identifiers are moved into a deleted state.',
-      'If you sign in again later with the same email, Google, or Apple account, you start as a new user.',
-      'The previous record stays in the system as deleted and is not reactivated.',
+      'Account information, email address, profile details, birth date/time/place, astrology and numerology data, dream records, notification tokens, and app preferences are deleted or anonymised.',
+      'After account deletion, your account can no longer be used as an active user account.',
+      'Security, legal obligation, or audit records may be retained for a limited period where required; these records are not used as an active account.',
     ],
-    supportTitle: 'Need help?',
-    supportBody: 'If you cannot access the app or the deletion flow does not work as expected, contact support.',
-    supportButton: 'Email Support',
+    supportTitle: 'If you cannot access the app',
+    supportBody: 'If you cannot sign in or the deletion flow does not work as expected, use the button below to send a pre-filled email request.',
+    supportButton: 'Send Account Deletion Request',
   },
 };
 
@@ -74,10 +74,17 @@ export default function AccountDeletionInfoScreen({ locale }: { locale: ScreenLo
   const styles = makeStyles(colors);
   const content = CONTENT[locale];
   const canonicalUrl = `${ROOT_SITE_URL}/account-deletion`;
-  const subject = locale === 'en' ? 'Account Deletion Request' : 'Hesap Silme Talebi';
+  const subject =
+    locale === 'en' ? 'AstroGuru Account Deletion Request' : 'AstroGuru Hesap Silme Talebi';
+  const body =
+    locale === 'en'
+      ? 'Hello AstroGuru team,\n\nI request the deletion of my AstroGuru account and associated personal data.\n\nAccount email: \nSign-in method: Email / Google / Apple'
+      : 'Merhaba AstroGuru ekibi,\n\nAstroGuru hesabımın ve hesabımla ilişkili kişisel verilerimin silinmesini talep ediyorum.\n\nHesap e-postam: \nGiriş yöntemi: E-posta / Google / Apple';
 
   const openSupport = () => {
-    void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`);
+    void Linking.openURL(
+      `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+    );
   };
 
   return (

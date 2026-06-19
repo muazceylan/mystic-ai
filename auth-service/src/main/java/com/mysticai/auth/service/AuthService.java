@@ -194,6 +194,21 @@ public class AuthService {
         );
     }
 
+    public LoginResponse refreshToken(String refreshToken) {
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("Invalid or expired refresh token");
+        }
+        String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        UserType userType = user.getUserType() != null ? user.getUserType() : UserType.REGISTERED;
+        String newAccessToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail(), userType);
+        String newRefreshToken = jwtTokenProvider.generateRefreshTokenForUser(user.getId(), user.getUsername(), user.getEmail(), userType);
+
+        return new LoginResponse(newAccessToken, newRefreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(user));
+    }
+
     public boolean isEmailAvailable(String email) {
         return !userRepository.existsByEmailIgnoreCase(normalizeIdentifier(email));
     }

@@ -76,6 +76,16 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        LoginResponse response = authService.refreshToken(refreshToken);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/verification/resend")
     public ResponseEntity<OkResponse> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
         OkResponse response = authService.resendVerification(request.email());

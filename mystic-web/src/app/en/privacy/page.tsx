@@ -50,12 +50,34 @@ export default function PrivacyPage() {
           security measures are applied on the server side.
         </p>
 
-        <h2>5. Data Deletion</h2>
+        <h2>5. Data Deletion and Account Deletion</h2>
         <p>
-          You can delete your account inside the mobile app at any time from
-          Profile → Permanently Delete Account. If you cannot access the app, you
-          can send an email to <a href="mailto:support@astroguru.app">support@astroguru.app</a>{' '}
-          with the subject &quot;Account Deletion Request&quot;.
+          You can delete your account and associated personal data inside the mobile app at any
+          time from <strong>Profile → Permanently Delete Account</strong>. If you cannot access
+          the app, you can send an email to{' '}
+          <a href="mailto:support@astroguru.app">support@astroguru.app</a> with the subject
+          &quot;AstroGuru Account Deletion Request&quot;.
+        </p>
+        <p>Account deletion removes or anonymises the following data:</p>
+        <ul>
+          <li>Account information and registration status</li>
+          <li>Email address and sign-in provider information</li>
+          <li>Profile details (display name, photo, preferences)</li>
+          <li>Birth date, birth time, and birth place</li>
+          <li>Astrology, numerology, compatibility, and personalised analysis data</li>
+          <li>Dream records and voice transcripts, if any</li>
+          <li>Notification tokens</li>
+          <li>App preferences and settings</li>
+        </ul>
+        <p>
+          After account deletion, your account can no longer be used as an active user account.
+          Security, abuse prevention, legal obligation, or transaction and audit records may be
+          retained for a limited period where required. These records are not used as an active
+          user account. Deletion requests are usually processed within 7 days.
+        </p>
+        <p>
+          For full details, see our{' '}
+          <a href="/en/account-deletion">account deletion page</a>.
         </p>
 
         <h2>6. Children and Sensitive Topics</h2>

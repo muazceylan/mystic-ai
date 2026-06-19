@@ -53,12 +53,35 @@ export default function GizlilikPage() {
           endüstri standardi guvenlik onlemleri uygulanir.
         </p>
 
-        <h2>5. Veri Silme</h2>
+        <h2>5. Veri Silme ve Hesap Silme</h2>
         <p>
-          Hesabinizi mobil uygulama icinde Profil → Hesabi Kalici Olarak Sil yoluyla
-          istediginiz zaman silebilirsiniz. Uygulamaya erisemiyorsaniz{' '}
+          Hesabinizi ve iliskili kisisel verilerinizi mobil uygulama icinde{' '}
+          <strong>Profil → Hesabi Kalici Olarak Sil</strong> yoluyla istediginiz zaman
+          silebilirsiniz. Uygulamaya erisemiyorsaniz{' '}
           <a href="mailto:support@astroguru.app">support@astroguru.app</a> adresine
-          &quot;Hesap Silme Talebi&quot; konusuyla e-posta gonderebilirsiniz.
+          &quot;AstroGuru Hesap Silme Talebi&quot; konusuyla e-posta gonderebilirsiniz.
+        </p>
+        <p>Hesap silme islemiyle asagidaki veriler silinir veya anonimlestirilir:</p>
+        <ul>
+          <li>Hesap bilgileri ve kayit durumu</li>
+          <li>E-posta adresi ve giris saglayicisi bilgisi</li>
+          <li>Profil detaylari (gorunen ad, fotograf, tercihler)</li>
+          <li>Dogum tarihi, saati ve dogum yeri</li>
+          <li>Astroloji, numeroloji, uyumluluk ve kisisellestirilmis analiz verileri</li>
+          <li>Ruya kayitlari ve varsa ses transkriptleri</li>
+          <li>Bildirim token&apos;lari</li>
+          <li>Uygulama tercihleri ve ayarlar</li>
+        </ul>
+        <p>
+          Hesap silme isleminden sonra hesabiniz aktif kullanici hesabi olarak kullanilamaz.
+          Guvenlik, kotuye kullanim onleme, yasal yukumluluk veya islem/denetim kayitlari
+          gerektiren durumlarda sinirli kayitlar belirli bir sure saklanabilir. Bu kayitlar
+          aktif kullanici hesabi olarak kullanilmaz. Silme talepleri genellikle 7 gun icinde
+          isleme alinir.
+        </p>
+        <p>
+          Ayrintili bilgi icin{' '}
+          <a href="/account-deletion">hesap silme sayfamizi</a> ziyaret edebilirsiniz.
         </p>
 
         <h2>6. Cocuklar ve Hassas Konular</h2>

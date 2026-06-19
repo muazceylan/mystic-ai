@@ -113,6 +113,10 @@ public class JwtTokenProvider {
         }
     }
 
+    public String generateRefreshTokenForUser(Long userId, String username, String email, UserType userType) {
+        return generateToken(userId, username, email, refreshExpiration, userType);
+    }
+
     public long getJwtExpiration() {
         return jwtExpiration;
     }

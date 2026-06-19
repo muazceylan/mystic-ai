@@ -47,7 +47,10 @@ type AccountDeletionContent = {
   };
   afterDeletion: {
     title: string;
-    items: string[];
+    deletedDataTitle: string;
+    deletedDataItems: string[];
+    retainedNote: string;
+    processingTime: string;
   };
   help: {
     title: string;
@@ -56,6 +59,7 @@ type AccountDeletionContent = {
       title: string;
       body: string;
       mailtoLabel: string;
+      mailtoBody: string;
       contactLabel: string;
       contactDescription: string;
     };
@@ -72,120 +76,136 @@ type AccountDeletionContent = {
 export const accountDeletionContent = {
   tr: {
     metadata: {
-      title: 'Hesap Silme',
+      title: 'AstroGuru Hesap ve Veri Silme',
       description:
-        'Astro Guru kullanicilari hesaplarini uygulama icinden kalici olarak silebilir. Adimlari, veri silme etkilerini ve destek seceneklerini inceleyin.',
-      openGraphTitle: 'Hesap Silme | AstroGuru',
+        'AstroGuru hesabınızı ve kişisel verilerinizi uygulama içinden kalıcı olarak silebilirsiniz. Silinen veriler, saklanan kayıtlar ve destek seçenekleri hakkında bilgi edinin.',
+      openGraphTitle: 'Hesap ve Veri Silme | AstroGuru',
     },
     hero: {
-      eyebrow: 'Account Deletion',
-      title: 'Hesap Silme',
+      eyebrow: 'Hesap ve Veri Silme',
+      title: 'AstroGuru Hesap ve Veri Silme',
       description:
-        'Astro Guru kullanicilari hesaplarini uygulama icinden kalici olarak silebilir.',
-      instructionLabel: 'Uygulama ici yol',
-      instructionValue: 'Profile -> Permanently Delete Account',
-      localizedPathNote:
-        'Turkce uygulama arayuzunde ayni yol Profil -> Hesabi Kalici Olarak Sil olarak gorunebilir.',
+        'AstroGuru kullanıcıları hesaplarını ve ilişkili kişisel verilerini uygulama içinden kalıcı olarak silebilir.',
+      instructionLabel: 'Uygulama içi yol',
+      instructionValue: 'Profil → Hesabı Kalıcı Olarak Sil',
+      localizedPathNote: undefined,
     },
     ctas: {
-      primary: 'Uygulamayi acip profilden hesabinizi silin',
-      secondary: 'Yardima mi ihtiyaciniz var? Destek iletisime gecin',
+      primary: 'Uygulamayı açıp profilden hesabınızı silin',
+      secondary: 'Yardıma mı ihtiyacınız var? Destek ile iletişime geçin',
     },
     howToDelete: {
-      title: 'Hesabinizi nasil silebilirsiniz?',
+      title: 'Hesabınızı nasıl silebilirsiniz?',
       intro:
-        'Hesap silme islemi web uzerinden degil, Astro Guru mobil uygulamasi icinden tamamlanir.',
+        'Hesap silme işlemi web üzerinden değil, AstroGuru mobil uygulaması içinden tamamlanır.',
       steps: [
         {
-          title: 'Astro Guru uygulamasini acin ve hesabiniza giris yapin.',
-          body: 'Silme islemini baslatmak icin aktif hesabinizla uygulama icinde olmaniz gerekir.',
+          title: 'AstroGuru uygulamasını açın ve hesabınıza giriş yapın.',
+          body: 'Silme işlemini başlatmak için aktif hesabınızla uygulama içinde olmanız gerekir.',
         },
         {
-          title: 'Profile ekranina gidin.',
-          body: 'Hesap ayarlariniz ve yasal destek baglantilari bu bolumde yer alir.',
+          title: 'Profil ekranına gidin.',
+          body: 'Hesap ayarlarınız ve yasal destek bağlantıları bu bölümde yer alır.',
         },
         {
-          title: 'Permanently Delete Account secenegini secin.',
-          body: 'Uygulama, silme isleminin kalici oldugunu acikca gosterir.',
+          title: '"Hesabı Kalıcı Olarak Sil" seçeneğini seçin.',
+          body: 'Uygulama, silme işleminin kalıcı olduğunu açıkça gösterir.',
         },
         {
-          title: 'Onay ekranini tamamlayin.',
-          body: 'Onaydan sonra hesabiniz silme surecine alinir ve uygulamaya erisiminiz sonlanir.',
+          title: 'Onay ekranını tamamlayın.',
+          body: 'Onaydan sonra hesabınız silme sürecine alınır ve uygulamaya erişiminiz sonlanır.',
         },
       ],
     },
     afterDeletion: {
-      title: 'Silme sonrasi ne olur?',
-      items: [
-        'Hesap silme islemi, kullanici hesabinizi ve iliskili kisisel verileri aktif sistemlerden kaldirmak icin kullanilir.',
-        'Silme tamamlandiginda hesabiniza yeniden erisemez, ayni hesap durumu ile oturum acamazsiniz.',
-        'Yasal yukumlulukler, guvenlik, dolandiricilik onleme, muhasebe veya temel operasyon gerekleri nedeniyle tutulmasi gereken sinirli kayitlar bir sure daha saklanabilir.',
+      title: 'Silme sonrası ne olur?',
+      deletedDataTitle: 'Silinen veriler',
+      deletedDataItems: [
+        'Hesap bilgileri ve kayıt durumu',
+        'E-posta adresi ve giriş sağlayıcısı bilgisi',
+        'Profil detayları (görünen ad, fotoğraf, tercihler)',
+        'Doğum tarihi, saati ve doğum yeri',
+        'Astroloji, numeroloji, uyumluluk ve kişiselleştirilmiş analiz verileri',
+        'Rüya kayıtları ve varsa ses transkriptleri',
+        "Bildirim token'ları",
+        'Uygulama tercihleri ve ayarlar',
       ],
+      retainedNote:
+        'Hesap silme işleminden sonra hesabınız aktif kullanıcı hesabı olarak kullanılamaz. Gerekli olmayan kişisel veriler silinir veya anonimleştirilir. Güvenlik, kötüye kullanım önleme, yasal yükümlülük veya işlem/denetim kayıtları gerektiren durumlarda sınırlı kayıtlar belirli bir süre saklanabilir. Bu kayıtlar aktif kullanıcı hesabı olarak kullanılmaz.',
+      processingTime:
+        'Silme talepleri genellikle 7 gün içinde işleme alınır. Yasal veya teknik zorunluluk durumlarında bazı kayıtlar daha uzun süre saklanabilir.',
     },
     help: {
-      title: 'Yardima mi ihtiyaciniz var?',
+      title: 'Yardıma mı ihtiyacınız var?',
       intro:
-        'Uygulamaya erisemiyorsaniz veya silme sirasinda sorun yasiyorsaniz destek kanalini kullanabilirsiniz.',
+        'Uygulamaya erişemiyorsanız veya silme sırasında sorun yaşıyorsanız destek kanalını kullanabilirsiniz.',
       supportCard: {
-        title: 'Destek ve yedek akis',
+        title: 'Uygulamaya erişemiyorsanız',
         body:
-          'Uygulamaya giris yapamiyorsaniz veya silme akisi beklediginiz gibi calismiyorsa, destek ekibiyle iletisime gecin.',
-        mailtoLabel: 'support@astroguru.app',
-        contactLabel: 'Iletisim sayfasina gidin',
+          'Uygulamaya giriş yapamıyorsanız veya silme akışı beklediğiniz gibi çalışmıyorsa, aşağıdaki butona tıklayarak hazır konu ve içerikle e-posta gönderebilirsiniz.',
+        mailtoLabel: 'Hesap Silme Talebi Gönder',
+        mailtoBody:
+          'Merhaba AstroGuru ekibi,\n\nAstroGuru hesabımın ve hesabımla ilişkili kişisel verilerimin silinmesini talep ediyorum.\n\nHesap e-postam: \nGiriş yöntemi: E-posta / Google / Apple',
+        contactLabel: 'İletişim sayfasına gidin',
         contactDescription:
-          'E-posta gonderirken konu satirina "Hesap Silme Talebi" yazmaniz islemin daha hizli yonlendirilmesine yardimci olur.',
+          'E-posta gönderirken konu satırına "AstroGuru Hesap Silme Talebi" yazmanız işlemin daha hızlı yönlendirilmesine yardımcı olur.',
       },
-      policyLinksTitle: 'Ilgili sayfalar',
+      policyLinksTitle: 'İlgili sayfalar',
       policyLinks: [
         {
           href: '/gizlilik',
-          label: 'Gizlilik Politikasi',
-          description: 'Verilerin nasil toplandigi, kullanildigi ve korundugu hakkinda bilgi.',
+          label: 'Gizlilik Politikası',
+          description: 'Verilerin nasıl toplandığı, kullanıldığı ve korunduğu hakkında bilgi.',
         },
         {
           href: '/kullanim-sartlari',
-          label: 'Kullanim Sartlari',
-          description: 'Hizmet kullanim kosullari ve hesap yonetimiyle ilgili temel kurallar.',
+          label: 'Kullanım Şartları',
+          description: 'Hizmet kullanım koşulları ve hesap yönetimiyle ilgili temel kurallar.',
         },
       ],
     },
     reviewNote: {
-      title: 'Inceleme notu',
+      title: 'Bilgilendirme notu',
       body:
-        'Bu sayfa, Astro Guru icindeki hesap silme ozelligi hakkinda bilgilendirme saglar. Hesap silme islemi bu web sitesi uzerinden degil, mobil uygulama icindeki ilgili ayar yolundan tamamlanir.',
+        'Bu sayfa, AstroGuru içindeki hesap ve veri silme özelliği hakkında bilgilendirme sağlar. Hesap silme işlemi bu web sitesi üzerinden değil, mobil uygulama içindeki Profil → Hesabı Kalıcı Olarak Sil yolundan tamamlanır. Uygulamaya erişemiyorsanız support@astroguru.app adresine "AstroGuru Hesap Silme Talebi" konusuyla e-posta gönderebilirsiniz.',
     },
     faq: [
       {
-        question: 'Astro Guru hesabimi nasil silebilirim?',
+        question: 'AstroGuru hesabımı nasıl silebilirim?',
         answer:
-          'Astro Guru uygulamasini acip Profile -> Permanently Delete Account yolunu izleyerek hesabinizi kalici olarak silebilirsiniz.',
+          'AstroGuru uygulamasını açıp Profil → Hesabı Kalıcı Olarak Sil yolunu izleyerek hesabınızı ve ilişkili kişisel verilerinizi kalıcı olarak silebilirsiniz.',
       },
       {
-        question: 'Hesap silme islemi web sitesinden yapiliyor mu?',
+        question: 'Hesap silme işlemi web sitesinden yapılıyor mu?',
         answer:
-          'Hayir. Bu sayfa bilgilendirme amaciyla yayindadir. Hesap silme islemi mobil uygulama icinden tamamlanir.',
+          'Hayır. Bu sayfa bilgilendirme amaçlıdır. Hesap silme işlemi mobil uygulama içinden tamamlanır.',
       },
       {
-        question: 'Uygulamaya erisemiyorsam ne yapmaliyim?',
+        question: 'Uygulamaya erişemiyorsam ne yapmalıyım?',
         answer:
-          'Uygulamaya erisemiyorsaniz iletisim sayfasini kullanabilir veya support@astroguru.app adresine "Hesap Silme Talebi" konusuyla e-posta gonderebilirsiniz.',
+          'Uygulamaya erişemiyorsanız support@astroguru.app adresine "AstroGuru Hesap Silme Talebi" konusuyla e-posta gönderebilirsiniz. E-postada hesap e-postanızı ve giriş yönteminizi belirtmeniz işleminizin daha hızlı ilerlemesini sağlar.',
+      },
+      {
+        question: 'Hangi verilerim silinir?',
+        answer:
+          "Hesap silme işlemiyle; hesap bilgileri, e-posta adresi ve giriş sağlayıcısı bilgisi, profil detayları, doğum tarihi/saati/yeri, astroloji ve numeroloji analiz verileri, rüya kayıtları, bildirim token'ları ve uygulama tercihleri silinir veya anonimleştirilir.",
       },
     ],
   },
   en: {
     metadata: {
-      title: 'Account Deletion',
+      title: 'AstroGuru Account and Data Deletion',
       description:
-        'Astro Guru users can permanently delete their account inside the mobile app. Review the steps, deletion effects, and support options.',
-      openGraphTitle: 'Account Deletion | AstroGuru',
+        'AstroGuru users can permanently delete their account and personal data from inside the mobile app. Review deleted data, retained records, and support options.',
+      openGraphTitle: 'Account and Data Deletion | AstroGuru',
     },
     hero: {
-      eyebrow: 'Account Deletion',
-      title: 'Account Deletion',
+      eyebrow: 'Account and Data Deletion',
+      title: 'AstroGuru Account and Data Deletion',
       description:
-        'Astro Guru users can permanently delete their account from inside the app.',
+        'AstroGuru users can permanently delete their account and associated personal data from inside the app.',
       instructionLabel: 'In-app path',
-      instructionValue: 'Profile -> Permanently Delete Account',
+      instructionValue: 'Profile → Permanently Delete Account',
       localizedPathNote: undefined,
     },
     ctas: {
@@ -195,10 +215,10 @@ export const accountDeletionContent = {
     howToDelete: {
       title: 'How to delete your account',
       intro:
-        'Account deletion is completed inside the Astro Guru mobile app, not on this website.',
+        'Account deletion is completed inside the AstroGuru mobile app, not on this website.',
       steps: [
         {
-          title: 'Open Astro Guru and sign in to your account.',
+          title: 'Open AstroGuru and sign in to your account.',
           body: 'You need to be inside the app with access to the account you want to remove.',
         },
         {
@@ -206,7 +226,7 @@ export const accountDeletionContent = {
           body: 'Your account settings and legal support links are available there.',
         },
         {
-          title: 'Select Permanently Delete Account.',
+          title: 'Select "Permanently Delete Account".',
           body: 'The app clearly marks this action as permanent before you continue.',
         },
         {
@@ -217,24 +237,36 @@ export const accountDeletionContent = {
     },
     afterDeletion: {
       title: 'What happens after deletion',
-      items: [
-        'Account deletion is used to remove your user account and associated personal data from active systems.',
-        'Once deletion is completed, you lose access to that account and cannot sign in with the same account state again.',
-        'Limited records may be retained for a period where required for legal obligations, security, fraud prevention, accounting, or essential operational needs.',
+      deletedDataTitle: 'Data that will be deleted',
+      deletedDataItems: [
+        'Account information and registration status',
+        'Email address and sign-in provider information',
+        'Profile details (display name, photo, preferences)',
+        'Birth date, birth time, and birth place',
+        'Astrology, numerology, compatibility, and personalised analysis data',
+        'Dream records and voice transcripts, if any',
+        'Notification tokens',
+        'App preferences and settings',
       ],
+      retainedNote:
+        'After account deletion, your account can no longer be used as an active user account. Personal data that is no longer required is deleted or anonymised. Security, abuse prevention, legal obligation, or transaction and audit records may be retained for a limited period where required. These records are not used as an active user account.',
+      processingTime:
+        'Deletion requests are usually processed within 7 days. Some records may be retained longer only where legally or technically required.',
     },
     help: {
       title: 'Need help?',
       intro:
         'If you cannot access the app or run into a problem during deletion, please use the support channel.',
       supportCard: {
-        title: 'Support fallback',
+        title: 'If you cannot access the app',
         body:
-          'If you cannot sign in or the deletion flow is not working as expected, contact the support team.',
-        mailtoLabel: 'support@astroguru.app',
+          'If you cannot sign in or the deletion flow is not working as expected, you can send a pre-filled email request using the button below.',
+        mailtoLabel: 'Send Account Deletion Request',
+        mailtoBody:
+          'Hello AstroGuru team,\n\nI request the deletion of my AstroGuru account and associated personal data.\n\nAccount email: \nSign-in method: Email / Google / Apple',
         contactLabel: 'Open the contact page',
         contactDescription:
-          'Using the subject line "Account Deletion Request" helps route your message faster.',
+          'Using the subject line "AstroGuru Account Deletion Request" helps route your message faster.',
       },
       policyLinksTitle: 'Related pages',
       policyLinks: [
@@ -251,15 +283,15 @@ export const accountDeletionContent = {
       ],
     },
     reviewNote: {
-      title: 'Review-friendly note',
+      title: 'Informational note',
       body:
-        'This page explains the in-app account deletion option available in Astro Guru. The deletion action is not performed on the website and must be completed from the relevant screen inside the mobile app.',
+        'This page explains the account and data deletion option available in AstroGuru. The deletion action is not performed on this website and must be completed from Profile → Permanently Delete Account inside the mobile app. If you cannot access the app, email support@astroguru.app with the subject "AstroGuru Account Deletion Request".',
     },
     faq: [
       {
-        question: 'How do I delete my Astro Guru account?',
+        question: 'How do I delete my AstroGuru account?',
         answer:
-          'Open the Astro Guru app and follow Profile -> Permanently Delete Account to permanently remove your account.',
+          'Open the AstroGuru app and follow Profile → Permanently Delete Account to permanently remove your account and associated personal data.',
       },
       {
         question: 'Can I delete my account on the website?',
@@ -269,7 +301,12 @@ export const accountDeletionContent = {
       {
         question: 'What should I do if I cannot access the app?',
         answer:
-          'If you cannot access the app, use the contact page or email support@astroguru.app with the subject "Account Deletion Request".',
+          'Email support@astroguru.app with the subject "AstroGuru Account Deletion Request". Include your account email and sign-in method to help us process your request faster.',
+      },
+      {
+        question: 'What data is deleted?',
+        answer:
+          'Account deletion removes your account information, email address and sign-in provider, profile details, birth date/time/place, astrology and numerology analysis data, dream records, notification tokens, and app preferences.',
       },
     ],
   },
