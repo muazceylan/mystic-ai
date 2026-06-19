@@ -41,6 +41,8 @@ import {
   useGoogleIdTokenAuthRequest,
   type GoogleAuthPromptResult,
 } from '../../services/googleAuthSession';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
@@ -195,6 +197,17 @@ function CosmicBackdrop() {
         <Path d="M374 779 L376 786 L383 788 L376 790 L374 797 L372 790 L365 788 L372 786 Z" fill="#FFFFFF" opacity="0.72" />
       </Svg>
     </View>
+  );
+}
+
+function AppleMark() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityRole="image">
+      <Path
+        fill="#FFFFFF"
+        d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
+      />
+    </Svg>
   );
 }
 
@@ -606,6 +619,28 @@ function makeStyles(compact: boolean) {
       shadowRadius: 18,
       elevation: 3,
     },
+    appleButton: {
+      width: '100%',
+      minHeight: compact ? 54 : 58,
+      borderRadius: 17,
+      backgroundColor: '#1C1C1E',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 14,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 18,
+      elevation: 3,
+    },
+    appleText: {
+      fontSize: compact ? 16 : 17,
+      lineHeight: 23,
+      fontFamily: 'MysticInter-SemiBold',
+      color: '#FFFFFF',
+      letterSpacing: 0,
+    },
     socialText: {
       fontSize: compact ? 16 : 17,
       lineHeight: 23,
@@ -811,6 +846,34 @@ export default function WelcomeScreen() {
         : t('auth.googleLoginError');
 
       presentGoogleAuthError(t('common.error'), message);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      trackProductEvent(ProductEventName.LOGIN_STARTED, {
+        'login method': 'apple',
+        'entry point': 'welcome_screen',
+        'is returning user': true,
+      });
+      const nonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        Math.random().toString(36),
+      );
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce,
+      });
+      if (credential.identityToken) {
+        await handleSocialLoginResult('apple', credential.identityToken);
+      }
+    } catch (error: any) {
+      if (error.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert(t('common.error'), t('auth.appleLoginError'));
+      }
     }
   };
 
@@ -1145,6 +1208,20 @@ export default function WelcomeScreen() {
                 <GoogleMark />
                 <Text style={styles.socialText}>{t('auth.loginWithGoogle')}</Text>
               </TouchableOpacity>
+
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={styles.appleButton}
+                  onPress={handleAppleLogin}
+                  disabled={loading || quickStartLoading}
+                  accessibilityLabel={t('auth.loginWithApple')}
+                  accessibilityRole="button"
+                  activeOpacity={0.84}
+                >
+                  <AppleMark />
+                  <Text style={styles.appleText}>{t('auth.loginWithApple')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <TouchableOpacity

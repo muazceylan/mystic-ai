@@ -96,6 +96,9 @@ export const checkEmailGet = (email: string) =>
 export const socialLogin = (provider: string, idToken: string) =>
   api.post<SocialLoginResponse>(`${AUTH_BASE}/social-login`, { provider, idToken });
 
+export const refreshTokens = (refreshToken: string) =>
+  api.post<LoginResponse>(`${AUTH_BASE}/refresh`, { refreshToken });
+
 export const resendVerification = (email: string) =>
   api.post<{ ok: boolean }>(`${AUTH_BASE}/verification/resend`, { email: email.trim().toLowerCase() });
 

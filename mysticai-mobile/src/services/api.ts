@@ -1,7 +1,7 @@
 import axios from 'axios/dist/browser/axios.cjs';
 import type { AxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
-import { getToken } from '../utils/storage';
+import { getToken, setToken, setRefreshToken } from '../utils/storage';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigationHistoryStore } from '../store/useNavigationHistoryStore';
 import { envConfig } from '../config/env';
@@ -121,18 +121,94 @@ api.interceptors.request.use(async (config: any) => {
   return config;
 });
 
-// Auto-logout on 401/403
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (err: unknown) => void;
+}> = [];
+
+function processQueue(error: unknown, token: string | null = null) {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else if (token) {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+}
+
+// Token refresh + auto-logout on 401
 api.interceptors.response.use(
   (response: any) => response,
-  (error: any) => {
+  async (error: any) => {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      if (status === 401) {
-        const { isAuthenticated, logout } = useAuthStore.getState();
-        if (isAuthenticated) {
-          logout();
+      const originalRequest = error.config as any;
+
+      if (status === 401 && !originalRequest?._retry) {
+        // Don't attempt refresh for the refresh endpoint itself
+        if (originalRequest?.url?.includes('/refresh')) {
+          const { isAuthenticated, logout } = useAuthStore.getState();
+          if (isAuthenticated) logout();
+          return Promise.reject(error);
+        }
+
+        if (isRefreshing) {
+          return new Promise<string>((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then((newToken) => {
+            originalRequest.headers = originalRequest.headers ?? {};
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return api(originalRequest);
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        const { refreshToken: storedRefreshToken, isAuthenticated, logout } = useAuthStore.getState();
+
+        if (!storedRefreshToken || !isAuthenticated) {
+          if (isAuthenticated) logout();
+          processQueue(error);
+          isRefreshing = false;
+          return Promise.reject(error);
+        }
+
+        try {
+          const baseURL = envConfig.apiBaseUrl ?? '';
+          const response = await axios.post(`${baseURL}/api/v1/auth/refresh`, {
+            refreshToken: storedRefreshToken,
+          });
+
+          const { accessToken, refreshToken: newRefreshToken } = response.data as {
+            accessToken: string;
+            refreshToken: string;
+          };
+
+          setToken(accessToken);
+          if (newRefreshToken) setRefreshToken(newRefreshToken);
+          useAuthStore.setState((prev) => ({
+            ...prev,
+            token: accessToken,
+            refreshToken: newRefreshToken ?? storedRefreshToken,
+          }));
+
+          processQueue(null, accessToken);
+          originalRequest.headers = originalRequest.headers ?? {};
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          processQueue(refreshError);
+          const { isAuthenticated: stillAuthenticated, logout: doLogout } = useAuthStore.getState();
+          if (stillAuthenticated) doLogout();
+          return Promise.reject(error);
+        } finally {
+          isRefreshing = false;
         }
       }
+
       if (status !== 401 && !shouldSuppressGlobalErrorLog(error)) {
         const method = String(error.config?.method ?? 'GET').toUpperCase();
         const url = String(error.config?.url ?? 'unknown');

@@ -239,14 +239,8 @@ export function ProfileScreenContent() {
       source: 'profile',
       is_premium_user: isPremiumActive,
     });
-
-    if (isGuest || !user?.id) {
-      router.push('/(auth)/welcome');
-      return;
-    }
-
     setShowPremiumSheet(true);
-  }, [isGuest, isPremiumActive, user?.id]);
+  }, [isPremiumActive]);
 
   const handleManageSubscription = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
