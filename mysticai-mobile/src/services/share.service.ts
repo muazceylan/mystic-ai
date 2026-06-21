@@ -465,7 +465,7 @@ export async function saveToGallery(uri: string): Promise<ShareResult> {
   // 1. Request permission (writeOnly = true for iOS 14+ limited access)
   let permission: MediaLibrary.PermissionResponse;
   try {
-    permission = await MediaLibrary.requestPermissionsAsync(true);
+    permission = await MediaLibrary.requestPermissionsAsync(true, []);
   } catch (permErr: any) {
     // requestPermissionsAsync itself can crash on misconfigured native modules
     const message = buildPhotosSettingsMessage();

@@ -40,18 +40,14 @@ export function usePaywall() {
   const subscriptionProducts = useMemo(
     () => (paywall?.subscriptionProducts ?? []).map((product) =>
       resolveRevenueCatProduct(product, offeringsQuery.data?.defaultOffering ?? null))
-      .filter((product) => product.revenueCatPackage?.identifier === '$rc_monthly'
-        || product.revenueCatPackage?.identifier === '$rc_annual'),
+      .filter((product) => product.availableForPurchase),
     [offeringsQuery.data?.defaultOffering, paywall?.subscriptionProducts],
   );
 
   const tokenProducts = useMemo(
     () => (paywall?.tokenProducts ?? []).map((product) =>
       resolveRevenueCatProduct(product, offeringsQuery.data?.tokenOffering ?? null))
-      .filter((product) => product.revenueCatPackage?.identifier === 'guru_tokens_50'
-        || product.revenueCatPackage?.identifier === 'guru_tokens_150'
-        || product.revenueCatPackage?.identifier === 'guru_tokens_500'
-        || product.revenueCatPackage?.identifier === 'guru_tokens_1200'),
+      .filter((product) => product.availableForPurchase),
     [offeringsQuery.data?.tokenOffering, paywall?.tokenProducts],
   );
 

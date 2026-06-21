@@ -108,8 +108,10 @@ function getRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): {
 
   const envApiKey = getEnvRevenueCatConfig();
   const testKey = normalizeOptionalValue(runtimeConfig?.testApiKey) ?? normalizeOptionalValue(envApiKey.testApiKey);
-  const androidKey = normalizeOptionalValue(envApiKey.androidApiKey);
-  const iosKey = normalizeOptionalValue(envApiKey.iosApiKey);
+  const androidKey = normalizeOptionalValue(runtimeConfig?.androidApiKey)
+    ?? normalizeOptionalValue(envApiKey.androidApiKey);
+  const iosKey = normalizeOptionalValue(runtimeConfig?.iosApiKey)
+    ?? normalizeOptionalValue(envApiKey.iosApiKey);
 
   if (!isProductionBuild() && testKey) {
     return { key: testKey, source: 'test' };
@@ -135,12 +137,16 @@ export function getRevenueCatDiagnostics(
 ): RevenueCatRuntimeState['diagnostics'] {
   const envApiKey = getEnvRevenueCatConfig();
   const selected = getRevenueCatApiKey(runtimeConfig);
+  const androidKey = normalizeOptionalValue(runtimeConfig?.androidApiKey)
+    ?? normalizeOptionalValue(envApiKey.androidApiKey);
+  const iosKey = normalizeOptionalValue(runtimeConfig?.iosApiKey)
+    ?? normalizeOptionalValue(envApiKey.iosApiKey);
   return {
     platform: Platform.OS,
     appEnv: envConfig.appEnv,
     buildProfile: getRevenueCatBuildProfile(),
-    hasAndroidKey: Boolean(normalizeOptionalValue(envApiKey.androidApiKey)),
-    hasIosKey: Boolean(normalizeOptionalValue(envApiKey.iosApiKey)),
+    hasAndroidKey: Boolean(androidKey),
+    hasIosKey: Boolean(iosKey),
     hasTestKey: Boolean(normalizeOptionalValue(runtimeConfig?.testApiKey) ?? normalizeOptionalValue(envApiKey.testApiKey)),
     selectedKeySource: selected.source,
     entitlementId: REVENUECAT_PREMIUM_ENTITLEMENT_ID,
@@ -356,7 +362,7 @@ function getCandidateProductIds(product: PaywallProduct): string[] {
   return ids.filter((value): value is string => Boolean(value && value.trim()));
 }
 
-function normalizeStoreProductId(value: string | null | undefined): string | null {
+export function normalizeStoreProductId(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {
     return null;
@@ -382,7 +388,7 @@ function getCandidatePackageIds(product: PaywallProduct): string[] {
   return Array.from(new Set(packageIds));
 }
 
-function packageMatchesProductId(entry: PurchasesPackage, productId: string): boolean {
+export function packageMatchesProductId(entry: PurchasesPackage, productId: string): boolean {
   const entryId = entry.product.identifier;
   const normalizedEntry = normalizeStoreProductId(entryId);
   const normalizedProduct = normalizeStoreProductId(productId);

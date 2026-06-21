@@ -3,6 +3,7 @@ import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from '
 const NATIVE_MODULE_NAME = 'RNGoogleSignin';
 const GOOGLE_SIGNIN_SCOPES = ['profile', 'email'];
 const GOOGLE_WEB_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
+const GOOGLE_IOS_CLIENT_ID = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '').trim();
 
 type GoogleSigninResponse =
   | { type: 'success'; data: { idToken?: string | null } }
@@ -12,6 +13,7 @@ type GoogleSigninRuntimeModule = {
   GoogleSignin: {
     configure(options: {
       webClientId: string;
+      iosClientId?: string;
       offlineAccess: boolean;
       scopes: string[];
     }): void;
@@ -42,6 +44,7 @@ class NativeGoogleSignInError extends Error {
 let didConfigure = false;
 let cachedModule: GoogleSigninRuntimeModule | null | undefined;
 let didWarnUnavailable = false;
+let didWarnMissingConfig = false;
 
 function warnUnavailable(reason: string, error?: unknown): void {
   if (!__DEV__ || didWarnUnavailable) return;
@@ -112,26 +115,47 @@ function ensureGoogleSigninConfigured(): void {
   }
 
   const { GoogleSignin } = loadGoogleSigninModule('configuration');
-  GoogleSignin.configure({
+  const options = {
     webClientId: GOOGLE_WEB_CLIENT_ID,
     offlineAccess: true,
     scopes: [...GOOGLE_SIGNIN_SCOPES],
-  });
+    ...(Platform.OS === 'ios' && GOOGLE_IOS_CLIENT_ID ? { iosClientId: GOOGLE_IOS_CLIENT_ID } : {}),
+  };
+
+  GoogleSignin.configure(options);
   didConfigure = true;
 }
 
 export function warmNativeGoogleSigninConfig(): void {
-  try {
-    ensureGoogleSigninConfigured();
-  } catch (error) {
-    if (
-      __DEV__
-      && error instanceof NativeGoogleSignInError
-      && error.code === 'GOOGLE_SIGNIN_CONFIG_MISSING'
-    ) {
+  if (!GOOGLE_WEB_CLIENT_ID) {
+    if (__DEV__ && !didWarnMissingConfig) {
+      didWarnMissingConfig = true;
       console.warn('[Google Sign-In] Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.');
     }
+    return;
   }
+
+  try {
+    loadGoogleSigninModule('warmup');
+  } catch {
+    // loadGoogleSigninModule already warns in development. Sign-in will surface a user-facing error.
+  }
+}
+
+function isNativeGoogleSigninSetupError(error: unknown): boolean {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code ?? '')
+      : '';
+  const message = error instanceof Error ? error.message : String(error ?? '');
+
+  return (
+    code === 'configure'
+    || code === 'SIGN_IN_ERROR'
+    || message.includes('GoogleService-Info.plist')
+    || message.includes('clientID')
+    || message.includes('URL schemes')
+  );
 }
 
 export async function signInWithNativeGoogle(): Promise<string | null> {
@@ -172,6 +196,14 @@ export async function signInWithNativeGoogle(): Promise<string | null> {
       return null;
     }
 
+    if (isNativeGoogleSigninSetupError(error)) {
+      didConfigure = false;
+      throw new NativeGoogleSignInError(
+        'GOOGLE_SIGNIN_CONFIG_MISSING',
+        'Google Sign-In native iOS configuration is incomplete.',
+      );
+    }
+
     throw error;
   }
 }
@@ -183,5 +215,7 @@ export function isNativeGoogleSigninConfigurationError(error: unknown): boolean 
       error.code === 'GOOGLE_SIGNIN_CONFIG_MISSING'
       || error.code === 'GOOGLE_SIGNIN_NATIVE_MODULE_UNAVAILABLE'
     )
+  ) || (
+    isNativeGoogleSigninSetupError(error)
   );
 }

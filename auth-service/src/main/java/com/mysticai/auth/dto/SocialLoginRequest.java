@@ -7,5 +7,13 @@ public record SocialLoginRequest(
         String provider,
 
         @NotBlank(message = "ID token is required")
-        String idToken
-) {}
+        String idToken,
+
+        String linkEmail,
+
+        String linkPassword
+) {
+    public SocialLoginRequest(String provider, String idToken) {
+        this(provider, idToken, null, null);
+    }
+}

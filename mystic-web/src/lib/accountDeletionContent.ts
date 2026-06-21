@@ -82,7 +82,7 @@ export const accountDeletionContent = {
       openGraphTitle: 'Hesap ve Veri Silme | AstroGuru',
     },
     hero: {
-      eyebrow: 'Hesap ve Veri Silme',
+      eyebrow: 'AstroGuru Hesap ve Veri Silme',
       title: 'AstroGuru Hesap ve Veri Silme',
       description:
         'AstroGuru kullanıcıları hesaplarını ve ilişkili kişisel verilerini uygulama içinden kalıcı olarak silebilir.',
@@ -133,7 +133,7 @@ export const accountDeletionContent = {
       retainedNote:
         'Hesap silme işleminden sonra hesabınız aktif kullanıcı hesabı olarak kullanılamaz. Gerekli olmayan kişisel veriler silinir veya anonimleştirilir. Güvenlik, kötüye kullanım önleme, yasal yükümlülük veya işlem/denetim kayıtları gerektiren durumlarda sınırlı kayıtlar belirli bir süre saklanabilir. Bu kayıtlar aktif kullanıcı hesabı olarak kullanılmaz.',
       processingTime:
-        'Silme talepleri genellikle 7 gün içinde işleme alınır. Yasal veya teknik zorunluluk durumlarında bazı kayıtlar daha uzun süre saklanabilir.',
+        'Hesap silme talepleri genellikle 7 gün içinde işleme alınır. Yasal veya güvenlik gereklilikleri nedeniyle bazı kayıtlar daha uzun süre saklanabilir.',
     },
     help: {
       title: 'Yardıma mı ihtiyacınız var?',

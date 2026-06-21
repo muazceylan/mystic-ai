@@ -1324,6 +1324,7 @@
     "googleLoginError": "Could not sign in with Google.",
     "googleConfigError": "Google Sign-In is not configured for this app build. Please update the app and try again.",
     "appleLoginError": "Could not sign in with Apple.",
+    "appleAccountNotLinked": "This Apple account is not linked to your existing account. Enter your email and password, then try Apple again or tap Sign In.",
     "birthDateTitle": "Your Date of Birth?",
     "birthDateSubtitle": "Choose your birth date to personalize your chart.",
     "birthDateHeroEyebrow": "Birth Date",

@@ -43,6 +43,8 @@
       ],
       "blockedPermissions": [
         "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_AUDIO",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
@@ -99,7 +101,8 @@
         {
           "photosPermission": "Yıldız kartlarını galeriye kaydedebilmen için fotoğraf kütüphanene erişim izni istiyoruz.",
           "savePhotosPermission": "Oluşturduğun yıldız kartlarını galeriye kaydetmek için fotoğraf kütüphanene yazma izni istiyoruz.",
-          "isAccessMediaLocationEnabled": false
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": []
         }
       ]
     ],

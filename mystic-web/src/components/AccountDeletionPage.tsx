@@ -122,7 +122,7 @@ export function AccountDeletionPage({ locale }: { locale: Locale }) {
             <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/60">
               <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">{content.afterDeletion.retainedNote}</p>
             </div>
-            <p className="mt-3 text-xs leading-5 text-zinc-400 dark:text-zinc-500">{content.afterDeletion.processingTime}</p>
+            <p className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{content.afterDeletion.processingTime}</p>
           </div>
 
           <aside className="rounded-3xl border border-zinc-200 bg-zinc-50 p-8 dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-10">

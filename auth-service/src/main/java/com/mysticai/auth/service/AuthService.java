@@ -43,6 +43,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -78,6 +79,9 @@ public class AuthService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile(STRONG_PASSWORD_REGEX);
     private static final int OTP_TTL_MINUTES = 10;
+    private static final String APPLE_PROVIDER = "apple";
+    private static final String APPLE_PRIVATE_RELAY_DOMAIN = "@privaterelay.appleid.com";
+    private static final String APPLE_ACCOUNT_NOT_LINKED_CODE = "APPLE_ACCOUNT_NOT_LINKED";
 
     @Value("${auth.mail.from:no-reply@mysticai.local}")
     private String fromAddress;
@@ -395,10 +399,27 @@ public class AuthService {
 
         String provider = request.provider().toLowerCase(Locale.ROOT);
         LocalDateTime now = LocalDateTime.now(clock);
+        Optional<User> verifiedLinkTarget = authenticateSocialLinkTarget(request);
 
         Optional<User> existingUser = userRepository.findByProviderAndSocialId(provider, userInfo.socialId());
         if (existingUser.isPresent()) {
             User user = existingUser.get();
+            if (verifiedLinkTarget.isPresent() && !user.getId().equals(verifiedLinkTarget.get().getId())) {
+                if (!canMoveSocialIdentity(provider, user)) {
+                    throw new IllegalArgumentException("SOCIAL_ACCOUNT_ALREADY_LINKED");
+                }
+                user.setProvider(null);
+                user.setSocialId(null);
+                userRepository.save(user);
+                userRepository.flush();
+
+                User linkedUser = attachSocialIdentity(verifiedLinkTarget.get(), provider, userInfo.socialId(), now);
+                boolean onboardingRequired = requiresOnboarding(linkedUser);
+                if (!onboardingRequired) {
+                    natalChartProvisioningService.ensureNatalChartIfEligible(linkedUser);
+                }
+                return buildSocialLoginResponse(linkedUser, false);
+            }
             ensureSocialUserHasPassword(user, provider, userInfo.socialId());
             ensureSocialUserIsActive(user, now);
             userRepository.save(user);
@@ -409,15 +430,25 @@ public class AuthService {
             return buildSocialLoginResponse(user, onboardingRequired);
         }
 
-        if (userInfo.email() != null) {
-            Optional<User> emailUser = userRepository.findByEmailIgnoreCase(userInfo.email());
+        String socialEmail = trimToNull(userInfo.email());
+        if (verifiedLinkTarget.isPresent() && APPLE_PROVIDER.equals(provider)
+                && (socialEmail == null || isApplePrivateRelayEmail(socialEmail))) {
+            User linkedUser = attachSocialIdentity(verifiedLinkTarget.get(), provider, userInfo.socialId(), now);
+            boolean onboardingRequired = requiresOnboarding(linkedUser);
+            if (!onboardingRequired) {
+                natalChartProvisioningService.ensureNatalChartIfEligible(linkedUser);
+            }
+            return buildSocialLoginResponse(linkedUser, false);
+        }
+
+        if (socialEmail != null) {
+            Optional<User> emailUser = userRepository.findByEmailIgnoreCase(socialEmail);
             if (emailUser.isPresent()) {
+                if (verifiedLinkTarget.isPresent() && !emailUser.get().getId().equals(verifiedLinkTarget.get().getId())) {
+                    throw new IllegalArgumentException("SOCIAL_EMAIL_ALREADY_REGISTERED");
+                }
                 User user = emailUser.get();
-                user.setProvider(provider);
-                user.setSocialId(userInfo.socialId());
-                ensureSocialUserHasPassword(user, provider, userInfo.socialId());
-                ensureSocialUserIsActive(user, now);
-                userRepository.save(user);
+                attachSocialIdentity(user, provider, userInfo.socialId(), now);
                 boolean onboardingRequired = requiresOnboarding(user);
                 if (!onboardingRequired) {
                     natalChartProvisioningService.ensureNatalChartIfEligible(user);
@@ -426,8 +457,13 @@ public class AuthService {
             }
         }
 
-        String email = userInfo.email() != null
-                ? normalizeIdentifier(userInfo.email())
+        if (APPLE_PROVIDER.equals(provider) && (socialEmail == null || isApplePrivateRelayEmail(socialEmail))) {
+            log.warn("Apple social login rejected because no linked account was found for private relay/no-email token");
+            throw new IllegalArgumentException(APPLE_ACCOUNT_NOT_LINKED_CODE);
+        }
+
+        String email = socialEmail != null
+                ? normalizeIdentifier(socialEmail)
                 : (userInfo.socialId() + "@" + provider + ".social").toLowerCase(Locale.ROOT);
 
         String username = email;
@@ -950,6 +986,49 @@ public class AuthService {
         }
     }
 
+    private Optional<User> authenticateSocialLinkTarget(SocialLoginRequest request) {
+        String linkEmail = trimToNull(request.linkEmail());
+        String linkPassword = request.linkPassword();
+        boolean hasPassword = linkPassword != null && !linkPassword.isEmpty();
+
+        if (linkEmail == null && !hasPassword) {
+            return Optional.empty();
+        }
+        if (linkEmail == null || !hasPassword) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
+        String loginIdentifier = normalizeIdentifier(linkEmail);
+        Optional<User> loginUserOpt = userRepository.findByUsernameIgnoreCase(loginIdentifier)
+                .or(() -> userRepository.findByEmailIgnoreCase(loginIdentifier));
+
+        if (loginUserOpt.isEmpty()) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+        if (loginUserOpt.get().getAccountStatus() != AccountStatus.ACTIVE) {
+            throw new EmailNotVerifiedException();
+        }
+
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginUserOpt.get().getUsername(), linkPassword)
+        );
+        return loginUserOpt;
+    }
+
+    private User attachSocialIdentity(User user, String provider, String socialId, LocalDateTime now) {
+        user.setProvider(provider);
+        user.setSocialId(socialId);
+        ensureSocialUserHasPassword(user, provider, socialId);
+        ensureSocialUserIsActive(user, now);
+        return userRepository.save(user);
+    }
+
+    private boolean canMoveSocialIdentity(String provider, User existingUser) {
+        return APPLE_PROVIDER.equals(provider)
+                && isApplePrivateRelayEmail(existingUser.getEmail())
+                && !Boolean.TRUE.equals(existingUser.getHasLocalPassword());
+    }
+
     private void issueVerificationToken(User user) {
         LocalDateTime now = LocalDateTime.now(clock);
 
@@ -1057,6 +1136,10 @@ public class AuthService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private boolean isApplePrivateRelayEmail(String email) {
+        return normalizeIdentifier(email).endsWith(APPLE_PRIVATE_RELAY_DOMAIN);
     }
 
     private String buildName(String firstName, String lastName) {

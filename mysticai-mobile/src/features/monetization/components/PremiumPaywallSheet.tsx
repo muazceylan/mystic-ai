@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import type { PurchasesPackage } from 'react-native-purchases';
+import type { PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Crown } from 'lucide-react-native';
@@ -22,6 +22,10 @@ import { useEntitlements } from '../hooks/useEntitlements';
 import { usePaywall } from '../hooks/usePaywall';
 import { usePurchasePremium } from '../hooks/usePurchasePremium';
 import { useRestorePurchases } from '../hooks/useRestorePurchases';
+import {
+  normalizeStoreProductId,
+  packageMatchesProductId,
+} from '../services/revenueCatService';
 import { openSubscriptionManagement } from '../services/subscriptionManagement';
 import type { ResolvedPaywallProduct } from '../types/billing';
 import { PremiumBenefitRow } from './PremiumBenefitRow';
@@ -50,6 +54,11 @@ type PremiumPlanModel = {
 const MONTHLY_PACKAGE_ID: PlanId = '$rc_monthly';
 const ANNUAL_PACKAGE_ID: PlanId = '$rc_annual';
 
+const PACKAGE_IDENTIFIER_CANDIDATES_BY_PACKAGE_ID: Record<PlanId, string[]> = {
+  [MONTHLY_PACKAGE_ID]: ['$rc_monthly', 'monthly', 'month', 'premium_monthly', 'astroguru_premium_monthly'],
+  [ANNUAL_PACKAGE_ID]: ['$rc_annual', 'annual', 'yearly', 'year', 'premium_yearly', 'astroguru_premium_yearly'],
+};
+
 const PRODUCT_KEYS_BY_PACKAGE_ID: Record<PlanId, string> = {
   [MONTHLY_PACKAGE_ID]: 'astroguru_premium_monthly',
   [ANNUAL_PACKAGE_ID]: 'astroguru_premium_yearly',
@@ -77,14 +86,6 @@ const COLORS = {
   border: 'rgba(255,255,255,0.16)',
   danger: '#FCA5A5',
 } as const;
-
-function normalizeStoreProductId(value: string | null | undefined): string | null {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return null;
-  }
-  return trimmed.split(':', 1)[0] || trimmed;
-}
 
 function resolvePackageProductTitle(
   revenueCatPackage: PurchasesPackage,
@@ -147,6 +148,78 @@ function toResolvedSubscriptionProduct({
   };
 }
 
+function getProductIdentifiers(product: ResolvedPaywallProduct | null | undefined): string[] {
+  return [
+    product?.storeProductId,
+    product?.revenueCatProductId,
+    product?.iosProductId,
+    product?.androidProductId,
+    product?.productKey,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+}
+
+function productLooksLikePlan(product: ResolvedPaywallProduct, packageId: PlanId): boolean {
+  const identifiers = getProductIdentifiers(product)
+    .map((value) => normalizeStoreProductId(value) ?? value)
+    .join(' ')
+    .toLowerCase();
+
+  if (packageId === ANNUAL_PACKAGE_ID) {
+    return identifiers.includes('annual')
+      || identifiers.includes('yearly')
+      || identifiers.includes('premium_year')
+      || identifiers.includes('premium_yillik');
+  }
+
+  return identifiers.includes('monthly')
+    || identifiers.includes('premium_month')
+    || identifiers.includes('premium_aylik');
+}
+
+function resolveConfiguredProductForPlan(
+  products: ResolvedPaywallProduct[],
+  packageId: PlanId,
+): ResolvedPaywallProduct | null {
+  const expectedStoreProductId = EXPECTED_STORE_PRODUCT_IDS_BY_PACKAGE_ID[packageId];
+  return products.find((product) => product.revenueCatPackage?.identifier === packageId)
+    ?? products.find((product) => getProductIdentifiers(product)
+      .some((identifier) => normalizeStoreProductId(identifier) === expectedStoreProductId))
+    ?? products.find((product) => productLooksLikePlan(product, packageId))
+    ?? null;
+}
+
+function resolvePackageForPlan(
+  offering: PurchasesOffering | null | undefined,
+  packageId: PlanId,
+  configuredProduct: ResolvedPaywallProduct | null,
+): PurchasesPackage | null {
+  if (!offering) {
+    return null;
+  }
+
+  const typedPackage = packageId === ANNUAL_PACKAGE_ID ? offering.annual : offering.monthly;
+  if (typedPackage) {
+    return typedPackage;
+  }
+
+  const packageIdentifierCandidates = new Set(
+    PACKAGE_IDENTIFIER_CANDIDATES_BY_PACKAGE_ID[packageId]
+      .map((identifier) => normalizeStoreProductId(identifier) ?? identifier),
+  );
+  const productIdentifierCandidates = new Set([
+    EXPECTED_STORE_PRODUCT_IDS_BY_PACKAGE_ID[packageId],
+    ...getProductIdentifiers(configuredProduct),
+  ].map((identifier) => normalizeStoreProductId(identifier) ?? identifier));
+
+  return offering.availablePackages.find((entry) => {
+    const normalizedIdentifier = normalizeStoreProductId(entry.identifier) ?? entry.identifier;
+    return packageIdentifierCandidates.has(normalizedIdentifier);
+  })
+    ?? offering.availablePackages.find((entry) =>
+      Array.from(productIdentifierCandidates).some((candidate) => packageMatchesProductId(entry, candidate)))
+    ?? null;
+}
+
 export function PremiumPaywallSheet({
   visible,
   onClose,
@@ -184,27 +257,23 @@ export function PremiumPaywallSheet({
   );
   const trialDays = PREMIUM_TRIAL_DAYS;
 
-  const configuredProductsByPackage = useMemo(() => {
-    const products = new Map<string, ResolvedPaywallProduct>();
-    paywallQuery.subscriptionProducts.forEach((product) => {
-      const packageIdentifier = product.revenueCatPackage?.identifier;
-      if (packageIdentifier) {
-        products.set(packageIdentifier, product);
-      }
-    });
-    return products;
-  }, [paywallQuery.subscriptionProducts]);
-
-  const packagesById = useMemo(() => {
-    const packages = new Map<string, PurchasesPackage>();
-    paywallQuery.defaultOffering?.availablePackages.forEach((entry) => {
-      packages.set(entry.identifier, entry);
-    });
-    return packages;
-  }, [paywallQuery.defaultOffering?.availablePackages]);
-
-  const monthlyPackage = packagesById.get(MONTHLY_PACKAGE_ID) ?? null;
-  const annualPackage = packagesById.get(ANNUAL_PACKAGE_ID) ?? null;
+  const configuredMonthlyProduct = useMemo(
+    () => resolveConfiguredProductForPlan(paywallQuery.subscriptionProducts, MONTHLY_PACKAGE_ID),
+    [paywallQuery.subscriptionProducts],
+  );
+  const configuredAnnualProduct = useMemo(
+    () => resolveConfiguredProductForPlan(paywallQuery.subscriptionProducts, ANNUAL_PACKAGE_ID),
+    [paywallQuery.subscriptionProducts],
+  );
+  const activeOffering = paywallQuery.defaultOffering ?? paywallQuery.currentOffering ?? null;
+  const monthlyPackage = useMemo(
+    () => resolvePackageForPlan(activeOffering, MONTHLY_PACKAGE_ID, configuredMonthlyProduct),
+    [activeOffering, configuredMonthlyProduct],
+  );
+  const annualPackage = useMemo(
+    () => resolvePackageForPlan(activeOffering, ANNUAL_PACKAGE_ID, configuredAnnualProduct),
+    [activeOffering, configuredAnnualProduct],
+  );
 
   const monthlyPlan = useMemo<PremiumPlanModel | null>(() => {
     if (!monthlyPackage) {
@@ -220,7 +289,7 @@ export function PremiumPaywallSheet({
       iconName: 'calendar-outline',
       product: toResolvedSubscriptionProduct({
         revenueCatPackage: monthlyPackage,
-        configuredProduct: configuredProductsByPackage.get(MONTHLY_PACKAGE_ID),
+        configuredProduct: configuredMonthlyProduct,
         packageId: MONTHLY_PACKAGE_ID,
         trialDays,
         fallbackTitle: t('premium.paywall.monthlySubtitle'),
@@ -228,7 +297,7 @@ export function PremiumPaywallSheet({
         sortOrder: 10,
       }),
     };
-  }, [configuredProductsByPackage, monthlyPackage, t, trialDays]);
+  }, [configuredMonthlyProduct, monthlyPackage, t, trialDays]);
 
   const annualPlan = useMemo<PremiumPlanModel | null>(() => {
     if (!annualPackage) {
@@ -245,7 +314,7 @@ export function PremiumPaywallSheet({
       recommended: true,
       product: toResolvedSubscriptionProduct({
         revenueCatPackage: annualPackage,
-        configuredProduct: configuredProductsByPackage.get(ANNUAL_PACKAGE_ID),
+        configuredProduct: configuredAnnualProduct,
         packageId: ANNUAL_PACKAGE_ID,
         trialDays,
         fallbackTitle: t('premium.paywall.yearlySubtitle'),
@@ -254,18 +323,21 @@ export function PremiumPaywallSheet({
         recommended: true,
       }),
     };
-  }, [annualPackage, configuredProductsByPackage, t, trialDays]);
+  }, [annualPackage, configuredAnnualProduct, t, trialDays]);
 
-  const selectedPlan = selectedPackageId === ANNUAL_PACKAGE_ID ? annualPlan : monthlyPlan;
+  const selectedPlan = (selectedPackageId === ANNUAL_PACKAGE_ID ? annualPlan : monthlyPlan)
+    ?? annualPlan
+    ?? monthlyPlan;
   const isInitialLoading = Boolean(
     visible
     && (
       (paywallQuery.isLoading && !paywall)
       || paywallQuery.offeringsLoading
     )
-    && (!monthlyPlan || !annualPlan),
+    && !monthlyPlan
+    && !annualPlan,
   );
-  const packagesMissing = !isInitialLoading && (!monthlyPlan || !annualPlan);
+  const packagesMissing = !isInitialLoading && !monthlyPlan && !annualPlan;
   const storeDisabled = Boolean(
     paywall?.premiumEnabled === false
     || paywall?.revenueCatEnabled === false
@@ -300,6 +372,21 @@ export function PremiumPaywallSheet({
       });
     }
   }, [resetPurchase, resetRestore, source, visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    if (selectedPackageId === ANNUAL_PACKAGE_ID && !annualPlan && monthlyPlan) {
+      setSelectedPackageId(MONTHLY_PACKAGE_ID);
+      return;
+    }
+
+    if (selectedPackageId === MONTHLY_PACKAGE_ID && !monthlyPlan && annualPlan) {
+      setSelectedPackageId(ANNUAL_PACKAGE_ID);
+    }
+  }, [annualPlan, monthlyPlan, selectedPackageId, visible]);
 
   useEffect(() => {
     if (!visible || isInitialLoading || !showPackageError) {

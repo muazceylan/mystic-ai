@@ -769,7 +769,11 @@ export default function WelcomeScreen() {
     if (authTransitionRef.current) return;
     setLoading(true);
     try {
-      const res = await socialLogin(provider, idToken);
+      const linkCredentials =
+        provider === 'apple' && email.trim().length > 0 && password.length > 0
+          ? { linkEmail: email.trim().toLowerCase(), linkPassword: password }
+          : undefined;
+      const res = await socialLogin(provider, idToken, linkCredentials);
       const { accessToken, refreshToken, user, isNewUser } = res.data;
       const shouldStartOnboarding = isNewUser || needsOnboarding(user);
 
@@ -802,7 +806,14 @@ export default function WelcomeScreen() {
       authTransitionRef.current = true;
     } catch (error: any) {
       authTransitionRef.current = false;
-      const message = error?.response?.data?.message || t('auth.loginError');
+      const status = error?.response?.status;
+      const serverMessage = String(error?.response?.data?.message ?? '');
+      const message =
+        provider === 'apple' && serverMessage === 'APPLE_ACCOUNT_NOT_LINKED'
+          ? t('auth.appleAccountNotLinked')
+          : status === 401
+            ? t('auth.invalidCredentials')
+          : serverMessage || t('auth.loginError');
       Alert.alert(t('common.error'), message);
     } finally {
       if (authTransitionRef.current) return;

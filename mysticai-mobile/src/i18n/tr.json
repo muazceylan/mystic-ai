@@ -1323,6 +1323,7 @@
     "googleLoginError": "Google ile giriş yapılamadı.",
     "googleConfigError": "Google girişi bu uygulama sürümünde yapılandırılmamış. Lütfen uygulamayı güncelle ve tekrar dene.",
     "appleLoginError": "Apple ile giriş yapılamadı.",
+    "appleAccountNotLinked": "Bu Apple hesabı mevcut hesabına bağlı değil. E-posta ve şifreni yazıp Apple ile tekrar dene ya da doğrudan Giriş Yap'a dokun.",
     "birthDateTitle": "Doğum Tarihiniz?",
     "birthDateSubtitle": "Haritanızı kişiselleştirmek için doğum tarihinizi seçin.",
     "birthDateHeroEyebrow": "Doğum Tarihi",
