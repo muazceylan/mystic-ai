@@ -29,7 +29,8 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Yıldız kartlarını galeriye kaydedebilmen için fotoğraf kütüphanene erişim izni istiyoruz.",
         "NSPhotoLibraryAddUsageDescription": "Oluşturduğun yıldız kartlarını galeriye kaydetmek için fotoğraf kütüphanene yazma izni istiyoruz."
-      }
+      },
+      "appleTeamId": "F5B64442B2"
     },
     "android": {
       "package": "com.astroguru.mmc",

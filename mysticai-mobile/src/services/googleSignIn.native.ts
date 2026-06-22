@@ -107,6 +107,14 @@ function ensureGoogleSigninConfigured(): void {
     return;
   }
 
+  if (__DEV__) {
+    console.log('[Google Sign-In] configure attempt', {
+      hasWebClientId: Boolean(GOOGLE_WEB_CLIENT_ID),
+      hasIosClientId: Boolean(GOOGLE_IOS_CLIENT_ID),
+      platform: Platform.OS,
+    });
+  }
+
   if (!GOOGLE_WEB_CLIENT_ID) {
     throw new NativeGoogleSignInError(
       'GOOGLE_SIGNIN_CONFIG_MISSING',
@@ -184,6 +192,24 @@ export async function signInWithNativeGoogle(): Promise<string | null> {
 
     return idToken;
   } catch (error) {
+    if (__DEV__) {
+      const isExpected =
+        error instanceof NativeGoogleSignInError
+        || (cachedModule?.isErrorWithCode(error)
+          && (
+            error.code === cachedModule.statusCodes.SIGN_IN_CANCELLED
+            || error.code === cachedModule.statusCodes.IN_PROGRESS
+          ));
+
+      const log = isExpected ? console.warn : console.error;
+      log('[Google Sign-In] signIn error', {
+        type: typeof error,
+        code: (error as any)?.code,
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : undefined,
+      });
+    }
+
     const googleSigninModule = cachedModule;
 
     if (
