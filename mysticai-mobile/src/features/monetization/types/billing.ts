@@ -5,6 +5,7 @@ export type RevenueCatDisabledReason =
   | 'unsupported_platform'
   | 'expo_go'
   | 'missing_api_key'
+  | 'native_module_unavailable'
   | 'user_not_authenticated'
   | 'backend_disabled'
   | 'sdk_error'
@@ -27,7 +28,6 @@ export interface RevenueCatRuntimeState {
 export interface RevenueCatSdkConfig {
   iosApiKey?: string | null;
   androidApiKey?: string | null;
-  testApiKey?: string | null;
   environment?: string | null;
 }
 
@@ -35,10 +35,10 @@ export interface RevenueCatDiagnostics {
   platform: string;
   appEnv: string;
   buildProfile?: string | null;
+  nativeModuleAvailable: boolean;
   hasAndroidKey: boolean;
   hasIosKey: boolean;
-  hasTestKey: boolean;
-  selectedKeySource: 'android' | 'ios' | 'test' | 'test-fallback' | 'missing' | 'unsupported' | 'expo_go';
+  selectedKeySource: 'android' | 'ios' | 'missing' | 'unsupported' | 'expo_go';
   entitlementId: string;
   offeringId: 'default';
   tokenOfferingId: 'guru_tokens';

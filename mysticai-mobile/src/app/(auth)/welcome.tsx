@@ -33,6 +33,7 @@ import {
 import { needsOnboarding } from '../../utils/authOnboarding';
 import { WEB_INPUT_RESET_STYLE } from '../../utils/webInputReset';
 import {
+  isNativeGoogleSigninAvailable,
   isNativeGoogleSigninConfigurationError,
   signInWithNativeGoogle,
 } from '../../services/googleSignIn';
@@ -728,6 +729,14 @@ function presentGoogleAuthError(title: string, message: string) {
   Alert.alert(title, message);
 }
 
+let didWarnGoogleAuthSessionFallback = false;
+
+function warnGoogleAuthSessionFallbackOnce() {
+  if (!__DEV__ || didWarnGoogleAuthSessionFallback) return;
+  didWarnGoogleAuthSessionFallback = true;
+  console.warn('[Google Sign-In] Native module unavailable. Using AuthSession fallback flow.');
+}
+
 export default function WelcomeScreen() {
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
@@ -743,10 +752,16 @@ export default function WelcomeScreen() {
   const [loading, setLoading] = useState(false);
   const [quickStartLoading, setQuickStartLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [appleLinkRequired, setAppleLinkRequired] = useState(false);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
   const handledGoogleTokenRef = useRef<string | null>(null);
   const authTransitionRef = useRef(false);
   const styles = makeStyles(height < 900);
-  const isFormValid = email.trim().length > 0 && password.length > 0;
+  const normalizedEmail = email.trim().toLowerCase();
+  const hasEmail = normalizedEmail.length > 0;
+  const hasPassword = password.length > 0;
+  const isFormValid = hasEmail && hasPassword;
 
   useFocusEffect(
     useCallback(() => {
@@ -765,13 +780,22 @@ export default function WelcomeScreen() {
 
   const [googleResponse, googlePromptAsync] = useGoogleIdTokenAuthRequest();
 
+  const focusMissingAppleLinkCredential = () => {
+    if (!hasEmail) {
+      emailInputRef.current?.focus();
+      return;
+    }
+    passwordInputRef.current?.focus();
+  };
+
   const handleSocialLoginResult = async (provider: string, idToken: string) => {
     if (authTransitionRef.current) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       const linkCredentials =
-        provider === 'apple' && email.trim().length > 0 && password.length > 0
-          ? { linkEmail: email.trim().toLowerCase(), linkPassword: password }
+        provider === 'apple' && hasEmail && hasPassword
+          ? { linkEmail: normalizedEmail, linkPassword: password }
           : undefined;
       const res = await socialLogin(provider, idToken, linkCredentials);
       const { accessToken, refreshToken, user, isNewUser } = res.data;
@@ -803,17 +827,32 @@ export default function WelcomeScreen() {
       setProductUserProperties({
         'Login Method': provider,
       });
+      if (provider === 'apple') {
+        setAppleLinkRequired(false);
+      }
       authTransitionRef.current = true;
     } catch (error: any) {
       authTransitionRef.current = false;
       const status = error?.response?.status;
       const serverMessage = String(error?.response?.data?.message ?? '');
+      const isAppleAccountNotLinked =
+        provider === 'apple' && serverMessage === 'APPLE_ACCOUNT_NOT_LINKED';
+      if (isAppleAccountNotLinked) {
+        const message = t('auth.appleAccountNotLinked');
+        setAppleLinkRequired(true);
+        setErrorMessage(message);
+        focusMissingAppleLinkCredential();
+        Alert.alert(t('auth.appleLinkRequiredTitle'), message);
+        return;
+      }
       const message =
-        provider === 'apple' && serverMessage === 'APPLE_ACCOUNT_NOT_LINKED'
-          ? t('auth.appleAccountNotLinked')
-          : status === 401
-            ? t('auth.invalidCredentials')
+        status === 401
+          ? t('auth.invalidCredentials')
           : serverMessage || t('auth.loginError');
+      if (provider === 'apple' && status === 401) {
+        setErrorMessage(message);
+        passwordInputRef.current?.focus();
+      }
       Alert.alert(t('common.error'), message);
     } finally {
       if (authTransitionRef.current) return;
@@ -829,12 +868,21 @@ export default function WelcomeScreen() {
         'is returning user': true,
       });
 
-      if (Platform.OS !== 'web') {
-        const idToken = await signInWithNativeGoogle();
-        if (!idToken) return;
+      if (Platform.OS !== 'web' && isNativeGoogleSigninAvailable()) {
+        try {
+          const idToken = await signInWithNativeGoogle();
+          if (!idToken) return;
 
-        await handleSocialLoginResult('google', idToken);
-        return;
+          await handleSocialLoginResult('google', idToken);
+          return;
+        } catch (error) {
+          if (!isNativeGoogleSigninConfigurationError(error)) {
+            throw error;
+          }
+          warnGoogleAuthSessionFallbackOnce();
+        }
+      } else if (Platform.OS !== 'web') {
+        warnGoogleAuthSessionFallbackOnce();
       }
 
       if (!isGoogleAuthSessionConfigured()) {
@@ -860,26 +908,41 @@ export default function WelcomeScreen() {
     }
   };
 
+  const requestAppleIdentityToken = async (): Promise<string | null> => {
+    const nonce = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      Math.random().toString(36),
+    );
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+      nonce,
+    });
+
+    return credential.identityToken ?? null;
+  };
+
   const handleAppleLogin = async () => {
     try {
+      if (appleLinkRequired) {
+        if (!isFormValid) {
+          const message = t('auth.appleAccountNotLinked');
+          setErrorMessage(message);
+          focusMissingAppleLinkCredential();
+          return;
+        }
+      }
+
       trackProductEvent(ProductEventName.LOGIN_STARTED, {
         'login method': 'apple',
         'entry point': 'welcome_screen',
         'is returning user': true,
       });
-      const nonce = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        Math.random().toString(36),
-      );
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce,
-      });
-      if (credential.identityToken) {
-        await handleSocialLoginResult('apple', credential.identityToken);
+      const identityToken = await requestAppleIdentityToken();
+      if (identityToken) {
+        await handleSocialLoginResult('apple', identityToken);
       }
     } catch (error: any) {
       if (error.code !== 'ERR_REQUEST_CANCELED') {
@@ -1111,6 +1174,7 @@ export default function WelcomeScreen() {
                     <Mail size={23} color={AUTH_COLORS.icon} strokeWidth={1.8} />
                   </View>
                   <TextInput
+                    ref={emailInputRef}
                     style={[styles.input, WEB_INPUT_RESET_STYLE, AUTH_WEB_TEXT_INPUT_STYLE]}
                     placeholder={t('auth.email')}
                     placeholderTextColor={AUTH_COLORS.subtext}
@@ -1128,6 +1192,7 @@ export default function WelcomeScreen() {
                     <Lock size={23} color={AUTH_COLORS.icon} strokeWidth={1.8} />
                   </View>
                   <TextInput
+                    ref={passwordInputRef}
                     style={[styles.input, styles.passwordInput, WEB_INPUT_RESET_STYLE, AUTH_WEB_TEXT_INPUT_STYLE]}
                     placeholder={t('auth.password')}
                     placeholderTextColor={AUTH_COLORS.subtext}
@@ -1225,12 +1290,14 @@ export default function WelcomeScreen() {
                   style={styles.appleButton}
                   onPress={handleAppleLogin}
                   disabled={loading || quickStartLoading}
-                  accessibilityLabel={t('auth.loginWithApple')}
+                  accessibilityLabel={appleLinkRequired ? t('auth.linkWithApple') : t('auth.loginWithApple')}
                   accessibilityRole="button"
                   activeOpacity={0.84}
                 >
                   <AppleMark />
-                  <Text style={styles.appleText}>{t('auth.loginWithApple')}</Text>
+                  <Text style={styles.appleText}>
+                    {appleLinkRequired ? t('auth.linkWithApple') : t('auth.loginWithApple')}
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>

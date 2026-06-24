@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class SocialTokenVerifier {
 
     private final ObjectMapper objectMapper;
-    @Value("${auth.google.allowed-client-ids:607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com,607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com}")
+    @Value("${auth.google.allowed-client-ids:607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com,607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com,699117630000-ectgs3iqcqclqlhrn01e5vtodd0n3lrp.apps.googleusercontent.com,699117630000-ps0os3vtf47ld2ne8qdoer83i1dl3p8i.apps.googleusercontent.com,699117630000-p31ab38e9cbi1p78h17v0grkqogp7an7.apps.googleusercontent.com,699117630000-h31rsh94vq05n6avnki1eiee48q7h4q9.apps.googleusercontent.com}")
     private String allowedGoogleClientIdsRaw;
 
     public record SocialUserInfo(String socialId, String email, String firstName, String lastName) {}

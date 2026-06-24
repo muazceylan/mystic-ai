@@ -168,11 +168,11 @@ export default function NewMonetizationSettingsPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">iOS Public API Key</label>
-                <Input {...register('revenueCatIosApiKey')} className="font-mono" placeholder="appl_... veya test_..." />
+                <Input {...register('revenueCatIosApiKey')} className="font-mono" placeholder="appl_..." />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Android Public API Key</label>
-                <Input {...register('revenueCatAndroidApiKey')} className="font-mono" placeholder="goog_... veya test_..." />
+                <Input {...register('revenueCatAndroidApiKey')} className="font-mono" placeholder="goog_..." />
               </div>
             </div>
             <div>

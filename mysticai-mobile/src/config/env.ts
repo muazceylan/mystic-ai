@@ -227,12 +227,24 @@ const iosGtmContainerId = (process.env.EXPO_PUBLIC_GTM_IOS_CONTAINER_ID ?? 'GTM-
 const androidGtmContainerId = (process.env.EXPO_PUBLIC_GTM_ANDROID_CONTAINER_ID ?? 'GTM-NNVXTDZB').trim();
 const webRewardedAdUnitPath = (process.env.EXPO_PUBLIC_GAM_REWARDED_AD_UNIT_PATH ?? '').trim();
 const webRewardedPlacementKey = (process.env.EXPO_PUBLIC_GAM_REWARDED_PLACEMENT_KEY ?? '').trim();
-const revenueCatIosApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '').trim();
-const revenueCatAndroidApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '').trim();
-const revenueCatTestApiKey = (process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? '').trim();
-const revenueCatPremiumEntitlementId = (
-  process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID ?? 'Astro Guru Pro'
-).trim() || 'Astro Guru Pro';
+
+function firstNonEmptyEnv(...values: EnvSource[]): string {
+  for (const value of values) {
+    const trimmed = (value ?? '').trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return '';
+}
+
+const revenueCatIosApiKey = firstNonEmptyEnv(process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY);
+const revenueCatAndroidApiKey = firstNonEmptyEnv(process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY);
+const revenueCatPremiumEntitlementId = firstNonEmptyEnv(
+  process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID,
+  process.env.EXPO_PUBLIC_REVENUECAT_PREMIUM_ENTITLEMENT_ID,
+  'Astro Guru Pro',
+) || 'Astro Guru Pro';
 const revenueCatEnv = normalizeRevenueCatEnv(process.env.EXPO_PUBLIC_REVENUECAT_ENV);
 
 export const envConfig = {
@@ -271,7 +283,6 @@ export const envConfig = {
   revenueCat: {
     iosApiKey: revenueCatIosApiKey,
     androidApiKey: revenueCatAndroidApiKey,
-    testApiKey: revenueCatTestApiKey,
     premiumEntitlementId: revenueCatPremiumEntitlementId,
     env: revenueCatEnv,
   },

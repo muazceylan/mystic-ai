@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import Purchases, {
   PURCHASES_ERROR_CODE,
@@ -60,7 +60,6 @@ function getEnvRevenueCatConfig(): RevenueCatSdkConfig {
   return {
     iosApiKey: envConfig.revenueCat.iosApiKey || null,
     androidApiKey: envConfig.revenueCat.androidApiKey || null,
-    testApiKey: envConfig.revenueCat.testApiKey || null,
     environment: envConfig.revenueCat.env,
   };
 }
@@ -75,7 +74,6 @@ export function getRevenueCatSdkConfigFromMonetizationConfig(
   return {
     iosApiKey: normalizeOptionalValue(config.revenueCatIosApiKey),
     androidApiKey: normalizeOptionalValue(config.revenueCatAndroidApiKey),
-    testApiKey: envConfig.revenueCat.testApiKey || null,
     environment: normalizeOptionalValue(config.revenueCatEnvironment),
   };
 }
@@ -84,14 +82,43 @@ function isExpoGoRuntime(): boolean {
   return Constants.appOwnership === 'expo';
 }
 
-function isProductionBuild(): boolean {
-  return envConfig.isProduction;
+function isRevenueCatNativeModuleAvailable(): boolean {
+  return Boolean((NativeModules as { RNPurchases?: unknown }).RNPurchases);
 }
 
 function getRevenueCatBuildProfile(): string | null {
   return normalizeOptionalValue(process.env.EAS_BUILD_PROFILE)
     ?? normalizeOptionalValue(process.env.EXPO_PUBLIC_EAS_BUILD_PROFILE)
     ?? normalizeOptionalValue(process.env.EXPO_PUBLIC_BUILD_PROFILE);
+}
+
+const missingApiKeyWarnings = new Set<string>();
+
+function getPlatformRevenueCatEnvVarName(): 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY' | 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY' | null {
+  if (Platform.OS === 'ios') {
+    return 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY';
+  }
+  if (Platform.OS === 'android') {
+    return 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY';
+  }
+  return null;
+}
+
+function warnMissingRevenueCatApiKeyOnce(): void {
+  const envVarName = getPlatformRevenueCatEnvVarName();
+  if (!envVarName) {
+    return;
+  }
+
+  const warningKey = `${Platform.OS}:${envVarName}`;
+  if (missingApiKeyWarnings.has(warningKey)) {
+    return;
+  }
+
+  missingApiKeyWarnings.add(warningKey);
+  console.warn(
+    `[RevenueCat] Missing ${envVarName}; purchases are disabled for this ${Platform.OS} build.`
+  );
 }
 
 function getRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): {
@@ -107,26 +134,17 @@ function getRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): {
   }
 
   const envApiKey = getEnvRevenueCatConfig();
-  const testKey = normalizeOptionalValue(runtimeConfig?.testApiKey) ?? normalizeOptionalValue(envApiKey.testApiKey);
   const androidKey = normalizeOptionalValue(runtimeConfig?.androidApiKey)
     ?? normalizeOptionalValue(envApiKey.androidApiKey);
   const iosKey = normalizeOptionalValue(runtimeConfig?.iosApiKey)
     ?? normalizeOptionalValue(envApiKey.iosApiKey);
 
-  if (!isProductionBuild() && testKey) {
-    return { key: testKey, source: 'test' };
+  if (Platform.OS === 'ios') {
+    return { key: iosKey, source: iosKey ? 'ios' : 'missing' };
   }
 
-  if (Platform.OS === 'android' && androidKey) {
-    return { key: androidKey, source: 'android' };
-  }
-
-  if (Platform.OS === 'ios' && iosKey) {
-    return { key: iosKey, source: 'ios' };
-  }
-
-  if (testKey) {
-    return { key: testKey, source: 'test-fallback' };
+  if (Platform.OS === 'android') {
+    return { key: androidKey, source: androidKey ? 'android' : 'missing' };
   }
 
   return { key: null, source: 'missing' };
@@ -145,9 +163,9 @@ export function getRevenueCatDiagnostics(
     platform: Platform.OS,
     appEnv: envConfig.appEnv,
     buildProfile: getRevenueCatBuildProfile(),
+    nativeModuleAvailable: isRevenueCatNativeModuleAvailable(),
     hasAndroidKey: Boolean(androidKey),
     hasIosKey: Boolean(iosKey),
-    hasTestKey: Boolean(normalizeOptionalValue(runtimeConfig?.testApiKey) ?? normalizeOptionalValue(envApiKey.testApiKey)),
     selectedKeySource: selected.source,
     entitlementId: REVENUECAT_PREMIUM_ENTITLEMENT_ID,
     offeringId: REVENUECAT_DEFAULT_OFFERING_ID,
@@ -180,11 +198,24 @@ export function getRevenueCatInitialState(
   }
 
   if (!getRevenueCatApiKey(runtimeConfig).key) {
+    if (options?.remoteConfigResolved) {
+      warnMissingRevenueCatApiKeyOnce();
+    }
     return {
       supported: true,
       configured: false,
       ready: false,
       disabledReason: options?.remoteConfigResolved ? 'missing_api_key' : 'not_initialized',
+      diagnostics: getRevenueCatDiagnostics(runtimeConfig),
+    };
+  }
+
+  if (!isRevenueCatNativeModuleAvailable()) {
+    return {
+      supported: true,
+      configured: false,
+      ready: false,
+      disabledReason: 'native_module_unavailable',
       diagnostics: getRevenueCatDiagnostics(runtimeConfig),
     };
   }
@@ -231,7 +262,11 @@ export async function configureRevenueCat(
     throw new Error('RevenueCat is only supported on native mobile builds.');
   }
   if (!apiKey) {
+    warnMissingRevenueCatApiKeyOnce();
     throw new Error('RevenueCat API key is missing for this platform.');
+  }
+  if (!isRevenueCatNativeModuleAvailable()) {
+    throw new Error('RevenueCat native module is not available in this build. Rebuild the development or store app after installing react-native-purchases.');
   }
 
   if (!configuredAppUserId) {

@@ -6,7 +6,7 @@
     "start": "expo start --port 8090",
     "android": "expo run:android --port 8090",
     "build:android:aab": "node scripts/bump-android-version-code.js && sh -c 'set -a && . .env.production && set +a && cd android && ./gradlew bundleReleaseVersioned --no-daemon --no-parallel --max-workers=2'",
-    "build:ios:ipa": "node scripts/bump-ios-build-number.js && sh -c 'set -a && . .env.production && set +a && xcodebuild -workspace ios/AstroGuru.xcworkspace -scheme AstroGuru -configuration Release -destination \"generic/platform=iOS\" -archivePath ios/build/AstroGuru.xcarchive archive -allowProvisioningUpdates && xcodebuild -exportArchive -archivePath ios/build/AstroGuru.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath ios/build/ipa -allowProvisioningUpdates'",
+    "build:ios:ipa": "node scripts/bump-ios-build-number.js && sh -c 'set -a && . .env.production && set +a && xcodebuild -workspace ios/AstroGuru.xcworkspace -scheme AstroGuru -configuration Release -destination \"generic/platform=iOS\" -archivePath ios/build/AstroGuru.xcarchive archive -allowProvisioningUpdates && xcodebuild -exportArchive -archivePath ios/build/AstroGuru.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath ios/build/ipa -allowProvisioningUpdates' && node scripts/copy-ios-versioned-ipa.js",
     "ios": "expo run:ios --port 8090",
     "web": "expo start --web --port 8090",
     "build:web": "expo export --platform web",

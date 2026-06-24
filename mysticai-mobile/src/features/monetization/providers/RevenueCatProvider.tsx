@@ -57,11 +57,10 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     const initialRevenueCatState = getRevenueCatInitialState(runtimeConfig, {
       remoteConfigResolved: monetizationConfig !== null,
     });
-    if (initialRevenueCatState.disabledReason === 'not_initialized') {
-      setRevenueCatState(initialRevenueCatState);
-      return;
-    }
-    if (initialRevenueCatState.disabledReason === 'missing_api_key') {
+    if (
+      initialRevenueCatState.disabledReason
+      && initialRevenueCatState.disabledReason !== 'user_not_authenticated'
+    ) {
       setRevenueCatState(initialRevenueCatState);
       return;
     }

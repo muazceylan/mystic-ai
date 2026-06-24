@@ -43,6 +43,7 @@ class NativeGoogleSignInError extends Error {
 
 let didConfigure = false;
 let cachedModule: GoogleSigninRuntimeModule | null | undefined;
+let nativeModuleAvailable: boolean | undefined;
 let didWarnUnavailable = false;
 let didWarnMissingConfig = false;
 
@@ -65,12 +66,35 @@ function warnUnavailable(reason: string, error?: unknown): void {
   );
 }
 
-function hasNativeGoogleSigninModule(): boolean {
-  const nativeModule =
-    TurboModuleRegistry.get<TurboModule>(NATIVE_MODULE_NAME)
-    ?? (NativeModules as Record<string, unknown>)[NATIVE_MODULE_NAME];
+function hasNativeGoogleSigninModule(reason?: string): boolean {
+  if (nativeModuleAvailable !== undefined) {
+    if (!nativeModuleAvailable && reason) {
+      warnUnavailable(reason, `${NATIVE_MODULE_NAME} native module missing`);
+    }
+    return nativeModuleAvailable;
+  }
 
-  return Boolean(nativeModule);
+  try {
+    const nativeModule =
+      TurboModuleRegistry.get<TurboModule>(NATIVE_MODULE_NAME)
+      ?? (NativeModules as Record<string, unknown>)[NATIVE_MODULE_NAME];
+
+    nativeModuleAvailable = Boolean(nativeModule);
+    if (!nativeModuleAvailable && reason) {
+      warnUnavailable(reason, `${NATIVE_MODULE_NAME} native module missing`);
+    }
+    return nativeModuleAvailable;
+  } catch (error) {
+    nativeModuleAvailable = false;
+    if (reason) {
+      warnUnavailable(reason, error);
+    }
+    return false;
+  }
+}
+
+export function isNativeGoogleSigninAvailable(): boolean {
+  return hasNativeGoogleSigninModule();
 }
 
 function loadGoogleSigninModule(reason = 'runtime access'): GoogleSigninRuntimeModule {
@@ -78,8 +102,7 @@ function loadGoogleSigninModule(reason = 'runtime access'): GoogleSigninRuntimeM
     return cachedModule;
   }
 
-  if (!hasNativeGoogleSigninModule()) {
-    warnUnavailable(reason, `${NATIVE_MODULE_NAME} native module missing`);
+  if (!hasNativeGoogleSigninModule(reason)) {
     cachedModule = null;
     throw new NativeGoogleSignInError(
       'GOOGLE_SIGNIN_NATIVE_MODULE_UNAVAILABLE',
@@ -90,6 +113,7 @@ function loadGoogleSigninModule(reason = 'runtime access'): GoogleSigninRuntimeM
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     cachedModule = require('@react-native-google-signin/google-signin') as GoogleSigninRuntimeModule;
+    return cachedModule;
   } catch (error) {
     warnUnavailable(reason, error);
     cachedModule = null;
@@ -98,21 +122,11 @@ function loadGoogleSigninModule(reason = 'runtime access'): GoogleSigninRuntimeM
       'Google Sign-In package could not be loaded.',
     );
   }
-
-  return cachedModule;
 }
 
 function ensureGoogleSigninConfigured(): void {
   if (didConfigure) {
     return;
-  }
-
-  if (__DEV__) {
-    console.log('[Google Sign-In] configure attempt', {
-      hasWebClientId: Boolean(GOOGLE_WEB_CLIENT_ID),
-      hasIosClientId: Boolean(GOOGLE_IOS_CLIENT_ID),
-      platform: Platform.OS,
-    });
   }
 
   if (!GOOGLE_WEB_CLIENT_ID) {
@@ -143,11 +157,7 @@ export function warmNativeGoogleSigninConfig(): void {
     return;
   }
 
-  try {
-    loadGoogleSigninModule('warmup');
-  } catch {
-    // loadGoogleSigninModule already warns in development. Sign-in will surface a user-facing error.
-  }
+  hasNativeGoogleSigninModule('warmup');
 }
 
 function isNativeGoogleSigninSetupError(error: unknown): boolean {
@@ -192,24 +202,6 @@ export async function signInWithNativeGoogle(): Promise<string | null> {
 
     return idToken;
   } catch (error) {
-    if (__DEV__) {
-      const isExpected =
-        error instanceof NativeGoogleSignInError
-        || (cachedModule?.isErrorWithCode(error)
-          && (
-            error.code === cachedModule.statusCodes.SIGN_IN_CANCELLED
-            || error.code === cachedModule.statusCodes.IN_PROGRESS
-          ));
-
-      const log = isExpected ? console.warn : console.error;
-      log('[Google Sign-In] signIn error', {
-        type: typeof error,
-        code: (error as any)?.code,
-        message: error instanceof Error ? error.message : String(error),
-        name: error instanceof Error ? error.name : undefined,
-      });
-    }
-
     const googleSigninModule = cachedModule;
 
     if (
@@ -228,6 +220,15 @@ export async function signInWithNativeGoogle(): Promise<string | null> {
         'GOOGLE_SIGNIN_CONFIG_MISSING',
         'Google Sign-In native iOS configuration is incomplete.',
       );
+    }
+
+    if (__DEV__ && !(error instanceof NativeGoogleSignInError)) {
+      console.error('[Google Sign-In] signIn error', {
+        type: typeof error,
+        code: (error as { code?: unknown })?.code,
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : undefined,
+      });
     }
 
     throw error;

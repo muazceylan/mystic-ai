@@ -37,11 +37,13 @@ import {
 } from '../services/productAnalytics';
 import { WEB_INPUT_RESET_STYLE } from '../utils/webInputReset';
 import {
+  isNativeGoogleSigninAvailable,
   isNativeGoogleSigninConfigurationError,
   signInWithNativeGoogle,
 } from '../services/googleSignIn';
 import {
   isGoogleAuthSessionConfigured,
+  type GoogleAuthPromptResult,
   useGoogleIdTokenAuthRequest,
 } from '../services/googleAuthSession';
 
@@ -52,6 +54,19 @@ function presentGoogleLinkError(title: string, message: string) {
   }
 
   Alert.alert(title, message);
+}
+
+let didWarnGoogleAuthSessionFallback = false;
+
+function warnGoogleAuthSessionFallbackOnce() {
+  if (!__DEV__ || didWarnGoogleAuthSessionFallback) return;
+  didWarnGoogleAuthSessionFallback = true;
+  console.warn('[Google Sign-In] Native module unavailable. Using AuthSession fallback flow.');
+}
+
+function extractGoogleIdToken(result: GoogleAuthPromptResult | undefined): string | undefined {
+  if (!result || result.type !== 'success') return undefined;
+  return result.params?.id_token ?? result.authentication?.idToken ?? undefined;
 }
 
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
@@ -320,12 +335,21 @@ export default function LinkAccountScreen() {
 
   const handleGoogleLink = async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const idToken = await signInWithNativeGoogle();
-        if (!idToken) return;
+      if (Platform.OS !== 'web' && isNativeGoogleSigninAvailable()) {
+        try {
+          const idToken = await signInWithNativeGoogle();
+          if (!idToken) return;
 
-        await handleSocialLink('google', idToken);
-        return;
+          await handleSocialLink('google', idToken);
+          return;
+        } catch (error) {
+          if (!isNativeGoogleSigninConfigurationError(error)) {
+            throw error;
+          }
+          warnGoogleAuthSessionFallbackOnce();
+        }
+      } else if (Platform.OS !== 'web') {
+        warnGoogleAuthSessionFallbackOnce();
       }
 
       if (!isGoogleAuthSessionConfigured()) {
@@ -334,11 +358,9 @@ export default function LinkAccountScreen() {
       }
 
       const result = await googlePromptAsync();
-      if (result?.type === 'success') {
-        const idToken = result.params?.id_token ?? result.authentication?.idToken;
-        if (idToken) await handleSocialLink('google', idToken);
-        else presentGoogleLinkError(t('common.error'), t('linkAccount.genericError'));
-      }
+      const idToken = extractGoogleIdToken(result);
+      if (idToken) await handleSocialLink('google', idToken);
+      else if (result?.type === 'success') presentGoogleLinkError(t('common.error'), t('linkAccount.genericError'));
     } catch (error) {
       const message = isNativeGoogleSigninConfigurationError(error)
         ? t('linkAccount.googleConfigError')

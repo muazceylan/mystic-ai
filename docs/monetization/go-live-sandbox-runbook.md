@@ -161,7 +161,7 @@ Her product icin:
   - `REVENUECAT_WEBHOOK_SECRET=`
 - Mobile sandbox build:
   - `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=`
-  - `EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY=`
+  - `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY=`
   - `EXPO_PUBLIC_REVENUECAT_PREMIUM_ENTITLEMENT_ID=Astro Guru Pro`
   - `EXPO_PUBLIC_REVENUECAT_ENV=sandbox`
 - Mobile production build:
@@ -263,7 +263,7 @@ Beklenen log sinyalleri:
 ## 6. Android sandbox test runbook
 
 1. Android internal test build uret.
-2. `EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY` sandbox veya uygun test key ile ayarli oldugunu dogrula.
+2. `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` sandbox veya uygun Android public SDK key ile ayarli oldugunu dogrula.
 3. Google Play Console internal testing track'e build yukle.
 4. License tester hesaplarinin opt-in yaptigini dogrula.
 5. Astro Guru icinde login ol.

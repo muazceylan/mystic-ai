@@ -321,6 +321,9 @@ export default function PremiumScreen() {
     if (paywallQuery.revenueCatDisabledReason === 'expo_go') {
       return t('premium.buildRequiredMessage');
     }
+    if (paywallQuery.revenueCatDisabledReason === 'native_module_unavailable') {
+      return t('premium.nativeModuleUnavailableMessage');
+    }
     if (paywallQuery.revenueCatDisabledReason === 'offerings_unavailable') {
       return t('premium.offeringsUnavailableMessage');
     }
@@ -348,9 +351,9 @@ export default function PremiumScreen() {
       `Platform: ${diagnostics.platform}`,
       `App env: ${diagnostics.appEnv}`,
       `Build profile: ${diagnostics.buildProfile ?? 'unknown'}`,
+      `nativeModuleAvailable: ${String(diagnostics.nativeModuleAvailable)}`,
       `hasAndroidKey: ${String(diagnostics.hasAndroidKey)}`,
       `hasIosKey: ${String(diagnostics.hasIosKey)}`,
-      `hasTestKey: ${String(diagnostics.hasTestKey)}`,
       `selectedKeySource: ${diagnostics.selectedKeySource}`,
       `entitlementId: ${diagnostics.entitlementId}`,
       `offeringId: ${diagnostics.offeringId}`,

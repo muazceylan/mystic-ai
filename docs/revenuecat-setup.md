@@ -11,6 +11,13 @@ Astro Guru mobile app reads RevenueCat public SDK keys from Expo public env vari
 ## EAS env
 
 ```bash
+# Production iOS
+eas env:create \
+  --environment production \
+  --visibility plaintext \
+  --name EXPO_PUBLIC_REVENUECAT_IOS_API_KEY \
+  --value "RevenueCat iOS public SDK key"
+
 # Production Android
 eas env:create \
   --environment production \
@@ -28,14 +35,14 @@ eas env:create \
 eas env:create \
   --environment preview \
   --visibility plaintext \
-  --name EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY \
-  --value "RevenueCat Android public SDK key"
+  --name EXPO_PUBLIC_REVENUECAT_IOS_API_KEY \
+  --value "RevenueCat iOS public SDK key"
 
 eas env:create \
   --environment preview \
   --visibility plaintext \
-  --name EXPO_PUBLIC_REVENUECAT_TEST_API_KEY \
-  --value "RevenueCat Test Store public key"
+  --name EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY \
+  --value "RevenueCat Android public SDK key"
 
 eas env:create \
   --environment preview \
@@ -44,13 +51,11 @@ eas env:create \
   --value "Astro Guru Pro"
 ```
 
-Add `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` in the same way before iOS builds.
-
 ## Safety notes
 
 - Do not put RevenueCat secret keys in the mobile app.
 - Keys starting with `sk_` must not be added to Expo public env.
-- Mobile builds should use only `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`, `EXPO_PUBLIC_REVENUECAT_TEST_API_KEY`, and `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID`.
+- Mobile builds should use `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` for iOS and `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` for Android. Do not use a shared or test fallback SDK key for native builds.
 - After changing EAS env values, create a new EAS build. OTA updates may not fix native/runtime env mismatches.
 - For a clean Android release build:
 
@@ -71,4 +76,4 @@ eas env:list --environment production | grep -i revenue
 eas env:list --environment preview | grep -i revenue
 ```
 
-The mobile app never logs API key values. Debug output is limited to booleans such as `hasAndroidKey`, `hasIosKey`, `hasTestKey`, selected source, platform, build profile, entitlement id, and offering ids.
+The mobile app never logs API key values. Debug output is limited to booleans such as `hasAndroidKey`, `hasIosKey`, selected source, platform, build profile, entitlement id, and offering ids.
