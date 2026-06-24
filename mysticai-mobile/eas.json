@@ -30,6 +30,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "ios": {
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      },
       "env": {
         "EXPO_PUBLIC_APP_ENV": "prod",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "699117630000-ectgs3iqcqclqlhrn01e5vtodd0n3lrp.apps.googleusercontent.com",

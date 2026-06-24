@@ -40,4 +40,16 @@ public class AppBeansConfig {
                 .readTimeout(readTimeout)
                 .build();
     }
+
+    @Bean
+    public RestTemplate socialAuthRestTemplate(
+            RestTemplateBuilder builder,
+            @Value("${auth.social.connect-timeout:2s}") Duration connectTimeout,
+            @Value("${auth.social.read-timeout:5s}") Duration readTimeout
+    ) {
+        return builder
+                .connectTimeout(connectTimeout)
+                .readTimeout(readTimeout)
+                .build();
+    }
 }

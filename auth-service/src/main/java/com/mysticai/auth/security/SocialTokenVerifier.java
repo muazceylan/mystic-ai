@@ -2,11 +2,11 @@ package com.mysticai.auth.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestOperations;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -21,12 +21,21 @@ import java.util.stream.Stream;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class SocialTokenVerifier {
 
     private final ObjectMapper objectMapper;
-    @Value("${auth.google.allowed-client-ids:607073022009-t0nujj22fr6k33tuhdg1eka9n9eq36t5.apps.googleusercontent.com,607073022009-a1r82mu51cetqtsknk5fjf34kau393g9.apps.googleusercontent.com,699117630000-ectgs3iqcqclqlhrn01e5vtodd0n3lrp.apps.googleusercontent.com,699117630000-ps0os3vtf47ld2ne8qdoer83i1dl3p8i.apps.googleusercontent.com,699117630000-p31ab38e9cbi1p78h17v0grkqogp7an7.apps.googleusercontent.com,699117630000-h31rsh94vq05n6avnki1eiee48q7h4q9.apps.googleusercontent.com}")
+    private final RestOperations socialAuthRestTemplate;
+
+    @Value("${auth.google.allowed-client-ids}")
     private String allowedGoogleClientIdsRaw;
+
+    public SocialTokenVerifier(
+            ObjectMapper objectMapper,
+            @Qualifier("socialAuthRestTemplate") RestOperations socialAuthRestTemplate
+    ) {
+        this.objectMapper = objectMapper;
+        this.socialAuthRestTemplate = socialAuthRestTemplate;
+    }
 
     public record SocialUserInfo(String socialId, String email, String firstName, String lastName) {}
 
@@ -35,11 +44,10 @@ public class SocialTokenVerifier {
      */
     public SocialUserInfo verifyGoogleToken(String idToken) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
             String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken;
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            Map<String, Object> response = socialAuthRestTemplate.getForObject(url, Map.class);
 
             if (response == null) {
                 throw new IllegalArgumentException("Invalid Google token: empty response");
@@ -54,7 +62,7 @@ public class SocialTokenVerifier {
             if (sub == null || email == null) {
                 throw new IllegalArgumentException("Invalid Google token: missing sub or email");
             }
-            Set<String> allowedGoogleClientIds = Stream.of(allowedGoogleClientIdsRaw.split(","))
+            Set<String> allowedGoogleClientIds = Stream.of((allowedGoogleClientIdsRaw == null ? "" : allowedGoogleClientIdsRaw).split(","))
                     .map(String::trim)
                     .filter(value -> !value.isEmpty())
                     .collect(Collectors.toSet());
@@ -90,8 +98,7 @@ public class SocialTokenVerifier {
             String kid = (String) header.get("kid");
 
             // Fetch Apple's public keys
-            RestTemplate restTemplate = new RestTemplate();
-            AppleKeysResponse keysResponse = restTemplate.getForObject(
+            AppleKeysResponse keysResponse = socialAuthRestTemplate.getForObject(
                     "https://appleid.apple.com/auth/keys", AppleKeysResponse.class);
 
             if (keysResponse == null || keysResponse.keys == null) {
