@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { isAndroid, platformColor, radius, shadowSubtle, spacing, typography } from '../../theme';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 import { AppText } from './AppText';
+import { normalizeAvatarUri } from '../../utils/avatarUrl';
 
 type SurfaceHeaderVariant = 'home' | 'page';
 
@@ -91,6 +92,7 @@ export function AppSurfaceHeader({
   const [leadingWidth, setLeadingWidth] = React.useState(0);
   const [rightActionsWidth, setRightActionsWidth] = React.useState(0);
   const [titleWidth, setTitleWidth] = React.useState(0);
+  const resolvedAvatarUri = normalizeAvatarUri(avatarUri);
   const textColor = tintColor ?? colors.text;
   const subtextColor = tintColor ? `${tintColor}B3` : colors.subtext;
   const headerGradient: readonly [string, string, ...string[]] = transparent
@@ -117,9 +119,9 @@ export function AppSurfaceHeader({
     && inlineTitleAvailableWidth > 0
     && shrinkThresholdWidth > inlineTitleAvailableWidth;
   const leadingNode = leftActions ? leftActions : variant === 'home' ? (
-    avatarUri ? (
+    resolvedAvatarUri ? (
       <Image
-        source={{ uri: avatarUri }}
+        source={{ uri: resolvedAvatarUri }}
         style={styles.avatar}
         accessibilityIgnoresInvertColors
       />

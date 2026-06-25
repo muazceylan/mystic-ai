@@ -338,7 +338,13 @@ export default function CompatibilityScreen() {
     useCallback(() => {
       focusCountRef.current += 1;
       monetization.trackEntry();
-    }, [monetization.trackEntry]),
+      // If we come back to this screen and there's no active synastry being tracked,
+      // ensure the local polling flag is cleared (guards against the race where
+      // clearSynastry() was called while pollSynastry was still running).
+      if (!currentSynastry) {
+        setIsPolling(false);
+      }
+    }, [monetization.trackEntry, currentSynastry]),
   );
 
   useEffect(() => {

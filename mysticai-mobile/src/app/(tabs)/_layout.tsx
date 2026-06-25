@@ -3,6 +3,8 @@ import { Tabs, usePathname, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../../lib/queryClient';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 import { COLORS } from '../../constants/colors';
 import { NAV_ICONS, type IoniconName } from '../../constants/icons';
@@ -538,6 +540,7 @@ export default function TabsLayout() {
   );
 
   return (
+    <QueryClientProvider client={queryClient}>
     <View style={layoutStyles.root}>
     {showWebSidebar ? (
       <WebSidebar
@@ -936,6 +939,7 @@ export default function TabsLayout() {
     </View>
     </View>
     </View>
+    </QueryClientProvider>
   );
 }
 

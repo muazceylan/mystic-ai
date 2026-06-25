@@ -12,6 +12,7 @@ import { radius, spacing as appSpacing } from '../../theme';
 import { MonetizationQuickBar } from '../../features/monetization';
 import { AppSurfaceHeader, SurfaceHeaderIconButton } from './AppSurfaceHeader';
 import { resolveSurfaceTitle } from './surfaceUtils';
+import { resolveAvatarUri } from '../../utils/avatarUrl';
 
 /* --- Standalone right-side icons --- */
 /**
@@ -104,7 +105,7 @@ export function TabHeader({
   const shouldShowBackButton = showBackButton ?? pathname !== '/(tabs)/home';
   const shouldShowThemeButton = pathname === '/(tabs)/profile';
 
-  const avatarUri = user?.avatarUri ?? user?.avatarUrl ?? null;
+  const avatarUri = resolveAvatarUri(user?.avatarUri, user?.avatarUrl);
   const avatarInitial = useMemo(() => {
     const source = user?.firstName?.trim() || user?.name?.trim() || user?.username?.trim();
     if (!source) return null;

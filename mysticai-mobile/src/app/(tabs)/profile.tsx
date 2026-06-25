@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   View,
   Text,
@@ -29,10 +30,10 @@ import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { trackEvent } from '../../services/analytics';
 import { navigateWithOrigin } from '../../navigation';
 import { deleteAccount, removeProfileAvatar, uploadProfileAvatar } from '../../services/auth';
-import { envConfig } from '../../config/env';
 import { dreamService } from '../../services/dream.service';
 import { fetchLuckyDatesByUser } from '../../services/lucky-dates.service';
 import { openSupportEmail } from '../../utils/supportEmail';
+import { normalizeAvatarUri, resolveAvatarUri } from '../../utils/avatarUrl';
 import {
   PROFILE_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
@@ -78,21 +79,6 @@ function StatSkeleton({ colors }: { colors: { surfaceAlt: string } }) {
   return <View style={{ width: 36, height: 24, borderRadius: 6, backgroundColor: colors.surfaceAlt, marginBottom: 4 }} />;
 }
 
-// Backend returns an absolute avatarUrl based on API_PUBLIC_URL (e.g. http://localhost:8080).
-// On physical devices/Android emulators, localhost refers to the device itself, not the dev
-// machine, so the Image component can't load it. Rewrite the origin to the configured API
-// base URL so the Image component uses the same host that the axios client uses.
-function rewriteAvatarUrl(avatarUrl: string | null | undefined): string | null {
-  if (!avatarUrl || !envConfig.apiBaseUrl) return avatarUrl ?? null;
-  try {
-    const parsed = new URL(avatarUrl);
-    const base = envConfig.apiBaseUrl.replace(/\/+$/, '');
-    return base + parsed.pathname + parsed.search;
-  } catch {
-    return avatarUrl;
-  }
-}
-
 function getZodiacFromBirthDate(birthDate?: string): string {
   if (!birthDate) return '';
   try {
@@ -109,6 +95,7 @@ export function ProfileScreenContent() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
   const { reopenTutorialById } = useTutorial();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -129,7 +116,7 @@ export function ProfileScreenContent() {
     : `${user?.firstName ? user.firstName[0] : '?'}${user?.lastName ? user.lastName[0] : ''}`.toUpperCase();
 
   const zodiac = user?.zodiacSign || getZodiacFromBirthDate(user?.birthDate);
-  const avatarUri = rewriteAvatarUrl(user?.avatarUri || user?.avatarUrl || null);
+  const avatarUri = resolveAvatarUri(user?.avatarUri, user?.avatarUrl);
 
   const fetchStats = useCallback(async (isRefresh = false) => {
     if (!user?.id) { setLoadingStats(false); return; }
@@ -277,16 +264,22 @@ export function ProfileScreenContent() {
     router.replace('/(auth)/welcome');
   };
 
-  const applyUserFromServer = useCallback((incomingUser: Record<string, any>) => {
-    const rawAvatar = incomingUser?.avatarUrl ?? incomingUser?.avatarUri ?? null;
-    const resolvedAvatar = rewriteAvatarUrl(rawAvatar);
+  const refreshAvatarConsumers = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['oracle'] });
+  }, [queryClient]);
+
+  const applyUserFromServer = useCallback((incomingUser: Record<string, any>, fallbackAvatarUri?: string | null) => {
+    const rawAvatar = incomingUser?.avatarUrl ?? incomingUser?.avatarUri ?? fallbackAvatarUri ?? null;
+    const resolvedAvatar = normalizeAvatarUri(rawAvatar);
+    const currentUser = useAuthStore.getState().user;
     setUser({
-      ...(user ?? {}),
+      ...(currentUser ?? user ?? {}),
       ...incomingUser,
       avatarUrl: resolvedAvatar,
       avatarUri: resolvedAvatar,
     });
-  }, [setUser, user]);
+    refreshAvatarConsumers();
+  }, [refreshAvatarConsumers, setUser, user]);
 
   const handlePickAvatar = async () => {
     if (!user) return;
@@ -309,14 +302,32 @@ export function ProfileScreenContent() {
       const selected = result.assets[0];
       if (!selected?.uri) return;
 
+      const previousUser = useAuthStore.getState().user ?? user;
+      const localAvatarUri = normalizeAvatarUri(selected.uri);
+      if (previousUser && localAvatarUri) {
+        setUser({
+          ...previousUser,
+          avatarUrl: localAvatarUri,
+          avatarUri: localAvatarUri,
+        });
+      }
+
       const response = await uploadProfileAvatar(
         selected.uri,
         selected.fileName ?? 'avatar.jpg',
         selected.mimeType ?? null
       );
-      applyUserFromServer(response.data as any);
+      applyUserFromServer(response.data as any, localAvatarUri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        setUser({
+          ...currentUser,
+          avatarUrl: user?.avatarUrl ?? null,
+          avatarUri: user?.avatarUri ?? null,
+        });
+      }
       Alert.alert(t('common.error'), t('profile.avatar.uploadError'));
     } finally {
       setSelectingAvatar(false);

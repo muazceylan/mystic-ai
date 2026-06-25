@@ -60,6 +60,7 @@ function getEnvRevenueCatConfig(): RevenueCatSdkConfig {
   return {
     iosApiKey: envConfig.revenueCat.iosApiKey || null,
     androidApiKey: envConfig.revenueCat.androidApiKey || null,
+    testApiKey: envConfig.revenueCat.testApiKey || null,
     environment: envConfig.revenueCat.env,
   };
 }
@@ -74,6 +75,7 @@ export function getRevenueCatSdkConfigFromMonetizationConfig(
   return {
     iosApiKey: normalizeOptionalValue(config.revenueCatIosApiKey),
     androidApiKey: normalizeOptionalValue(config.revenueCatAndroidApiKey),
+    testApiKey: envConfig.revenueCat.testApiKey || null,
     environment: normalizeOptionalValue(config.revenueCatEnvironment),
   };
 }
@@ -134,10 +136,16 @@ function getRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): {
   }
 
   const envApiKey = getEnvRevenueCatConfig();
+  const testKey = normalizeOptionalValue(runtimeConfig?.testApiKey)
+    ?? normalizeOptionalValue(envApiKey.testApiKey);
   const androidKey = normalizeOptionalValue(runtimeConfig?.androidApiKey)
     ?? normalizeOptionalValue(envApiKey.androidApiKey);
   const iosKey = normalizeOptionalValue(runtimeConfig?.iosApiKey)
     ?? normalizeOptionalValue(envApiKey.iosApiKey);
+
+  if (!envConfig.isProduction && testKey) {
+    return { key: testKey, source: 'test' };
+  }
 
   if (Platform.OS === 'ios') {
     return { key: iosKey, source: iosKey ? 'ios' : 'missing' };
@@ -145,6 +153,10 @@ function getRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): {
 
   if (Platform.OS === 'android') {
     return { key: androidKey, source: androidKey ? 'android' : 'missing' };
+  }
+
+  if (testKey) {
+    return { key: testKey, source: 'test-fallback' };
   }
 
   return { key: null, source: 'missing' };
@@ -155,6 +167,8 @@ export function getRevenueCatDiagnostics(
 ): RevenueCatRuntimeState['diagnostics'] {
   const envApiKey = getEnvRevenueCatConfig();
   const selected = getRevenueCatApiKey(runtimeConfig);
+  const testKey = normalizeOptionalValue(runtimeConfig?.testApiKey)
+    ?? normalizeOptionalValue(envApiKey.testApiKey);
   const androidKey = normalizeOptionalValue(runtimeConfig?.androidApiKey)
     ?? normalizeOptionalValue(envApiKey.androidApiKey);
   const iosKey = normalizeOptionalValue(runtimeConfig?.iosApiKey)
@@ -166,6 +180,7 @@ export function getRevenueCatDiagnostics(
     nativeModuleAvailable: isRevenueCatNativeModuleAvailable(),
     hasAndroidKey: Boolean(androidKey),
     hasIosKey: Boolean(iosKey),
+    hasTestKey: Boolean(testKey),
     selectedKeySource: selected.source,
     entitlementId: REVENUECAT_PREMIUM_ENTITLEMENT_ID,
     offeringId: REVENUECAT_DEFAULT_OFFERING_ID,

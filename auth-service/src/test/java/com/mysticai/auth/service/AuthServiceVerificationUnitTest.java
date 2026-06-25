@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -333,6 +334,37 @@ class AuthServiceVerificationUnitTest {
     }
 
     @Test
+    void socialLogin_existingApplePrivateRelayAccountWithoutLocalCredentials_requiresLinkInsteadOfLogin() {
+        User relayUser = User.builder()
+                .id(501L)
+                .email("relay-user@privaterelay.appleid.com")
+                .username("relay-user@privaterelay.appleid.com")
+                .provider("apple")
+                .socialId("apple-social-123")
+                .accountStatus(AccountStatus.ACTIVE)
+                .enabled(true)
+                .hasLocalPassword(false)
+                .build();
+        SocialLoginRequest request = new SocialLoginRequest("apple", "apple-id-token");
+        SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
+                "apple-social-123",
+                "relay-user@privaterelay.appleid.com",
+                null,
+                null
+        );
+
+        when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
+        when(userRepository.findByProviderAndSocialId("apple", "apple-social-123")).thenReturn(Optional.of(relayUser));
+
+        assertThatThrownBy(() -> authService.socialLogin(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("APPLE_ACCOUNT_NOT_LINKED");
+
+        verify(userRepository, never()).save(any(User.class));
+        verify(signupBonusSyncService, never()).scheduleSignupBonus(any(User.class), any(String.class));
+    }
+
+    @Test
     void socialLogin_applePrivateRelayWithVerifiedLocalCredentials_linksExistingUser() {
         User localUser = User.builder()
                 .id(88L)
@@ -455,6 +487,46 @@ class AuthServiceVerificationUnitTest {
         assertThat(user.getSocialId()).isNull();
         assertThat(user.getAvatarPath()).isNull();
         verify(linkAccountOtpRepository).deleteAllByUserId(44L);
+    }
+
+    @Test
+    void uploadAvatar_returnsCacheBustedUrlForStoredPath() {
+        User user = User.builder()
+                .id(44L)
+                .email("avatar@example.com")
+                .username("avatar@example.com")
+                .avatarPath("avatars/44/old.png")
+                .updatedAt(LocalDateTime.of(2026, 3, 5, 10, 15, 30))
+                .build();
+        AvatarStorageService.StoredAvatar storedAvatar = new AvatarStorageService.StoredAvatar(
+                "avatars/44/2026-03-05/new-avatar.png",
+                "image/png"
+        );
+        MockMultipartFile avatar = new MockMultipartFile(
+                "avatar",
+                "avatar.png",
+                "image/png",
+                new byte[] { 1, 2, 3 }
+        );
+
+        when(userRepository.findById(44L)).thenReturn(Optional.of(user));
+        when(avatarStorageService.store(eq(44L), any())).thenReturn(storedAvatar);
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            saved.setUpdatedAt(LocalDateTime.of(2026, 3, 5, 10, 15, 31, 123_000_000));
+            return saved;
+        });
+        when(publicUrlProperties.apiPublicUrl()).thenReturn("http://localhost:8080");
+
+        var updated = authService.uploadAvatar(44L, avatar);
+
+        String pathVersion = Integer.toUnsignedString(storedAvatar.relativePath().hashCode(), 36);
+        assertThat(updated.avatarUrl())
+                .isEqualTo("http://localhost:8080/api/v1/auth/profile/avatar/44?v=1772705731123-" + pathVersion);
+        assertThat(updated.avatarUri()).isEqualTo(updated.avatarUrl());
+        assertThat(user.getAvatarPath()).isEqualTo(storedAvatar.relativePath());
+        verify(userRepository).saveAndFlush(user);
+        verify(avatarStorageService).delete("avatars/44/old.png");
     }
 
     @Test

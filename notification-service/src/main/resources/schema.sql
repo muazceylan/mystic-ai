@@ -270,3 +270,44 @@ CREATE INDEX IF NOT EXISTS idx_pe_processed ON purchase_event (processed_status)
 CREATE INDEX IF NOT EXISTS idx_pe_product ON purchase_event (product_id);
 CREATE INDEX IF NOT EXISTS idx_pe_original_tx ON purchase_event (original_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_pe_user_created ON purchase_event (user_id, created_at DESC);
+
+-- App version config: stores min supported version and store URLs per platform.
+CREATE TABLE IF NOT EXISTS app_version_config (
+    id BIGSERIAL PRIMARY KEY,
+    platform VARCHAR(20) NOT NULL,
+    min_supported_version VARCHAR(20) NOT NULL DEFAULT '0.0.0',
+    latest_version VARCHAR(20) NOT NULL DEFAULT '0.0.0',
+    force_update BOOLEAN NOT NULL DEFAULT FALSE,
+    ios_store_url TEXT,
+    android_store_url TEXT,
+    android_web_store_url TEXT,
+    message TEXT,
+    updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_app_version_platform UNIQUE (platform)
+);
+
+INSERT INTO app_version_config
+    (platform, min_supported_version, latest_version, force_update, ios_store_url, android_store_url, android_web_store_url, message)
+VALUES
+    (
+        'ios',
+        '1.0.0',
+        '1.0.0',
+        false,
+        'itms-apps://apps.apple.com/app/idAPP_STORE_ID',
+        null,
+        null,
+        'Yeni bir sürüm mevcut. Lütfen uygulamayı güncelleyiniz.'
+    ),
+    (
+        'android',
+        '1.0.0',
+        '1.0.0',
+        false,
+        null,
+        'market://details?id=com.astroguru.mmc',
+        'https://play.google.com/store/apps/details?id=com.astroguru.mmc',
+        'Yeni bir sürüm mevcut. Lütfen uygulamayı güncelleyiniz.'
+    )
+ON CONFLICT (platform) DO NOTHING;
+-- TODO: Replace APP_STORE_ID with actual App Store numeric ID after App Store listing is available.

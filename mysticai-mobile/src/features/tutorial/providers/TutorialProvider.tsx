@@ -64,6 +64,27 @@ interface TutorialContextValue {
 const TutorialContext = createContext<TutorialContextValue | null>(null);
 const tutorialConfigService = createTutorialConfigService();
 
+// Returned when useTutorialContext is called outside TutorialProvider (e.g. during
+// web initial render before the root layout mounts the provider). All operations
+// are no-ops so the app keeps running; tutorials are silently inactive.
+const NOOP_TUTORIAL_CONTEXT: TutorialContextValue = {
+  activeSession: null,
+  isVisible: false,
+  registerTargetLayout: () => {},
+  unregisterTarget: () => {},
+  requestTutorialForScreen: async () => false,
+  openTutorialById: async () => false,
+  reopenTutorialById: async () => false,
+  getTutorialCatalog: async () => [],
+  getTutorialProgress: () => null,
+  resetTutorialById: async () => {},
+  resetAllTutorials: () => {},
+  nextStep: () => {},
+  skipTutorial: () => {},
+  replayTutorial: () => {},
+  setDontShowAgain: () => {},
+};
+
 function normalizeDefinition(definition: TutorialDefinition): TutorialDefinition {
   const targetSet = new Set(definition.targets.map((target) => target.targetKey));
 
@@ -712,7 +733,10 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
 export function useTutorialContext(): TutorialContextValue {
   const context = useContext(TutorialContext);
   if (!context) {
-    throw new Error('useTutorialContext must be used within TutorialProvider');
+    if (__DEV__) {
+      console.warn('[Tutorial] useTutorialContext called outside TutorialProvider — returning no-op context. Ensure TutorialProvider wraps the component tree.');
+    }
+    return NOOP_TUTORIAL_CONTEXT;
   }
   return context;
 }

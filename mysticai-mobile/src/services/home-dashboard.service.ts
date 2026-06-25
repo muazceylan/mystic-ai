@@ -866,40 +866,32 @@ function buildFallbackInsight(moonSign: string, moonPhase: string, retroCount: n
 }
 
 function slugify(value: string | undefined): string {
+  // Turkish char map applied BEFORE toLowerCase so that uppercase Turkish letters
+  // (especially İ → i) are handled correctly. 'İ'.toLowerCase() in JS produces
+  // 'i' + combining-dot-above (U+0307), which would then be replaced with '-'
+  // by the non-alphanum regex and break sign-name lookups like "♊ İkizler".
   const map: Record<string, string> = {
-    ç: 'c',
-    ğ: 'g',
-    ı: 'i',
-    ö: 'o',
-    ş: 's',
-    ü: 'u',
+    ç: 'c', Ç: 'c',
+    ğ: 'g', Ğ: 'g',
+    ı: 'i', İ: 'i',
+    ö: 'o', Ö: 'o',
+    ş: 's', Ş: 's',
+    ü: 'u', Ü: 'u',
   };
 
   return (value ?? '')
-    .toLowerCase()
     .split('')
     .map((char) => map[char] ?? char)
     .join('')
+    .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
 
 function signSlug(signName: string | undefined): string {
-  const map: Record<string, string> = {
-    koc: 'aries',
-    boga: 'taurus',
-    ikizler: 'gemini',
-    yengec: 'cancer',
-    aslan: 'leo',
-    basak: 'virgo',
-    terazi: 'libra',
-    akrep: 'scorpio',
-    yay: 'sagittarius',
-    oglak: 'capricorn',
-    kova: 'aquarius',
-    balik: 'pisces',
-  };
-  return map[slugify(signName)] ?? 'pisces';
+  // strictSignSlug handles both Turkish and English sign names; fall back to 'pisces'
+  // only when the sign is genuinely unknown (e.g. user has not completed onboarding).
+  return strictSignSlug(signName) ?? 'pisces';
 }
 
 function parseDate(input?: string | null): Date | null {

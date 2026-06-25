@@ -83,12 +83,18 @@ export const useSynastryStore = create<SynastryState>()((set, get) => ({
     const maxAttempts = 20;
     const delayMs = 3000;
 
+    const isStillActive = () => {
+      const cur = get().currentSynastry;
+      // If clearSynastry() was called while we were polling, cur is null — stop updating.
+      return cur !== null && cur.id === synastryId;
+    };
+
     for (let i = 0; i < maxAttempts; i++) {
       const res = await getSynastry(synastryId);
       const data = res.data;
 
       if (data.status === 'COMPLETED' || data.status === 'FAILED') {
-        set({ currentSynastry: data });
+        if (isStillActive()) set({ currentSynastry: data });
         return data;
       }
 
@@ -97,7 +103,7 @@ export const useSynastryStore = create<SynastryState>()((set, get) => ({
 
     // Return whatever we have after timeout
     const final = (await getSynastry(synastryId)).data;
-    set({ currentSynastry: final });
+    if (isStillActive()) set({ currentSynastry: final });
     return final;
   },
 

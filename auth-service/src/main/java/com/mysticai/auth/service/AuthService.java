@@ -420,6 +420,10 @@ public class AuthService {
                 }
                 return buildSocialLoginResponse(linkedUser, false);
             }
+            if (shouldRequireAppleRelayLink(provider, user, verifiedLinkTarget)) {
+                log.warn("Apple social login rejected because existing private relay identity is not linked to a verified local account");
+                throw new IllegalArgumentException(APPLE_ACCOUNT_NOT_LINKED_CODE);
+            }
             ensureSocialUserHasPassword(user, provider, userInfo.socialId());
             ensureSocialUserIsActive(user, now);
             userRepository.save(user);
@@ -540,7 +544,7 @@ public class AuthService {
 
         User saved;
         try {
-            saved = userRepository.save(user);
+            saved = userRepository.saveAndFlush(user);
         } catch (RuntimeException ex) {
             avatarStorageService.delete(storedAvatar.relativePath());
             throw ex;
@@ -564,7 +568,7 @@ public class AuthService {
         }
 
         user.setAvatarPath(null);
-        User saved = userRepository.save(user);
+        User saved = userRepository.saveAndFlush(user);
         avatarStorageService.delete(previousAvatarPath);
         return toUserDTO(saved);
     }
@@ -1029,6 +1033,13 @@ public class AuthService {
                 && !Boolean.TRUE.equals(existingUser.getHasLocalPassword());
     }
 
+    private boolean shouldRequireAppleRelayLink(String provider, User existingUser, Optional<User> verifiedLinkTarget) {
+        return APPLE_PROVIDER.equals(provider)
+                && verifiedLinkTarget.isEmpty()
+                && isApplePrivateRelayEmail(existingUser.getEmail())
+                && !Boolean.TRUE.equals(existingUser.getHasLocalPassword());
+    }
+
     private void issueVerificationToken(User user) {
         LocalDateTime now = LocalDateTime.now(clock);
 
@@ -1189,15 +1200,18 @@ public class AuthService {
             return null;
         }
 
-        long version = user.getUpdatedAt() != null
-                ? user.getUpdatedAt().atOffset(ZoneOffset.UTC).toEpochSecond()
+        long updatedMillis = user.getUpdatedAt() != null
+                ? user.getUpdatedAt().atOffset(ZoneOffset.UTC).toInstant().toEpochMilli()
                 : 0L;
+        String pathVersion = Integer.toUnsignedString(avatarPath.hashCode(), 36);
 
         return publicUrlProperties.apiPublicUrl()
                 + "/api/v1/auth/profile/avatar/"
                 + user.getId()
                 + "?v="
-                + version;
+                + updatedMillis
+                + "-"
+                + pathVersion;
     }
 
     @Transactional

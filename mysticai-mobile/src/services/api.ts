@@ -1,7 +1,7 @@
 import axios from 'axios/dist/browser/axios.cjs';
 import type { AxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
-import { getToken, setToken, setRefreshToken } from '../utils/storage';
+import { getToken, setToken, setRefreshToken, getRefreshToken } from '../utils/storage';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigationHistoryStore } from '../store/useNavigationHistoryStore';
 import { envConfig } from '../config/env';
@@ -167,7 +167,9 @@ api.interceptors.response.use(
         originalRequest._retry = true;
         isRefreshing = true;
 
-        const { refreshToken: storedRefreshToken, isAuthenticated, logout } = useAuthStore.getState();
+        const { refreshToken: storeRefreshToken, isAuthenticated, logout } = useAuthStore.getState();
+        // Fallback to storage in case the persist middleware hasn't rehydrated the store yet
+        const storedRefreshToken = storeRefreshToken ?? await getRefreshToken();
 
         if (!storedRefreshToken || !isAuthenticated) {
           if (isAuthenticated) logout();

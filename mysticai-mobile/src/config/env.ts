@@ -239,7 +239,11 @@ function firstNonEmptyEnv(...values: EnvSource[]): string {
 }
 
 const revenueCatIosApiKey = firstNonEmptyEnv(process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY);
-const revenueCatAndroidApiKey = firstNonEmptyEnv(process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY);
+const revenueCatAndroidApiKey = firstNonEmptyEnv(
+  process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+  process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY,
+);
+const revenueCatTestApiKey = firstNonEmptyEnv(process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY);
 const revenueCatPremiumEntitlementId = firstNonEmptyEnv(
   process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID,
   process.env.EXPO_PUBLIC_REVENUECAT_PREMIUM_ENTITLEMENT_ID,
@@ -283,6 +287,7 @@ export const envConfig = {
   revenueCat: {
     iosApiKey: revenueCatIosApiKey,
     androidApiKey: revenueCatAndroidApiKey,
+    testApiKey: revenueCatTestApiKey,
     premiumEntitlementId: revenueCatPremiumEntitlementId,
     env: revenueCatEnv,
   },

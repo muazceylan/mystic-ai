@@ -74,8 +74,8 @@ eureka:
 
 jwt:
   secret: ${JWT_SECRET:bXlzdGljLWFpLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=}
-  expiration: 3600000
-  refresh-expiration: 2592000000
+  expiration: 2592000000
+  refresh-expiration: 31536000000
 
 auth:
   google:

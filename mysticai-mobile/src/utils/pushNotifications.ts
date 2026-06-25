@@ -15,6 +15,8 @@ import {
 
 let notificationHandlerInstalled = false;
 
+const COLD_START_NOTIF_KEY = 'mysticai_cold_start_notif_id';
+
 export const DEFAULT_NOTIFICATION_CHANNEL_ID = 'mysticai-notifications';
 export const LEGACY_DREAM_NOTIFICATION_CHANNEL_ID = 'dream-notifications';
 export const EXPO_PUSH_PROJECT_ID = 'ae6fd7e4-2d11-45f8-828c-d916782b852f';
@@ -334,9 +336,14 @@ export async function setupNotificationResponseHandler(
 
     const lastResponse = await Notifications.getLastNotificationResponseAsync();
     if (lastResponse) {
-      setTimeout(() => {
-        handlePushNotificationOpen(lastResponse, isAuthenticated).catch(() => {});
-      }, 600);
+      const identifier = lastResponse.notification.request.identifier;
+      const alreadyProcessed = await appStorage.getItem(COLD_START_NOTIF_KEY);
+      if (alreadyProcessed !== identifier) {
+        await appStorage.setItem(COLD_START_NOTIF_KEY, identifier);
+        setTimeout(() => {
+          handlePushNotificationOpen(lastResponse, isAuthenticated).catch(() => {});
+        }, 600);
+      }
     }
 
     return () => {

@@ -77,6 +77,10 @@ public class GatewayConfig {
                 .route("notification-service", r -> r
                         .path("/api/v1/notifications/**")
                         .uri("lb://notification-service"))
+                // App version check — public, called at startup before login (notification-service)
+                .route("app-version-check", r -> r
+                        .path("/api/v1/app-version")
+                        .uri("lb://notification-service"))
                 // Tutorial Config - public endpoint (notification-service)
                 .route("notification-tutorial-config", r -> r
                         .path("/api/v1/tutorial-configs", "/api/v1/tutorial-configs/**")

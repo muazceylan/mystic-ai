@@ -594,12 +594,41 @@ export default function DreamsScreen() {
     if (userId) { fetchDreams(userId); fetchSymbols(userId); }
   }, [userId]);
 
+  // Stops and unloads any in-progress recording, resetting state cleanly.
+  // Called on unmount and on screen blur so _recorderExists is cleared before next startRec.
+  const cleanupRecording = useCallback(async () => {
+    const active = recordingRef.current;
+    if (!active) return;
+    recordingRef.current = null;
+    try {
+      active.setOnRecordingStatusUpdate(null);
+      await active.stopAndUnloadAsync();
+    } catch {
+      // Ignore — native recorder may already be unloaded.
+    }
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+    } catch {
+      // Ignore audio mode reset errors.
+    }
+  }, []);
+
+  // Cleanup recording on unmount
+  useEffect(() => () => { void cleanupRecording(); }, [cleanupRecording]);
+
   // Track monetization module entry on each focus (tab re-visits)
+  // and stop any leaked recording when navigating away
   useFocusEffect(
     useCallback(() => {
       focusCountRef.current += 1;
       monetization.trackEntry();
-    }, [monetization.trackEntry]),
+      return () => {
+        if (recordingRef.current) {
+          void cleanupRecording();
+          setRecState('idle');
+        }
+      };
+    }, [monetization.trackEntry, cleanupRecording]),
   );
 
   useEffect(() => {
@@ -681,6 +710,8 @@ export default function DreamsScreen() {
   // ─── Recording controls ──────────────────────────────────────────
   const startRec = async () => {
     try {
+      // Stop any previously leaked recording so _recorderExists is cleared.
+      await cleanupRecording();
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) { Alert.alert(t('dreams.micPermissionTitle'), t('dreams.micPermissionRequired')); return; }
       peakMeteringRef.current = -160;

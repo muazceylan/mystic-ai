@@ -2334,6 +2334,8 @@
       "recommended": "Önerilen",
       "loading": "Üyelik seçenekleri yükleniyor...",
       "packageError": "Üyelik seçenekleri şu anda yüklenemedi. Lütfen tekrar deneyin.",
+      "offeringMissing": "RevenueCat default offering altında üyelik paketleri bulunamadı.",
+      "packageMappingError": "RevenueCat paketleri aylık/yıllık Premium planlarla eşleşmedi.",
       "benefitAdFree": "Reklamsız kullanım",
       "benefitAnalyses": "Tüm premium analizlere erişim",
       "benefitContent": "Özel içerikler ve ayrıcalıklar",

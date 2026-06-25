@@ -28,6 +28,7 @@ export interface RevenueCatRuntimeState {
 export interface RevenueCatSdkConfig {
   iosApiKey?: string | null;
   androidApiKey?: string | null;
+  testApiKey?: string | null;
   environment?: string | null;
 }
 
@@ -38,7 +39,8 @@ export interface RevenueCatDiagnostics {
   nativeModuleAvailable: boolean;
   hasAndroidKey: boolean;
   hasIosKey: boolean;
-  selectedKeySource: 'android' | 'ios' | 'missing' | 'unsupported' | 'expo_go';
+  hasTestKey: boolean;
+  selectedKeySource: 'android' | 'ios' | 'test' | 'test-fallback' | 'missing' | 'unsupported' | 'expo_go';
   entitlementId: string;
   offeringId: 'default';
   tokenOfferingId: 'guru_tokens';

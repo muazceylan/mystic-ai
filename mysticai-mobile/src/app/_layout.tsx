@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import '../polyfills/textEncoding';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import {
   AppState,
   AppStateStatus,
@@ -72,9 +72,13 @@ import {
   setupNotificationChannel,
 } from '../utils/pushNotifications';
 import { RevenueCatProvider, useMonetizationStore, useGuruWalletStore } from '../features/monetization';
+import ScreenCaptureGuard from '../components/security/ScreenCaptureGuard';
 import { initializeAdProvider } from '../features/monetization/providers/initProvider';
 import { warmNativeGoogleSigninConfig } from '../services/googleSignIn';
 import { getBuildInfo } from '../services/buildInfo';
+import { checkAppVersion } from '../services/appVersionCheck';
+import type { AppVersionResponse } from '../services/appVersionCheck';
+import { ForcedUpdateModal } from '../components/ui/ForcedUpdateModal';
 
 const ADSENSE_CLIENT = 'ca-pub-2868466577339325';
 const ADSENSE_SCRIPT_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
@@ -260,6 +264,7 @@ function useProtectedRoute(i18nReady: boolean) {
 function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
   const { colors, activeTheme } = useTheme();
   const pathname = usePathname();
+  const [forcedUpdateInfo, setForcedUpdateInfo] = useState<AppVersionResponse | null>(null);
 
   // Run the route guard inside AppNavigator so the Stack is already mounted
   useProtectedRoute(i18nReady);
@@ -287,6 +292,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
         <BuildInfoBootstrap />
         <TutorialBootstrap />
         <GuestSessionBootstrap />
+        <AppVersionBootstrap onUpdateRequired={setForcedUpdateInfo} />
         <ScreenTracker />
         <AnalyticsDebugBootstrap />
         <AnalyticsIdentityBootstrap />
@@ -298,6 +304,9 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
           })}
         />
       </RevenueCatProvider>
+      {forcedUpdateInfo && Platform.OS !== 'web' && (
+        <ForcedUpdateModal visible={true} versionInfo={forcedUpdateInfo} />
+      )}
     </>
   );
 }
@@ -323,6 +332,60 @@ function BuildInfoBootstrap() {
       runtimeVersion: info.runtimeVersion,
     });
   }, []);
+
+  return null;
+}
+
+/**
+ * Checks the backend for the minimum supported app version on startup and when
+ * the app returns to the foreground. If the installed version is below the minimum
+ * and forceUpdate is enabled, notifies the parent via onUpdateRequired so the
+ * blocking update modal is shown.
+ *
+ * Multiple concurrent checks are prevented via the isCheckingRef guard.
+ * The modal stays visible across foreground returns until the user updates.
+ */
+function AppVersionBootstrap({
+  onUpdateRequired,
+}: {
+  onUpdateRequired: (info: AppVersionResponse) => void;
+}) {
+  const isCheckingRef = useRef(false);
+  const updateRequiredRef = useRef(false);
+
+  const runCheck = useCallback(async () => {
+    if (isCheckingRef.current) return;
+    isCheckingRef.current = true;
+    try {
+      const { updateRequired, versionInfo } = await checkAppVersion();
+      if (updateRequired && versionInfo) {
+        updateRequiredRef.current = true;
+        onUpdateRequired(versionInfo);
+      }
+    } finally {
+      isCheckingRef.current = false;
+    }
+  }, [onUpdateRequired]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      void runCheck();
+    });
+    return () => task.cancel();
+  }, [runCheck]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const appState = { current: AppState.currentState };
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (appState.current === 'background' && next === 'active') {
+        void runCheck();
+      }
+      appState.current = next;
+    });
+    return () => sub.remove();
+  }, [runCheck]);
 
   return null;
 }
@@ -765,14 +828,15 @@ export default function Layout() {
   // Block rendering navigator until i18n is ready — prevents "NO_I18NEXT_INSTANCE" when
   // useTranslation runs in TabsLayout/other screens before init completes.
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider initialMetrics={SAFE_AREA_INITIAL_METRICS}>
-        <SafeAreaBootstrapGate
-          backgroundColor={startupColors.background}
-          spinnerColor={startupColors.primary}
-          statusBarStyle={startupStatusBarStyle}
-        >
-          <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ScreenCaptureGuard />
+        <SafeAreaProvider initialMetrics={SAFE_AREA_INITIAL_METRICS}>
+          <SafeAreaBootstrapGate
+            backgroundColor={startupColors.background}
+            spinnerColor={startupColors.primary}
+            statusBarStyle={startupStatusBarStyle}
+          >
             <ThemeProvider>
               <TutorialProvider>
                 {startupReady ? (
@@ -787,9 +851,9 @@ export default function Layout() {
                 )}
               </TutorialProvider>
             </ThemeProvider>
-          </QueryClientProvider>
-        </SafeAreaBootstrapGate>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+          </SafeAreaBootstrapGate>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </QueryClientProvider>
   );
 }

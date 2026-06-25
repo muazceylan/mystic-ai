@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Defs, Line, Path, RadialGradient, Stop } from 'react-native-svg';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles, UserRound } from 'lucide-react-native';
 import { AuthLegalNotice } from '../../components/auth';
+import BuildInfoText from '../../components/BuildInfoText';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { usePendingGuestStore } from '../../store/usePendingGuestStore';
@@ -47,7 +48,6 @@ import * as Crypto from 'expo-crypto';
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
-const CONCEPT_VERSION_LABEL = 'v54.0.8 (416) · dev';
 const HERO_PREMIUM_ICON = require('../../../assets/brand/logo/astro-guru-logo-small-optimized.png');
 const HERO_DISPLAY_FONT = Platform.select({
   ios: 'Georgia',
@@ -1332,7 +1332,7 @@ export default function WelcomeScreen() {
               </View>
 
               <AuthLegalNotice variant="inline" style={styles.legalNotice} />
-              <Text style={styles.versionText}>{CONCEPT_VERSION_LABEL}</Text>
+              <BuildInfoText style={styles.versionText} />
             </View>
           </View>
         </ScrollView>

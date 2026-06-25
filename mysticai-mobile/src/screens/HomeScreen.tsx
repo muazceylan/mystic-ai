@@ -14,7 +14,6 @@ import type { IconName, QuickAction, WeeklyItem } from '../components/Home/types
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { trackEvent } from '../services/analytics';
 import { fetchHomeContentBundle, type HomeSection, type CmsBanner } from '../services/homeContent.service';
-import { envConfig } from '../config/env';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import {
@@ -35,6 +34,7 @@ import { radius, shadowSubtle, spacing, typography } from '../theme';
 import { useTheme, type ThemeColors } from '../context/ThemeContext';
 import { MODULE_ICONS, ACTION_ICONS } from '../constants/icons';
 import { navigateWithOrigin } from '../navigation';
+import { normalizeAvatarUri, resolveAvatarUri } from '../utils/avatarUrl';
 
 const HOME_VARIANT = 'premium_v3';
 const NIGHT_SKY_ROUTE = '/night-sky';
@@ -367,7 +367,9 @@ export default function HomeScreen() {
     [currentHour, displayName, resolvedLocale, t],
   );
 
-  const avatarUrl = dashboard?.user?.avatarUrl ?? user?.avatarUrl ?? user?.avatarUri ?? null;
+  const authAvatarUrl = resolveAvatarUri(user?.avatarUri, user?.avatarUrl);
+  const dashboardAvatarUrl = normalizeAvatarUri(dashboard?.user?.avatarUrl);
+  const avatarUrl = authAvatarUrl ?? (!user ? dashboardAvatarUrl : null);
   const notificationCount = useNotificationStore((state) => state.unreadCount);
 
   const signName = useMemo(() => {
@@ -958,7 +960,7 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     },
     avatarBtn: {
       width: 80,
-      height: 0,
+      height: 80,
       borderRadius: radius.pill,
       overflow: 'hidden',
       borderWidth: 1,

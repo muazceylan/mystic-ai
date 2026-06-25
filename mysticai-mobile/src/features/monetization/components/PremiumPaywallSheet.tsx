@@ -345,6 +345,28 @@ export function PremiumPaywallSheet({
     || !paywallQuery.revenueCatState.ready
   );
   const showPackageError = Boolean(!isInitialLoading && (packagesMissing || storeDisabled));
+  const packageErrorMessage = useMemo(() => {
+    const reason = paywallQuery.revenueCatDisabledReason;
+    if (reason === 'backend_disabled') {
+      return t('premium.backendDisabledMessage');
+    }
+    if (reason === 'missing_api_key') {
+      return t('premium.apiKeyMissingMessage');
+    }
+    if (reason === 'expo_go' || reason === 'unsupported_platform') {
+      return t('premium.buildRequiredMessage');
+    }
+    if (reason === 'native_module_unavailable') {
+      return t('premium.nativeModuleUnavailableMessage');
+    }
+    if (reason === 'offerings_unavailable') {
+      return t('premium.paywall.offeringMissing');
+    }
+    if (packagesMissing) {
+      return t('premium.paywall.packageMappingError');
+    }
+    return t('premium.paywall.packageError');
+  }, [packagesMissing, paywallQuery.revenueCatDisabledReason, t]);
   const purchaseDisabled = Boolean(
     !selectedPlan
     || !selectedPlan.product.availableForPurchase
@@ -410,12 +432,14 @@ export function PremiumPaywallSheet({
       offeringId,
       availablePackages,
       disabledReason: paywallQuery.revenueCatDisabledReason ?? null,
+      diagnostics: paywallQuery.revenueCatState.diagnostics ?? null,
     });
   }, [
     isInitialLoading,
     paywallQuery.currentOffering?.identifier,
     paywallQuery.defaultOffering,
     paywallQuery.revenueCatDisabledReason,
+    paywallQuery.revenueCatState.diagnostics,
     showPackageError,
     visible,
   ]);
@@ -689,7 +713,7 @@ export function PremiumPaywallSheet({
           <View style={styles.errorCard}>
             <Ionicons name="cloud-offline-outline" size={24} color={COLORS.gold} />
             <Text style={styles.errorText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              {t('premium.paywall.packageError')}
+              {packageErrorMessage}
             </Text>
             <TouchableOpacity
               style={styles.retryButton}

@@ -2335,6 +2335,8 @@
       "recommended": "Recommended",
       "loading": "Loading membership options...",
       "packageError": "Membership options could not be loaded right now. Please try again.",
+      "offeringMissing": "No membership packages were found under the RevenueCat default offering.",
+      "packageMappingError": "RevenueCat packages did not match the monthly/yearly Premium plans.",
       "benefitAdFree": "Ad-free usage",
       "benefitAnalyses": "Access to all premium analyses",
       "benefitContent": "Special content and perks",

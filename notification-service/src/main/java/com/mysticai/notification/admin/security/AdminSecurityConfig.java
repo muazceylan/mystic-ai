@@ -107,6 +107,8 @@ public class AdminSecurityConfig {
                         .requestMatchers("/api/v1/monetization/rewarded-ads/**").permitAll()
                         // Public app config — no auth required
                         .requestMatchers("/api/v1/app-config").permitAll()
+                        // Public app version check — called at startup before login
+                        .requestMatchers("/api/v1/app-version").permitAll()
                         // Public tutorial config endpoint — no auth required
                         .requestMatchers("/api/v1/tutorial-configs", "/api/v1/tutorial-configs/**").permitAll()
                         // Public lightweight analytics ingestion for screen tracking

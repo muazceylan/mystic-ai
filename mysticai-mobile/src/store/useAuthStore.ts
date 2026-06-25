@@ -7,6 +7,7 @@ import {
   setRefreshToken,
   removeRefreshToken,
   getToken,
+  getRefreshToken,
 } from '../utils/storage';
 import { clearHoroscopeCache } from '../features/horoscope/services/horoscope.service';
 import { clearPlannerFullDistributionCache } from '../services/lucky-dates.service';
@@ -178,9 +179,9 @@ export const useAuthStore = create<AuthState>()(
       clearVerificationContext: () => set({ pendingEmail: null, lastResendAt: null }),
 
       hydrate: async () => {
-        const token = await getToken();
+        const [token, refreshToken] = await Promise.all([getToken(), getRefreshToken()]);
         if (token) {
-          set({ token, isAuthenticated: true, isHydrated: true });
+          set({ token, refreshToken, isAuthenticated: true, isHydrated: true });
         } else {
           set({ isAuthenticated: false, isHydrated: true });
         }
