@@ -21,8 +21,12 @@ interface ResolvedAdUnit {
  * Callers MUST check for null and refuse to request ads.
  */
 export function resolveRewardedUnitId(): ResolvedAdUnit | null {
-  // Dev / internal test build → safe to use Google test units
-  if (envConfig.admob.useTestIds) {
+  // Per-platform test ID check (takes precedence over global flag)
+  const useTestIds = Platform.OS === 'ios'
+    ? envConfig.admob.useTestIdsIos
+    : envConfig.admob.useTestIdsAndroid;
+
+  if (useTestIds) {
     return { unitId: getRewardedTestAdUnitId(), mode: 'test' };
   }
 

@@ -219,7 +219,14 @@ const numerologyForceUnlockAllSections = asBool(process.env.EXPO_PUBLIC_NUMEROLO
   || !premiumFeaturesEnabled;
 
 // ── AdMob ────────────────────────────────────────────────────────────
-const admobUseTestIds = asBool(process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS) || __DEV__;
+const admobUseTestIdsGlobal = asBool(process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS) || __DEV__;
+// Per-platform overrides — if set, takes precedence over the global flag
+const admobUseTestIdsAndroid = process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS_ANDROID !== undefined
+  ? asBool(process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS_ANDROID)
+  : admobUseTestIdsGlobal;
+const admobUseTestIdsIos = process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS_IOS !== undefined
+  ? asBool(process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS_IOS)
+  : admobUseTestIdsGlobal;
 const admobAndroidRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_UNIT_ID ?? '').trim();
 const admobIosRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_IOS_REWARDED_UNIT_ID ?? '').trim();
 const webGtmContainerId = (process.env.EXPO_PUBLIC_GTM_WEB_CONTAINER_ID ?? 'GTM-P48FMPJB').trim();
@@ -271,7 +278,9 @@ export const envConfig = {
     numerologyForceUnlockAllSections,
   },
   admob: {
-    useTestIds: admobUseTestIds,
+    useTestIds: admobUseTestIdsGlobal,
+    useTestIdsAndroid: admobUseTestIdsAndroid,
+    useTestIdsIos: admobUseTestIdsIos,
     androidRewardedUnitId: admobAndroidRewardedUnitId,
     iosRewardedUnitId: admobIosRewardedUnitId,
   },
