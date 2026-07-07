@@ -2,6 +2,7 @@ import Expo
 import FirebaseCore
 import React
 import ReactAppDependencyProvider
+import RNPurchases
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
@@ -14,6 +15,10 @@ public class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
+    let buildNumber = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+    print("[RevenueCat][iOS] AppDelegate booted with RNPurchases import. bundleId=\(bundleId) build=\(buildNumber)")
+
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -58,6 +63,12 @@ FirebaseApp.configure()
 
 class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   // Extension point for config-plugins
+
+  override func extraModules(for bridge: RCTBridge) -> [RCTBridgeModule] {
+    let purchasesModule = RNPurchases()
+    print("[RevenueCat][iOS] extraModules returning \(type(of: purchasesModule))")
+    return [purchasesModule]
+  }
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     // needed to return the correct URL for expo-dev-client.

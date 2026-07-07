@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from 'react-native';
 import Constants from 'expo-constants';
 import Purchases, {
   PURCHASES_ERROR_CODE,
@@ -8,6 +8,7 @@ import Purchases, {
   type PurchasesPackage,
 } from 'react-native-purchases';
 import { envConfig } from '../../../config/env';
+import { getBuildInfo } from '../../../services/buildInfo';
 import type { MonetizationConfig, PaywallProduct } from '../types';
 import type {
   ResolvedPaywallProduct,
@@ -44,6 +45,12 @@ const TOKEN_PACKAGE_IDS_BY_PRODUCT_KEY: Record<string, string> = {
 
 interface RevenueCatInitialStateOptions {
   remoteConfigResolved?: boolean;
+}
+
+type NativeModuleRecord = Record<string, unknown>;
+
+function getRevenueCatNativeModule(): unknown {
+  return (NativeModules as { RNPurchases?: unknown }).RNPurchases ?? null;
 }
 
 function normalizeOptionalValue(value: string | null | undefined): string | null {
@@ -85,7 +92,134 @@ function isExpoGoRuntime(): boolean {
 }
 
 function isRevenueCatNativeModuleAvailable(): boolean {
-  return Boolean((NativeModules as { RNPurchases?: unknown }).RNPurchases);
+  return Boolean(getRevenueCatNativeModule());
+}
+
+function describeValueType(value: unknown): string {
+  if (value === null) {
+    return 'null';
+  }
+  if (Array.isArray(value)) {
+    return 'array';
+  }
+  return typeof value;
+}
+
+function getObjectKeys(value: unknown): string[] {
+  if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
+    return [];
+  }
+
+  try {
+    return Object.keys(value as Record<string, unknown>).sort();
+  } catch {
+    return ['<keys_unavailable>'];
+  }
+}
+
+function getRevenueCatNativeModuleProbe(): RevenueCatDiagnostics['nativeModuleProbe'] {
+  const nativeModuleRecord = NativeModules as NativeModuleRecord;
+  const nativeModuleKeys = Object.keys(nativeModuleRecord).sort();
+  const revenueCatLikeModuleKeys = nativeModuleKeys.filter((key) => /purchase|revenue|cat/i.test(key));
+  const possibleModuleNames = [
+    'RNPurchases',
+    'Purchases',
+    'RevenueCat',
+    'RCPurchases',
+    'PurchasesHybridCommon',
+  ];
+  const foundModuleName = possibleModuleNames.find((moduleName) => Boolean(nativeModuleRecord[moduleName])) ?? null;
+  const rnpurchasesModule = getRevenueCatNativeModule();
+  const purchasesRecord = Purchases as unknown as Record<string, unknown>;
+  const runtimeGlobal = globalThis as typeof globalThis & {
+    RN$Bridgeless?: unknown;
+    RN$TurboInterop?: unknown;
+    RN$UnifiedNativeModuleProxy?: unknown;
+    __turboModuleProxy?: unknown;
+    nativeModuleProxy?: unknown;
+    nativeFabricUIManager?: unknown;
+  };
+  let turboModuleRegistryRNPurchases: TurboModule | null = null;
+  let turboModuleRegistryError: string | null = null;
+
+  try {
+    turboModuleRegistryRNPurchases = TurboModuleRegistry.get<TurboModule>('RNPurchases');
+  } catch (error) {
+    turboModuleRegistryError = error instanceof Error ? error.message : String(error);
+  }
+
+  return {
+    expectedModuleName: 'RNPurchases',
+    nativeModuleAvailable: Boolean(rnpurchasesModule),
+    nativeModuleCount: nativeModuleKeys.length,
+    nativeModuleKeys,
+    revenueCatLikeModuleKeys,
+    foundModuleName,
+    rnpurchasesModuleType: describeValueType(rnpurchasesModule),
+    rnpurchasesModuleKeys: getObjectKeys(rnpurchasesModule),
+    purchasesImportType: describeValueType(Purchases),
+    purchasesImportKeys: getObjectKeys(Purchases),
+    purchasesHasConfigure: typeof purchasesRecord.configure === 'function',
+    purchasesHasGetOfferings: typeof purchasesRecord.getOfferings === 'function',
+    turboModuleProxyAvailable: Boolean(runtimeGlobal.__turboModuleProxy),
+    turboModuleRegistryRNPurchasesAvailable: Boolean(turboModuleRegistryRNPurchases),
+    turboModuleRegistryError,
+    bridgelessRuntimeAvailable: runtimeGlobal.RN$Bridgeless === true,
+    turboInteropAvailable: runtimeGlobal.RN$TurboInterop === true,
+    unifiedNativeModuleProxyAvailable: runtimeGlobal.RN$UnifiedNativeModuleProxy === true,
+    nativeModuleProxyAvailable: Boolean(runtimeGlobal.nativeModuleProxy),
+    nativeFabricUIManagerAvailable: Boolean(runtimeGlobal.nativeFabricUIManager),
+  };
+}
+
+function getRevenueCatRuntimeDiagnostics(): RevenueCatDiagnostics['runtime'] {
+  const constants = Constants as unknown as {
+    appOwnership?: string | null;
+    executionEnvironment?: string | null;
+    easConfig?: { projectId?: string | null } | null;
+    expoConfig?: {
+      name?: string | null;
+      slug?: string | null;
+      ios?: { bundleIdentifier?: string | null } | null;
+      android?: { package?: string | null } | null;
+    } | null;
+  };
+  const buildInfo = getBuildInfo();
+  const expectedApplicationId = Platform.OS === 'ios'
+    ? constants.expoConfig?.ios?.bundleIdentifier ?? null
+    : Platform.OS === 'android'
+      ? constants.expoConfig?.android?.package ?? null
+      : null;
+
+  return {
+    appOwnership: constants.appOwnership ?? null,
+    executionEnvironment: constants.executionEnvironment ?? null,
+    isExpoGoRuntime: isExpoGoRuntime(),
+    nativeApplicationVersion: buildInfo.appVersion,
+    nativeBuildVersion: buildInfo.buildNumber,
+    applicationId: buildInfo.applicationId,
+    expectedApplicationId,
+    nativeApplicationIdMatchesExpoConfig: expectedApplicationId
+      ? buildInfo.applicationId === expectedApplicationId
+      : null,
+    expoName: constants.expoConfig?.name ?? null,
+    expoSlug: constants.expoConfig?.slug ?? null,
+    expoBundleIdentifier: constants.expoConfig?.ios?.bundleIdentifier ?? null,
+    expoAndroidPackage: constants.expoConfig?.android?.package ?? null,
+    easProjectId: constants.easConfig?.projectId ?? null,
+    updateChannel: buildInfo.updateChannel ?? null,
+    runtimeVersion: buildInfo.runtimeVersion ?? null,
+    updateId: buildInfo.updateId ?? null,
+  };
+}
+
+export function stringifyRevenueCatLogPayload(payload: unknown): string {
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error';
+    return `[RevenueCat] Unable to stringify diagnostics: ${message}`;
+  }
 }
 
 function getRevenueCatBuildProfile(): string | null {
@@ -95,6 +229,7 @@ function getRevenueCatBuildProfile(): string | null {
 }
 
 const missingApiKeyWarnings = new Set<string>();
+const diagnosticsWarningKeys = new Set<string>();
 
 function getPlatformRevenueCatEnvVarName(): 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY' | 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY' | null {
   if (Platform.OS === 'ios') {
@@ -164,7 +299,7 @@ function getRevenueCatApiKey(runtimeConfig?: RevenueCatSdkConfig | null): {
 
 export function getRevenueCatDiagnostics(
   runtimeConfig?: RevenueCatSdkConfig | null,
-): RevenueCatRuntimeState['diagnostics'] {
+): RevenueCatDiagnostics {
   const envApiKey = getEnvRevenueCatConfig();
   const selected = getRevenueCatApiKey(runtimeConfig);
   const testKey = normalizeOptionalValue(runtimeConfig?.testApiKey)
@@ -173,11 +308,12 @@ export function getRevenueCatDiagnostics(
     ?? normalizeOptionalValue(envApiKey.androidApiKey);
   const iosKey = normalizeOptionalValue(runtimeConfig?.iosApiKey)
     ?? normalizeOptionalValue(envApiKey.iosApiKey);
+  const nativeModuleProbe = getRevenueCatNativeModuleProbe();
   return {
     platform: Platform.OS,
     appEnv: envConfig.appEnv,
     buildProfile: getRevenueCatBuildProfile(),
-    nativeModuleAvailable: isRevenueCatNativeModuleAvailable(),
+    nativeModuleAvailable: nativeModuleProbe.nativeModuleAvailable,
     hasAndroidKey: Boolean(androidKey),
     hasIosKey: Boolean(iosKey),
     hasTestKey: Boolean(testKey),
@@ -185,7 +321,41 @@ export function getRevenueCatDiagnostics(
     entitlementId: REVENUECAT_PREMIUM_ENTITLEMENT_ID,
     offeringId: REVENUECAT_DEFAULT_OFFERING_ID,
     tokenOfferingId: REVENUECAT_TOKEN_OFFERING_ID,
+    runtime: getRevenueCatRuntimeDiagnostics(),
+    nativeModuleProbe,
   };
+}
+
+function warnRevenueCatDiagnosticsOnce(
+  stage: string,
+  diagnostics: RevenueCatDiagnostics,
+  extra?: Record<string, unknown>,
+): void {
+  const probe = diagnostics.nativeModuleProbe;
+  const runtime = diagnostics.runtime;
+  const warningKey = [
+    stage,
+    diagnostics.platform,
+    diagnostics.selectedKeySource,
+    diagnostics.nativeModuleAvailable ? 'native:on' : 'native:off',
+    runtime.applicationId ?? 'unknown-app',
+    runtime.nativeBuildVersion ?? 'unknown-build',
+    probe.foundModuleName ?? 'no-found-module',
+    probe.revenueCatLikeModuleKeys.join('|') || 'no-revenuecat-like-modules',
+  ].join(':');
+
+  if (diagnosticsWarningKeys.has(warningKey)) {
+    return;
+  }
+
+  diagnosticsWarningKeys.add(warningKey);
+  const payload = {
+    stage,
+    diagnostics,
+    extra: extra ?? null,
+  };
+  console.warn('[RevenueCat] Detailed diagnostics', payload);
+  console.warn('[RevenueCat] Detailed diagnostics JSON', stringifyRevenueCatLogPayload(payload));
 }
 
 export function getRevenueCatInitialState(
@@ -226,12 +396,16 @@ export function getRevenueCatInitialState(
   }
 
   if (!isRevenueCatNativeModuleAvailable()) {
+    const diagnostics = getRevenueCatDiagnostics(runtimeConfig);
+    warnRevenueCatDiagnosticsOnce('initial_state_native_module_unavailable', diagnostics, {
+      remoteConfigResolved: Boolean(options?.remoteConfigResolved),
+    });
     return {
       supported: true,
       configured: false,
       ready: false,
       disabledReason: 'native_module_unavailable',
-      diagnostics: getRevenueCatDiagnostics(runtimeConfig),
+      diagnostics,
     };
   }
 
@@ -281,6 +455,9 @@ export async function configureRevenueCat(
     throw new Error('RevenueCat API key is missing for this platform.');
   }
   if (!isRevenueCatNativeModuleAvailable()) {
+    warnRevenueCatDiagnosticsOnce('configure_native_module_unavailable', getRevenueCatDiagnostics(runtimeConfig), {
+      appUserId,
+    });
     throw new Error('RevenueCat native module is not available in this build. Rebuild the development or store app after installing react-native-purchases.');
   }
 
@@ -315,18 +492,69 @@ export async function getRevenueCatCustomerInfo(): Promise<CustomerInfo> {
   return Purchases.getCustomerInfo();
 }
 
-export async function getRevenueCatOfferings(): Promise<RevenueCatOfferingSnapshot> {
-  const offerings = await Purchases.getOfferings();
-  const defaultOffering = offerings.current ?? offerings.all?.[REVENUECAT_DEFAULT_OFFERING_ID] ?? null;
-  const tokenOffering = offerings.all?.[REVENUECAT_TOKEN_OFFERING_ID] ?? null;
-  return {
-    offerings,
-    currentOffering: defaultOffering,
-    defaultOffering,
-    tokenOffering,
-    availablePackages: defaultOffering?.availablePackages ?? [],
-    tokenPackages: tokenOffering?.availablePackages ?? [],
+function serializeRevenueCatError(error: unknown): Record<string, unknown> {
+  const serialized: Record<string, unknown> = {
+    type: describeValueType(error),
+    message: toSafeRevenueCatErrorMessage(error),
   };
+
+  if (error instanceof Error) {
+    serialized.name = error.name;
+  }
+
+  if (!error || (typeof error !== 'object' && typeof error !== 'function')) {
+    return serialized;
+  }
+
+  const record = error as Record<string, unknown>;
+  for (const key of Object.keys(record).sort()) {
+    const value = record[key];
+    if (
+      value === null
+      || typeof value === 'string'
+      || typeof value === 'number'
+      || typeof value === 'boolean'
+    ) {
+      serialized[key] = value;
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      serialized[key] = value.map((entry) =>
+        entry === null
+        || typeof entry === 'string'
+        || typeof entry === 'number'
+        || typeof entry === 'boolean'
+          ? entry
+          : describeValueType(entry));
+      continue;
+    }
+
+    serialized[key] = describeValueType(value);
+  }
+
+  return serialized;
+}
+
+export async function getRevenueCatOfferings(): Promise<RevenueCatOfferingSnapshot> {
+  try {
+    const offerings = await Purchases.getOfferings();
+    const defaultOffering = offerings.current ?? offerings.all?.[REVENUECAT_DEFAULT_OFFERING_ID] ?? null;
+    const tokenOffering = offerings.all?.[REVENUECAT_TOKEN_OFFERING_ID] ?? null;
+    return {
+      offerings,
+      currentOffering: defaultOffering,
+      defaultOffering,
+      tokenOffering,
+      availablePackages: defaultOffering?.availablePackages ?? [],
+      tokenPackages: tokenOffering?.availablePackages ?? [],
+    };
+  } catch (error) {
+    warnRevenueCatDiagnosticsOnce('offerings_fetch_failed', getRevenueCatDiagnostics(), {
+      error: serializeRevenueCatError(error),
+    });
+    throw error;
+  }
 }
 
 export async function purchaseRevenueCatPackage(

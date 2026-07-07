@@ -25,6 +25,7 @@ import { useRestorePurchases } from '../hooks/useRestorePurchases';
 import {
   normalizeStoreProductId,
   packageMatchesProductId,
+  stringifyRevenueCatLogPayload,
 } from '../services/revenueCatService';
 import { openSubscriptionManagement } from '../services/subscriptionManagement';
 import type { ResolvedPaywallProduct } from '../types/billing';
@@ -428,12 +429,14 @@ export function PremiumPaywallSheet({
     }
 
     missingPackagesWarnKeyRef.current = warnKey;
-    console.warn('[PremiumPaywall] Missing RevenueCat packages', {
+    const payload = {
       offeringId,
       availablePackages,
       disabledReason: paywallQuery.revenueCatDisabledReason ?? null,
       diagnostics: paywallQuery.revenueCatState.diagnostics ?? null,
-    });
+    };
+    console.warn('[PremiumPaywall] Missing RevenueCat packages', payload);
+    console.warn('[PremiumPaywall] Missing RevenueCat packages JSON', stringifyRevenueCatLogPayload(payload));
   }, [
     isInitialLoading,
     paywallQuery.currentOffering?.identifier,

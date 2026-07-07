@@ -32,6 +32,48 @@ export interface RevenueCatSdkConfig {
   environment?: string | null;
 }
 
+export interface RevenueCatNativeModuleProbe {
+  expectedModuleName: 'RNPurchases';
+  nativeModuleAvailable: boolean;
+  nativeModuleCount: number;
+  nativeModuleKeys: string[];
+  revenueCatLikeModuleKeys: string[];
+  foundModuleName?: string | null;
+  rnpurchasesModuleType: string;
+  rnpurchasesModuleKeys: string[];
+  purchasesImportType: string;
+  purchasesImportKeys: string[];
+  purchasesHasConfigure: boolean;
+  purchasesHasGetOfferings: boolean;
+  turboModuleProxyAvailable: boolean;
+  turboModuleRegistryRNPurchasesAvailable: boolean;
+  turboModuleRegistryError?: string | null;
+  bridgelessRuntimeAvailable: boolean;
+  turboInteropAvailable: boolean;
+  unifiedNativeModuleProxyAvailable: boolean;
+  nativeModuleProxyAvailable: boolean;
+  nativeFabricUIManagerAvailable: boolean;
+}
+
+export interface RevenueCatRuntimeDiagnostics {
+  appOwnership?: string | null;
+  executionEnvironment?: string | null;
+  isExpoGoRuntime: boolean;
+  nativeApplicationVersion?: string | null;
+  nativeBuildVersion?: string | null;
+  applicationId?: string | null;
+  expectedApplicationId?: string | null;
+  nativeApplicationIdMatchesExpoConfig?: boolean | null;
+  expoName?: string | null;
+  expoSlug?: string | null;
+  expoBundleIdentifier?: string | null;
+  expoAndroidPackage?: string | null;
+  easProjectId?: string | null;
+  updateChannel?: string | null;
+  runtimeVersion?: string | null;
+  updateId?: string | null;
+}
+
 export interface RevenueCatDiagnostics {
   platform: string;
   appEnv: string;
@@ -44,6 +86,8 @@ export interface RevenueCatDiagnostics {
   entitlementId: string;
   offeringId: 'default';
   tokenOfferingId: 'guru_tokens';
+  runtime: RevenueCatRuntimeDiagnostics;
+  nativeModuleProbe: RevenueCatNativeModuleProbe;
 }
 
 export interface RevenueCatSyncPayload {
