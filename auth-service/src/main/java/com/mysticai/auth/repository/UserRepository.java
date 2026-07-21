@@ -62,6 +62,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     long countByEmailVerifiedAtIsNotNull();
 
+    long countByRegistrationPlatform(String registrationPlatform);
+
     @Query("SELECT COUNT(u) FROM User u WHERE u.userType = :userType AND u.updatedAt < :cutoff")
     long countStaleGuests(@Param("userType") UserType userType, @Param("cutoff") LocalDateTime cutoff);
 

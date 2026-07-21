@@ -53,7 +53,7 @@ public class NotificationGenerationService {
             return Optional.empty();
         }
 
-        String dedupKey = dispatchService.buildDedupKey(userId, type);
+        String dedupKey = dispatchService.buildDedupKey(userId, type, pref);
         DeliveryChannel channel = decision == NotificationDispatchService.DispatchDecision.PUSH_AND_IN_APP
                 ? DeliveryChannel.BOTH
                 : DeliveryChannel.IN_APP;

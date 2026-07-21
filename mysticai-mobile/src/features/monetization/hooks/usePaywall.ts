@@ -76,6 +76,16 @@ export function usePaywall() {
     return null;
   }, [offeringsQuery.data?.defaultOffering, offeringsQuery.isLoading, paywall?.revenueCatEnabled, revenueCatState]);
 
+  useEffect(() => {
+    if (revenueCatDisabledReason) {
+      console.info('[Monetization] Purchases unavailable', {
+        reason: revenueCatDisabledReason,
+        revenueCatEnabled: paywall?.revenueCatEnabled ?? null,
+        paywallSource: paywallQuery.data ? 'network' : cachedPaywall ? 'cache' : 'none',
+      });
+    }
+  }, [revenueCatDisabledReason, paywall?.revenueCatEnabled, paywallQuery.data, cachedPaywall]);
+
   return {
     ...paywallQuery,
     paywall,

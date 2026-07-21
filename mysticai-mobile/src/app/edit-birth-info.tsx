@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
+import { parseLocalDate, toLocalDateString } from '../utils/localDate';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNatalChartStore } from '../store/useNatalChartStore';
 import { useLuckyDatesStore } from '../store/useLuckyDatesStore';
@@ -187,7 +188,7 @@ export default function EditBirthInfoScreen() {
   const clearNatalChart = useNatalChartStore((s) => s.clear);
   const clearLuckyDates = useLuckyDatesStore((s) => s.clear);
 
-  const parsedBirthDate = user?.birthDate ? new Date(user.birthDate) : null;
+  const parsedBirthDate = user?.birthDate ? parseLocalDate(user.birthDate) : null;
 
   const [birthDate, setBirthDate] = useState<Date | null>(parsedBirthDate);
   const [birthTime, setBirthTime] = useState<string>(user?.birthTime || '');
@@ -230,7 +231,7 @@ export default function EditBirthInfoScreen() {
       const zodiacSign = getZodiacSign(birthDate.getMonth() + 1, birthDate.getDate());
       const isFirstTimeBirthDetails = !user?.birthDate;
       const payload = {
-        birthDate: birthDate.toISOString().split('T')[0],
+        birthDate: toLocalDateString(birthDate),
         birthTime: birthTimeUnknown ? null : birthTime || null,
         birthTimeUnknown,
         birthLocation: birthLocation.trim(),
@@ -244,7 +245,7 @@ export default function EditBirthInfoScreen() {
         await calculateNatalChart({
           userId: user.id,
           name: user.firstName ? `${user.firstName} ${user.lastName ?? ''}`.trim() : undefined,
-          birthDate: birthDate.toISOString().split('T')[0],
+          birthDate: toLocalDateString(birthDate),
           birthTime: birthTimeUnknown ? undefined : birthTime || undefined,
           birthLocation: birthLocation.trim(),
         });

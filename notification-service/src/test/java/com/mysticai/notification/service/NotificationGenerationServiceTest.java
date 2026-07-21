@@ -92,7 +92,7 @@ class NotificationGenerationServiceTest {
         when(preferenceRepository.findById(userId)).thenReturn(Optional.of(pref));
         when(dispatchService.evaluate(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE), eq(pref)))
                 .thenReturn(NotificationDispatchService.DispatchDecision.PUSH_AND_IN_APP);
-        when(dispatchService.buildDedupKey(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE)))
+        when(dispatchService.buildDedupKey(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE), eq(pref)))
                 .thenReturn("77:AI_ANALYSIS_COMPLETE:test");
         when(templateService.getTemplate(eq(NotificationType.AI_ANALYSIS_COMPLETE), isNull(), eq(userId)))
                 .thenReturn(template);
@@ -131,7 +131,7 @@ class NotificationGenerationServiceTest {
         when(preferenceRepository.findById(userId)).thenReturn(Optional.of(pref));
         when(dispatchService.evaluate(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE), eq(pref)))
                 .thenReturn(NotificationDispatchService.DispatchDecision.IN_APP_ONLY);
-        when(dispatchService.buildDedupKey(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE)))
+        when(dispatchService.buildDedupKey(eq(userId), eq(NotificationType.AI_ANALYSIS_COMPLETE), eq(pref)))
                 .thenReturn("91:AI_ANALYSIS_COMPLETE:test");
         when(templateService.getTemplate(eq(NotificationType.AI_ANALYSIS_COMPLETE), isNull(), eq(userId)))
                 .thenReturn(template);

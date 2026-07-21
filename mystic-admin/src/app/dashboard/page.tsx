@@ -266,6 +266,23 @@ export default function DashboardPage() {
                     <p className="text-[11px] text-gray-500 mt-1">{formatDate(productOverview.latestTrackedAt)}</p>
                   )}
                 </div>
+                <div className="col-span-2 rounded-xl border border-gray-800 bg-gray-950 px-4 py-3">
+                  <p className="text-xs uppercase text-gray-500">Kayıt Platformu</p>
+                  <div className="mt-2 flex items-center gap-6">
+                    <div>
+                      <p className="text-[11px] text-gray-500">iOS</p>
+                      <p className="text-lg font-bold text-white">{appUserStats?.iosUsers ?? 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-500">Android</p>
+                      <p className="text-lg font-bold text-white">{appUserStats?.androidUsers ?? 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-500">Web</p>
+                      <p className="text-lg font-bold text-white">{appUserStats?.webUsers ?? 0}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

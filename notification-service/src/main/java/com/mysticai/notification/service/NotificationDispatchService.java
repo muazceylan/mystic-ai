@@ -52,8 +52,8 @@ public class NotificationDispatchService {
             return DispatchDecision.DENY;
         }
 
-        // 2. Dedup gate — one notification per type per day
-        String dedupKey = buildDedupKey(userId, type);
+        // 2. Dedup gate — one notification per type per user-local day
+        String dedupKey = buildDedupKey(userId, type, pref);
         if (notificationRepository.findByDedupKey(dedupKey).isPresent()) {
             log.debug("[DISPATCH] DENY type={} userId={} reason=duplicate dedupKey={}", type, userId, dedupKey);
             return DispatchDecision.DENY;
@@ -87,8 +87,17 @@ public class NotificationDispatchService {
         return DispatchDecision.PUSH_AND_IN_APP;
     }
 
-    public String buildDedupKey(Long userId, NotificationType type) {
-        return userId + ":" + type.name() + ":" + LocalDate.now();
+    public String buildDedupKey(Long userId, NotificationType type, NotificationPreference pref) {
+        return userId + ":" + type.name() + ":" + LocalDate.now(resolveZone(pref));
+    }
+
+    /** User's preferred zone; falls back to the server zone on missing/invalid timezone. */
+    public static ZoneId resolveZone(NotificationPreference pref) {
+        try {
+            return ZoneId.of(pref.getTimezone());
+        } catch (Exception e) {
+            return ZoneId.systemDefault();
+        }
     }
 
     // ─── Private helpers ────────────────────────────────────────────────────────

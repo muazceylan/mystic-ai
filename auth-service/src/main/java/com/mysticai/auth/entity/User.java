@@ -97,6 +97,9 @@ public class User {
     @Builder.Default
     private String preferredLanguage = "tr";
 
+    @Column(name = "registration_platform", length = 20)
+    private String registrationPlatform;
+
     @Column(name = "has_local_password")
     @Builder.Default
     private Boolean hasLocalPassword = false;

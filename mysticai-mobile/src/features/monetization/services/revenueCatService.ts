@@ -1,11 +1,13 @@
 import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from 'react-native';
 import Constants from 'expo-constants';
+import { getLocales } from 'expo-localization';
 import Purchases, {
   PURCHASES_ERROR_CODE,
   type CustomerInfo,
   type PurchasesOffering,
   type PurchasesOfferings,
   type PurchasesPackage,
+  type PurchasesStoreProduct,
 } from 'react-native-purchases';
 import { envConfig } from '../../../config/env';
 import { getBuildInfo } from '../../../services/buildInfo';
@@ -61,6 +63,90 @@ function normalizeOptionalValue(value: string | null | undefined): string | null
 function normalizeRevenueCatEnvironment(value: string | null | undefined): string {
   const token = value?.trim().toLowerCase();
   return token === 'production' || token === 'prod' ? 'production' : 'sandbox';
+}
+
+export function getRevenueCatPriceLocale(): string {
+  try {
+    const languageTag = getLocales()[0]?.languageTag;
+    if (languageTag?.trim()) {
+      return languageTag;
+    }
+  } catch {
+    // Fall through to Intl below.
+  }
+
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+    if (locale?.trim()) {
+      return locale;
+    }
+  } catch {
+    // Fall through to stable default.
+  }
+
+  return 'en-US';
+}
+
+function getStoreProductPrice(product: PurchasesStoreProduct, period: StorePricePeriod): number | null {
+  if (period === 'month') {
+    return product.pricePerMonth;
+  }
+  if (period === 'year') {
+    return product.pricePerYear;
+  }
+  if (period === 'week') {
+    return product.pricePerWeek;
+  }
+  return product.price;
+}
+
+function getStoreProductPriceString(product: PurchasesStoreProduct, period: StorePricePeriod): string | null {
+  if (period === 'month') {
+    return product.pricePerMonthString;
+  }
+  if (period === 'year') {
+    return product.pricePerYearString;
+  }
+  if (period === 'week') {
+    return product.pricePerWeekString;
+  }
+  return product.priceString;
+}
+
+function formatCurrencyAmount(
+  amount: number | null | undefined,
+  currencyCode: string | null | undefined,
+): string | null {
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+    return null;
+  }
+
+  const currency = currencyCode?.trim().toUpperCase();
+  if (!currency) {
+    return null;
+  }
+
+  try {
+    return new Intl.NumberFormat(getRevenueCatPriceLocale(), {
+      style: 'currency',
+      currency,
+    }).format(amount);
+  } catch {
+    return null;
+  }
+}
+
+type StorePricePeriod = 'full' | 'week' | 'month' | 'year';
+
+export function formatRevenueCatStorePrice(
+  product: PurchasesStoreProduct,
+  period: StorePricePeriod = 'full',
+): string | null {
+  const formatted = formatCurrencyAmount(
+    getStoreProductPrice(product, period),
+    product.currencyCode,
+  );
+  return formatted ?? getStoreProductPriceString(product, period) ?? null;
 }
 
 function getEnvRevenueCatConfig(): RevenueCatSdkConfig {
@@ -230,6 +316,7 @@ function getRevenueCatBuildProfile(): string | null {
 
 const missingApiKeyWarnings = new Set<string>();
 const diagnosticsWarningKeys = new Set<string>();
+const offeringPricingLogKeys = new Set<string>();
 
 function getPlatformRevenueCatEnvVarName(): 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY' | 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY' | null {
   if (Platform.OS === 'ios') {
@@ -536,12 +623,64 @@ function serializeRevenueCatError(error: unknown): Record<string, unknown> {
   return serialized;
 }
 
+function getPackagePricingSnapshot(revenueCatPackage: PurchasesPackage): Record<string, unknown> {
+  const product = revenueCatPackage.product;
+  return {
+    packageIdentifier: revenueCatPackage.identifier,
+    productIdentifier: product.identifier,
+    price: product.price,
+    priceString: product.priceString,
+    formattedPrice: formatRevenueCatStorePrice(product),
+    currencyCode: product.currencyCode,
+    priceLocale: getRevenueCatPriceLocale(),
+    pricePerMonth: product.pricePerMonth,
+    pricePerMonthString: product.pricePerMonthString,
+    formattedPricePerMonth: formatRevenueCatStorePrice(product, 'month'),
+    pricePerYear: product.pricePerYear,
+    pricePerYearString: product.pricePerYearString,
+    formattedPricePerYear: formatRevenueCatStorePrice(product, 'year'),
+  };
+}
+
+function logRevenueCatOfferingPricingOnce(snapshot: RevenueCatOfferingSnapshot): void {
+  if (envConfig.isProduction && !__DEV__) {
+    return;
+  }
+
+  const defaultPackages = snapshot.availablePackages.map(getPackagePricingSnapshot);
+  const tokenPackages = snapshot.tokenPackages.map(getPackagePricingSnapshot);
+  const signature = JSON.stringify({
+    currentOfferingId: snapshot.currentOffering?.identifier ?? null,
+    defaultOfferingId: snapshot.defaultOffering?.identifier ?? null,
+    tokenOfferingId: snapshot.tokenOffering?.identifier ?? null,
+    defaultPackages,
+    tokenPackages,
+  });
+
+  if (offeringPricingLogKeys.has(signature)) {
+    return;
+  }
+
+  offeringPricingLogKeys.add(signature);
+  const payload = {
+    priceLocale: getRevenueCatPriceLocale(),
+    currentOfferingId: snapshot.currentOffering?.identifier ?? null,
+    defaultOfferingId: snapshot.defaultOffering?.identifier ?? null,
+    tokenOfferingId: snapshot.tokenOffering?.identifier ?? null,
+    defaultPackages,
+    tokenPackages,
+  };
+
+  console.info('[RevenueCat] Offering pricing', payload);
+  console.info('[RevenueCat] Offering pricing JSON', stringifyRevenueCatLogPayload(payload));
+}
+
 export async function getRevenueCatOfferings(): Promise<RevenueCatOfferingSnapshot> {
   try {
     const offerings = await Purchases.getOfferings();
     const defaultOffering = offerings.current ?? offerings.all?.[REVENUECAT_DEFAULT_OFFERING_ID] ?? null;
     const tokenOffering = offerings.all?.[REVENUECAT_TOKEN_OFFERING_ID] ?? null;
-    return {
+    const snapshot = {
       offerings,
       currentOffering: defaultOffering,
       defaultOffering,
@@ -549,6 +688,8 @@ export async function getRevenueCatOfferings(): Promise<RevenueCatOfferingSnapsh
       availablePackages: defaultOffering?.availablePackages ?? [],
       tokenPackages: tokenOffering?.availablePackages ?? [],
     };
+    logRevenueCatOfferingPricingOnce(snapshot);
+    return snapshot;
   } catch (error) {
     warnRevenueCatDiagnosticsOnce('offerings_fetch_failed', getRevenueCatDiagnostics(), {
       error: serializeRevenueCatError(error),
@@ -691,18 +832,24 @@ export function resolveRevenueCatProduct(
     ?? availablePackages.find((entry) =>
       Array.from(candidates).some((candidate) => packageMatchesProductId(entry, candidate)))
     ?? null;
+  const storeProduct = matchedPackage?.product ?? null;
+  const localizedPrice = storeProduct ? formatRevenueCatStorePrice(storeProduct) : null;
+  const localizedPeriodPrice = storeProduct
+    ? formatRevenueCatStorePrice(storeProduct, 'month')
+      ?? formatRevenueCatStorePrice(storeProduct, 'year')
+      ?? localizedPrice
+    : null;
 
   return {
     ...product,
     offeringId: offering?.identifier ?? null,
     revenueCatPackage: matchedPackage,
-    localizedPrice: matchedPackage?.product.priceString ?? product.price ?? null,
-    localizedPeriodPrice: matchedPackage?.product.pricePerMonthString
-      ?? matchedPackage?.product.pricePerYearString
-      ?? matchedPackage?.product.priceString
-      ?? product.price
-      ?? null,
-    storeProductId: matchedPackage?.product.identifier ?? null,
+    localizedPrice: localizedPrice ?? product.price ?? null,
+    localizedPeriodPrice: localizedPeriodPrice ?? product.price ?? null,
+    storeProductId: storeProduct?.identifier ?? null,
+    storeCurrencyCode: storeProduct?.currencyCode ?? product.currency ?? null,
+    storeRawPrice: storeProduct?.price ?? null,
+    storePriceLocale: storeProduct ? getRevenueCatPriceLocale() : null,
     availableForPurchase: Boolean(matchedPackage),
   };
 }

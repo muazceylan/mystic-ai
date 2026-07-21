@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { AppHeader, SafeScreen } from '../components/ui';
 import { useSmartBackNavigation } from '../hooks/useSmartBackNavigation';
+import { toLocalDateString } from '../utils/localDate';
 import { useLocationCities, useLocationCountries } from '../hooks/useLocationCatalog';
 import {
   normalizeLocationSearchText,
@@ -163,9 +164,7 @@ export default function AddPersonScreen() {
   const performSave = async () => {
     if (!user?.id || !birthDate) return;
 
-    const birthDateStr = `${birthDate.getFullYear()}-${
-      String(birthDate.getMonth() + 1).padStart(2, '0')
-    }-${String(birthDate.getDate()).padStart(2, '0')}`;
+    const birthDateStr = toLocalDateString(birthDate);
 
     const birthTimeStr =
       !birthTimeUnknown && birthTimeConfirmed ? `${birthTime}:00` : undefined;

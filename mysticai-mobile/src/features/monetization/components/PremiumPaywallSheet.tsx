@@ -23,6 +23,8 @@ import { usePaywall } from '../hooks/usePaywall';
 import { usePurchasePremium } from '../hooks/usePurchasePremium';
 import { useRestorePurchases } from '../hooks/useRestorePurchases';
 import {
+  formatRevenueCatStorePrice,
+  getRevenueCatPriceLocale,
   normalizeStoreProductId,
   packageMatchesProductId,
   stringifyRevenueCatLogPayload,
@@ -117,6 +119,10 @@ function toResolvedSubscriptionProduct({
 }): ResolvedPaywallProduct {
   const product = revenueCatPackage.product;
   const normalizedProductId = normalizeStoreProductId(product.identifier);
+  const localizedPrice = formatRevenueCatStorePrice(product) ?? product.priceString;
+  const localizedPeriodPrice = packageId === ANNUAL_PACKAGE_ID
+    ? formatRevenueCatStorePrice(product, 'year') ?? localizedPrice
+    : formatRevenueCatStorePrice(product, 'month') ?? localizedPrice;
 
   return {
     productKey: configuredProduct?.productKey ?? PRODUCT_KEYS_BY_PACKAGE_ID[packageId],
@@ -129,7 +135,7 @@ function toResolvedSubscriptionProduct({
     entitlementKey: configuredProduct?.entitlementKey ?? null,
     tokenAmount: null,
     bonusTokenAmount: null,
-    price: product.priceString,
+    price: localizedPrice,
     currency: configuredProduct?.currency ?? product.currencyCode ?? null,
     trialDurationDays: configuredProduct?.trialDurationDays ?? trialDays,
     sortOrder: configuredProduct?.sortOrder ?? sortOrder,
@@ -140,11 +146,12 @@ function toResolvedSubscriptionProduct({
       ?? revenueCatPackage.presentedOfferingContext?.offeringIdentifier
       ?? null,
     revenueCatPackage,
-    localizedPrice: product.priceString,
-    localizedPeriodPrice: packageId === ANNUAL_PACKAGE_ID
-      ? product.pricePerYearString ?? product.priceString
-      : product.pricePerMonthString ?? product.priceString,
+    localizedPrice,
+    localizedPeriodPrice,
     storeProductId: product.identifier,
+    storeCurrencyCode: product.currencyCode ?? null,
+    storeRawPrice: product.price ?? null,
+    storePriceLocale: getRevenueCatPriceLocale(),
     availableForPurchase: true,
   };
 }
@@ -285,7 +292,7 @@ export function PremiumPaywallSheet({
       title: t('premium.paywall.monthlyTitle'),
       subtitle: t('premium.paywall.monthlySubtitle'),
       note: t('premium.paywall.monthlyNote', { count: trialDays }),
-      price: monthlyPackage.product.priceString,
+      price: formatRevenueCatStorePrice(monthlyPackage.product) ?? monthlyPackage.product.priceString,
       priceSuffix: t('premium.periodMonth'),
       iconName: 'calendar-outline',
       product: toResolvedSubscriptionProduct({
@@ -309,7 +316,7 @@ export function PremiumPaywallSheet({
       title: t('premium.paywall.yearlyTitle'),
       subtitle: t('premium.paywall.yearlySubtitle'),
       note: t('premium.paywall.yearlyNote', { count: trialDays }),
-      price: annualPackage.product.priceString,
+      price: formatRevenueCatStorePrice(annualPackage.product) ?? annualPackage.product.priceString,
       priceSuffix: t('premium.periodYear'),
       iconName: 'calendar',
       recommended: true,
@@ -422,6 +429,10 @@ export function PremiumPaywallSheet({
     const availablePackages = paywallQuery.defaultOffering?.availablePackages.map((entry) => ({
       identifier: entry.identifier,
       productIdentifier: entry.product.identifier,
+      price: entry.product.price,
+      priceString: entry.product.priceString,
+      currencyCode: entry.product.currencyCode,
+      formattedPrice: formatRevenueCatStorePrice(entry.product),
     })) ?? [];
     const warnKey = `${offeringId}:${availablePackages.map((entry) => entry.identifier).join('|')}`;
     if (warnKey === missingPackagesWarnKeyRef.current) {

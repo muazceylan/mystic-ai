@@ -103,6 +103,11 @@ export async function fetchPaywall(): Promise<PaywallResponse> {
       '/api/v1/monetization/paywall',
       withSuppressedGlobalApiErrorLog(),
     );
+    console.info('[Monetization] Paywall flags', {
+      revenueCatEnabled: data.revenueCatEnabled,
+      premiumEnabled: data.premiumEnabled,
+      tokenPurchaseEnabled: data.tokenPurchaseEnabled,
+    });
     return data;
   } catch (error) {
     console.warn('[Monetization] Paywall fetch failed, using fallback', error);

@@ -177,7 +177,10 @@ export default function UserEntitlementsPage() {
                 >
                   <div className="text-sm font-medium text-white">{user.name || user.email}</div>
                   <div className="text-xs text-gray-400 mt-1">{user.email}</div>
-                  <div className="text-xs text-gray-500 mt-2">User #{user.id}</div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    User #{user.id}
+                    {user.registrationPlatform ? ` · ${user.registrationPlatform}` : ''}
+                  </div>
                 </button>
               ))}
             </div>

@@ -274,6 +274,7 @@ export interface AppUserSummary {
   userType: 'REGISTERED' | 'GUEST';
   createdAt: string;
   emailVerifiedAt?: string | null;
+  registrationPlatform?: 'IOS' | 'ANDROID' | 'WEB' | null;
 }
 
 export interface AppUserStats {
@@ -281,6 +282,9 @@ export interface AppUserStats {
   registeredUsers: number;
   guestUsers: number;
   verifiedUsers: number;
+  iosUsers: number;
+  androidUsers: number;
+  webUsers: number;
 }
 
 export interface ProductAnalyticsTopScreen {

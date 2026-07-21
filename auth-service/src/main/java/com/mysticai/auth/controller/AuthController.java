@@ -65,8 +65,10 @@ public class AuthController {
     private final PublicUrlProperties publicUrlProperties;
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
-        RegisterResponse response = authService.register(request);
+    public ResponseEntity<RegisterResponse> register(
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
+            @Valid @RequestBody RegisterRequest request) {
+        RegisterResponse response = authService.register(request, clientPlatform);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -250,8 +252,10 @@ public class AuthController {
     }
 
     @PostMapping("/social-login")
-    public ResponseEntity<LoginResponse> socialLogin(@Valid @RequestBody SocialLoginRequest request) {
-        LoginResponse response = authService.socialLogin(request);
+    public ResponseEntity<LoginResponse> socialLogin(
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform,
+            @Valid @RequestBody SocialLoginRequest request) {
+        LoginResponse response = authService.socialLogin(request, clientPlatform);
         return ResponseEntity.ok(response);
     }
 
@@ -260,8 +264,9 @@ public class AuthController {
      * No body or auth required — returns full JWT so the guest can use all services.
      */
     @PostMapping("/quick-start")
-    public ResponseEntity<LoginResponse> quickStart() {
-        LoginResponse response = authService.createQuickSession();
+    public ResponseEntity<LoginResponse> quickStart(
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform) {
+        LoginResponse response = authService.createQuickSession(clientPlatform);
         return ResponseEntity.ok(response);
     }
 

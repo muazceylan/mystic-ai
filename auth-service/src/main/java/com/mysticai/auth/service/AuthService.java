@@ -121,6 +121,11 @@ public class AuthService {
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
+        return register(request, null);
+    }
+
+    @Transactional
+    public RegisterResponse register(RegisterRequest request, String clientPlatform) {
         String normalizedUsername = normalizeIdentifier(request.username());
         String normalizedEmail = normalizeIdentifier(request.email());
         ensureStrongPassword(request.password());
@@ -156,6 +161,7 @@ public class AuthService {
                 .hasLocalPassword(true)
                 .accountStatus(AccountStatus.PENDING_VERIFICATION)
                 .emailVerifiedAt(null)
+                .registrationPlatform(normalizeClientPlatform(clientPlatform))
                 .build();
 
         User savedUser = userRepository.save(user);
@@ -390,6 +396,11 @@ public class AuthService {
 
     @Transactional
     public LoginResponse socialLogin(SocialLoginRequest request) {
+        return socialLogin(request, null);
+    }
+
+    @Transactional
+    public LoginResponse socialLogin(SocialLoginRequest request, String clientPlatform) {
         SocialUserInfo userInfo;
         switch (request.provider().toLowerCase(Locale.ROOT)) {
             case "google" -> userInfo = socialTokenVerifier.verifyGoogleToken(request.idToken());
@@ -489,6 +500,7 @@ public class AuthService {
                 .hasLocalPassword(false)
                 .accountStatus(AccountStatus.ACTIVE)
                 .emailVerifiedAt(now)
+                .registrationPlatform(normalizeClientPlatform(clientPlatform))
                 .build();
 
         User savedUser = userRepository.save(newUser);
@@ -646,6 +658,11 @@ public class AuthService {
 
     @Transactional
     public LoginResponse createQuickSession() {
+        return createQuickSession(null);
+    }
+
+    @Transactional
+    public LoginResponse createQuickSession(String clientPlatform) {
         LocalDateTime now = LocalDateTime.now(clock);
 
         String guestSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
@@ -664,6 +681,7 @@ public class AuthService {
                 .userType(UserType.GUEST)
                 .isAnonymous(true)
                 .isAccountLinked(false)
+                .registrationPlatform(normalizeClientPlatform(clientPlatform))
                 .build();
 
         User saved = userRepository.save(guestUser);
@@ -1139,6 +1157,19 @@ public class AuthService {
 
     private String normalizeIdentifier(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Accepts only known client platforms (ios/android/web); anything else is stored as null. */
+    private String normalizeClientPlatform(String value) {
+        String trimmed = trimToNull(value);
+        if (trimmed == null) {
+            return null;
+        }
+        String upper = trimmed.toUpperCase(Locale.ROOT);
+        return switch (upper) {
+            case "IOS", "ANDROID", "WEB" -> upper;
+            default -> null;
+        };
     }
 
     private String trimToNull(String value) {

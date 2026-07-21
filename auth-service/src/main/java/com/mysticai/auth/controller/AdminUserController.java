@@ -31,7 +31,8 @@ public class AdminUserController {
             String name,
             UserType userType,
             LocalDateTime createdAt,
-            LocalDateTime emailVerifiedAt
+            LocalDateTime emailVerifiedAt,
+            String registrationPlatform
     ) {
         static UserSummary from(User u) {
             return new UserSummary(
@@ -40,7 +41,8 @@ public class AdminUserController {
                     resolveName(u),
                     u.getUserType(),
                     u.getCreatedAt(),
-                    u.getEmailVerifiedAt()
+                    u.getEmailVerifiedAt(),
+                    u.getRegistrationPlatform()
             );
         }
     }
@@ -49,7 +51,10 @@ public class AdminUserController {
             long totalUsers,
             long registeredUsers,
             long guestUsers,
-            long verifiedUsers
+            long verifiedUsers,
+            long iosUsers,
+            long androidUsers,
+            long webUsers
     ) {}
 
     @GetMapping("/stats")
@@ -58,7 +63,10 @@ public class AdminUserController {
                 userRepository.count(),
                 userRepository.countByUserType(UserType.REGISTERED),
                 userRepository.countByUserType(UserType.GUEST),
-                userRepository.countByEmailVerifiedAtIsNotNull()
+                userRepository.countByEmailVerifiedAtIsNotNull(),
+                userRepository.countByRegistrationPlatform("IOS"),
+                userRepository.countByRegistrationPlatform("ANDROID"),
+                userRepository.countByRegistrationPlatform("WEB")
         ));
     }
 

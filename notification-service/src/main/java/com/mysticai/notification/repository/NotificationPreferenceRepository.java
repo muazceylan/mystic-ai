@@ -12,4 +12,8 @@ public interface NotificationPreferenceRepository extends JpaRepository<Notifica
 
     @Query("SELECT DISTINCT p.userId FROM NotificationPreference p")
     List<Long> findDistinctUserIds();
+
+    /** Lightweight userId → timezone pairs for local-time scheduling. */
+    @Query("SELECT p.userId, p.timezone FROM NotificationPreference p")
+    List<Object[]> findUserTimezones();
 }

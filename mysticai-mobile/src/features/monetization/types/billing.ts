@@ -118,6 +118,9 @@ export interface ResolvedPaywallProduct extends PaywallProduct {
   localizedPrice?: string | null;
   localizedPeriodPrice?: string | null;
   storeProductId?: string | null;
+  storeCurrencyCode?: string | null;
+  storeRawPrice?: number | null;
+  storePriceLocale?: string | null;
   availableForPurchase: boolean;
 }
 

@@ -48,8 +48,16 @@ public class BillingService {
         MonetizationSettings settings = activeSettings();
 
         if (settings == null) {
+            log.warn("Paywall requested but no PUBLISHED MonetizationSettings row exists — returning disabled paywall (userId={})", userId);
             return PaywallResponse.disabled();
         }
+
+        log.info("Paywall flags: configVersion={}, revenueCatEnabled={}, premiumEnabled={}, tokenPurchaseEnabled={}, userId={}",
+                settings.getConfigVersion(),
+                settings.isRevenueCatEnabled(),
+                settings.isPremiumEnabled(),
+                settings.isTokenPurchaseEnabled(),
+                userId);
 
         EntitlementService.EntitlementSnapshot snapshot = entitlementService.getSnapshot(userId);
         boolean trialEligible = entitlementService.isTrialEligible(userId, EntitlementService.DEFAULT_ENTITLEMENT_KEY);

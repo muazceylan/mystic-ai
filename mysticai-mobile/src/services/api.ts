@@ -102,6 +102,7 @@ api.interceptors.request.use(async (config: any) => {
     ...(usernameHeader ? { 'X-Username': usernameHeader } : {}),
     'Accept-Language': localeHeader,
     'X-Locale': localeHeader,
+    'X-Client-Platform': Platform.OS,
   };
 
   if (token) {

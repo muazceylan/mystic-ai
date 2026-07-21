@@ -35,6 +35,18 @@ interface NotificationState {
   reset: () => void;
 }
 
+function getDeviceTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
+// Backend schedules pushes in the user's local time; keep the stored timezone
+// in sync with the device. Attempted once per app session.
+let timezoneSyncAttempted = false;
+
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
   totalPages: 0,
@@ -199,7 +211,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   fetchPreferences: async () => {
     set({ preferencesLoading: true });
     try {
-      const prefs = await notificationService.getPreferences();
+      let prefs = await notificationService.getPreferences();
+      const deviceTimezone = getDeviceTimezone();
+      if (!timezoneSyncAttempted && deviceTimezone && prefs.timezone !== deviceTimezone) {
+        timezoneSyncAttempted = true;
+        try {
+          prefs = await notificationService.updatePreferences({ timezone: deviceTimezone });
+        } catch {
+          // Non-fatal: keep server prefs; next session retries
+        }
+      }
       set({ preferences: prefs, preferencesLoading: false });
     } catch {
       set({ preferencesLoading: false });
@@ -232,6 +253,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   reset: () => {
+    timezoneSyncAttempted = false;
     set({
       notifications: [],
       totalPages: 0,

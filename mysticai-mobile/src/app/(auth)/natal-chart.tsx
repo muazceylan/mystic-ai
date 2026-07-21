@@ -11,6 +11,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { COUNTRIES } from '../../constants/index';
 import { registerOnboarding, updateProfile } from '../../services/auth';
+import { toLocalDateString } from '../../utils/localDate';
 import { ensureNatalChartForUser } from '../../services/natalChartBootstrap.service';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
@@ -170,13 +171,7 @@ export default function NatalChartScreen() {
   ]);
 
   const buildRegisterPayload = () => {
-    const birthDate = onboarding.birthDate
-      ? [
-          onboarding.birthDate.getFullYear(),
-          String(onboarding.birthDate.getMonth() + 1).padStart(2, '0'),
-          String(onboarding.birthDate.getDate()).padStart(2, '0'),
-        ].join('-')
-      : null;
+    const birthDate = onboarding.birthDate ? toLocalDateString(onboarding.birthDate) : null;
 
     const email = onboarding.email.trim();
 
@@ -207,13 +202,7 @@ export default function NatalChartScreen() {
   };
 
   const handleProfileUpdate = async () => {
-    const birthDate = onboarding.birthDate
-      ? [
-          onboarding.birthDate.getFullYear(),
-          String(onboarding.birthDate.getMonth() + 1).padStart(2, '0'),
-          String(onboarding.birthDate.getDate()).padStart(2, '0'),
-        ].join('-')
-      : undefined;
+    const birthDate = onboarding.birthDate ? toLocalDateString(onboarding.birthDate) : undefined;
 
     const profileData = {
       firstName: onboarding.firstName || undefined,
