@@ -167,7 +167,7 @@ public class NotificationDispatchService {
     private boolean isInQuietHours(NotificationPreference pref) {
         try {
             ZoneId zone = ZoneId.of(pref.getTimezone());
-            LocalTime now = LocalTime.now(zone);
+            LocalTime now = LocalTime.now(clock.withZone(zone));
             LocalTime start = pref.getQuietHoursStart();
             LocalTime end = pref.getQuietHoursEnd();
             // crosses midnight (e.g. 22:30 → 08:00)

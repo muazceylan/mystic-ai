@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 
 /**
@@ -430,7 +431,12 @@ public class PersonalPlanComposer {
 
             if (variant.audience() != PlanVariant.Audience.ANY) {
                 if (!signals.allows(variant.audience())) {
-                    audienceFiltered = true;
+                    // Only counts as "used" if it excluded what would otherwise have been the
+                    // natural pick — filtering an entry further down the pool, after a pick is
+                    // already locked in, never changes the output.
+                    if (eligible.isEmpty()) {
+                        audienceFiltered = true;
+                    }
                     continue;
                 }
             }
@@ -521,24 +527,33 @@ public class PersonalPlanComposer {
             }
         }
 
-        // Age band breaks a remaining tie by phrasing intensity. Two variants of equal standing
-        // are simply ordered differently; nothing is added or removed because of age.
+        // Age band breaks a remaining tie by phrasing intensity — but only when more than one
+        // variant is genuinely tied for the most/least direct wording. If a single variant is
+        // uniquely the most direct (or indirect), there is no tie to break, and the natural
+        // (rotation-selected) pick stands; otherwise the offset/regeneration entropy that
+        // `pickEntry` relies on would be defeated every time an age band is known.
         if (signals.ageBand() != PersonalPlanSignals.AgeBand.UNKNOWN && eligible.size() > 1) {
-            List<PersonalPlanCatalog.CatalogEntry> byIntensity = new ArrayList<>(eligible);
             boolean preferDirect = signals.ageBand() == PersonalPlanSignals.AgeBand.YOUNG_ADULT
                     || signals.ageBand() == PersonalPlanSignals.AgeBand.ADULT;
-            byIntensity.sort(Comparator.comparingInt(entry -> {
+            ToIntFunction<PersonalPlanCatalog.CatalogEntry> intensityScore = entry -> {
                 int length = entry.text(signals.english()).length();
                 return preferDirect ? length : -length;
-            }));
-            PersonalPlanCatalog.CatalogEntry ageChoice = byIntensity.get(0);
-            if (!ageChoice.equals(current)) {
-                usage.record(SignalUsageRecorder.AGE_RANGE,
-                        "variant_choice: age band " + signals.ageBand().slug()
-                                + " tie-break selected " + ageChoice.semanticKey()
-                                + " over " + current.semanticKey()
-                                + " in " + candidate.area().slug());
-                current = ageChoice;
+            };
+            int bestScore = eligible.stream().mapToInt(intensityScore).min().orElseThrow();
+            List<PersonalPlanCatalog.CatalogEntry> tiedForBest = eligible.stream()
+                    .filter(entry -> intensityScore.applyAsInt(entry) == bestScore)
+                    .toList();
+
+            if (tiedForBest.size() > 1) {
+                PersonalPlanCatalog.CatalogEntry ageChoice = tiedForBest.get(0);
+                if (!ageChoice.equals(current)) {
+                    usage.record(SignalUsageRecorder.AGE_RANGE,
+                            "variant_choice: age band " + signals.ageBand().slug()
+                                    + " tie-break selected " + ageChoice.semanticKey()
+                                    + " over " + current.semanticKey()
+                                    + " in " + candidate.area().slug());
+                    current = ageChoice;
+                }
             }
         }
 

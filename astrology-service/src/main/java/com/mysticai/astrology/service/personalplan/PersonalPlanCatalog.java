@@ -322,7 +322,7 @@ public class PersonalPlanCatalog {
                 of("SET_AN_END_TIME", "set_end_time_for_visit", LIMIT,
                         "Bugünkü bir aile buluşmasının bitiş saatini baştan söyleyin; sonradan açıklamak zorunda kalmayın.",
                         "Say the end time of a family gathering at the start today, so you do not have to justify it later."),
-                of("INTERRUPT_RECURRING_PATTERN", "dont_settle_old_matter_today", SCOPE,
+                of("DONT_SETTLE_OLD_MATTER_TODAY", "dont_settle_old_matter_today", SCOPE,
                         "Yıllardır çözülmemiş bir aile meselesini bugünkü tek konuşmayla kapatmayı hedeflemeyin.",
                         "Do not aim to close a years-old family matter in a single conversation today."));
 
@@ -387,7 +387,7 @@ public class PersonalPlanCatalog {
                 of("DONT_TAKE_OVER_OTHERS_TASK", "avoid_taking_over_task", DRIVE,
                         "Bugün başkasının sorumluluğundaki bir işi devralmadan önce, gerçekten sizden mi istendiğini sorun.",
                         "Before taking over something that belongs to someone else today, ask whether it was actually asked of you."),
-                of("RESTATE_DECISION_WITHOUT_JUSTIFYING", "dont_negotiate_your_no", LIMIT,
+                of("DONT_NEGOTIATE_YOUR_NO", "dont_negotiate_your_no", LIMIT,
                         "Verdiğiniz bir \"hayır\" bugün tartışmaya açılırsa, gerekçe eklemek yerine kararınızı aynen tekrar edin.",
                         "If a \"no\" you gave is reopened today, repeat the decision as-is rather than adding more justification."),
                 of("STATE_CAPACITY_UPFRONT", "limit_new_commitments_today", SCOPE,
@@ -421,7 +421,7 @@ public class PersonalPlanCatalog {
                 of("DELAY_REACTIVE_MESSAGE", "delay_reactive_message", DRIVE,
                         "Duygusal yoğunlukta yazdığınız bir mesajı bugün göndermeden önce taslakta bırakın ve akşam yeniden okuyun.",
                         "Leave a message written under emotional intensity in drafts today and reread it in the evening."),
-                of("DONT_GENERALISE_FROM_TODAY", "avoid_all_or_nothing_frame", LIMIT,
+                of("AVOID_ALL_OR_NOTHING_FRAME", "avoid_all_or_nothing_frame", LIMIT,
                         "Bugün bir durumu \"ya hep ya hiç\" olarak çerçevelediğinizi fark ederseniz, üçüncü bir seçenek yazın.",
                         "If you notice yourself framing something as all-or-nothing today, write down a third option."),
                 of("DONT_STACK_HARD_CONVERSATIONS", "dont_stack_hard_conversations", SCOPE,
@@ -438,7 +438,7 @@ public class PersonalPlanCatalog {
                 of("SET_A_CONCRETE_DATE", "set_a_decision_deadline", DRIVE,
                         "Uzun süredir askıda olan bir konuya bugün karar tarihi verin; kararı değil, tarihi bugün kesinleştirin.",
                         "Give a long-pending matter a decision date today — fix the date now, not the decision."),
-                of("WRITE_DECISION_CRITERIA", "list_what_you_give_up", LIMIT,
+                of("LIST_WHAT_YOU_GIVE_UP", "list_what_you_give_up", LIMIT,
                         "Bugünkü seçeneğin size ne kazandırdığını değil, neyi bıraktırdığını da yazın.",
                         "Write down not only what today's option gains you, but also what it makes you give up."),
                 of("NARROW_THE_OPTIONS", "reduce_options_to_two", SCOPE,
@@ -472,7 +472,7 @@ public class PersonalPlanCatalog {
                 of("DEFER_ONE_TASK", "move_one_task_to_tomorrow", DRIVE,
                         "Bugünkü listenizden bir maddeyi bilinçli olarak yarına taşıyın ve bunu not edin.",
                         "Deliberately move one item from today's list to tomorrow and write that down."),
-                of("PROTECT_A_TIME_BLOCK", "protect_sleep_window", LIMIT,
+                of("PROTECT_SLEEP_WINDOW", "protect_sleep_window", LIMIT,
                         "Bugün yatma saatinizi bir saat önceden belirleyin ve o saatte hangi işi bırakacağınızı yazın.",
                         "Set your bedtime an hour in advance today and note which task you will drop at that point."),
                 of("NARROW_THE_OPTIONS", "shorten_the_evening_list", SCOPE,
@@ -492,7 +492,7 @@ public class PersonalPlanCatalog {
                 of("REGULATE_BEFORE_HARD_CONVERSATION", "limit_stimulants_before_talk", LIMIT,
                         "Zorlu bir konuşmadan önce bugün uyarıcı tüketimini artırmayın; konuşmayı daha erken saate alın.",
                         "Do not increase stimulants before a demanding conversation today; move the conversation earlier instead."),
-                of("DONT_REFILL_FREED_TIME", "dont_compress_recovery", SCOPE,
+                of("DONT_COMPRESS_RECOVERY", "dont_compress_recovery", SCOPE,
                         "Bugün dinlenmeyi günün sonuna sıkıştırmak yerine, güne bir ara ekleyin.",
                         "Rather than compressing recovery into the end of the day, add one break inside the day."));
 
@@ -711,7 +711,7 @@ public class PersonalPlanCatalog {
                 of("DONT_PERSONALISE_SILENCE", "short_reply_overread", WORD,
                         "Kısa gelen bir cevabı ilgisizlik veya reddedilme olarak yorumlama eğiliminiz artabilir. Karşılık vermeden önce neyin kastedildiğini sorun.",
                         "You may be more likely to read a short reply as disinterest or rejection. Ask what was meant before you respond."),
-                of("LIMIT_TO_SINGLE_ISSUE", "past_examples_pileup", BOND,
+                of("PAST_EXAMPLES_PILEUP", "past_examples_pileup", BOND,
                         "Bir gerginlikte geçmiş örnekleri arka arkaya sıralama ihtimaliniz yükselebilir. Konuşmayı bugünkü tek olayla sınırlayın.",
                         "In a tense moment you may be more likely to stack up past examples. Keep the conversation to today's single incident."));
         putCautions(LifeArea.COMMUNICATION,
