@@ -2,12 +2,13 @@ import { Platform } from 'react-native';
 import { setAdProvider } from './AdProviderAdapter';
 import { isAdMobAvailable } from './admobInit';
 import { AdMobRewardedProvider } from './AdMobRewardedProvider';
+import { LevelPlayRewardedProvider } from './LevelPlayRewardedProvider';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import type { AdsInitializationOptions } from './mobileAds.types';
 import { getConfiguredMobileAdProvider } from './providerConfig';
 
 let initPromise: Promise<void> | null = null;
-let levelPlayProvider: import('./LevelPlayRewardedProvider').LevelPlayRewardedProvider | null = null;
+let levelPlayProvider: LevelPlayRewardedProvider | null = null;
 let adMobProvider: AdMobRewardedProvider | null = null;
 
 /**
@@ -57,7 +58,6 @@ async function doInitializeAdProvider(
   }
 
   if (configuredProvider === 'levelplay') {
-    const { LevelPlayRewardedProvider } = require('./LevelPlayRewardedProvider') as typeof import('./LevelPlayRewardedProvider');
     const provider = levelPlayProvider ?? new LevelPlayRewardedProvider();
     levelPlayProvider = provider;
     setAdProvider(provider);
