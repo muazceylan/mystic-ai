@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -27,6 +28,13 @@ public class NotificationDispatchService {
     private static final int MAX_DAILY_PUSH_FREQUENT = 9;
 
     private final NotificationRepository notificationRepository;
+
+    /** Overridable in tests to make date-based dedup/limit checks deterministic. */
+    private Clock clock = Clock.systemDefaultZone();
+
+    public void setClock(Clock clock) {
+        this.clock = clock;
+    }
 
     public enum DispatchDecision {
         /** Send push + save in-app */
@@ -77,7 +85,7 @@ public class NotificationDispatchService {
         }
 
         // 6. Daily push limit gate
-        long pushesToday = notificationRepository.countPushSentSince(userId, LocalDate.now().atStartOfDay());
+        long pushesToday = notificationRepository.countPushSentSince(userId, LocalDate.now(clock).atStartOfDay());
         int dailyPushLimit = resolveDailyPushLimit(pref);
         if (pushesToday >= dailyPushLimit) {
             log.debug("[DISPATCH] IN_APP_ONLY type={} userId={} reason=daily_limit pushesToday={}", type, userId, pushesToday);
@@ -88,7 +96,7 @@ public class NotificationDispatchService {
     }
 
     public String buildDedupKey(Long userId, NotificationType type, NotificationPreference pref) {
-        return userId + ":" + type.name() + ":" + LocalDate.now(resolveZone(pref));
+        return userId + ":" + type.name() + ":" + LocalDate.now(clock.withZone(resolveZone(pref)));
     }
 
     /** User's preferred zone; falls back to the server zone on missing/invalid timezone. */
