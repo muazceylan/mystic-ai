@@ -102,6 +102,24 @@ ALTER TABLE IF EXISTS monetization_actions ADD COLUMN IF NOT EXISTS analytics_ke
 ALTER TABLE IF EXISTS monetization_actions ADD COLUMN IF NOT EXISTS is_reward_fallback_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS monetization_actions ADD COLUMN IF NOT EXISTS daily_limit INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE IF EXISTS monetization_actions ADD COLUMN IF NOT EXISTS weekly_limit INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS guru_token_reservations (
+    id UUID PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    dream_id BIGINT NOT NULL,
+    expansion_type VARCHAR(48) NOT NULL,
+    action_key VARCHAR(255) NOT NULL,
+    cost INTEGER NOT NULL,
+    status VARCHAR(24) NOT NULL,
+    idempotency_key VARCHAR(255) NOT NULL,
+    ledger_transaction_id UUID,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
+    expires_at TIMESTAMP(6) NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gtr_idempotency ON guru_token_reservations (idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_gtr_user_status_expires ON guru_token_reservations (user_id, status, expires_at);
+CREATE INDEX IF NOT EXISTS idx_gtr_dream_type ON guru_token_reservations (user_id, dream_id, expansion_type);
 UPDATE monetization_actions
 SET is_reward_fallback_enabled = TRUE,
     reward_amount = CASE WHEN reward_amount <= 0 THEN 1 ELSE reward_amount END
@@ -311,3 +329,56 @@ VALUES
     )
 ON CONFLICT (platform) DO NOTHING;
 -- TODO: Replace APP_STORE_ID with actual App Store numeric ID after App Store listing is available.
+
+-- ── Provider reward-callback tables (ayeT rewarded video) ────────────────────
+-- Created here (before Hibernate validation) because RewardSession and
+-- ProviderCallbackEvent are JPA @Entity classes; under prod ddl-auto=validate an
+-- ApplicationRunner would run too late and the app would fail with
+-- "Schema-validation: missing table". Idempotent — safe on every startup.
+
+CREATE TABLE IF NOT EXISTS reward_session (
+    id UUID NOT NULL,
+    user_id BIGINT NOT NULL,
+    provider VARCHAR(40) NOT NULL DEFAULT 'AYET',
+    channel VARCHAR(40) NOT NULL DEFAULT 'WEB',
+    status VARCHAR(40) NOT NULL DEFAULT 'CREATED',
+    placement VARCHAR(120),
+    reward_amount INTEGER NOT NULL,
+    expires_at TIMESTAMP(6) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    rewarded_at TIMESTAMP(6),
+    updated_at TIMESTAMP(6),
+    version BIGINT,
+    CONSTRAINT pk_reward_session PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS idx_rs_user_status ON reward_session (user_id, status);
+CREATE INDEX IF NOT EXISTS idx_rs_provider ON reward_session (provider);
+CREATE INDEX IF NOT EXISTS idx_rs_expires ON reward_session (expires_at);
+
+CREATE TABLE IF NOT EXISTS provider_callback_event (
+    id UUID NOT NULL,
+    provider VARCHAR(40) NOT NULL,
+    provider_transaction_id VARCHAR(255) NOT NULL,
+    user_id BIGINT,
+    reward_session_id UUID,
+    adslot_id VARCHAR(255),
+    placement_identifier VARCHAR(255),
+    currency_amount INTEGER,
+    payout_usd NUMERIC(12,6),
+    status VARCHAR(40) NOT NULL,
+    rejection_reason VARCHAR(255),
+    raw_payload_hash VARCHAR(64),
+    granted_amount INTEGER NOT NULL DEFAULT 0,
+    ledger_entry_id VARCHAR(255),
+    received_at TIMESTAMP(6) NOT NULL,
+    processed_at TIMESTAMP(6),
+    CONSTRAINT pk_provider_callback_event PRIMARY KEY (id)
+);
+-- Idempotency anchor: one row per provider transaction. This is what makes
+-- duplicate callbacks (including concurrent ones) impossible to double-credit.
+CREATE UNIQUE INDEX IF NOT EXISTS uk_pce_provider_txn
+    ON provider_callback_event (provider, provider_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_pce_user ON provider_callback_event (user_id);
+CREATE INDEX IF NOT EXISTS idx_pce_session ON provider_callback_event (reward_session_id);
+CREATE INDEX IF NOT EXISTS idx_pce_status ON provider_callback_event (status);
+CREATE INDEX IF NOT EXISTS idx_pce_received ON provider_callback_event (received_at);

@@ -175,8 +175,17 @@ function localizeActionTagEn(tag?: DailyActionsDTO['actions'][number]['tag'] | s
   return 'Bold';
 }
 
+/**
+ * v2 plans are composed per-locale on the server, so the legacy string map must not touch them.
+ * `mainTheme` is the marker: only the premium composer emits it.
+ */
+function isPremiumPlanPayload(payload: DailyActionsDTO): boolean {
+  return Boolean(payload?.mainTheme || payload?.primaryAction);
+}
+
 function localizeDailyActionsPayload(payload: DailyActionsDTO, locale: DailyLocale): DailyActionsDTO {
   if (locale !== 'en') return payload;
+  if (isPremiumPlanPayload(payload)) return payload;
 
   return {
     ...payload,
@@ -272,10 +281,14 @@ async function patchLocalActionState(
   const existing = await readCache<DailyActionsDTO>(key);
   if (!existing) return;
 
+  const patchDone = <T extends { id: string; isDone: boolean; doneAt?: string | null }>(item: T): T =>
+    item.id === actionId ? { ...item, isDone, doneAt: isDone ? doneAt : undefined } : item;
+
   const updated: DailyActionsDTO = {
     ...existing,
-    actions: existing.actions.map((action) =>
-      action.id === actionId ? { ...action, isDone, doneAt: isDone ? doneAt : undefined } : action),
+    actions: existing.actions.map(patchDone),
+    primaryAction: existing.primaryAction ? patchDone(existing.primaryAction) : undefined,
+    lifeAreaCards: existing.lifeAreaCards?.map(patchDone),
   };
   await writeCache(key, localizeDailyActionsPayload(updated, locale));
 }

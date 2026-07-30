@@ -9,14 +9,17 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useToast } from '@/components/ui/Toast';
 import { aiModelsApi } from '@/lib/api';
-import { AiModelConfig, AiModelProviderConfig, AiProviderAdapter } from '@/types';
+import { AiModelConfig, AiModelProviderConfig, AiProviderAdapter, AiProviderStatus, AiReasoningEffort, AiThinkingMode } from '@/types';
 
 const ADAPTER_OPTIONS: Array<{ value: AiProviderAdapter; label: string }> = [
   { value: 'groq', label: 'Groq' },
   { value: 'gemini', label: 'Gemini' },
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'ollama', label: 'Ollama (Local)' },
+  { value: 'deepseek', label: 'DeepSeek' },
 ];
+
+const DEEPSEEK_MODEL_OPTIONS = ['deepseek-v4-flash', 'deepseek-v4-pro'];
 
 type ChainKey = 'complexChain' | 'simpleChain';
 
@@ -28,6 +31,8 @@ function adapterDefaults(adapter: AiProviderAdapter) {
       return { model: 'openrouter/auto', baseUrl: 'https://openrouter.ai/api/v1', timeoutMs: 10000, maxOutputTokens: 2048 };
     case 'ollama':
       return { model: 'gemma3:4b', baseUrl: 'http://localhost:11434', timeoutMs: 15000, maxOutputTokens: 1024 };
+    case 'deepseek':
+      return { model: 'deepseek-v4-flash', baseUrl: 'https://api.deepseek.com', timeoutMs: 30000, maxOutputTokens: 2000 };
     default:
       return { model: 'openai/gpt-oss-120b', baseUrl: 'https://api.groq.com/openai/v1', timeoutMs: 8000, maxOutputTokens: 2048 };
   }
@@ -43,6 +48,9 @@ function createNewProvider(seed: number): AiModelProviderConfig {
     model: defaults.model,
     baseUrl: defaults.baseUrl,
     apiKey: '',
+    hasApiKey: false,
+    apiKeyMasked: null,
+    clearApiKey: false,
     localProviderType: null,
     chatEndpoint: null,
     timeoutMs: defaults.timeoutMs,
@@ -65,6 +73,19 @@ function parseOptionalNumber(value: string) {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function statusBadge(status: AiProviderStatus | null | undefined) {
+  switch (status) {
+    case 'MISSING_CREDENTIAL':
+      return { label: 'API anahtarı eksik', className: 'bg-red-900/40 text-red-300 border-red-700' };
+    case 'DISABLED':
+      return { label: 'Pasif', className: 'bg-gray-800 text-gray-400 border-gray-700' };
+    case 'READY':
+      return { label: 'Hazır', className: 'bg-green-900/40 text-green-300 border-green-700' };
+    default:
+      return null;
+  }
 }
 
 export default function AiModelsPage() {
@@ -303,6 +324,8 @@ export default function AiModelsPage() {
                 <th className="text-left px-3 py-2">Retry</th>
                 <th className="text-left px-3 py-2">Cooldown</th>
                 <th className="text-left px-3 py-2">Enabled</th>
+                <th className="text-left px-3 py-2">API Key</th>
+                <th className="text-left px-3 py-2">Thinking (DeepSeek)</th>
                 <th className="text-left px-3 py-2">Aksiyon</th>
               </tr>
             </thead>
@@ -335,6 +358,8 @@ export default function AiModelsPage() {
                           maxOutputTokens: defaults.maxOutputTokens,
                           localProviderType: adapter === 'ollama' ? 'ollama' : null,
                           chatEndpoint: adapter === 'ollama' ? '/api/generate' : null,
+                          thinkingMode: adapter === 'deepseek' ? 'disabled' : null,
+                          reasoningEffort: null,
                         });
                       }}
                     >
@@ -347,7 +372,15 @@ export default function AiModelsPage() {
                     <Input
                       value={provider.model}
                       onChange={(e) => updateProvider(index, { model: e.target.value })}
+                      list={provider.adapter === 'deepseek' ? `deepseek-models-${index}` : undefined}
                     />
+                    {provider.adapter === 'deepseek' && (
+                      <datalist id={`deepseek-models-${index}`}>
+                        {DEEPSEEK_MODEL_OPTIONS.map((option) => (
+                          <option key={option} value={option} />
+                        ))}
+                      </datalist>
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     <Input
@@ -391,10 +424,96 @@ export default function AiModelsPage() {
                       <Input
                         type="number"
                         step="0.1"
+                        min={0}
+                        max={2}
                         value={provider.temperature ?? ''}
+                        disabled={provider.adapter === 'deepseek' && provider.thinkingMode === 'enabled'}
                         onChange={(e) => updateProvider(index, { temperature: parseOptionalNumber(e.target.value) })}
+                        className={provider.adapter === 'deepseek' && provider.thinkingMode === 'enabled' ? 'opacity-50 cursor-not-allowed' : ''}
                       />
+                      {provider.adapter === 'deepseek' && provider.thinkingMode === 'enabled' && (
+                        <span className="block mt-1 text-gray-500">Thinking modu açıkken sıcaklık ayarı kullanılmaz.</span>
+                      )}
                     </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {provider.adapter === 'ollama' ? (
+                      <span className="text-xs text-gray-600">Gerekmez (local)</span>
+                    ) : (
+                      <div className="space-y-1.5 min-w-[170px]">
+                        {(() => {
+                          const badge = statusBadge(provider.status);
+                          return badge ? (
+                            <span className={`inline-block px-2 py-0.5 rounded border text-[11px] ${badge.className}`}>
+                              {badge.label}
+                            </span>
+                          ) : null;
+                        })()}
+                        {provider.hasApiKey && !provider.clearApiKey && (
+                          <p className="text-xs text-gray-500 font-mono">{provider.apiKeyMasked}</p>
+                        )}
+                        <Input
+                          type="password"
+                          autoComplete="new-password"
+                          placeholder={provider.hasApiKey ? 'Yeni anahtar (değiştirmek için)' : 'API anahtarı gir'}
+                          value={provider.apiKey ?? ''}
+                          disabled={!!provider.clearApiKey}
+                          onChange={(e) => updateProvider(index, { apiKey: e.target.value })}
+                        />
+                        {provider.hasApiKey && (
+                          <label className="inline-flex items-center gap-1.5 text-[11px] text-red-400">
+                            <input
+                              type="checkbox"
+                              checked={!!provider.clearApiKey}
+                              onChange={(e) =>
+                                updateProvider(index, {
+                                  clearApiKey: e.target.checked,
+                                  apiKey: e.target.checked ? '' : provider.apiKey,
+                                })
+                              }
+                              className="h-3 w-3 rounded border-gray-600 bg-gray-800 text-red-600"
+                            />
+                            Anahtarı kaldır
+                          </label>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {provider.adapter === 'deepseek' ? (
+                      <div className="space-y-2 min-w-[140px]">
+                        <div>
+                          <span className="block mb-1 text-xs text-gray-500">Thinking Mode</span>
+                          <Select
+                            value={provider.thinkingMode ?? 'disabled'}
+                            onChange={(e) => {
+                              const thinkingMode = e.target.value as AiThinkingMode;
+                              updateProvider(index, {
+                                thinkingMode,
+                                reasoningEffort: thinkingMode === 'enabled' ? (provider.reasoningEffort ?? 'high') : null,
+                              });
+                            }}
+                          >
+                            <option value="disabled">Disabled</option>
+                            <option value="enabled">Enabled</option>
+                          </Select>
+                        </div>
+                        <div>
+                          <span className="block mb-1 text-xs text-gray-500">Reasoning Effort</span>
+                          <Select
+                            value={provider.reasoningEffort ?? 'high'}
+                            disabled={provider.thinkingMode !== 'enabled'}
+                            onChange={(e) => updateProvider(index, { reasoningEffort: e.target.value as AiReasoningEffort })}
+                            className={provider.thinkingMode !== 'enabled' ? 'opacity-50 cursor-not-allowed' : ''}
+                          >
+                            <option value="high">High</option>
+                            <option value="max">Max</option>
+                          </Select>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-600">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     <Button

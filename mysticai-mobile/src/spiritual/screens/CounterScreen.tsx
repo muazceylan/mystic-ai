@@ -31,6 +31,7 @@ import { useJournalStore } from '../store/useJournalStore';
 import { useSpiritualSettingsStore } from '../store/useSpiritualSettingsStore';
 import { CounterFinishModal } from '../components/CounterFinishModal';
 import type { CustomSetItem } from '../types';
+import { trackEvent } from '../../services/analytics';
 
 export default function CounterScreen() {
   const params = useLocalSearchParams<{
@@ -187,6 +188,12 @@ export default function CounterScreen() {
         durationSec,
         note,
       });
+      trackEvent('spiritual_practice_completed', {
+        source: 'counter_finish',
+        surface: 'spiritual_practice',
+        target_reached: store.completed >= store.target,
+        result: 'success',
+      });
       setShowFinish(false);
 
       // Delay navigation to avoid iOS modal dismiss + navigation clash
@@ -211,6 +218,12 @@ export default function CounterScreen() {
       target: store.target,
       completed: store.completed,
       durationSec,
+    });
+    trackEvent('spiritual_practice_completed', {
+      source: 'counter_save',
+      surface: 'spiritual_practice',
+      target_reached: store.completed >= store.target,
+      result: 'success',
     });
     setTimeout(() => router.back(), 400);
   }, [store, journal]);

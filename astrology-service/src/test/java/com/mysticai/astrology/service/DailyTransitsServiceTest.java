@@ -11,6 +11,7 @@ import com.mysticai.astrology.repository.DailyActionStateRepository;
 import com.mysticai.astrology.repository.DailyTransitsCacheRepository;
 import com.mysticai.astrology.repository.NatalChartRepository;
 import com.mysticai.astrology.repository.UserFeedbackRepository;
+import com.mysticai.astrology.service.personalplan.PersonalPlanService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,8 @@ class DailyTransitsServiceTest {
     private DailyActionStateRepository dailyActionStateRepository;
     @Mock
     private UserFeedbackRepository userFeedbackRepository;
+    @Mock
+    private PersonalPlanService personalPlanService;
 
     private DailyTransitsService service;
     private ObjectMapper objectMapper;
@@ -62,6 +65,7 @@ class DailyTransitsServiceTest {
                 dailyTransitsCacheRepository,
                 dailyActionStateRepository,
                 userFeedbackRepository,
+                personalPlanService,
                 objectMapper
         );
 

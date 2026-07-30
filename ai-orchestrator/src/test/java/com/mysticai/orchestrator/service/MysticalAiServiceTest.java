@@ -170,7 +170,8 @@ class MysticalAiServiceTest {
         assertFalse(combined.contains("dream"));
         assertFalse(combined.contains("shadow"));
         assertFalse(combined.contains("subconscious"));
-        assertTrue(fallbackService.lastPrompt.contains("İngilizce kelimeler KESİNLİKLE YASAKTIR"));
+        assertTrue(fallbackService.lastPrompt.contains("Yalnızca girdide bulunan olay"));
+        assertTrue(fallbackService.lastPrompt.contains("astrologyContext null ise astrologyNote kesinlikle null"));
     }
 
     private String natalPayload(String locale) {

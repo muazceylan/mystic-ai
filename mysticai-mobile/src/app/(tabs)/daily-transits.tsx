@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { SafeScreen, TabHeader } from '../../components/ui';
@@ -18,7 +18,7 @@ import {
   type TransitFilterOption,
 } from '../../components/daily';
 import { useTheme } from '../../context/ThemeContext';
-import { SPACING } from '../../constants/tokens';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import { queryKeys } from '../../lib/queryKeys';
 import { getDailyTransits, getTodayIsoDate, sendFeedback } from '../../services/daily.service';
 import type { DailyFeedbackPayload, DailyTransitsDTO } from '../../types/daily.types';
@@ -772,7 +772,7 @@ function compactSentencesFromText(text: string, maxSentences: number, maxChars: 
 }
 
 function localizedScreenTitle(locale: DailyLocale): string {
-  return locale === 'en' ? 'What Is Influencing You Today' : 'Bugün Seni Neler Etkiliyor';
+  return locale === 'en' ? "Today's Plan" : 'Bugünkü Planın';
 }
 
 function fallbackCopy(locale: DailyLocale) {
@@ -1164,6 +1164,12 @@ export default function DailyTransitsScreen() {
       result: 'success',
       locale: resolvedLocale,
     });
+    trackEvent('astrology_context_opened', {
+      date: dailyTransitsQuery.data.date,
+      source: 'daily_plan',
+      surface: 'daily_transits',
+      locale: resolvedLocale,
+    });
     trackProductEvent(ProductEventName.GUIDANCE_VIEWED, {
       'guidance type': 'daily_transits',
       'guidance date': dailyTransitsQuery.data.date,
@@ -1375,6 +1381,24 @@ export default function DailyTransitsScreen() {
 
         {data && todayInfluenceViewModel && !isEmpty && hasTransitCards ? (
           <>
+            <View
+              style={[
+                styles.guidanceNotice,
+                {
+                  backgroundColor: colors.primarySoftBg,
+                  borderColor: colors.border,
+                },
+              ]}
+              accessibilityRole="summary"
+            >
+              <Text style={[styles.guidanceNoticeTitle, { color: colors.text }]}>
+                {t('dailyTransits.planningNoticeTitle')}
+              </Text>
+              <Text style={[styles.guidanceNoticeBody, { color: colors.subtext }]}>
+                {t('dailyTransits.planningNoticeBody')}
+              </Text>
+            </View>
+
             <SpotlightTarget targetKey={DAILY_TRANSITS_TUTORIAL_TARGET_KEYS.HERO_SUMMARY}>
               <HeroInsightCard hero={todayInfluenceViewModel.hero} />
             </SpotlightTarget>
@@ -1420,5 +1444,19 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
     paddingBottom: 132,
     gap: SPACING.md,
+  },
+  guidanceNotice: {
+    borderWidth: 1,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  guidanceNoticeTitle: {
+    ...TYPOGRAPHY.BodyBold,
+  },
+  guidanceNoticeBody: {
+    ...TYPOGRAPHY.Caption,
+    lineHeight: 19,
   },
 });

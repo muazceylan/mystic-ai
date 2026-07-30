@@ -27,6 +27,7 @@ const SURFACE_TITLE_MAP: Array<[string, string]> = [
   ['/daily-summary', 'surfaceTitles.dailySummary'],
   ['/decision-compass', 'surfaceTitles.decisionCompass'],
   ['/(tabs)/decision-compass-all-categories', 'surfaceTitles.decisionCompassAllCategories'],
+  ['/(tabs)/journey', 'surfaceTitles.journey'],
   ['/decision-compass-detail', 'surfaceTitles.decisionCompassDetail'],
   ['/edit-birth-info', 'surfaceTitles.editBirthInfo'],
   ['/edit-profile-name', 'surfaceTitles.editProfileName'],

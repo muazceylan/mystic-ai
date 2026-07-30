@@ -1,9 +1,11 @@
 package com.mysticai.orchestrator.controller;
 
 import com.mysticai.orchestrator.dto.NumerologyGuidanceRequest;
+import com.mysticai.orchestrator.dto.DreamExpansionRequest;
 import com.mysticai.orchestrator.dto.OracleInterpretationRequest;
 import com.mysticai.orchestrator.service.MysticalAiService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,9 @@ import org.springframework.web.bind.annotation.*;
 public class InterpretationController {
 
     private final MysticalAiService mysticalAiService;
+
+    @Value("${internal.gateway.key:change-me}")
+    private String internalGatewayKey;
 
     /**
      * POST /api/ai/oracle/daily-secret
@@ -52,6 +57,25 @@ public class InterpretationController {
             return ResponseEntity.ok(symbols);
         } catch (Exception e) {
             return ResponseEntity.ok("[]");
+        }
+    }
+
+    @PostMapping(value = "/dream/expand",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> expandDreamAnalysis(
+            @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey,
+            @RequestBody DreamExpansionRequest request) {
+        if (serviceKey == null || !serviceKey.equals(internalGatewayKey)) {
+            return ResponseEntity.status(403).body("{\"code\":\"FORBIDDEN\"}");
+        }
+        if (request == null || request.expansionType() == null || request.dreamText() == null) {
+            return ResponseEntity.badRequest().body("{\"code\":\"INVALID_REQUEST\"}");
+        }
+        try {
+            return ResponseEntity.ok(mysticalAiService.generateDreamExpansion(request));
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body("{\"code\":\"AI_UNAVAILABLE\"}");
         }
     }
 

@@ -1,10 +1,14 @@
 import { Platform } from 'react-native';
 import { setAdProvider } from './AdProviderAdapter';
-import { isAdMobAvailable, initializeAdMob } from './admobInit';
+import { isAdMobAvailable } from './admobInit';
 import { AdMobRewardedProvider } from './AdMobRewardedProvider';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
+import type { AdsInitializationOptions } from './mobileAds.types';
+import { getConfiguredMobileAdProvider } from './providerConfig';
 
-let initialized = false;
+let initPromise: Promise<void> | null = null;
+let levelPlayProvider: import('./LevelPlayRewardedProvider').LevelPlayRewardedProvider | null = null;
+let adMobProvider: AdMobRewardedProvider | null = null;
 
 /**
  * Selects and initializes the correct ad provider based on runtime environment.
@@ -17,13 +21,48 @@ let initialized = false;
  * @param adsEnabled Whether ads are enabled in monetization config.
  *   If false, provider is still set up but SDK init is deferred.
  */
-export async function initializeAdProvider(adsEnabled: boolean): Promise<void> {
-  if (initialized) return;
-  initialized = true;
+export async function initializeAdProvider(
+  adsEnabled: boolean,
+  options: AdsInitializationOptions,
+  userId?: string | number | null,
+): Promise<void> {
+  if (initPromise) return initPromise;
+  initPromise = doInitializeAdProvider(adsEnabled, options, userId).finally(() => {
+    initPromise = null;
+  });
+  return initPromise;
+}
 
+async function doInitializeAdProvider(
+  adsEnabled: boolean,
+  options: AdsInitializationOptions,
+  userId?: string | number | null,
+): Promise<void> {
   if (Platform.OS === 'web') {
     if (__DEV__) {
       console.log('[AdProvider] Web platform — using stub provider');
+    }
+    return;
+  }
+
+  const configuredProvider = getConfiguredMobileAdProvider();
+  if (configuredProvider === 'none') {
+    if (__DEV__) console.log('[AdProvider] Provider disabled by configuration');
+    return;
+  }
+  if (configuredProvider !== 'admob' && configuredProvider !== 'levelplay') {
+    console.warn(
+      `[AdProvider] "${configuredProvider}" is not implemented; falling back to AdMob.`,
+    );
+  }
+
+  if (configuredProvider === 'levelplay') {
+    const { LevelPlayRewardedProvider } = require('./LevelPlayRewardedProvider') as typeof import('./LevelPlayRewardedProvider');
+    const provider = levelPlayProvider ?? new LevelPlayRewardedProvider();
+    levelPlayProvider = provider;
+    setAdProvider(provider);
+    if (adsEnabled) {
+      await provider.initialize(options, userId);
     }
     return;
   }
@@ -43,7 +82,8 @@ export async function initializeAdProvider(adsEnabled: boolean): Promise<void> {
   }
 
   // Native build — use real AdMob provider
-  const provider = new AdMobRewardedProvider();
+  const provider = adMobProvider ?? new AdMobRewardedProvider();
+  adMobProvider = provider;
   setAdProvider(provider);
 
   if (__DEV__) {
@@ -52,7 +92,7 @@ export async function initializeAdProvider(adsEnabled: boolean): Promise<void> {
 
   // Initialize SDK if ads are enabled
   if (adsEnabled) {
-    await initializeAdMob();
+    await provider.initialize(options);
   } else if (__DEV__) {
     console.log('[AdProvider] Ads disabled in config — deferring SDK init');
   }

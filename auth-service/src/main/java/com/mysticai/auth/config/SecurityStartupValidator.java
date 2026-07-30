@@ -15,6 +15,7 @@ public class SecurityStartupValidator implements ApplicationRunner {
     private static final String DEFAULT_JWT_SECRET = "bXlzdGljLWFpLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLW11c3QtYmUtYXQtbGVhc3QtMjU2LWJpdHM=";
     private static final String DEFAULT_VERIFICATION_PEPPER = "change-me-dev-pepper";
     private static final String DEFAULT_PASSWORD_RESET_PEPPER = "change-me-password-reset-pepper";
+    private static final String DEFAULT_INTERNAL_GATEWAY_KEY = "local-dev-internal-gateway-key-change-me";
 
     private final Environment environment;
 
@@ -29,6 +30,9 @@ public class SecurityStartupValidator implements ApplicationRunner {
 
     @Value("${auth.password-reset.token-pepper}")
     private String passwordResetPepper;
+
+    @Value("${internal.gateway.key:}")
+    private String internalGatewayKey;
 
     @Value("${spring.jpa.hibernate.ddl-auto:}")
     private String ddlAuto;
@@ -49,6 +53,10 @@ public class SecurityStartupValidator implements ApplicationRunner {
                 "VERIFICATION_TOKEN_PEPPER must be set to a non-default value outside local environment.");
         requireConfigured(passwordResetPepper, DEFAULT_PASSWORD_RESET_PEPPER,
                 "PASSWORD_RESET_TOKEN_PEPPER must be set to a non-default value outside local environment.");
+        // Guards the service-to-service personal-context endpoint; a blank or default value
+        // would leave profile data reachable by anyone who can route to the service.
+        requireConfigured(internalGatewayKey, DEFAULT_INTERNAL_GATEWAY_KEY,
+                "INTERNAL_GATEWAY_KEY must be set to a non-default value outside local environment.");
 
         if (!"validate".equalsIgnoreCase(normalize(ddlAuto))) {
             throw new IllegalStateException(

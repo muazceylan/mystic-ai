@@ -291,8 +291,15 @@ class AuthServiceVerificationUnitTest {
     }
 
     @Test
-    void socialLogin_applePrivateRelayWithoutLinkedAccount_rejectsInsteadOfCreatingUser() {
-        SocialLoginRequest request = new SocialLoginRequest("apple", "apple-id-token");
+    void socialLogin_applePrivateRelayWithoutLinkedAccount_createsUser() {
+        SocialLoginRequest request = new SocialLoginRequest(
+                "apple",
+                "apple-id-token",
+                null,
+                null,
+                "Ada",
+                "Lovelace"
+        );
         SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
                 "apple-social-123",
                 "relay-user@privaterelay.appleid.com",
@@ -303,18 +310,36 @@ class AuthServiceVerificationUnitTest {
         when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
         when(userRepository.findByProviderAndSocialId("apple", "apple-social-123")).thenReturn(Optional.empty());
         when(userRepository.findByEmailIgnoreCase("relay-user@privaterelay.appleid.com")).thenReturn(Optional.empty());
+        when(userRepository.existsByUsernameIgnoreCase("relay-user@privaterelay.appleid.com")).thenReturn(false);
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-social-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0, User.class);
+            saved.setId(502L);
+            return saved;
+        });
+        when(jwtTokenProvider.generateToken(anyLong(), any(String.class), any(String.class), any(UserType.class)))
+                .thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
 
-        assertThatThrownBy(() -> authService.socialLogin(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("APPLE_ACCOUNT_NOT_LINKED");
+        LoginResponse response = authService.socialLogin(request);
 
-        verify(userRepository, never()).save(any(User.class));
-        verify(signupBonusSyncService, never()).scheduleSignupBonus(any(User.class), any(String.class));
+        assertThat(response.isNewUser()).isTrue();
+        assertThat(response.user().email()).isEqualTo("relay-user@privaterelay.appleid.com");
+        assertThat(response.user().firstName()).isEqualTo("Ada");
+        assertThat(response.user().lastName()).isEqualTo("Lovelace");
+        verify(signupBonusSyncService).scheduleSignupBonus(any(User.class), eq("SOCIAL_APPLE"));
     }
 
     @Test
-    void socialLogin_appleTokenWithoutEmailAndNoLinkedAccount_rejectsInsteadOfCreatingFallbackUser() {
-        SocialLoginRequest request = new SocialLoginRequest("apple", "apple-id-token");
+    void socialLogin_appleTokenWithoutEmailAndNoLinkedAccount_createsInternalIdentityUser() {
+        SocialLoginRequest request = new SocialLoginRequest(
+                "apple",
+                "apple-id-token",
+                null,
+                null,
+                null,
+                null
+        );
         SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
                 "apple-social-123",
                 null,
@@ -324,23 +349,49 @@ class AuthServiceVerificationUnitTest {
 
         when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
         when(userRepository.findByProviderAndSocialId("apple", "apple-social-123")).thenReturn(Optional.empty());
+        when(userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(false);
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-social-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0, User.class);
+            saved.setId(503L);
+            return saved;
+        });
+        when(jwtTokenProvider.generateToken(
+                anyLong(),
+                any(String.class),
+                org.mockito.ArgumentMatchers.nullable(String.class),
+                any(UserType.class)
+        )).thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
 
-        assertThatThrownBy(() -> authService.socialLogin(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("APPLE_ACCOUNT_NOT_LINKED");
+        LoginResponse response = authService.socialLogin(request);
 
-        verify(userRepository, never()).save(any(User.class));
-        verify(signupBonusSyncService, never()).scheduleSignupBonus(any(User.class), any(String.class));
+        assertThat(response.isNewUser()).isTrue();
+        assertThat(response.user().email()).isNull();
+        assertThat(response.user().provider()).isEqualTo("apple");
+        org.mockito.ArgumentCaptor<User> savedUserCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(savedUserCaptor.capture());
+        assertThat(savedUserCaptor.getValue().getEmail()).endsWith("@apple.invalid");
+        assertThat(savedUserCaptor.getValue().getEmail()).doesNotContain("apple-social-123");
+        verify(jwtTokenProvider, org.mockito.Mockito.times(2)).generateToken(
+                anyLong(),
+                any(String.class),
+                org.mockito.ArgumentMatchers.isNull(),
+                any(UserType.class)
+        );
+        verify(signupBonusSyncService).scheduleSignupBonus(any(User.class), eq("SOCIAL_APPLE"));
     }
 
     @Test
-    void socialLogin_existingApplePrivateRelayAccountWithoutLocalCredentials_requiresLinkInsteadOfLogin() {
+    void socialLogin_existingApplePrivateRelayAccountWithoutLocalCredentials_logsInDirectly() {
         User relayUser = User.builder()
                 .id(501L)
                 .email("relay-user@privaterelay.appleid.com")
                 .username("relay-user@privaterelay.appleid.com")
                 .provider("apple")
                 .socialId("apple-social-123")
+                .firstName("Saved")
+                .lastName("Name")
                 .accountStatus(AccountStatus.ACTIVE)
                 .enabled(true)
                 .hasLocalPassword(false)
@@ -348,20 +399,250 @@ class AuthServiceVerificationUnitTest {
         SocialLoginRequest request = new SocialLoginRequest("apple", "apple-id-token");
         SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
                 "apple-social-123",
-                "relay-user@privaterelay.appleid.com",
+                null,
                 null,
                 null
         );
 
         when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
         when(userRepository.findByProviderAndSocialId("apple", "apple-social-123")).thenReturn(Optional.of(relayUser));
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-social-password");
+        when(userRepository.save(relayUser)).thenReturn(relayUser);
+        when(jwtTokenProvider.generateToken(
+                anyLong(),
+                any(String.class),
+                org.mockito.ArgumentMatchers.nullable(String.class),
+                any(UserType.class)
+        ))
+                .thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
 
-        assertThatThrownBy(() -> authService.socialLogin(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("APPLE_ACCOUNT_NOT_LINKED");
+        LoginResponse response = authService.socialLogin(request);
 
-        verify(userRepository, never()).save(any(User.class));
+        assertThat(response.isNewUser()).isFalse();
+        assertThat(response.user().id()).isEqualTo(501L);
+        assertThat(response.user().email()).isEqualTo("relay-user@privaterelay.appleid.com");
+        assertThat(response.user().firstName()).isEqualTo("Saved");
+        assertThat(response.user().lastName()).isEqualTo("Name");
+        verify(userRepository).save(relayUser);
         verify(signupBonusSyncService, never()).scheduleSignupBonus(any(User.class), any(String.class));
+    }
+
+    @Test
+    void socialLogin_verifiedAppleEmail_matchesLocalAccount_linksWithoutPasswordPrompt() {
+        User localUser = User.builder()
+                .id(88L)
+                .email("real@example.com")
+                .username("real@example.com")
+                .password("encoded-local-password")
+                .accountStatus(AccountStatus.ACTIVE)
+                .emailVerifiedAt(LocalDateTime.of(2026, 1, 1, 12, 0))
+                .enabled(true)
+                .hasLocalPassword(true)
+                .build();
+        SocialLoginRequest request = new SocialLoginRequest(
+                "apple",
+                "apple-id-token",
+                null,
+                null,
+                null,
+                null
+        );
+        SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
+                "apple-social-123",
+                "real@example.com",
+                null,
+                null,
+                true
+        );
+
+        when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
+        when(userRepository.findByProviderAndSocialId("apple", "apple-social-123")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("real@example.com")).thenReturn(Optional.of(localUser));
+        when(userRepository.save(localUser)).thenReturn(localUser);
+        when(jwtTokenProvider.generateToken(anyLong(), any(String.class), any(String.class), any(UserType.class)))
+                .thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
+
+        LoginResponse response = authService.socialLogin(request);
+
+        assertThat(response.isNewUser()).isFalse();
+        assertThat(response.user().id()).isEqualTo(88L);
+        assertThat(localUser.getProvider()).isEqualTo("apple");
+        assertThat(localUser.getSocialId()).isEqualTo("apple-social-123");
+        verify(authenticationManager, never()).authenticate(any());
+        verify(signupBonusSyncService, never()).scheduleSignupBonus(any(User.class), any(String.class));
+    }
+
+    @Test
+    void socialLogin_verifiedAppleEmail_doesNotAutoLinkUnverifiedLocalAccount() {
+        User unverifiedLocalUser = User.builder()
+                .id(88L)
+                .email("real@example.com")
+                .username("real@example.com")
+                .password("encoded-local-password")
+                .accountStatus(AccountStatus.PENDING_VERIFICATION)
+                .enabled(true)
+                .hasLocalPassword(true)
+                .build();
+        SocialLoginRequest request = new SocialLoginRequest("apple", "apple-id-token");
+        SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
+                "apple-social-123",
+                "real@example.com",
+                null,
+                null,
+                true,
+                false
+        );
+
+        when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
+        when(userRepository.findByProviderAndSocialId("apple", "apple-social-123")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("real@example.com")).thenReturn(Optional.of(unverifiedLocalUser));
+        when(userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(false);
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-apple-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0, User.class);
+            saved.setId(505L);
+            return saved;
+        });
+        when(jwtTokenProvider.generateToken(
+                anyLong(),
+                any(String.class),
+                org.mockito.ArgumentMatchers.nullable(String.class),
+                any(UserType.class)
+        )).thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
+
+        LoginResponse response = authService.socialLogin(request);
+
+        assertThat(response.isNewUser()).isTrue();
+        assertThat(response.user().id()).isEqualTo(505L);
+        assertThat(response.user().email()).isNull();
+        assertThat(unverifiedLocalUser.getProvider()).isNull();
+        assertThat(unverifiedLocalUser.getSocialId()).isNull();
+        verify(signupBonusSyncService).scheduleSignupBonus(any(User.class), eq("SOCIAL_APPLE"));
+    }
+
+    @Test
+    void socialLogin_unverifiedAppleEmail_doesNotAutoLinkVerifiedLocalAccount() {
+        User verifiedLocalUser = User.builder()
+                .id(89L)
+                .email("real@example.com")
+                .username("real@example.com")
+                .accountStatus(AccountStatus.ACTIVE)
+                .emailVerifiedAt(LocalDateTime.of(2026, 1, 1, 12, 0))
+                .enabled(true)
+                .hasLocalPassword(true)
+                .build();
+        SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
+                "apple-social-456",
+                "real@example.com",
+                null,
+                null,
+                false,
+                false
+        );
+
+        when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
+        when(userRepository.findByProviderAndSocialId("apple", "apple-social-456")).thenReturn(Optional.empty());
+        when(userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(false);
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-apple-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0, User.class);
+            saved.setId(506L);
+            return saved;
+        });
+        when(jwtTokenProvider.generateToken(
+                anyLong(),
+                any(String.class),
+                org.mockito.ArgumentMatchers.nullable(String.class),
+                any(UserType.class)
+        )).thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
+
+        LoginResponse response = authService.socialLogin(new SocialLoginRequest("apple", "apple-id-token"));
+
+        assertThat(response.isNewUser()).isTrue();
+        assertThat(response.user().email()).isNull();
+        assertThat(verifiedLocalUser.getProvider()).isNull();
+        verify(userRepository, never()).findByEmailIgnoreCase("real@example.com");
+    }
+
+    @Test
+    void applePrivateEmail_prefersClaimAndFallsBackToKnownRelayDomainsOnly() {
+        assertThat(authService.isApplePrivateEmail(new SocialTokenVerifier.SocialUserInfo(
+                "sub", "user@icloud.com", null, null, true, true
+        ))).isTrue();
+        assertThat(authService.isApplePrivateEmail(new SocialTokenVerifier.SocialUserInfo(
+                "sub", "user@privaterelay.appleid.com", null, null, true, false
+        ))).isFalse();
+        assertThat(authService.isApplePrivateEmail(new SocialTokenVerifier.SocialUserInfo(
+                "sub", "user@privaterelay.appleid.com", null, null, true, null
+        ))).isTrue();
+        assertThat(authService.isApplePrivateEmail(new SocialTokenVerifier.SocialUserInfo(
+                "sub", "user@private.icloud.com", null, null, true, null
+        ))).isTrue();
+        assertThat(authService.isApplePrivateEmail(new SocialTokenVerifier.SocialUserInfo(
+                "sub", "user@icloud.com", null, null, true, null
+        ))).isTrue();
+    }
+
+    @Test
+    void socialLogin_verifiedAppleEmail_matchesGoogleOnlyAccount_preservesGoogleIdentityAndLogsInApple() {
+        User googleUser = User.builder()
+                .id(88L)
+                .email("shared@example.com")
+                .username("shared@example.com")
+                .password("encoded-google-password")
+                .provider("google")
+                .socialId("google-social-456")
+                .accountStatus(AccountStatus.ACTIVE)
+                .enabled(true)
+                .hasLocalPassword(false)
+                .build();
+        SocialLoginRequest request = new SocialLoginRequest(
+                "apple",
+                "apple-id-token",
+                null,
+                null,
+                null,
+                null
+        );
+        SocialTokenVerifier.SocialUserInfo socialUser = new SocialTokenVerifier.SocialUserInfo(
+                "apple-social-123",
+                "shared@example.com",
+                null,
+                null,
+                true
+        );
+
+        when(socialTokenVerifier.verifyAppleToken("apple-id-token")).thenReturn(socialUser);
+        when(userRepository.findByProviderAndSocialId("apple", "apple-social-123")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("shared@example.com")).thenReturn(Optional.of(googleUser));
+        when(userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(false);
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-apple-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0, User.class);
+            saved.setId(504L);
+            return saved;
+        });
+        when(jwtTokenProvider.generateToken(
+                anyLong(),
+                any(String.class),
+                org.mockito.ArgumentMatchers.nullable(String.class),
+                any(UserType.class)
+        ))
+                .thenReturn("jwt-token");
+        when(jwtTokenProvider.getJwtExpiration()).thenReturn(3600000L);
+
+        LoginResponse response = authService.socialLogin(request);
+
+        assertThat(response.isNewUser()).isTrue();
+        assertThat(response.user().id()).isEqualTo(504L);
+        assertThat(response.user().email()).isNull();
+        assertThat(googleUser.getProvider()).isEqualTo("google");
+        assertThat(googleUser.getSocialId()).isEqualTo("google-social-456");
+        verify(signupBonusSyncService).scheduleSignupBonus(any(User.class), eq("SOCIAL_APPLE"));
     }
 
     @Test

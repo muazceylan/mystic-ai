@@ -10,7 +10,8 @@
     "ios": "expo run:ios --port 8090",
     "web": "expo start --web --port 8090",
     "build:web": "expo export --platform web",
-    "check:contrast": "node ./scripts/contrast-check.js"
+    "check:contrast": "node ./scripts/contrast-check.js",
+    "qa:guideline-4.3b": "node ./scripts/qa/guideline-4.3b-static-qa.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.5.52",
@@ -46,6 +47,7 @@
     "expo-speech": "~14.0.8",
     "expo-status-bar": "~3.0.9",
     "expo-system-ui": "~6.0.9",
+    "expo-tracking-transparency": "~6.0.8",
     "expo-web-browser": "~15.0.10",
     "firebase": "^12.13.0",
     "i18next": "^25.8.11",
@@ -71,6 +73,7 @@
     "react-native-web": "^0.21.0",
     "react-native-worklets": "0.5.1",
     "tailwindcss": "^3.4.0",
+    "unity-levelplay-mediation": "9.2.0",
     "zustand": "^4.5.0"
   },
   "devDependencies": {

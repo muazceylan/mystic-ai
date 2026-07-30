@@ -23,6 +23,7 @@ import {
   useTutorialTrigger,
 } from '../../features/tutorial';
 import type { CustomSetItem } from '../types';
+import { trackEvent } from '../../services/analytics';
 
 type ThemeColorStringKey = {
   [K in keyof ThemeColors]: ThemeColors[K] extends string ? K : never;
@@ -136,6 +137,10 @@ export default function SpiritualHomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      trackEvent('spiritual_practice_opened', {
+        source: 'spiritual_home',
+        surface: 'spiritual_practice',
+      });
       const scope = userId ? String(userId) : null;
       if (!scope) {
         tutorialBootstrapRef.current = null;

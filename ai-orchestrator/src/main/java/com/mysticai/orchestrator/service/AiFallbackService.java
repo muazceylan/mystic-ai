@@ -37,6 +37,10 @@ public class AiFallbackService {
     }
 
     public String generate(String prompt, boolean complex) {
+        return generate(prompt, complex, true);
+    }
+
+    public String generate(String prompt, boolean complex, boolean allowMockFallback) {
         AiRuntimeConfig runtimeConfig = configService.getRuntimeConfigSnapshot();
 
         String chainName = complex ? "complex" : "simple";
@@ -48,7 +52,7 @@ public class AiFallbackService {
 
         if (configuredChain == null || configuredChain.isEmpty()) {
             log.warn("[AI Chain] Configured chain={} is empty", chainName);
-            return fallbackOrThrow(prompt, runtimeConfig.isAllowMock());
+            return fallbackOrThrow(prompt, allowMockFallback && runtimeConfig.isAllowMock());
         }
 
         for (int providerIndex = 0; providerIndex < configuredChain.size(); providerIndex++) {
@@ -141,7 +145,7 @@ public class AiFallbackService {
             }
         }
 
-        return fallbackOrThrow(prompt, runtimeConfig.isAllowMock());
+        return fallbackOrThrow(prompt, allowMockFallback && runtimeConfig.isAllowMock());
     }
 
     private boolean isLocalAdapter(AiRuntimeConfig.ProviderConfig providerConfig) {

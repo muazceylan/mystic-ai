@@ -22,6 +22,7 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         createProductAnalyticsTablesIfNeeded();
         extendMonetizationTablesIfNeeded();
+        createDreamExpansionReservationTableIfNeeded();
         dropCheckConstraintIfExists("audit_logs", "action_type");
         dropCheckConstraintIfExists("audit_logs", "entity_type");
         // Notification enums evolve frequently (e.g. new NotificationType values).
@@ -42,8 +43,43 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
         dropCheckConstraintIfExists("guru_wallet", "status");
         dropCheckConstraintIfExists("guru_ledger", "transaction_type");
         dropCheckConstraintIfExists("guru_ledger", "source_type");
+        dropCheckConstraintIfExists("guru_token_reservations", "status");
         dropCheckConstraintIfExists("guru_product_catalog", "product_type");
         dropCheckConstraintIfExists("guru_product_catalog", "rollout_status");
+        // Provider reward-callback enum columns (tables themselves are created by
+        // schema.sql before Hibernate validation; these drops are only relevant under
+        // local ddl-auto=update where Hibernate may add enum CHECK constraints).
+        dropCheckConstraintIfExists("reward_session", "provider");
+        dropCheckConstraintIfExists("reward_session", "channel");
+        dropCheckConstraintIfExists("reward_session", "status");
+        dropCheckConstraintIfExists("provider_callback_event", "provider");
+        dropCheckConstraintIfExists("provider_callback_event", "status");
+    }
+
+    private void createDreamExpansionReservationTableIfNeeded() {
+        try {
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS guru_token_reservations (
+                        id UUID PRIMARY KEY,
+                        user_id BIGINT NOT NULL,
+                        dream_id BIGINT NOT NULL,
+                        expansion_type VARCHAR(48) NOT NULL,
+                        action_key VARCHAR(255) NOT NULL,
+                        cost INTEGER NOT NULL,
+                        status VARCHAR(24) NOT NULL,
+                        idempotency_key VARCHAR(255) NOT NULL,
+                        ledger_transaction_id UUID,
+                        created_at TIMESTAMP(6) NOT NULL,
+                        updated_at TIMESTAMP(6) NOT NULL,
+                        expires_at TIMESTAMP(6) NOT NULL
+                    )
+                    """);
+            jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_gtr_idempotency ON guru_token_reservations (idempotency_key)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_gtr_user_status_expires ON guru_token_reservations (user_id, status, expires_at)");
+            jdbc.execute("CREATE INDEX IF NOT EXISTS idx_gtr_dream_type ON guru_token_reservations (user_id, dream_id, expansion_type)");
+        } catch (Exception e) {
+            log.warn("Could not initialize guru_token_reservations table: {}", e.getMessage());
+        }
     }
 
     private void createProductAnalyticsTablesIfNeeded() {

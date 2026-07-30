@@ -6,6 +6,17 @@ export { RetroList } from './RetroList';
 export { ActionCard } from './ActionCard';
 export { MiniPlanCard } from './MiniPlanCard';
 export {
+  CautionCard,
+  EveningReflectionCard,
+  LifeAreaCardView,
+  MainThemeCard,
+  PersonalizationBadge,
+  PlanFeedbackSection,
+  PrimaryActionCard,
+  TimelineSection,
+  WhyDisclosure,
+} from './PersonalPlanSections';
+export {
   HeroInsightCard,
   MiniPlanCard as TodayInfluenceMiniPlanCard,
   PremiumStatusCard,

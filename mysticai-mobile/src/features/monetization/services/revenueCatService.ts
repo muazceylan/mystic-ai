@@ -2,6 +2,7 @@ import { NativeModules, Platform, TurboModuleRegistry, type TurboModule } from '
 import Constants from 'expo-constants';
 import { getLocales } from 'expo-localization';
 import Purchases, {
+  INTRO_ELIGIBILITY_STATUS,
   PURCHASES_ERROR_CODE,
   type CustomerInfo,
   type PurchasesOffering,
@@ -20,6 +21,7 @@ import type {
   RevenueCatRuntimeState,
   RevenueCatSyncPayload,
 } from '../types/billing';
+import { isTrialEligibilityEligible } from '../utils/trialDisplay';
 
 let configuredAppUserId: string | null = null;
 
@@ -715,6 +717,26 @@ export async function purchaseRevenueCatPackage(
   };
 }
 
+export async function checkRevenueCatTrialEligibility(productId: string): Promise<boolean> {
+  if (Platform.OS !== 'ios') {
+    return false;
+  }
+
+  try {
+    const eligibilityByProduct = await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
+    const status = eligibilityByProduct[productId]?.status
+      ?? INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_UNKNOWN;
+    console.info('[RevenueCat] Trial eligibility', { productId, status });
+    return isTrialEligibilityEligible(status);
+  } catch (error) {
+    console.warn('[RevenueCat] Trial eligibility check failed', {
+      productId,
+      error: serializeRevenueCatError(error),
+    });
+    return false;
+  }
+}
+
 export async function restoreRevenueCatPurchases(): Promise<CustomerInfo> {
   return Purchases.restorePurchases();
 }
@@ -833,7 +855,7 @@ export function resolveRevenueCatProduct(
       Array.from(candidates).some((candidate) => packageMatchesProductId(entry, candidate)))
     ?? null;
   const storeProduct = matchedPackage?.product ?? null;
-  const localizedPrice = storeProduct ? formatRevenueCatStorePrice(storeProduct) : null;
+  const localizedPrice = storeProduct?.priceString ?? null;
   const localizedPeriodPrice = storeProduct
     ? formatRevenueCatStorePrice(storeProduct, 'month')
       ?? formatRevenueCatStorePrice(storeProduct, 'year')

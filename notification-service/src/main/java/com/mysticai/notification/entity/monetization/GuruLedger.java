@@ -66,7 +66,12 @@ public class GuruLedger {
 
     public enum TransactionType {
         REWARD_EARNED,
+        /** Guru earned from a provider S2S rewarded-video callback (e.g. ayeT). */
+        REWARDED_AD_AYET,
+        /** Guru earned from a verified Unity LevelPlay S2S callback. */
+        REWARDED_AD_LEVELPLAY,
         GURU_SPENT,
+        DREAM_ANALYSIS_EXPANSION,
         PURCHASE_COMPLETED,
         ADMIN_GRANT,
         ADMIN_REVOKE,
@@ -78,6 +83,7 @@ public class GuruLedger {
     public enum SourceType {
         REWARDED_AD,
         ACTION_UNLOCK,
+        DREAM_ANALYSIS_EXPANSION,
         GURU_PURCHASE,
         ADMIN,
         SYSTEM,

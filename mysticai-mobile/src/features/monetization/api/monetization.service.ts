@@ -259,6 +259,25 @@ export interface ClaimWebRewardResponse {
   idempotentReplay: boolean;
 }
 
+export interface CreateNativeRewardSessionResponse {
+  rewardSessionId: string;
+  externalIdentifier: string;
+  rewardAmount: number;
+  expiresAt: string;
+}
+
+export async function createNativeRewardSession(body: {
+  provider: 'LEVELPLAY';
+  channel: 'MOBILE';
+  placement?: string;
+}): Promise<CreateNativeRewardSessionResponse> {
+  const { data } = await api.post<CreateNativeRewardSessionResponse>(
+    '/api/v1/rewarded-ads/sessions',
+    body,
+  );
+  return data;
+}
+
 export async function createWebRewardIntent(page = '/earn'): Promise<CreateWebRewardIntentResponse> {
   const { data } = await api.post<CreateWebRewardIntentResponse>(
     '/api/v1/monetization/rewarded-ads/intents',

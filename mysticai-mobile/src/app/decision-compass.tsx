@@ -46,6 +46,7 @@ import {
 } from '../components/decision-compass/model';
 import { statusColors } from '../components/decision-compass/palette';
 import { getCompassTokens } from '../components/decision-compass/tokens';
+import { trackEvent } from '../services/analytics';
 
 function formatDateShort(input: string | null | undefined, todayLabel: string, locale: string) {
   if (!input) return todayLabel;
@@ -77,6 +78,7 @@ export default function DecisionCompassScreen() {
     TUTORIAL_SCREEN_KEYS.DECISION_COMPASS,
   );
   const tutorialBootstrapRef = useRef<string | null>(null);
+  const openedEventSentRef = useRef(false);
 
   const [selectedFilter, setSelectedFilter] = useState<CompassFilter>('ALL');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -168,6 +170,16 @@ export default function DecisionCompassScreen() {
   const dateLabel = formatDateShort(selectedDate ?? query.data?.date, t('decisionCompassScreen.todayLabel'), i18n.language);
   const isInTabFlow = segments[0] === '(tabs)';
 
+  React.useEffect(() => {
+    if (!isInTabFlow || openedEventSentRef.current) return;
+    openedEventSentRef.current = true;
+    trackEvent('decision_compass_opened', {
+      source: 'decision_compass_tab',
+      surface: 'decision_compass',
+      locale: i18n.language,
+    });
+  }, [i18n.language, isInTabFlow]);
+
   const effectiveTabBarHeight = isInTabFlow ? tabBarHeight : 0;
   const contentBottomPadding = Platform.OS === 'ios'
     ? effectiveTabBarHeight + Math.max(18, insets.bottom > 0 ? 12 : 18)
@@ -210,10 +222,17 @@ export default function DecisionCompassScreen() {
   }, [triggerInitialTutorials, user?.id]);
 
   const openCategoryDetail = useCallback((category: DecisionCategoryModel) => {
+    trackEvent('decision_compass_started', {
+      category: category.id,
+      date: selectedDate ?? query.data?.date,
+      source: 'category_card',
+      surface: 'decision_compass',
+      locale: i18n.language,
+    });
     setSettingsSheetOpen(false);
     setSelectedCategory(category);
     setDetailSheetOpen(true);
-  }, []);
+  }, [i18n.language, query.data?.date, selectedDate]);
 
   const openDetailScreen = useCallback((category: DecisionCategoryModel) => {
     setDetailSheetOpen(false);

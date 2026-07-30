@@ -37,7 +37,7 @@ public class AdminUserController {
         static UserSummary from(User u) {
             return new UserSummary(
                     u.getId(),
-                    u.getEmail(),
+                    publicEmailOrNull(u),
                     resolveName(u),
                     u.getUserType(),
                     u.getCreatedAt(),
@@ -45,6 +45,18 @@ public class AdminUserController {
                     u.getRegistrationPlatform()
             );
         }
+    }
+
+    private static String publicEmailOrNull(User user) {
+        String email = user.getEmail();
+        if (!"apple".equalsIgnoreCase(user.getProvider()) || email == null) {
+            return email;
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+        return normalizedEmail.endsWith("@apple.invalid")
+                || normalizedEmail.endsWith("@apple.social")
+                ? null
+                : email;
     }
 
     public record UserStats(

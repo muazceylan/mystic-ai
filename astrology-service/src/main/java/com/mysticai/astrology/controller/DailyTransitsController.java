@@ -5,6 +5,7 @@ import com.mysticai.astrology.dto.daily.DailyActionToggleResponse;
 import com.mysticai.astrology.dto.daily.DailyActionsDTO;
 import com.mysticai.astrology.dto.daily.DailyFeedbackRequest;
 import com.mysticai.astrology.dto.daily.DailyTransitsDTO;
+import com.mysticai.astrology.dto.daily.PlanFeedbackResponse;
 import com.mysticai.astrology.service.DailyTransitsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -53,12 +54,18 @@ public class DailyTransitsController {
         );
     }
 
+    /**
+     * Records plan feedback. When the reason is TOO_GENERIC or REPETITIVE the rebuilt plan is
+     * returned inline as {@code replacementPlan}, so the client renders it without a second
+     * request racing its own cache.
+     */
     @PostMapping("/feedback")
-    public ResponseEntity<Void> saveFeedback(
+    public ResponseEntity<PlanFeedbackResponse> saveFeedback(
             @RequestHeader("X-User-Id") Long userId,
+            @RequestParam(required = false) String timezone,
             @Valid @RequestBody DailyFeedbackRequest request
     ) {
-        dailyTransitsService.saveFeedback(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(dailyTransitsService.saveFeedback(userId, request, timezone));
     }
 }

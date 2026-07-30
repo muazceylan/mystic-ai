@@ -93,20 +93,20 @@ export const checkEmail = (email: string) =>
 export const checkEmailGet = (email: string) =>
   api.get<CheckEmailResponse>(`${AUTH_BASE}/check-email`, { params: { email } });
 
-export interface SocialLoginLinkCredentials {
-  linkEmail: string;
-  linkPassword: string;
+export interface SocialLoginMetadata {
+  firstName?: string | null;
+  lastName?: string | null;
 }
 
 export const socialLogin = (
   provider: string,
   idToken: string,
-  linkCredentials?: SocialLoginLinkCredentials,
+  metadata?: SocialLoginMetadata,
 ) =>
   api.post<SocialLoginResponse>(`${AUTH_BASE}/social-login`, {
     provider,
     idToken,
-    ...linkCredentials,
+    ...metadata,
   });
 
 export const refreshTokens = (refreshToken: string) =>

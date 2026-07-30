@@ -781,6 +781,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="journey"
+        options={{
+          title: t('surfaceTitles.journey'),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="dreams"
         options={{
           title: t('tabs.dream'),

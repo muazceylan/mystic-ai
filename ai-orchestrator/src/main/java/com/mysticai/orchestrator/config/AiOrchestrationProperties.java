@@ -57,8 +57,8 @@ public class AiOrchestrationProperties {
 
     public static class ChainsProperties {
 
-        private List<String> complex = new ArrayList<>(List.of("gemini", "groqPremium", "groqFast", "openrouter", "localLlm"));
-        private List<String> simple = new ArrayList<>(List.of("gemini", "groqFast", "openrouter", "localLlm"));
+        private List<String> complex = new ArrayList<>(List.of("gemini", "groqPremium", "deepseekPro", "groqFast", "deepseekFast", "openrouter", "localLlm"));
+        private List<String> simple = new ArrayList<>(List.of("gemini", "groqFast", "deepseekFast", "openrouter", "localLlm"));
 
         public List<String> getComplex() {
             return complex;
@@ -92,6 +92,8 @@ public class AiOrchestrationProperties {
         private int priority = 0;
         private Double temperature;
         private Integer maxOutputTokens;
+        private String thinkingMode;
+        private String reasoningEffort;
 
         public boolean isEnabled() {
             return enabled;
@@ -195,6 +197,22 @@ public class AiOrchestrationProperties {
 
         public void setMaxOutputTokens(Integer maxOutputTokens) {
             this.maxOutputTokens = maxOutputTokens;
+        }
+
+        public String getThinkingMode() {
+            return thinkingMode;
+        }
+
+        public void setThinkingMode(String thinkingMode) {
+            this.thinkingMode = thinkingMode;
+        }
+
+        public String getReasoningEffort() {
+            return reasoningEffort;
+        }
+
+        public void setReasoningEffort(String reasoningEffort) {
+            this.reasoningEffort = reasoningEffort;
         }
     }
 }

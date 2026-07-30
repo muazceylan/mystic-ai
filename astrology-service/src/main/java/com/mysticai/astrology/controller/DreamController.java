@@ -3,6 +3,7 @@ package com.mysticai.astrology.controller;
 import com.mysticai.astrology.dto.*;
 import com.mysticai.astrology.service.DreamAnalyticsService;
 import com.mysticai.astrology.service.DreamService;
+import com.mysticai.astrology.service.DreamExpansionService;
 import com.mysticai.astrology.service.PushNotificationService;
 import com.mysticai.astrology.service.WhisperTranscriptionService;
 import jakarta.validation.Valid;
@@ -28,6 +29,28 @@ public class DreamController {
     private final DreamAnalyticsService analyticsService;
     private final PushNotificationService pushService;
     private final WhisperTranscriptionService whisperService;
+    private final DreamExpansionService dreamExpansionService;
+
+    @GetMapping("/analysis/expansion/config")
+    public ResponseEntity<DreamExpansionConfigResponse> getExpansionConfig(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(dreamExpansionService.getConfig(userId));
+    }
+
+    @PostMapping("/{id}/analysis/expansions")
+    public ResponseEntity<DreamExpansionResponse> expandAnalysis(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @PathVariable Long id,
+            @Valid @RequestBody DreamExpansionRequest request) {
+        return ResponseEntity.ok(dreamExpansionService.expand(userId, id, request));
+    }
+
+    @GetMapping("/{id}/analysis/expansions")
+    public ResponseEntity<List<DreamExpansionResponse>> listExpansions(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(dreamExpansionService.list(userId, id));
+    }
 
     /** POST /api/v1/dreams — submit dream via text */
     @PostMapping
@@ -55,7 +78,10 @@ public class DreamController {
                     ? LocalDate.parse(dreamDate) : LocalDate.now();
 
             DreamEntryResponse response = dreamService.submitDream(
-                    new DreamSubmitRequest(userId, transcribed, date, null, null, null));
+                    new DreamSubmitRequest(
+                            userId, transcribed, date, null, null, null,
+                            null, List.of(), false, true
+                    ));
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
             log.error("Audio dream submission failed for userId={}: {}", userId, e.getMessage(), e);
@@ -145,5 +171,12 @@ public class DreamController {
     public ResponseEntity<Void> registerPushToken(@Valid @RequestBody PushTokenRequest request) {
         pushService.registerToken(request.userId(), request.token(), request.platform());
         return ResponseEntity.ok().build();
+    }
+
+    @ExceptionHandler(DreamExpansionService.ExpansionException.class)
+    public ResponseEntity<Map<String, String>> handleDreamExpansionError(
+            DreamExpansionService.ExpansionException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(Map.of("code", ex.getCode(), "message", ex.getReason()));
     }
 }

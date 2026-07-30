@@ -465,6 +465,30 @@ export function DiscoverScreenContent() {
       trackEvent('discover_recommended_click', { module_key: module.key });
     }
 
+    const differentiationEventByModule: Partial<Record<DiscoverModuleKey, string>> = {
+      calendar: 'cosmic_planner_opened',
+      decision_compass: 'decision_compass_opened',
+      dream_journal: 'dream_journal_opened',
+      spiritual_dua: 'spiritual_practice_opened',
+      spiritual_esma: 'spiritual_practice_opened',
+      spiritual_meditation: 'spiritual_practice_opened',
+      spiritual_breathing: 'spiritual_practice_opened',
+      spiritual_recommendations: 'spiritual_practice_opened',
+      horoscope_daily: 'astrology_context_opened',
+      transits_today: 'astrology_context_opened',
+      weekly: 'astrology_context_opened',
+      natal_chart: 'astrology_context_opened',
+      night_sky: 'astrology_context_opened',
+    };
+    const differentiationEvent = differentiationEventByModule[module.key];
+    if (differentiationEvent) {
+      trackEvent(differentiationEvent, {
+        source: `discover_${surface}`,
+        module: module.key,
+        locale: appLocale,
+      });
+    }
+
     openRoute(module.route);
   };
 

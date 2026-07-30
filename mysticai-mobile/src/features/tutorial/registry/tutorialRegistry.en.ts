@@ -11,16 +11,16 @@ export const LOCAL_TUTORIAL_ENGLISH_COPY: Record<string, TutorialEnglishCopy> = 
   global_onboarding_v1: {
     steps: {
       welcome: {
-        title: 'Welcome',
-        body: 'Welcome to your personalized astrology, planning, and insight experience.',
+        title: 'Start your day with a personal plan',
+        body: 'Turn daily insights into practical, manageable actions.',
       },
       'daily-guidance': {
-        title: 'Daily Guidance',
-        body: "Track today's energy, transits, and standout influences here.",
+        title: 'Reflect on decisions and experiences',
+        body: 'Use Decision Compass and journals to follow your personal journey.',
       },
       'planning-and-decisions': {
-        title: 'Planning and Decisions',
-        body: 'Use Cosmic Planner and Decision Compass to review timing and options with more clarity.',
+        title: 'Build routines that work for you',
+        body: 'Track meditation, spiritual practices, and personal habits in one place.',
       },
       'compatibility-and-discovery': {
         title: 'Compatibility and Discovery',
@@ -35,8 +35,8 @@ export const LOCAL_TUTORIAL_ENGLISH_COPY: Record<string, TutorialEnglishCopy> = 
   home_foundation_tutorial: {
     steps: {
       'hero-energy': {
-        title: "Today's Energy",
-        body: "See today's energy here in a short and simple format.",
+        title: "Today's Personal Plan",
+        body: 'Start with practical actions created from your personal context.',
       },
       'quick-actions': {
         title: 'Core Module Shortcuts',
@@ -95,8 +95,8 @@ export const LOCAL_TUTORIAL_ENGLISH_COPY: Record<string, TutorialEnglishCopy> = 
   decision_compass_intro: {
     steps: {
       'decision-input': {
-        title: 'Decision Input Area',
-        body: "Compare your options here while considering the day's influences.",
+        title: 'Decision Perspectives',
+        body: 'Choose a life category to review the current context from multiple perspectives.',
       },
       'result-comparison': {
         title: 'Result Comparison',
@@ -107,8 +107,8 @@ export const LOCAL_TUTORIAL_ENGLISH_COPY: Record<string, TutorialEnglishCopy> = 
         body: 'These notes help you see the strengths and weak points of each option more clearly.',
       },
       'reevaluate-entry': {
-        title: 'Re-evaluate',
-        body: 'Save your result to revisit it later or adjust your options when needed.',
+        title: 'Adjust Your View',
+        body: 'Change the date, filter, or visible categories to review a different context.',
       },
     },
   },

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.orchestrator.dto.NumerologyGuidanceRequest;
+import com.mysticai.orchestrator.dto.DreamExpansionRequest;
 import com.mysticai.orchestrator.dto.OracleInterpretationRequest;
 import com.mysticai.orchestrator.prompt.MysticalPromptTemplates;
 import org.slf4j.Logger;
@@ -175,6 +176,33 @@ public class MysticalAiService {
         } catch (Exception e) {
             logger.warn("Symbol extraction failed: {}", e.getMessage());
             return "[]";
+        }
+    }
+
+    public String generateDreamExpansion(DreamExpansionRequest request) {
+        String prompt = promptTemplates.getDreamExpansionPrompt(
+                request.expansionType(),
+                request.dreamText(),
+                request.baseAnalysis(),
+                request.targetElement(),
+                request.historySummary(),
+                request.locale()
+        );
+        String raw = fallbackService.generate(prompt, true, false);
+        String json = extractJsonObject(stripMarkdown(raw));
+        try {
+            JsonNode node = objectMapper.readTree(json);
+            if (!node.isObject()
+                    || node.path("title").asText().isBlank()
+                    || node.path("summary").asText().isBlank()
+                    || !node.path("insights").isArray()
+                    || node.path("insights").isEmpty()
+                    || node.path("reflectionPrompt").asText().isBlank()) {
+                throw new IllegalArgumentException("Incomplete dream expansion response");
+            }
+            return objectMapper.writeValueAsString(node);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Invalid dream expansion response", ex);
         }
     }
 
@@ -455,14 +483,7 @@ public class MysticalAiService {
             return promptTemplates.getWeeklySwotPrompt(event.payload());
         }
         if (event.analysisType() == AiAnalysisEvent.AnalysisType.DREAM_SYNTHESIS) {
-            return promptTemplates.getAstroDreamSynthesisPrompt(
-                    extractFromPayload(event.payload(), "dreamText"),
-                    extractFromPayload(event.payload(), "recurringSymbols"),
-                    extractFromPayload(event.payload(), "moonSign"),
-                    extractFromPayload(event.payload(), "risingSign"),
-                    extractFromPayload(event.payload(), "twelfthHousePlanets"),
-                    extractFromPayload(event.payload(), "neptuneTransit"),
-                    extractFromPayload(event.payload(), "currentTransits"));
+            return promptTemplates.getDreamAnalysisPrompt(event.payload());
         }
         if (event.analysisType() == AiAnalysisEvent.AnalysisType.MONTHLY_DREAM_STORY) {
             return promptTemplates.getMonthlyDreamStoryPrompt(

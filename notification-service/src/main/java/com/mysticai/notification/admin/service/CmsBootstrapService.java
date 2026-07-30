@@ -127,10 +127,11 @@ public class CmsBootstrapService implements ApplicationRunner {
 
     private int seedExploreCategories() {
         int n = 0;
-        n += upsertCategory("cosmic_flow_cms",    "Kozmik Akış",      "Bugün ve hafta ritmini buradan takip et.", "planet-outline",   1);
-        n += upsertCategory("self_discovery_cms", "Kendini Keşfet",   "Haritan ve kişisel içgörüler tek yerde.", "aperture-outline", 2);
-        n += upsertCategory("spiritual_cms",      "Ruhsal Pratikler", "Dua, esma, sure, nefes ve meditasyon.", "leaf-outline",    3);
-        n += upsertCategory("social_compat_cms",  "Sosyal & Uyum",    "İlişki uyumu ve paylaşım deneyimleri.", "people-outline",   4);
+        n += upsertCategory("daily_life_cms",         "Günlük Yaşam",         "Plan, uygulanabilir adımlar ve karar desteği.", "checkmark-done-outline", 1);
+        n += upsertCategory("self_discovery_cms",     "Kendini Keşfet",       "Kişisel kayıtların ve öz keşif araçların.", "aperture-outline", 2);
+        n += upsertCategory("relationships_cms",      "İlişkiler",            "İlişki dinamiklerini farklı bağlamlarda değerlendir.", "people-outline", 3);
+        n += upsertCategory("spiritual_cms",          "Ruhsal Pratikler",     "Dua, esma, sure, nefes ve meditasyon.", "leaf-outline", 4);
+        n += upsertCategory("astrology_insights_cms", "Astrolojik İçgörüler", "Günlük planını kişiselleştiren astrolojik bağlam.", "planet-outline", 5);
         return n;
     }
 
@@ -161,27 +162,22 @@ public class CmsBootstrapService implements ApplicationRunner {
     private int seedExploreCards() {
         int n = 0;
 
-        // ── cosmic_flow_cms ──────────────────────────────────────────────────
-        n += upsertCard("horoscope_daily_card",  "cosmic_flow_cms",
-                "Günlük Burç",               "Bugünün yorumu",
-                "Güneş, Ay ve gezegenlerin burcuna etkisini gör. Bugün seni neler bekliyor? Tema, tavsiye ve şanslı detaylar burada.",
-                "/(tabs)/horoscope", null, "Burcu Gör",
+        // ── daily_life_cms ───────────────────────────────────────────────────
+        n += upsertCard("today_plan_card", "daily_life_cms",
+                "Bugünkü Plan",              "Üç uygulanabilir günlük adım",
+                "Kişiselleştirilmiş günlük önerilerini gör, tamamladıklarını işaretle ve geri bildirim ver.",
+                "/(tabs)/today-actions", null, "Planı Gör",
                 true, false, 1);
-        n += upsertCard("transits_today_card",   "cosmic_flow_cms",
-                "Bugünün Gökyüzü Etkileri",  "Anlık gökyüzü etkisi",
-                "Anlık gezegen transitleri, ay fazı ve bugünün kozmik enerjisini keşfet. Hangi gezegenler hangi burçlarda?",
-                "/transits-today", null, "Gökyüzünü Gör",
+        n += upsertCard("calendar_card", "daily_life_cms",
+                "Kozmik Planlayıcı",         "Gününü planla ve hatırlatıcı oluştur",
+                "Tarih ve kategori seçerek önerileri incele; uygun olanları hatırlatıcıya dönüştür.",
+                "/(tabs)/calendar", null, "Planlayıcıyı Aç",
                 false, false, 2);
-        n += upsertCard("weekly_analysis_card",  "cosmic_flow_cms",
-                "Haftalık Analiz",           "Bu hafta odakları",
-                "Bu haftanın güçlü yönleri, fırsatları, dikkat edilecekleri ve tehditleri — kişisel SWOT analizin.",
-                "/(tabs)/weekly-analysis", null, "Analizi Gör",
+        n += upsertCard("decision_compass_card", "daily_life_cms",
+                "Karar Pusulası",            "Seçeneklerini farklı açılardan değerlendir",
+                "Günlük yaşamındaki bir konuyu destekleyici alanlar ve dikkat noktalarıyla daha bilinçli değerlendir.",
+                "/decision-compass", null, "Kararını Değerlendir",
                 false, false, 3);
-        n += upsertCard("calendar_card",         "cosmic_flow_cms",
-                "Kozmik Takvim",             "Uygun günleri planla",
-                "Kişisel kozmik takviminle toplantıları, önemli kararları ve başlangıçları en uygun güne planla.",
-                "/(tabs)/calendar", null, "Takvimi Aç",
-                false, false, 4);
 
         // ── self_discovery_cms ───────────────────────────────────────────────
         n += upsertCard("natal_chart_card",      "self_discovery_cms",
@@ -189,32 +185,38 @@ public class CmsBootstrapService implements ApplicationRunner {
                 "Doğum anının gökyüzü haritası. Gezegenlerin hangi burçlarda ve hangi evlerde olduğunu, açılarını ve yorumlarını gör.",
                 "/(tabs)/natal-chart", null, "Haritayı Gör",
                 true, false, 1);
-        n += upsertCard("night_sky_card",        "self_discovery_cms",
-                "Doğduğun Gece Gökyüzü",    "Kişisel gece haritan",
-                "Doğduğun gecenin gökyüzü simülasyonu — yıldızlar, gezegenler ve takımyıldızlar tam o anın konumlarında.",
-                "/night-sky", null, "Gökyüzünü Aç",
-                false, false, 2);
         n += upsertCard("name_analysis_card",    "self_discovery_cms",
                 "İsim Analizi",              "İsminin enerji izi",
                 "İsmindeki harflerin numerolojik değerlerini hesapla. İfade sayısı, karakter özellikleri ve enerji profili.",
                 "/(tabs)/name-analysis", null, "İsmi Analiz Et",
-                false, false, 3);
+                false, false, 2);
         n += upsertCard("numerology_card",       "self_discovery_cms",
                 "Numeroloji",                "Sayıların kişisel anlamı",
-                "Yaşam yolu sayın, kişisel yıl enerjisi, kader sayısı ve günlük numeroloji rehberin tek ekranda.",
+                "Yaşam yolu sayın, kişisel yıl temaların ve günlük numeroloji bağlamın tek ekranda.",
                 "/numerology", null, "Sayıları Gör",
-                false, false, 4);
+                false, false, 3);
         n += upsertCard("dream_journal_card",    "self_discovery_cms",
-                "Rüya Günlüğü",              "Rüyalarını kaydet ve yorumla",
-                "Rüyalarını kaydet, sembolleri takip et ve AI destekli yorumlarını günlüğünde biriktir.",
+                "Rüya Günlüğü",              "Rüyalarını ve kişisel notlarını kaydet",
+                "Rüyalarını tarihe göre kaydet, tekrar eden sembolleri takip et ve AI destekli değerlendirmeyi ikincil bir içgörü olarak incele.",
                 "/(tabs)/dreams", null, "Rüya Ekle",
-                false, false, 5);
-        n += upsertCard("decision_compass_card", "self_discovery_cms",
-                "Karar Pusulası",            "Anlık karar rehberi",
-                "Önemli bir karar mı veriyorsun? Kozmik enerji ve kişisel sayılarına göre anlık rehberlik al.",
-                "/decision-compass", null, "Pusulayı Aç",
-                false, false, 6);
-        n += moveDefaultCardSortOrder("decision_compass_card", 5, 6);
+                false, false, 4);
+
+        // ── relationships_cms ────────────────────────────────────────────────
+        n += upsertCard("compatibility_card",    "relationships_cms",
+                "Uyumluluk",                 "İlişki dinamiklerini karşılaştır",
+                "İki kişinin doğum haritasını karşılaştır; güçlü ve dikkat isteyen alanları ilişki bağlamında incele.",
+                "/(tabs)/compatibility", null, "Uyumu İncele",
+                true, false, 1);
+        n += upsertCard("star_mate_card",        "relationships_cms",
+                "Ruh Eşi",                   "Eşleşme içgörüleri",
+                "Yükselen, Venüs ve Mars göstergelerine dayalı eşleşme içgörülerini kesin sonuç iddiası olmadan incele.",
+                "/(tabs)/star-mate", null, "İçgörüleri Gör",
+                false, false, 2);
+        n += upsertCard("share_cards_card",      "relationships_cms",
+                "Paylaşılabilir Kartlar",    "Kişisel özetlerini paylaş",
+                "Kişisel özetlerini ve astrolojik bağlamını görsel kartlara dönüştürerek paylaş.",
+                "/share-cards", null, "Kartları Gör",
+                false, false, 3);
 
         // ── spiritual_cms ────────────────────────────────────────────────────
         // Remove old prayer/esma cards — replaced by dua/esma/sure cards
@@ -248,26 +250,45 @@ public class CmsBootstrapService implements ApplicationRunner {
                 false, false, 5);
         n += upsertCard("spiritual_recommendations_card", "spiritual_cms",
                 "Ruhsal Öneri",              "Güne uygun pratik",
-                "Bugünün kozmik enerjisine ve kişisel profiline göre özel ruhsal pratik önerileri.",
+                "Kişisel tercihlerine ve günlük bağlama göre ruhsal pratik önerilerini incele.",
                 "/(tabs)/spiritual/recommendations", null, "Öneriyi Gör",
                 false, false, 6);
 
-        // ── social_compat_cms ────────────────────────────────────────────────
-        n += upsertCard("compatibility_card",    "social_compat_cms",
-                "Uyumluluk",                 "İlişki uyum analizi",
-                "İki kişinin doğum haritasını karşılaştır. Kozmik uyum puanı, güçlü ve zorlu yanlar ile ilişki önerileri.",
-                "/(tabs)/compatibility", null, "Uyumu Hesapla",
+        // ── astrology_insights_cms ───────────────────────────────────────────
+        n += upsertCard("horoscope_daily_card",  "astrology_insights_cms",
+                "Günlük Burç",               "Bugünün astrolojik bağlamı",
+                "Güneş, Ay ve gezegenlerin burcuna etkisini günlük planına eşlik eden bağlamsal bir içgörü olarak incele.",
+                "/(tabs)/horoscope", null, "Bağlamı Gör",
                 true, false, 1);
-        n += upsertCard("star_mate_card",        "social_compat_cms",
-                "Ruh Eşi",                   "Kozmik eşleşme içgörüleri",
-                "Ruh eşi eşleşme analizin. Yükselen, Venüs ve Mars açılarına göre en uyumlu burçlar ve ilişki içgörüleri.",
-                "/(tabs)/star-mate", null, "Ruh Eşini Keşfet",
+        n += upsertCard("transits_today_card",   "astrology_insights_cms",
+                "Bugünün Gökyüzü Etkileri",  "Astrolojik arka plan",
+                "Günlük önerilerin arkasındaki gezegen transitlerini ve ay fazını teknik detaylarıyla incele.",
+                "/transits-today", null, "Gökyüzünü Gör",
                 false, false, 2);
-        n += upsertCard("share_cards_card",      "social_compat_cms",
-                "Paylaşılabilir Kartlar",    "Sosyal medyada paylaş",
-                "Burç yorumunu, doğum haritanı ve kozmik bilgilerini şık görsel kartlara dönüştür ve paylaş.",
-                "/share-cards", null, "Kartları Gör",
+        n += upsertCard("weekly_analysis_card",  "astrology_insights_cms",
+                "Haftalık Analiz",           "Bu haftanın odakları",
+                "Bu haftanın güçlü alanlarını, fırsatlarını ve dikkat noktalarını kişisel farkındalık amacıyla incele.",
+                "/(tabs)/weekly-analysis", null, "Analizi Gör",
                 false, false, 3);
+        n += upsertCard("night_sky_card",        "astrology_insights_cms",
+                "Doğduğun Gece Gökyüzü",    "Kişisel gece haritan",
+                "Doğduğun gecenin gökyüzü simülasyonunu yıldızlar, gezegenler ve takımyıldızlarla incele.",
+                "/night-sky", null, "Gökyüzünü Aç",
+                false, false, 4);
+
+        n += moveDefaultCardCategory("calendar_card", "daily_life_cms", 2);
+        n += moveDefaultCardCategory("decision_compass_card", "daily_life_cms", 3);
+        n += moveDefaultCardCategory("natal_chart_card", "self_discovery_cms", 1);
+        n += moveDefaultCardCategory("name_analysis_card", "self_discovery_cms", 2);
+        n += moveDefaultCardCategory("numerology_card", "self_discovery_cms", 3);
+        n += moveDefaultCardCategory("dream_journal_card", "self_discovery_cms", 4);
+        n += moveDefaultCardCategory("compatibility_card", "relationships_cms", 1);
+        n += moveDefaultCardCategory("star_mate_card", "relationships_cms", 2);
+        n += moveDefaultCardCategory("share_cards_card", "relationships_cms", 3);
+        n += moveDefaultCardCategory("horoscope_daily_card", "astrology_insights_cms", 1);
+        n += moveDefaultCardCategory("transits_today_card", "astrology_insights_cms", 2);
+        n += moveDefaultCardCategory("weekly_analysis_card", "astrology_insights_cms", 3);
+        n += moveDefaultCardCategory("night_sky_card", "astrology_insights_cms", 4);
 
         return n;
     }
@@ -291,6 +312,17 @@ public class CmsBootstrapService implements ApplicationRunner {
         }
         ExploreCard c = opt.get();
         boolean changed = false;
+        if (c.getUpdatedByAdminId() == null) {
+            if (!categoryKey.equals(c.getCategoryKey())) { c.setCategoryKey(categoryKey); changed = true; }
+            if (!title.equals(c.getTitle())) { c.setTitle(title); changed = true; }
+            if (!subtitle.equals(c.getSubtitle())) { c.setSubtitle(subtitle); changed = true; }
+            if (!description.equals(c.getDescription())) { c.setDescription(description); changed = true; }
+            if (!ctaLabel.equals(c.getCtaLabel())) { c.setCtaLabel(ctaLabel); changed = true; }
+            if (!routeKey.equals(c.getRouteKey())) { c.setRouteKey(routeKey); changed = true; }
+            if (c.getSortOrder() != sortOrder) { c.setSortOrder(sortOrder); changed = true; }
+            if (c.isFeatured() != isFeatured) { c.setFeatured(isFeatured); changed = true; }
+            if (c.isPremium() != isPremium) { c.setPremium(isPremium); changed = true; }
+        }
         if (blank(c.getSubtitle()))    { c.setSubtitle(subtitle);       changed = true; }
         if (blank(c.getDescription())) { c.setDescription(description); changed = true; }
         if (blank(c.getCtaLabel()))    { c.setCtaLabel(ctaLabel);       changed = true; }
@@ -322,6 +354,29 @@ public class CmsBootstrapService implements ApplicationRunner {
             }
         }
         return 0;
+    }
+
+    private int moveDefaultCardCategory(String key, String categoryKey, int sortOrder) {
+        var opt = exploreCardRepo.findByCardKey(key);
+        if (opt.isEmpty()) {
+            return 0;
+        }
+
+        ExploreCard card = opt.get();
+        if (card.getUpdatedByAdminId() != null) {
+            return 0;
+        }
+
+        boolean changed = !categoryKey.equals(card.getCategoryKey()) || card.getSortOrder() != sortOrder;
+        if (!changed) {
+            return 0;
+        }
+
+        card.setCategoryKey(categoryKey);
+        card.setSortOrder(sortOrder);
+        exploreCardRepo.save(card);
+        log.info("[CmsBootstrap] ExploreCard CATEGORY ENRICHED: {} -> {}", key, categoryKey);
+        return 1;
     }
 
     // ─── Utility ─────────────────────────────────────────────────────────────

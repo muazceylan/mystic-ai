@@ -16,6 +16,8 @@ public interface DreamEntryRepository extends JpaRepository<DreamEntry, Long> {
 
     Optional<DreamEntry> findByCorrelationId(UUID correlationId);
 
+    Optional<DreamEntry> findByIdAndUserId(Long id, Long userId);
+
     List<DreamEntry> findAllByUserIdAndDreamDateBetweenOrderByDreamDateAsc(
             Long userId, LocalDate start, LocalDate end);
 }

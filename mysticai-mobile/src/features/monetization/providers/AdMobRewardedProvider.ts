@@ -5,6 +5,12 @@ import { resolveRewardedUnitId, maskUnitId } from './admobUnitIds';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { getGoogleMobileAdsModule } from './googleMobileAdsRuntime';
 import type { RewardedAdLike } from './googleMobileAdsRuntime.shared';
+import type {
+  AdsInitializationOptions,
+  MobileAdProviderCapabilities,
+} from './mobileAds.types';
+import { getAdMobInitializationOptions } from './admobInit';
+import type { RewardedAdProvider } from './RewardedAdProvider';
 
 const AD_LOAD_TIMEOUT_MS = 15_000;
 
@@ -13,13 +19,20 @@ const AD_LOAD_TIMEOUT_MS = 15_000;
  * Implements the AdProviderAdapter interface for seamless integration
  * with the existing monetization foundation.
  */
-export class AdMobRewardedProvider implements AdProviderAdapter {
+export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvider {
+  readonly name = 'admob' as const;
+  readonly capabilities: MobileAdProviderCapabilities = {
+    supportsRewardedAds: true,
+    requiresTrackingAuthorization: true,
+    supportsNonPersonalizedAds: true,
+    supportsServerSideVerification: false,
+  };
   private rewardedAd: RewardedAdLike | null = null;
   private loaded = false;
   private showing = false;
 
-  async initialize(): Promise<void> {
-    await initializeAdMob();
+  async initialize(options: AdsInitializationOptions): Promise<void> {
+    await initializeAdMob(options);
   }
 
   async loadRewardedAd(adUnitId: string): Promise<boolean> {
@@ -30,14 +43,11 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
     }
 
     if (!isAdMobInitialized()) {
-      const initOk = await initializeAdMob();
-      if (!initOk) {
-        trackMonetizationEvent('rewarded_ad_load_failed', {
-          reason: 'sdk_not_initialized',
-          platform: Platform.OS,
-        });
-        return false;
-      }
+      trackMonetizationEvent('rewarded_ad_load_failed', {
+        reason: 'privacy_bootstrap_incomplete',
+        platform: Platform.OS,
+      });
+      return false;
     }
 
     // Resolve the correct unit ID (test vs production)
@@ -95,7 +105,11 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
           return;
         }
 
-        const ad = googleMobileAds.RewardedAd.createForAdRequest(unitId);
+        const initializationOptions = getAdMobInitializationOptions();
+        const ad = googleMobileAds.RewardedAd.createForAdRequest(unitId, {
+          requestNonPersonalizedAdsOnly:
+            !(initializationOptions?.personalizedAdvertisingAllowed ?? false),
+        });
 
         const unsubLoaded = ad.addAdEventListener(googleMobileAds.RewardedAdEventType.LOADED, () => {
           clearTimeout(timeoutId);
@@ -146,6 +160,10 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
     });
   }
 
+  load(adUnitId = ''): Promise<boolean> {
+    return this.loadRewardedAd(adUnitId);
+  }
+
   async showRewardedAd(): Promise<AdResult> {
     if (!this.loaded || !this.rewardedAd) {
       return { completed: false, error: 'Ad not loaded' };
@@ -183,8 +201,8 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
         googleMobileAds.RewardedAdEventType.EARNED_REWARD,
         (reward) => {
           rewarded = true;
-          rewardType = reward.type ?? 'guru';
-          rewardAmount = reward.amount ?? 1;
+          rewardType = reward?.type ?? 'guru';
+          rewardAmount = reward?.amount ?? 1;
 
           if (__DEV__) {
             console.log('[AdMob] Reward earned:', { type: rewardType, amount: rewardAmount });
@@ -251,6 +269,19 @@ export class AdMobRewardedProvider implements AdProviderAdapter {
         resolve({ completed: false, error: reason });
       }
     });
+  }
+
+  show(_placementName?: string): Promise<AdResult> {
+    return this.showRewardedAd();
+  }
+
+  isReady(): boolean {
+    return this.isLoaded();
+  }
+
+  dispose(): void {
+    this.cleanup();
+    this.showing = false;
   }
 
   isLoaded(): boolean {

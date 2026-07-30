@@ -63,6 +63,20 @@ export const CompatibilityEvents = {
 // ── Dreams ──────────────────────────────────────────────────────────
 
 export const DreamEvents = {
+  ANALYSIS_REQUESTED: 'dream_analysis_requested',
+  ANALYSIS_COMPLETED: 'dream_analysis_completed',
+  ANALYSIS_FAILED: 'dream_analysis_failed',
+  INPUT_QUALITY_DETECTED: 'dream_input_quality_detected',
+  FOLLOW_UP_QUESTION_SHOWN: 'dream_follow_up_question_shown',
+  FOLLOW_UP_ANSWERED: 'dream_follow_up_answered',
+  INTERPRETATION_EXPANDED: 'dream_interpretation_expanded',
+  SYMBOL_DETAIL_OPENED: 'dream_symbol_detail_opened',
+  HISTORY_COMPARISON_OPENED: 'dream_history_comparison_opened',
+  REFLECTION_QUESTION_SAVED: 'dream_reflection_question_saved',
+  ANALYSIS_FEEDBACK_SENT: 'dream_analysis_feedback_sent',
+  SHARE_CARD_CREATED: 'dream_share_card_created',
+  PREMIUM_GATE_VIEWED: 'dream_premium_gate_viewed',
+  PREMIUM_CONVERSION_STARTED: 'dream_premium_conversion_started',
   INTERPRETATION_STARTED: 'dream_interpretation_started',
   INTERPRETATION_COMPLETED: 'dream_interpretation_completed',
   HISTORY_OPENED: 'dream_history_opened',

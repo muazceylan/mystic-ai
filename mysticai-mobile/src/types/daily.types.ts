@@ -83,6 +83,98 @@ export interface DailyTransitsDTO {
   }>;
 }
 
+/** How much real user data backed the plan; drives the "prepared from your chart" badge. */
+export type PersonalizationLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+/**
+ * Life areas a plan item can address. Mirrors the backend `LifeArea` enum; used for icons and
+ * localized category labels.
+ */
+export type PlanLifeArea =
+  | 'relationship'
+  | 'family'
+  | 'social'
+  | 'money'
+  | 'work'
+  | 'boundaries'
+  | 'emotional_balance'
+  | 'communication'
+  | 'decision'
+  | 'rest'
+  | 'creativity';
+
+export interface PlanTimeWindow {
+  label: string;
+  /** Local "HH:mm"; null when no real intraday signal produced one. */
+  start?: string | null;
+  end?: string | null;
+}
+
+/**
+ * Machine-readable astrological justification. Never render this directly — show `why` instead.
+ */
+export interface PlanAstroBasis {
+  type: string;
+  planet?: string | null;
+  target?: string | null;
+  aspect?: string | null;
+}
+
+export interface PlanMainTheme {
+  title: string;
+  description: string;
+  why?: string | null;
+  astrologicalBasis?: PlanAstroBasis[];
+}
+
+export interface PlanPrimaryAction {
+  id: string;
+  category: PlanLifeArea | string;
+  categoryLabel: string;
+  title: string;
+  description: string;
+  timeWindow?: PlanTimeWindow | null;
+  why?: string | null;
+  isDone: boolean;
+  doneAt?: string | null;
+  relatedTransitIds?: string[];
+}
+
+export interface PlanTimeSlot {
+  id: string;
+  label: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  title: string;
+  description: string;
+}
+
+export interface PlanLifeAreaCard {
+  id: string;
+  category: PlanLifeArea | string;
+  categoryLabel: string;
+  title: string;
+  description: string;
+  why?: string | null;
+  isDone: boolean;
+  doneAt?: string | null;
+}
+
+export interface PlanCaution {
+  title: string;
+  description: string;
+  timeWindow?: PlanTimeWindow | null;
+  why?: string | null;
+}
+
+export interface PlanMeta {
+  planVersion: string;
+  generatedAt?: string | null;
+  regenerationCount: number;
+  canRegenerate: boolean;
+  source: 'rule_based' | 'minimal_fallback' | string;
+}
+
 export interface DailyActionsDTO {
   date: string;
   header: {
@@ -104,6 +196,17 @@ export interface DailyActionsDTO {
     title: string;
     steps: string[];
   };
+
+  // ── premium personal plan (v2); absent on older backends ──────────────────
+  personalizationLevel?: PersonalizationLevel;
+  profileSignalsUsed?: string[];
+  mainTheme?: PlanMainTheme;
+  primaryAction?: PlanPrimaryAction;
+  timeline?: PlanTimeSlot[];
+  lifeAreaCards?: PlanLifeAreaCard[];
+  caution?: PlanCaution;
+  eveningReflection?: { question: string };
+  meta?: PlanMeta;
 }
 
 export interface DailyActionToggleResponse {
@@ -113,10 +216,22 @@ export interface DailyActionToggleResponse {
   doneAt?: string | null;
 }
 
+/**
+ * Structured reason behind a rating. TOO_GENERIC and REPETITIVE let the backend regenerate the
+ * day's plan; the others are recorded to steer future variant selection.
+ */
+export type PlanFeedbackReason =
+  | 'HELPFUL'
+  | 'TOO_GENERIC'
+  | 'REPETITIVE'
+  | 'NOT_RELEVANT'
+  | 'NOT_USEFUL';
+
 export interface DailyFeedbackPayload {
   date: string;
   itemType: 'transit' | 'action';
   itemId: string;
   sentiment: 'up' | 'down';
+  reason?: PlanFeedbackReason;
   note?: string;
 }

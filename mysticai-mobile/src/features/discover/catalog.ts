@@ -3,12 +3,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { MODULE_ICONS } from '../../constants/icons';
 
 export type DiscoverCategoryKey =
-  | 'cosmic_flow'
+  | 'daily_life'
   | 'self_discovery'
+  | 'relationships'
   | 'spiritual'
-  | 'social_compat';
+  | 'astrology_insights';
 
 export type DiscoverModuleKey =
+  | 'today_plan'
   | 'horoscope_daily'
   | 'transits_today'
   | 'night_sky'
@@ -18,6 +20,7 @@ export type DiscoverModuleKey =
   | 'natal_chart'
   | 'numerology'
   | 'name_analysis'
+  | 'dream_journal'
   | 'decision_compass'
   | 'spiritual_dua'
   | 'spiritual_esma'
@@ -72,9 +75,9 @@ type DiscoverModuleDefinition = {
 
 const DISCOVER_CATEGORY_DEFINITIONS: DiscoverCategoryDefinition[] = [
   {
-    key: 'cosmic_flow',
-    titleKey: 'discover.categories.cosmicFlow.title',
-    subtitleKey: 'discover.categories.cosmicFlow.subtitle',
+    key: 'daily_life',
+    titleKey: 'discover.categories.dailyLife.title',
+    subtitleKey: 'discover.categories.dailyLife.subtitle',
   },
   {
     key: 'self_discovery',
@@ -82,21 +85,57 @@ const DISCOVER_CATEGORY_DEFINITIONS: DiscoverCategoryDefinition[] = [
     subtitleKey: 'discover.categories.selfDiscovery.subtitle',
   },
   {
+    key: 'relationships',
+    titleKey: 'discover.categories.relationships.title',
+    subtitleKey: 'discover.categories.relationships.subtitle',
+  },
+  {
     key: 'spiritual',
     titleKey: 'discover.categories.spiritual.title',
     subtitleKey: 'discover.categories.spiritual.subtitle',
   },
   {
-    key: 'social_compat',
-    titleKey: 'discover.categories.socialCompat.title',
-    subtitleKey: 'discover.categories.socialCompat.subtitle',
+    key: 'astrology_insights',
+    titleKey: 'discover.categories.astrologyInsights.title',
+    subtitleKey: 'discover.categories.astrologyInsights.subtitle',
   },
 ];
 
 const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   {
+    key: 'today_plan',
+    categoryKey: 'daily_life',
+    titleKey: 'discover.modules.todayPlan.title',
+    subtitleKey: 'discover.modules.todayPlan.subtitle',
+    icon: 'checkmark-done-outline',
+    route: '/(tabs)/today-actions',
+    keywords: ['plan', 'daily plan', 'günlük plan', 'aksiyon', 'action', 'öneri', 'recommendation'],
+    todayPriority: true,
+  },
+  {
+    key: 'calendar',
+    categoryKey: 'daily_life',
+    titleKey: 'discover.modules.calendar.title',
+    subtitleKey: 'discover.modules.calendar.subtitle',
+    icon: MODULE_ICONS.calendar,
+    route: '/(tabs)/calendar',
+    keywords: ['takvim', 'calendar', 'planlayıcı', 'planner', 'plan', 'hatırlatıcı', 'reminder'],
+    todayPriority: true,
+  },
+  {
+    key: 'decision_compass',
+    categoryKey: 'daily_life',
+    titleKey: 'discover.modules.decisionCompass.title',
+    subtitleKey: 'discover.modules.decisionCompass.subtitle',
+    icon: MODULE_ICONS.decision_compass,
+    route: '/(tabs)/decision-compass-tab',
+    keywords: ['karar', 'decision', 'pusula', 'compass', 'guide', 'rehber', 'değerlendir'],
+    todayPriority: true,
+    recommended: true,
+  },
+  {
     key: 'horoscope_daily',
-    categoryKey: 'cosmic_flow',
+    categoryKey: 'astrology_insights',
     titleKey: 'discover.modules.horoscopeDaily.title',
     subtitleKey: 'discover.modules.horoscopeDaily.subtitle',
     icon: MODULE_ICONS.horoscope,
@@ -106,7 +145,7 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   },
   {
     key: 'transits_today',
-    categoryKey: 'cosmic_flow',
+    categoryKey: 'astrology_insights',
     titleKey: 'discover.modules.transitsToday.title',
     subtitleKey: 'discover.modules.transitsToday.subtitle',
     icon: MODULE_ICONS.transits,
@@ -116,7 +155,7 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   },
   {
     key: 'weekly',
-    categoryKey: 'cosmic_flow',
+    categoryKey: 'astrology_insights',
     titleKey: 'discover.modules.weekly.title',
     subtitleKey: 'discover.modules.weekly.subtitle',
     icon: MODULE_ICONS.weekly,
@@ -125,17 +164,8 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
     recommended: true,
   },
   {
-    key: 'calendar',
-    categoryKey: 'cosmic_flow',
-    titleKey: 'discover.modules.calendar.title',
-    subtitleKey: 'discover.modules.calendar.subtitle',
-    icon: MODULE_ICONS.calendar,
-    route: '/(tabs)/calendar',
-    keywords: ['takvim', 'calendar', 'planlayıcı', 'planner', 'plan'],
-  },
-  {
     key: 'lucky_hours',
-    categoryKey: 'cosmic_flow',
+    categoryKey: 'astrology_insights',
     titleKey: 'discover.modules.luckyHours.title',
     subtitleKey: 'discover.modules.luckyHours.subtitle',
     icon: MODULE_ICONS.lucky_hours,
@@ -152,7 +182,7 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   },
   {
     key: 'night_sky',
-    categoryKey: 'self_discovery',
+    categoryKey: 'astrology_insights',
     titleKey: 'discover.modules.nightSky.title',
     subtitleKey: 'discover.modules.nightSky.subtitle',
     icon: MODULE_ICONS.night_sky,
@@ -180,13 +210,13 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
     recommended: true,
   },
   {
-    key: 'decision_compass',
+    key: 'dream_journal',
     categoryKey: 'self_discovery',
-    titleKey: 'discover.modules.decisionCompass.title',
-    subtitleKey: 'discover.modules.decisionCompass.subtitle',
-    icon: MODULE_ICONS.decision_compass,
-    route: '/(tabs)/decision-compass-tab',
-    keywords: ['karar', 'decision', 'pusula', 'compass', 'guide', 'rehber'],
+    titleKey: 'discover.modules.dreamJournal.title',
+    subtitleKey: 'discover.modules.dreamJournal.subtitle',
+    icon: MODULE_ICONS.dreams,
+    route: '/(tabs)/dreams',
+    keywords: ['rüya', 'ruya', 'dream', 'günlük', 'journal', 'kayıt', 'record', 'reflection'],
     recommended: true,
   },
   {
@@ -245,7 +275,7 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   },
   {
     key: 'compatibility',
-    categoryKey: 'social_compat',
+    categoryKey: 'relationships',
     titleKey: 'discover.modules.compatibility.title',
     subtitleKey: 'discover.modules.compatibility.subtitle',
     icon: MODULE_ICONS.compatibility,
@@ -255,7 +285,7 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   },
   {
     key: 'star_mate',
-    categoryKey: 'social_compat',
+    categoryKey: 'relationships',
     titleKey: 'discover.modules.starMate.title',
     subtitleKey: 'discover.modules.starMate.subtitle',
     icon: MODULE_ICONS.star_mate,
@@ -264,7 +294,7 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   },
   {
     key: 'share_cards',
-    categoryKey: 'social_compat',
+    categoryKey: 'relationships',
     titleKey: 'discover.modules.shareCards.title',
     subtitleKey: 'discover.modules.shareCards.subtitle',
     icon: 'images-outline',
@@ -273,7 +303,7 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
   },
   {
     key: 'relation_matrix',
-    categoryKey: 'social_compat',
+    categoryKey: 'relationships',
     titleKey: 'discover.modules.relationMatrix.title',
     subtitleKey: 'discover.modules.relationMatrix.subtitle',
     icon: 'grid-outline',
@@ -304,14 +334,14 @@ export function buildDiscoverModules(t: Translate): DiscoverModule[] {
 }
 
 export const TODAY_MODULE_KEYS: DiscoverModuleKey[] = [
-  'horoscope_daily',
-  'transits_today',
-  'night_sky',
+  'today_plan',
+  'calendar',
+  'decision_compass',
 ];
 
 export const RECOMMENDED_MODULE_KEYS: DiscoverModuleKey[] = [
-  'weekly',
+  'dream_journal',
+  'spiritual_meditation',
   'compatibility',
-  'decision_compass',
   'numerology',
 ];

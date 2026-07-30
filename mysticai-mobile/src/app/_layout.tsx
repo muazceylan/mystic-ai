@@ -52,6 +52,8 @@ import {
   trackEvent,
   logScreen,
   initializeClientAnalytics,
+  setAnalyticsConsent,
+  setAnalyticsCollectionEnabled,
   setAnalyticsUserId,
   setAnalyticsUserProperties,
   resetAnalyticsIdentity,
@@ -79,6 +81,10 @@ import { getBuildInfo } from '../services/buildInfo';
 import { checkAppVersion } from '../services/appVersionCheck';
 import type { AppVersionResponse } from '../services/appVersionCheck';
 import { ForcedUpdateModal } from '../components/ui/ForcedUpdateModal';
+import {
+  bootstrapTrackingConsent,
+  type PrivacyBootstrapResult,
+} from '../features/privacy';
 
 const ADSENSE_CLIENT = 'ca-pub-2868466577339325';
 const ADSENSE_SCRIPT_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
@@ -265,6 +271,10 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
   const { colors, activeTheme } = useTheme();
   const pathname = usePathname();
   const [forcedUpdateInfo, setForcedUpdateInfo] = useState<AppVersionResponse | null>(null);
+  const [privacyResult, setPrivacyResult] = useState<PrivacyBootstrapResult | null>(null);
+  const handlePrivacyComplete = useCallback((result: PrivacyBootstrapResult) => {
+    setPrivacyResult(result);
+  }, []);
 
   // Run the route guard inside AppNavigator so the Stack is already mounted
   useProtectedRoute(i18nReady);
@@ -287,16 +297,19 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
         <CompanionBootstrap />
         <NotificationBootstrap />
         <AppConfigBootstrap />
-        <MonetizationBootstrap />
-        <AmplitudeBootstrap />
+        <PrivacyBootstrap onComplete={handlePrivacyComplete} />
+        <MonetizationBootstrap privacyResult={privacyResult} />
+        {privacyResult ? <AmplitudeBootstrap privacyResult={privacyResult} /> : null}
         <BuildInfoBootstrap />
-        <TutorialBootstrap />
-        <GuestSessionBootstrap />
-        <AppVersionBootstrap onUpdateRequired={setForcedUpdateInfo} />
-        <ScreenTracker />
-        <AnalyticsDebugBootstrap />
-        <AnalyticsIdentityBootstrap />
-        <AnalyticsSubscriptionBootstrap />
+        {privacyResult ? <TutorialBootstrap /> : null}
+        {privacyResult ? <GuestSessionBootstrap /> : null}
+        {privacyResult ? (
+          <AppVersionBootstrap onUpdateRequired={setForcedUpdateInfo} />
+        ) : null}
+        {privacyResult ? <ScreenTracker /> : null}
+        {privacyResult ? <AnalyticsDebugBootstrap /> : null}
+        {privacyResult ? <AnalyticsIdentityBootstrap /> : null}
+        {privacyResult ? <AnalyticsSubscriptionBootstrap /> : null}
         <Stack
           screenOptions={createAppStackScreenOptions({
             backgroundColor: colors.bg,
@@ -311,10 +324,80 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
   );
 }
 
-function AmplitudeBootstrap() {
+function AmplitudeBootstrap({
+  privacyResult,
+}: {
+  privacyResult: PrivacyBootstrapResult;
+}) {
   useEffect(() => {
+    const adConsent = privacyResult.personalizedAdvertisingAllowed ? 'granted' : 'denied';
+    const analyticsCollectionEnabled = getAnalyticsDebugState().collectionEnabled;
+    setAnalyticsConsent({
+      analytics_storage: analyticsCollectionEnabled ? 'granted' : 'denied',
+      ad_storage: adConsent,
+      ad_user_data: adConsent,
+      ad_personalization: adConsent,
+    });
+    setAnalyticsCollectionEnabled(analyticsCollectionEnabled);
     initializeClientAnalytics();
-  }, []);
+  }, [privacyResult]);
+
+  return null;
+}
+
+function PrivacyBootstrap({
+  onComplete,
+}: {
+  onComplete: (result: PrivacyBootstrapResult) => void;
+}) {
+  const completedRef = useRef(false);
+  const scheduledRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interactionTaskRef = useRef<ReturnType<
+    typeof InteractionManager.runAfterInteractions
+  > | null>(null);
+
+  const schedule = useCallback(() => {
+    if (completedRef.current || scheduledRef.current || AppState.currentState !== 'active') {
+      return;
+    }
+
+    scheduledRef.current = true;
+    interactionTaskRef.current = InteractionManager.runAfterInteractions(() => {
+      interactionTaskRef.current = null;
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        if (AppState.currentState !== 'active') {
+          scheduledRef.current = false;
+          return;
+        }
+
+        void bootstrapTrackingConsent().then((result) => {
+          completedRef.current = true;
+          scheduledRef.current = false;
+          onComplete(result);
+        });
+      }, 700);
+    });
+  }, [onComplete]);
+
+  useEffect(() => {
+    schedule();
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && !completedRef.current) {
+        schedule();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+      interactionTaskRef.current?.cancel();
+      interactionTaskRef.current = null;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = null;
+      scheduledRef.current = false;
+    };
+  }, [schedule]);
 
   return null;
 }
@@ -524,24 +607,20 @@ function AppConfigBootstrap() {
 
 /** Loads monetization config on startup; wallet only if config is enabled and user is authenticated.
  *  Also initializes the ad provider (AdMob in native builds, stub in Expo Go/web). */
-function MonetizationBootstrap() {
+function MonetizationBootstrap({
+  privacyResult,
+}: {
+  privacyResult: PrivacyBootstrapResult | null;
+}) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const userId = useAuthStore((s) => s.user?.id);
-  const adProviderInitRef = useRef(false);
 
   useEffect(() => {
     if (!isHydrated) return;
 
     const task = InteractionManager.runAfterInteractions(async () => {
       await useMonetizationStore.getState().loadConfig();
-
-      // Initialize the ad provider once (AdMob or stub depending on environment)
-      if (!adProviderInitRef.current) {
-        adProviderInitRef.current = true;
-        const adsEnabled = useMonetizationStore.getState().config?.adsEnabled ?? false;
-        await initializeAdProvider(adsEnabled);
-      }
 
       // Only load wallet if monetization is enabled and user is authenticated
       if (isAuthenticated && useMonetizationStore.getState().isMonetizationEnabled()) {
@@ -550,6 +629,22 @@ function MonetizationBootstrap() {
     });
     return () => task.cancel();
   }, [isHydrated, isAuthenticated]);
+
+  useEffect(() => {
+    if (!privacyResult || !isHydrated) return;
+
+    const task = InteractionManager.runAfterInteractions(async () => {
+      await useMonetizationStore.getState().loadConfig();
+      const adsEnabled = useMonetizationStore.getState().config?.adsEnabled ?? false;
+      await initializeAdProvider(adsEnabled, {
+        trackingConsentStatus: privacyResult.trackingConsentStatus,
+        personalizedAdvertisingAllowed: privacyResult.personalizedAdvertisingAllowed,
+        tagForChildDirectedTreatment: false,
+      }, userId);
+    });
+
+    return () => task.cancel();
+  }, [isHydrated, privacyResult, userId]);
 
   useEffect(() => {
     if (!isHydrated) return;

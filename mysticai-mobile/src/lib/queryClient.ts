@@ -13,6 +13,13 @@ const persister = experimental_createQueryPersister({
   // Cold start'ta tüm restore edilen query'lerin aynı anda refetch yapmasını önler.
   // Tazelenme; staleTime dolduğunda mount/reconnect üzerinden doğal olarak gerçekleşir.
   refetchOnRestore: false,
+  filters: {
+    // RevenueCat offerings, StoreKit'ten canlı çekilen fiyat/para birimi (currencyCode) verisi taşır.
+    // Bunu diskte 24 saat boyunca cache'lemek, storefront/bölge değiştiğinde (ör. sandbox test hesabı)
+    // paywall'da bayat bir para birimi gösterip satın alma anında StoreKit'in gerçek (güncel) fiyatını
+    // sunmasına yol açabilir. Bu query her zaman network'ten taze çekilsin diye persist dışı bırakılıyor.
+    predicate: (query) => !(query.queryKey[0] === 'monetization' && query.queryKey[1] === 'offerings'),
+  },
 });
 
 export const queryClient = new QueryClient({

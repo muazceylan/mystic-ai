@@ -29,8 +29,11 @@ import java.util.List;
  * The Authorization header is NOT stripped by the gateway — it passes through
  * unchanged — so the same token the mobile/web client sent is available here.
  *
- * SCOPE: Only activates for /api/v1/monetization/rewarded-ads/** paths.
- * Other notification-service paths retain their existing security config.
+ * SCOPE: Activates for the web rewarded-ads claim flow
+ * (/api/v1/monetization/rewarded-ads/**) and for provider reward-session minting
+ * (/api/v1/rewarded-ads/**). Other notification-service paths retain their existing
+ * security config. The public provider webhook (/api/v1/webhooks/**) is NOT covered
+ * here — those callbacks carry no user token.
  *
  * RESULT: SecurityContext.authentication.principal == Long userId from JWT.
  * X-User-Id header is completely ignored for these endpoints.
@@ -40,7 +43,10 @@ import java.util.List;
 @Slf4j
 public class UserJwtFilter extends OncePerRequestFilter {
 
-    private static final String REWARDED_ADS_PREFIX = "/api/v1/monetization/rewarded-ads";
+    private static final List<String> PROTECTED_PREFIXES = List.of(
+            "/api/v1/monetization/rewarded-ads",
+            "/api/v1/rewarded-ads"
+    );
 
     private final UserJwtService userJwtService;
 
@@ -50,8 +56,8 @@ public class UserJwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
-        // Only apply to rewarded-ads endpoints.
-        if (!path.startsWith(REWARDED_ADS_PREFIX)) {
+        // Only apply to the protected rewarded-ads / reward-session endpoints.
+        if (PROTECTED_PREFIXES.stream().noneMatch(path::startsWith)) {
             filterChain.doFilter(request, response);
             return;
         }

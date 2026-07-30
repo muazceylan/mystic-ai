@@ -1,6 +1,54 @@
 import { Platform } from 'react-native';
 import api from './api';
 
+export type DreamAnalysisQuality = 'INSUFFICIENT' | 'LIMITED' | 'GOOD' | 'RICH';
+
+export interface DreamAnalysisResult {
+  inputQuality: {
+    level: DreamAnalysisQuality;
+    reason: string;
+  };
+  extractedElements: {
+    mainEvent: string;
+    people: string[];
+    places: string[];
+    symbols: string[];
+    actions: string[];
+    emotions: string[];
+    ending: string;
+    uncertainties: string[];
+  };
+  emotionalCore: {
+    primaryEmotion: string;
+    secondaryEmotion?: string | null;
+    emotionalTransition?: string | null;
+    confidence: number;
+  };
+  essence: string;
+  keyDetails: Array<{
+    title: string;
+    dreamContext: string;
+    interpretation: string;
+    confidence: number;
+  }>;
+  deepInterpretation: string;
+  personalConnection?: string | null;
+  reflectionQuestion: string;
+  journalTrackingNote: string;
+  astrologyNote?: string | null;
+  followUpQuestions: string[];
+  patternConnection?: {
+    summary: string;
+    occurrenceCount: number;
+    relatedDreamIds: number[];
+  } | null;
+  safety: {
+    containsDiagnosis: boolean;
+    containsPrediction: boolean;
+    containsUnsupportedClaims: boolean;
+  };
+}
+
 export interface DreamEntryResponse {
   id: number;
   userId: number;
@@ -16,6 +64,8 @@ export interface DreamEntryResponse {
   correlationId: string;
   interpretationStatus: 'PENDING' | 'COMPLETED' | 'FAILED';
   createdAt: string;
+  analysis?: DreamAnalysisResult | null;
+  promptVersion?: string | null;
 }
 
 export interface DreamSymbol {
@@ -33,6 +83,10 @@ export interface DreamSubmitRequest {
   audioUrl?: string;
   title?: string;
   locale?: string;
+  emotionAfterWaking?: string;
+  userSelectedTags?: string[];
+  useAstrology?: boolean;
+  dreamMemoryEnabled?: boolean;
 }
 
 export interface SymbolInsight {
@@ -83,6 +137,46 @@ export interface SymbolMeaning {
   universal: string;
   psychological: string;
   personal: string;
+}
+
+export type DreamExpansionType =
+  | 'PERSON_MEANING'
+  | 'SYMBOL_MEANING'
+  | 'EMOTIONAL_ANALYSIS'
+  | 'RELATIONSHIP_ANALYSIS'
+  | 'COMPARE_WITH_HISTORY';
+
+export interface DreamExpansionResult {
+  title: string;
+  summary: string;
+  insights: string[];
+  reflectionPrompt: string;
+  safetyNote?: string;
+}
+
+export interface DreamExpansionResponse {
+  id: string;
+  dreamId: number;
+  expansionType: DreamExpansionType;
+  result: DreamExpansionResult;
+  tokenCost: number;
+  currentBalance: number;
+  status: string;
+  usedExistingResult: boolean;
+  promptVersion: string;
+  createdAt: string;
+}
+
+export interface DreamExpansionConfig {
+  enabled: boolean;
+  currency: 'GURU_TOKEN';
+  defaultCost: number;
+  pricingVersion: string;
+  premiumActive: boolean;
+  currentBalance: number;
+  costs: Record<DreamExpansionType, number>;
+  rewardedAvailable: boolean;
+  purchaseAvailable: boolean;
 }
 
 const DEFAULT_AUDIO_EXTENSION = '.m4a';
@@ -185,6 +279,37 @@ export const dreamService = {
 
   getDreamById: async (dreamId: number): Promise<DreamEntryResponse> => {
     const res = await api.get<DreamEntryResponse>(`/api/v1/dreams/${dreamId}`);
+    return res.data;
+  },
+
+  getExpansionConfig: async (): Promise<DreamExpansionConfig> => {
+    const res = await api.get<DreamExpansionConfig>('/api/v1/dreams/analysis/expansion/config');
+    return res.data;
+  },
+
+  getExpansions: async (dreamId: number): Promise<DreamExpansionResponse[]> => {
+    const res = await api.get<DreamExpansionResponse[]>(
+      `/api/v1/dreams/${dreamId}/analysis/expansions`,
+    );
+    return res.data;
+  },
+
+  expandAnalysis: async (
+    dreamId: number,
+    request: {
+      expansionType: DreamExpansionType;
+      targetElement?: string;
+      idempotencyKey: string;
+      pricingVersion: string;
+      regenerate?: boolean;
+      locale?: string;
+    },
+  ): Promise<DreamExpansionResponse> => {
+    const res = await api.post<DreamExpansionResponse>(
+      `/api/v1/dreams/${dreamId}/analysis/expansions`,
+      request,
+      { timeout: 55000 },
+    );
     return res.data;
   },
 

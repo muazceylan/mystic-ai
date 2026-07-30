@@ -59,6 +59,8 @@ export { openSubscriptionManagement } from './services/subscriptionManagement';
 export { getAdProvider, setAdProvider } from './providers/AdProviderAdapter';
 export type { AdProviderAdapter, AdResult } from './providers/AdProviderAdapter';
 export { AdMobRewardedProvider } from './providers/AdMobRewardedProvider';
+export { LevelPlayRewardedProvider } from './providers/LevelPlayRewardedProvider';
+export type { RewardedAdProvider } from './providers/RewardedAdProvider';
 export { initializeAdProvider } from './providers/initProvider';
 export { resolveRewardedUnitId, getAdBlockReason } from './providers/admobUnitIds';
 export { initializeAdMob, isAdMobInitialized, isAdMobAvailable } from './providers/admobInit';

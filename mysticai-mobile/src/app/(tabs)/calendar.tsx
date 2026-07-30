@@ -1936,6 +1936,12 @@ export function CalendarScreenContent() {
       surface: 'cosmic_planner',
       destination: 'calendar',
     });
+    trackEvent('cosmic_planner_opened', {
+      year: viewDate.getFullYear(),
+      month: viewDate.getMonth() + 1,
+      source: 'calendar',
+      surface: 'cosmic_planner',
+    });
   }, [currentCosmicPlanner, viewDate]);
 
   const goPrevMonth = useCallback(() => {
@@ -1948,6 +1954,11 @@ export function CalendarScreenContent() {
 
   const onPressCategory = useCallback((filter: PlannerFilter) => {
     setActiveFilter(filter);
+    trackEvent('planner_category_selected', {
+      category: filter,
+      source: 'calendar_filter',
+      surface: 'cosmic_planner',
+    });
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, []);
 
@@ -1961,6 +1972,12 @@ export function CalendarScreenContent() {
         date: dateKey,
         score: summary.score,
         band: scoreBand(summary.score),
+        surface: 'cosmic_planner',
+      });
+      trackEvent('planner_date_selected', {
+        date: dateKey,
+        category: activeFilter,
+        source: 'calendar_grid',
         surface: 'cosmic_planner',
       });
     }
@@ -2136,6 +2153,22 @@ export function CalendarScreenContent() {
         result: 'success',
         delivery,
         surface: 'cosmic_planner',
+      });
+      trackEvent('cosmic_planner_reminder_created', {
+        date,
+        type: selectedReminderType,
+        delivery,
+        source: 'reminder_sheet',
+        surface: 'cosmic_planner',
+        result: 'success',
+      });
+      trackEvent('planner_reminder_created', {
+        date,
+        type: selectedReminderType,
+        delivery,
+        source: 'reminder_sheet',
+        surface: 'cosmic_planner',
+        result: 'success',
       });
       closeReminderView();
       Alert.alert(

@@ -104,6 +104,76 @@ class AstrologyResponseListenerTest {
     }
 
     @Test
+    void shouldPersistStructuredDreamAnalysisAndRemoveAstrologyWhenDisabled() {
+        UUID correlationId = UUID.randomUUID();
+        DreamEntry entry = DreamEntry.builder()
+                .id(90L)
+                .userId(11L)
+                .text("Eski okulda sınava yetişmeye çalıştım ve sonunda rahatladım.")
+                .correlationId(correlationId)
+                .interpretationStatus("PENDING")
+                .useAstrology(false)
+                .dreamMemoryEnabled(false)
+                .build();
+
+        when(dreamEntryRepository.findByCorrelationId(correlationId)).thenReturn(Optional.of(entry));
+        when(dreamEntryRepository.save(any(DreamEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String aiPayload = """
+                {
+                  "inputQuality":{"level":"GOOD","reason":"Olay ve duygu var."},
+                  "extractedElements":{
+                    "mainEvent":"Sınava yetişme",
+                    "people":[],
+                    "places":["eski okul"],
+                    "symbols":["sınav","rüyada olmayan asansör"],
+                    "actions":["yetişmeye çalışma"],
+                    "emotions":["rahatlama"],
+                    "ending":"Rahatlama",
+                    "uncertainties":[]
+                  },
+                  "emotionalCore":{
+                    "primaryEmotion":"Kaygı",
+                    "secondaryEmotion":"Rahatlama",
+                    "emotionalTransition":"Kaygıdan rahatlamaya",
+                    "confidence":0.82
+                  },
+                  "essence":"Sınava yetişme çabası, sonunda rahatlamaya dönüşüyor.",
+                  "keyDetails":[],
+                  "deepInterpretation":"Rüyanın sonundaki rahatlama, gerilimin çözülebildiğini düşündürüyor.",
+                  "personalConnection":"Baskı hissettiğin bir süreç varsa bununla bağlantılı olabilir.",
+                  "reflectionQuestion":"Bir beklentiyi karşılamaya çalışırken kendi hızını unutuyor musun?",
+                  "journalTrackingNote":"Sonraki rüyalarda okul ve yetişme temasını takip et.",
+                  "astrologyNote":"Neptün bu temayı güçlendiriyor.",
+                  "followUpQuestions":[],
+                  "patternConnection":{"summary":"Bu üçüncü tekrar.","occurrenceCount":3,"relatedDreamIds":[1,2]},
+                  "safety":{"containsDiagnosis":false,"containsPrediction":false,"containsUnsupportedClaims":false}
+                }
+                """;
+
+        listener.handleAiResponse(new AiAnalysisResponseEvent(
+                correlationId,
+                11L,
+                "{}",
+                AiAnalysisEvent.SourceService.DREAM,
+                AiAnalysisEvent.AnalysisType.DREAM_SYNTHESIS,
+                aiPayload,
+                true,
+                null,
+                LocalDateTime.now()
+        ));
+
+        ArgumentCaptor<DreamEntry> captor = ArgumentCaptor.forClass(DreamEntry.class);
+        verify(dreamEntryRepository).save(captor.capture());
+        DreamEntry saved = captor.getValue();
+
+        assertEquals("COMPLETED", saved.getInterpretationStatus());
+        assertTrue(saved.getAnalysisJson().contains("\"astrologyNote\":null"));
+        assertTrue(saved.getAnalysisJson().contains("\"patternConnection\":null"));
+        assertFalse(saved.getAnalysisJson().contains("rüyada olmayan asansör"));
+    }
+
+    @Test
     void shouldFlattenNestedDreamSynthesisSectionsAndObjectLists() {
         UUID correlationId = UUID.randomUUID();
         DreamEntry entry = DreamEntry.builder()

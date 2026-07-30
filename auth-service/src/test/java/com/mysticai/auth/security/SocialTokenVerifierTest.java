@@ -11,6 +11,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestOperations;
 
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPublicKey;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,6 +83,7 @@ class SocialTokenVerifierTest {
         assertThat(userInfo.email()).isEqualTo("user@example.com");
         assertThat(userInfo.firstName()).isEqualTo("Ada");
         assertThat(userInfo.lastName()).isEqualTo("Lovelace");
+        assertThat(userInfo.emailVerified()).isTrue();
     }
 
     @Test
@@ -89,13 +98,142 @@ class SocialTokenVerifierTest {
                 .hasMessage("Invalid Google token: invalid audience");
     }
 
+    @Test
+    void verifyAppleToken_acceptsVerifiedTokenClaims() throws Exception {
+        KeyPair keyPair = generateRsaKeyPair();
+        stubAppleKey(keyPair);
+        String token = appleToken(keyPair, "https://appleid.apple.com", "com.astroguru.mmc",
+                "apple-sub-123", Instant.now().plusSeconds(300));
+
+        SocialTokenVerifier.SocialUserInfo userInfo = verifier.verifyAppleToken(token);
+
+        assertThat(userInfo.socialId()).isEqualTo("apple-sub-123");
+        assertThat(userInfo.email()).isEqualTo("relay@privaterelay.appleid.com");
+        assertThat(userInfo.emailVerified()).isTrue();
+        assertThat(userInfo.privateEmail()).isTrue();
+    }
+
+    @Test
+    void verifyAppleToken_rejectsInvalidAudience() throws Exception {
+        KeyPair keyPair = generateRsaKeyPair();
+        stubAppleKey(keyPair);
+        String token = appleToken(keyPair, "https://appleid.apple.com", "wrong.audience",
+                "apple-sub-123", Instant.now().plusSeconds(300));
+
+        assertThatThrownBy(() -> verifier.verifyAppleToken(token))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid Apple token: invalid audience");
+    }
+
+    @Test
+    void verifyAppleToken_rejectsInvalidIssuer() throws Exception {
+        KeyPair keyPair = generateRsaKeyPair();
+        stubAppleKey(keyPair);
+        String token = appleToken(keyPair, "https://issuer.example", "com.astroguru.mmc",
+                "apple-sub-123", Instant.now().plusSeconds(300));
+
+        assertThatThrownBy(() -> verifier.verifyAppleToken(token))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid Apple token");
+    }
+
+    @Test
+    void verifyAppleToken_rejectsExpiredToken() throws Exception {
+        KeyPair keyPair = generateRsaKeyPair();
+        stubAppleKey(keyPair);
+        String token = appleToken(keyPair, "https://appleid.apple.com", "com.astroguru.mmc",
+                "apple-sub-123", Instant.now().minusSeconds(30));
+
+        assertThatThrownBy(() -> verifier.verifyAppleToken(token))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid Apple token");
+    }
+
+    @Test
+    void verifyAppleToken_rejectsTokenWithoutSubject() throws Exception {
+        KeyPair keyPair = generateRsaKeyPair();
+        stubAppleKey(keyPair);
+        String token = appleToken(keyPair, "https://appleid.apple.com", "com.astroguru.mmc",
+                null, Instant.now().plusSeconds(300));
+
+        assertThatThrownBy(() -> verifier.verifyAppleToken(token))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid Apple token: missing sub");
+    }
+
+    @Test
+    void verifyAppleToken_rejectsInvalidSignature() throws Exception {
+        KeyPair trustedKeyPair = generateRsaKeyPair();
+        KeyPair signingKeyPair = generateRsaKeyPair();
+        stubAppleKey(trustedKeyPair);
+        String token = appleToken(signingKeyPair, "https://appleid.apple.com", "com.astroguru.mmc",
+                "apple-sub-123", Instant.now().plusSeconds(300));
+
+        assertThatThrownBy(() -> verifier.verifyAppleToken(token))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid Apple token");
+    }
+
     private static Map<String, Object> tokenInfo(String audience) {
         return Map.of(
                 "sub", "google-sub-123",
                 "email", "user@example.com",
                 "given_name", "Ada",
                 "family_name", "Lovelace",
+                "email_verified", "true",
                 "aud", audience
         );
+    }
+
+    private void stubAppleKey(KeyPair keyPair) {
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        SocialTokenVerifier.AppleKey appleKey = new SocialTokenVerifier.AppleKey();
+        appleKey.kty = "RSA";
+        appleKey.kid = "test-kid";
+        appleKey.use = "sig";
+        appleKey.alg = "RS256";
+        appleKey.n = unsignedBase64(publicKey.getModulus());
+        appleKey.e = unsignedBase64(publicKey.getPublicExponent());
+        SocialTokenVerifier.AppleKeysResponse keysResponse = new SocialTokenVerifier.AppleKeysResponse();
+        keysResponse.keys = List.of(appleKey);
+
+        when(socialAuthRestTemplate.getForObject(
+                eq("https://appleid.apple.com/auth/keys"),
+                eq(SocialTokenVerifier.AppleKeysResponse.class)
+        )).thenReturn(keysResponse);
+    }
+
+    private static KeyPair generateRsaKeyPair() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        return generator.generateKeyPair();
+    }
+
+    private static String appleToken(
+            KeyPair keyPair,
+            String issuer,
+            String audience,
+            String subject,
+            Instant expiration
+    ) {
+        return io.jsonwebtoken.Jwts.builder()
+                .header().keyId("test-kid").and()
+                .issuer(issuer)
+                .audience().add(audience).and()
+                .subject(subject)
+                .expiration(Date.from(expiration))
+                .claim("email", "relay@privaterelay.appleid.com")
+                .claim("email_verified", "true")
+                .claim("is_private_email", "true")
+                .signWith(keyPair.getPrivate(), io.jsonwebtoken.Jwts.SIG.RS256)
+                .compact();
+    }
+
+    private static String unsignedBase64(BigInteger value) {
+        byte[] bytes = value.toByteArray();
+        if (bytes.length > 1 && bytes[0] == 0) {
+            bytes = java.util.Arrays.copyOfRange(bytes, 1, bytes.length);
+        }
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

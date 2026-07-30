@@ -19,5 +19,7 @@ public record DreamEntryResponse(
         List<String> extractedSymbols,
         UUID correlationId,
         String interpretationStatus,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        DreamAnalysisResult analysis,
+        String promptVersion
 ) {}

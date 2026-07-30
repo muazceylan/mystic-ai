@@ -2,9 +2,11 @@ import { Platform } from 'react-native';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import type { RequestConfiguration } from './googleMobileAdsRuntime.shared';
 import { getGoogleMobileAdsModule } from './googleMobileAdsRuntime';
+import type { AdsInitializationOptions } from './mobileAds.types';
 
 let initPromise: Promise<boolean> | null = null;
 let initSuccess = false;
+let initializationOptions: AdsInitializationOptions | null = null;
 
 /**
  * Whether the AdMob SDK has been successfully initialized.
@@ -28,11 +30,19 @@ export function isAdMobAvailable(): boolean {
  * @param testDeviceIds Optional list of test device IDs for request configuration.
  * @returns true if initialization succeeded, false otherwise.
  */
-export async function initializeAdMob(testDeviceIds?: string[]): Promise<boolean> {
+export async function initializeAdMob(
+  options: AdsInitializationOptions,
+  testDeviceIds?: string[],
+): Promise<boolean> {
+  initializationOptions = options;
   if (initPromise) return initPromise;
 
   initPromise = doInit(testDeviceIds);
   return initPromise;
+}
+
+export function getAdMobInitializationOptions(): AdsInitializationOptions | null {
+  return initializationOptions;
 }
 
 async function doInit(testDeviceIds?: string[]): Promise<boolean> {
@@ -82,6 +92,7 @@ async function doInit(testDeviceIds?: string[]): Promise<boolean> {
     return true;
   } catch (error) {
     initSuccess = false;
+    initPromise = null;
 
     const message = error instanceof Error ? error.message : 'unknown';
     if (__DEV__) {

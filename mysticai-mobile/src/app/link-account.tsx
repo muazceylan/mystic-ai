@@ -14,7 +14,6 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../context/ThemeContext';
@@ -372,10 +371,8 @@ export default function LinkAccountScreen() {
 
   const handleAppleLink = async () => {
     try {
-      const nonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, Math.random().toString(36));
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
-        nonce,
       });
       if (credential.identityToken) await handleSocialLink('apple', credential.identityToken);
     } catch (error: any) {

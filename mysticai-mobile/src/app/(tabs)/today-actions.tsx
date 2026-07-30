@@ -3,12 +3,27 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppHeader, SafeScreen, Skeleton } from '../../components/ui';
-import { ActionCard, MiniPlanCard, SectionCard } from '../../components/daily';
+import {
+  ActionCard,
+  CautionCard,
+  EveningReflectionCard,
+  LifeAreaCardView,
+  MainThemeCard,
+  MiniPlanCard,
+  PlanFeedbackSection,
+  PrimaryActionCard,
+  SectionCard,
+  TimelineSection,
+} from '../../components/daily';
 import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import { queryKeys } from '../../lib/queryKeys';
 import { getDailyActions, getTodayIsoDate, markActionDone, sendFeedback } from '../../services/daily.service';
-import type { DailyActionsDTO, DailyFeedbackPayload } from '../../types/daily.types';
+import type {
+  DailyActionsDTO,
+  DailyFeedbackPayload,
+  PlanFeedbackReason,
+} from '../../types/daily.types';
 import { trackEvent } from '../../services/analytics';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +37,28 @@ function formatDateLabel(dateIso: string, locale: string) {
   const date = new Date(dateIso);
   if (Number.isNaN(date.getTime())) return dateIso;
   return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
+}
+
+/**
+ * Applies a completion toggle across every place an item can appear: the legacy `actions`
+ * list plus the premium primary action and life-area cards.
+ */
+function patchPlanDoneState(
+  current: DailyActionsDTO | undefined,
+  actionId: string,
+  isDone: boolean,
+  doneAt?: string | null,
+): DailyActionsDTO | undefined {
+  if (!current) return current;
+  const patch = <T extends { id: string; isDone: boolean; doneAt?: string | null }>(item: T): T =>
+    item.id === actionId ? { ...item, isDone, doneAt: isDone ? doneAt : undefined } : item;
+
+  return {
+    ...current,
+    actions: current.actions.map(patch),
+    primaryAction: current.primaryAction ? patch(current.primaryAction) : undefined,
+    lifeAreaCards: current.lifeAreaCards?.map(patch),
+  };
 }
 
 function LoadingState() {
@@ -48,6 +85,8 @@ export default function TodayActionsScreen() {
   const user = useAuthStore((state) => state.user);
   const userScopeKey = resolveUserScopeKey(user);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  const [planFeedback, setPlanFeedback] = useState<PlanFeedbackReason | null>(null);
+  const [planFeedbackSubmitting, setPlanFeedbackSubmitting] = useState(false);
   const date = useMemo(() => getTodayIsoDate(), []);
   const queryKey = queryKeys.dailyActions(date, resolvedLocale, userScopeKey);
   const errorEventSentRef = useRef<string | null>(null);
@@ -79,12 +118,27 @@ export default function TodayActionsScreen() {
     const eventKey = `${dailyActionsQuery.data.date}:${resolvedLocale}`;
     if (loadEventSentRef.current === eventKey) return;
     loadEventSentRef.current = eventKey;
+    const hasPlanContent =
+      Boolean(dailyActionsQuery.data.primaryAction) || dailyActionsQuery.data.actions.length > 0;
     trackEvent('daily_actions_load', {
       date: dailyActionsQuery.data.date,
       surface: 'today_actions',
       destination: 'today_actions',
-      result: dailyActionsQuery.data.actions.length > 0 ? 'success' : 'fail',
-      reason: dailyActionsQuery.data.actions.length > 0 ? undefined : 'empty_payload',
+      result: hasPlanContent ? 'success' : 'fail',
+      reason: hasPlanContent ? undefined : 'empty_payload',
+      locale: resolvedLocale,
+    });
+    trackEvent('personal_plan_viewed', {
+      date: dailyActionsQuery.data.date,
+      action_count: dailyActionsQuery.data.actions.length,
+      personalization_level: dailyActionsQuery.data.personalizationLevel,
+      profile_signal_count: dailyActionsQuery.data.profileSignalsUsed?.length ?? 0,
+      primary_category: dailyActionsQuery.data.primaryAction?.category,
+      timeline_slot_count: dailyActionsQuery.data.timeline?.length ?? 0,
+      plan_source: dailyActionsQuery.data.meta?.source,
+      plan_version: dailyActionsQuery.data.meta?.planVersion,
+      source: 'today_actions',
+      surface: 'today_actions',
       locale: resolvedLocale,
     });
   }, [dailyActionsQuery.data, resolvedLocale]);
@@ -98,20 +152,8 @@ export default function TodayActionsScreen() {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<DailyActionsDTO>(queryKey);
 
-      queryClient.setQueryData<DailyActionsDTO>(queryKey, (current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          actions: current.actions.map((item) =>
-            item.id === actionId
-              ? {
-                  ...item,
-                  isDone,
-                  doneAt: isDone ? new Date().toISOString() : undefined,
-                }
-              : item),
-        };
-      });
+      queryClient.setQueryData<DailyActionsDTO>(queryKey, (current) =>
+        patchPlanDoneState(current, actionId, isDone, isDone ? new Date().toISOString() : undefined));
 
       trackEvent('action_done_toggled', {
         date,
@@ -120,6 +162,14 @@ export default function TodayActionsScreen() {
         optimistic: true,
         surface: 'today_actions',
         destination: 'today_actions',
+        locale: resolvedLocale,
+      });
+      trackEvent('personal_plan_action_opened', {
+        date,
+        action_id: actionId,
+        next_state: isDone ? 'completed' : 'open',
+        source: 'today_actions',
+        surface: 'today_actions',
         locale: resolvedLocale,
       });
       return { previous };
@@ -141,20 +191,8 @@ export default function TodayActionsScreen() {
       Alert.alert(t('todayActions.actionFailedTitle'), error?.message ?? t('todayActions.actionFailedMsg'));
     },
     onSuccess: (response) => {
-      queryClient.setQueryData<DailyActionsDTO>(queryKey, (current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          actions: current.actions.map((item) =>
-            item.id === response.actionId
-              ? {
-                  ...item,
-                  isDone: response.isDone,
-                  doneAt: response.doneAt,
-                }
-              : item),
-        };
-      });
+      queryClient.setQueryData<DailyActionsDTO>(queryKey, (current) =>
+        patchPlanDoneState(current, response.actionId, response.isDone, response.doneAt));
       trackEvent('action_done_toggled', {
         date: response.date,
         action_id: response.actionId,
@@ -165,6 +203,15 @@ export default function TodayActionsScreen() {
         result: 'success',
         locale: resolvedLocale,
       });
+      if (response.isDone) {
+        trackEvent('personal_plan_action_completed', {
+          date: response.date,
+          action_id: response.actionId,
+          source: 'today_actions',
+          surface: 'today_actions',
+          locale: resolvedLocale,
+        });
+      }
     },
     onSettled: () => {
       setPendingActionId(null);
@@ -173,6 +220,13 @@ export default function TodayActionsScreen() {
   });
 
   const sendActionFeedback = async (payload: DailyFeedbackPayload) => {
+    trackEvent('personal_plan_feedback_opened', {
+      date: payload.date,
+      action_id: payload.itemId,
+      source: 'today_actions',
+      surface: 'today_actions',
+      locale: resolvedLocale,
+    });
     try {
       await sendFeedback(payload, resolvedLocale);
       trackEvent('feedback_sent', {
@@ -180,8 +234,19 @@ export default function TodayActionsScreen() {
         item_type: payload.itemType,
         item_id: payload.itemId,
         sentiment: payload.sentiment,
+        reason: payload.reason,
         surface: 'today_actions',
         destination: 'today_actions',
+        result: 'success',
+        locale: resolvedLocale,
+      });
+      trackEvent('personal_plan_feedback_sent', {
+        date: payload.date,
+        action_id: payload.itemId,
+        sentiment: payload.sentiment,
+        reason: payload.reason,
+        source: 'today_actions',
+        surface: 'today_actions',
         result: 'success',
         locale: resolvedLocale,
       });
@@ -196,6 +261,52 @@ export default function TodayActionsScreen() {
         result: 'fail',
         locale: resolvedLocale,
       });
+      trackEvent('personal_plan_feedback_sent', {
+        date: payload.date,
+        action_id: payload.itemId,
+        sentiment: payload.sentiment,
+        source: 'today_actions',
+        surface: 'today_actions',
+        result: 'fail',
+        locale: resolvedLocale,
+      });
+    }
+  };
+
+  /**
+   * Plan-level rating. TOO_GENERIC / REPETITIVE ask the backend to rebuild today's plan, so we
+   * refetch once the feedback lands — the user sees a different plan rather than an inert tap.
+   */
+  const onPlanFeedback = async (reason: PlanFeedbackReason) => {
+    if (!data) return;
+    setPlanFeedback(reason);
+    setPlanFeedbackSubmitting(true);
+    const regenerates = reason === 'TOO_GENERIC' || reason === 'REPETITIVE';
+
+    try {
+      await sendActionFeedback({
+        date: data.date,
+        itemType: 'action',
+        itemId: data.primaryAction?.id ?? 'personal-plan',
+        sentiment: reason === 'HELPFUL' ? 'up' : 'down',
+        reason,
+      });
+      trackEvent('personal_plan_rated', {
+        date: data.date,
+        reason,
+        personalization_level: data.personalizationLevel,
+        category: data.primaryAction?.category,
+        plan_version: data.meta?.planVersion,
+        can_regenerate: data.meta?.canRegenerate ?? false,
+        source: 'today_actions',
+        surface: 'today_actions',
+        locale: resolvedLocale,
+      });
+      if (regenerates && (data.meta?.canRegenerate ?? true)) {
+        await queryClient.invalidateQueries({ queryKey });
+      }
+    } finally {
+      setPlanFeedbackSubmitting(false);
     }
   };
 
@@ -206,11 +317,19 @@ export default function TodayActionsScreen() {
       destination: 'today_actions',
       locale: resolvedLocale,
     });
+    trackEvent('personal_plan_retry_clicked', {
+      date,
+      source: 'today_actions',
+      surface: 'today_actions',
+      locale: resolvedLocale,
+    });
     void dailyActionsQuery.refetch();
   };
 
   const data = dailyActionsQuery.data;
-  const isEmpty = !!data && data.actions.length === 0;
+  // v2 payloads carry a composed plan; older backends only send `actions`.
+  const isPremiumPlan = Boolean(data?.mainTheme || data?.primaryAction);
+  const isEmpty = !!data && !isPremiumPlan && data.actions.length === 0;
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
@@ -229,7 +348,13 @@ export default function TodayActionsScreen() {
             <Text style={[styles.statusBody, { color: colors.subtext }]}>
               {t('todayActions.errorBody')}
             </Text>
-            <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
+            <Pressable
+              style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+              onPress={onRetry}
+              accessibilityRole="button"
+              accessibilityLabel={t('todayActions.retry')}
+              testID="personal-plan-retry"
+            >
               <Text style={styles.retryText}>{t('todayActions.retry')}</Text>
             </Pressable>
           </View>
@@ -241,13 +366,58 @@ export default function TodayActionsScreen() {
             <Text style={[styles.statusBody, { color: colors.subtext }]}>
               {t('todayActions.emptyBody')}
             </Text>
-            <Pressable style={[styles.retryBtn, { backgroundColor: colors.primary }]} onPress={onRetry}>
+            <Pressable
+              style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+              onPress={onRetry}
+              accessibilityRole="button"
+              accessibilityLabel={t('todayActions.refresh')}
+              testID="personal-plan-refresh"
+            >
               <Text style={styles.retryText}>{t('todayActions.refresh')}</Text>
             </Pressable>
           </View>
         ) : null}
 
-        {data && !isEmpty ? (
+        {data && isPremiumPlan ? (
+          <>
+            {data.mainTheme ? (
+              <MainThemeCard theme={data.mainTheme} level={data.personalizationLevel} />
+            ) : null}
+
+            {data.primaryAction ? (
+              <PrimaryActionCard
+                action={data.primaryAction}
+                pending={pendingActionId === data.primaryAction.id}
+                onToggle={(actionId, nextValue) => toggleMutation.mutate({ actionId, isDone: nextValue })}
+              />
+            ) : null}
+
+            <TimelineSection slots={data.timeline ?? []} />
+
+            {(data.lifeAreaCards ?? []).map((card) => (
+              <LifeAreaCardView
+                key={card.id}
+                card={card}
+                pending={pendingActionId === card.id}
+                onToggle={(actionId, nextValue) => toggleMutation.mutate({ actionId, isDone: nextValue })}
+              />
+            ))}
+
+            {data.caution ? <CautionCard caution={data.caution} /> : null}
+
+            {data.eveningReflection ? (
+              <EveningReflectionCard question={data.eveningReflection.question} />
+            ) : null}
+
+            <PlanFeedbackSection
+              selected={planFeedback}
+              submitting={planFeedbackSubmitting}
+              onSelect={onPlanFeedback}
+            />
+          </>
+        ) : null}
+
+        {data && !isPremiumPlan && !isEmpty ? (
           <>
             <SectionCard title={data.header.title} icon="sparkles">
               <Text style={[styles.headerSubtitle, { color: colors.subtext }]}>{data.header.subtitle}</Text>
@@ -265,6 +435,9 @@ export default function TodayActionsScreen() {
                     <Pressable
                       style={[styles.feedbackBtn, { borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#E6DFFF' }]}
                       onPress={() => sendActionFeedback({ date: data.date, itemType: 'action', itemId: action.id, sentiment: 'up' })}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('todayActions.feedbackHelpful')}
+                      testID={`personal-plan-feedback-helpful-${action.id}`}
                     >
                       <Ionicons name="thumbs-up-outline" size={13} color={colors.primary} />
                       <Text style={[styles.feedbackText, { color: colors.primary }]}>{t('todayActions.feedbackHelpful')}</Text>
@@ -272,6 +445,9 @@ export default function TodayActionsScreen() {
                     <Pressable
                       style={[styles.feedbackBtn, { borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#E6DFFF' }]}
                       onPress={() => sendActionFeedback({ date: data.date, itemType: 'action', itemId: action.id, sentiment: 'down' })}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('todayActions.feedbackImprove')}
+                      testID={`personal-plan-feedback-improve-${action.id}`}
                     >
                       <Ionicons name="thumbs-down-outline" size={13} color={colors.primary} />
                       <Text style={[styles.feedbackText, { color: colors.primary }]}>{t('todayActions.feedbackImprove')}</Text>

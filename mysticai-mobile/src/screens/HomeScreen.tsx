@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DailyTransitsCard } from '../components/Home/DailyTransitsCard';
 import { GreetingRow } from '../components/Home/GreetingRow';
 import { HoroscopeSummaryCard } from '../components/Home/HoroscopeSummaryCard';
+import { JourneyPreviewCard } from '../components/Home/JourneyPreviewCard';
+import { PersonalPlanCard } from '../components/Home/PersonalPlanCard';
 import { QuickActionGrid } from '../components/Home/QuickActionGrid';
 import { SkyHeroCard } from '../components/Home/SkyHeroCard';
 import { WeeklyHighlightsCompact } from '../components/Home/WeeklyHighlightsCompact';
@@ -16,6 +20,7 @@ import { trackEvent } from '../services/analytics';
 import { fetchHomeContentBundle, type HomeSection, type CmsBanner } from '../services/homeContent.service';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNotificationStore } from '../store/useNotificationStore';
+import { useJournalStore } from '../spiritual/store/useJournalStore';
 import {
   HOME_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
@@ -35,6 +40,10 @@ import { useTheme, type ThemeColors } from '../context/ThemeContext';
 import { MODULE_ICONS, ACTION_ICONS } from '../constants/icons';
 import { navigateWithOrigin } from '../navigation';
 import { normalizeAvatarUri, resolveAvatarUri } from '../utils/avatarUrl';
+import { getDailyActions, getTodayIsoDate, markActionDone } from '../services/daily.service';
+import { queryKeys } from '../lib/queryKeys';
+import type { DailyActionsDTO } from '../types/daily.types';
+import { resolveUserScopeKey } from '../store/userScopedPersist';
 
 const HOME_VARIANT = 'premium_v3';
 const NIGHT_SKY_ROUTE = '/night-sky';
@@ -43,6 +52,8 @@ const TRANSITS_ROUTE_FALLBACK = '/transits-today';
 const WEEKLY_ANALYSIS_ROUTE_FALLBACK = '/(tabs)/weekly-analysis';
 const HOME_MAX_FONT_SCALE = 1.15;
 const HOME_CONTENT_MAX_WIDTH = 1180;
+const SIX_HOURS = 1000 * 60 * 60 * 6;
+const ONE_DAY = 1000 * 60 * 60 * 24;
 const HIDDEN_HOME_SECTION_KEYS = new Set([
   'home_numerology_promo',
   'home_compatibility_promo',
@@ -273,12 +284,28 @@ function LoadingBlock({ height, style }: { height: number; style: object }) {
   return <View style={[style, { height }]} />;
 }
 
+function formatPlanDate(dateIso: string, locale: 'tr' | 'en'): string {
+  const date = new Date(`${dateIso}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return dateIso;
+  return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
+  const userScopeKey = resolveUserScopeKey(user);
+  const spiritualEntryCount = useJournalStore(
+    (state) => state.entries.filter((entry) => entry.completed > 0).length,
+  );
+  const spiritualStreakDays = useJournalStore((state) => state.getStreakDays());
   const { reopenTutorialById } = useTutorial();
   const { triggerInitial: triggerInitialTutorials } = useTutorialTrigger(TUTORIAL_SCREEN_KEYS.HOME);
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
@@ -296,6 +323,76 @@ export default function HomeScreen() {
     () => ((i18n.resolvedLanguage ?? i18n.language ?? user?.preferredLanguage ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     [i18n.language, i18n.resolvedLanguage, user?.preferredLanguage],
   );
+  const planDate = useMemo(() => getTodayIsoDate(), []);
+  const personalPlanQueryKey = queryKeys.dailyActions(planDate, resolvedLocale, userScopeKey);
+  const personalPlanQuery = useQuery({
+    queryKey: personalPlanQueryKey,
+    queryFn: () => getDailyActions(planDate, resolvedLocale, userScopeKey),
+    enabled: Boolean(user?.id),
+    staleTime: SIX_HOURS,
+    gcTime: ONE_DAY,
+  });
+  const [pendingPlanActionId, setPendingPlanActionId] = useState<string | null>(null);
+  const personalPlanImpressionRef = useRef<string | null>(null);
+  const personalPlanMutation = useMutation({
+    mutationFn: async (input: { actionId: string; isDone: boolean }) => {
+      setPendingPlanActionId(input.actionId);
+      return markActionDone(
+        planDate,
+        input.actionId,
+        input.isDone,
+        resolvedLocale,
+        userScopeKey,
+      );
+    },
+    onMutate: async ({ actionId, isDone }) => {
+      await queryClient.cancelQueries({ queryKey: personalPlanQueryKey });
+      const previous = queryClient.getQueryData<DailyActionsDTO>(personalPlanQueryKey);
+      queryClient.setQueryData<DailyActionsDTO>(personalPlanQueryKey, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          actions: current.actions.map((action) =>
+            action.id === actionId
+              ? { ...action, isDone, doneAt: isDone ? new Date().toISOString() : undefined }
+              : action),
+        };
+      });
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(personalPlanQueryKey, context.previous);
+      }
+      Alert.alert(t('homePersonalPlan.actionErrorTitle'), t('homePersonalPlan.actionErrorBody'));
+    },
+    onSuccess: (response) => {
+      queryClient.setQueryData<DailyActionsDTO>(personalPlanQueryKey, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          actions: current.actions.map((action) =>
+            action.id === response.actionId
+              ? { ...action, isDone: response.isDone, doneAt: response.doneAt }
+              : action),
+        };
+      });
+      if (response.isDone) {
+        trackEvent('personal_plan_action_completed', {
+          action_id: response.actionId,
+          completion_state: 'completed',
+          source: 'home',
+          module: 'personal_plan',
+          locale: resolvedLocale,
+        });
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    },
+    onSettled: () => {
+      setPendingPlanActionId(null);
+      void queryClient.invalidateQueries({ queryKey: personalPlanQueryKey });
+    },
+  });
   const {
     data: dashboard,
     isLoading,
@@ -304,6 +401,21 @@ export default function HomeScreen() {
     isOracleLoading,
     refetch,
   } = useHomeDashboard({ user, locale: resolvedLocale });
+
+  useEffect(() => {
+    const data = personalPlanQuery.data;
+    if (!data) return;
+    const eventKey = `${data.date}:${resolvedLocale}`;
+    if (personalPlanImpressionRef.current === eventKey) return;
+    personalPlanImpressionRef.current = eventKey;
+    trackEvent('home_personal_plan_impression', {
+      source: 'home',
+      module: 'personal_plan',
+      action_count: data.actions.length,
+      completed_count: data.actions.filter((action) => action.isDone).length,
+      locale: resolvedLocale,
+    });
+  }, [personalPlanQuery.data, resolvedLocale]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -528,8 +640,13 @@ export default function HomeScreen() {
       surface: 'hero',
       destination: 'night_sky',
     });
+    trackEvent('astrology_context_opened', {
+      source: 'home',
+      module: 'night_sky',
+      locale: resolvedLocale,
+    });
     pushRoute(NIGHT_SKY_ROUTE);
-  }, [pushRoute]);
+  }, [pushRoute, resolvedLocale]);
 
   const handlePressQuickAction = useCallback(
     (action: QuickAction) => {
@@ -583,8 +700,68 @@ export default function HomeScreen() {
       surface: 'transits_card',
       destination: 'transits_today',
     });
+    trackEvent('astrology_context_opened', {
+      source: 'home',
+      module: 'daily_transits',
+      locale: resolvedLocale,
+    });
     pushRoute(transitsRoute);
-  }, [pushRoute, transitsRoute]);
+  }, [pushRoute, resolvedLocale, transitsRoute]);
+
+  const handleOpenPersonalPlan = useCallback(() => {
+    trackEvent('home_personal_plan_opened', {
+      source: 'home',
+      module: 'personal_plan',
+      locale: resolvedLocale,
+    });
+    trackEvent('personal_plan_viewed', {
+      source: 'home',
+      module: 'personal_plan',
+      locale: resolvedLocale,
+    });
+    pushRoute('/(tabs)/today-actions');
+  }, [pushRoute, resolvedLocale]);
+
+  const handleOpenPlanner = useCallback(() => {
+    trackEvent('cosmic_planner_opened', {
+      source: 'home_personal_plan',
+      module: 'cosmic_planner',
+      locale: resolvedLocale,
+    });
+    pushRoute('/(tabs)/calendar');
+  }, [pushRoute, resolvedLocale]);
+
+  const handleRetryPersonalPlan = useCallback(() => {
+    trackEvent('personal_plan_retry_clicked', {
+      source: 'home',
+      module: 'personal_plan',
+      locale: resolvedLocale,
+    });
+    void personalPlanQuery.refetch();
+  }, [personalPlanQuery.refetch, resolvedLocale]);
+
+  const handleTogglePersonalPlanAction = useCallback(
+    (actionId: string, nextValue: boolean) => {
+      trackEvent('personal_plan_action_opened', {
+        source: 'home',
+        module: 'personal_plan',
+        action_id: actionId,
+        completion_state: nextValue ? 'completing' : 'reopening',
+        locale: resolvedLocale,
+      });
+      personalPlanMutation.mutate({ actionId, isDone: nextValue });
+    },
+    [personalPlanMutation.mutate, resolvedLocale],
+  );
+
+  const handleOpenJourney = useCallback(() => {
+    trackEvent('home_journey_opened', {
+      source: 'home',
+      module: 'journey',
+      locale: resolvedLocale,
+    });
+    pushRoute('/(tabs)/journey');
+  }, [pushRoute, resolvedLocale]);
 
   const handlePressWeeklyAll = useCallback(() => {
     trackEvent('home_weekly_seeall_click', {
@@ -627,6 +804,11 @@ export default function HomeScreen() {
     [cmsSections],
   );
   const featureColumns: number = 2;
+  const personalPlanActions = personalPlanQuery.data?.actions ?? [];
+  const completedPlanActions = personalPlanActions.filter((action) => action.isDone).length;
+  const personalContextText = signName
+    ? t('homePersonalPlan.contextLabel', { sign: signName })
+    : t('homePersonalPlan.contextFallback');
 
   return (
     <SafeScreen edges={['top', 'left', 'right']}>
@@ -702,19 +884,23 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <GreetingRow text={greetingText} />
+        <GreetingRow text={greetingText} contextText={personalContextText} />
 
-        <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HERO_ENERGY}>
-          <SkyHeroCard
-            subtitleText={heroSubtitle}
-            phase={heroPhase}
-            illumination={heroIllumination}
-            insight={heroInsight}
-            ctaLabel={heroCtaText}
-            isLoading={initialLoading || isOracleLoading}
-            onPress={handlePressSkyCard}
-          />
-        </SpotlightTarget>
+        <PersonalPlanCard
+          dateLabel={formatPlanDate(personalPlanQuery.data?.date ?? planDate, resolvedLocale)}
+          actions={personalPlanActions}
+          theme={personalPlanQuery.data?.header.subtitle || todayAdvice || todayTheme}
+          mainTheme={personalPlanQuery.data?.mainTheme}
+          primaryAction={personalPlanQuery.data?.primaryAction}
+          personalizationLevel={personalPlanQuery.data?.personalizationLevel}
+          isLoading={personalPlanQuery.isLoading}
+          isError={personalPlanQuery.isError}
+          pendingActionId={pendingPlanActionId}
+          onOpenPlan={handleOpenPersonalPlan}
+          onOpenPlanner={handleOpenPlanner}
+          onRetry={handleRetryPersonalPlan}
+          onToggleAction={handleTogglePersonalPlanAction}
+        />
 
         {quickActions.length > 0 ? (
           <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.QUICK_ACTIONS}>
@@ -728,6 +914,13 @@ export default function HomeScreen() {
             </View>
           </SpotlightTarget>
         ) : null}
+
+        <JourneyPreviewCard
+          completedToday={completedPlanActions}
+          practiceRecordCount={spiritualEntryCount}
+          streakDays={spiritualStreakDays}
+          onPress={handleOpenJourney}
+        />
 
         <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
           <View
@@ -814,6 +1007,18 @@ export default function HomeScreen() {
           isLoading={initialLoading && !dashboard}
           onPress={handlePressTransits}
         />
+
+        <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.HERO_ENERGY}>
+          <SkyHeroCard
+            subtitleText={heroSubtitle}
+            phase={heroPhase}
+            illumination={heroIllumination}
+            insight={heroInsight}
+            ctaLabel={heroCtaText}
+            isLoading={initialLoading || isOracleLoading}
+            onPress={handlePressSkyCard}
+          />
+        </SpotlightTarget>
 
         <WeeklyHighlightsCompact
           weekRange={dashboard?.weeklyHighlights?.rangeText}

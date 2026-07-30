@@ -3,6 +3,7 @@ package com.mysticai.notification.controller;
 import com.mysticai.notification.entity.monetization.GuruLedger;
 import com.mysticai.notification.entity.monetization.GuruWallet;
 import com.mysticai.notification.service.monetization.FeatureAccessService;
+import com.mysticai.notification.service.monetization.DreamExpansionReservationService;
 import com.mysticai.notification.service.monetization.GuruWalletService;
 import com.mysticai.notification.service.monetization.MonetizationConfigService;
 import com.mysticai.notification.service.monetization.RewardedContentUnlockService;
@@ -30,6 +31,7 @@ public class MonetizationPublicController {
     private final FeatureAccessService featureAccessService;
     private final SignupBonusService signupBonusService;
     private final RewardedContentUnlockService rewardedContentUnlockService;
+    private final DreamExpansionReservationService dreamExpansionReservationService;
 
     @Value("${internal.gateway.key}")
     private String internalGatewayKey;
@@ -228,6 +230,40 @@ public class MonetizationPublicController {
         ));
     }
 
+    @GetMapping("/internal/dream-expansions/config")
+    public ResponseEntity<DreamExpansionReservationService.ConfigResponse> getDreamExpansionConfig(
+            @RequestHeader(INTERNAL_SERVICE_HEADER) String serviceKey,
+            @RequestParam Long userId) {
+        ensureInternalServiceKey(serviceKey);
+        return ResponseEntity.ok(dreamExpansionReservationService.getConfig(userId));
+    }
+
+    @PostMapping("/internal/dream-expansions/reservations")
+    public ResponseEntity<DreamExpansionReservationService.ReservationResponse> reserveDreamExpansion(
+            @RequestHeader(INTERNAL_SERVICE_HEADER) String serviceKey,
+            @RequestBody DreamExpansionReservationService.ReserveRequest request) {
+        ensureInternalServiceKey(serviceKey);
+        return ResponseEntity.ok(dreamExpansionReservationService.reserve(request));
+    }
+
+    @PostMapping("/internal/dream-expansions/reservations/{reservationId}/commit")
+    public ResponseEntity<DreamExpansionReservationService.ReservationResponse> commitDreamExpansion(
+            @RequestHeader(INTERNAL_SERVICE_HEADER) String serviceKey,
+            @PathVariable java.util.UUID reservationId,
+            @RequestBody DreamExpansionReservationService.SettlementRequest request) {
+        ensureInternalServiceKey(serviceKey);
+        return ResponseEntity.ok(dreamExpansionReservationService.commit(reservationId, request));
+    }
+
+    @PostMapping("/internal/dream-expansions/reservations/{reservationId}/cancel")
+    public ResponseEntity<DreamExpansionReservationService.ReservationResponse> cancelDreamExpansion(
+            @RequestHeader(INTERNAL_SERVICE_HEADER) String serviceKey,
+            @PathVariable java.util.UUID reservationId,
+            @RequestBody DreamExpansionReservationService.SettlementRequest request) {
+        ensureInternalServiceKey(serviceKey);
+        return ResponseEntity.ok(dreamExpansionReservationService.cancel(reservationId, request));
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────
 
     private void requireUserId(Long userId) {
@@ -287,6 +323,25 @@ public class MonetizationPublicController {
             int retryAfterSeconds,
             String message
     ) {}
+
+    public record DreamExpansionErrorResponse(
+            String code,
+            String message,
+            Integer currentCost,
+            Integer currentBalance
+    ) {}
+
+    @ExceptionHandler(DreamExpansionReservationService.ReservationException.class)
+    public ResponseEntity<DreamExpansionErrorResponse> handleDreamExpansionReservation(
+            DreamExpansionReservationService.ReservationException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new DreamExpansionErrorResponse(
+                        ex.getCode(),
+                        ex.getReason(),
+                        ex.getCurrentCost(),
+                        ex.getCurrentBalance()
+                ));
+    }
 
     @ExceptionHandler(RewardedContentUnlockService.RewardedUnlockBlockedException.class)
     public ResponseEntity<RewardedUnlockErrorResponse> handleRewardedUnlockBlocked(

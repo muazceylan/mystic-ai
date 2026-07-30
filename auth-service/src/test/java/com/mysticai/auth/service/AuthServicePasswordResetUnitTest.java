@@ -112,6 +112,24 @@ class AuthServicePasswordResetUnitTest {
     }
 
     @Test
+    void requestPasswordReset_doesNotSendToInternalAppleAddress() {
+        User user = User.builder()
+                .id(23L)
+                .username("apple_0123456789abcdef")
+                .email("0123456789abcdef@apple.invalid")
+                .provider("apple")
+                .accountStatus(AccountStatus.ACTIVE)
+                .build();
+        when(userRepository.findByEmailIgnoreCase("0123456789abcdef@apple.invalid"))
+                .thenReturn(Optional.of(user));
+
+        assertThat(authService.requestPasswordReset("0123456789abcdef@apple.invalid").ok()).isTrue();
+
+        verify(passwordResetTokenRepository, never()).save(any());
+        verify(passwordResetEmailPublisher, never()).publish(any());
+    }
+
+    @Test
     void resetPassword_updatesPasswordWhenTokenValid() {
         LocalDateTime now = LocalDateTime.now(fixedClock);
         User user = User.builder()

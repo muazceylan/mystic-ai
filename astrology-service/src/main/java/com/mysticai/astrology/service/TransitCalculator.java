@@ -9,7 +9,10 @@ import de.thmac.swisseph.SweConst;
 import de.thmac.swisseph.SweDate;
 import de.thmac.swisseph.SwissEph;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -212,10 +215,97 @@ public class TransitCalculator {
      * Convert a date to Julian Day at noon UTC (for transit calculations).
      */
     private double toJulianDayNoon(LocalDate date) {
+        return toJulianDay(date, 12.0);
+    }
+
+    private double toJulianDay(LocalDate date, double hourUtc) {
         return SweDate.getJulDay(
                 date.getYear(), date.getMonthValue(), date.getDayOfMonth(),
-                12.0, SweDate.SE_GREG_CAL);
+                hourUtc, SweDate.SE_GREG_CAL);
     }
+
+    /**
+     * The moment at which the Moon's tightest aspect to a natal point is closest to exact,
+     * searched across the user's LOCAL calendar day.
+     *
+     * The Moon travels ~13 degrees a day, so unlike the slower bodies its contacts have a
+     * genuine intraday peak. This is the only real time-of-day signal available, and it is what
+     * the daily plan's timeline is allowed to anchor on — everything else stays label-only
+     * rather than inventing a clock time.
+     *
+     * The window is the local day converted to UTC instants, so a user in Auckland and a user
+     * in Los Angeles asking at the same moment each get their own day scanned, and DST
+     * transitions (23- or 25-hour days) are handled by walking instants rather than hours.
+     *
+     * @return empty when no natal contact falls inside orb at any point in the local day
+     */
+    public java.util.Optional<MoonAspectPeak> findMoonAspectPeak(
+            LocalDate localDate, ZoneId zone, List<PlanetPosition> natalPositions) {
+        if (localDate == null || zone == null || natalPositions == null || natalPositions.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+
+        Instant dayStart = localDate.atStartOfDay(zone).toInstant();
+        Instant dayEnd = localDate.plusDays(1).atStartOfDay(zone).toInstant();
+
+        int iflag = SweConst.SEFLG_SWIEPH | SweConst.SEFLG_SPEED;
+        MoonAspectPeak best = null;
+
+        for (Instant sample = dayStart; sample.isBefore(dayEnd); sample = sample.plus(1, ChronoUnit.HOURS)) {
+            double[] result = new double[6];
+            StringBuffer errBuf = new StringBuffer();
+            int rc = sw.swe_calc_ut(toJulianDay(sample), SweConst.SE_MOON, iflag, result, errBuf);
+            if (rc < 0) {
+                continue;
+            }
+            double moonLong = result[0];
+
+            for (PlanetPosition natalPlanet : natalPositions) {
+                double natalLong = natalPlanet.absoluteLongitude();
+                if (natalLong == 0.0) {
+                    natalLong = getAbsoluteLongitude(natalPlanet);
+                }
+
+                double angle = Math.abs(moonLong - natalLong);
+                if (angle > 180) angle = 360 - angle;
+
+                for (AspectType type : AspectType.values()) {
+                    double orb = Math.abs(angle - type.getExactAngle());
+                    if (orb > type.getOrbAllowance()) {
+                        continue;
+                    }
+                    if (best == null || orb < best.orb()) {
+                        best = new MoonAspectPeak(
+                                sample,
+                                natalPlanet.planet(),
+                                type,
+                                Math.round(orb * 100.0) / 100.0
+                        );
+                    }
+                    break;
+                }
+            }
+        }
+
+        return java.util.Optional.ofNullable(best);
+    }
+
+    private double toJulianDay(Instant instant) {
+        java.time.ZonedDateTime utc = instant.atZone(java.time.ZoneOffset.UTC);
+        double hour = utc.getHour() + utc.getMinute() / 60.0 + utc.getSecond() / 3600.0;
+        return SweDate.getJulDay(
+                utc.getYear(), utc.getMonthValue(), utc.getDayOfMonth(), hour, SweDate.SE_GREG_CAL);
+    }
+
+    /**
+     * @param peakInstant the UTC instant at which the aspect is tightest
+     */
+    public record MoonAspectPeak(
+            Instant peakInstant,
+            String natalPlanet,
+            AspectType aspectType,
+            double orb
+    ) {}
 
     /** Fallback: reconstruct absolute longitude from sign + degree (for old data compatibility) */
     private double getAbsoluteLongitude(PlanetPosition planet) {

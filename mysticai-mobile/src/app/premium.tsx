@@ -25,7 +25,9 @@ import {
   useRestorePurchases,
 } from '../features/monetization';
 import { trackMonetizationEvent } from '../features/monetization/analytics/monetizationAnalytics';
+import { useTrialDisplayState } from '../features/monetization/hooks/useTrialDisplayState';
 import type { ResolvedPaywallProduct } from '../features/monetization/types/billing';
+import { getSubscriptionPeriod } from '../features/monetization/utils/trialDisplay';
 import { ProductEventName, trackProductEvent } from '../services/productAnalytics';
 import { envConfig } from '../config/env';
 
@@ -277,6 +279,95 @@ function isFeaturedProduct(product: ResolvedPaywallProduct): boolean {
   return Boolean(product.popular || label.includes('year') || label.includes('annual') || label.includes('yıllık'));
 }
 
+interface PremiumPlanPurchaseCardProps {
+  product: ResolvedPaywallProduct;
+  active: boolean;
+  disabled: boolean;
+  isProcessing: boolean;
+  disabledMessage: string;
+  styles: ReturnType<typeof createStyles>;
+  onPurchase: (product: ResolvedPaywallProduct) => void;
+}
+
+function PremiumPlanPurchaseCard({
+  product,
+  active,
+  disabled,
+  isProcessing,
+  disabledMessage,
+  styles,
+  onPurchase,
+}: PremiumPlanPurchaseCardProps) {
+  const { t } = useTranslation();
+  const trialDisplay = useTrialDisplayState(product);
+  const featured = isFeaturedProduct(product);
+  const revenueCatPackage = product.revenueCatPackage;
+  const subscriptionPeriod = revenueCatPackage ? getSubscriptionPeriod(revenueCatPackage) : null;
+  const recurringPriceText = revenueCatPackage && subscriptionPeriod
+    ? t('premium.recurringPrice', {
+        price: revenueCatPackage.product.priceString,
+        period: t(`premium.period.${subscriptionPeriod}`),
+      })
+    : product.localizedPrice || product.price || '—';
+  const offerText = trialDisplay.status === 'eligible'
+    ? t('premium.trialMainOffer', {
+        duration: trialDisplay.durationText,
+        recurringPrice: trialDisplay.recurringPriceText,
+      })
+    : recurringPriceText;
+  const ctaLabel = active
+    ? t('premium.activeState')
+    : trialDisplay.status === 'eligible'
+      ? t('premium.startTrial')
+      : t('premium.continuePremium');
+  const renewalText = trialDisplay.status === 'eligible'
+    ? t('premium.trialRenewalFooter', { recurringPrice: trialDisplay.recurringPriceText })
+    : t('premium.standardRenewalFooter');
+
+  return (
+    <View style={[styles.planCard, featured && styles.planCardFeatured]}>
+      {featured ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{product.badge || t('premium.mostPopular')}</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.planTopRow}>
+        <View style={{ flex: 1, gap: 6 }}>
+          <Text style={styles.planName}>{product.title || product.productKey}</Text>
+          <Text style={styles.planDescription}>
+            {product.description || t('premium.planFallbackDescription')}
+          </Text>
+        </View>
+        <Text style={styles.planPrice}>{product.localizedPrice || product.price || '—'}</Text>
+      </View>
+
+      <Text style={styles.planMeta}>{offerText}</Text>
+
+      <Button
+        title={ctaLabel}
+        onPress={() => {
+          onPurchase({
+            ...product,
+            verifiedTrialEligible: trialDisplay.status === 'eligible',
+            verifiedTrialDurationIso8601: trialDisplay.status === 'eligible'
+              ? trialDisplay.durationIso8601
+              : null,
+          });
+        }}
+        disabled={disabled || active}
+        loading={isProcessing}
+        fullWidth
+        leftIcon={PREMIUM_ICONS.purchase}
+      />
+      <Text style={styles.legalCopy}>{renewalText}</Text>
+      {disabled && !active ? (
+        <Text style={styles.sectionSubtitle}>{disabledMessage}</Text>
+      ) : null}
+    </View>
+  );
+}
+
 export default function PremiumScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -516,58 +607,21 @@ export default function PremiumScreen() {
               )
             ) : (
               plans.map((product) => {
-                const featured = isFeaturedProduct(product);
-                const ctaLabel = paywallQuery.paywall?.premiumActive
-                  ? t('premium.activeState')
-                  : paywallQuery.paywall?.trialEnabled && paywallQuery.paywall?.trialEligible && (product.trialDurationDays ?? 0) > 0
-                    ? t('premium.startTrial')
-                    : featured
-                      ? t('premium.continueYearly')
-                      : t('premium.upgrade');
                 const disabled = !paywallQuery.canPurchasePremium || !product.availableForPurchase || premiumPurchase.isProcessing;
 
                 return (
-                  <View
+                  <PremiumPlanPurchaseCard
                     key={product.productKey}
-                    style={[styles.planCard, featured && styles.planCardFeatured]}
-                  >
-                    {featured ? (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{product.badge || t('premium.mostPopular')}</Text>
-                      </View>
-                    ) : null}
-
-                    <View style={styles.planTopRow}>
-                      <View style={{ flex: 1, gap: 6 }}>
-                        <Text style={styles.planName}>{product.title || product.productKey}</Text>
-                        <Text style={styles.planDescription}>
-                          {product.description || t('premium.planFallbackDescription')}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                        <Text style={styles.planPrice}>{product.localizedPrice || product.price || '—'}</Text>
-                        <Text style={styles.planMeta}>
-                          {product.trialDurationDays && product.trialDurationDays > 0
-                            ? t('premium.trialMeta', { count: product.trialDurationDays })
-                            : product.localizedPeriodPrice || t('premium.periodFallback')}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Button
-                      title={ctaLabel}
-                      onPress={() => {
-                        void handlePremiumPurchase(product);
-                      }}
-                      disabled={disabled || paywallQuery.paywall?.premiumActive}
-                      loading={premiumPurchase.isProcessing}
-                      fullWidth
-                      leftIcon={PREMIUM_ICONS.purchase}
-                    />
-                    {disabled && !paywallQuery.paywall?.premiumActive ? (
-                      <Text style={styles.sectionSubtitle}>{purchaseDisabledMessage}</Text>
-                    ) : null}
-                  </View>
+                    product={product}
+                    active={Boolean(paywallQuery.paywall?.premiumActive)}
+                    disabled={disabled}
+                    isProcessing={premiumPurchase.isProcessing}
+                    disabledMessage={purchaseDisabledMessage}
+                    styles={styles}
+                    onPurchase={(selectedProduct) => {
+                      void handlePremiumPurchase(selectedProduct);
+                    }}
+                  />
                 );
               })
             )}

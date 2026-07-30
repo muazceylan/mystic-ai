@@ -198,6 +198,44 @@ rewarded-ads:
   # When true, origin mismatch → HTTP 400. When false → warn log only.
   enforce-origin-check: ${REWARDED_ADS_ENFORCE_ORIGIN:false}
 
+# ── ayeT Studios Rewarded-Video Callback ─────────────────────────────────────
+# Server-to-server postback that credits Guru Tokens. Reward amount is ALWAYS
+# taken from ayet.reward-amount — the callback's currency_amount is only validated.
+# Callback URL (through gateway): {PUBLIC_BASE_URL}/api/v1/webhooks/ayet/rewarded-video
+ayet:
+  # Guru Tokens granted per successful rewarded video.
+  reward-amount: ${AYET_REWARD_AMOUNT:1}
+  # Expected currency_amount from the callback; mismatch → reject + security log.
+  expected-currency-amount: ${AYET_EXPECTED_CURRENCY_AMOUNT:1}
+  # Pin the callback to the exact ad unit configured in the ayeT panel.
+  # Empty value = not enforced (dev only). Set all three in production.
+  placement-identifier: ${AYET_PLACEMENT_IDENTIFIER:}
+  rewarded-adslot-id: ${AYET_REWARDED_ADSLOT_ID:}
+  currency-identifier: ${AYET_CURRENCY_IDENTIFIER:Guru Token}
+  # Reward session TTL — user must complete the ad within this window (default 10 min).
+  session-ttl-seconds: ${AYET_SESSION_TTL_SECONDS:600}
+  # Expired-session sweeper interval.
+  cleanup-interval-ms: ${AYET_CLEANUP_INTERVAL_MS:300000}
+  security:
+    # HMAC signature verification. Keep FALSE until the exact ayeT signing scheme
+    # is confirmed from ayeT's official docs (see AyetSignatureVerifier).
+    signature-verification-enabled: ${AYET_SIGNATURE_ENABLED:false}
+    callback-secret: ${AYET_CALLBACK_SECRET:}
+    signature-param: ${AYET_SIGNATURE_PARAM:hash}
+    # IP allowlist for the callback source (ayeT's postback IPs). Empty = off.
+    ip-whitelist-enabled: ${AYET_IP_WHITELIST_ENABLED:false}
+    allowed-ips: ${AYET_ALLOWED_IPS:}
+
+# Unity LevelPlay rewarded S2S. The private key must match the LevelPlay panel.
+levelplay:
+  rewarded:
+    reward-amount: 1
+    expected-reward-amount: 1
+    daily-limit: ${LEVELPLAY_REWARDED_DAILY_LIMIT:10}
+    session-ttl-seconds: ${LEVELPLAY_REWARD_SESSION_TTL_SECONDS:600}
+    private-key: ${LEVELPLAY_REWARDED_PRIVATE_KEY:}
+    allow-unsigned-callbacks: ${LEVELPLAY_ALLOW_UNSIGNED_CALLBACKS:false}
+
 analytics:
   ga4:
     # Use a dedicated GA4 web stream for aggregate server-side exports.

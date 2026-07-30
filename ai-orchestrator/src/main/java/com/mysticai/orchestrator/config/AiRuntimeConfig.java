@@ -68,6 +68,8 @@ public class AiRuntimeConfig {
         private int cooldownSeconds = 60;
         private Double temperature;
         private Integer maxOutputTokens;
+        private String thinkingMode;
+        private String reasoningEffort;
 
         public String getKey() {
             return key;
@@ -187,6 +189,22 @@ public class AiRuntimeConfig {
 
         public void setMaxOutputTokens(Integer maxOutputTokens) {
             this.maxOutputTokens = maxOutputTokens;
+        }
+
+        public String getThinkingMode() {
+            return thinkingMode;
+        }
+
+        public void setThinkingMode(String thinkingMode) {
+            this.thinkingMode = thinkingMode;
+        }
+
+        public String getReasoningEffort() {
+            return reasoningEffort;
+        }
+
+        public void setReasoningEffort(String reasoningEffort) {
+            this.reasoningEffort = reasoningEffort;
         }
     }
 }

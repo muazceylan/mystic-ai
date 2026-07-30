@@ -104,6 +104,14 @@ public class GatewayConfig {
                 .route("billing-webhooks", r -> r
                         .path("/api/webhooks/**")
                         .uri("lb://notification-service"))
+                // Provider reward callbacks — public S2S webhook (e.g. ayeT rewarded video)
+                .route("provider-reward-webhooks", r -> r
+                        .path("/api/v1/webhooks/**")
+                        .uri("lb://notification-service"))
+                // Reward-session minting — authenticated (gateway JWT + X-User-Id)
+                .route("reward-sessions", r -> r
+                        .path("/api/v1/rewarded-ads/**")
+                        .uri("lb://notification-service"))
                 // Vision Service
                 .route("vision-service", r -> r
                         .path("/api/vision/**")

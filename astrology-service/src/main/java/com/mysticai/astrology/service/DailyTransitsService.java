@@ -9,6 +9,9 @@ import com.mysticai.astrology.dto.daily.DailyActionToggleResponse;
 import com.mysticai.astrology.dto.daily.DailyActionsDTO;
 import com.mysticai.astrology.dto.daily.DailyFeedbackRequest;
 import com.mysticai.astrology.dto.daily.DailyTransitsDTO;
+import com.mysticai.astrology.dto.daily.PlanFeedbackReason;
+import com.mysticai.astrology.dto.daily.PlanFeedbackResponse;
+import com.mysticai.astrology.service.personalplan.PersonalPlanService;
 import com.mysticai.astrology.entity.DailyActionState;
 import com.mysticai.astrology.entity.DailyTransitsCache;
 import com.mysticai.astrology.entity.NatalChart;
@@ -56,6 +59,7 @@ public class DailyTransitsService {
     private final DailyTransitsCacheRepository dailyTransitsCacheRepository;
     private final DailyActionStateRepository dailyActionStateRepository;
     private final UserFeedbackRepository userFeedbackRepository;
+    private final PersonalPlanService personalPlanService;
     private final ObjectMapper objectMapper;
 
     private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Istanbul");
@@ -144,12 +148,49 @@ public class DailyTransitsService {
         return fresh;
     }
 
+    /**
+     * Premium personal plan for the user's LOCAL calendar day.
+     *
+     * Composition lives in {@link PersonalPlanService}; this method resolves the local day and
+     * supplies the already-computed transit context so the two services stay acyclic. If
+     * composition throws, the legacy template plan is used so the screen never goes blank.
+     */
     public DailyActionsDTO getDailyActions(Long userId, LocalDate requestedDate, String timezoneHint, String locale) {
+        PersonalPlanService.PlanRequest request = buildPlanRequest(userId, requestedDate, timezoneHint, locale);
+        try {
+            DailyActionsDTO plan = personalPlanService.buildPlan(request);
+            if (plan != null) {
+                return plan;
+            }
+        } catch (Exception e) {
+            log.warn("Personal plan composition failed for userId={} localDate={}, using legacy templates: {}",
+                    userId, request.localDate(), e.toString());
+        }
+        return buildLegacyDailyActions(userId, request.localDate(), request.transits(), request.english());
+    }
+
+    /**
+     * Resolves everything the plan is keyed on. The local day is derived from the user's
+     * timezone — never {@code LocalDate.now()} on the server and never the UTC day.
+     */
+    public PersonalPlanService.PlanRequest buildPlanRequest(
+            Long userId, LocalDate requestedDate, String timezoneHint, String locale) {
         String resolvedLocale = normalizeLocale(locale);
         boolean english = isEnglishLocale(resolvedLocale);
-        DailyTransitsDTO transitsDTO = getDailyTransits(userId, requestedDate, timezoneHint, resolvedLocale);
-        LocalDate date = LocalDate.parse(transitsDTO.date(), DATE_FORMATTER);
+        ZoneId zone = resolveZone(timezoneHint);
+        LocalDate localDate = requestedDate != null ? requestedDate : LocalDate.now(zone);
 
+        DailyTransitsDTO transitsDTO = getDailyTransits(userId, localDate, timezoneHint, resolvedLocale);
+        NatalChart chart = findLatestChart(userId);
+        List<PlanetPosition> natalPositions = parseJsonList(
+                chart != null ? chart.getPlanetPositionsJson() : null, PlanetPosition.class);
+
+        return new PersonalPlanService.PlanRequest(
+                userId, localDate, zone, resolvedLocale, english, transitsDTO, chart, natalPositions);
+    }
+
+    private DailyActionsDTO buildLegacyDailyActions(
+            Long userId, LocalDate date, DailyTransitsDTO transitsDTO, boolean english) {
         List<ActionTemplate> templates = buildActionTemplates(transitsDTO, english);
         Map<String, DailyActionState> stateMap = dailyActionStateRepository.findByUserIdAndActionDate(userId, date).stream()
                 .collect(LinkedHashMap::new, (acc, item) -> acc.put(item.getActionId(), item), Map::putAll);
@@ -191,7 +232,7 @@ public class DailyTransitsService {
                         64)
         );
 
-        return new DailyActionsDTO(
+        return DailyActionsDTO.legacy(
                 transitsDTO.date(),
                 header,
                 actions,
@@ -242,8 +283,11 @@ public class DailyTransitsService {
         );
     }
 
-    @Transactional
-    public void saveFeedback(Long userId, DailyFeedbackRequest request) {
+    /**
+     * Records plan feedback and, when the reason calls for it, rebuilds the day's plan in the
+     * same transaction so the replacement travels back in this response.
+     */
+    public PlanFeedbackResponse saveFeedback(Long userId, DailyFeedbackRequest request, String timezoneHint) {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("Geçerli kullanıcı bulunamadı.");
         }
@@ -267,16 +311,17 @@ public class DailyTransitsService {
             case "up", "positive", "thumbsup" -> "up";
             default -> "down";
         };
+        PlanFeedbackReason reason = PlanFeedbackReason.parse(request.reason());
 
-        UserFeedback feedback = UserFeedback.builder()
-                .userId(userId)
-                .feedbackDate(request.date())
-                .itemType(itemType)
-                .itemId(clamp(request.itemId(), 120))
-                .sentiment(normalizedSentiment)
-                .note(request.note() == null ? null : clamp(request.note(), 500))
-                .build();
-        userFeedbackRepository.save(feedback);
+        PersonalPlanService.PlanRequest planRequest =
+                buildPlanRequest(userId, request.date(), timezoneHint, request.locale());
+
+        return personalPlanService.submitFeedback(
+                planRequest,
+                clamp(request.itemId(), 120),
+                normalizedSentiment,
+                reason,
+                request.note());
     }
 
     private DailyTransitsDTO buildDailyTransitsDto(
@@ -662,8 +707,8 @@ public class DailyTransitsService {
                         null,
                         house
                 ),
-                clamp(actionHint(theme, label, english), 96),
-                clamp(avoidHint(theme, label, english), 96),
+                clamp(actionHint(theme, label, house, english), 96),
+                clamp(avoidHint(theme, label, house, english), 96),
                 importance,
                 relevanceFromImportance(importance, english),
                 clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile, english), 120),
@@ -770,8 +815,8 @@ public class DailyTransitsService {
                         null,
                         house
                 ),
-                clamp(actionHint(theme, label, english), 96),
-                clamp(avoidHint(theme, label, english), 96),
+                clamp(actionHint(theme, label, house, english), 96),
+                clamp(avoidHint(theme, label, house, english), 96),
                 importance,
                 relevanceFromImportance(importance, english),
                 clamp(reasonFrom(theme, house, supportive, transitPlanet, userProfile, english), 120),
@@ -903,7 +948,9 @@ public class DailyTransitsService {
             headline = clamp(headline + retroHint, 50);
         }
 
-        String topAction = top != null ? actionHint(theme, top.label(), english) : actionHint(theme, t(english, "Nötr", "Neutral"), english);
+        String topAction = top != null
+                ? actionHint(theme, top.label(), houseOf(top), english)
+                : actionHint(theme, t(english, "Nötr", "Neutral"), null, english);
         List<String> supportOptions = new ArrayList<>();
         if (top != null) {
             supportOptions.add(top.impactPlain());
@@ -1043,11 +1090,11 @@ public class DailyTransitsService {
         List<String> suggestions = new ArrayList<>();
         for (DailyTransitsDTO.TransitItem item : transits) {
             if (suggestions.size() >= 3) break;
-            String action = firstNonBlank(item.action(), actionHint(item.theme(), item.label(), english));
+            String action = firstNonBlank(item.action(), actionHint(item.theme(), item.label(), houseOf(item), english));
             suggestions.add(action);
             if (suggestions.size() >= 3) break;
             if (isCautionLabel(item.label()) || normalizeToken(item.label()).contains("hassas")) {
-                suggestions.add(firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label(), english)));
+                suggestions.add(firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label(), houseOf(item), english)));
             }
         }
 
@@ -1109,8 +1156,8 @@ public class DailyTransitsService {
         for (int i = 0; i < Math.min(4, related.size()); i++) {
             DailyTransitsDTO.TransitItem item = related.get(i);
             List<String> relatedIds = List.of(item.id());
-            String task = firstNonBlank(item.action(), actionHint(item.theme(), item.label(), english));
-            String caution = firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label(), english));
+            String task = firstNonBlank(item.action(), actionHint(item.theme(), item.label(), houseOf(item), english));
+            String caution = firstNonBlank(item.avoid(), avoidHint(item.theme(), item.label(), houseOf(item), english));
             String detail = clamp(item.theme() + " • " + task + " " + caution, 120);
             templates.add(new ActionTemplate(
                     "action-insight-" + (i + 1),
@@ -1708,38 +1755,99 @@ public class DailyTransitsService {
         };
     }
 
-    private String actionHint(String theme, String label, boolean english) {
+    /**
+     * Concrete per-transit suggestion.
+     *
+     * The house is part of the key on purpose: the previous version keyed on theme alone, so
+     * every "Ruh Hali" transit rendered the same sentence and the screen showed the identical
+     * advice two or three times. Keying on the affected house means two transits only collide
+     * when they genuinely land in the same life area.
+     */
+    private String actionHint(String theme, String label, String house, boolean english) {
         boolean caution = isCautionLabel(label) || normalizeToken(label).contains("hassas");
-        return switch (canonicalTheme(theme)) {
-            case "communication" -> caution
-                    ? t(english, "Mesajlarını göndermeden önce iki kez kontrol et.", "Double-check your messages before sending.")
-                    : t(english, "Uzun süredir yazmadığın bir kişiye kısa bir mesaj at.", "Send a short message to someone you have not written to in a while.");
-            case "love" -> caution
-                    ? t(english, "Duygusal konuşmalarda savunmaya geçmeden önce dinle.", "Listen before going defensive in emotional conversations.")
-                    : t(english, "İlişkinde küçük ama samimi bir jest yap.", "Make a small but sincere gesture in your relationship.");
-            case "work" -> caution
-                    ? t(english, "Tek işe odaklanıp bitirmeden yeni iş açma.", "Do not open a new task before finishing the one in front of you.")
-                    : t(english, "Ertelediğin bir işi 15 dakikalık blokla başlat.", "Start a delayed task with a focused 15-minute block.");
-            case "energy" -> caution
-                    ? t(english, "Günün temposunu molalarla dengele.", "Balance the day's pace with short breaks.")
-                    : t(english, "Kısa bir yürüyüşle enerjini tazele.", "Refresh your energy with a short walk.");
-            default -> caution
-                    ? t(english, "Karar almadan önce bir adım geri çekilip planını netleştir.", "Step back and clarify your plan before making a decision.")
-                    : t(english, "Sezgini dinleyip küçük bir adım at.", "Listen to intuition and take one small step.");
+        return switch (house == null ? "" : house.trim()) {
+            case "1" -> caution
+                    ? t(english, "Bugün verdiğiniz bir cevabı ikinci kez açıklamak zorunda hissetmeyin; ilk cümlenizi tekrar edin.", "Do not feel obliged to explain an answer twice today; repeat your first sentence.")
+                    : t(english, "Rahatsız olduğunuz bir durumu tek cümlede söyleyin: neyin uymadığını ve neyi tercih ettiğinizi.", "Say what does not sit well in one sentence: what is not working, and what you would prefer.");
+            case "2" -> caution
+                    ? t(english, "Sözlü konuşulan bir tutarı işleme koymadan önce yazılı teyidini isteyin.", "Ask for written confirmation of a verbally discussed amount before acting on it.")
+                    : t(english, "Bir ödeme veya aboneliğin iptal ve yenileme maddesini bugün okuyun.", "Read the cancellation and renewal clause of a payment or subscription today.");
+            case "3" -> caution
+                    ? t(english, "İkinci elden duyduğunuz bir bilgiyi iletmeden önce kaynağına doğrulatın.", "Verify second-hand information with its source before passing it on.")
+                    : t(english, "Önemli bir mesajda ne istediğinizi ilk cümlede yazın; açıklamayı arkaya bırakın.", "Put your ask in the first sentence of an important message and leave the explanation after it.");
+            case "4" -> caution
+                    ? t(english, "İki aile üyesi arasında mesaj taşımak yerine doğrudan konuşmalarını önerin.", "Suggest two family members speak directly instead of carrying messages between them.")
+                    : t(english, "Bir aile üyesine somut yardım önerin: hangi işi, ne zaman devralacağınızı söyleyin.", "Offer a family member concrete help: name the task and when you will take it on.");
+            case "5" -> caution
+                    ? t(english, "İlk halinden memnun olduğunuz bir işi hemen paylaşmayın; akşam tekrar okuyun.", "Do not share work you like on first draft; reread it in the evening.")
+                    : t(english, "Aklınıza gelen fikri düzeltmeden yazın; düzenlemeyi yarına bırakın.", "Write the idea down as it arrives and leave editing to tomorrow.");
+            case "6" -> caution
+                    ? t(english, "Yorgunluk sinyalini ertelediğiniz anı fark edin ve o anda ne yaptığınızı not edin.", "Notice when you postpone a tiredness signal and write down what you were doing.")
+                    : t(english, "Bugünkü molanızın saatini önceden yazın; \"fırsat bulunca\" bırakmayın.", "Write down the time of today's break instead of leaving it to \"when I get a chance\".");
+            case "7" -> caution
+                    ? t(english, "Kısa ya da geç gelen bir mesajı yorumlamadan önce ne kastedildiğini sorun.", "Ask what was meant before interpreting a short or delayed message.")
+                    : t(english, "Yakın birine takdir ettiğiniz somut bir davranışı tek örnekle söyleyin.", "Tell someone close one specific thing they did that you valued.");
+            case "8" -> caution
+                    ? t(english, "Süreli denen bir teklife anında karar vermeyin; yarın da geçerli mi diye sorun.", "Do not decide immediately on a \"limited time\" offer; ask whether it still stands tomorrow.")
+                    : t(english, "Paylaşılan bir masrafta kimin neyi üstlendiğini bugün rakamla yazın.", "Write down with numbers who covers what in a shared cost today.");
+            case "9" -> caution
+                    ? t(english, "Karardan önce hâlâ bilmediğiniz tek bilgiyi belirleyin ve onu sorun.", "Identify the one fact you still do not have before deciding, and go ask for it.")
+                    : t(english, "Vereceğiniz kararın hangi koşulda doğru sayılacağını karardan önce yazın.", "Write down the condition that would make your decision the right one, before you make it.");
+            case "10" -> caution
+                    ? t(english, "Size sunulan bir koşula aynı konuşmada cevap vermeyin; yazılı halini isteyin.", "Do not answer a condition put to you in the same conversation; ask for it in writing.")
+                    : t(english, "Yeni bir sorumluluğu kabul etmeden önce teslim zamanını ve beklenen sonucu netleştirin.", "Clarify the delivery time and expected outcome before accepting a new responsibility.");
+            case "11" -> caution
+                    ? t(english, "Grup sohbetinde konuşmanın tamamını okumadan cevap yazmayın.", "Do not reply in a group thread before reading the whole conversation.")
+                    : t(english, "Gelen bir davete \"belki\" demek yerine net bir evet veya hayır verin.", "Give a clear yes or no to an invitation instead of \"maybe\".");
+            case "12" -> caution
+                    ? t(english, "Yoğunlukta yazdığınız mesajı taslakta bırakın ve akşam yeniden okuyun.", "Leave a message written under intensity in drafts and reread it in the evening.")
+                    : t(english, "Hissettiğiniz şeyi \"iyi\" veya \"kötü\" yerine tek ve kesin bir kelimeyle yazın.", "Write what you feel with one precise word instead of \"good\" or \"bad\".");
+            default -> actionHintByTheme(theme, caution, english);
         };
     }
 
-    private String avoidHint(String theme, String label, boolean english) {
-        boolean caution = isCautionLabel(label) || normalizeToken(label).contains("hassas");
-        if (!caution) {
-            return t(english, "Aynı anda çok fazla işi paralel yürütmekten kaçınman iyi olur.", "It helps to avoid running too many things in parallel.");
-        }
+    private String houseOf(DailyTransitsDTO.TransitItem item) {
+        return item != null && item.technical() != null ? item.technical().house() : null;
+    }
+
+    /** Used only when no house is known (missing birth time), keyed on the transiting theme. */
+    private String actionHintByTheme(String theme, boolean caution, boolean english) {
         return switch (canonicalTheme(theme)) {
-            case "communication" -> t(english, "Ani tepkiyle mesaj göndermekten kaçınmak faydalı olur.", "Avoid sending messages from a reactive state.");
-            case "love" -> t(english, "Kırıcı veya kesin yargılı cümlelerden kaçınmak ilişkiyi korur.", "Avoid harsh or final-sounding sentences to protect the relationship.");
-            case "work" -> t(english, "Netleşmeden yeni görev açmaktan kaçınmak stresi düşürür.", "Avoid opening new tasks before priorities are clear to lower stress.");
-            case "energy" -> t(english, "Günü tek tempoda zorlamaktan kaçınmak daha sürdürülebilir olur.", "Avoid forcing the whole day at one speed to keep things sustainable.");
-            default -> t(english, "Kesin kararları anlık duygu ile vermekten kaçınmak daha güvenli olur.", "Avoid making final decisions from a passing emotion.");
+            case "communication" -> caution
+                    ? t(english, "Konuşulan bir tarihin \"bu hafta\" gibi belirsiz kalmasına izin vermeyin; net günü teyit edin.", "Do not let a discussed date stay vague like \"this week\"; confirm the exact day.")
+                    : t(english, "Cevapsız kalmış bir konuyu tek soruyla açın: hangi noktada kaldığını sorun.", "Reopen a thread that went quiet with one question: ask which point it stalled at.");
+            case "love" -> caution
+                    ? t(english, "Bir gerginlikte geçmiş örnekleri sıralamak yerine bugünkü tek davranışı adlandırın.", "In a tense moment, name today's single behaviour instead of listing past examples.")
+                    : t(english, "Karşınızdakinin ne beklediğini tahmin etmek yerine doğrudan sorun.", "Ask directly what the other person expects instead of guessing.");
+            case "work" -> caution
+                    ? t(english, "İstenen bir teslim tarihine anında evet demeyin; mevcut yükünüzü gözden geçirip akşam cevap verin.", "Do not say yes to a requested deadline immediately; review your load and answer in the evening.")
+                    : t(english, "Listenizde en uzun süredir açık duran maddeyi bugün kapatın.", "Close the item that has been open longest on your list today.");
+            case "energy" -> caution
+                    ? t(english, "Geç saatte yeni bir işe başlamak yerine başlangıcını yarın sabaha yazın.", "Rather than starting something new late, schedule its start for tomorrow morning.")
+                    : t(english, "Listenizden bir maddeyi bilinçli olarak yarına taşıyın ve bunu not edin.", "Deliberately move one item to tomorrow and write that down.");
+            default -> caution
+                    ? t(english, "Bugünkü ruh halinizden yola çıkarak bir durum hakkında genel sonuç yazmayın.", "Do not draw a general conclusion about a situation from today's mood.")
+                    : t(english, "Size iyi gelecek şeyi bir kişiye somut olarak söyleyin: dinlemesini mi, fikir vermesini mi istiyorsunuz?", "Tell one person concretely what would help: do you want them to listen, or to give an opinion?");
+        };
+    }
+
+    /** Concrete risk to watch, keyed on the affected house for the same anti-duplication reason. */
+    private String avoidHint(String theme, String label, String house, boolean english) {
+        boolean caution = isCautionLabel(label) || normalizeToken(label).contains("hassas");
+        return switch (house == null ? "" : house.trim()) {
+            case "1" -> t(english, "Verdiğiniz bir karar yeniden tartışmaya açılırsa gerekçe eklemek yerine kararı aynen tekrar edin.", "If a decision of yours is reopened, repeat it as-is rather than adding justification.");
+            case "2", "8" -> t(english, "Bir tutarı veya koşulu hiçbir yere yazmadan sözlü olarak bırakmaktan kaçının.", "Avoid leaving an amount or condition purely verbal and unwritten.");
+            case "3" -> t(english, "Eksik bir mesajı tamamlanmış gibi okuyup cevap yazmaktan kaçının.", "Avoid replying to an incomplete message as if it were complete.");
+            case "4" -> t(english, "Başkalarının konusunu onlar adına taşıma rolüne geçmekten kaçının.", "Avoid slipping into the role of carrying other people's issue for them.");
+            case "5" -> t(english, "Erken bir yoruma dayanarak işin tamamını değiştirmekten kaçının.", "Avoid rewriting the whole piece based on early feedback.");
+            case "6", "12" -> t(english, "Açılan boş zamanı hemen yeni bir işle doldurmaktan kaçının.", "Avoid immediately filling freed-up time with new work.");
+            case "7" -> t(english, "Gelen kısa bir cevabı ilgisizlik olarak yorumlamaktan kaçının.", "Avoid reading a short reply as disinterest.");
+            case "9" -> t(english, "Geri dönülemez bir kararı kontrol etmeden vermekten kaçının.", "Avoid making an irreversible decision without checking that it is irreversible.");
+            case "10" -> t(english, "Kapsamı belirsiz bir sorumluluğu yazılı netleştirmeden üstlenmekten kaçının.", "Avoid taking on a responsibility whose scope was never put in writing.");
+            case "11" -> t(english, "Grup içinde eksik bağlamla cevap vermekten kaçının.", "Avoid replying in a group with only partial context.");
+            default -> caution
+                    ? t(english, "Duygusal yoğunluk anında yazılan bir mesajı aynı gün göndermekten kaçının.", "Avoid sending a message written in a moment of emotional intensity the same day.")
+                    : t(english, "Birbirine bağlı görünen iki kararı aynı anda vermekten kaçının.", "Avoid making two seemingly linked decisions at the same time.");
         };
     }
 

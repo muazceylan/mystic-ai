@@ -44,7 +44,6 @@ import {
   type GoogleAuthPromptResult,
 } from '../../services/googleAuthSession';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
 
 
 const WEB_GOOGLE_POPUP_MESSAGE_TYPE = 'mystic-google-auth';
@@ -198,17 +197,6 @@ function CosmicBackdrop() {
         <Path d="M374 779 L376 786 L383 788 L376 790 L374 797 L372 790 L365 788 L372 786 Z" fill="#FFFFFF" opacity="0.72" />
       </Svg>
     </View>
-  );
-}
-
-function AppleMark() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityRole="image">
-      <Path
-        fill="#FFFFFF"
-        d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
-      />
-    </Svg>
   );
 }
 
@@ -622,25 +610,7 @@ function makeStyles(compact: boolean) {
     },
     appleButton: {
       width: '100%',
-      minHeight: compact ? 54 : 58,
-      borderRadius: 17,
-      backgroundColor: '#1C1C1E',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      gap: 14,
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.1,
-      shadowRadius: 18,
-      elevation: 3,
-    },
-    appleText: {
-      fontSize: compact ? 16 : 17,
-      lineHeight: 23,
-      fontFamily: 'MysticInter-SemiBold',
-      color: '#FFFFFF',
-      letterSpacing: 0,
+      height: compact ? 54 : 58,
     },
     socialText: {
       fontSize: compact ? 16 : 17,
@@ -752,11 +722,11 @@ export default function WelcomeScreen() {
   const [loading, setLoading] = useState(false);
   const [quickStartLoading, setQuickStartLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [appleLinkRequired, setAppleLinkRequired] = useState(false);
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const handledGoogleTokenRef = useRef<string | null>(null);
   const authTransitionRef = useRef(false);
+  const appleAuthInFlightRef = useRef(false);
   const styles = makeStyles(height < 900);
   const normalizedEmail = email.trim().toLowerCase();
   const hasEmail = normalizedEmail.length > 0;
@@ -780,24 +750,16 @@ export default function WelcomeScreen() {
 
   const [googleResponse, googlePromptAsync] = useGoogleIdTokenAuthRequest();
 
-  const focusMissingAppleLinkCredential = () => {
-    if (!hasEmail) {
-      emailInputRef.current?.focus();
-      return;
-    }
-    passwordInputRef.current?.focus();
-  };
-
-  const handleSocialLoginResult = async (provider: string, idToken: string) => {
+  const handleSocialLoginResult = async (
+    provider: string,
+    idToken: string,
+    metadata?: Parameters<typeof socialLogin>[2],
+  ) => {
     if (authTransitionRef.current) return;
     setLoading(true);
     setErrorMessage(null);
     try {
-      const linkCredentials =
-        provider === 'apple' && hasEmail && hasPassword
-          ? { linkEmail: normalizedEmail, linkPassword: password }
-          : undefined;
-      const res = await socialLogin(provider, idToken, linkCredentials);
+      const res = await socialLogin(provider, idToken, metadata);
       const { accessToken, refreshToken, user, isNewUser } = res.data;
       const shouldStartOnboarding = isNewUser || needsOnboarding(user);
 
@@ -827,32 +789,18 @@ export default function WelcomeScreen() {
       setProductUserProperties({
         'Login Method': provider,
       });
-      if (provider === 'apple') {
-        setAppleLinkRequired(false);
-      }
       authTransitionRef.current = true;
     } catch (error: any) {
       authTransitionRef.current = false;
       const status = error?.response?.status;
       const serverMessage = String(error?.response?.data?.message ?? '');
-      const isAppleAccountNotLinked =
-        provider === 'apple' && serverMessage === 'APPLE_ACCOUNT_NOT_LINKED';
-      if (isAppleAccountNotLinked) {
-        const message = t('auth.appleAccountNotLinked');
-        setAppleLinkRequired(true);
-        setErrorMessage(message);
-        focusMissingAppleLinkCredential();
-        Alert.alert(t('auth.appleLinkRequiredTitle'), message);
-        return;
-      }
       const message =
-        status === 401
+        provider === 'apple'
+          ? t('auth.appleLoginError')
+          : status === 401
           ? t('auth.invalidCredentials')
           : serverMessage || t('auth.loginError');
-      if (provider === 'apple' && status === 401) {
-        setErrorMessage(message);
-        passwordInputRef.current?.focus();
-      }
+      setErrorMessage(message);
       Alert.alert(t('common.error'), message);
     } finally {
       if (authTransitionRef.current) return;
@@ -908,45 +856,45 @@ export default function WelcomeScreen() {
     }
   };
 
-  const requestAppleIdentityToken = async (): Promise<string | null> => {
-    const nonce = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      Math.random().toString(36),
-    );
-    const credential = await AppleAuthentication.signInAsync({
+  const requestAppleCredential = () =>
+    AppleAuthentication.signInAsync({
       requestedScopes: [
         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
         AppleAuthentication.AppleAuthenticationScope.EMAIL,
       ],
-      nonce,
     });
 
-    return credential.identityToken ?? null;
-  };
-
   const handleAppleLogin = async () => {
-    try {
-      if (appleLinkRequired) {
-        if (!isFormValid) {
-          const message = t('auth.appleAccountNotLinked');
-          setErrorMessage(message);
-          focusMissingAppleLinkCredential();
-          return;
-        }
-      }
+    if (loading || quickStartLoading || authTransitionRef.current || appleAuthInFlightRef.current) {
+      return;
+    }
 
+    appleAuthInFlightRef.current = true;
+    setLoading(true);
+    setErrorMessage(null);
+    try {
       trackProductEvent(ProductEventName.LOGIN_STARTED, {
         'login method': 'apple',
         'entry point': 'welcome_screen',
         'is returning user': true,
       });
-      const identityToken = await requestAppleIdentityToken();
-      if (identityToken) {
-        await handleSocialLoginResult('apple', identityToken);
+      const credential = await requestAppleCredential();
+      if (!credential.identityToken) {
+        throw new Error('Apple identity token is missing');
       }
+
+      await handleSocialLoginResult('apple', credential.identityToken, {
+        firstName: credential.fullName?.givenName,
+        lastName: credential.fullName?.familyName,
+      });
     } catch (error: any) {
       if (error.code !== 'ERR_REQUEST_CANCELED') {
         Alert.alert(t('common.error'), t('auth.appleLoginError'));
+      }
+    } finally {
+      appleAuthInFlightRef.current = false;
+      if (!authTransitionRef.current) {
+        setLoading(false);
       }
     }
   };
@@ -1155,7 +1103,7 @@ export default function WelcomeScreen() {
                   <Sparkles size={15} color="#B6A0F4" strokeWidth={1.7} style={styles.titleSparkle} />
                   <Text
                     style={styles.heading}
-                    numberOfLines={1}
+                    numberOfLines={2}
                     adjustsFontSizeToFit
                     minimumFontScale={0.82}
                   >
@@ -1286,19 +1234,17 @@ export default function WelcomeScreen() {
               </TouchableOpacity>
 
               {Platform.OS === 'ios' && (
-                <TouchableOpacity
+                <AppleAuthentication.AppleAuthenticationButton
                   style={styles.appleButton}
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={17}
                   onPress={handleAppleLogin}
-                  disabled={loading || quickStartLoading}
-                  accessibilityLabel={appleLinkRequired ? t('auth.linkWithApple') : t('auth.loginWithApple')}
+                  pointerEvents={loading || quickStartLoading ? 'none' : 'auto'}
+                  accessibilityLabel={t('auth.loginWithApple')}
                   accessibilityRole="button"
-                  activeOpacity={0.84}
-                >
-                  <AppleMark />
-                  <Text style={styles.appleText}>
-                    {appleLinkRequired ? t('auth.linkWithApple') : t('auth.loginWithApple')}
-                  </Text>
-                </TouchableOpacity>
+                  accessibilityState={{ disabled: loading || quickStartLoading }}
+                />
               )}
             </View>
 

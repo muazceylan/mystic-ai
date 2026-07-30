@@ -76,6 +76,10 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/api/v1/monetization/paywall",
             // Billing webhooks authenticate via their own shared secret, not JWT
             "/api/webhooks/",
+            // Provider reward callbacks (e.g. ayeT rewarded video) are public S2S
+            // postbacks — authenticated by opaque reward session + optional HMAC/IP,
+            // never a user JWT.
+            "/api/v1/webhooks/",
             // Public name search (name analysis feature)
             "/api/numerology/names",
             // Avatar images are loaded directly by the mobile Image component without auth headers
@@ -99,6 +103,15 @@ public class JwtAuthenticationFilter implements GlobalFilter {
 
         if (request.getMethod() == HttpMethod.OPTIONS) {
             return chain.filter(exchange);
+        }
+
+        // Service-to-service endpoints are reachable only on the internal network. Downstream
+        // services still verify X-Internal-Service-Key; this is defence in depth so an internal
+        // path can never be probed through the public gateway, even in permit-all mode.
+        if (isInternalOnlyPath(path)) {
+            log.warn("Blocked external attempt to reach an internal-only path: method={} path={}",
+                    request.getMethod(), path);
+            return notFoundResponse(exchange);
         }
 
         if (permitAll) {
@@ -179,6 +192,14 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
 
+    /**
+     * Paths that exist purely for service-to-service calls and must never be served to a client.
+     * Matches the segment, not a substring, so "/api/v1/auth/internally-something" is unaffected.
+     */
+    private boolean isInternalOnlyPath(String path) {
+        return path.contains("/internal/") || path.endsWith("/internal");
+    }
+
     private boolean isPublicPath(String path, HttpMethod method) {
         if (path.startsWith("/api/v1/monetization/modules/")) {
             return method == HttpMethod.GET && !path.contains("/actions/");
@@ -214,6 +235,14 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         return request.getHeaders().containsKey("X-User-Id")
                 || request.getHeaders().containsKey("X-Username")
                 || request.getHeaders().containsKey("X-User-Type");
+    }
+
+    /** 404 rather than 403, so an internal route's existence is not disclosed externally. */
+    private Mono<Void> notFoundResponse(ServerWebExchange exchange) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.NOT_FOUND);
+        response.getHeaders().add("Content-Type", "application/json");
+        return response.setComplete();
     }
 
     private Mono<Void> unauthorizedResponse(

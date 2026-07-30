@@ -28,7 +28,17 @@ interface DreamStore {
 
   fetchDreams: (userId: number) => Promise<void>;
   fetchSymbols: (userId: number) => Promise<void>;
-  submitDream: (userId: number, text: string, dreamDate: string, title?: string) => Promise<DreamEntryResponse>;
+  submitDream: (
+    userId: number,
+    text: string,
+    dreamDate: string,
+    title?: string,
+    options?: {
+      emotionAfterWaking?: string;
+      useAstrology?: boolean;
+      dreamMemoryEnabled?: boolean;
+    },
+  ) => Promise<DreamEntryResponse>;
   transcribeAudio: (audioUri: string) => Promise<string>;
   deleteDream: (dreamId: number) => Promise<void>;
   pollUntilComplete: (dreamId: number) => void;
@@ -92,12 +102,21 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
     } catch { /* supplementary */ }
   },
 
-  submitDream: async (userId, text, dreamDate, title) => {
+  submitDream: async (userId, text, dreamDate, title, options) => {
     set({ submitting: true, error: null });
     try {
       // Pass current i18n language as locale so AI responds in the correct language
       const locale = i18n.language ?? 'tr';
-      const result = await dreamService.submitDream({ userId, text, dreamDate, title, locale });
+      const result = await dreamService.submitDream({
+        userId,
+        text,
+        dreamDate,
+        title,
+        locale,
+        emotionAfterWaking: options?.emotionAfterWaking,
+        useAstrology: options?.useAstrology ?? false,
+        dreamMemoryEnabled: options?.dreamMemoryEnabled ?? true,
+      });
       set(s => ({ submitting: false, dreams: sortDreamsNewestFirst([result, ...s.dreams]) }));
       return result;
     } catch (e: any) {

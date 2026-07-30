@@ -3,6 +3,7 @@ package com.mysticai.notification.service.monetization;
 import com.mysticai.notification.entity.monetization.GuruLedger;
 import com.mysticai.notification.entity.monetization.GuruWallet;
 import com.mysticai.notification.repository.GuruLedgerRepository;
+import com.mysticai.notification.repository.GuruTokenReservationRepository;
 import com.mysticai.notification.repository.GuruWalletRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class GuruWalletService {
 
     private final GuruWalletRepository walletRepository;
     private final GuruLedgerRepository ledgerRepository;
+    private final GuruTokenReservationRepository reservationRepository;
     private final MeterRegistry meterRegistry;
 
     @Transactional
@@ -47,6 +49,40 @@ public class GuruWalletService {
                 locale,
                 idempotencyKey,
                 null
+        );
+    }
+
+    /**
+     * Credit Guru earned from a provider server-to-server rewarded-video callback
+     * (e.g. ayeT). Amount is server-decided by the caller; {@code transactionId} is
+     * the provider transaction and doubles as the ledger reference + idempotency key
+     * so a replayed callback can never double-credit.
+     *
+     * @param transactionId   provider transaction_id (reference + idempotency anchor)
+     * @param rewardSessionId opaque reward session this callback settled
+     * @param provider        e.g. "AYET"
+     * @param placement       provider placement identifier (analytics)
+     * @param metadataJson    audit blob (payout, session, provider) — no PII
+     */
+    @Transactional
+    public GuruLedger earnProviderReward(Long userId, int amount, String provider,
+                                         String transactionId, String rewardSessionId,
+                                         String placement, String idempotencyKey,
+                                         String metadataJson) {
+        return grantGuru(
+                userId,
+                amount,
+                "LEVELPLAY".equalsIgnoreCase(provider)
+                        ? GuruLedger.TransactionType.REWARDED_AD_LEVELPLAY
+                        : GuruLedger.TransactionType.REWARDED_AD_AYET,
+                GuruLedger.SourceType.REWARDED_AD,
+                (provider != null ? provider.toLowerCase() : "provider") + "_rewarded_video:" + transactionId,
+                "earn",
+                placement,
+                "LEVELPLAY".equalsIgnoreCase(provider) ? "MOBILE" : "WEB",
+                null,
+                idempotencyKey,
+                metadataJson
         );
     }
 
@@ -99,8 +135,11 @@ public class GuruWalletService {
 
         log.info("Guru granted: userId={}, amount={}, type={}, sourceType={}, newBalance={}",
                 userId, amount, transactionType, sourceType, wallet.getCurrentBalance());
-        if (transactionType == GuruLedger.TransactionType.REWARD_EARNED) {
-            incrementMetric("rewarded_token.granted", "sourceType", sourceType.name());
+        if (transactionType == GuruLedger.TransactionType.REWARD_EARNED
+                || transactionType == GuruLedger.TransactionType.REWARDED_AD_AYET
+                || transactionType == GuruLedger.TransactionType.REWARDED_AD_LEVELPLAY) {
+            incrementMetric("rewarded_token.granted", "sourceType", sourceType.name(),
+                    "transactionType", transactionType.name());
         }
         return ledgerRepository.save(entry);
     }
@@ -124,9 +163,14 @@ public class GuruWalletService {
         GuruWallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new IllegalStateException("Wallet not found for userId=" + userId));
 
-        if (wallet.getCurrentBalance() < cost) {
+        long reservedBalance = reservationRepository.sumActivePendingCost(userId, LocalDateTime.now());
+        int availableBalance = Math.max(
+                0,
+                wallet.getCurrentBalance() - Math.toIntExact(reservedBalance)
+        );
+        if (availableBalance < cost) {
             throw new IllegalArgumentException("Insufficient Guru balance. Required: " + cost +
-                    ", Available: " + wallet.getCurrentBalance());
+                    ", Available: " + availableBalance);
         }
 
         int balanceBefore = wallet.getCurrentBalance();
@@ -152,6 +196,56 @@ public class GuruWalletService {
 
         log.info("Guru spent: userId={}, cost={}, newBalance={}", userId, cost, wallet.getCurrentBalance());
         return ledgerRepository.save(entry);
+    }
+
+    @Transactional
+    public GuruLedger commitDreamExpansion(Long userId, int cost, String actionKey,
+                                           String idempotencyKey, String metadataJson) {
+        if (ledgerRepository.existsByIdempotencyKey(idempotencyKey)) {
+            return ledgerRepository.findByIdempotencyKey(idempotencyKey).orElseThrow();
+        }
+        GuruWallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new IllegalStateException("Wallet not found for userId=" + userId));
+        if (wallet.getCurrentBalance() < cost) {
+            throw new IllegalArgumentException("INSUFFICIENT_GURU_BALANCE");
+        }
+
+        int before = wallet.getCurrentBalance();
+        wallet.setCurrentBalance(before - cost);
+        wallet.setLifetimeSpent(wallet.getLifetimeSpent() + cost);
+        wallet.setLastSpentAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+
+        return ledgerRepository.save(GuruLedger.builder()
+                .userId(userId)
+                .transactionType(GuruLedger.TransactionType.DREAM_ANALYSIS_EXPANSION)
+                .sourceType(GuruLedger.SourceType.DREAM_ANALYSIS_EXPANSION)
+                .sourceKey("dream_expansion")
+                .moduleKey("dreams")
+                .actionKey(actionKey)
+                .amount(-cost)
+                .balanceBefore(before)
+                .balanceAfter(wallet.getCurrentBalance())
+                .metadataJson(metadataJson)
+                .idempotencyKey(idempotencyKey)
+                .build());
+    }
+
+    @Transactional
+    public GuruLedger refundDreamExpansion(Long userId, int amount, String actionKey,
+                                           String idempotencyKey, String metadataJson) {
+        return grantGuru(
+                userId, amount,
+                GuruLedger.TransactionType.REFUND_ADJUSTMENT,
+                GuruLedger.SourceType.DREAM_ANALYSIS_EXPANSION,
+                "dream_expansion_refund",
+                "dreams",
+                actionKey,
+                null,
+                null,
+                idempotencyKey,
+                metadataJson
+        );
     }
 
     @Transactional

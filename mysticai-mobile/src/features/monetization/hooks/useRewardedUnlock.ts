@@ -11,9 +11,8 @@ import {
 } from '../api/monetization.service';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { getAdProvider } from '../providers/AdProviderAdapter';
-import { resolveRewardedUnitId } from '../providers/admobUnitIds';
-import { initializeAdMob, isAdMobAvailable, isAdMobInitialized } from '../providers/admobInit';
-import { initializeAdProvider } from '../providers/initProvider';
+import { resolveConfiguredRewardedAd } from '../providers/providerConfig';
+import { isAdMobAvailable, isAdMobInitialized } from '../providers/admobInit';
 import { addRewardedAdListener } from '../providers/webRewardedEvents';
 import {
   destroyWebRewardedSlot,
@@ -290,7 +289,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
     }
 
     // ── Guard 5: ad unit ID available ──────────────────────────────
-    const resolved = resolveRewardedUnitId();
+    const resolved = resolveConfiguredRewardedAd();
     if (!resolved) {
       // resolveRewardedUnitId already emits missing_ad_unit_id event
       setStatus('failed');
@@ -298,19 +297,19 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
     }
 
     // ── Guard 6: native SDK available + initialized ───────────────
-    await initializeAdProvider(config.adsEnabled);
-
-    if (!isAdMobAvailable()) {
+    if (resolved.provider === 'admob' && !isAdMobInitialized()) {
       setStatus('failed');
-      return emitIneligible('native_module_unavailable', moduleKey, actionKey, configVersion);
+      return emitIneligible(
+        'privacy_bootstrap_incomplete',
+        moduleKey,
+        actionKey,
+        configVersion,
+      );
     }
 
-    if (!isAdMobInitialized()) {
-      const initOk = await initializeAdMob();
-      if (!initOk) {
-        setStatus('failed');
-        return emitIneligible('admob_init_failed', moduleKey, actionKey, configVersion);
-      }
+    if (resolved.provider === 'admob' && !isAdMobAvailable()) {
+      setStatus('failed');
+      return emitIneligible('native_module_unavailable', moduleKey, actionKey, configVersion);
     }
 
     // ── All guards passed — proceed with ad flow ───────────────────
@@ -321,7 +320,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
       trackMonetizationEvent('rewarded_ad_started', {
         module_key: moduleKey,
         action_key: actionKey,
-        ad_provider: 'admob',
+        ad_provider: resolved.provider,
         ad_unit_mode: resolved.mode,
         platform: Platform.OS,
         config_version: configVersion,
@@ -335,7 +334,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
           module_key: moduleKey,
           action_key: actionKey,
           reason: 'ad_load_failed',
-          ad_provider: 'admob',
+          ad_provider: resolved.provider,
           ad_unit_mode: resolved.mode,
           platform: Platform.OS,
           config_version: configVersion,
@@ -352,7 +351,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
           module_key: moduleKey,
           action_key: actionKey,
           reason: result.error ?? 'user_dismissed',
-          ad_provider: 'admob',
+          ad_provider: resolved.provider,
           ad_unit_mode: resolved.mode,
           platform: Platform.OS,
           config_version: configVersion,
@@ -368,17 +367,21 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
       const rewardAmount = action?.rewardAmount && action.rewardAmount > 0
         ? action.rewardAmount
         : rule.guruRewardAmountPerCompletedAd;
-      const idempotencyKey = `reward_${moduleKey}_${actionKey ?? 'general'}_${Date.now()}`;
 
-      await processReward({
-        amount: rewardAmount,
-        sourceKey: 'rewarded_ad_admob',
-        moduleKey,
-        actionKey,
-        platform: Platform.OS,
-        locale: i18n.language,
-        idempotencyKey,
-      });
+      if (resolved.provider === 'admob') {
+        // Existing AdMob compatibility path. LevelPlay never calls this client
+        // amount endpoint; its single token is settled by the signed S2S callback.
+        const idempotencyKey = `reward_${moduleKey}_${actionKey ?? 'general'}_${Date.now()}`;
+        await processReward({
+          amount: rewardAmount,
+          sourceKey: 'rewarded_ad_admob',
+          moduleKey,
+          actionKey,
+          platform: Platform.OS,
+          locale: i18n.language,
+          idempotencyKey,
+        });
+      }
 
       trackAdCompleted(moduleKey);
       await refreshBalance();
@@ -387,7 +390,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
         module_key: moduleKey,
         action_key: actionKey,
         reward_amount: rewardAmount,
-        ad_provider: 'admob',
+        ad_provider: resolved.provider,
         ad_unit_mode: resolved.mode,
         platform: Platform.OS,
         result: 'success',
@@ -401,7 +404,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
         module_key: moduleKey,
         action_key: actionKey,
         reason: error instanceof Error ? error.message : 'unknown',
-        ad_provider: 'admob',
+        ad_provider: resolved?.provider ?? 'unknown',
         platform: Platform.OS,
         config_version: configVersion,
       });

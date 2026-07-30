@@ -110,25 +110,33 @@ const TONES: Record<
 };
 
 const CATEGORY_VISUALS: Record<DiscoverCategoryKey, DiscoverVisual> = {
-  cosmic_flow: {
-    icon: CATEGORY_ICONS.cosmic_flow,
+  daily_life: {
+    icon: 'calendar-outline',
     ...TONES.cosmic,
   },
   self_discovery: {
     icon: CATEGORY_ICONS.self_discovery,
     ...TONES.mystic,
   },
+  relationships: {
+    icon: CATEGORY_ICONS.social_compat,
+    ...TONES.rose,
+  },
   spiritual: {
     icon: CATEGORY_ICONS.spiritual,
     ...TONES.sacred,
   },
-  social_compat: {
-    icon: CATEGORY_ICONS.social_compat,
-    ...TONES.rose,
+  astrology_insights: {
+    icon: CATEGORY_ICONS.cosmic_flow,
+    ...TONES.lunar,
   },
 };
 
 const MODULE_VISUALS: Record<DiscoverModuleKey, DiscoverVisual> = {
+  today_plan: {
+    icon: 'checkmark-done-outline',
+    ...TONES.cosmic,
+  },
   horoscope_daily: {
     icon: 'sunny',
     ...TONES.rose,
@@ -164,6 +172,10 @@ const MODULE_VISUALS: Record<DiscoverModuleKey, DiscoverVisual> = {
   name_analysis: {
     icon: 'text',
     ...TONES.insight,
+  },
+  dream_journal: {
+    icon: MODULE_ICONS.dream_diary,
+    ...TONES.lunar,
   },
   decision_compass: {
     icon: 'compass',
@@ -235,6 +247,7 @@ function resolveCategoryVisual(categoryKey?: string): DiscoverVisual {
 function inferModuleKey(value: string): DiscoverModuleKey | null {
   if (!value) return null;
 
+  if (value.includes('today_plan') || value.includes('today_action') || value.includes('gunluk_plan')) return 'today_plan';
   if (value.includes('night_sky') || value.includes('birth_sky')) return 'night_sky';
   if (value.includes('horoscope') || value.includes('burc')) return 'horoscope_daily';
   if (value.includes('transit') || value.includes('sky_pulse') || value.includes('daily_summary')) return 'transits_today';
@@ -244,6 +257,7 @@ function inferModuleKey(value: string): DiscoverModuleKey | null {
   if (value.includes('natal')) return 'natal_chart';
   if (value.includes('numerology') || value.includes('numeroloji')) return 'numerology';
   if (value.includes('name_analysis') || value.includes('isim') || value.includes('name')) return 'name_analysis';
+  if (value.includes('dream') || value.includes('ruya')) return 'dream_journal';
   if (value.includes('decision') || value.includes('compass') || value.includes('pusula')) return 'decision_compass';
   if (value.includes('esma') || value.includes('asma')) return 'spiritual_esma';
   if (value.includes('sure') || value.includes('surah') || value.includes('ayet')) return 'spiritual_sure';
@@ -301,9 +315,10 @@ export function getDiscoverVisualForCmsCard(card: ExploreCardVisualInput): Disco
   const categoryVisual = resolveCategoryVisual(card.categoryKey);
   const categoryIcon = (() => {
     const normalizedCategory = normalizeToken(card.categoryKey ?? '');
-    if (normalizedCategory === 'cosmic_flow') return MODULE_ICONS.transits;
+    if (normalizedCategory === 'daily_life') return MODULE_ICONS.planner;
+    if (normalizedCategory === 'astrology_insights' || normalizedCategory === 'cosmic_flow') return MODULE_ICONS.transits;
     if (normalizedCategory === 'spiritual') return MODULE_ICONS.spiritual;
-    if (normalizedCategory === 'social_compat') return MODULE_ICONS.compatibility;
+    if (normalizedCategory === 'relationships' || normalizedCategory === 'social_compat') return MODULE_ICONS.compatibility;
     return MODULE_ICONS.natal_chart;
   })();
 

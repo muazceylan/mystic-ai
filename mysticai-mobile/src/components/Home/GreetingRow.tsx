@@ -6,12 +6,13 @@ import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 
 interface GreetingRowProps {
   text: string;
+  contextText?: string;
 }
 
 const ICON_SIZE = spacing.md + spacing.xs - spacing.xxs;
 const HOME_MAX_FONT_SCALE = 1.15;
 
-export function GreetingRow({ text }: GreetingRowProps) {
+export function GreetingRow({ text, contextText }: GreetingRowProps) {
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
 
@@ -20,7 +21,14 @@ export function GreetingRow({ text }: GreetingRowProps) {
       <View style={styles.iconShell}>
         <Ionicons name="moon-outline" size={ICON_SIZE} color={colors.primary} />
       </View>
-      <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.text}>{text}</Text>
+      <View style={styles.copy}>
+        <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.text}>{text}</Text>
+        {contextText ? (
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT_SCALE} numberOfLines={1} style={styles.contextText}>
+            {contextText}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -47,6 +55,15 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       ...typography.Body,
       color: C.text,
       flexShrink: 1,
+    },
+    copy: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.xxs,
+    },
+    contextText: {
+      ...typography.Caption,
+      color: C.subtext,
     },
   });
 }

@@ -36,6 +36,7 @@ interface BottomSheetProps {
   titleStyle?: StyleProp<TextStyle>;
   dragHandleStyle?: StyleProp<ViewStyle>;
   blurBackdrop?: boolean;
+  showDragHandle?: boolean;
 }
 
 export function BottomSheet({
@@ -48,6 +49,7 @@ export function BottomSheet({
   titleStyle,
   dragHandleStyle,
   blurBackdrop = false,
+  showDragHandle = true,
 }: BottomSheetProps) {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
@@ -126,10 +128,12 @@ export function BottomSheet({
 
         <GestureDetector gesture={gesture}>
           <Animated.View style={[s.sheet, sheetStyle, sheetStyleOverride]}>
-            <View style={s.dragZone}>
-              <View style={[s.dragHandle, dragHandleStyle]} />
-              {title ? <Text style={[s.title, titleStyle]}>{title}</Text> : null}
-            </View>
+            {showDragHandle || title ? (
+              <View style={s.dragZone}>
+                {showDragHandle ? <View style={[s.dragHandle, dragHandleStyle]} /> : null}
+                {title ? <Text style={[s.title, titleStyle]}>{title}</Text> : null}
+              </View>
+            ) : null}
             <View style={[s.content, contentStyle]}>{children}</View>
           </Animated.View>
         </GestureDetector>

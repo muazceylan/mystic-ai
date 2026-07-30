@@ -8,11 +8,21 @@ export interface RequestConfiguration {
 export interface RewardedAdLike {
   addAdEventListener(
     eventType: string,
-    listener: (payload?: any) => void,
+    listener: (payload?: RewardedAdEventPayload) => void,
   ): () => void;
   load(): void;
   show(): void;
 }
+
+export type RewardedAdEventPayload = {
+  message?: string;
+  type?: string;
+  amount?: number;
+};
+
+export type RewardedAdRequestOptions = {
+  requestNonPersonalizedAdsOnly?: boolean;
+};
 
 export interface GoogleMobileAdsModule {
   TestIds: {
@@ -31,7 +41,10 @@ export interface GoogleMobileAdsModule {
     CLOSED: string;
   };
   RewardedAd: {
-    createForAdRequest(adUnitId: string): RewardedAdLike;
+    createForAdRequest(
+      adUnitId: string,
+      requestOptions?: RewardedAdRequestOptions,
+    ): RewardedAdLike;
   };
   default(): {
     setRequestConfiguration(config: RequestConfiguration): Promise<void>;

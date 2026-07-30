@@ -73,6 +73,22 @@ public class DreamEntry {
     @Column(name = "interpretation_status")
     private String interpretationStatus;
 
+    @Column(name = "analysis_json", columnDefinition = "TEXT")
+    private String analysisJson;
+
+    @Column(name = "input_quality", length = 20)
+    private String inputQuality;
+
+    @Column(name = "prompt_version", length = 40)
+    private String promptVersion;
+
+    @Column(name = "use_astrology", nullable = false)
+    private boolean useAstrology;
+
+    @Column(name = "dream_memory_enabled", nullable = false)
+    @Builder.Default
+    private boolean dreamMemoryEnabled = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

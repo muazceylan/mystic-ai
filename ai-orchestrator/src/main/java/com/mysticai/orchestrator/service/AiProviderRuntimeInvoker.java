@@ -2,6 +2,7 @@ package com.mysticai.orchestrator.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.orchestrator.config.AiRuntimeConfig;
+import com.mysticai.orchestrator.provider.DeepSeekProvider;
 import com.mysticai.orchestrator.provider.GeminiProvider;
 import com.mysticai.orchestrator.provider.GroqProvider;
 import com.mysticai.orchestrator.provider.LocalLlmProvider;
@@ -81,6 +82,20 @@ public class AiProviderRuntimeInvoker {
                     safeTimeout(provider.getTimeoutMs(), 15000),
                     provider.getTemperature(),
                     provider.getMaxOutputTokens(),
+                    safeHeaders(provider.getHeaders()),
+                    objectMapper
+            ).generateResponse(prompt);
+            case AiModelConfigService.ADAPTER_DEEPSEEK -> new DeepSeekProvider(
+                    key,
+                    defaultDisplayName(provider, "DeepSeek"),
+                    provider.getApiKey(),
+                    fallback(provider.getModel(), "deepseek-v4-flash"),
+                    fallback(provider.getBaseUrl(), "https://api.deepseek.com"),
+                    safeTimeout(provider.getTimeoutMs(), 30000),
+                    provider.getMaxOutputTokens(),
+                    provider.getTemperature(),
+                    provider.getThinkingMode(),
+                    provider.getReasoningEffort(),
                     safeHeaders(provider.getHeaders()),
                     objectMapper
             ).generateResponse(prompt);

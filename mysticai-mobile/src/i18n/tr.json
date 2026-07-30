@@ -258,7 +258,8 @@
     "security": "Güvenlik",
     "themeSettings": "Tema Ayarı",
     "tutorialCenter": "Rehber Merkezi",
-    "linkAccount": "Hesabı Bağla"
+    "linkAccount": "Hesabı Bağla",
+    "journey": "Yolculuğum"
   },
   "zodiac": {
     "aries": "Koç",
@@ -347,6 +348,57 @@
     "retry": {
       "title": "Veriler hazırlanıyor",
       "accessibility": "Ana sayfa verilerini yenile"
+    }
+  },
+  "homePersonalPlan": {
+    "title": "Bugünkü Kişisel Planın",
+    "accessibilityLabel": "Bugünkü kişisel plan ve uygulanabilir adımlar",
+    "contextLabel": "{{sign}} · Bugünkü kişisel bağlam",
+    "contextFallback": "Bugünkü kişisel bağlam",
+    "fallbackTheme": "Anlamlı bir sonraki adım seç ve gününün kalanını bilinçli sürdür.",
+    "progress": "{{completed}} / {{total}} adım tamamlandı",
+    "openPlan": "Planı Gör",
+    "planDay": "Günü Planla",
+    "preparingTitle": "Bugünkü planın hazırlanıyor",
+    "preparingBody": "Bu sırada planlayıcını açabilir veya günlük pratiklerini sürdürebilirsin.",
+    "errorTitle": "Planın yüklenemedi",
+    "errorBody": "Tamamlanan adımlarını kaybetmeden yeniden deneyebilirsin.",
+    "retry": "Yeniden Dene",
+    "actionErrorTitle": "Adım güncellenemedi",
+    "actionErrorBody": "Önceki tamamlanma durumu geri yüklendi. Lütfen yeniden dene.",
+    "markCompleteAccessibility": "{{title}} adımını tamamlandı olarak işaretle",
+    "markIncompleteAccessibility": "{{title}} adımını tamamlanmadı olarak işaretle"
+  },
+  "homeJourney": {
+    "title": "Yolculuğum",
+    "summary": "Bugün {{actions}} aksiyon · {{practices}} pratik kaydı · {{streak}} günlük seri",
+    "empty": "Tamamlanan adımların, günlüklerin ve pratiklerin burada birikecek.",
+    "openAccessibility": "Yolculuğum ekranını aç"
+  },
+  "journey": {
+    "title": "Yolculuğum",
+    "subtitle": "Gerçek aktivitelerin tek yerde",
+    "heroTitle": "Zaman içinde oluşturduğun değeri takip et",
+    "heroBody": "Bu özet yalnızca hesabında veya bu cihazda bulunan tamamlanmış aksiyonları, kayıtlı rüyaları ve pratik kayıtlarını kullanır.",
+    "metrics": {
+      "actionsToday": "Bugün tamamlanan aksiyon",
+      "dreams": "Rüya günlüğü kaydı",
+      "practices": "Tamamlanan pratik kaydı",
+      "activeDays": "Aktif gün",
+      "streak": "Mevcut pratik serisi"
+    },
+    "lastActivity": "Son kayıtlı aktivite: {{date}}",
+    "emptyTitle": "Yolculuğun küçük bir adımla başlar",
+    "emptyBody": "Kişisel geçmişini oluşturmak için bir günlük aksiyonu tamamla, rüya kaydet veya bir pratiği bitir.",
+    "partialData": "Rüya geçmişine geçici olarak ulaşılamıyor. Özetin geri kalanı kayıtlı aktivitelerine dayanıyor.",
+    "nextStepTitle": "Bir sonraki adımını seç",
+    "actions": {
+      "openPlan": "Bugünkü planı aç",
+      "openPlanSubtitle": "Uygulanabilir günlük adımları incele ve tamamla.",
+      "openDreams": "Rüya Günlüğünü aç",
+      "openDreamsSubtitle": "Bir deneyimini kaydet ve önceki kayıtlarına dön.",
+      "openPractices": "Ruhsal pratikleri aç",
+      "openPracticesSubtitle": "Meditasyon, dua ve günlük sayaçlarını sürdür."
     }
   },
   "home": {
@@ -1025,7 +1077,90 @@
     "pdfSymbolsSectionLabel": "Dönemin Sembolleri",
     "pdfCosmicLabel": "Kozmik Yorum",
     "pdfDreamsTitle": "Bu Aydaki Rüyalarım ({{count}} Adet)",
-    "pdfDreamEntry": "{{index}}. Rüya — {{date}}"
+    "pdfDreamEntry": "{{index}}. Rüya — {{date}}",
+    "analysis": {
+      "essence": "Rüyanın özü",
+      "emotionalCore": "Baskın duygu",
+      "primaryEmotion": "Ana duygu",
+      "secondaryEmotion": "İkincil duygu",
+      "notSpecified": "Belirtilmedi",
+      "confidence": "Yorum güveni: %{{value}}",
+      "keyDetails": "Öne çıkan detaylar",
+      "deepInterpretation": "Derin yorum",
+      "personalConnection": "Sana özel olası bağlantı",
+      "patternConnection": "Önceki rüyalarla bağlantı",
+      "reflectionQuestion": "Kendine sorabileceğin soru",
+      "journalNote": "Rüya günlüğü notu",
+      "skyConnection": "Gökyüzü bağlantısı",
+      "followUp": "Yorumu netleştirmek için",
+      "contextTitle": "Yorumu kişiselleştir",
+      "emotionPlaceholder": "Uyandığında kalan duygu (isteğe bağlı)",
+      "memoryTitle": "Rüya hafızası",
+      "memoryBody": "Tekrar eden sembolleri yalnızca bu tercih açıkken karşılaştır.",
+      "astrologyTitle": "Astrolojik bağlantı",
+      "astrologyBody": "Yalnızca anlamlıysa kısa ve ayrı bir gökyüzü notu ekle.",
+      "helpful": "Bu yorum faydalı mıydı?",
+      "helpfulYes": "Yorumu faydalı buldum",
+      "helpfulNo": "Yorumu faydalı bulmadım",
+      "share": "Rüya kartını paylaş",
+      "shareTitle": "Rüya içgörüm",
+      "expansion": {
+        "cta": "Yorumu Derinleştir",
+        "ctaWithCost": "Yorumu Derinleştir · {{cost}} Guru Token",
+        "ctaBody": "Kişi, sembol, duygu veya geçmiş rüya örüntüsüne yakından bak.",
+        "title": "Yorumu Derinleştir",
+        "balance": "Guru bakiyen",
+        "savedTitle": "Daha önce açtığın yorumlar",
+        "openFree": "Ücretsiz aç",
+        "chooseTitle": "Neyi derinleştirelim?",
+        "submit": "{{cost}} Guru ile analiz et",
+        "regenerate": "{{cost}} Guru ile yeniden üret",
+        "confirmTitle": "Analizi başlatalım mı?",
+        "confirmBody": "Bu analiz için {{cost}} Guru Token kullanılacak.\nMevcut bakiyen: {{balance}}\nİşlem sonrası: {{remaining}}",
+        "confirmCta": "{{cost}} Guru ile devam et",
+        "premiumTitle": "Premium üyelik gerekli",
+        "premiumBody": "Yorumu Derinleştir özelliği Premium üyeler için kullanılabilir. Premium üyeler de başarılı analiz başına Guru Token harcar.",
+        "openPremium": "Premium'u İncele",
+        "targetRequiredTitle": "Bir odak seç",
+        "targetRequiredBody": "Yorumlamak istediğin kişi, sembol veya ilişkiyi kısaca yaz.",
+        "insufficientTitle": "Guru bakiyen yetersiz",
+        "insufficientBody": "Bu analiz {{cost}} Guru gerektiriyor. Mevcut bakiyen: {{balance}}.",
+        "buyTokens": "Guru satın al",
+        "earnTokens": "Guru kazan",
+        "priceChangedTitle": "Guru Token fiyatı güncellendi",
+        "priceChangedBody": "Güncel maliyet {{cost}} Guru Token.\nMevcut bakiyen: {{balance}}\nİşlem sonrası: {{remaining}}\nDevam etmek için yeni fiyatı onayla.",
+        "errorTitle": "Analiz tamamlanamadı",
+        "loadError": "Derinleştirme seçenekleri şu anda yüklenemedi. Lütfen tekrar dene.",
+        "types": {
+          "PERSON_MEANING": "Rüyadaki kişinin anlamı",
+          "SYMBOL_MEANING": "Bir sembolün anlamı",
+          "EMOTIONAL_ANALYSIS": "Duygusal analizi derinleştir",
+          "RELATIONSHIP_ANALYSIS": "İlişki dinamiğini incele",
+          "COMPARE_WITH_HISTORY": "Geçmiş rüyalarla karşılaştır"
+        },
+        "targetPlaceholder": {
+          "PERSON_MEANING": "Kişi kimdi?",
+          "SYMBOL_MEANING": "Hangi sembol?",
+          "RELATIONSHIP_ANALYSIS": "Hangi kişi veya ilişki?"
+        },
+        "errors": {
+          "INSUFFICIENT_GURU_BALANCE": "Guru bakiyen bu analiz için yeterli değil.",
+          "PREMIUM_REQUIRED": "Bu özellik için aktif Premium üyelik gerekli.",
+          "EXPANSION_ALREADY_PROCESSING": "Bu analiz hâlâ hazırlanıyor. Biraz sonra tekrar aç.",
+          "DREAM_EXPANSION_PRICE_CHANGED": "Analiz fiyatı güncellendi. Yeni fiyatı onaylaman gerekiyor.",
+          "AI_UNAVAILABLE": "Yapay zekâ servisi şu anda yanıt veremiyor. Guru Token harcanmadı.",
+          "EXPANSION_FAILED": "Analiz üretilemedi. Guru Token harcanmadı.",
+          "TOKEN_REFUNDED": "İşlem tamamlanamadı. Kullanılan Guru Token bakiyene iade edildi.",
+          "UNKNOWN": "Beklenmeyen bir sorun oluştu. Ücret alınmadıysa aynı istekle tekrar deneyebilirsin."
+        }
+      },
+      "quality": {
+        "INSUFFICIENT": "Daha fazla ayrıntı gerekli",
+        "LIMITED": "Sınırlı bağlam",
+        "GOOD": "İyi bağlam",
+        "RICH": "Zengin bağlam"
+      }
+    }
   },
   "monetization": {
     "packages": "Paketler",
@@ -1078,6 +1213,16 @@
     "adWatchBtn": "Reklam İzle",
     "dismissBtn": "Vazgeç",
     "unlockOptionsUnavailableHint": "Açma seçenekleri geçici olarak kullanılamıyor.",
+    "unlockChoiceHint": "{{cost}} Guru kullanarak anında devam edebilir veya kısa bir video izleyerek ücretsiz erişebilirsin.",
+    "currentBalance": "Mevcut Bakiyen",
+    "instantBadge": "ANINDA",
+    "guruCostTitle": "{{cost}} Guru",
+    "instantContinue": "Anında devam et",
+    "guruSpendMeta": "Bakiyenden {{cost}} Guru kullanılır",
+    "freeBadge": "ÜCRETSİZ",
+    "videoTitle": "Video İzle",
+    "freeContinue": "Ücretsiz devam et",
+    "shortVideoAccess": "Kısa reklam sonrası erişim sağlanır",
     "watchVideoUnlock": "Video izle ve aç",
     "watchVideoUnlockHint": "Kısa bir video izle, Guru kazan ve devam et.",
     "useGuruUnlock": "{{count}} Guru ile aç",
@@ -1147,27 +1292,35 @@
       "compatibility": "Uyumluluk"
     },
     "categories": {
-      "cosmicFlow": {
-        "title": "Guru Akış",
-        "subtitle": "Bugün ve hafta ritmini buradan takip et."
+      "dailyLife": {
+        "title": "Günlük Yaşam",
+        "subtitle": "Gününü planla, uygulanabilir adımlar at ve kararlarını değerlendir."
       },
       "selfDiscovery": {
         "title": "Kendini Keşfet",
-        "subtitle": "Haritan ve kişisel içgörüler tek yerde."
+        "subtitle": "Günlüklerin ve kişisel keşif araçların tek yerde."
+      },
+      "relationships": {
+        "title": "İlişkiler",
+        "subtitle": "İlişki dinamiklerini farklı bağlamlarda incele."
       },
       "spiritual": {
         "title": "Ruhsal Pratikler",
         "subtitle": "Dua, esma, nefes ve meditasyon akışları."
       },
-      "socialCompat": {
-        "title": "Sosyal & Uyum",
-        "subtitle": "İlişki uyumu ve paylaşım deneyimleri."
+      "astrologyInsights": {
+        "title": "Astrolojik İçgörüler",
+        "subtitle": "Kişisel önerilerinin arkasındaki astrolojik bağlamı incele."
       }
     },
     "modules": {
+      "todayPlan": {
+        "title": "Bugünkü Plan",
+        "subtitle": "Bugün için üç uygulanabilir adım"
+      },
       "horoscopeDaily": {
         "title": "Günlük Burç",
-        "subtitle": "Bugünün yorumu"
+        "subtitle": "Bugünkü astrolojik bağlam"
       },
       "transitsToday": {
         "title": "Bugünün Gökyüzü Etkileri",
@@ -1178,8 +1331,8 @@
         "subtitle": "Bu hafta odakları"
       },
       "calendar": {
-        "title": "Guru Takvim",
-        "subtitle": "Uygun günleri planla"
+        "title": "Kozmik Planlayıcı",
+        "subtitle": "Gününü planla ve hatırlatıcı oluştur"
       },
       "luckyHours": {
         "title": "Şanslı Saatler",
@@ -1203,7 +1356,11 @@
       },
       "decisionCompass": {
         "title": "Karar Pusulası",
-        "subtitle": "Anlık karar rehberi"
+        "subtitle": "Bir kararı farklı açılardan değerlendir"
+      },
+      "dreamJournal": {
+        "title": "Rüya Günlüğü",
+        "subtitle": "Rüyalarını ve kişisel notlarını kaydet"
       },
       "spiritualDua": {
         "title": "Dualar",
@@ -1280,21 +1437,21 @@
     "dreamReminderHint": "Rüyanı kaydet, Guru şifresini çözelim"
   },
   "auth": {
-    "welcomeTitle": "Hoş Geldiniz",
-    "welcomeSubtitle": "Yıldız rehberinize giriş yapın",
-    "welcomeEyebrow": "Kişisel Kozmik Erişim",
-    "welcomeSignal": "Kişisel ve güvenli",
-    "welcomeBlurb": "Haritanı, rüya arşivini ve günlük rehberliğini sana özel tasarlanmış tek bir özenli alanda buluştur.",
-    "welcomeFeatureCharts": "Özel harita alanı",
-    "welcomeFeatureDaily": "Günlük rehberlik",
+    "welcomeTitle": "Gününü planla. Kendini keşfet.",
+    "welcomeSubtitle": "Günlük aksiyonların, farkındalığın ve gelişimin için kişisel alanın",
+    "welcomeEyebrow": "Kişisel Gelişim Alanın",
+    "welcomeSignal": "Kişisel, pratik ve güvenli",
+    "welcomeBlurb": "Günlük planını, karar desteğini, rüya günlüğünü ve manevi pratiklerini; astrolojiyi kişisel bağlam olarak kullanarak tek yerde buluştur.",
+    "welcomeFeatureCharts": "Kendini keşif bağlamı",
+    "welcomeFeatureDaily": "Kişisel günlük plan",
     "welcomeFeatureSync": "Cihazlar arası senkron",
     "memberAccessEyebrow": "Üye girişi",
     "altAccessEyebrow": "Daha hızlı giriş",
     "altAccessSubtitle": "Güvenilir hesabınla devam et ya da misafir olarak keşfet.",
     "quickStartTitle": "Misafir olarak devam et",
     "quickStartHint": "",
-    "loginWithApple": "Apple ile Giriş Yap",
-    "loginWithGoogle": "Google ile devam et",
+    "loginWithApple": "Apple ile Devam Et",
+    "loginWithGoogle": "Google ile Devam Et",
     "loginWithEmail": "E-posta ile Giriş Yap",
     "noAccount": "Hesabın yok mu? ",
     "signUp": "Kayıt Ol",
@@ -1323,13 +1480,10 @@
     "googleLoginError": "Google ile giriş yapılamadı.",
     "googleConfigError": "Google girişi bu uygulama sürümünde yapılandırılmamış. Lütfen uygulamayı güncelle ve tekrar dene.",
     "appleLoginError": "Apple ile giriş yapılamadı.",
-    "appleLinkRequiredTitle": "Apple hesabını bağla",
-    "appleAccountNotLinked": "Apple bu oturumda hesap e-postanı doğrulanabilir şekilde paylaşmadı. Mevcut hesabını bağlamak için e-posta ve şifreni yazıp Apple ile bağla'ya dokun.",
-    "linkWithApple": "Apple ile bağla",
     "birthDateTitle": "Doğum Tarihiniz?",
-    "birthDateSubtitle": "Haritanızı kişiselleştirmek için doğum tarihinizi seçin.",
+    "birthDateSubtitle": "Planlarının ve kendini keşif araçlarının kişisel bağlamını oluşturmak için doğum tarihini seç.",
     "birthDateHeroEyebrow": "Doğum Tarihi",
-    "birthDateHeroHint": "Bu bilgiyle yaş ve güneş burcu katmanınızı doğru kuruyoruz.",
+    "birthDateHeroHint": "Bu bilgiyle planlama ve farkındalık için kişisel astrolojik bağlam kuruyoruz; kesin sonuç üretmiyoruz.",
     "birthDateSelectionLabel": "Seçilen tarih",
     "birthDateAgeLabel": "Yaş",
     "birthDateAgeValue": "{{age}} yaş",
@@ -1341,18 +1495,18 @@
     "birthDatePickerSubtitle": "Gün, ay ve yılı takvim üzerinden rahatça belirleyin.",
     "birthDateFooterHint": "Bir sonraki adımda doğum saatinizi alacağız.",
     "birthTimeTitle": "Doğum Saatiniz?",
-    "birthTimeSubtitle": "Doğum saatiniz yükselen burcunuzu bulmam için önemlidir.",
+    "birthTimeSubtitle": "Doğum saatin, harita ve planlama içgörülerindeki kişisel bağlamı hassaslaştırır.",
     "selectTimeLabel": "Saat seçin",
     "hour": "Saat",
     "minute": "Dakika",
     "birthLocationTitle": "Doğum Yeriniz?",
-    "birthLocationSubtitle": "Doğduğunuz ülke, il ve ilçeyi seçebilirsiniz.",
+    "birthLocationSubtitle": "Doğum yeri, kişisel astrolojik bağlamın daha doğru hesaplanmasına yardımcı olur.",
     "genderTitle": "Cinsiyetin",
     "genderSubtitle": "Cinsiyetinizi sonra değiştiremezsiniz",
     "maritalTitle": "Medeni Haliniz",
     "maritalSubtitle": "Size daha iyi rehberlik edebilmemiz için",
     "natalChartTitle": "Natal haritanız hazırlanıyor",
-    "natalChartSubtitle": "Yıldızların sizin için söyleyecekleri var",
+    "natalChartSubtitle": "Plan ve farkındalık araçlarının kişisel bağlamı hazırlanıyor",
     "selectLocation": "Lokasyon seç",
     "selectCountry": "Ülke Seç",
     "selectCity": "Şehir Seç",
@@ -1903,13 +2057,6 @@
       "balanceAdviceAir": "Hava enerjisinin düşük kalması, düşüncelerini sözlü ifade etme ve zihinsel netlik konusunda bilinçli çaba göstermen gerektiğini gösterir. Düşünceni yazıya dökmek veya paylaşmak bu alandaki dengeyi güçlendirir.",
       "balanceAdviceWater": "Su enerjisinin düşük kalması, duygusal farkındalık ve sezgisel dinleme konusunda bilinçli alan açman gerektiğini gösterir. Bedeni ve duyguları gözlemleme pratiği bu alandaki dengeyi destekler.",
       "elementSecondaryBalance": "{{element}} elementinin de yakın ağırlıkta olması, bu iki enerjinin birbirini besleyen bir denge oluşturduğunu gösterir.",
-      "elementFire": "Ateş",
-      "elementEarth": "Toprak",
-      "elementAir": "Hava",
-      "elementWater": "Su",
-      "modalityCardinal": "Öncü",
-      "modalityFixed": "Sabit",
-      "modalityMutable": "Değişken",
       "aspectConjunction": "Kavuşum",
       "aspectSextile": "Altıgen",
       "aspectSquare": "Kare",
@@ -2105,18 +2252,18 @@
       "daily": "Günlük Yorum",
       "numerology": "Numeroloji"
     },
-  "create": {
-    "title": "Yeni kart oluştur",
-    "cardType": "Kart Türü",
-    "theme": "Tema",
-    "aspectRatio": "Oran",
-    "generate": "Oluştur",
-    "options": {
-      "cardType": {
-        "guruCard": "Guru Kart",
-        "compatibilitySummary": "Uyum Özeti",
-        "bondSnapshot": "Bağ Ritmi",
-        "dailyInsight": "Günlük Aura",
+    "create": {
+      "title": "Yeni kart oluştur",
+      "cardType": "Kart Türü",
+      "theme": "Tema",
+      "aspectRatio": "Oran",
+      "generate": "Oluştur",
+      "options": {
+        "cardType": {
+          "guruCard": "Guru Kart",
+          "compatibilitySummary": "Uyum Özeti",
+          "bondSnapshot": "Bağ Ritmi",
+          "dailyInsight": "Günlük Aura",
           "numerologySignature": "Sayı İmzası"
         },
         "theme": {
@@ -2130,18 +2277,18 @@
         }
       }
     },
-  "preview": {
-    "title": "Uyum Özeti",
-    "guruCardTitle": "Guru Kart",
-    "bondSnapshotTitle": "Bağ Ritmi",
-    "dailyTitle": "Günün Akışı",
-    "numerologyTitle": "Sayı İmzası",
-    "strongestArea": "En Güçlü Alan",
-    "focusArea": "Dikkat Alanı",
-    "connectionPulse": "Bağın Nabzı",
-    "sharedCurrent": "Ortak Akış",
-    "shareReady": "Paylaşıma Hazır",
-    "sectionTitle": "Kart önizlemesi",
+    "preview": {
+      "title": "Uyum Özeti",
+      "guruCardTitle": "Guru Kart",
+      "bondSnapshotTitle": "Bağ Ritmi",
+      "dailyTitle": "Günün Akışı",
+      "numerologyTitle": "Sayı İmzası",
+      "strongestArea": "En Güçlü Alan",
+      "focusArea": "Dikkat Alanı",
+      "connectionPulse": "Bağın Nabzı",
+      "sharedCurrent": "Ortak Akış",
+      "shareReady": "Paylaşıma Hazır",
+      "sectionTitle": "Kart önizlemesi",
       "sectionSubtitle": "Seçtiğin tema, oran ve stil ile gerçek paylaşım çıktısı burada görünür.",
       "love": "Aşk",
       "communication": "İletişim",
@@ -2224,12 +2371,12 @@
       "unlockToExport": "Kartı kaydetmek, indirmek veya paylaşmak için kilidini aç.",
       "guruUnlocked": "Guru ile kilit açıldı"
     },
-  "personPicker": {
-    "title": "Kişi Seç",
-    "readyCards": "Hazır analizler",
-    "loadingSaved": "Hazır analizler yükleniyor…",
-    "selectPerson": "Uyum analizi için kayıtlı bir kişi seçin",
-    "noPeople": "Henüz kayıtlı kişi yok",
+    "personPicker": {
+      "title": "Kişi Seç",
+      "readyCards": "Hazır analizler",
+      "loadingSaved": "Hazır analizler yükleniyor…",
+      "selectPerson": "Uyum analizi için kayıtlı bir kişi seçin",
+      "noPeople": "Henüz kayıtlı kişi yok",
       "addPersonHint": "Uyum sekmesinden kişi ekleyebilirsiniz",
       "analyzing": "Uyum analizi yapılıyor…",
       "analysisFailed": "Analiz tamamlanamadı. Tekrar deneyin.",
@@ -2312,8 +2459,27 @@
     "noPlansTitle": "Plan bulunamıyor",
     "planFallbackDescription": "Hesabın için Premium erişim.",
     "trialMeta": "{{count}} günlük ücretsiz deneme",
+    "trialMainOffer": "{{duration}} ücretsiz, ardından {{recurringPrice}}",
+    "recurringPrice": "{{price}}/{{period}}",
+    "continuePremium": "Premium'a Geç",
+    "trialRenewalFooter": "Deneme süresi sonunda aboneliğiniz {{recurringPrice}} olarak otomatik yenilenir. İstediğiniz zaman App Store ayarlarından iptal edebilirsiniz.",
+    "standardRenewalFooter": "Abonelik iptal edilmediği sürece otomatik yenilenir.",
+    "period": {
+      "month": "ay",
+      "year": "yıl"
+    },
+    "trialDuration": {
+      "day_one": "{{count}} gün",
+      "day_other": "{{count}} gün",
+      "week_one": "{{count}} hafta",
+      "week_other": "{{count}} hafta",
+      "month_one": "{{count}} ay",
+      "month_other": "{{count}} ay",
+      "year_one": "{{count}} yıl",
+      "year_other": "{{count}} yıl"
+    },
     "periodFallback": "Yerel mağaza fiyatı burada görünecek",
-    "startTrial": "Ücretsiz Dene",
+    "startTrial": "Ücretsiz Denemeyi Başlat",
     "continueYearly": "Yıllık Devam Et",
     "upgrade": "Premium'a Geç",
     "buyTokens": "Token Satın Al",
@@ -2852,7 +3018,7 @@
     "title": "Hesabını Bağla",
     "subtitle": "Kalıcı hesap oluşturarak verilerini güvende tut ve cihazlar arası senkronize et",
     "withGoogle": "Google ile Bağla",
-    "withApple": "Apple ile Bağla",
+    "withApple": "Apple ile devam et",
     "withEmail": "E-posta ile Hesap Oluştur",
     "firstNameLabel": "Ad",
     "firstNamePlaceholder": "Adın",
@@ -2950,13 +3116,26 @@
       "legendLabel": "Dua Sayısı",
       "statsEmpty": "Henüz kayıt yok. İlk duanı oku!",
       "categories": {
-        "SABAH": "Sabah", "AKSAM": "Akşam", "GECE": "Gece", "ZİKİR": "Zikir",
-        "KORUNMA": "Korunma", "SALAVAT": "Salavat", "BEREKET": "Bereket",
-        "HUZUR": "Huzur", "ŞİFA": "Şifa", "İLİM": "İlim",
+        "SABAH": "Sabah",
+        "AKSAM": "Akşam",
+        "GECE": "Gece",
+        "ZİKİR": "Zikir",
+        "KORUNMA": "Korunma",
+        "SALAVAT": "Salavat",
+        "BEREKET": "Bereket",
+        "HUZUR": "Huzur",
+        "ŞİFA": "Şifa",
+        "İLİM": "İlim",
         "SABAH_AKSAM": "Sabah/Akşam",
-        "MORNING": "Sabah", "EVENING": "Akşam", "GRATITUDE": "Şükür",
-        "PROTECTION": "Korunma", "HEALING": "Şifa", "FORGIVENESS": "Tövbe",
-        "GUIDANCE": "Hidayet", "ABUNDANCE": "Bereket", "GENERAL": "Genel"
+        "MORNING": "Sabah",
+        "EVENING": "Akşam",
+        "GRATITUDE": "Şükür",
+        "PROTECTION": "Korunma",
+        "HEALING": "Şifa",
+        "FORGIVENESS": "Tövbe",
+        "GUIDANCE": "Hidayet",
+        "ABUNDANCE": "Bereket",
+        "GENERAL": "Genel"
       }
     },
     "esma": {
@@ -3200,6 +3379,8 @@
     "emotionBalanced": "Dengeli"
   },
   "dailyTransits": {
+    "planningNoticeTitle": "Kesin sonuç değil, planlama desteği",
+    "planningNoticeBody": "Bu önerileri günlük planlama ve kişisel farkındalık için kullan. Kesin gelecek tahmini veya profesyonel tavsiye değildir.",
     "tutorialHelpA11y": "Tutorial rehberini tekrar aç",
     "errorTitle": "Veri yüklenemedi",
     "errorBody": "Bugünkü transit verisi alınırken bir sorun oluştu.",
@@ -3238,12 +3419,12 @@
     "riskHigh": "Yüksek"
   },
   "todayActions": {
-    "headerFallback": "Bugün Ne Yapabilirsin?",
+    "headerFallback": "Bugünkü Kişisel Planın",
     "errorTitle": "Aksiyonlar alınamadı",
     "errorBody": "Bugün için aksiyon listesi şu anda yüklenemiyor.",
     "retry": "Tekrar Dene",
     "emptyTitle": "Bugün için veri hazırlanıyor",
-    "emptyBody": "Aksiyon listesi hazırlanırken kısa bir gecikme olabilir.",
+    "emptyBody": "Kişisel planın hazırlanıyor. Birazdan yenileyebilirsin.",
     "refresh": "Yenile",
     "actionFailedTitle": "İşlem tamamlanamadı",
     "actionFailedMsg": "Bağlantı sorunu olabilir. Lütfen tekrar dene.",
@@ -3635,5 +3816,32 @@
   },
   "barChart": {
     "empty": "Henüz veri yok"
+  },
+  "personalPlan": {
+    "personalization": {
+      "HIGH": "Doğum haritana göre hazırlandı",
+      "MEDIUM": "Haritandaki verilere göre hazırlandı",
+      "LOW": "Sınırlı veriyle hazırlandı"
+    },
+    "mainThemeEyebrow": "Günün ana teması",
+    "primaryActionEyebrow": "Bugünün en önemli hamlesi",
+    "timelineTitle": "Günün akışı",
+    "cautionTitle": "Bugün dikkat",
+    "reflectionTitle": "Akşam değerlendirmesi",
+    "whyLabel": "Neden bu öneri?",
+    "markCompleteAccessibility": "{{title}} adımını tamamlandı olarak işaretle",
+    "markIncompleteAccessibility": "{{title}} adımını tamamlanmadı olarak işaretle",
+    "feedbackTitle": "Bu plan sana uydu mu?",
+    "feedbackHint": "Cevabın yarınki planı doğrudan etkiler.",
+    "feedbackRegenerating": "Planın yeniden hazırlanıyor. Birazdan farklı bir öneri göreceksin.",
+    "feedback": {
+      "HELPFUL": "Bana uydu",
+      "TOO_GENERIC": "Çok genel",
+      "REPETITIVE": "Tekrarlı",
+      "NOT_RELEVANT": "Bana uygun değil",
+      "NOT_USEFUL": "Faydalı değildi"
+    },
+    "profileIncompleteTitle": "Planını keskinleştir",
+    "profileIncompleteBody": "Doğum saatini eklersen günlük planın ev bazlı hesaplanır ve önerilerin belirginleşir."
   }
 }

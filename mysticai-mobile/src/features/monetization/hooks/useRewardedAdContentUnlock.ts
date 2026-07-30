@@ -6,9 +6,8 @@ import {
 } from '../api/monetization.service';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { getAdProvider, type AdResult } from '../providers/AdProviderAdapter';
-import { initializeAdMob, isAdMobAvailable, isAdMobInitialized } from '../providers/admobInit';
-import { resolveRewardedUnitId } from '../providers/admobUnitIds';
-import { initializeAdProvider } from '../providers/initProvider';
+import { isAdMobAvailable, isAdMobInitialized } from '../providers/admobInit';
+import { resolveConfiguredRewardedAd } from '../providers/providerConfig';
 import type { RewardedAdCheckResponse, RewardedAdCompleteResponse } from '../types';
 
 type RewardedContentUnlockStatus =
@@ -195,7 +194,7 @@ export function useRewardedAdContentUnlock(
       return { response: null, status: 'blocked', message: blockedMessage };
     }
 
-    const resolved = resolveRewardedUnitId();
+    const resolved = resolveConfiguredRewardedAd();
     if (!resolved) {
       debugRewardedUnlock('ad_unit:missing', { moduleKey, actionKey, contentKey, placement });
       setStatus('failed');
@@ -215,8 +214,29 @@ export function useRewardedAdContentUnlock(
 
     if (Platform.OS !== 'web') {
       try {
-        await initializeAdProvider(true);
-        if (!isAdMobAvailable()) {
+        // Avoid resolving the native ads module before the root privacy gate.
+        if (resolved.provider === 'admob' && !isAdMobInitialized()) {
+          setStatus('failed');
+          setMessage(USER_MESSAGES.adNotReady);
+          debugRewardedUnlock('sdk:privacy_bootstrap_incomplete', {
+            moduleKey,
+            actionKey,
+            contentKey,
+            placement,
+          });
+          trackMonetizationEvent('rewarded_unlock_failed', {
+            ...analyticsContext,
+            moduleKey,
+            actionKey,
+            contentKey,
+            reason: 'privacy_bootstrap_incomplete',
+            completedViews: check.completedViews,
+            requiredViews: check.requiredViews,
+            rewardedAdViewsRequired: check.requiredViews,
+          });
+          return { response: null, status: 'failed', message: USER_MESSAGES.adNotReady };
+        }
+        if (resolved.provider === 'admob' && !isAdMobAvailable()) {
           setStatus('failed');
           setMessage(USER_MESSAGES.adNotReady);
           debugRewardedUnlock('sdk:unavailable', { moduleKey, actionKey, contentKey, placement });
@@ -231,25 +251,6 @@ export function useRewardedAdContentUnlock(
             rewardedAdViewsRequired: check.requiredViews,
           });
           return { response: null, status: 'failed', message: USER_MESSAGES.adNotReady };
-        }
-        if (!isAdMobInitialized()) {
-          const initialized = await initializeAdMob();
-          if (!initialized) {
-            setStatus('failed');
-            setMessage(USER_MESSAGES.adNotReady);
-            debugRewardedUnlock('sdk:init_failed', { moduleKey, actionKey, contentKey, placement });
-            trackMonetizationEvent('rewarded_unlock_failed', {
-              ...analyticsContext,
-              moduleKey,
-              actionKey,
-              contentKey,
-              reason: 'sdk_not_initialized',
-              completedViews: check.completedViews,
-              requiredViews: check.requiredViews,
-              rewardedAdViewsRequired: check.requiredViews,
-            });
-            return { response: null, status: 'failed', message: USER_MESSAGES.adNotReady };
-          }
         }
       } catch (error) {
         const failureMessage = toUserMessage(
@@ -303,7 +304,7 @@ export function useRewardedAdContentUnlock(
         completedViews: completed,
         requiredViews: required,
         rewardedAdViewsRequired: required,
-        ad_provider: 'admob',
+        ad_provider: resolved.provider,
         ad_unit_mode: resolved.mode,
         platform: Platform.OS,
       });
@@ -419,9 +420,11 @@ export function useRewardedAdContentUnlock(
           requiredViews: required,
         });
         const complete = await completeRewardedAd(moduleKey, actionKey, {
-          adNetwork: 'admob',
+          // TODO(levelplay-s2s-content): this endpoint records content-unlock
+          // progress only. Guru Token credit for LevelPlay is exclusively S2S.
+          adNetwork: resolved.provider,
           placement,
-          transactionId: adResult.transactionId ?? createId('admob_reward'),
+          transactionId: adResult.transactionId ?? createId(`${resolved.provider}_reward`),
           clientEventId: createId('rewarded_unlock_event'),
           contentKey,
         });

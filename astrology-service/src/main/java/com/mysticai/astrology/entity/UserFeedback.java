@@ -39,6 +39,13 @@ public class UserFeedback {
     @Column(name = "sentiment", nullable = false, length = 16)
     private String sentiment;
 
+    /**
+     * Why the user reacted this way: HELPFUL / TOO_GENERIC / REPETITIVE / NOT_RELEVANT /
+     * NOT_USEFUL. Drives the next plan generation, unlike the bare sentiment.
+     */
+    @Column(name = "reason", length = 32)
+    private String reason;
+
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 

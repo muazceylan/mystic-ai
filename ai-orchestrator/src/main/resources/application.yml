@@ -1,6 +1,10 @@
 server:
   port: 8084
 
+internal:
+  gateway:
+    key: ${INTERNAL_GATEWAY_KEY:change-me}
+
 spring:
   application:
     name: ai-orchestrator
@@ -42,12 +46,15 @@ ai:
       complex:
         - gemini
         - groqPremium
+        - deepseekPro
         - groqFast
+        - deepseekFast
         - openrouter
         - localLlm
       simple:
         - gemini
         - groqFast
+        - deepseekFast
         - openrouter
         - localLlm
 
@@ -115,6 +122,32 @@ ai:
       priority: 5
       temperature: ${AI_LOCAL_LLM_TEMPERATURE:0.7}
       max-output-tokens: ${AI_LOCAL_LLM_MAX_OUTPUT_TOKENS:2048}
+
+    deepseekFast:
+      enabled: ${AI_DEEPSEEK_FAST_ENABLED:true}
+      model: ${AI_DEEPSEEK_FAST_MODEL:deepseek-v4-flash}
+      base-url: ${AI_DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      api-key: ${DEEPSEEK_API_KEY:}
+      timeout-ms: ${AI_DEEPSEEK_FAST_TIMEOUT_MS:30000}
+      retry-count: ${AI_DEEPSEEK_FAST_RETRY:1}
+      cooldown-seconds: ${AI_DEEPSEEK_FAST_COOLDOWN:60}
+      priority: 6
+      temperature: ${AI_DEEPSEEK_FAST_TEMPERATURE:0.7}
+      max-output-tokens: ${AI_DEEPSEEK_FAST_MAX_OUTPUT_TOKENS:2000}
+      thinking-mode: disabled
+
+    deepseekPro:
+      enabled: ${AI_DEEPSEEK_PRO_ENABLED:true}
+      model: ${AI_DEEPSEEK_PRO_MODEL:deepseek-v4-pro}
+      base-url: ${AI_DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      api-key: ${DEEPSEEK_API_KEY:}
+      timeout-ms: ${AI_DEEPSEEK_PRO_TIMEOUT_MS:90000}
+      retry-count: ${AI_DEEPSEEK_PRO_RETRY:1}
+      cooldown-seconds: ${AI_DEEPSEEK_PRO_COOLDOWN:90}
+      priority: 7
+      max-output-tokens: ${AI_DEEPSEEK_PRO_MAX_OUTPUT_TOKENS:4000}
+      thinking-mode: enabled
+      reasoning-effort: high
 
 eureka:
   client:

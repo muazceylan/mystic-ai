@@ -179,8 +179,15 @@ The mobile app includes a full monetization layer under `mysticai-mobile/src/fea
 | `REDIS_HOST` | `localhost` |
 | `JWT_SECRET` | Base64 secret (min 32 chars) |
 | `GROQ_API_KEY` | Groq API key |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (deepseekFast / deepseekPro) |
 | `ENV` | `local` |
 | `API_PUBLIC_URL` | `http://localhost:8080` |
+
+> **DeepSeek tool-calling note:** `ai-orchestrator` has no tool-calling architecture today (prompt-in,
+> text-out only). If DeepSeek tool-calling is added later, `reasoning_content` from thinking-mode
+> responses (`deepseekPro`) must be threaded back into the next tool-turn's message history, not
+> discarded — DeepSeek's multi-turn tool-calling depends on it for reasoning continuity. See the
+> javadoc on `DeepSeekProvider#throwForBlockingFinishReason`.
 
 **Mobile `mysticai-mobile/.env`**
 
@@ -395,6 +402,7 @@ Mobil uygulama `mysticai-mobile/src/features/monetization/` altında tam bir mon
 | `REDIS_HOST` | `localhost` |
 | `JWT_SECRET` | Base64 secret (min 32 karakter) |
 | `GROQ_API_KEY` | Groq API anahtarı |
+| `DEEPSEEK_API_KEY` | DeepSeek API anahtarı (deepseekFast / deepseekPro) |
 | `ENV` | `local` |
 | `API_PUBLIC_URL` | `http://localhost:8080` |
 

@@ -60,16 +60,16 @@ export function usePurchasePremium() {
           ?? product.revenueCatProductId
           ?? null,
         ),
-        'is trial': Boolean(product.trialDurationDays && product.trialDurationDays > 0),
+        'is trial': product.verifiedTrialEligible === true,
         price: product.localizedPrice ?? product.price ?? null,
         currency: product.currency ?? null,
         'offer id': product.offeringId ?? product.productKey,
       });
 
-      if (product.trialDurationDays && product.trialDurationDays > 0) {
+      if (product.verifiedTrialEligible === true) {
         trackMonetizationEvent('trial_start_clicked', {
           product_key: product.productKey,
-          trial_duration_days: product.trialDurationDays,
+          trial_duration: product.verifiedTrialDurationIso8601,
         });
       }
 

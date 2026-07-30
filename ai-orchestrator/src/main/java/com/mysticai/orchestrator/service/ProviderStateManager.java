@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class ProviderStateManager {
 
+    // MISSING_CREDENTIAL is intentionally excluded: it's a free local check (no network call),
+    // so there is no need to back off the provider the way a real network/auth failure would.
     private static final EnumSet<AiFailureType> COOLDOWN_FAILURE_TYPES = EnumSet.of(
             AiFailureType.RATE_LIMIT,
             AiFailureType.CONNECTION_ERROR,
@@ -17,7 +19,8 @@ public class ProviderStateManager {
             AiFailureType.MODEL_DECOMMISSIONED,
             AiFailureType.AUTH_ERROR,
             AiFailureType.BAD_REQUEST,
-            AiFailureType.EMPTY_RESPONSE
+            AiFailureType.EMPTY_RESPONSE,
+            AiFailureType.INCOMPLETE_RESPONSE
     );
 
     private final ConcurrentHashMap<String, ProviderRuntimeState> states = new ConcurrentHashMap<>();

@@ -144,6 +144,10 @@ services:
     read-timeout: ${NOTIFICATION_SERVICE_READ_TIMEOUT:10s}
     internal-key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}
 
+internal:
+  gateway:
+    key: ${INTERNAL_GATEWAY_KEY:local-dev-internal-gateway-key-change-me}
+
 logging:
   level:
     com.mysticai.auth: DEBUG

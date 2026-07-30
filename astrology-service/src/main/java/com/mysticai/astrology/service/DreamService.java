@@ -41,12 +41,14 @@ public class DreamService {
     private final TransitCalculator transitCalculator;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
+    private final DreamInputQualityService inputQualityService;
 
     @Value("${ai-orchestrator.url:http://localhost:8084}")
     private String orchestratorUrl;
 
     private static final String AI_EXCHANGE = "ai.exchange";
     private static final String AI_REQUESTS_ROUTING_KEY = "ai.request";
+    public static final String DREAM_PROMPT_VERSION = "dream-analysis-v2.0";
 
     /**
      * Processes a dream text submission:
@@ -57,13 +59,24 @@ public class DreamService {
      */
     @Transactional
     public DreamEntryResponse submitDream(DreamSubmitRequest request) {
-        log.info("Processing dream for userId: {}", request.userId());
+        log.info("Processing dream analysis for userId={}, characterCount={}",
+                request.userId(), request.text().length());
+
+        DreamAnalysisResult.InputQuality inputQuality = inputQualityService.evaluate(request.text());
+        boolean memoryEnabled = !Boolean.FALSE.equals(request.dreamMemoryEnabled());
+        boolean useAstrology = Boolean.TRUE.equals(request.useAstrology());
+
+        if (inputQuality.level() == DreamAnalysisQuality.INSUFFICIENT) {
+            return saveInsufficientDream(request, inputQuality, memoryEnabled, useAstrology);
+        }
 
         // 1. Extract symbols via AI Orchestrator
         List<String> extractedSymbols = extractSymbolsFromOrchestrator(request.text());
 
         // 2. Upsert symbols and find recurring ones
-        List<String> recurringSymbols = upsertSymbolsAndFindRecurring(request.userId(), extractedSymbols);
+        List<String> recurringSymbols = memoryEnabled
+                ? upsertSymbolsAndFindRecurring(request.userId(), extractedSymbols)
+                : List.of();
 
         // 3. Build payload for the full synthesis
         String payload = buildSynthesisPayload(request, extractedSymbols, recurringSymbols);
@@ -80,6 +93,10 @@ public class DreamService {
                 .correlationId(correlationId)
                 .extractedSymbolsJson(toJson(extractedSymbols))
                 .recurringSymbolsJson(toJson(recurringSymbols))
+                .inputQuality(inputQuality.level().name())
+                .promptVersion(DREAM_PROMPT_VERSION)
+                .useAstrology(useAstrology)
+                .dreamMemoryEnabled(memoryEnabled)
                 .build();
 
         DreamEntry saved = dreamEntryRepository.save(entry);
@@ -101,6 +118,39 @@ public class DreamService {
         try { analyticsService.invalidateCollectivePulseCache(); } catch (Exception ignored) {}
 
         return mapToResponse(saved, extractedSymbols, recurringSymbols, List.of(), List.of());
+    }
+
+    private DreamEntryResponse saveInsufficientDream(
+            DreamSubmitRequest request,
+            DreamAnalysisResult.InputQuality inputQuality,
+            boolean memoryEnabled,
+            boolean useAstrology
+    ) {
+        DreamAnalysisResult analysis = inputQualityService.insufficientResult(
+                inputQuality, request.locale(), request.text()
+        );
+        DreamEntry entry = DreamEntry.builder()
+                .userId(request.userId())
+                .title(request.title())
+                .text(request.text())
+                .dreamDate(request.dreamDate() != null ? request.dreamDate() : LocalDate.now())
+                .audioUrl(request.audioUrl())
+                .interpretation(analysis.deepInterpretation())
+                .interpretationStatus("COMPLETED")
+                .extractedSymbolsJson("[]")
+                .recurringSymbolsJson("[]")
+                .warningsJson("[]")
+                .opportunitiesJson("[]")
+                .analysisJson(writeJson(analysis))
+                .inputQuality(inputQuality.level().name())
+                .promptVersion(DREAM_PROMPT_VERSION)
+                .useAstrology(useAstrology)
+                .dreamMemoryEnabled(memoryEnabled)
+                .build();
+        DreamEntry saved = dreamEntryRepository.save(entry);
+        log.info("Saved insufficient dream without AI generation, entryId={}, userId={}",
+                saved.getId(), request.userId());
+        return mapToResponse(saved);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -361,67 +411,94 @@ public class DreamService {
 
     /**
      * Builds the JSON payload for the AI Orchestrator synthesis.
-     * Includes dream text, recurring symbols, natal chart, and current transits.
+     * Astrology and dream history are opt-in context. Empty fields are never
+     * synthesized into placeholder facts for the model.
      */
     private String buildSynthesisPayload(DreamSubmitRequest request,
                                           List<String> extractedSymbols,
                                           List<String> recurringSymbols) {
         try {
-            // Get user's natal chart for astrological context
-            NatalChart chart = natalChartRepository
-                    .findFirstByUserIdOrderByCalculatedAtDescIdDesc(request.userId().toString())
-                    .orElse(null);
+            Map<String, Object> dream = new LinkedHashMap<>();
+            dream.put("title", request.title());
+            dream.put("description", request.text());
+            dream.put("dreamDate", request.dreamDate());
+            dream.put("emotionAfterWaking", request.emotionAfterWaking());
+            dream.put("userSelectedTags", request.userSelectedTags() == null
+                    ? List.of() : request.userSelectedTags());
 
-            String moonSign = chart != null ? chart.getMoonSign() : "Bilinmiyor";
-            String risingSign = chart != null ? chart.getRisingSign() : "Bilinmiyor";
-            String housePlacementsJson = chart != null ? chart.getHousePlacementsJson() : "[]";
+            Map<String, Object> profileContext = new LinkedHashMap<>();
+            profileContext.put("useAstrology", Boolean.TRUE.equals(request.useAstrology()));
 
-            // Current transits
-            List<PlanetPosition> transits = transitCalculator.calculateTransitPositions(LocalDate.now());
-            List<String> transitSummary = transits.stream()
-                    .map(t -> t.planet() + " " + t.sign() + " " + t.degree() + "°"
-                            + (t.retrograde() ? " (R)" : ""))
-                    .toList();
+            Map<String, Object> history = new LinkedHashMap<>();
+            if (!Boolean.FALSE.equals(request.dreamMemoryEnabled())) {
+                history.put("repeatingSymbols", recurringSymbols);
+                history.put("similarDreamSummaries",
+                        dreamEntryRepository.findAllByUserIdOrderByDreamDateDescCreatedAtDesc(request.userId())
+                                .stream()
+                                .limit(20)
+                                .map(entry -> Map.of(
+                                        "dreamId", entry.getId(),
+                                        "dreamDate", entry.getDreamDate() == null ? "" : entry.getDreamDate().toString(),
+                                        "symbols", fromJson(entry.getExtractedSymbolsJson())
+                                ))
+                                .filter(summary -> {
+                                    @SuppressWarnings("unchecked")
+                                    List<String> symbols = (List<String>) summary.get("symbols");
+                                    return symbols.stream().anyMatch(previous ->
+                                            extractedSymbols.stream().anyMatch(current ->
+                                                    current.equalsIgnoreCase(previous)));
+                                })
+                                .limit(5)
+                                .toList());
+            } else {
+                history.put("repeatingSymbols", List.of());
+                history.put("similarDreamSummaries", List.of());
+            }
 
-            // Find Neptune transit
-            String neptuneInfo = transits.stream()
-                    .filter(t -> "Neptune".equalsIgnoreCase(t.planet()) || "Neptün".equalsIgnoreCase(t.planet()))
-                    .map(t -> t.planet() + " " + t.sign() + " " + t.degree() + "°")
-                    .findFirst().orElse("Neptün konumu hesaplanamadı");
+            Map<String, Object> astrologyContext = null;
+            if (Boolean.TRUE.equals(request.useAstrology())) {
+                NatalChart chart = natalChartRepository
+                        .findFirstByUserIdOrderByCalculatedAtDescIdDesc(request.userId().toString())
+                        .orElse(null);
+                if (chart != null) {
+                    List<PlanetPosition> transits = transitCalculator.calculateTransitPositions(LocalDate.now());
+                    astrologyContext = new LinkedHashMap<>();
+                    astrologyContext.put("moonSign", chart.getMoonSign());
+                    astrologyContext.put("risingSign", chart.getRisingSign());
+                    astrologyContext.put("currentTransits", transits.stream()
+                            .map(t -> t.planet() + " " + t.sign() + " " + t.degree() + "°"
+                                    + (t.retrograde() ? " (R)" : ""))
+                            .limit(6)
+                            .toList());
+                }
+            }
 
-            // Extract 12th house planets as a readable string
-            String twelfthHouseDesc = extractTwelfthHouseDesc(housePlacementsJson);
-
-            // Recurring symbols description (flat string for payload extraction)
-            String recurringDesc = recurringSymbols.isEmpty() ? "Tekrar eden sembol yok" :
-                    recurringSymbols.stream()
-                            .map(s -> {
-                                DreamSymbol sym = dreamSymbolRepository
-                                        .findByUserIdAndSymbolName(request.userId(), s.toLowerCase())
-                                        .orElse(null);
-                                int count = sym != null ? sym.getCount() : 2;
-                                return "'" + s + "' (" + count + " kez görüldü)";
-                            })
-                            .collect(Collectors.joining("; "));
-
-            // Use flat map so extractFromPayload can safely parse each value
-            Map<String, String> payload = new LinkedHashMap<>();
-            payload.put("dreamText", request.text().replace("\"", "'"));
-            payload.put("recurringSymbols", recurringDesc);
-            payload.put("moonSign", moonSign);
-            payload.put("risingSign", risingSign);
-            payload.put("twelfthHousePlanets", twelfthHouseDesc);
-            payload.put("neptuneTransit", neptuneInfo);
-            payload.put("currentTransits", String.join(", ", transitSummary));
-            payload.put("locale", request.locale() != null ? request.locale() : "tr");
-
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("promptVersion", DREAM_PROMPT_VERSION);
+            payload.put("language", request.locale() != null ? request.locale() : "tr");
+            payload.put("inputQuality", inputQualityService.evaluate(request.text()));
+            payload.put("dream", dream);
+            payload.put("profileContext", profileContext);
+            payload.put("dreamHistory", history);
+            payload.put("astrologyContext", astrologyContext);
+            payload.put("extractedSymbols", extractedSymbols);
+            payload.put("outputPreferences", Map.of(
+                    "detailLevel", "premium",
+                    "maxWords", 700,
+                    "includeFollowUpQuestions", true,
+                    "includeJournalPrompt", true
+            ));
             return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to build synthesis payload", e);
+        } catch (Exception e) {
+            log.error("Failed to build structured dream analysis payload", e);
             try {
-                return objectMapper.writeValueAsString(Map.of("dreamText", request.text()));
+                return objectMapper.writeValueAsString(Map.of(
+                        "promptVersion", DREAM_PROMPT_VERSION,
+                        "language", request.locale() == null ? "tr" : request.locale(),
+                        "dream", Map.of("description", request.text())
+                ));
             } catch (JsonProcessingException ex) {
-                return "{\"dreamText\":\"" + request.text().replace("\"", "'") + "\"}";
+                throw new IllegalStateException("Dream payload could not be serialized", ex);
             }
         }
     }
@@ -451,8 +528,28 @@ public class DreamService {
                 extracted,
                 entry.getCorrelationId(),
                 entry.getInterpretationStatus(),
-                entry.getCreatedAt()
+                entry.getCreatedAt(),
+                readAnalysis(entry.getAnalysisJson()),
+                entry.getPromptVersion()
         );
+    }
+
+    private String writeJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Dream analysis could not be serialized", e);
+        }
+    }
+
+    private DreamAnalysisResult readAnalysis(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readValue(json, DreamAnalysisResult.class);
+        } catch (Exception e) {
+            log.warn("Stored dream analysis could not be read");
+            return null;
+        }
     }
 
     private String toJson(List<String> list) {

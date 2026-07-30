@@ -62,6 +62,7 @@ export function getGoogleMobileAdsModule(reason = 'runtime access'): GoogleMobil
 }
 
 export function getRewardedTestAdUnitId(): string {
-  return getGoogleMobileAdsModule('test ad unit resolution')?.TestIds.REWARDED
-    ?? FALLBACK_REWARDED_TEST_UNIT_ID;
+  // Keep unit-id resolution side-effect free. Importing the native ads package
+  // is reserved for the post-consent provider bootstrap.
+  return FALLBACK_REWARDED_TEST_UNIT_ID;
 }

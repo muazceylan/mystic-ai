@@ -89,9 +89,10 @@ public class GeminiProvider implements AiModelProvider {
     @Override
     public String generateResponse(String prompt) {
         if (apiKey == null || apiKey.isBlank()) {
+            // Local config problem, not a remote auth rejection - see AiFailureType.MISSING_CREDENTIAL.
             throw new ProviderCallException(
                     "[" + providerKey + "] Gemini API key is missing",
-                    AiFailureType.AUTH_ERROR,
+                    AiFailureType.MISSING_CREDENTIAL,
                     null,
                     null,
                     null,

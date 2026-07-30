@@ -105,20 +105,21 @@ public class MockInterpretationService {
     );
 
     private static final String DREAM_FALLBACK = """
-            Rüyanız, bilinçaltınızın derinliklerinden yükselen anlamlı sembollerle dolu. \
-            Kadim rüya tabircilerine göre, bu rüya ruhunuzun bir dönüşüm sürecinden \
-            geçtiğine işaret ediyor. Rüyanızdaki imgeler, içsel bilgeliğinizin size \
-            gönderdiği mesajlardır.
-
-            Bilinçaltınız, farkında olmadığınız duyguları ve düşünceleri rüyalar aracılığıyla \
-            yüzeye çıkarıyor. Bu rüya, hayatınızdaki önemli bir değişime hazırlanmanız \
-            gerektiğini fısıldıyor. Semboller, yeni fırsatların kapıda olduğunu ve \
-            cesaretli adımlar atmanız gerektiğini gösteriyor.
-
-            Önümüzdeki dönemde sezgilerinize daha çok güvenin. Evren, size rüyalar \
-            aracılığıyla rehberlik ediyor. Meditasyon ve günlük tutma, bu mesajları \
-            daha iyi anlamanıza yardımcı olacaktır. Ruhunuz büyüyor ve gelişiyor; \
-            bu rüya bunun en güzel kanıtıdır.""";
+            {
+              "inputQuality":{"level":"LIMITED","reason":"Model sağlayıcısına ulaşılamadığı için bağlam sınırlı değerlendirildi."},
+              "extractedElements":{"mainEvent":"","people":[],"places":[],"symbols":[],"actions":[],"emotions":[],"ending":"","uncertainties":["Ayrıntılar doğrulanamadı"]},
+              "emotionalCore":{"primaryEmotion":"","secondaryEmotion":null,"emotionalTransition":null,"confidence":0.1},
+              "essence":"Bu rüya için güvenilir ve ayrıntıya dayalı yorum şu anda tamamlanamadı.",
+              "keyDetails":[],
+              "deepInterpretation":"Rüyanda olmayan ayrıntıları eklememek için yorum kısa tutuldu. Biraz sonra yeniden deneyebilirsin.",
+              "personalConnection":null,
+              "reflectionQuestion":"Rüyada seni en çok etkileyen an hangisiydi?",
+              "journalTrackingNote":"Hatırladığın ana görüntüyü ve ona eşlik eden duyguyu not et.",
+              "astrologyNote":null,
+              "followUpQuestions":["Rüyada en yoğun hissettiğin duygu neydi?"],
+              "patternConnection":null,
+              "safety":{"containsDiagnosis":false,"containsPrediction":false,"containsUnsupportedClaims":false}
+            }""";
 
     private static final String TAROT_FALLBACK = """
             Kartlar, evrenin size gönderdiği kutsal mesajları taşıyor. Bu açılımda \

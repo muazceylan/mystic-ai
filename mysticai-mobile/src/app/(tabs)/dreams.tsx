@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
-  StyleSheet, Platform, Alert, ActivityIndicator, RefreshControl,
+  StyleSheet, Platform, Alert, ActivityIndicator, RefreshControl, Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   useModuleMonetization,
   ActionUnlockSheet,
@@ -32,9 +32,11 @@ import { Button, ErrorStateCard, SafeScreen, TabHeader, SurfaceHeaderIconButton 
 import { useTabHeaderActions } from '../../hooks/useTabHeaderActions';
 import { dreamService } from '../../services/dream.service';
 import DreamDictionary from '../../components/DreamDictionary';
-import type { DreamEntryResponse } from '../../services/dream.service';
+import { PremiumDreamAnalysis } from '../../components/dreams/PremiumDreamAnalysis';
+import type { DreamEntryResponse, DreamExpansionType } from '../../services/dream.service';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../constants/colors';
+import { trackEvent } from '../../services/analytics';
 import {
   DREAMS_TUTORIAL_TARGET_KEYS,
   SpotlightTarget,
@@ -57,6 +59,14 @@ const DREAM_INTERPRETATION_KEYS = [
   'cosmicInterpretation',
   'dreamInterpretation',
 ] as const;
+
+const DREAM_EXPANSION_ACTION_KEYS: Record<DreamExpansionType, string> = {
+  PERSON_MEANING: 'dream_expansion_person_meaning',
+  SYMBOL_MEANING: 'dream_expansion_symbol_meaning',
+  EMOTIONAL_ANALYSIS: 'dream_expansion_emotional_analysis',
+  RELATIONSHIP_ANALYSIS: 'dream_expansion_relationship_analysis',
+  COMPARE_WITH_HISTORY: 'dream_expansion_compare_with_history',
+};
 
 const DREAM_OPPORTUNITY_KEYS = [
   'opportunities',
@@ -523,6 +533,7 @@ export default function DreamsScreen() {
   const ambientTopGradient: readonly [string, string] = [colors.glowTop, isAndroid ? fadeToTransparent(colors.glowTop) : 'transparent'];
   const ambientBottomGradient: readonly [string, string] = [colors.glowBottom, isAndroid ? fadeToTransparent(colors.glowBottom) : 'transparent'];
   const { user }        = useAuthStore();
+  const router = useRouter();
   const {
     dreams, symbols, loading, submitting, transcribing, error,
     fetchDreams, fetchSymbols, submitDream, transcribeAudio,
@@ -535,6 +546,9 @@ export default function DreamsScreen() {
   const [tab, setTab]               = useState<Tab>('journal');
   const [dreamText, setDreamText]   = useState('');
   const [dreamTitle, setDreamTitle] = useState('');
+  const [emotionAfterWaking, setEmotionAfterWaking] = useState('');
+  const [useAstrology, setUseAstrology] = useState(false);
+  const [dreamMemoryEnabled, setDreamMemoryEnabled] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // ── Recording state machine ───────────────────────────────────────
@@ -562,6 +576,7 @@ export default function DreamsScreen() {
   const [showGuruModal, setShowGuruModal] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
   const [showDreamUnlockSheet, setShowDreamUnlockSheet] = useState(false);
+  const [expansionEarnType, setExpansionEarnType] = useState<DreamExpansionType | null>(null);
   const focusCountRef = useRef(0);
 
   // ── Refs ──────────────────────────────────────────────────────────
@@ -622,13 +637,18 @@ export default function DreamsScreen() {
     useCallback(() => {
       focusCountRef.current += 1;
       monetization.trackEntry();
+      trackEvent('dream_journal_opened', {
+        source: 'dreams_tab',
+        surface: 'dream_journal',
+        locale: i18n.language,
+      });
       return () => {
         if (recordingRef.current) {
           void cleanupRecording();
           setRecState('idle');
         }
       };
-    }, [monetization.trackEntry, cleanupRecording]),
+    }, [cleanupRecording, i18n.language, monetization.trackEntry]),
   );
 
   useEffect(() => {
@@ -807,6 +827,8 @@ export default function DreamsScreen() {
   const resetCompose = () => {
     setDreamText('');
     setDreamTitle('');
+    setEmotionAfterWaking('');
+    setUseAstrology(false);
     setSelectedDate(new Date());
     setRecState('idle');
     setShowDreamUnlockSheet(false);
@@ -827,12 +849,42 @@ export default function DreamsScreen() {
     if (!dreamText.trim() || submitting) return;
     try {
       const title = dreamTitle.trim() || undefined;
-      const result = await submitDream(userId, dreamText.trim(), toIso(selectedDate), title);
+      trackEvent('dream_analysis_requested', {
+        dream_length_range: dreamText.length < 40 ? 'short' : dreamText.length < 160 ? 'medium' : 'long',
+        analysis_language: i18n.language,
+        premium_status: monetization.premiumActive,
+        astrology_enabled: useAstrology,
+      });
+      const result = await submitDream(userId, dreamText.trim(), toIso(selectedDate), title, {
+        emotionAfterWaking: emotionAfterWaking.trim() || undefined,
+        useAstrology,
+        dreamMemoryEnabled,
+      });
+      trackEvent('dream_entry_created', {
+        source: 'dream_compose',
+        surface: 'dream_journal',
+        has_title: Boolean(title),
+        locale: i18n.language,
+        result: 'success',
+      });
+      trackEvent('dream_input_quality_detected', {
+        input_quality: result.analysis?.inputQuality.level ?? 'PENDING',
+        dream_length_range: dreamText.length < 40 ? 'short' : dreamText.length < 160 ? 'medium' : 'long',
+        prompt_version: result.promptVersion,
+        premium_status: monetization.premiumActive,
+      });
       resetCompose();
       setExpandedId(result.id);
       setTab('journal');
       if (result.id) pollUntilComplete(result.id);
-    } catch { Alert.alert(t('common.error'), t('dreams.saveError')); }
+    } catch {
+      trackEvent('dream_analysis_failed', {
+        dream_length_range: dreamText.length < 40 ? 'short' : dreamText.length < 160 ? 'medium' : 'long',
+        analysis_language: i18n.language,
+        premium_status: monetization.premiumActive,
+      });
+      Alert.alert(t('common.error'), t('dreams.saveError'));
+    }
   };
 
   const closeDreamUnlockSheet = () => {
@@ -1142,14 +1194,38 @@ export default function DreamsScreen() {
     const deleting = deletingId === dream.id;
     const recurring = dream.recurringSymbols ?? [];
     const { interpretation, opportunities, warnings } = parseInterpretation(dream);
-    const hasInsight = Boolean(interpretation) || opportunities.length > 0 || warnings.length > 0;
+    const hasInsight = Boolean(dream.analysis)
+      || Boolean(interpretation)
+      || opportunities.length > 0
+      || warnings.length > 0;
     const readyLabel = hasInsight ? t('dreams.cardReadyLabel') : t('dreams.cardSavedLabel');
 
     return (
       <Animated.View key={dream.id} entering={FadeInDown.delay(40).springify()}>
         <TouchableOpacity
           style={[styles.card, expanded && styles.cardActive]}
-          onPress={() => setExpandedId(expanded ? null : dream.id)}
+          onPress={() => {
+            setExpandedId(expanded ? null : dream.id);
+            if (!expanded && dream.analysis) {
+              trackEvent('dream_analysis_completed', {
+                input_quality: dream.analysis.inputQuality.level,
+                prompt_version: dream.promptVersion,
+                detected_element_count:
+                  dream.analysis.extractedElements.people.length
+                  + dream.analysis.extractedElements.places.length
+                  + dream.analysis.extractedElements.symbols.length,
+                premium_status: monetization.premiumActive,
+                analysis_language: i18n.language,
+              });
+              if (dream.analysis.followUpQuestions.length > 0) {
+                trackEvent('dream_follow_up_question_shown', {
+                  input_quality: dream.analysis.inputQuality.level,
+                  follow_up_question_count: dream.analysis.followUpQuestions.length,
+                  prompt_version: dream.promptVersion,
+                });
+              }
+            }
+          }}
           activeOpacity={0.87}
           accessibilityLabel={t('dreams.cardA11yLabel', { title: dream.title || dream.text.slice(0, 30) })}
           accessibilityRole="button"
@@ -1263,8 +1339,25 @@ export default function DreamsScreen() {
                 <Text style={styles.speakText}>{speaking ? t('dreams.stop') : t('dreams.speak')}</Text>
               </TouchableOpacity>
 
-              {/* 🌙 Yorum */}
-              {interpretation ? (
+              {dream.analysis ? (
+                <PremiumDreamAnalysis
+                  analysis={dream.analysis}
+                  isPremium={monetization.premiumActive}
+                  dreamId={dream.id}
+                  onShowPurchase={() => setShowPurchaseSheet(true)}
+                  onShowEarn={(expansionType) => {
+                    if (monetization.adsEnabled) {
+                      setExpansionEarnType(expansionType);
+                    } else {
+                      Alert.alert(
+                        t('monetization.rewardUnavailableTitle'),
+                        t('monetization.rewardUnavailableBody'),
+                      );
+                    }
+                  }}
+                  onShowPremium={() => router.push('/premium')}
+                />
+              ) : interpretation ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionHead}>🌙 {t('dreams.cosmic')}</Text>
                   <Text style={styles.interpText}>{interpretation}</Text>
@@ -1272,7 +1365,7 @@ export default function DreamsScreen() {
               ) : null}
 
               {/* ✨ Fırsatlar */}
-              {opportunities.length > 0 && (
+              {!dream.analysis && opportunities.length > 0 && (
                 <View style={[styles.section, styles.sectionGreen]}>
                   <Text style={[styles.sectionHead, {color: colors.green}]}>✨ {t('dreams.opportunitiesSection')}</Text>
                   {opportunities.map((op, i) => (
@@ -1285,7 +1378,7 @@ export default function DreamsScreen() {
               )}
 
               {/* ⚠️ Uyarılar */}
-              {warnings.length > 0 && (
+              {!dream.analysis && warnings.length > 0 && (
                 <View style={[styles.section, styles.sectionOrange]}>
                   <Text style={[styles.sectionHead, {color: colors.orange}]}>⚠️ {t('dreams.warningsSection')}</Text>
                   {warnings.map((w, i) => (
@@ -1413,21 +1506,59 @@ export default function DreamsScreen() {
 
       {/* Text area */}
       {(recState === 'idle' || recState === 'done') && (
-        <View style={styles.textBox}>
-          <TextInput
-            style={styles.textInput}
-            placeholder={recState === 'done'
-              ? t('dreams.transcriptionDonePlaceholder')
-              : t('dreams.textPlaceholder')}
-            placeholderTextColor={colors.dim}
-            value={dreamText}
-            onChangeText={setDreamText}
-            multiline
-            maxLength={2000}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCount}>{dreamText.length}/2000</Text>
-        </View>
+        <>
+          <View style={styles.textBox}>
+            <TextInput
+              style={styles.textInput}
+              placeholder={recState === 'done'
+                ? t('dreams.transcriptionDonePlaceholder')
+                : t('dreams.textPlaceholder')}
+              placeholderTextColor={colors.dim}
+              value={dreamText}
+              onChangeText={setDreamText}
+              multiline
+              maxLength={2000}
+              textAlignVertical="top"
+            />
+            <Text style={styles.charCount}>{dreamText.length}/2000</Text>
+          </View>
+
+          <View style={styles.analysisContextCard}>
+            <Text style={styles.analysisContextTitle}>{t('dreams.analysis.contextTitle')}</Text>
+            <TextInput
+              style={styles.emotionInput}
+              placeholder={t('dreams.analysis.emotionPlaceholder')}
+              placeholderTextColor={colors.dim}
+              value={emotionAfterWaking}
+              onChangeText={setEmotionAfterWaking}
+              maxLength={80}
+            />
+            <View style={styles.preferenceRow}>
+              <View style={styles.preferenceCopy}>
+                <Text style={styles.preferenceTitle}>{t('dreams.analysis.memoryTitle')}</Text>
+                <Text style={styles.preferenceBody}>{t('dreams.analysis.memoryBody')}</Text>
+              </View>
+              <Switch
+                value={dreamMemoryEnabled}
+                onValueChange={setDreamMemoryEnabled}
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={dreamMemoryEnabled ? colors.primary : colors.surface}
+              />
+            </View>
+            <View style={styles.preferenceRow}>
+              <View style={styles.preferenceCopy}>
+                <Text style={styles.preferenceTitle}>{t('dreams.analysis.astrologyTitle')}</Text>
+                <Text style={styles.preferenceBody}>{t('dreams.analysis.astrologyBody')}</Text>
+              </View>
+              <Switch
+                value={useAstrology}
+                onValueChange={setUseAstrology}
+                trackColor={{ false: colors.border, true: colors.goldLight }}
+                thumbColor={useAstrology ? colors.goldDark : colors.surface}
+              />
+            </View>
+          </View>
+        </>
       )}
 
       {/* Unlock actions */}
@@ -1824,6 +1955,17 @@ export default function DreamsScreen() {
           />
         </View>
       )}
+
+      {expansionEarnType && monetization.adsEnabled ? (
+        <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
+          <AdOfferCard
+            moduleKey="dreams"
+            actionKey={DREAM_EXPANSION_ACTION_KEYS[expansionEarnType]}
+            onComplete={() => setExpansionEarnType(null)}
+            onDismiss={() => setExpansionEarnType(null)}
+          />
+        </View>
+      ) : null}
 
       <GuruUnlockModal
         visible={showGuruModal}
@@ -2323,6 +2465,40 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
       shadowRadius: 22,
       elevation: 3,
     },
+    analysisContextCard: {
+      gap: 12,
+      borderRadius: 20,
+      padding: 16,
+      backgroundColor: panelBg,
+      borderWidth: 1,
+      borderColor: panelBorder,
+    },
+    analysisContextTitle: {
+      color: C.textDark,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    emotionInput: {
+      minHeight: 46,
+      borderRadius: 14,
+      paddingHorizontal: 13,
+      color: C.text,
+      backgroundColor: insetBg,
+      borderWidth: 1,
+      borderColor: C.borderLight,
+      fontSize: 14,
+    },
+    preferenceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingTop: 11,
+      borderTopWidth: 1,
+      borderTopColor: C.borderLight,
+    },
+    preferenceCopy: { flex: 1 },
+    preferenceTitle: { color: C.textDark, fontSize: 13, fontWeight: '800' },
+    preferenceBody: { color: C.subtext, fontSize: 11, lineHeight: 16, marginTop: 3 },
     textInput: { color: C.text, fontSize: 15, lineHeight: 24, minHeight: 108, maxHeight: 220 },
     charCount: { textAlign: 'right', color: C.dim, fontSize: 11, marginTop: 8, fontWeight: '600' },
 

@@ -80,8 +80,14 @@ public class AuthService {
     private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile(STRONG_PASSWORD_REGEX);
     private static final int OTP_TTL_MINUTES = 10;
     private static final String APPLE_PROVIDER = "apple";
-    private static final String APPLE_PRIVATE_RELAY_DOMAIN = "@privaterelay.appleid.com";
-    private static final String APPLE_ACCOUNT_NOT_LINKED_CODE = "APPLE_ACCOUNT_NOT_LINKED";
+    private static final Set<String> APPLE_PRIVATE_RELAY_DOMAINS = Set.of(
+            "privaterelay.appleid.com",
+            "private.icloud.com",
+            "icloud.com"
+    );
+    private static final String INTERNAL_EMAIL_TLD = ".invalid";
+    private static final String LEGACY_INTERNAL_EMAIL_TLD = ".social";
+    private static final int INTERNAL_IDENTIFIER_HASH_LENGTH = 32;
 
     @Value("${auth.mail.from:no-reply@mysticai.local}")
     private String fromAddress;
@@ -213,8 +219,10 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         UserType userType = user.getUserType() != null ? user.getUserType() : UserType.REGISTERED;
-        String newAccessToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail(), userType);
-        String newRefreshToken = jwtTokenProvider.generateRefreshTokenForUser(user.getId(), user.getUsername(), user.getEmail(), userType);
+        String publicEmail = publicEmailOrNull(user);
+        String publicUsername = publicUsername(user);
+        String newAccessToken = jwtTokenProvider.generateToken(user.getId(), publicUsername, publicEmail, userType);
+        String newRefreshToken = jwtTokenProvider.generateRefreshTokenForUser(user.getId(), publicUsername, publicEmail, userType);
 
         return new LoginResponse(newAccessToken, newRefreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(user));
     }
@@ -235,6 +243,9 @@ public class AuthService {
         }
 
         User user = userOpt.get();
+        if (isInternalEmail(user)) {
+            return new OkResponse(true);
+        }
         if (user.getAccountStatus() == AccountStatus.ACTIVE) {
             return new OkResponse(true);
         }
@@ -269,11 +280,15 @@ public class AuthService {
         String normalizedEmail = normalizeIdentifier(email);
         Optional<User> userOpt = userRepository.findByEmailIgnoreCase(normalizedEmail);
         if (userOpt.isEmpty()) {
-            log.info("Password reset skipped: user not found. email={}", normalizedEmail);
+            log.info("Password reset skipped: user not found");
             return new OkResponse(true);
         }
 
         User user = userOpt.get();
+        if (isInternalEmail(user)) {
+            log.info("Password reset skipped: internal email. userId={}", user.getId());
+            return new OkResponse(true);
+        }
         if (user.getAccountStatus() != AccountStatus.ACTIVE) {
             log.info("Password reset skipped: user not active. userId={}, status={}", user.getId(), user.getAccountStatus());
             return new OkResponse(true);
@@ -300,7 +315,7 @@ public class AuthService {
         }
 
         issuePasswordResetToken(user);
-        log.info("Password reset token issued. userId={}, email={}", user.getId(), user.getEmail());
+        log.info("Password reset token issued. userId={}", user.getId());
         return new OkResponse(true);
     }
 
@@ -409,8 +424,15 @@ public class AuthService {
         }
 
         String provider = request.provider().toLowerCase(Locale.ROOT);
+        String socialFirstName = APPLE_PROVIDER.equals(provider)
+                ? sanitizeSocialName(request.firstName())
+                : sanitizeSocialName(userInfo.firstName());
+        String socialLastName = APPLE_PROVIDER.equals(provider)
+                ? sanitizeSocialName(request.lastName())
+                : sanitizeSocialName(userInfo.lastName());
         LocalDateTime now = LocalDateTime.now(clock);
         Optional<User> verifiedLinkTarget = authenticateSocialLinkTarget(request);
+        String socialEmail = trustedSocialEmail(provider, userInfo);
 
         Optional<User> existingUser = userRepository.findByProviderAndSocialId(provider, userInfo.socialId());
         if (existingUser.isPresent()) {
@@ -431,10 +453,7 @@ public class AuthService {
                 }
                 return buildSocialLoginResponse(linkedUser, false);
             }
-            if (shouldRequireAppleRelayLink(provider, user, verifiedLinkTarget)) {
-                log.warn("Apple social login rejected because existing private relay identity is not linked to a verified local account");
-                throw new IllegalArgumentException(APPLE_ACCOUNT_NOT_LINKED_CODE);
-            }
+            enrichSocialUser(user, provider, socialEmail, socialFirstName, socialLastName);
             ensureSocialUserHasPassword(user, provider, userInfo.socialId());
             ensureSocialUserIsActive(user, now);
             userRepository.save(user);
@@ -442,13 +461,13 @@ public class AuthService {
             if (!onboardingRequired) {
                 natalChartProvisioningService.ensureNatalChartIfEligible(user);
             }
-            return buildSocialLoginResponse(user, onboardingRequired);
+            return buildSocialLoginResponse(user, false);
         }
 
-        String socialEmail = trimToNull(userInfo.email());
         if (verifiedLinkTarget.isPresent() && APPLE_PROVIDER.equals(provider)
-                && (socialEmail == null || isApplePrivateRelayEmail(socialEmail))) {
+                && (socialEmail == null || isApplePrivateEmail(userInfo))) {
             User linkedUser = attachSocialIdentity(verifiedLinkTarget.get(), provider, userInfo.socialId(), now);
+            enrichSocialUser(linkedUser, provider, socialEmail, socialFirstName, socialLastName);
             boolean onboardingRequired = requiresOnboarding(linkedUser);
             if (!onboardingRequired) {
                 natalChartProvisioningService.ensureNatalChartIfEligible(linkedUser);
@@ -463,27 +482,32 @@ public class AuthService {
                     throw new IllegalArgumentException("SOCIAL_EMAIL_ALREADY_REGISTERED");
                 }
                 User user = emailUser.get();
-                attachSocialIdentity(user, provider, userInfo.socialId(), now);
-                boolean onboardingRequired = requiresOnboarding(user);
-                if (!onboardingRequired) {
-                    natalChartProvisioningService.ensureNatalChartIfEligible(user);
+                if (canAutoAttachSocialIdentity(user, provider, socialEmail)) {
+                    attachSocialIdentity(user, provider, userInfo.socialId(), now);
+                    enrichSocialUser(user, provider, socialEmail, socialFirstName, socialLastName);
+                    boolean onboardingRequired = requiresOnboarding(user);
+                    if (!onboardingRequired) {
+                        natalChartProvisioningService.ensureNatalChartIfEligible(user);
+                    }
+                    return buildSocialLoginResponse(user, false);
                 }
-                return buildSocialLoginResponse(user, onboardingRequired);
-            }
-        }
 
-        if (APPLE_PROVIDER.equals(provider) && (socialEmail == null || isApplePrivateRelayEmail(socialEmail))) {
-            log.warn("Apple social login rejected because no linked account was found for private relay/no-email token");
-            throw new IllegalArgumentException(APPLE_ACCOUNT_NOT_LINKED_CODE);
+                // This schema stores one social provider per user. Preserve the existing
+                // provider and authenticate Apple as a separate identity until an
+                // explicit account-merge flow is available.
+                socialEmail = null;
+            }
         }
 
         String email = socialEmail != null
                 ? normalizeIdentifier(socialEmail)
-                : (userInfo.socialId() + "@" + provider + ".social").toLowerCase(Locale.ROOT);
+                : buildInternalSocialEmail(provider, userInfo.socialId());
 
-        String username = email;
+        String username = socialEmail != null
+                ? email
+                : buildInternalSocialUsername(provider, userInfo.socialId());
         if (userRepository.existsByUsernameIgnoreCase(username)) {
-            username = provider + "_" + userInfo.socialId();
+            username = buildInternalSocialUsername(provider, userInfo.socialId());
         }
 
         User newUser = User.builder()
@@ -492,14 +516,14 @@ public class AuthService {
                 .password(buildSocialPlaceholderPassword(provider, userInfo.socialId()))
                 .provider(provider)
                 .socialId(userInfo.socialId())
-                .firstName(userInfo.firstName())
-                .lastName(userInfo.lastName())
-                .name(buildName(userInfo.firstName(), userInfo.lastName()))
+                .firstName(socialFirstName)
+                .lastName(socialLastName)
+                .name(buildName(socialFirstName, socialLastName))
                 .roles(Set.of("USER"))
                 .enabled(true)
                 .hasLocalPassword(false)
                 .accountStatus(AccountStatus.ACTIVE)
-                .emailVerifiedAt(now)
+                .emailVerifiedAt(socialEmail != null ? now : null)
                 .registrationPlatform(normalizeClientPlatform(clientPlatform))
                 .build();
 
@@ -712,6 +736,12 @@ public class AuthService {
             case "apple" -> userInfo = socialTokenVerifier.verifyAppleToken(request.idToken());
             default -> throw new IllegalArgumentException("Unsupported provider: " + request.provider());
         }
+        String socialFirstName = APPLE_PROVIDER.equals(provider)
+                ? sanitizeSocialName(request.firstName())
+                : sanitizeSocialName(userInfo.firstName());
+        String socialLastName = APPLE_PROVIDER.equals(provider)
+                ? sanitizeSocialName(request.lastName())
+                : sanitizeSocialName(userInfo.lastName());
 
         // Conflict check: social account already used by another user
         Optional<User> existingByProvider = userRepository.findByProviderAndSocialId(provider, userInfo.socialId());
@@ -719,7 +749,7 @@ public class AuthService {
             throw new IllegalArgumentException("SOCIAL_ACCOUNT_ALREADY_LINKED");
         }
 
-        String normalizedEmail = userInfo.email() != null ? normalizeIdentifier(userInfo.email()) : null;
+        String normalizedEmail = trustedSocialEmail(provider, userInfo);
 
         // Conflict check: email already used by another user
         if (normalizedEmail != null) {
@@ -736,9 +766,9 @@ public class AuthService {
             guestUser.setEmail(normalizedEmail);
             guestUser.setUsername(normalizedEmail);
         } else {
-            String fallbackEmail = provider + "_" + userInfo.socialId() + "@" + provider + ".social";
+            String fallbackEmail = buildInternalSocialEmail(provider, userInfo.socialId());
             guestUser.setEmail(fallbackEmail);
-            guestUser.setUsername(fallbackEmail);
+            guestUser.setUsername(buildInternalSocialUsername(provider, userInfo.socialId()));
         }
         guestUser.setProvider(provider);
         guestUser.setSocialId(userInfo.socialId());
@@ -748,15 +778,15 @@ public class AuthService {
         guestUser.setIsAccountLinked(true);
         guestUser.setHasLocalPassword(false);
         guestUser.setAccountStatus(AccountStatus.ACTIVE);
-        if (guestUser.getEmailVerifiedAt() == null) {
+        if (normalizedEmail != null && guestUser.getEmailVerifiedAt() == null) {
             guestUser.setEmailVerifiedAt(now);
         }
         // Fill name only if not already set by user
-        if (userInfo.firstName() != null && isBlank(guestUser.getFirstName())) {
-            guestUser.setFirstName(userInfo.firstName());
+        if (socialFirstName != null && isBlank(guestUser.getFirstName())) {
+            guestUser.setFirstName(socialFirstName);
         }
-        if (userInfo.lastName() != null && isBlank(guestUser.getLastName())) {
-            guestUser.setLastName(userInfo.lastName());
+        if (socialLastName != null && isBlank(guestUser.getLastName())) {
+            guestUser.setLastName(socialLastName);
         }
         guestUser.setName(buildName(guestUser.getFirstName(), guestUser.getLastName()));
 
@@ -764,8 +794,10 @@ public class AuthService {
         signupBonusSyncService.scheduleSignupBonus(saved, "GUEST_LINK_" + provider.toUpperCase(Locale.ROOT));
         log.info("Guest account linked with social: userId={}, provider={}", saved.getId(), provider);
 
-        String accessToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
-        String refreshToken = jwtTokenProvider.generateToken(saved.getId(), saved.getUsername(), saved.getEmail(), UserType.REGISTERED);
+        String publicEmail = publicEmailOrNull(saved);
+        String publicUsername = publicUsername(saved);
+        String accessToken = jwtTokenProvider.generateToken(saved.getId(), publicUsername, publicEmail, UserType.REGISTERED);
+        String refreshToken = jwtTokenProvider.generateToken(saved.getId(), publicUsername, publicEmail, UserType.REGISTERED);
         return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(saved), false);
     }
 
@@ -928,6 +960,9 @@ public class AuthService {
     }
 
     private void sendOtpEmail(String toEmail, String code, String locale) {
+        if (isInternalEmailAddress(toEmail)) {
+            throw new IllegalArgumentException("Internal email addresses cannot receive mail");
+        }
         boolean isEn = "en".equalsIgnoreCase(locale);
         String subject = isEn ? "Astro Guru — Verification Code" : "Astro Guru — Doğrulama Kodu";
         String heading = isEn ? "Your Verification Code" : "Doğrulama Kodun";
@@ -957,7 +992,7 @@ public class AuthService {
                 + "</div>", true);
             mailSender.send(mimeMessage);
         } catch (Exception e) {
-            log.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage());
+            log.error("Failed to send OTP email: {}", e.getMessage());
             throw new IllegalStateException("EMAIL_SEND_FAILED");
         }
     }
@@ -971,8 +1006,10 @@ public class AuthService {
 
     private LoginResponse buildSocialLoginResponse(User user, boolean isNewUser) {
         UserType userType = user.getUserType() != null ? user.getUserType() : UserType.REGISTERED;
-        String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail(), userType);
-        String refreshToken = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getEmail(), userType);
+        String publicEmail = publicEmailOrNull(user);
+        String publicUsername = publicUsername(user);
+        String accessToken = jwtTokenProvider.generateToken(user.getId(), publicUsername, publicEmail, userType);
+        String refreshToken = jwtTokenProvider.generateToken(user.getId(), publicUsername, publicEmail, userType);
         return new LoginResponse(accessToken, refreshToken, jwtTokenProvider.getJwtExpiration(), toUserDTO(user), isNewUser);
     }
 
@@ -1002,8 +1039,8 @@ public class AuthService {
     private void ensureSocialUserIsActive(User user, LocalDateTime now) {
         if (user.getAccountStatus() != AccountStatus.ACTIVE) {
             user.setAccountStatus(AccountStatus.ACTIVE);
-            user.setEmailVerifiedAt(now);
-        } else if (user.getEmailVerifiedAt() == null) {
+        }
+        if (user.getEmailVerifiedAt() == null && !isInternalEmail(user)) {
             user.setEmailVerifiedAt(now);
         }
     }
@@ -1047,18 +1084,28 @@ public class AuthService {
 
     private boolean canMoveSocialIdentity(String provider, User existingUser) {
         return APPLE_PROVIDER.equals(provider)
-                && isApplePrivateRelayEmail(existingUser.getEmail())
+                && isAppleRelayDomainEmail(existingUser.getEmail())
                 && !Boolean.TRUE.equals(existingUser.getHasLocalPassword());
     }
 
-    private boolean shouldRequireAppleRelayLink(String provider, User existingUser, Optional<User> verifiedLinkTarget) {
-        return APPLE_PROVIDER.equals(provider)
-                && verifiedLinkTarget.isEmpty()
-                && isApplePrivateRelayEmail(existingUser.getEmail())
-                && !Boolean.TRUE.equals(existingUser.getHasLocalPassword());
+    private boolean canAutoAttachSocialIdentity(User user, String provider, String verifiedEmail) {
+        boolean providerCanBeAttached =
+                isBlank(user.getProvider()) || provider.equalsIgnoreCase(user.getProvider());
+        if (!providerCanBeAttached) {
+            return false;
+        }
+        if (!APPLE_PROVIDER.equals(provider)) {
+            return true;
+        }
+        return user.getEmailVerifiedAt() != null
+                && verifiedEmail != null
+                && normalizeIdentifier(user.getEmail()).equals(normalizeIdentifier(verifiedEmail));
     }
 
     private void issueVerificationToken(User user) {
+        if (isInternalEmail(user)) {
+            return;
+        }
         LocalDateTime now = LocalDateTime.now(clock);
 
         verificationTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
@@ -1079,6 +1126,9 @@ public class AuthService {
     }
 
     private void sendVerificationOtpEmail(String toEmail, String code, String locale) {
+        if (isInternalEmailAddress(toEmail)) {
+            throw new IllegalArgumentException("Internal email addresses cannot receive mail");
+        }
         boolean isEn = "en".equalsIgnoreCase(locale);
         String subject = isEn ? "Astro Guru — Email Verification Code" : "Astro Guru — E-posta Doğrulama Kodu";
         String heading = isEn ? "Your Email Verification Code" : "E-posta Doğrulama Kodun";
@@ -1108,12 +1158,15 @@ public class AuthService {
                 + "</div>", true);
             mailSender.send(mimeMessage);
         } catch (Exception e) {
-            log.error("Failed to send verification OTP email to {}: {}", toEmail, e.getMessage());
+            log.error("Failed to send verification OTP email: {}", e.getMessage());
             throw new IllegalStateException("EMAIL_SEND_FAILED");
         }
     }
 
     private void issuePasswordResetToken(User user) {
+        if (isInternalEmail(user)) {
+            return;
+        }
         LocalDateTime now = LocalDateTime.now(clock);
         passwordResetTokenRepository.revokeActiveTokensByUserId(user.getId(), now);
 
@@ -1180,8 +1233,122 @@ public class AuthService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private boolean isApplePrivateRelayEmail(String email) {
-        return normalizeIdentifier(email).endsWith(APPLE_PRIVATE_RELAY_DOMAIN);
+    boolean isApplePrivateEmail(SocialUserInfo userInfo) {
+        if (userInfo.privateEmail() != null) {
+            return userInfo.privateEmail();
+        }
+        return isAppleRelayDomainEmail(userInfo.email());
+    }
+
+    private boolean isAppleRelayDomainEmail(String email) {
+        String normalizedEmail = normalizeIdentifier(email);
+        int separatorIndex = normalizedEmail.lastIndexOf('@');
+        if (separatorIndex < 0 || separatorIndex == normalizedEmail.length() - 1) {
+            return false;
+        }
+        return APPLE_PRIVATE_RELAY_DOMAINS.contains(normalizedEmail.substring(separatorIndex + 1));
+    }
+
+    private String trustedSocialEmail(String provider, SocialUserInfo userInfo) {
+        String email = trimToNull(userInfo.email());
+        if (email == null) {
+            return null;
+        }
+        if (APPLE_PROVIDER.equals(provider) && !userInfo.emailVerified()) {
+            return null;
+        }
+        return normalizeIdentifier(email);
+    }
+
+    private void enrichSocialUser(
+            User user,
+            String provider,
+            String verifiedEmail,
+            String firstName,
+            String lastName
+    ) {
+        if (verifiedEmail != null && isInternalSocialEmail(user.getEmail(), provider)) {
+            Optional<User> emailOwner = userRepository.findByEmailIgnoreCase(verifiedEmail);
+            if (emailOwner.isEmpty() || emailOwner.get().getId().equals(user.getId())) {
+                user.setEmail(verifiedEmail);
+            }
+        }
+        if (firstName != null && isBlank(user.getFirstName())) {
+            user.setFirstName(firstName);
+        }
+        if (lastName != null && isBlank(user.getLastName())) {
+            user.setLastName(lastName);
+        }
+        if (isBlank(user.getName())) {
+            user.setName(buildName(user.getFirstName(), user.getLastName()));
+        }
+    }
+
+    private boolean isInternalSocialEmail(String email, String provider) {
+        String normalizedEmail = normalizeIdentifier(email);
+        return normalizedEmail.endsWith("@" + provider + INTERNAL_EMAIL_TLD)
+                || normalizedEmail.endsWith("@" + provider + LEGACY_INTERNAL_EMAIL_TLD);
+    }
+
+    private boolean isInternalEmail(User user) {
+        return user != null
+                && user.getProvider() != null
+                && isInternalSocialEmail(user.getEmail(), user.getProvider());
+    }
+
+    private boolean isInternalEmailAddress(String email) {
+        String normalizedEmail = normalizeIdentifier(email);
+        return normalizedEmail.endsWith(INTERNAL_EMAIL_TLD)
+                || normalizedEmail.endsWith("@apple" + LEGACY_INTERNAL_EMAIL_TLD)
+                || normalizedEmail.endsWith("@google" + LEGACY_INTERNAL_EMAIL_TLD);
+    }
+
+    private String publicEmailOrNull(User user) {
+        return isInternalEmail(user) ? null : user.getEmail();
+    }
+
+    private String publicUsername(User user) {
+        if (!isInternalEmail(user)) {
+            return user.getUsername();
+        }
+        String stableIdentifier = !isBlank(user.getSocialId())
+                ? user.getSocialId()
+                : String.valueOf(user.getId());
+        return buildInternalSocialUsername(user.getProvider(), stableIdentifier);
+    }
+
+    private String buildInternalSocialEmail(String provider, String socialId) {
+        return buildInternalSocialUsername(provider, socialId) + "@" + provider + INTERNAL_EMAIL_TLD;
+    }
+
+    private String buildInternalSocialUsername(String provider, String socialId) {
+        return provider + "_" + stableSocialIdentifierHash(provider, socialId);
+    }
+
+    private String stableSocialIdentifierHash(String provider, String socialId) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(
+                    (provider + ":" + socialId).getBytes(StandardCharsets.UTF_8)
+            );
+            return HexFormat.of()
+                    .formatHex(hashed)
+                    .substring(0, INTERNAL_IDENTIFIER_HASH_LENGTH);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to build internal social identifier", ex);
+        }
+    }
+
+    private String sanitizeSocialName(String value) {
+        String sanitized = trimToNull(value);
+        if (sanitized == null) {
+            return null;
+        }
+        sanitized = sanitized.replaceAll("\\p{Cntrl}", "").trim();
+        if (sanitized.isEmpty()) {
+            return null;
+        }
+        return sanitized.substring(0, Math.min(sanitized.length(), 50));
     }
 
     private String buildName(String firstName, String lastName) {
@@ -1288,8 +1455,8 @@ public class AuthService {
         String avatarUrl = buildAvatarUrl(user);
         return UserDTO.builder()
                 .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
+                .username(publicUsername(user))
+                .email(publicEmailOrNull(user))
                 .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().name() : null)
                 .emailVerifiedAt(user.getEmailVerifiedAt())
                 .firstName(user.getFirstName())

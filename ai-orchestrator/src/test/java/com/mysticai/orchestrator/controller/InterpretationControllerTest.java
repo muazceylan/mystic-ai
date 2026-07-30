@@ -2,11 +2,13 @@ package com.mysticai.orchestrator.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.orchestrator.service.MysticalAiService;
+import com.mysticai.orchestrator.dto.DreamExpansionRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +26,9 @@ class InterpretationControllerTest {
     @BeforeEach
     void setUp() {
         mysticalAiService = new StubMysticalAiService();
-        mockMvc = MockMvcBuilders.standaloneSetup(new InterpretationController(mysticalAiService)).build();
+        InterpretationController controller = new InterpretationController(mysticalAiService);
+        ReflectionTestUtils.setField(controller, "internalGatewayKey", "test-internal-key");
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
@@ -88,11 +92,49 @@ class InterpretationControllerTest {
         assertEquals("tr", mysticalAiService.lastLocale);
     }
 
+    @Test
+    void dreamExpansionRejectsRequestsWithoutInternalServiceKey() throws Exception {
+        mockMvc.perform(post("/api/ai/dream/expand")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "expansionType": "EMOTIONAL_ANALYSIS",
+                                  "dreamText": "I walked beside the sea."
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void dreamExpansionReturnsOnlyRealStructuredAiResult() throws Exception {
+        mockMvc.perform(post("/api/ai/dream/expand")
+                        .header("X-Internal-Service-Key", "test-internal-key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "expansionType": "EMOTIONAL_ANALYSIS",
+                                  "dreamText": "I walked beside the sea.",
+                                  "locale": "en"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                          "title": "Emotional layer",
+                          "summary": "A grounded summary of the supplied dream.",
+                          "insights": ["One", "Two"],
+                          "reflectionPrompt": "What stayed with you?"
+                        }
+                        """));
+        assertTrue(mysticalAiService.dreamExpansionCalled);
+    }
+
     private static final class StubMysticalAiService extends MysticalAiService {
 
         private boolean simpleCalled;
         private boolean fusionCalled;
         private boolean editorialCalled;
+        private boolean dreamExpansionCalled;
         private String lastSystemPrompt;
         private String lastUserPrompt;
         private String lastSourceText;
@@ -128,6 +170,19 @@ class InterpretationControllerTest {
             lastPeriod = period;
             lastLocale = locale;
             return "Editoryal Türkçe metin";
+        }
+
+        @Override
+        public String generateDreamExpansion(DreamExpansionRequest request) {
+            dreamExpansionCalled = true;
+            return """
+                    {
+                      "title": "Emotional layer",
+                      "summary": "A grounded summary of the supplied dream.",
+                      "insights": ["One", "Two"],
+                      "reflectionPrompt": "What stayed with you?"
+                    }
+                    """;
         }
     }
 }

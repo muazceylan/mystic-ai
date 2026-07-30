@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -109,7 +110,8 @@ export function ActionUnlockSheet({
   closeLabel,
 }: ActionUnlockSheetProps) {
   const { t, i18n } = useTranslation();
-  const styles = useMemo(() => createStyles(), []);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(width < 370), [width]);
   const monetization = useModuleMonetization(moduleKey);
   const unlockState = monetization.getActionUnlockState(actionKey);
   const action = unlockState.action;
@@ -401,6 +403,8 @@ export function ActionUnlockSheet({
       sheetStyle={styles.sheet}
       contentStyle={styles.sheetContent}
       dragHandleStyle={styles.dragHandle}
+      blurBackdrop
+      showDragHandle={false}
     >
       <LinearGradient
         colors={['#17052f', '#26054b', '#120321']}
@@ -429,13 +433,27 @@ export function ActionUnlockSheet({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <Text
-            style={styles.title}
-            maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
-            numberOfLines={2}
-          >
-            {effectiveTitle}
-          </Text>
+          <View style={styles.headerRow}>
+            <Text
+              style={styles.title}
+              maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
+            >
+              {effectiveTitle}
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={isBusy}
+              style={[styles.headerCloseButton, isBusy && styles.disabled]}
+              accessibilityRole="button"
+              accessibilityLabel={closeLabel ?? t('common.close')}
+              activeOpacity={0.78}
+            >
+              <Ionicons name="close" size={30} color="#C98BFF" />
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.balanceRow}>
             <Image
@@ -444,12 +462,57 @@ export function ActionUnlockSheet({
               resizeMode="contain"
               accessibilityIgnoresInvertColors
             />
+            <View style={styles.balanceCopy}>
+              <Text
+                style={styles.balanceLabel}
+                maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              >
+                {t('monetization.currentBalance')}
+              </Text>
+              <View style={styles.balanceValueRow}>
+                <Text
+                  style={styles.balanceText}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  {userGuruBalance}
+                </Text>
+                <Text
+                  style={styles.balanceUnit}
+                  maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+                >
+                  Guru
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.infoPanel}>
+            <View style={styles.infoIcon}>
+              <Ionicons name="information" size={24} color="#B05CFF" />
+            </View>
             <Text
-              style={styles.balanceText}
+              style={styles.unlockChoiceHint}
               maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.86}
             >
-              {userGuruBalance}
+              {t('monetization.unlockChoiceHint', { cost: tokenRequirement })}
             </Text>
+            <Ionicons
+              name="sparkles"
+              size={15}
+              color="#F0C5FF"
+              pointerEvents="none"
+              style={styles.infoSparkleTop}
+            />
+            <Ionicons
+              name="sparkles"
+              size={15}
+              color="#F0C5FF"
+              pointerEvents="none"
+              style={styles.infoSparkleBottom}
+            />
           </View>
 
           {optionsLoading ? (
@@ -486,8 +549,35 @@ export function ActionUnlockSheet({
                         accessibilityIgnoresInvertColors
                       />
                     </View>
-                    <View style={styles.cardNumberSlot}>
-                      <Text style={styles.cardNumber}>{tokenRequirement}</Text>
+                    <View style={styles.cardDetails}>
+                      <View style={[styles.cardBadge, styles.instantBadge]}>
+                        <Ionicons name="flash" size={15} color="#FFD84D" />
+                        <Text style={[styles.cardBadgeText, styles.instantBadgeText]}>
+                          {t('monetization.instantBadge')}
+                        </Text>
+                      </View>
+                      <Text
+                        style={styles.cardTitle}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.78}
+                      >
+                        {t('monetization.guruCostTitle', { cost: tokenRequirement })}
+                      </Text>
+                      <Text style={styles.cardSubtitle} numberOfLines={1}>
+                        {t('monetization.instantContinue')}
+                      </Text>
+                      <View style={styles.cardMetaRow}>
+                        <Ionicons name="pricetag-outline" size={17} color="#B875FF" />
+                        <Text
+                          style={styles.cardMetaText}
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.84}
+                        >
+                          {t('monetization.guruSpendMeta', { cost: tokenRequirement })}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 )}
@@ -513,8 +603,35 @@ export function ActionUnlockSheet({
                         accessibilityIgnoresInvertColors
                       />
                     </View>
-                    <View style={styles.cardNumberSlot}>
-                      <Text style={styles.cardNumber}>{rewardedAdViewsRequired}</Text>
+                    <View style={styles.cardDetails}>
+                      <View style={[styles.cardBadge, styles.freeBadge]}>
+                        <Ionicons name="gift-outline" size={15} color="#2EE8A4" />
+                        <Text style={[styles.cardBadgeText, styles.freeBadgeText]}>
+                          {t('monetization.freeBadge')}
+                        </Text>
+                      </View>
+                      <Text
+                        style={styles.cardTitle}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.72}
+                      >
+                        {t('monetization.videoTitle')}
+                      </Text>
+                      <Text style={styles.cardSubtitle} numberOfLines={1}>
+                        {t('monetization.freeContinue')}
+                      </Text>
+                      <View style={styles.cardMetaRow}>
+                        <Ionicons name="time-outline" size={17} color="#B875FF" />
+                        <Text
+                          style={styles.cardMetaText}
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.84}
+                        >
+                          {t('monetization.shortVideoAccess')}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 )}
@@ -544,6 +661,12 @@ export function ActionUnlockSheet({
               )}
             />
           ) : null}
+
+          <View style={styles.dividerRow} pointerEvents="none">
+            <View style={styles.dividerLine} />
+            <Ionicons name="sparkles" size={22} color="#A94CFF" />
+            <View style={styles.dividerLine} />
+          </View>
 
           <TouchableOpacity
             onPress={onClose}
@@ -631,29 +754,30 @@ function PremiumMessage({
   );
 }
 
-function createStyles() {
+function createStyles(isCompact: boolean) {
   return StyleSheet.create({
     sheet: {
       backgroundColor: 'transparent',
       overflow: 'hidden',
-      borderTopLeftRadius: 40,
-      borderTopRightRadius: 40,
+      borderRadius: 28,
+      marginHorizontal: isCompact ? 8 : 12,
+      marginBottom: isCompact ? 8 : 12,
+      height: '94%',
+      maxHeight: '96%',
+      paddingBottom: 0,
     },
     sheetContent: {
       paddingHorizontal: 0,
     },
     dragHandle: {
-      backgroundColor: '#7D39D6',
-      width: 54,
-      height: 6,
-      borderRadius: 999,
+      width: 0,
+      height: 0,
       marginBottom: 0,
     },
     gradient: {
-      borderTopLeftRadius: 40,
-      borderTopRightRadius: 40,
-      borderWidth: 1,
-      borderColor: 'rgba(179, 83, 255, 0.46)',
+      borderRadius: 28,
+      borderWidth: 1.5,
+      borderColor: 'rgba(156, 64, 237, 0.82)',
       shadowColor: '#AD4CFF',
       shadowOpacity: 0.38,
       shadowOffset: { width: 0, height: -10 },
@@ -662,10 +786,12 @@ function createStyles() {
       overflow: 'hidden',
     },
     scrollContent: {
-      paddingHorizontal: 36,
-      paddingTop: 34,
-      paddingBottom: 28,
-      gap: 22,
+      paddingHorizontal: isCompact ? 18 : 24,
+      paddingTop: isCompact ? 22 : 28,
+      paddingBottom: isCompact ? 18 : 24,
+      gap: isCompact ? 14 : 18,
+      flexGrow: 1,
+      justifyContent: 'space-between',
     },
     star: {
       position: 'absolute',
@@ -677,40 +803,123 @@ function createStyles() {
       shadowOpacity: 0.8,
       shadowRadius: 6,
     },
+    headerRow: {
+      minHeight: 54,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: SPACING.md,
+    },
     title: {
-      fontSize: 34,
-      lineHeight: 42,
+      flex: 1,
+      fontSize: isCompact ? 32 : 38,
+      lineHeight: isCompact ? 38 : 44,
       color: '#FFFFFF',
       fontWeight: '900',
       letterSpacing: 0,
     },
-    balanceRow: {
-      minHeight: 72,
-      borderRadius: 32,
+    headerCloseButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(218, 132, 255, 0.52)',
-      backgroundColor: 'rgba(129, 35, 203, 0.60)',
+      borderColor: 'rgba(149, 61, 224, 0.42)',
+      backgroundColor: 'rgba(42, 9, 75, 0.54)',
+    },
+    balanceRow: {
+      minHeight: isCompact ? 76 : 84,
+      borderRadius: 28,
+      borderWidth: 1,
+      borderColor: 'rgba(170, 75, 241, 0.50)',
+      backgroundColor: 'rgba(91, 25, 160, 0.44)',
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 26,
-      gap: 14,
+      paddingHorizontal: isCompact ? 18 : 22,
+      gap: 16,
       shadowColor: '#F0B7FF',
-      shadowOpacity: 0.34,
-      shadowRadius: 24,
+      shadowOpacity: 0.24,
+      shadowRadius: 20,
       shadowOffset: { width: 0, height: 8 },
       overflow: 'hidden',
     },
     balanceIcon: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
+      width: isCompact ? 44 : 50,
+      height: isCompact ? 44 : 50,
+      borderRadius: 25,
+    },
+    balanceCopy: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    balanceLabel: {
+      fontSize: isCompact ? 13 : 14,
+      lineHeight: 18,
+      color: 'rgba(229, 203, 255, 0.76)',
+      fontWeight: '600',
+    },
+    balanceValueRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 7,
     },
     balanceText: {
-      fontSize: 34,
-      lineHeight: 40,
+      fontSize: isCompact ? 30 : 34,
+      lineHeight: isCompact ? 34 : 38,
       color: '#FFFFFF',
       fontWeight: '900',
       letterSpacing: 0,
+    },
+    balanceUnit: {
+      fontSize: isCompact ? 23 : 26,
+      lineHeight: isCompact ? 29 : 32,
+      color: '#B687E6',
+      fontWeight: '800',
+    },
+    infoPanel: {
+      position: 'relative',
+      minHeight: isCompact ? 70 : 76,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: 'rgba(180, 76, 255, 0.80)',
+      backgroundColor: 'rgba(74, 15, 130, 0.56)',
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: isCompact ? 14 : 18,
+      paddingVertical: 12,
+      gap: isCompact ? 11 : 14,
+      shadowColor: '#B650FF',
+      shadowOpacity: 0.24,
+      shadowRadius: 18,
+      overflow: 'visible',
+    },
+    infoIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: '#8830D7',
+      backgroundColor: 'rgba(61, 10, 112, 0.76)',
+    },
+    unlockChoiceHint: {
+      flex: 1,
+      fontSize: isCompact ? 12 : 13,
+      lineHeight: isCompact ? 17 : 18,
+      color: 'rgba(255, 255, 255, 0.86)',
+      textAlign: 'left',
+    },
+    infoSparkleTop: {
+      position: 'absolute',
+      top: -8,
+      left: -7,
+    },
+    infoSparkleBottom: {
+      position: 'absolute',
+      right: -7,
+      bottom: -7,
     },
     loadingRow: {
       minHeight: 58,
@@ -724,22 +933,22 @@ function createStyles() {
       color: '#EBD9FF',
     },
     cardStack: {
-      gap: 20,
-      marginTop: 8,
+      gap: isCompact ? 14 : 18,
+      marginTop: 2,
     },
     unlockCard: {
-      minHeight: 162,
-      borderRadius: 30,
+      minHeight: isCompact ? 148 : 164,
+      borderRadius: 24,
       borderWidth: 1,
-      borderColor: 'rgba(224, 129, 255, 0.56)',
-      backgroundColor: 'rgba(87, 19, 156, 0.64)',
+      borderColor: 'rgba(208, 102, 255, 0.72)',
+      backgroundColor: 'rgba(87, 19, 156, 0.66)',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 26,
+      paddingHorizontal: isCompact ? 14 : 18,
       shadowColor: '#D46BFF',
-      shadowOpacity: 0.38,
-      shadowRadius: 26,
+      shadowOpacity: 0.30,
+      shadowRadius: 22,
       shadowOffset: { width: 0, height: 10 },
       elevation: 14,
       overflow: 'hidden',
@@ -776,19 +985,20 @@ function createStyles() {
     },
     cardContent: {
       flex: 1,
-      minHeight: 116,
+      minHeight: isCompact ? 116 : 130,
       justifyContent: 'center',
       alignItems: 'stretch',
     },
     cardInner: {
       flexDirection: 'row',
       alignItems: 'center',
-      minHeight: 116,
+      minHeight: isCompact ? 116 : 130,
+      gap: isCompact ? 12 : 16,
     },
     cardIconTile: {
-      width: 116,
-      height: 116,
-      borderRadius: 28,
+      width: isCompact ? 96 : 112,
+      height: isCompact ? 96 : 112,
+      borderRadius: 24,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
@@ -799,25 +1009,78 @@ function createStyles() {
       shadowRadius: 18,
     },
     cardTileImage: {
-      width: 116,
-      height: 116,
-      borderRadius: 28,
+      width: isCompact ? 96 : 112,
+      height: isCompact ? 96 : 112,
+      borderRadius: 24,
     },
-    cardNumberSlot: {
+    cardDetails: {
       flex: 1,
-      alignItems: 'center',
       justifyContent: 'center',
-      paddingRight: 26,
+      alignItems: 'flex-start',
+      minWidth: 0,
+      gap: isCompact ? 2 : 4,
     },
-    cardNumber: {
-      fontSize: 64,
-      lineHeight: 74,
+    cardBadge: {
+      minHeight: 26,
+      borderRadius: 10,
+      borderWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      marginBottom: 1,
+    },
+    instantBadge: {
+      borderColor: 'rgba(255, 209, 55, 0.76)',
+      backgroundColor: 'rgba(92, 50, 85, 0.72)',
+    },
+    freeBadge: {
+      borderColor: 'rgba(24, 222, 150, 0.82)',
+      backgroundColor: 'rgba(22, 100, 93, 0.46)',
+    },
+    cardBadgeText: {
+      fontSize: isCompact ? 10 : 11,
+      lineHeight: 14,
+      fontWeight: '900',
+      letterSpacing: 0.3,
+    },
+    instantBadgeText: {
+      color: '#FFD84D',
+    },
+    freeBadgeText: {
+      color: '#2EE8A4',
+    },
+    cardTitle: {
+      width: '100%',
+      fontSize: isCompact ? 28 : 32,
+      lineHeight: isCompact ? 34 : 38,
       color: '#FFFFFF',
       fontWeight: '900',
       letterSpacing: 0,
     },
+    cardSubtitle: {
+      width: '100%',
+      fontSize: isCompact ? 16 : 18,
+      lineHeight: isCompact ? 20 : 22,
+      color: '#B05CFF',
+      fontWeight: '700',
+    },
+    cardMetaRow: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 3,
+    },
+    cardMetaText: {
+      flex: 1,
+      fontSize: isCompact ? 10.5 : 11.5,
+      lineHeight: isCompact ? 14 : 16,
+      color: 'rgba(230, 206, 248, 0.72)',
+    },
     chevronIcon: {
-      marginLeft: 4,
+      marginLeft: isCompact ? 2 : 5,
     },
     progressText: {
       ...TYPOGRAPHY.SmallBold,
@@ -851,14 +1114,25 @@ function createStyles() {
       minHeight: 52,
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 4,
+      marginTop: -8,
     },
     closeText: {
-      fontSize: 24,
-      lineHeight: 30,
+      fontSize: isCompact ? 20 : 22,
+      lineHeight: 28,
       color: '#B56BFF',
       fontWeight: '900',
       letterSpacing: 0,
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      marginTop: 4,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: 'rgba(153, 72, 220, 0.44)',
     },
     disabled: {
       opacity: 0.54,

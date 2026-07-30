@@ -258,7 +258,8 @@
     "security": "Security",
     "themeSettings": "Theme Settings",
     "tutorialCenter": "Guide Center",
-    "linkAccount": "Link Account"
+    "linkAccount": "Link Account",
+    "journey": "My Journey"
   },
   "zodiac": {
     "aries": "Aries",
@@ -347,6 +348,57 @@
     "retry": {
       "title": "Data is being prepared",
       "accessibility": "Refresh home data"
+    }
+  },
+  "homePersonalPlan": {
+    "title": "Today's Personal Plan",
+    "accessibilityLabel": "Today's personal plan and practical actions",
+    "contextLabel": "{{sign}} · Today's personal context",
+    "contextFallback": "Today's personal context",
+    "fallbackTheme": "Choose one meaningful next step and keep the rest of your day intentional.",
+    "progress": "{{completed}} of {{total}} steps completed",
+    "openPlan": "View Plan",
+    "planDay": "Plan My Day",
+    "preparingTitle": "Your plan is being prepared",
+    "preparingBody": "In the meantime, you can open the planner or continue your daily practices.",
+    "errorTitle": "Your plan could not load",
+    "errorBody": "You can retry without losing completed steps.",
+    "retry": "Retry",
+    "actionErrorTitle": "Step could not be updated",
+    "actionErrorBody": "Your previous completion state was restored. Please try again.",
+    "markCompleteAccessibility": "Mark {{title}} as completed",
+    "markIncompleteAccessibility": "Mark {{title}} as not completed"
+  },
+  "homeJourney": {
+    "title": "My Journey",
+    "summary": "{{actions}} actions today · {{practices}} practice records · {{streak}} day streak",
+    "empty": "Your completed actions, journals, and practices will gather here.",
+    "openAccessibility": "Open My Journey"
+  },
+  "journey": {
+    "title": "My Journey",
+    "subtitle": "Your real activity, in one place",
+    "heroTitle": "Track the value you create over time",
+    "heroBody": "This summary uses only completed actions, saved dream entries, and practice records available in your account or on this device.",
+    "metrics": {
+      "actionsToday": "Actions completed today",
+      "dreams": "Dream journal entries",
+      "practices": "Completed practice records",
+      "activeDays": "Active days",
+      "streak": "Current practice streak"
+    },
+    "lastActivity": "Last recorded activity: {{date}}",
+    "emptyTitle": "Your journey starts with one small step",
+    "emptyBody": "Complete a daily action, save a dream, or finish a practice to build your personal history.",
+    "partialData": "Dream history is temporarily unavailable. The rest of this summary is still based on saved activity.",
+    "nextStepTitle": "Choose your next step",
+    "actions": {
+      "openPlan": "Open today's plan",
+      "openPlanSubtitle": "Review and complete practical daily actions.",
+      "openDreams": "Open Dream Journal",
+      "openDreamsSubtitle": "Record an experience and revisit previous entries.",
+      "openPractices": "Open spiritual practices",
+      "openPracticesSubtitle": "Continue meditation, prayers, and daily counters."
     }
   },
   "home": {
@@ -1026,7 +1078,90 @@
     "pdfSymbolsSectionLabel": "Period Symbols",
     "pdfCosmicLabel": "Cosmic Interpretation",
     "pdfDreamsTitle": "My Dreams This Month ({{count}})",
-    "pdfDreamEntry": "Dream {{index}} — {{date}}"
+    "pdfDreamEntry": "Dream {{index}} — {{date}}",
+    "analysis": {
+      "essence": "Dream essence",
+      "emotionalCore": "Emotional core",
+      "primaryEmotion": "Primary emotion",
+      "secondaryEmotion": "Secondary emotion",
+      "notSpecified": "Not specified",
+      "confidence": "Interpretation confidence: {{value}}%",
+      "keyDetails": "Key details",
+      "deepInterpretation": "Deeper interpretation",
+      "personalConnection": "A possible personal connection",
+      "patternConnection": "Connection with earlier dreams",
+      "reflectionQuestion": "A question to ask yourself",
+      "journalNote": "Dream journal note",
+      "skyConnection": "Sky connection",
+      "followUp": "To clarify the interpretation",
+      "contextTitle": "Personalize the interpretation",
+      "emotionPlaceholder": "Emotion that remained after waking (optional)",
+      "memoryTitle": "Dream memory",
+      "memoryBody": "Compare recurring symbols only while this preference is enabled.",
+      "astrologyTitle": "Astrological connection",
+      "astrologyBody": "Add a short, separate sky note only when it is genuinely relevant.",
+      "helpful": "Was this interpretation helpful?",
+      "helpfulYes": "I found this interpretation helpful",
+      "helpfulNo": "I did not find this interpretation helpful",
+      "share": "Share dream card",
+      "shareTitle": "My dream insight",
+      "expansion": {
+        "cta": "Deepen the Interpretation",
+        "ctaWithCost": "Deepen the Interpretation · {{cost}} Guru Token",
+        "ctaBody": "Look more closely at a person, symbol, emotion, or pattern across dreams.",
+        "title": "Deepen the Interpretation",
+        "balance": "Guru balance",
+        "savedTitle": "Previously opened insights",
+        "openFree": "Open free",
+        "chooseTitle": "What should we deepen?",
+        "submit": "Analyze for {{cost}} Guru",
+        "regenerate": "Regenerate for {{cost}} Guru",
+        "confirmTitle": "Start this analysis?",
+        "confirmBody": "This analysis costs {{cost}} Guru Token.\nCurrent balance: {{balance}}\nBalance after completion: {{remaining}}",
+        "confirmCta": "Continue for {{cost}} Guru",
+        "premiumTitle": "Premium membership required",
+        "premiumBody": "Deepen the Interpretation is available to Premium members. Premium members still spend Guru Tokens for successful analyses.",
+        "openPremium": "View Premium",
+        "targetRequiredTitle": "Choose a focus",
+        "targetRequiredBody": "Briefly enter the person, symbol, or relationship you want to explore.",
+        "insufficientTitle": "Not enough Guru",
+        "insufficientBody": "This analysis costs {{cost}} Guru. Your current balance is {{balance}}.",
+        "buyTokens": "Buy Guru",
+        "earnTokens": "Earn Guru",
+        "priceChangedTitle": "Guru Token price updated",
+        "priceChangedBody": "The current cost is {{cost}} Guru Token.\nCurrent balance: {{balance}}\nBalance after completion: {{remaining}}\nConfirm the new price to continue.",
+        "errorTitle": "Analysis could not be completed",
+        "loadError": "The expansion options could not be loaded. Please try again.",
+        "types": {
+          "PERSON_MEANING": "Meaning of a person",
+          "SYMBOL_MEANING": "Meaning of a symbol",
+          "EMOTIONAL_ANALYSIS": "Deeper emotional analysis",
+          "RELATIONSHIP_ANALYSIS": "Explore a relationship dynamic",
+          "COMPARE_WITH_HISTORY": "Compare with earlier dreams"
+        },
+        "targetPlaceholder": {
+          "PERSON_MEANING": "Who was the person?",
+          "SYMBOL_MEANING": "Which symbol?",
+          "RELATIONSHIP_ANALYSIS": "Which person or relationship?"
+        },
+        "errors": {
+          "INSUFFICIENT_GURU_BALANCE": "Your Guru balance is not enough for this analysis.",
+          "PREMIUM_REQUIRED": "An active Premium membership is required for this feature.",
+          "EXPANSION_ALREADY_PROCESSING": "This analysis is still being prepared. Open it again shortly.",
+          "DREAM_EXPANSION_PRICE_CHANGED": "The analysis price changed. Please confirm the new price.",
+          "AI_UNAVAILABLE": "The AI service is unavailable right now. No Guru Token was charged.",
+          "EXPANSION_FAILED": "The analysis could not be generated. No Guru Token was charged.",
+          "TOKEN_REFUNDED": "The operation could not finish. The Guru Token was refunded to your balance.",
+          "UNKNOWN": "Something unexpected happened. If no token was charged, you can retry the same request."
+        }
+      },
+      "quality": {
+        "INSUFFICIENT": "More detail needed",
+        "LIMITED": "Limited context",
+        "GOOD": "Good context",
+        "RICH": "Rich context"
+      }
+    }
   },
   "monetization": {
     "packages": "Packages",
@@ -1079,6 +1214,16 @@
     "adWatchBtn": "Watch Ad",
     "dismissBtn": "Dismiss",
     "unlockOptionsUnavailableHint": "Unlock options are temporarily unavailable.",
+    "unlockChoiceHint": "Continue instantly with {{cost}} Guru or watch a short video to access it for free.",
+    "currentBalance": "Your Current Balance",
+    "instantBadge": "INSTANT",
+    "guruCostTitle": "{{cost}} Guru",
+    "instantContinue": "Continue instantly",
+    "guruSpendMeta": "{{cost}} Guru will be used from your balance",
+    "freeBadge": "FREE",
+    "videoTitle": "Watch Video",
+    "freeContinue": "Continue for free",
+    "shortVideoAccess": "Access is granted after a short ad",
     "watchVideoUnlock": "Watch video & unlock",
     "watchVideoUnlockHint": "Watch a short video, earn Guru, and continue.",
     "useGuruUnlock": "Unlock with {{count}} Guru",
@@ -1148,27 +1293,35 @@
       "compatibility": "Compatibility"
     },
     "categories": {
-      "cosmicFlow": {
-        "title": "Guru Flow",
-        "subtitle": "Track today's and this week's rhythm here."
+      "dailyLife": {
+        "title": "Daily Life",
+        "subtitle": "Plan your day, take practical steps, and reflect on decisions."
       },
       "selfDiscovery": {
         "title": "Self Discovery",
-        "subtitle": "Your chart and personal insights in one place."
+        "subtitle": "Your journals and personal discovery tools in one place."
+      },
+      "relationships": {
+        "title": "Relationships",
+        "subtitle": "Explore relationship dynamics in different contexts."
       },
       "spiritual": {
         "title": "Spiritual Practices",
         "subtitle": "Prayer, esma, breathing, and meditation flows."
       },
-      "socialCompat": {
-        "title": "Social & Compatibility",
-        "subtitle": "Relationship harmony and shareable experiences."
+      "astrologyInsights": {
+        "title": "Astrological Insights",
+        "subtitle": "Review the astrological context behind personalized guidance."
       }
     },
     "modules": {
+      "todayPlan": {
+        "title": "Today's Plan",
+        "subtitle": "Three practical actions for today"
+      },
       "horoscopeDaily": {
         "title": "Daily Horoscope",
-        "subtitle": "Today's reading"
+        "subtitle": "Today's astrological context"
       },
       "transitsToday": {
         "title": "Today's Transits",
@@ -1179,8 +1332,8 @@
         "subtitle": "This week's focus"
       },
       "calendar": {
-        "title": "Guru Planner",
-        "subtitle": "Plan your best days"
+        "title": "Cosmic Planner",
+        "subtitle": "Plan your day and create reminders"
       },
       "luckyHours": {
         "title": "Lucky Hours",
@@ -1204,7 +1357,11 @@
       },
       "decisionCompass": {
         "title": "Decision Compass",
-        "subtitle": "Instant decision guide"
+        "subtitle": "Review a decision from multiple perspectives"
+      },
+      "dreamJournal": {
+        "title": "Dream Journal",
+        "subtitle": "Record dreams and personal reflections"
       },
       "spiritualDua": {
         "title": "Prayers",
@@ -1281,20 +1438,20 @@
     "dreamReminderHint": "Record your dream, let's decode its Guru cipher"
   },
   "auth": {
-    "welcomeTitle": "Welcome",
-    "welcomeSubtitle": "Sign in to your star guide",
-    "welcomeEyebrow": "Private Cosmic Access",
-    "welcomeSignal": "Personalized and secure",
-    "welcomeBlurb": "Unlock your chart, dream archive, and daily guidance in one polished space designed around you.",
-    "welcomeFeatureCharts": "Private chart vault",
-    "welcomeFeatureDaily": "Daily guidance",
+    "welcomeTitle": "Plan your day. Understand yourself.",
+    "welcomeSubtitle": "Your personal space for daily actions, reflection, and growth",
+    "welcomeEyebrow": "Your Personal Growth Space",
+    "welcomeSignal": "Personalized, practical, and secure",
+    "welcomeBlurb": "Bring your daily plan, decision support, dream journal, and spiritual practices together—with astrology as personal context.",
+    "welcomeFeatureCharts": "Self-discovery context",
+    "welcomeFeatureDaily": "Personal daily plan",
     "welcomeFeatureSync": "Cross-device sync",
     "memberAccessEyebrow": "Member access",
     "altAccessEyebrow": "Faster entry",
     "altAccessSubtitle": "Continue with a trusted account or explore as a guest.",
     "quickStartTitle": "Continue as guest",
     "quickStartHint": "Start as guest now, link later.",
-    "loginWithApple": "Sign in with Apple",
+    "loginWithApple": "Continue with Apple",
     "loginWithGoogle": "Continue with Google",
     "loginWithEmail": "Sign in with Email",
     "noAccount": "Don't have an account? ",
@@ -1324,13 +1481,10 @@
     "googleLoginError": "Could not sign in with Google.",
     "googleConfigError": "Google Sign-In is not configured for this app build. Please update the app and try again.",
     "appleLoginError": "Could not sign in with Apple.",
-    "appleLinkRequiredTitle": "Link your Apple account",
-    "appleAccountNotLinked": "Apple did not share a verifiable account email in this session. To link your existing account, enter your email and password, then tap Link with Apple.",
-    "linkWithApple": "Link with Apple",
     "birthDateTitle": "Your Date of Birth?",
-    "birthDateSubtitle": "Choose your birth date to personalize your chart.",
+    "birthDateSubtitle": "Choose your birth date to personalize the context behind your plan and self-discovery tools.",
     "birthDateHeroEyebrow": "Birth Date",
-    "birthDateHeroHint": "We use this to anchor your age and sun sign layer accurately.",
+    "birthDateHeroHint": "We use this to build personal astrological context for planning and reflection—not certain outcomes.",
     "birthDateSelectionLabel": "Selected date",
     "birthDateAgeLabel": "Age",
     "birthDateAgeValue": "{{age}} yrs",
@@ -1342,18 +1496,18 @@
     "birthDatePickerSubtitle": "Choose the day, month, and year comfortably from the calendar.",
     "birthDateFooterHint": "Next, we will collect your birth time.",
     "birthTimeTitle": "Your Time of Birth?",
-    "birthTimeSubtitle": "Your birth time is important for finding your rising sign.",
+    "birthTimeSubtitle": "Birth time helps refine the personal context used in your chart and planning insights.",
     "selectTimeLabel": "Select time",
     "hour": "Hour",
     "minute": "Minute",
     "birthLocationTitle": "Your Place of Birth?",
-    "birthLocationSubtitle": "You can select your country, city and district.",
+    "birthLocationSubtitle": "Birth location helps calculate your personal astrological context more accurately.",
     "genderTitle": "Your Gender",
     "genderSubtitle": "You cannot change this later",
     "maritalTitle": "Marital Status",
     "maritalSubtitle": "To better guide you",
     "natalChartTitle": "Your natal chart is being prepared",
-    "natalChartSubtitle": "The stars have something to say about you",
+    "natalChartSubtitle": "Preparing the personal context behind your plans and reflections",
     "selectLocation": "Select location",
     "selectCountry": "Select country",
     "selectCity": "Select City",
@@ -1904,13 +2058,6 @@
       "balanceAdviceAir": "Low Air energy shows that you need to make conscious effort in expressing your thoughts verbally and achieving mental clarity. Writing or sharing your thoughts strengthens the balance in this area.",
       "balanceAdviceWater": "Low Water energy shows that you need to consciously create space for emotional awareness and intuitive listening. The practice of observing body and emotions supports the balance in this area.",
       "elementSecondaryBalance": "The close weight of the {{element}} element also shows that these two energies form a mutually nourishing balance.",
-      "elementFire": "Fire",
-      "elementEarth": "Earth",
-      "elementAir": "Air",
-      "elementWater": "Water",
-      "modalityCardinal": "Cardinal",
-      "modalityFixed": "Fixed",
-      "modalityMutable": "Mutable",
       "aspectConjunction": "Conjunction",
       "aspectSextile": "Sextile",
       "aspectSquare": "Square",
@@ -2106,18 +2253,18 @@
       "daily": "Daily Insight",
       "numerology": "Numerology"
     },
-  "create": {
-    "title": "Create a new card",
-    "cardType": "Card Type",
-    "theme": "Theme",
-    "aspectRatio": "Ratio",
-    "generate": "Generate",
-    "options": {
-      "cardType": {
-        "guruCard": "Guru Card",
-        "compatibilitySummary": "Compatibility Summary",
-        "bondSnapshot": "Bond Rhythm",
-        "dailyInsight": "Daily Aura",
+    "create": {
+      "title": "Create a new card",
+      "cardType": "Card Type",
+      "theme": "Theme",
+      "aspectRatio": "Ratio",
+      "generate": "Generate",
+      "options": {
+        "cardType": {
+          "guruCard": "Guru Card",
+          "compatibilitySummary": "Compatibility Summary",
+          "bondSnapshot": "Bond Rhythm",
+          "dailyInsight": "Daily Aura",
           "numerologySignature": "Number Signature"
         },
         "theme": {
@@ -2131,18 +2278,18 @@
         }
       }
     },
-  "preview": {
-    "title": "Compatibility Summary",
-    "guruCardTitle": "Guru Card",
-    "bondSnapshotTitle": "Bond Rhythm",
-    "dailyTitle": "Flow of the Day",
-    "numerologyTitle": "Number Signature",
-    "strongestArea": "Strongest Area",
-    "focusArea": "Watchpoint",
-    "connectionPulse": "Connection Pulse",
-    "sharedCurrent": "Shared Current",
-    "shareReady": "Ready to Share",
-    "sectionTitle": "Card preview",
+    "preview": {
+      "title": "Compatibility Summary",
+      "guruCardTitle": "Guru Card",
+      "bondSnapshotTitle": "Bond Rhythm",
+      "dailyTitle": "Flow of the Day",
+      "numerologyTitle": "Number Signature",
+      "strongestArea": "Strongest Area",
+      "focusArea": "Watchpoint",
+      "connectionPulse": "Connection Pulse",
+      "sharedCurrent": "Shared Current",
+      "shareReady": "Ready to Share",
+      "sectionTitle": "Card preview",
       "sectionSubtitle": "Your selected theme, ratio, and style appear here as the real share output.",
       "love": "Love",
       "communication": "Communication",
@@ -2225,12 +2372,12 @@
       "unlockToExport": "Unlock to save, download, or share this card.",
       "guruUnlocked": "Unlocked with Guru"
     },
-  "personPicker": {
-    "title": "Select Person",
-    "readyCards": "Ready analyses",
-    "loadingSaved": "Loading ready analyses…",
-    "selectPerson": "Select a saved person for compatibility analysis",
-    "noPeople": "No saved people yet",
+    "personPicker": {
+      "title": "Select Person",
+      "readyCards": "Ready analyses",
+      "loadingSaved": "Loading ready analyses…",
+      "selectPerson": "Select a saved person for compatibility analysis",
+      "noPeople": "No saved people yet",
       "addPersonHint": "You can add people from the Compatibility tab",
       "analyzing": "Running compatibility analysis…",
       "analysisFailed": "Analysis could not be completed. Please try again.",
@@ -2313,6 +2460,25 @@
     "noPlansTitle": "Plans are not available",
     "planFallbackDescription": "Premium access for your account.",
     "trialMeta": "{{count}}-day free trial",
+    "trialMainOffer": "{{duration}} free, then {{recurringPrice}}",
+    "recurringPrice": "{{price}}/{{period}}",
+    "continuePremium": "Continue with Premium",
+    "trialRenewalFooter": "After the trial, your subscription automatically renews at {{recurringPrice}}. Cancel anytime in your App Store settings.",
+    "standardRenewalFooter": "Subscription renews automatically unless canceled.",
+    "period": {
+      "month": "month",
+      "year": "year"
+    },
+    "trialDuration": {
+      "day_one": "{{count}} day",
+      "day_other": "{{count}} days",
+      "week_one": "{{count}} week",
+      "week_other": "{{count}} weeks",
+      "month_one": "{{count}} month",
+      "month_other": "{{count}} months",
+      "year_one": "{{count}} year",
+      "year_other": "{{count}} years"
+    },
     "periodFallback": "Localized store pricing will appear here",
     "startTrial": "Start Free Trial",
     "continueYearly": "Continue Yearly",
@@ -2853,7 +3019,7 @@
     "title": "Link Your Account",
     "subtitle": "Create a permanent account to keep your data safe and sync across devices",
     "withGoogle": "Link with Google",
-    "withApple": "Link with Apple",
+    "withApple": "Continue with Apple",
     "withEmail": "Create Account with Email",
     "firstNameLabel": "First Name",
     "firstNamePlaceholder": "Your first name",
@@ -2951,13 +3117,26 @@
       "legendLabel": "Prayer Count",
       "statsEmpty": "No records yet. Read your first prayer!",
       "categories": {
-        "SABAH": "Morning", "AKSAM": "Evening", "GECE": "Night", "ZİKİR": "Dhikr",
-        "KORUNMA": "Protection", "SALAVAT": "Salawat", "BEREKET": "Blessing",
-        "HUZUR": "Peace", "ŞİFA": "Healing", "İLİM": "Knowledge",
+        "SABAH": "Morning",
+        "AKSAM": "Evening",
+        "GECE": "Night",
+        "ZİKİR": "Dhikr",
+        "KORUNMA": "Protection",
+        "SALAVAT": "Salawat",
+        "BEREKET": "Blessing",
+        "HUZUR": "Peace",
+        "ŞİFA": "Healing",
+        "İLİM": "Knowledge",
         "SABAH_AKSAM": "Morning/Evening",
-        "MORNING": "Morning", "EVENING": "Evening", "GRATITUDE": "Gratitude",
-        "PROTECTION": "Protection", "HEALING": "Healing", "FORGIVENESS": "Forgiveness",
-        "GUIDANCE": "Guidance", "ABUNDANCE": "Abundance", "GENERAL": "General"
+        "MORNING": "Morning",
+        "EVENING": "Evening",
+        "GRATITUDE": "Gratitude",
+        "PROTECTION": "Protection",
+        "HEALING": "Healing",
+        "FORGIVENESS": "Forgiveness",
+        "GUIDANCE": "Guidance",
+        "ABUNDANCE": "Abundance",
+        "GENERAL": "General"
       }
     },
     "esma": {
@@ -3201,6 +3380,8 @@
     "emotionBalanced": "Balanced"
   },
   "dailyTransits": {
+    "planningNoticeTitle": "Planning guidance, not a certain outcome",
+    "planningNoticeBody": "Use these suggestions for daily planning and personal awareness. They are not guaranteed predictions or professional advice.",
     "tutorialHelpA11y": "Reopen tutorial guide",
     "errorTitle": "Data could not be loaded",
     "errorBody": "An error occurred while fetching today's transit data.",
@@ -3239,12 +3420,12 @@
     "riskHigh": "High"
   },
   "todayActions": {
-    "headerFallback": "What Can You Do Today?",
+    "headerFallback": "Today's Personal Plan",
     "errorTitle": "Actions could not be loaded",
     "errorBody": "Today's action list is currently unavailable.",
     "retry": "Try Again",
     "emptyTitle": "Data is being prepared for today",
-    "emptyBody": "There may be a short delay while the action list is being prepared.",
+    "emptyBody": "Your personalized plan is being prepared. Refresh in a moment.",
     "refresh": "Refresh",
     "actionFailedTitle": "Action could not be completed",
     "actionFailedMsg": "There may be a connection issue. Please try again.",
@@ -3636,5 +3817,32 @@
   },
   "barChart": {
     "empty": "No data yet"
+  },
+  "personalPlan": {
+    "personalization": {
+      "HIGH": "Prepared from your birth chart",
+      "MEDIUM": "Prepared from your chart data",
+      "LOW": "Prepared from limited data"
+    },
+    "mainThemeEyebrow": "Today's main theme",
+    "primaryActionEyebrow": "Today's most important move",
+    "timelineTitle": "How the day flows",
+    "cautionTitle": "Watch for this today",
+    "reflectionTitle": "Evening reflection",
+    "whyLabel": "Why this suggestion?",
+    "markCompleteAccessibility": "Mark {{title}} as done",
+    "markIncompleteAccessibility": "Mark {{title}} as not done",
+    "feedbackTitle": "Did this plan fit you?",
+    "feedbackHint": "Your answer directly shapes tomorrow's plan.",
+    "feedbackRegenerating": "Rebuilding your plan. You will see a different suggestion shortly.",
+    "feedback": {
+      "HELPFUL": "It fit me",
+      "TOO_GENERIC": "Too generic",
+      "REPETITIVE": "Repetitive",
+      "NOT_RELEVANT": "Not for me",
+      "NOT_USEFUL": "Not useful"
+    },
+    "profileIncompleteTitle": "Sharpen your plan",
+    "profileIncompleteBody": "Add your birth time and the daily plan is calculated by house, making suggestions far more specific."
   }
 }

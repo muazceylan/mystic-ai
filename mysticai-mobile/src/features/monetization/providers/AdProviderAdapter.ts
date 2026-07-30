@@ -4,11 +4,20 @@
  * Swap to real AdMob by replacing the singleton below.
  */
 
+import type {
+  AdsInitializationOptions,
+  MobileAdProviderCapabilities,
+  MobileAdProviderName,
+} from './mobileAds.types';
+
 export interface AdProviderAdapter {
-  initialize(): Promise<void>;
+  readonly name: MobileAdProviderName;
+  readonly capabilities: MobileAdProviderCapabilities;
+  initialize(options: AdsInitializationOptions): Promise<void>;
   loadRewardedAd(adUnitId: string): Promise<boolean>;
   showRewardedAd(): Promise<AdResult>;
   isLoaded(): boolean;
+  dispose?(): Promise<void> | void;
 }
 
 export interface AdResult {
@@ -24,9 +33,16 @@ export interface AdResult {
  * Replace with AdMobProvider when integrating the real SDK.
  */
 class StubAdProvider implements AdProviderAdapter {
+  readonly name = 'none' as const;
+  readonly capabilities: MobileAdProviderCapabilities = {
+    supportsRewardedAds: false,
+    requiresTrackingAuthorization: false,
+    supportsNonPersonalizedAds: true,
+    supportsServerSideVerification: false,
+  };
   private loaded = false;
 
-  async initialize(): Promise<void> {
+  async initialize(_options: AdsInitializationOptions): Promise<void> {
     // No-op for stub
   }
 
@@ -47,6 +63,10 @@ class StubAdProvider implements AdProviderAdapter {
 
   isLoaded(): boolean {
     return this.loaded;
+  }
+
+  dispose(): void {
+    this.loaded = false;
   }
 }
 

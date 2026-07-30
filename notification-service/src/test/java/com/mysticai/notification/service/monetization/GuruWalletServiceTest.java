@@ -24,6 +24,7 @@ class GuruWalletServiceTest {
 
     @Mock GuruWalletRepository walletRepository;
     @Mock GuruLedgerRepository ledgerRepository;
+    @Mock com.mysticai.notification.repository.GuruTokenReservationRepository reservationRepository;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) MeterRegistry meterRegistry;
 
     @InjectMocks GuruWalletService service;
@@ -109,6 +110,20 @@ class GuruWalletServiceTest {
                 "ios", "tr", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient Guru balance");
+    }
+
+    @Test
+    void spendGuru_doesNotConsumeBalanceHeldByDreamExpansionReservation() {
+        GuruWallet wallet = GuruWallet.builder().userId(USER_ID).currentBalance(1).build();
+        when(walletRepository.findByUserIdForUpdate(USER_ID)).thenReturn(Optional.of(wallet));
+        when(reservationRepository.sumActivePendingCost(eq(USER_ID), any())).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.spendGuru(
+                USER_ID, 1, "compatibility", "compatibility_view",
+                "ios", "tr", "other-spend"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Available: 0");
+        verify(ledgerRepository, never()).save(any());
     }
 
     @Test

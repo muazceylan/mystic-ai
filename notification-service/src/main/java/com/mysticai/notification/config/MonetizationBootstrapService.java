@@ -383,6 +383,12 @@ public class MonetizationBootstrapService implements ApplicationRunner {
                 "Rüya girişiniz için yapay zeka yorumunu başlatın",
                 MonetizationAction.UnlockType.AD_OR_GURU, 1);
 
+        seedDreamExpansionAction("dream_expansion_person_meaning", "Kişinin Anlamı");
+        seedDreamExpansionAction("dream_expansion_symbol_meaning", "Sembolün Anlamı");
+        seedDreamExpansionAction("dream_expansion_emotional_analysis", "Duygusal Analiz");
+        seedDreamExpansionAction("dream_expansion_relationship_analysis", "İlişki Analizi");
+        seedDreamExpansionAction("dream_expansion_compare_with_history", "Rüya Geçmişiyle Karşılaştır");
+
         seedFeatureAction("shareable_card_create", "share_cards", "Paylaşılabilir kart oluştur",
                 "Kartı oluşturmak için 1 Guru Token kullanın. Yetersiz bakiye varsa video izleyerek kazanabilirsiniz.",
                 "Paylaşılabilir kartını aç", "Video izle, Guru kazan", "SHAREABLE_CARD_CREATE");
@@ -428,6 +434,31 @@ public class MonetizationBootstrapService implements ApplicationRunner {
 
         actionRepository.save(action);
         log.info("[MonetizationBootstrap] Created action '{}/{}'", moduleKey, actionKey);
+    }
+
+    private void seedDreamExpansionAction(String actionKey, String displayName) {
+        if (actionRepository.existsByActionKeyAndModuleKey(actionKey, "dreams")) {
+            return;
+        }
+        actionRepository.save(MonetizationAction.builder()
+                .actionKey(actionKey)
+                .moduleKey("dreams")
+                .displayName(displayName)
+                .description("Premium rüya yorumunu derinleştirmek için Guru Token kullanın")
+                .dialogTitle(displayName)
+                .dialogDescription("Bu analiz başarılı olduğunda yapılandırılmış Guru Token bedeli alınır.")
+                .primaryCtaLabel("Yorumu Derinleştir")
+                .secondaryCtaLabel("Guru Token Kazan")
+                .analyticsKey(actionKey.toUpperCase())
+                .unlockType(MonetizationAction.UnlockType.GURU_SPEND)
+                .guruCost(1)
+                .rewardAmount(1)
+                .isRewardFallbackEnabled(true)
+                .isPurchaseRequired(true)
+                .isPreviewAllowed(false)
+                .isEnabled(true)
+                .createdByAdminId(0L)
+                .build());
     }
 
     private void seedFeatureAction(String actionKey,

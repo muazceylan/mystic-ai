@@ -4,7 +4,13 @@ export interface AdminUser {
   role: 'SUPER_ADMIN' | 'PRODUCT_ADMIN' | 'NOTIFICATION_MANAGER';
 }
 
-export type AiProviderAdapter = 'gemini' | 'groq' | 'openrouter' | 'ollama';
+export type AiProviderAdapter = 'gemini' | 'groq' | 'openrouter' | 'ollama' | 'deepseek';
+
+export type AiThinkingMode = 'enabled' | 'disabled';
+
+export type AiReasoningEffort = 'high' | 'max';
+
+export type AiProviderStatus = 'READY' | 'DISABLED' | 'MISSING_CREDENTIAL';
 
 export interface AiModelProviderConfig {
   key: string;
@@ -13,7 +19,20 @@ export interface AiModelProviderConfig {
   enabled: boolean;
   model: string;
   baseUrl: string;
+  /**
+   * WRITE-ONLY. The GET response always has this as null/undefined (see hasApiKey/apiKeyMasked for
+   * read state) - the backend never serializes a real secret back to a client. Only set this when
+   * the admin is actually typing a NEW key; never round-trip apiKeyMasked into this field, or the
+   * backend will (defensively) ignore it and log a warning rather than store the placeholder text,
+   * but it's still a bug in the caller.
+   */
   apiKey?: string | null;
+  /** READ-ONLY, computed by the backend on every GET. Ignored if sent on a PUT. */
+  hasApiKey?: boolean;
+  /** READ-ONLY, computed by the backend on every GET (e.g. "••••ab12"). Ignored if sent on a PUT. */
+  apiKeyMasked?: string | null;
+  /** WRITE-ONLY. Set true to explicitly remove a stored secret. Sending a blank apiKey does NOT clear it - it preserves the existing one. */
+  clearApiKey?: boolean;
   localProviderType?: string | null;
   chatEndpoint?: string | null;
   timeoutMs: number;
@@ -21,6 +40,10 @@ export interface AiModelProviderConfig {
   cooldownSeconds: number;
   temperature?: number | null;
   maxOutputTokens?: number | null;
+  thinkingMode?: AiThinkingMode | null;
+  reasoningEffort?: AiReasoningEffort | null;
+  /** READ-ONLY, computed by the backend on every GET. Ignored if sent on a PUT. */
+  status?: AiProviderStatus | null;
   headers: Record<string, string>;
 }
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mysticai.astrology.dto.DreamAnalysisResult;
 import com.mysticai.astrology.entity.DreamEntry;
 import com.mysticai.astrology.entity.LuckyDatesResult;
 import com.mysticai.astrology.entity.MonthlyDreamStory;
@@ -22,12 +23,15 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Listener for AI analysis responses from the AI Orchestrator.
@@ -172,6 +176,22 @@ public class AstrologyResponseListener {
 
             // Parse the JSON response: {"interpretation":"...","opportunities":[...],"warnings":[...]}
             String aiJson = event.interpretation();
+            DreamAnalysisResult structuredAnalysis = parseStructuredDreamAnalysis(aiJson, entry);
+            if (structuredAnalysis != null) {
+                entry.setAnalysisJson(objectMapper.writeValueAsString(structuredAnalysis));
+                entry.setInputQuality(structuredAnalysis.inputQuality().level().name());
+                entry.setInterpretation(joinNonBlank(
+                        structuredAnalysis.essence(),
+                        structuredAnalysis.deepInterpretation()
+                ));
+                entry.setOpportunitiesJson(objectMapper.writeValueAsString(List.of()));
+                entry.setWarningsJson(objectMapper.writeValueAsString(List.of()));
+                entry.setInterpretationStatus("COMPLETED");
+                dreamEntryRepository.save(entry);
+                log.info("Updated DreamEntry {} with validated structured analysis", entry.getId());
+                return;
+            }
+
             DreamSynthesisContent content = parseDreamSynthesisContent(aiJson);
             try {
                 if (content.hasContent()) {
@@ -199,6 +219,171 @@ public class AstrologyResponseListener {
         } catch (Exception e) {
             log.error("Failed to process dream synthesis response", e);
         }
+    }
+
+    private DreamAnalysisResult parseStructuredDreamAnalysis(String rawResponse, DreamEntry entry) {
+        for (String candidate : buildDreamJsonParseCandidates(rawResponse)) {
+            try {
+                DreamAnalysisResult parsed = objectMapper.readValue(candidate, DreamAnalysisResult.class);
+                if (parsed.inputQuality() == null
+                        || parsed.inputQuality().level() == null
+                        || parsed.extractedElements() == null
+                        || parsed.emotionalCore() == null
+                        || parsed.essence() == null
+                        || parsed.essence().isBlank()
+                        || parsed.deepInterpretation() == null
+                        || parsed.reflectionQuestion() == null
+                        || parsed.journalTrackingNote() == null
+                        || parsed.safety() == null) {
+                    continue;
+                }
+                return guardStructuredDreamAnalysis(parsed, entry);
+            } catch (Exception ignored) {
+                // Legacy responses are handled by the compatibility parser below.
+            }
+        }
+        return null;
+    }
+
+    private DreamAnalysisResult guardStructuredDreamAnalysis(
+            DreamAnalysisResult analysis,
+            DreamEntry entry
+    ) {
+        boolean unsafeClaim = containsUnsafeDreamClaim(joinNonBlank(
+                analysis.essence(),
+                analysis.deepInterpretation(),
+                analysis.personalConnection(),
+                analysis.reflectionQuestion(),
+                analysis.journalTrackingNote(),
+                analysis.astrologyNote()
+        ));
+        boolean unsupportedElements = hasUnsupportedExtractedElements(
+                analysis.extractedElements(), entry.getText()
+        );
+        boolean astrologyAllowed = entry.isUseAstrology();
+
+        DreamAnalysisResult.Safety safety = new DreamAnalysisResult.Safety(
+                analysis.safety().containsDiagnosis(),
+                analysis.safety().containsPrediction(),
+                analysis.safety().containsUnsupportedClaims() || unsupportedElements
+        );
+
+        if (unsafeClaim
+                || safety.containsDiagnosis()
+                || safety.containsPrediction()
+                || analysis.safety().containsUnsupportedClaims()) {
+            String safeText = "Bu rüya kesin bir gelecek haberi veya teşhis olarak yorumlanamaz. "
+                    + "Güvenilir kalmak için analiz, yalnızca anlattığın ayrıntılarla sınırlı tutuldu.";
+            return new DreamAnalysisResult(
+                    analysis.inputQuality(),
+                    filterUnsupportedElements(analysis.extractedElements(), entry.getText()),
+                    analysis.emotionalCore(),
+                    analysis.essence(),
+                    analysis.keyDetails() == null ? List.of() : analysis.keyDetails(),
+                    safeText,
+                    null,
+                    analysis.reflectionQuestion(),
+                    analysis.journalTrackingNote(),
+                    null,
+                    analysis.followUpQuestions() == null ? List.of() : analysis.followUpQuestions(),
+                    analysis.patternConnection(),
+                    new DreamAnalysisResult.Safety(false, false, unsupportedElements)
+            );
+        }
+
+        return new DreamAnalysisResult(
+                analysis.inputQuality(),
+                filterUnsupportedElements(analysis.extractedElements(), entry.getText()),
+                analysis.emotionalCore(),
+                analysis.essence(),
+                analysis.keyDetails() == null ? List.of() : analysis.keyDetails().stream().limit(3).toList(),
+                analysis.deepInterpretation(),
+                analysis.personalConnection(),
+                analysis.reflectionQuestion(),
+                analysis.journalTrackingNote(),
+                astrologyAllowed ? limitAstrologyNote(analysis.astrologyNote()) : null,
+                analysis.followUpQuestions() == null
+                        ? List.of() : analysis.followUpQuestions().stream().limit(2).toList(),
+                entry.isDreamMemoryEnabled() ? analysis.patternConnection() : null,
+                safety
+        );
+    }
+
+    private boolean containsUnsafeDreamClaim(String value) {
+        String normalized = value == null ? "" : value.toLowerCase(Locale.ROOT);
+        return List.of(
+                "yakında", "bu hafta", "kısa süre içinde", "başına gelecek", "gerçekleşecek",
+                "travman var", "depresyondasın", "anksiyete bozukluğun var", "narsistik kişilik",
+                "evren sana mesaj", "büyük bir değişim kapıda"
+        ).stream().anyMatch(normalized::contains);
+    }
+
+    private boolean hasUnsupportedExtractedElements(
+            DreamAnalysisResult.ExtractedElements elements,
+            String dreamText
+    ) {
+        return !filterToDreamText(elements.people(), dreamText).equals(safeList(elements.people()))
+                || !filterToDreamText(elements.places(), dreamText).equals(safeList(elements.places()))
+                || !filterToDreamText(elements.symbols(), dreamText).equals(safeList(elements.symbols()));
+    }
+
+    private DreamAnalysisResult.ExtractedElements filterUnsupportedElements(
+            DreamAnalysisResult.ExtractedElements elements,
+            String dreamText
+    ) {
+        return new DreamAnalysisResult.ExtractedElements(
+                elements.mainEvent(),
+                filterToDreamText(elements.people(), dreamText),
+                filterToDreamText(elements.places(), dreamText),
+                filterToDreamText(elements.symbols(), dreamText),
+                safeList(elements.actions()),
+                safeList(elements.emotions()),
+                elements.ending(),
+                safeList(elements.uncertainties())
+        );
+    }
+
+    private List<String> filterToDreamText(List<String> values, String dreamText) {
+        String normalizedDream = normalizeForDreamMatch(dreamText);
+        return safeList(values).stream()
+                .filter(value -> {
+                    String normalizedValue = normalizeForDreamMatch(value);
+                    if (normalizedValue.isBlank()) return false;
+                    String firstWord = normalizedValue.split("\\s+")[0];
+                    return normalizedDream.contains(normalizedValue)
+                            || (firstWord.length() >= 4 && normalizedDream.contains(firstWord));
+                })
+                .distinct()
+                .toList();
+    }
+
+    private List<String> safeList(List<String> values) {
+        return values == null ? List.of() : values;
+    }
+
+    private String normalizeForDreamMatch(String value) {
+        if (value == null) return "";
+        return java.text.Normalizer.normalize(value.toLowerCase(Locale.ROOT), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replaceAll("[^a-z0-9çğıöşü\\s]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private String limitAstrologyNote(String value) {
+        if (value == null || value.isBlank()) return null;
+        String limited = Arrays.stream(value.trim().split("(?<=[.!?])\\s+"))
+                .limit(3)
+                .collect(Collectors.joining(" "));
+        return limited.length() <= 420 ? limited : limited.substring(0, 420).trim() + "…";
+    }
+
+    private String joinNonBlank(String... values) {
+        return Arrays.stream(values)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.joining("\n\n"));
     }
 
     private DreamSynthesisContent parseDreamSynthesisContent(String rawResponse) {
