@@ -27,6 +27,7 @@ interface AppSurfaceHeaderProps {
   transparent?: boolean;
   allowTitleAutoShrink?: boolean;
   titleMinimumScale?: number;
+  titleNumberOfLines?: number;
 }
 
 interface SurfaceHeaderIconButtonProps {
@@ -84,6 +85,7 @@ export function AppSurfaceHeader({
   transparent = false,
   allowTitleAutoShrink = false,
   titleMinimumScale = 0.9,
+  titleNumberOfLines,
 }: AppSurfaceHeaderProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -150,7 +152,7 @@ export function AppSurfaceHeader({
   const titleNode = title ? (
     <AppText
       maxFontSizeMultiplier={MAX_FONT_SCALE}
-      numberOfLines={usesStackedPageLayout ? 2 : 1}
+      numberOfLines={titleNumberOfLines ?? (usesStackedPageLayout ? 2 : 1)}
       adjustsFontSizeToFit={!usesStackedPageLayout && variant === 'page' && allowTitleAutoShrink}
       minimumFontScale={!usesStackedPageLayout && variant === 'page' && allowTitleAutoShrink ? titleMinimumScale : 1}
       ellipsizeMode="tail"

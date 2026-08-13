@@ -18,7 +18,7 @@ import type {
 const DAILY_TRANSITS_BASE = '/api/v1/daily/transits';
 const FEEDBACK_BASE = '/api/v1/feedback';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const DAILY_CACHE_VERSION = 'v3';
+const DAILY_CACHE_VERSION = 'v4';
 
 type DailyLocale = 'tr' | 'en';
 

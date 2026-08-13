@@ -66,8 +66,8 @@ public class DailyTransitsService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE;
     private static final int MIN_TRANSITS = 3;
     private static final int MAX_TRANSITS = 7;
-    private static final String INSIGHT_ENGINE_VERSION = "daily-insight-v3";
-    private static final String DAILY_TRANSITS_CACHE_KEY_PREFIX = "dtc-v3:";
+    private static final String INSIGHT_ENGINE_VERSION = "daily-insight-v4";
+    private static final String DAILY_TRANSITS_CACHE_KEY_PREFIX = "dtc-v4:";
     private static final Set<String> BENEFIC_PLANETS = Set.of("Sun", "Moon", "Mercury", "Venus", "Jupiter");
     private static final Set<String> ACTIONABLE_TRANSIT_PLANETS = Set.of(
             "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Moon", "Sun"
@@ -946,7 +946,7 @@ public class DailyTransitsService {
         }
         String headline = pickVariant(headlineOptions, heroSeed + "|headline");
         if (!retroHint.isBlank()) {
-            headline = clamp(headline + retroHint, 50);
+            headline += retroHint;
         }
 
         String topAction = top != null
@@ -975,8 +975,8 @@ public class DailyTransitsService {
         String gradientKey = resolveHeroGradient(moodTag, retrogrades.size(), top != null ? top.label() : null);
 
         return new DailyTransitsDTO.Hero(
-                clamp(headline, 50),
-                clamp(supporting, 110),
+                headline.trim(),
+                supporting.trim(),
                 moodTag,
                 intensity,
                 icon,

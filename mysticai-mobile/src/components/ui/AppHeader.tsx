@@ -9,6 +9,7 @@ interface AppHeaderProps {
   rightActions?: React.ReactNode;
   transparent?: boolean;
   tintColor?: string;
+  titleNumberOfLines?: number;
 }
 
 export function AppHeader({
@@ -18,6 +19,7 @@ export function AppHeader({
   rightActions,
   transparent = false,
   tintColor,
+  titleNumberOfLines,
 }: AppHeaderProps) {
   const smartBack = useSmartBackNavigation({ fallbackRoute: '/(tabs)/home' });
 
@@ -31,6 +33,7 @@ export function AppHeader({
       rightActions={rightActions}
       tintColor={tintColor}
       transparent={transparent}
+      titleNumberOfLines={titleNumberOfLines}
     />
   );
 }

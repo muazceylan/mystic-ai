@@ -405,6 +405,7 @@ export default function TodayActionsScreen() {
         title={data?.header.title ?? t('todayActions.headerFallback')}
         subtitle={formatDateLabel(data?.date ?? date, i18n.language)}
         onBack={goBack}
+        titleNumberOfLines={2}
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

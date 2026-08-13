@@ -100,6 +100,8 @@ class DailyTransitsServiceTest {
         assertFalse(response.transits().stream().anyMatch(item -> item.technical() != null && "Genel Akış".equals(item.technical().natalPoint())));
         assertFalse(response.transits().stream().anyMatch(item -> item.technical() != null && "FLOW".equals(item.technical().aspect())));
         assertFalse(response.transits().stream().anyMatch(item -> item.technical() != null && "PRESSURE".equals(item.technical().aspect())));
+        assertFalse(response.hero().headline().endsWith("…"));
+        assertFalse(response.hero().supporting().endsWith("…"));
     }
 
     @Test
@@ -201,7 +203,7 @@ class DailyTransitsServiceTest {
         assertNotNull(lookupVersion);
         assertEquals(lookupVersion, savedVersion);
         assertTrue(savedVersion.length() <= 64);
-        assertTrue(savedVersion.startsWith("dtc-v3:"));
+        assertTrue(savedVersion.startsWith("dtc-v4:"));
     }
 
     @Test
