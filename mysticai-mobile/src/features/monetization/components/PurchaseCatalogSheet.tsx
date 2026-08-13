@@ -292,11 +292,13 @@ export function PurchaseCatalogSheet({ visible, onDismiss }: PurchaseCatalogShee
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onDismiss}>
+    <BottomSheet visible={visible} onClose={onDismiss} dragHandleOnly>
       <ScrollView
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        directionalLockEnabled
       >
         <GuruStoreHeader onBack={onDismiss} title={t('monetization.storeTitle')} />
         <GuruBalanceHeroCard

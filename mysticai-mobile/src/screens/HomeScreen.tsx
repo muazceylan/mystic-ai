@@ -356,6 +356,9 @@ export default function HomeScreen() {
             action.id === actionId
               ? { ...action, isDone, doneAt: isDone ? new Date().toISOString() : undefined }
               : action),
+          primaryAction: current.primaryAction?.id === actionId
+            ? { ...current.primaryAction, isDone, doneAt: isDone ? new Date().toISOString() : undefined }
+            : current.primaryAction,
         };
       });
       return { previous };
@@ -375,6 +378,9 @@ export default function HomeScreen() {
             action.id === response.actionId
               ? { ...action, isDone: response.isDone, doneAt: response.doneAt }
               : action),
+          primaryAction: current.primaryAction?.id === response.actionId
+            ? { ...current.primaryAction, isDone: response.isDone, doneAt: response.doneAt }
+            : current.primaryAction,
         };
       });
       if (response.isDone) {
@@ -385,6 +391,14 @@ export default function HomeScreen() {
           module: 'personal_plan',
           locale: resolvedLocale,
         });
+        if (personalPlanQuery.data?.primaryAction?.id === response.actionId) {
+          trackEvent('personal_plan_primary_action_completed', {
+            action_id: response.actionId,
+            source: 'home',
+            surface: 'home',
+            locale: resolvedLocale,
+          });
+        }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     },
@@ -763,6 +777,24 @@ export default function HomeScreen() {
     pushRoute('/(tabs)/journey');
   }, [pushRoute, resolvedLocale]);
 
+  const handlePersonalPlanExpandedChange = useCallback((expanded: boolean) => {
+    trackEvent('home_personal_plan_toggled', {
+      source: 'home',
+      module: 'personal_plan',
+      state: expanded ? 'expanded' : 'collapsed',
+      locale: resolvedLocale,
+    });
+  }, [resolvedLocale]);
+
+  const handlePersonalPlanWhyOpened = useCallback(() => {
+    trackEvent('personal_plan_why_opened', {
+      source: 'home',
+      surface: 'home',
+      section: 'primary_action',
+      locale: resolvedLocale,
+    });
+  }, [resolvedLocale]);
+
   const handlePressWeeklyAll = useCallback(() => {
     trackEvent('home_weekly_seeall_click', {
       source: 'section_link',
@@ -891,6 +923,7 @@ export default function HomeScreen() {
           actions={personalPlanActions}
           theme={personalPlanQuery.data?.header.subtitle || todayAdvice || todayTheme}
           mainTheme={personalPlanQuery.data?.mainTheme}
+          homeTeaser={personalPlanQuery.data?.homeTeaser}
           primaryAction={personalPlanQuery.data?.primaryAction}
           personalizationLevel={personalPlanQuery.data?.personalizationLevel}
           isLoading={personalPlanQuery.isLoading}
@@ -900,6 +933,17 @@ export default function HomeScreen() {
           onOpenPlanner={handleOpenPlanner}
           onRetry={handleRetryPersonalPlan}
           onToggleAction={handleTogglePersonalPlanAction}
+          onExpandedChange={handlePersonalPlanExpandedChange}
+          onWhyOpened={handlePersonalPlanWhyOpened}
+          journeyPreview={(
+            <JourneyPreviewCard
+              embedded
+              completedToday={completedPlanActions}
+              practiceRecordCount={spiritualEntryCount}
+              streakDays={spiritualStreakDays}
+              onPress={handleOpenJourney}
+            />
+          )}
         />
 
         {quickActions.length > 0 ? (
@@ -914,13 +958,6 @@ export default function HomeScreen() {
             </View>
           </SpotlightTarget>
         ) : null}
-
-        <JourneyPreviewCard
-          completedToday={completedPlanActions}
-          practiceRecordCount={spiritualEntryCount}
-          streakDays={spiritualStreakDays}
-          onPress={handleOpenJourney}
-        />
 
         <SpotlightTarget targetKey={HOME_TUTORIAL_TARGET_KEYS.PERSONAL_WIDGET}>
           <View

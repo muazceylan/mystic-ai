@@ -10,6 +10,8 @@ import { trackEvent } from '../../../services/analytics';
 interface PremiumProfileCardProps {
   isPremium?: boolean;
   annualBadgeLabel?: string | null;
+  planLabel?: string | null;
+  renewalLabel?: string | null;
   onManageSubscription?: () => void;
   onPress: () => void;
 }
@@ -28,6 +30,8 @@ const COLORS = {
 export function PremiumProfileCard({
   isPremium = false,
   annualBadgeLabel = null,
+  planLabel = null,
+  renewalLabel = null,
   onManageSubscription,
   onPress,
 }: PremiumProfileCardProps) {
@@ -120,24 +124,41 @@ export function PremiumProfileCard({
               </View>
             ) : null}
 
-            <View style={styles.chipRow}>
-              <FeatureChip
-                iconName="calendar-outline"
-                label={t('premium.monthly')}
-                sublabel={t('profile.premium.monthlySublabel')}
-              />
-              <FeatureChip
-                iconName="sparkles-outline"
-                label={t('premium.yearly')}
-                sublabel={annualBadgeLabel || t('profile.premium.yearlySublabel')}
-                featured
-              />
-              <FeatureChip
-                iconName="star"
-                label={t('profile.premium.specialContent')}
-                sublabel={t('profile.premium.specialContentSublabel')}
-              />
-            </View>
+            {isPremium ? (
+              <View style={styles.membershipDetails}>
+                <MembershipDetail
+                  iconName="card-outline"
+                  label={t('profile.premium.planLabel')}
+                  value={planLabel || t('profile.premium.planGeneric')}
+                />
+                {renewalLabel ? (
+                  <MembershipDetail
+                    iconName="calendar-outline"
+                    label={t('profile.premium.renewalLabel')}
+                    value={renewalLabel}
+                  />
+                ) : null}
+              </View>
+            ) : (
+              <View style={styles.chipRow}>
+                <FeatureChip
+                  iconName="calendar-outline"
+                  label={t('premium.monthly')}
+                  sublabel={t('profile.premium.monthlySublabel')}
+                />
+                <FeatureChip
+                  iconName="sparkles-outline"
+                  label={t('premium.yearly')}
+                  sublabel={annualBadgeLabel || t('profile.premium.yearlySublabel')}
+                  featured
+                />
+                <FeatureChip
+                  iconName="star"
+                  label={t('profile.premium.specialContent')}
+                  sublabel={t('profile.premium.specialContentSublabel')}
+                />
+              </View>
+            )}
 
             <View style={[styles.cta, isPremium && styles.ctaActive]}>
               <View style={styles.ctaTextWrap}>
@@ -162,6 +183,26 @@ export function PremiumProfileCard({
         </View>
       </LinearGradient>
     </TouchableOpacity>
+  );
+}
+
+function MembershipDetail({
+  iconName,
+  label,
+  value,
+}: {
+  iconName: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.membershipDetailRow}>
+      <Ionicons name={iconName} size={16} color={COLORS.gold} />
+      <View style={styles.membershipDetailCopy}>
+        <Text style={styles.membershipDetailLabel}>{label}</Text>
+        <Text style={styles.membershipDetailValue}>{value}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -324,6 +365,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '500',
+  },
+  membershipDetails: {
+    gap: 8,
+  },
+  membershipDetailRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  membershipDetailCopy: {
+    flex: 1,
+  },
+  membershipDetailLabel: {
+    color: COLORS.textSoft,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
+  },
+  membershipDetailValue: {
+    color: COLORS.white,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
   },
   cancelRow: {
     minHeight: 24,

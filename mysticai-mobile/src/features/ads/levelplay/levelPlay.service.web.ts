@@ -31,3 +31,8 @@ export async function initializeLevelPlay(
   }
   return false;
 }
+
+export async function validateLevelPlayIntegration(): Promise<boolean> {
+  // no-op: there is no native SDK on web to validate
+  return false;
+}

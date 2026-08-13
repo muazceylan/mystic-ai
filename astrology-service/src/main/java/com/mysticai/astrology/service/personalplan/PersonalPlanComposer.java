@@ -160,30 +160,44 @@ public class PersonalPlanComposer {
         DailyActionsDTO.EveningReflection reflection = buildReflection(primary.area(), inputs, english);
 
         DailyActionsDTO.TimeWindow primaryWindow = resolveWindow(inputs, english);
+        String primaryDescription = buildDescription(primary, inputs, usage);
         DailyActionsDTO.PrimaryAction primaryAction = new DailyActionsDTO.PrimaryAction(
                 actionId(primary),
                 primary.area().slug(),
                 primary.area().label(english),
-                clamp(shortTitle(primary.variant().text(english)), 92),
-                primary.variant().text(english),
+                actionTitle(primary, english),
+                primaryDescription,
                 primaryWindow,
-                buildWhy(primary, english),
+                buildWhy(primary, inputs, english),
                 false,
                 null,
                 List.of(primary.candidate().transit().id())
         );
 
-        List<DailyActionsDTO.LifeAreaCard> lifeAreaCards = areaCards.stream()
-                .map(selection -> new DailyActionsDTO.LifeAreaCard(
+        // Secondary cards carry the move alone. The scenario sentence opens with the same
+        // sign or planet lead the primary card already used, so repeating it here would print
+        // near-identical opening clauses down the screen; the per-card grounding stays available
+        // behind "why".
+        List<DailyActionsDTO.LifeAreaCard> lifeAreaCards = new ArrayList<>();
+        for (Selection selection : areaCards) {
+            lifeAreaCards.add(new DailyActionsDTO.LifeAreaCard(
                         actionId(selection),
                         selection.area().slug(),
                         selection.area().label(english),
-                        clamp(shortTitle(selection.variant().text(english)), 92),
-                        selection.variant().text(english),
-                        buildWhy(selection, english),
+                        actionTitle(selection, english),
+                        ensureSentence(selection.variant().text(english)),
+                        buildWhy(selection, inputs, english),
                         false,
-                        null))
-                .toList();
+                        null));
+        }
+
+        // The home card prints headline as its heading and body under a "today's key move"
+        // eyebrow, so the heading carries the day's theme and the body carries the move itself.
+        // The body is the instruction alone; the scenario behind it lives on the plan screen.
+        DailyActionsDTO.HomeTeaser homeTeaser = new DailyActionsDTO.HomeTeaser(
+                mainTheme.title(),
+                ensureSentence(primary.variant().text(english))
+        );
 
         DailyActionsDTO.PlanMeta meta = new DailyActionsDTO.PlanMeta(
                 properties.getVersion(),
@@ -199,6 +213,7 @@ public class PersonalPlanComposer {
                 new DailyActionsDTO.Header(mainTheme.title(), mainTheme.description()),
                 buildLegacyActions(primaryAction, lifeAreaCards, caution),
                 buildLegacyMiniPlan(primaryAction, lifeAreaCards, english),
+                homeTeaser,
                 personalizationLevel(usage),
                 List.copyOf(usage.usedSignals()),
                 mainTheme,
@@ -230,6 +245,8 @@ public class PersonalPlanComposer {
                         SignalUsageRecorder.RELATIONSHIP_STATUS,
                         SignalUsageRecorder.AGE_RANGE,
                         SignalUsageRecorder.PREVIOUS_FEEDBACK,
+                        SignalUsageRecorder.SUN_SIGN,
+                        SignalUsageRecorder.MOON_SIGN,
                         SignalUsageRecorder.RISING_SIGN)
                 .filter(usage::used)
                 .count();
@@ -288,31 +305,50 @@ public class PersonalPlanComposer {
         List<Candidate> baseline = new ArrayList<>(candidates);
         baseline.sort(byImportance());
 
-        List<Candidate> ranked = new ArrayList<>(candidates);
+        List<Candidate> rankedWithoutFeedback = new ArrayList<>(candidates);
         // The ascendant ruler's transit is traditionally the most personally-felt one, so it
         // outranks a marginally stronger transit. Only applies when a rising sign is known.
         String ascendantRuler = ascendantRuler(signals.risingSign());
         boolean retroHeavy = signals.retrogradeCount() >= 2;
-        ranked.sort((left, right) -> {
+        Comparator<Candidate> personalSignalComparator = (left, right) -> {
             int leftScore = left.importance()
                     + rulerBonus(left, ascendantRuler)
-                    + retroBonus(left, retroHeavy);
+                    + retroBonus(left, retroHeavy, transits);
             int rightScore = right.importance()
                     + rulerBonus(right, ascendantRuler)
-                    + retroBonus(right, retroHeavy);
+                    + retroBonus(right, retroHeavy, transits);
             if (leftScore != rightScore) {
                 return Integer.compare(rightScore, leftScore);
             }
             return Integer.compare(right.importance(), left.importance());
+        };
+        rankedWithoutFeedback.sort(personalSignalComparator);
+
+        List<Candidate> ranked = new ArrayList<>(candidates);
+        ranked.sort((left, right) -> {
+            int leftScore = left.importance()
+                    + rulerBonus(left, ascendantRuler)
+                    + retroBonus(left, retroHeavy, transits)
+                    + signals.lifeAreaWeight(left.area());
+            int rightScore = right.importance()
+                    + rulerBonus(right, ascendantRuler)
+                    + retroBonus(right, retroHeavy, transits)
+                    + signals.lifeAreaWeight(right.area());
+            if (leftScore != rightScore) return Integer.compare(rightScore, leftScore);
+            return personalSignalComparator.compare(left, right);
         });
 
         // Only claim a signal when it actually moved the top of the list.
-        if (ascendantRuler != null && !ranked.get(0).transit().id().equals(baseline.get(0).transit().id())) {
+        if (ascendantRuler != null && !rankedWithoutFeedback.get(0).transit().id().equals(baseline.get(0).transit().id())) {
             usage.record(SignalUsageRecorder.RISING_SIGN,
                     "candidate_ranking: ascendant ruler " + ascendantRuler + " promoted to top transit");
-        } else if (retroHeavy && !ranked.get(0).transit().id().equals(baseline.get(0).transit().id())) {
+        } else if (retroHeavy && !rankedWithoutFeedback.get(0).transit().id().equals(baseline.get(0).transit().id())) {
             usage.record(SignalUsageRecorder.RETROGRADES,
                     "candidate_ranking: retrograde-heavy day promoted a review-oriented transit");
+        }
+        if (!ranked.get(0).transit().id().equals(rankedWithoutFeedback.get(0).transit().id())) {
+            usage.record(SignalUsageRecorder.PREVIOUS_FEEDBACK,
+                    "candidate_ranking: explicit life-area relevance feedback changed the leading transit");
         }
         return ranked;
     }
@@ -325,11 +361,12 @@ public class PersonalPlanComposer {
         return ascendantRuler != null && ascendantRuler.equals(candidate.canonicalPlanet()) ? 12 : 0;
     }
 
-    private int retroBonus(Candidate candidate, boolean retroHeavy) {
-        if (!retroHeavy) {
-            return 0;
+    private int retroBonus(Candidate candidate, boolean retroHeavy, DailyTransitsDTO transits) {
+        if (isPlanetRetrograde(candidate, transits)) {
+            return 12;
         }
-        return candidate.role() == PlanetRole.LIMIT || candidate.role() == PlanetRole.WORD ? 8 : 0;
+        if (!retroHeavy) return 0;
+        return candidate.role() == PlanetRole.LIMIT || candidate.role() == PlanetRole.WORD ? 4 : 0;
     }
 
     /** Traditional sign ruler of the ascendant. */
@@ -485,6 +522,15 @@ public class PersonalPlanComposer {
         PersonalPlanCatalog.CatalogEntry naturalPick = eligible.get(0);
         PersonalPlanCatalog.CatalogEntry finalPick = applyTieBreaks(eligible, signals, usage, candidate);
 
+        Optional<PersonalPlanCatalog.CatalogEntry> preferredFamily = eligible.stream()
+                .filter(entry -> signals.preferredActionIntents().contains(entry.actionIntent()))
+                .findFirst();
+        if (preferredFamily.isPresent() && !preferredFamily.get().equals(finalPick)) {
+            finalPick = preferredFamily.get();
+            usage.record(SignalUsageRecorder.PREVIOUS_FEEDBACK,
+                    "variant_choice: helpful feedback favored action family " + finalPick.actionIntent());
+        }
+
         if (audienceFiltered || finalPick.audience() != PlanVariant.Audience.ANY) {
             usage.record(SignalUsageRecorder.RELATIONSHIP_STATUS,
                     finalPick.audience() != PlanVariant.Audience.ANY
@@ -605,7 +651,7 @@ public class PersonalPlanComposer {
                 candidate.transit().technical() != null ? candidate.transit().technical().aspect() : null
         );
 
-        return new DailyActionsDTO.MainTheme(title, description, buildWhy(primary, english), List.of(basis));
+        return new DailyActionsDTO.MainTheme(title, description, buildWhy(primary, inputs, english), List.of(basis));
     }
 
     private DailyActionsDTO.Caution buildCaution(
@@ -636,11 +682,14 @@ public class PersonalPlanComposer {
                 state.usedIntents.add(entry.actionIntent());
                 state.fingerprints.add(PlanFingerprints.semantic(entry.semanticKey()));
                 state.fingerprints.add(PlanFingerprints.areaIntent(candidate.area(), entry.actionIntent()));
+                Selection selection = new Selection(candidate, candidate.area(), entry);
+                // Caution copy already opens with the risk it is warning about, so prefixing the
+                // generic scenario sentence would state that risk twice in three hedged sentences.
                 return new DailyActionsDTO.Caution(
-                        clamp(shortTitle(text), 92),
-                        text,
+                        actionTitle(selection, english),
+                        ensureSentence(text),
                         null,
-                        buildWhy(candidate, candidate.area(), english)
+                        buildWhy(candidate, candidate.area(), inputs, english)
                 );
             }
         }
@@ -801,32 +850,205 @@ public class PersonalPlanComposer {
      * Plain-language justification shown behind "Neden bu öneri?". Never exposes orb values or
      * aspect jargon — those stay in {@code astrologicalBasis} for debugging.
      */
-    private String buildWhy(Selection selection, boolean english) {
-        return buildWhy(selection.candidate(), selection.area(), english);
+    private String buildDescription(Selection selection, Inputs inputs, SignalUsageRecorder usage) {
+        return scenarioSentence(selection, inputs, usage) + " "
+                + ensureSentence(selection.variant().text(inputs.signals().english()));
     }
 
-    private String buildWhy(Candidate candidate, LifeArea area, boolean english) {
+    /** A sharp possibility backed only by structured chart/transit signals. */
+    private String scenarioSentence(Selection selection, Inputs inputs, SignalUsageRecorder usage) {
+        Candidate candidate = selection.candidate();
+        PersonalPlanSignals signals = inputs.signals();
+        boolean english = signals.english();
+        boolean retro = isPlanetRetrograde(candidate, inputs.transits());
+        String planet = displayPlanet(candidate, english);
+        String sign = relevantSign(candidate, signals, usage, english);
+
+        if (retro && usage != null) {
+            usage.record(SignalUsageRecorder.RETROGRADES,
+                    "scenario_copy: structured retrograde matched " + candidate.canonicalPlanet());
+        }
+
+        if (retro && ("Mercury".equals(candidate.canonicalPlanet())
+                || "Venus".equals(candidate.canonicalPlanet()))
+                && (candidate.area() == LifeArea.RELATIONSHIP
+                    || candidate.area() == LifeArea.COMMUNICATION)) {
+            if (signals.relationshipStatus() == PersonalPlanSignals.RelationshipStatus.SINGLE) {
+                if (usage != null) {
+                    usage.record(SignalUsageRecorder.RELATIONSHIP_STATUS,
+                            "scenario_copy: single-safe past-connection possibility");
+                }
+                return english
+                        ? planet + " retrograde may bring a message from someone in your past or reopen an unfinished conversation."
+                        : planet + " retrosu geçmişten birinin mesajını getirebilir veya yarım kalmış bir konuşmayı yeniden açabilir.";
+            }
+            if (signals.relationshipStatus() == PersonalPlanSignals.RelationshipStatus.PARTNERED) {
+                if (usage != null) {
+                    usage.record(SignalUsageRecorder.RELATIONSHIP_STATUS,
+                            "scenario_copy: partnered relationship-review possibility");
+                }
+                return english
+                        ? planet + " retrograde may reopen a relationship topic you thought was already settled."
+                        : planet + " retrosu ilişkinizde kapandığını sandığınız bir konuyu yeniden açabilir.";
+            }
+            return english
+                    ? planet + " retrograde may return an unfinished message or conversation to your attention."
+                    : planet + " retrosu yarım kalmış bir mesajı veya konuşmayı yeniden gündeme getirebilir.";
+        }
+
+        String signLead = sign == null ? "" : (english ? "Your " + sign + " emphasis " : sign + " vurgunuz ");
+        String planetLead = retro
+                ? (english ? planet + " retrograde " : planet + " retrosu ")
+                : (english ? planet + "'s current influence " : planet + " etkisi ");
+        String lead = signLead.isBlank() ? planetLead : signLead;
+
+        return switch (candidate.area()) {
+            case FAMILY -> english
+                    ? lead + "may turn one small remark at home into tension faster than usual."
+                    : lead + "aile içinde küçük bir sözü normalden hızlı biçimde gerilime çevirebilir.";
+            case RELATIONSHIP -> english
+                    ? lead + "may make a delayed reply feel more personal than it actually is."
+                    : lead + "geciken bir cevabı olduğundan daha kişisel algılamanıza yol açabilir.";
+            case COMMUNICATION -> english
+                    ? lead + "may put speed ahead of clarity in an important exchange."
+                    : lead + "önemli bir konuşmada hızı netliğin önüne geçirebilir.";
+            case MONEY -> english
+                    ? lead + "may amplify the urge to solve a money question in one decisive move."
+                    : lead + "bir para konusunu tek ve keskin bir hamlede çözme isteğini büyütebilir.";
+            case WORK -> english
+                    ? lead + "may make one unfinished responsibility feel like an emergency."
+                    : lead + "yarım kalan tek bir sorumluluğu acil durum gibi hissettirebilir.";
+            case BOUNDARIES -> english
+                    ? lead + "may shorten your patience and make a quick refusal feel necessary."
+                    : lead + "sabrınızı kısaltıp hızlı bir reddi zorunluymuş gibi hissettirebilir.";
+            case EMOTIONAL_BALANCE -> english
+                    ? lead + "may make a passing feeling sound like a final verdict."
+                    : lead + "geçici bir duyguyu kesin bir hüküm gibi duyurabilir.";
+            case DECISION -> english
+                    ? lead + "may make the first workable option look like the only option."
+                    : lead + "ilk uygulanabilir seçeneği tek seçenekmiş gibi gösterebilir.";
+            case REST -> english
+                    ? lead + "may keep your mind active even when your body is asking for a pause."
+                    : lead + "bedeniniz durmak isterken zihninizi gereğinden uzun süre açık tutabilir.";
+            case SOCIAL -> english
+                    ? lead + "may pull you into someone else's urgency before your own plan is clear."
+                    : lead + "kendi planınız netleşmeden sizi başkasının aciliyetine çekebilir.";
+            case CREATIVITY -> english
+                    ? lead + "may make a promising idea feel finished before it has been tested."
+                    : lead + "umut veren bir fikri sınanmadan tamamlanmış gibi hissettirebilir.";
+        };
+    }
+
+    private String relevantSign(
+            Candidate candidate, PersonalPlanSignals signals, SignalUsageRecorder usage, boolean english) {
+        if (candidate.transit().technical() == null
+                || candidate.transit().technical().natalPoint() == null) {
+            return null;
+        }
+        String target = qualityGuard.normalize(candidate.transit().technical().natalPoint());
+        String sign = null;
+        String signalName = null;
+        if (target.contains("sun") || target.contains("gunes")) {
+            sign = signals.sunSign();
+            signalName = SignalUsageRecorder.SUN_SIGN;
+        } else if (target.contains("moon") || target.contains("ay")) {
+            sign = signals.moonSign();
+            signalName = SignalUsageRecorder.MOON_SIGN;
+        } else if (target.contains("asc") || target.contains("yukselen")) {
+            sign = signals.risingSign();
+            signalName = SignalUsageRecorder.RISING_SIGN;
+        }
+        if (sign == null || sign.isBlank()) {
+            return null;
+        }
+        if (usage != null) {
+            usage.record(signalName, "scenario_copy: natal target selected " + sign + " wording");
+        }
+        return signLabel(sign, english);
+    }
+
+    private String signLabel(String sign, boolean english) {
+        String canonical = sign.trim();
+        if (english) return canonical;
+        return switch (canonical) {
+            case "Aries" -> "Koç";
+            case "Taurus" -> "Boğa";
+            case "Gemini" -> "İkizler";
+            case "Cancer" -> "Yengeç";
+            case "Leo" -> "Aslan";
+            case "Virgo" -> "Başak";
+            case "Libra" -> "Terazi";
+            case "Scorpio" -> "Akrep";
+            case "Sagittarius" -> "Yay";
+            case "Capricorn" -> "Oğlak";
+            case "Aquarius" -> "Kova";
+            case "Pisces" -> "Balık";
+            default -> canonical;
+        };
+    }
+
+    /**
+     * The card renders the title above the description, so the title is the variant's authored
+     * short label — never the first sentence of the body, which would print the same sentence
+     * twice. {@link PlanVariant} rejects a blank title at construction, so every catalog entry
+     * has one before the context starts.
+     */
+    private String actionTitle(Selection selection, boolean english) {
+        return selection.variant().title(english);
+    }
+
+    private String ensureSentence(String text) {
+        if (text == null || text.isBlank()) return "";
+        String trimmed = text.trim();
+        return trimmed.matches(".*[.!?]$") ? trimmed : trimmed + ".";
+    }
+
+    private String buildWhy(Selection selection, Inputs inputs, boolean english) {
+        return buildWhy(selection.candidate(), selection.area(), inputs, english);
+    }
+
+    private String buildWhy(Candidate candidate, LifeArea area, Inputs inputs, boolean english) {
         String planet = displayPlanet(candidate, english);
         String areaLabel = area.label(english).toLowerCase(english ? Locale.ENGLISH : new Locale("tr"));
-        boolean retro = isRetrogradeMention(candidate);
+        boolean retro = isPlanetRetrograde(candidate, inputs.transits());
+        String target = candidate.transit().technical() != null
+                ? candidate.transit().technical().natalPoint()
+                : null;
 
         if (english) {
-            String motion = retro ? "'s retrograde motion" : "'s current position";
-            return planet + motion + " is moving through your " + areaLabel
-                    + " area today, which is why this suggestion sits there rather than anywhere else.";
+            String motion = retro ? " retrograde" : "";
+            if (candidate.house() != null && !candidate.house().isBlank()) {
+                return planet + motion + " activates your " + areaLabel + " area through natal house "
+                        + candidate.house() + "; that is the concrete reason this topic leads your plan.";
+            }
+            if (target != null && !target.isBlank()) {
+                return planet + motion + " is contacting your natal " + target
+                        + "; this is why the plan focuses on " + areaLabel + " rather than a generic theme.";
+            }
+            return planet + motion + " is today's strongest usable signal for " + areaLabel
+                    + "; the plan does not infer a house or life event that is not in your chart data.";
         }
-        String motion = retro ? " geri hareketi" : " güncel konumu";
+        String motion = retro ? " retrosu" : " etkisi";
+        if (candidate.house() != null && !candidate.house().isBlank()) {
+            return planet + motion + " natal " + candidate.house() + ". eviniz üzerinden " + areaLabel
+                    + " alanını çalıştırıyor; bu konunun planın başına gelmesinin somut nedeni bu.";
+        }
+        if (target != null && !target.isBlank()) {
+            return planet + motion + " natal " + target + " noktanıza temas ediyor; planın genel bir söz yerine "
+                    + areaLabel + " alanına odaklanmasının nedeni bu.";
+        }
         return planet + motion + " bugün " + areaLabel
-                + " alanınızdan geçiyor; bu öneri başka bir alanda değil, tam da burada duruyor.";
+                + " için kullanılabilen en güçlü sinyal; plan haritanızda olmayan bir ev veya olayı varsaymıyor.";
     }
 
-    private boolean isRetrogradeMention(Candidate candidate) {
-        String impact = candidate.transit().impactPlain();
-        if (impact == null) {
+    private boolean isPlanetRetrograde(Candidate candidate, DailyTransitsDTO transits) {
+        if (candidate.canonicalPlanet() == null || transits == null || transits.retrogrades() == null) {
             return false;
         }
-        String normalized = qualityGuard.normalize(impact);
-        return normalized.contains("retro") || normalized.contains("geri hare");
+        return transits.retrogrades().stream()
+                .map(DailyTransitsDTO.RetrogradeItem::planet)
+                .map(this::canonicalPlanet)
+                .anyMatch(candidate.canonicalPlanet()::equals);
     }
 
     private String displayPlanet(Candidate candidate, boolean english) {
@@ -845,32 +1067,6 @@ public class PersonalPlanComposer {
             return english ? "Afternoon" : "Öğleden sonra";
         }
         return english ? "Evening" : "Akşam";
-    }
-
-    /** First clause of the suggestion, so the card headline never repeats the whole body. */
-    private String shortTitle(String description) {
-        if (description == null || description.isBlank()) {
-            return "";
-        }
-        String trimmed = description.trim();
-        int cut = indexOfFirst(trimmed, ";", ":", ",");
-        String head = cut > 24 ? trimmed.substring(0, cut) : trimmed;
-        if (head.length() > 92) {
-            int space = head.lastIndexOf(' ', 88);
-            head = space > 30 ? head.substring(0, space) : head.substring(0, 88);
-        }
-        return head.endsWith(".") ? head.substring(0, head.length() - 1) : head;
-    }
-
-    private int indexOfFirst(String value, String... markers) {
-        int best = -1;
-        for (String marker : markers) {
-            int index = value.indexOf(marker);
-            if (index >= 0 && (best < 0 || index < best)) {
-                best = index;
-            }
-        }
-        return best;
     }
 
     private String actionId(Selection selection) {
@@ -923,8 +1119,4 @@ public class PersonalPlanComposer {
         return Math.abs(raw.hashCode());
     }
 
-    private String clamp(String value, int maxLen) {
-        String source = value == null ? "" : value.trim();
-        return source.length() <= maxLen ? source : source.substring(0, Math.max(0, maxLen - 1)).trim() + "…";
-    }
 }

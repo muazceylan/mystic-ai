@@ -127,6 +127,11 @@ export interface PlanMainTheme {
   astrologicalBasis?: PlanAstroBasis[];
 }
 
+export interface PlanHomeTeaser {
+  headline: string;
+  body: string;
+}
+
 export interface PlanPrimaryAction {
   id: string;
   category: PlanLifeArea | string;
@@ -198,6 +203,7 @@ export interface DailyActionsDTO {
   };
 
   // ── premium personal plan (v2); absent on older backends ──────────────────
+  homeTeaser?: PlanHomeTeaser;
   personalizationLevel?: PersonalizationLevel;
   profileSignalsUsed?: string[];
   mainTheme?: PlanMainTheme;
@@ -234,4 +240,14 @@ export interface DailyFeedbackPayload {
   sentiment: 'up' | 'down';
   reason?: PlanFeedbackReason;
   note?: string;
+}
+
+export interface PlanFeedbackResponse {
+  accepted: boolean;
+  regenerated: boolean;
+  regenerationReason?: PlanFeedbackReason | string | null;
+  remainingRegenerations: number;
+  replacementPlan?: DailyActionsDTO | null;
+  planId?: number | null;
+  generationNumber?: number | null;
 }

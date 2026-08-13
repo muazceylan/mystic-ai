@@ -82,14 +82,22 @@ auth-service:
 # "Bugünkü Kişisel Planım" content-quality tunables. Bump `version` whenever the composer
 # or catalog changes so stored plans regenerate without a migration.
 personal-plan:
-  version: ${PERSONAL_PLAN_VERSION:pp-v1}
+  version: ${PERSONAL_PLAN_VERSION:pp-v3}
   history-days: ${PERSONAL_PLAN_HISTORY_DAYS:7}
+  feedback-influence-days: ${PERSONAL_PLAN_FEEDBACK_INFLUENCE_DAYS:7}
+  not-relevant-area-penalty: ${PERSONAL_PLAN_NOT_RELEVANT_AREA_PENALTY:18}
+  helpful-area-boost: ${PERSONAL_PLAN_HELPFUL_AREA_BOOST:4}
   semantic-similarity-threshold: ${PERSONAL_PLAN_SIMILARITY_THRESHOLD:0.82}
   max-regenerations-per-day: ${PERSONAL_PLAN_MAX_REGENERATIONS:2}
   max-life-area-cards: ${PERSONAL_PLAN_MAX_AREA_CARDS:2}
   max-timeline-slots: ${PERSONAL_PLAN_MAX_TIMELINE_SLOTS:3}
   profile-connect-timeout-ms: ${PERSONAL_PLAN_PROFILE_CONNECT_TIMEOUT_MS:2000}
   profile-read-timeout-ms: ${PERSONAL_PLAN_PROFILE_READ_TIMEOUT_MS:4000}
+  # Rewords the composed plan via ai-orchestrator. Off by default; every refined field is
+  # re-validated and falls back to the rule-based copy on its own, so this only affects wording.
+  ai-refinement-enabled: ${PERSONAL_PLAN_AI_REFINEMENT_ENABLED:false}
+  ai-connect-timeout-ms: ${PERSONAL_PLAN_AI_CONNECT_TIMEOUT_MS:2000}
+  ai-read-timeout-ms: ${PERSONAL_PLAN_AI_READ_TIMEOUT_MS:8000}
 
 notification-service:
   url: ${NOTIFICATION_SERVICE_URL:http://localhost:8088}

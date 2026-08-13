@@ -78,7 +78,15 @@
       "activeDescNew": "Tüm premium özelliklerden yararlanıyorsun.",
       "activeBenefit": "Ayrıcalıkların açık",
       "activeCta": "Premium ayrıcalıkların açık",
-      "manageCta": "Üyeliği Yönet"
+      "manageCta": "Üyeliği Yönet",
+      "loading": "Premium durumun kontrol ediliyor...",
+      "planLabel": "Plan",
+      "renewalLabel": "Yenileme",
+      "planMonthly": "Aylık Premium",
+      "planYearly": "Yıllık Premium",
+      "planGeneric": "Astro Guru Premium",
+      "renewsOn": "{{date}} tarihinde yenilenir",
+      "activeUntil": "{{date}} tarihine kadar aktif"
     },
     "menu": {
       "nameInfo": "İsim Bilgileri",
@@ -357,6 +365,8 @@
     "contextFallback": "Bugünkü kişisel bağlam",
     "fallbackTheme": "Anlamlı bir sonraki adım seç ve gününün kalanını bilinçli sürdür.",
     "progress": "{{completed}} / {{total}} adım tamamlandı",
+    "expand": "Bugünkü kişisel planı aç",
+    "collapse": "Bugünkü kişisel planı kapat",
     "openPlan": "Planı Gör",
     "planDay": "Günü Planla",
     "preparingTitle": "Bugünkü planın hazırlanıyor",
@@ -1276,7 +1286,6 @@
     "collapse": "Daralt",
     "comingSoonTitle": "Yakında geliyor",
     "comingSoonBadge": "Yakında",
-    "oracleStatus": "Oracle aktif",
     "clearSearchAccessibility": "Aramayı temizle",
     "openModuleAccessibility": "{{module}} modülünü aç",
     "cardComingSoonAccessibility": "{{module}}, yakında geliyor",
@@ -1331,7 +1340,7 @@
         "subtitle": "Bu hafta odakları"
       },
       "calendar": {
-        "title": "Kozmik Planlayıcı",
+        "title": "Guru Planlayıcı",
         "subtitle": "Gününü planla ve hatırlatıcı oluştur"
       },
       "luckyHours": {
@@ -1438,7 +1447,7 @@
   },
   "auth": {
     "welcomeTitle": "Gününü planla. Kendini keşfet.",
-    "welcomeSubtitle": "Günlük aksiyonların, farkındalığın ve gelişimin için kişisel alanın",
+    "welcomeSubtitle": "Doğum haritan ve bugünkü gökyüzünden hazırlanan kişisel günlük planın",
     "welcomeEyebrow": "Kişisel Gelişim Alanın",
     "welcomeSignal": "Kişisel, pratik ve güvenli",
     "welcomeBlurb": "Günlük planını, karar desteğini, rüya günlüğünü ve manevi pratiklerini; astrolojiyi kişisel bağlam olarak kullanarak tek yerde buluştur.",
@@ -1480,6 +1489,7 @@
     "googleLoginError": "Google ile giriş yapılamadı.",
     "googleConfigError": "Google girişi bu uygulama sürümünde yapılandırılmamış. Lütfen uygulamayı güncelle ve tekrar dene.",
     "appleLoginError": "Apple ile giriş yapılamadı.",
+    "returnToLoginConfirmation": "Giriş ekranına dönmek ister misiniz?",
     "birthDateTitle": "Doğum Tarihiniz?",
     "birthDateSubtitle": "Planlarının ve kendini keşif araçlarının kişisel bağlamını oluşturmak için doğum tarihini seç.",
     "birthDateHeroEyebrow": "Doğum Tarihi",
@@ -2455,7 +2465,9 @@
     "pendingBody": "Satın alma alındı. Premium erişimin şimdi senkronize ediliyor.",
     "pendingTokenBody": "Satın alma alındı. Doğrulanmış webhook gelince token bakiyen güncellenebilir.",
     "restoreSuccessTitle": "Satın alma durumu güncellendi",
-    "restoreSuccessBody": "Hesabındaki abonelik ve token durumu mağaza kayıtlarına göre yenilendi.",
+    "restoreSuccessBody": "Premium üyeliğin mağaza kayıtlarından geri yüklendi ve hesabında aktif edildi.",
+    "restoreNotFoundTitle": "Aktif üyelik bulunamadı",
+    "restoreNotFoundBody": "Bu mağaza hesabında geri yüklenecek aktif bir Premium üyelik bulunamadı.",
     "noPlansTitle": "Plan bulunamıyor",
     "planFallbackDescription": "Hesabın için Premium erişim.",
     "trialMeta": "{{count}} günlük ücretsiz deneme",
@@ -2494,9 +2506,11 @@
       "monthlyTitle": "Aylık Üyelik",
       "monthlySubtitle": "Astro Guru Premium Aylık",
       "monthlyNote": "{{count}} gün ücretsiz, sonra aylık ücretlendirme",
+      "monthlyRenewalNote": "Gösterilen fiyat üzerinden aylık yenilenir",
       "yearlyTitle": "Yıllık Üyelik",
       "yearlySubtitle": "Astro Guru Premium Yıllık",
       "yearlyNote": "{{count}} gün ücretsiz, sonra yıllık ücretlendirme",
+      "yearlyRenewalNote": "Gösterilen fiyat üzerinden yıllık yenilenir",
       "recommended": "Önerilen",
       "loading": "Üyelik seçenekleri yükleniyor...",
       "packageError": "Üyelik seçenekleri şu anda yüklenemedi. Lütfen tekrar deneyin.",
@@ -2508,12 +2522,14 @@
       "benefitNatal": "Özel doğum haritası ve detaylı yorumlar",
       "cta": "{{count}} Gün Ücretsiz Dene",
       "trust": "Deneme süresi dolmadan iptal edebilirsin.",
+      "verifiedTrialTitle": "{{duration}} Ücretsiz Deneme",
+      "trialCta": "{{duration}} Ücretsiz Denemeyi Başlat",
       "restore": "Satın Alımı Geri Yükle",
       "purchaseCancelled": "Satın alma iptal edildi.",
       "purchaseFailed": "Satın alma tamamlanamadı. Lütfen tekrar deneyin.",
       "restoreFailed": "Satın alım geri yüklenemedi. Lütfen tekrar deneyin.",
-      "purchaseSuccessTitle": "Premium aktif",
-      "purchaseSuccessBody": "Premium erişimin başarıyla açıldı.",
+      "purchaseSuccessTitle": "Premium'a Hoş Geldin ✨",
+      "purchaseSuccessBody": "Astro Guru Premium üyeliğin aktif edildi. Premium özelliklerini artık kullanabilirsin.",
       "manageUnavailableTitle": "Üyelik yönetimi açılamadı",
       "manageUnavailableBody": "Aboneliğini App Store veya Google Play hesap ayarlarından yönetebilirsin."
     }
@@ -2571,13 +2587,15 @@
     "section2Title": "Hesap ve Güvenlik",
     "section2Body": "Giriş bilgilerinizi güvenli tutmak ve hesabınız üzerinden gerçekleşen işlemlerden sorumlu olmak size aittir. Kayıt sırasında doğru bilgi vermeniz ve profilinizi güncel tutmanız beklenir.",
     "section3Title": "Premium Özellikler ve Ödeme",
-    "section3Body": "Premium planlar, abonelikler veya tekil satın alımlar sunulursa ücretler onay öncesinde gösterilir ve ödeme ile yenileme işlemleri Apple App Store veya Google Play mağaza koşullarına göre yürütülür.",
+    "section3Body": "Abonelik adı, süresi, yerelleştirilmiş yenileme fiyatı ve hak kazanılan ücretsiz deneme koşulları onaydan önce gösterilir. Abonelikler mevcut dönem bitmeden en az 24 saat önce iptal edilmedikçe otomatik yenilenir. Ödeme ve yenileme Apple App Store veya Google Play tarafından yürütülür ve mağaza hesap ayarlarından yönetilebilir.",
     "section4Title": "Kabul Edilebilir Kullanım",
     "section4Body": "Uygulamayı kötüye kullanmayın, yetkisiz erişim denemesinde bulunmayın, diğer kullanıcılara zarar vermeyin ve hukuka aykırı, zararlı veya istismar edici içerik yüklemeyin. Hizmeti ve topluluğu korumak için hesaplar sınırlandırılabilir veya askıya alınabilir.",
     "section5Title": "Güncellemeler ve İletişim",
     "section5Body": "Bu koşullar ürün geliştikçe güncellenebilir. Güncelleme sonrasında uygulamayı kullanmaya devam etmeniz revize edilmiş koşulları kabul ettiğiniz anlamına gelir. Hizmet veya hesabınızla ilgili sorular için bizimle iletişime geçebilirsiniz.",
     "contactEmail": "support@astroguru.app",
-    "contactAccessibility": "Destek için e-posta gönder"
+    "contactAccessibility": "Destek için e-posta gönder",
+    "appleEula": "Apple Standart Kullanım Koşulları (EULA)",
+    "appleEulaAccessibility": "Apple Standart Kullanım Koşullarını aç"
   },
   "notifications": {
     "title": "Bildirimler",
@@ -2668,7 +2686,7 @@
       "globalOnboarding": "Genel Onboarding",
       "home": "Ana Sayfa",
       "dailyTransits": "Günlük Transitler",
-      "cosmicPlanner": "Kozmik Planlayıcı",
+      "cosmicPlanner": "Guru Planlayıcı",
       "decisionCompass": "Karar Pusulası",
       "compatibility": "Uyumluluk",
       "birthChart": "Doğum Haritası",
@@ -2855,6 +2873,9 @@
     "thisWeek": "Bu Hafta",
     "goToDetail": "Detayı Gör",
     "general": "Genel",
+    "generalContext": "Genel burç bağlamı",
+    "yourChartToday": "Bugün senin haritanda",
+    "openPersonalPlan": "Kişisel günlük planını aç",
     "love": "Aşk",
     "career": "Kariyer",
     "money": "Para",
@@ -3828,7 +3849,7 @@
     "timelineTitle": "Günün akışı",
     "cautionTitle": "Bugün dikkat",
     "reflectionTitle": "Akşam değerlendirmesi",
-    "whyLabel": "Neden bu öneri?",
+    "whyLabel": "Haritandaki neden",
     "markCompleteAccessibility": "{{title}} adımını tamamlandı olarak işaretle",
     "markIncompleteAccessibility": "{{title}} adımını tamamlanmadı olarak işaretle",
     "feedbackTitle": "Bu plan sana uydu mu?",
@@ -3842,6 +3863,7 @@
       "NOT_USEFUL": "Faydalı değildi"
     },
     "profileIncompleteTitle": "Planını keskinleştir",
-    "profileIncompleteBody": "Doğum saatini eklersen günlük planın ev bazlı hesaplanır ve önerilerin belirginleşir."
+    "profileIncompleteBody": "Doğum saatini eklersen günlük planın ev bazlı hesaplanır ve önerilerin belirginleşir.",
+    "profileIncompleteCta": "Doğum bilgilerini tamamlamak için profilini aç"
   }
 }

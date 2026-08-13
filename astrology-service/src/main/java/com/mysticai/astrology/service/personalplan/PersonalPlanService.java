@@ -62,6 +62,7 @@ import java.util.Set;
 public class PersonalPlanService {
 
     private final PersonalPlanComposer composer;
+    private final PersonalPlanRefiner refiner;
     private final PersonalPlanProperties properties;
     private final UserPersonalContextClient personalContextClient;
     private final DailyPersonalPlanRepository planRepository;
@@ -112,7 +113,7 @@ public class PersonalPlanService {
             log.warn("Personal plan composition produced no usable content for userId={} localDate={}",
                     request.userId(), request.localDate());
             return applyDoneState(request.userId(), request.localDate(),
-                    minimalPlan(request.transits(), request.localDate(), request.english()));
+                    buildMinimalPlan(request.transits(), request.localDate(), request.english()));
         }
 
         active.ifPresent(plan -> {
@@ -245,7 +246,7 @@ public class PersonalPlanService {
             PlanRequest request, UserPersonalContext profile, String locale, int generationNumber) {
 
         History history = loadHistory(request.userId(), request.localDate(), locale);
-        Set<PlanFeedbackReason> negativeReasons = recentNegativeReasons(request.userId(), request.localDate());
+        FeedbackPreferences feedbackPreferences = recentFeedbackPreferences(request.userId(), request.localDate());
 
         NatalChart chart = request.chart();
         boolean hasHouses = chart != null
@@ -262,13 +263,15 @@ public class PersonalPlanService {
                 chart != null ? chart.getRisingSign() : null,
                 hasHouses,
                 request.transits().retrogrades() == null ? 0 : request.transits().retrogrades().size(),
-                negativeReasons
+                feedbackPreferences.negativeReasons(),
+                feedbackPreferences.lifeAreaWeights(),
+                feedbackPreferences.preferredActionIntents()
         );
 
         Optional<TransitCalculator.MoonAspectPeak> moonPeak =
                 safeMoonPeak(request.localDate(), request.zone(), request.natalPositions());
 
-        return composer.compose(new PersonalPlanComposer.Inputs(
+        PersonalPlanComposer.Composition composition = composer.compose(new PersonalPlanComposer.Inputs(
                 request.transits(),
                 signals,
                 request.localDate(),
@@ -279,6 +282,40 @@ public class PersonalPlanService {
                 generationNumber,
                 Instant.now()
         ));
+        return applyRefinement(composition, locale);
+    }
+
+    /**
+     * Optional AI rewording, applied before the plan is persisted so the stored payload is what
+     * the user actually sees. Fingerprints are derived from semantic keys rather than wording, so
+     * refinement cannot weaken cross-day repetition control; the highlight texts used for
+     * paraphrase detection are recomputed from the copy that shipped.
+     */
+    private PersonalPlanComposer.Composition applyRefinement(
+            PersonalPlanComposer.Composition composition, String locale) {
+        if (composition == null) {
+            return null;
+        }
+        DailyActionsDTO refined = refiner.refine(composition.payload(), locale);
+        if (refined == null || refined == composition.payload()) {
+            return composition;
+        }
+        return new PersonalPlanComposer.Composition(
+                refined, composition.fingerprints(), highlightTexts(refined), composition.signalUsage());
+    }
+
+    private List<String> highlightTexts(DailyActionsDTO payload) {
+        List<String> highlights = new ArrayList<>();
+        if (payload.primaryAction() != null) {
+            highlights.add(payload.primaryAction().description());
+        }
+        if (payload.lifeAreaCards() != null) {
+            payload.lifeAreaCards().forEach(card -> highlights.add(card.description()));
+        }
+        if (payload.caution() != null) {
+            highlights.add(payload.caution().description());
+        }
+        return highlights.stream().filter(text -> text != null && !text.isBlank()).toList();
     }
 
     private Optional<TransitCalculator.MoonAspectPeak> safeMoonPeak(
@@ -415,6 +452,7 @@ public class PersonalPlanService {
 
         return new DailyActionsDTO(
                 payload.date(), payload.header(), actions, payload.miniPlan(),
+                payload.homeTeaser(),
                 payload.personalizationLevel(), payload.profileSignalsUsed(), payload.mainTheme(),
                 primary, payload.timeline(), cards, payload.caution(), payload.eveningReflection(),
                 payload.meta());
@@ -428,7 +466,7 @@ public class PersonalPlanService {
     // Minimal fallback — real astrology only, no motivational filler
     // ─────────────────────────────────────────────────────────────────────────
 
-    private DailyActionsDTO minimalPlan(DailyTransitsDTO transits, LocalDate localDate, boolean english) {
+    public DailyActionsDTO buildMinimalPlan(DailyTransitsDTO transits, LocalDate localDate, boolean english) {
         String headline = transits.hero() != null ? transits.hero().headline() : null;
         String supporting = transits.hero() != null ? transits.hero().supporting() : null;
 
@@ -448,6 +486,11 @@ public class PersonalPlanService {
                 new DailyActionsDTO.Header(title, description),
                 List.of(),
                 new DailyActionsDTO.MiniPlan("Mini Plan", List.of()),
+                new DailyActionsDTO.HomeTeaser(
+                        english ? "Your chart's strongest signal is still being resolved."
+                                : "Haritanızdaki en güçlü sinyal hâlâ netleştiriliyor.",
+                        english ? "Open the plan again shortly for a specific next move."
+                                : "Somut hamleniz için planı kısa süre sonra yeniden açın."),
                 "LOW",
                 List.of(SignalUsageRecorder.ACTIVE_TRANSITS),
                 theme,
@@ -465,10 +508,18 @@ public class PersonalPlanService {
     // Misc
     // ─────────────────────────────────────────────────────────────────────────
 
-    private Set<PlanFeedbackReason> recentNegativeReasons(Long userId, LocalDate localDate) {
+    private record FeedbackPreferences(
+            Set<PlanFeedbackReason> negativeReasons,
+            Map<LifeArea, Integer> lifeAreaWeights,
+            Set<String> preferredActionIntents
+    ) {}
+
+    private FeedbackPreferences recentFeedbackPreferences(Long userId, LocalDate localDate) {
         Set<PlanFeedbackReason> reasons = EnumSet.noneOf(PlanFeedbackReason.class);
+        Map<LifeArea, Integer> areaWeights = new LinkedHashMap<>();
+        Set<String> preferredIntents = new LinkedHashSet<>();
         List<UserFeedback> recent = feedbackRepository.findTop120ByUserIdOrderByCreatedAtDesc(userId);
-        LocalDate from = localDate.minusDays(Math.max(1, properties.getHistoryDays()));
+        LocalDate from = localDate.minusDays(Math.max(1, properties.getFeedbackInfluenceDays()));
         for (UserFeedback feedback : recent) {
             if (feedback.getFeedbackDate() == null || feedback.getFeedbackDate().isBefore(from)) {
                 continue;
@@ -477,8 +528,33 @@ public class PersonalPlanService {
             if (reason != null && reason != PlanFeedbackReason.HELPFUL) {
                 reasons.add(reason);
             }
+            LifeArea area = lifeAreaFromActionId(feedback.getItemId());
+            if (reason == PlanFeedbackReason.NOT_RELEVANT && area != null) {
+                areaWeights.merge(area, -Math.abs(properties.getNotRelevantAreaPenalty()), Integer::sum);
+            } else if (reason == PlanFeedbackReason.HELPFUL && area != null) {
+                areaWeights.merge(area, Math.max(0, properties.getHelpfulAreaBoost()), Integer::sum);
+                String intent = actionIntentFromActionId(feedback.getItemId(), area);
+                if (intent != null) {
+                    preferredIntents.add(intent);
+                }
+            }
         }
-        return reasons;
+        return new FeedbackPreferences(Set.copyOf(reasons), Map.copyOf(areaWeights), Set.copyOf(preferredIntents));
+    }
+
+    private LifeArea lifeAreaFromActionId(String itemId) {
+        if (itemId == null) return null;
+        for (LifeArea area : LifeArea.values()) {
+            if (itemId.startsWith("plan-" + area.slug() + "-")) return area;
+        }
+        return null;
+    }
+
+    private String actionIntentFromActionId(String itemId, LifeArea area) {
+        if (itemId == null || area == null) return null;
+        String prefix = "plan-" + area.slug() + "-";
+        if (!itemId.startsWith(prefix) || itemId.length() == prefix.length()) return null;
+        return itemId.substring(prefix.length());
     }
 
     /**

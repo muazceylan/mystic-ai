@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { envConfig } from '../config/env';
 
 export type AmplitudePrimitive = string | number | boolean | null;
@@ -35,6 +36,9 @@ let initialized = false;
 let permanentlyDisabled = false;
 let didWarnUnavailable = false;
 let amplitudeModule: AmplitudeModule | null = null;
+let collectionAllowed = Platform.OS === 'ios'
+  ? false
+  : analyticsConfig.collectionEnabledByDefault;
 
 function hasAmplitudeApiKey(): boolean {
   return Boolean(analyticsConfig.apiKey);
@@ -108,7 +112,7 @@ export function initializeAmplitudeClient(): Promise<void> {
     )
       .then(() => {
         initialized = true;
-        amplitude.setOptOut?.(!analyticsConfig.collectionEnabledByDefault);
+        amplitude.setOptOut?.(!collectionAllowed);
       })
       .catch((error) => {
         initPromise = null;
@@ -124,7 +128,7 @@ export function trackAmplitudeClientEvent(
   eventName: string,
   properties?: AmplitudeProperties,
 ): void {
-  if (!canUseAmplitude()) {
+  if (!canUseAmplitude() || !collectionAllowed) {
     return;
   }
 
@@ -143,7 +147,7 @@ export function trackAmplitudeClientEvent(
 }
 
 export function setAmplitudeClientUserId(userId: string | null): void {
-  if (!canUseAmplitude()) {
+  if (!canUseAmplitude() || !collectionAllowed) {
     return;
   }
 
@@ -161,7 +165,7 @@ export function setAmplitudeClientUserId(userId: string | null): void {
 export function identifyAmplitudeClientUserProperties(
   properties: AmplitudeProperties,
 ): void {
-  if (!canUseAmplitude()) {
+  if (!canUseAmplitude() || !collectionAllowed) {
     return;
   }
 
@@ -193,7 +197,12 @@ export function identifyAmplitudeClientUserProperties(
 }
 
 export function setAmplitudeClientOptOut(optOut: boolean): void {
+  collectionAllowed = !optOut;
   if (!canUseAmplitude()) {
+    return;
+  }
+
+  if (optOut && !initialized) {
     return;
   }
 
@@ -209,7 +218,7 @@ export function setAmplitudeClientOptOut(optOut: boolean): void {
 }
 
 export function resetAmplitudeClient(): void {
-  if (!canUseAmplitude()) {
+  if (!canUseAmplitude() || !collectionAllowed) {
     return;
   }
 

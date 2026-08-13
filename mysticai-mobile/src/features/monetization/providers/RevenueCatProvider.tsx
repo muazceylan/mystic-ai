@@ -14,9 +14,15 @@ import {
   getRevenueCatSdkConfigFromMonetizationConfig,
   isRevenueCatSupportedPlatform,
   logoutRevenueCat,
+  REVENUECAT_PREMIUM_ENTITLEMENT_ID,
   toRevenueCatSyncPayload,
   toSafeRevenueCatErrorMessage,
 } from '../services/revenueCatService';
+import {
+  createLoadingSubscriptionSnapshot,
+  createUnavailableSubscriptionSnapshot,
+  toSubscriptionSnapshot,
+} from '../services/subscriptionSnapshot';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 
@@ -39,6 +45,8 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
   const userId = useAuthStore((state) => state.user?.id);
   const monetizationConfig = useMonetizationStore((state) => state.config);
   const setRevenueCatState = useMonetizationStore((state) => state.setRevenueCatState);
+  const setSubscription = useMonetizationStore((state) => state.setSubscription);
+  const revenueCatReady = useMonetizationStore((state) => state.revenueCat.ready);
   const resetBillingState = useMonetizationStore((state) => state.resetBillingState);
   const lastSyncedRequestDateRef = useRef<string | null>(null);
   const lastLoggedInUserIdRef = useRef<string | null>(null);
@@ -50,6 +58,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
 
     if (!isRevenueCatSupportedPlatform()) {
       setRevenueCatState(getRevenueCatInitialState());
+      setSubscription(createUnavailableSubscriptionSnapshot('unsupported_platform'));
       return;
     }
 
@@ -62,6 +71,11 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
       && initialRevenueCatState.disabledReason !== 'user_not_authenticated'
     ) {
       setRevenueCatState(initialRevenueCatState);
+      if (initialRevenueCatState.disabledReason === 'not_initialized' && isAuthenticated && userId) {
+        setSubscription(createLoadingSubscriptionSnapshot(String(userId)));
+        return;
+      }
+      setSubscription(createUnavailableSubscriptionSnapshot(initialRevenueCatState.disabledReason));
       return;
     }
 
@@ -76,6 +90,11 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const existingSubscription = useMonetizationStore.getState().subscription;
+    if (existingSubscription.appUserId !== appUserId || existingSubscription.status === 'unavailable') {
+      setSubscription(createLoadingSubscriptionSnapshot(appUserId));
+    }
+
     let cancelled = false;
 
     const initialize = async () => {
@@ -88,6 +107,11 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
 
         lastLoggedInUserIdRef.current = appUserId;
         lastSyncedRequestDateRef.current = customerInfo.requestDate ?? null;
+        setSubscription(toSubscriptionSnapshot(
+          customerInfo,
+          REVENUECAT_PREMIUM_ENTITLEMENT_ID,
+          appUserId,
+        ));
         setRevenueCatState({
           supported: true,
           configured: true,
@@ -100,12 +124,22 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
           diagnostics: getRevenueCatDiagnostics(runtimeConfig),
         });
 
-        await syncCustomerInfo(customerInfo, appUserId, runtimeConfig);
+        void syncCustomerInfo(customerInfo, appUserId, runtimeConfig).catch((syncError) => {
+          setRevenueCatState({ error: toSafeRevenueCatErrorMessage(syncError) });
+        });
       } catch (error) {
         if (cancelled) {
           return;
         }
 
+        const existing = useMonetizationStore.getState().subscription;
+        if (existing.appUserId !== appUserId || existing.status === 'loading') {
+          setSubscription({
+            ...createUnavailableSubscriptionSnapshot(toSafeRevenueCatErrorMessage(error)),
+            status: 'error',
+            appUserId,
+          });
+        }
         setRevenueCatState({
           supported: true,
           configured: false,
@@ -123,7 +157,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, isHydrated, monetizationConfig, resetBillingState, setRevenueCatState, userId]);
+  }, [isAuthenticated, isHydrated, monetizationConfig, resetBillingState, setRevenueCatState, setSubscription, userId]);
 
   useEffect(() => {
     const appUserId = getRevenueCatAppUserId(isAuthenticated ? userId : null);
@@ -131,13 +165,18 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!useMonetizationStore.getState().revenueCat.ready) {
+    if (!revenueCatReady) {
       return;
     }
 
     const runtimeConfig = getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig);
     const removeListener = addRevenueCatCustomerInfoListener((customerInfo) => {
       const requestDate = customerInfo.requestDate ?? null;
+      setSubscription(toSubscriptionSnapshot(
+        customerInfo,
+        REVENUECAT_PREMIUM_ENTITLEMENT_ID,
+        appUserId,
+      ));
       setRevenueCatState({
         lastCustomerInfoAt: requestDate ?? new Date().toISOString(),
       });
@@ -155,7 +194,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     });
 
     return removeListener;
-  }, [isAuthenticated, isHydrated, monetizationConfig, setRevenueCatState, userId]);
+  }, [isAuthenticated, isHydrated, monetizationConfig, revenueCatReady, setRevenueCatState, setSubscription, userId]);
 
   return <>{children}</>;
 }

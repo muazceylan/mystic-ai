@@ -37,6 +37,8 @@ interface BottomSheetProps {
   dragHandleStyle?: StyleProp<ViewStyle>;
   blurBackdrop?: boolean;
   showDragHandle?: boolean;
+  /** Restrict dismiss drag to the header/handle so nested scroll views own vertical gestures. */
+  dragHandleOnly?: boolean;
 }
 
 export function BottomSheet({
@@ -50,6 +52,7 @@ export function BottomSheet({
   dragHandleStyle,
   blurBackdrop = false,
   showDragHandle = true,
+  dragHandleOnly = false,
 }: BottomSheetProps) {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
@@ -100,6 +103,22 @@ export function BottomSheet({
     opacity: backdropOpacity.value,
   }));
 
+  const dragZone = showDragHandle || title ? (
+    <View style={s.dragZone}>
+      {showDragHandle ? <View style={[s.dragHandle, dragHandleStyle]} /> : null}
+      {title ? <Text style={[s.title, titleStyle]}>{title}</Text> : null}
+    </View>
+  ) : null;
+
+  const sheet = (
+    <Animated.View style={[s.sheet, sheetStyle, sheetStyleOverride]}>
+      {dragHandleOnly && dragZone ? (
+        <GestureDetector gesture={gesture}>{dragZone}</GestureDetector>
+      ) : dragZone}
+      <View style={[s.content, contentStyle]}>{children}</View>
+    </Animated.View>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -114,29 +133,18 @@ export function BottomSheet({
         style={s.wrapper}
       >
         <Animated.View style={[s.backdrop, backdropStyle]}>
-          {blurBackdrop ? (
+          {blurBackdrop && Platform.OS === 'ios' ? (
             <BlurView
               intensity={28}
               tint="dark"
               style={StyleSheet.absoluteFill}
-              experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
             />
           ) : null}
           <View style={s.backdropDim} pointerEvents="none" />
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <GestureDetector gesture={gesture}>
-          <Animated.View style={[s.sheet, sheetStyle, sheetStyleOverride]}>
-            {showDragHandle || title ? (
-              <View style={s.dragZone}>
-                {showDragHandle ? <View style={[s.dragHandle, dragHandleStyle]} /> : null}
-                {title ? <Text style={[s.title, titleStyle]}>{title}</Text> : null}
-              </View>
-            ) : null}
-            <View style={[s.content, contentStyle]}>{children}</View>
-          </Animated.View>
-        </GestureDetector>
+        {dragHandleOnly ? sheet : <GestureDetector gesture={gesture}>{sheet}</GestureDetector>}
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -163,7 +171,9 @@ function createStyles(C: ThemeColors, maxSheetHeight: number, bottomPadding: num
       paddingBottom: bottomPadding,
     },
     dragZone: {
+      minHeight: 44,
       paddingTop: SPACING.sm,
+      justifyContent: 'center',
     },
     dragHandle: {
       width: 36,

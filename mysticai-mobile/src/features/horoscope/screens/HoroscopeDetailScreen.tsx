@@ -7,7 +7,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import * as Sharing from 'expo-sharing';
 import { useTheme, ThemeColors } from '../../../context/ThemeContext';
@@ -25,6 +26,11 @@ import {
   FEATURE_MODULE_KEYS,
   useModuleMonetization,
 } from '../../monetization';
+import { useAuthStore } from '../../../store/useAuthStore';
+import { resolveUserScopeKey } from '../../../store/userScopedPersist';
+import { queryKeys } from '../../../lib/queryKeys';
+import { getDailyActions, getTodayIsoDate } from '../../../services/daily.service';
+import { trackEvent } from '../../../services/analytics';
 
 type HoroscopeSectionKey = keyof HoroscopeResponse['sections'];
 type HoroscopeSectionConfig = {
@@ -68,6 +74,16 @@ export default function HoroscopeDetailScreen() {
   const S = makeStyles(colors, isDark);
   const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase();
   const monetization = useModuleMonetization(FEATURE_MODULE_KEYS.HOROSCOPE);
+  const user = useAuthStore((state) => state.user);
+  const userScopeKey = resolveUserScopeKey(user);
+  const dailyPlanDate = React.useMemo(() => getTodayIsoDate(), []);
+  const dailyPlanLocale = lang.startsWith('en') ? 'en' : 'tr';
+  const dailyPlanQuery = useQuery({
+    queryKey: queryKeys.dailyActions(dailyPlanDate, dailyPlanLocale, userScopeKey),
+    queryFn: () => getDailyActions(dailyPlanDate, dailyPlanLocale, userScopeKey),
+    enabled: Boolean(user?.id),
+    staleTime: 1000 * 60 * 60 * 6,
+  });
   const horoscopeUnlockState = monetization.getActionUnlockState(FEATURE_ACTION_KEYS.HOROSCOPE_VIEW);
   const [unlockedContentKey, setUnlockedContentKey] = React.useState<string | null>(null);
   const [showUnlockSheet, setShowUnlockSheet] = React.useState(false);
@@ -225,15 +241,51 @@ export default function HoroscopeDetailScreen() {
           showsVerticalScrollIndicator={false}
         >
           {horoscopeSections.map((section) => (
-            <View key={section.key} style={S.card}>
-              <View style={S.cardHeader}>
-                <View style={[S.cardIconWrap, { backgroundColor: `${section.accentColor}1A` }]}>
-                  <Ionicons name={section.icon} size={18} color={section.accentColor} />
+            <React.Fragment key={section.key}>
+              <View style={S.card}>
+                <View style={S.cardHeader}>
+                  <View style={[S.cardIconWrap, { backgroundColor: `${section.accentColor}1A` }]}>
+                    <Ionicons name={section.icon} size={18} color={section.accentColor} />
+                  </View>
+                  <Text style={S.cardTitle}>
+                    {section.key === 'general' ? t('horoscope.generalContext') : section.title}
+                  </Text>
                 </View>
-                <Text style={S.cardTitle}>{section.title}</Text>
+                <Text style={S.bodyText}>{section.content}</Text>
               </View>
-              <Text style={S.bodyText}>{section.content}</Text>
-            </View>
+
+              {section.key === 'general' && dailyPlanQuery.data?.mainTheme ? (
+                <Pressable
+                  onPress={() => {
+                    trackEvent('personal_plan_viewed', {
+                      source: 'horoscope_detail',
+                      surface: 'horoscope_detail',
+                      personalization_level: dailyPlanQuery.data?.personalizationLevel,
+                      locale: dailyPlanLocale,
+                    });
+                    router.push('/(tabs)/today-actions');
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('horoscope.openPersonalPlan')}
+                  style={({ pressed }) => [S.chartContextCard, pressed && S.chartContextPressed]}
+                >
+                  <View style={S.cardHeader}>
+                    <View style={[S.cardIconWrap, S.chartContextIcon]}>
+                      <Ionicons name="planet-outline" size={18} color={colors.horoscopeAccent} />
+                    </View>
+                    <View style={S.chartContextHeading}>
+                      <Text style={S.chartContextEyebrow}>{t('horoscope.yourChartToday')}</Text>
+                      <Text style={S.cardTitle}>{dailyPlanQuery.data.mainTheme.title}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.horoscopeAccent} />
+                  </View>
+                  <Text style={S.bodyText}>{dailyPlanQuery.data.mainTheme.description}</Text>
+                  {dailyPlanQuery.data.primaryAction?.title ? (
+                    <Text style={S.chartContextAction}>{dailyPlanQuery.data.primaryAction.title}</Text>
+                  ) : null}
+                </Pressable>
+              ) : null}
+            </React.Fragment>
           ))}
 
           {/* Source badge */}
@@ -363,6 +415,35 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderWidth: 1,
       borderColor: isDark ? 'rgba(255,255,255,0.08)' : C.border,
       gap: SPACING.md,
+    },
+    chartContextCard: {
+      backgroundColor: isDark ? 'rgba(168,85,247,0.12)' : C.primarySoftBg,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(168,85,247,0.34)' : C.horoscopeAccent,
+      gap: SPACING.md,
+    },
+    chartContextPressed: {
+      opacity: 0.8,
+    },
+    chartContextIcon: {
+      backgroundColor: isDark ? 'rgba(168,85,247,0.18)' : C.surface,
+    },
+    chartContextHeading: {
+      flex: 1,
+      gap: 2,
+    },
+    chartContextEyebrow: {
+      ...TYPOGRAPHY.CaptionBold,
+      color: C.horoscopeAccent,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    chartContextAction: {
+      ...TYPOGRAPHY.BodyBold,
+      color: C.text,
+      lineHeight: 22,
     },
     cardHeader: {
       flexDirection: 'row',

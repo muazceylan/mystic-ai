@@ -9,9 +9,11 @@ import {
   isRevenueCatPremiumActive,
   isRevenueCatPurchaseCancelled,
   purchaseRevenueCatPackage,
+  REVENUECAT_PREMIUM_ENTITLEMENT_ID,
   toRevenueCatSyncPayload,
   toSafeRevenueCatErrorMessage,
 } from '../services/revenueCatService';
+import { toSubscriptionSnapshot } from '../services/subscriptionSnapshot';
 import { useMonetizationStore } from '../store/useMonetizationStore';
 import type { ResolvedPaywallProduct } from '../types/billing';
 import {
@@ -24,7 +26,6 @@ type PurchasePremiumStatus =
   | 'idle'
   | 'processing'
   | 'success'
-  | 'pending_backend'
   | 'cancelled'
   | 'failed';
 
@@ -33,6 +34,7 @@ export function usePurchasePremium() {
   const userId = useAuthStore((state) => state.user?.id);
   const revenueCatState = useMonetizationStore((state) => state.revenueCat);
   const monetizationConfig = useMonetizationStore((state) => state.config);
+  const setSubscription = useMonetizationStore((state) => state.setSubscription);
   const [status, setStatus] = useState<PurchasePremiumStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -75,17 +77,27 @@ export function usePurchasePremium() {
 
       const result = await purchaseRevenueCatPackage(product.revenueCatPackage);
       const revenueCatPremiumActive = isRevenueCatPremiumActive(result.customerInfo);
-      await syncRevenueCatBilling(
-        toRevenueCatSyncPayload(
-          result.customerInfo,
-          getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig),
-          result,
-        ),
-      );
-      const refreshed = await refreshMonetizationState(queryClient, userId);
+      setSubscription(toSubscriptionSnapshot(
+        result.customerInfo,
+        REVENUECAT_PREMIUM_ENTITLEMENT_ID,
+        String(userId),
+      ));
 
-      if (revenueCatPremiumActive || refreshed.entitlements?.premiumActive) {
-        if (refreshed.entitlements?.trialing) {
+      const syncPayload = toRevenueCatSyncPayload(
+        result.customerInfo,
+        getRevenueCatSdkConfigFromMonetizationConfig(monetizationConfig),
+        result,
+      );
+      const [syncResult] = await Promise.allSettled([
+        syncRevenueCatBilling(syncPayload),
+      ]);
+      const [refreshResult] = await Promise.allSettled([
+        refreshMonetizationState(queryClient, userId),
+      ]);
+
+      if (revenueCatPremiumActive) {
+        const refreshed = refreshResult.status === 'fulfilled' ? refreshResult.value : null;
+        if (refreshed?.entitlements?.trialing) {
           trackMonetizationEvent('trial_started', {
             product_key: product.productKey,
           });
@@ -94,17 +106,23 @@ export function usePurchasePremium() {
           product_key: product.productKey,
           store_product_id: result.productIdentifier,
         });
+        trackMonetizationEvent('premium_activated', {
+          product_key: product.productKey,
+          entitlement_id: REVENUECAT_PREMIUM_ENTITLEMENT_ID,
+          backend_sync_succeeded: syncResult.status === 'fulfilled',
+        });
         setStatus('success');
         return { status: 'success' as const };
       }
 
-      trackMonetizationEvent('subscription_purchase_completed', {
+      trackMonetizationEvent('premium_purchase_entitlement_missing', {
         product_key: product.productKey,
         store_product_id: result.productIdentifier,
-        pending_backend: true,
       });
-      setStatus('pending_backend');
-      return { status: 'pending_backend' as const };
+      const message = 'Purchase completed, but the Premium entitlement is not active.';
+      setStatus('failed');
+      setError(message);
+      return { status: 'failed' as const, error: message };
     } catch (purchaseError) {
       if (isRevenueCatPurchaseCancelled(purchaseError)) {
         trackMonetizationEvent('premium_purchase_cancelled', {
@@ -124,7 +142,7 @@ export function usePurchasePremium() {
       setError(message);
       return { status: 'failed' as const, error: message };
     }
-  }, [monetizationConfig, queryClient, revenueCatState.ready, userId]);
+  }, [monetizationConfig, queryClient, revenueCatState.ready, setSubscription, userId]);
 
   const reset = useCallback(() => {
     setStatus('idle');

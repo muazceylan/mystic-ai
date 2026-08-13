@@ -10,11 +10,12 @@ import type {
   PaywallResponse,
 } from '../types';
 import { fetchMonetizationConfig, clearMonetizationCache } from '../api/monetization.service';
-import type { RevenueCatRuntimeState } from '../types/billing';
+import type { RevenueCatRuntimeState, SubscriptionSnapshot } from '../types/billing';
 import {
   getRevenueCatInitialState,
   getRevenueCatSdkConfigFromMonetizationConfig,
 } from '../services/revenueCatService';
+import { createUnavailableSubscriptionSnapshot } from '../services/subscriptionSnapshot';
 
 const EXPOSURE_STORAGE_KEY = 'monetization_exposure_state';
 
@@ -85,6 +86,7 @@ interface MonetizationState {
   paywall: PaywallResponse | null;
   entitlements: EntitlementSnapshot | null;
   revenueCat: RevenueCatRuntimeState;
+  subscription: SubscriptionSnapshot;
   loading: boolean;
   lastFetchedAt: number;
   exposureState: Record<string, AdExposureState>;
@@ -94,6 +96,7 @@ interface MonetizationState {
   setPaywall: (paywall: PaywallResponse | null) => void;
   setEntitlements: (snapshot: EntitlementSnapshot | null) => void;
   setRevenueCatState: (patch: Partial<RevenueCatRuntimeState>) => void;
+  setSubscription: (snapshot: SubscriptionSnapshot) => void;
   resetBillingState: () => void;
 
   getModuleRule: (moduleKey: string) => ModuleRule | undefined;
@@ -142,6 +145,7 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
   paywall: null,
   entitlements: null,
   revenueCat: getRevenueCatInitialState(null, { remoteConfigResolved: false }),
+  subscription: createUnavailableSubscriptionSnapshot(),
   loading: false,
   lastFetchedAt: 0,
   exposureState: {},
@@ -192,10 +196,24 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
       },
     })),
 
+  setSubscription: (subscription) => {
+    if (__DEV__) {
+      console.info('[Subscription] State updated', {
+        appUserId: subscription.appUserId ?? null,
+        entitlementId: subscription.entitlementId ?? null,
+        premiumActive: subscription.isPremium,
+        productId: subscription.productId ?? null,
+        status: subscription.status,
+      });
+    }
+    set({ subscription });
+  },
+
   resetBillingState: () =>
     set((state) => ({
       paywall: null,
       entitlements: null,
+      subscription: createUnavailableSubscriptionSnapshot(),
       revenueCat: getRevenueCatInitialState(
         getRevenueCatSdkConfigFromMonetizationConfig(state.config),
         { remoteConfigResolved: state.config !== null },

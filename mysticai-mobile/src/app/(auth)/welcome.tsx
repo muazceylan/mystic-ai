@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Defs, Line, Path, RadialGradient, Stop } from 'react-native-svg';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles, UserRound } from 'lucide-react-native';
@@ -610,7 +611,23 @@ function makeStyles(compact: boolean) {
     },
     appleButton: {
       width: '100%',
-      height: compact ? 54 : 58,
+      minHeight: compact ? 54 : 58,
+      borderRadius: 17,
+      backgroundColor: '#000000',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 10,
+    },
+    appleButtonDisabled: {
+      opacity: 0.55,
+    },
+    appleButtonText: {
+      color: '#FFFFFF',
+      fontSize: compact ? 16 : 17,
+      lineHeight: 23,
+      fontWeight: '500',
+      letterSpacing: 0,
     },
     socialText: {
       fontSize: compact ? 16 : 17,
@@ -1234,17 +1251,21 @@ export default function WelcomeScreen() {
               </TouchableOpacity>
 
               {Platform.OS === 'ios' && (
-                <AppleAuthentication.AppleAuthenticationButton
-                  style={styles.appleButton}
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={17}
+                <TouchableOpacity
+                  style={[
+                    styles.appleButton,
+                    (loading || quickStartLoading) && styles.appleButtonDisabled,
+                  ]}
                   onPress={handleAppleLogin}
-                  pointerEvents={loading || quickStartLoading ? 'none' : 'auto'}
+                  disabled={loading || quickStartLoading}
                   accessibilityLabel={t('auth.loginWithApple')}
                   accessibilityRole="button"
                   accessibilityState={{ disabled: loading || quickStartLoading }}
-                />
+                  activeOpacity={0.84}
+                >
+                  <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
+                  <Text style={styles.appleButtonText}>{t('auth.loginWithApple')}</Text>
+                </TouchableOpacity>
               )}
             </View>
 

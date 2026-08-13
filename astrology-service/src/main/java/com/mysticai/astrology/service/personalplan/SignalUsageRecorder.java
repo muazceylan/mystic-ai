@@ -19,6 +19,8 @@ public final class SignalUsageRecorder {
     /** Stable signal names exposed in the API payload and analytics. */
     public static final String ACTIVE_TRANSITS = "active_transits";
     public static final String NATAL_HOUSES = "natal_houses";
+    public static final String SUN_SIGN = "sun_sign";
+    public static final String MOON_SIGN = "moon_sign";
     public static final String RISING_SIGN = "rising_sign";
     public static final String RETROGRADES = "retrogrades";
     public static final String RELATIONSHIP_STATUS = "relationship_status";

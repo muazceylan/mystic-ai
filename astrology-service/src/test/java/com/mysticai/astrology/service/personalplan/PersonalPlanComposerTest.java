@@ -15,6 +15,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -140,13 +141,14 @@ class PersonalPlanComposerTest {
     @Test
     @DisplayName("personalizationLevel is derived from used signals, not from available fields")
     void personalizationLevelFollowsActualUsage() {
-        // Rich profile but no house data and no rising sign: nothing profile-derived can apply.
+        // No houses or rising sign, but the natal-Sun target legitimately activates sun-sign copy.
         PersonalPlanSignals thin = PersonalPlanSignals.build(
                 9L, DATE, false, fullProfile(), "Leo", null, null, false, 0, Set.of());
         PersonalPlanComposer.Composition result = compose(thin, transitsWithoutHouses());
 
-        assertThat(result.payload().personalizationLevel()).isEqualTo("LOW");
-        assertThat(result.payload().profileSignalsUsed()).containsExactly(SignalUsageRecorder.ACTIVE_TRANSITS);
+        assertThat(result.payload().personalizationLevel()).isEqualTo("MEDIUM");
+        assertThat(result.payload().profileSignalsUsed())
+                .contains(SignalUsageRecorder.ACTIVE_TRANSITS, SignalUsageRecorder.SUN_SIGN);
     }
 
     // ─── semanticKey duplicate rules ────────────────────────────────────────
@@ -367,7 +369,7 @@ class PersonalPlanComposerTest {
     void everySuggestionIsAstrologicallyGrounded() {
         PersonalPlanComposer.Composition result = compose(signals(fullProfile(), false, "Scorpio"), transits());
 
-        assertThat(result.payload().primaryAction().why()).isNotBlank().contains("alanınızdan geçiyor");
+        assertThat(result.payload().primaryAction().why()).isNotBlank().contains("somut nedeni");
         result.payload().lifeAreaCards().forEach(card -> assertThat(card.why()).isNotBlank());
         assertThat(result.payload().caution().why()).isNotBlank();
         assertThat(result.payload().primaryAction().why()).doesNotContain("orb");
@@ -396,6 +398,179 @@ class PersonalPlanComposerTest {
         assertThat(result.payload().primaryAction().timeWindow()).isNull();
     }
 
+    @Test
+    @DisplayName("structured Mercury retrograde creates sharp but probabilistic single-user copy")
+    void structuredRetrogradeDrivesScenarioCopy() {
+        PersonalPlanSignals single = signals(profile("Bekar", LocalDate.of(1992, 3, 8)), false, "Aries");
+        PersonalPlanComposer.Composition result = compose(
+                single, List.of(transit("retro-relationship", "Merkür", "7", "Dikkat", 96)));
+
+        assertThat(result.payload().primaryAction().description())
+                .startsWith("Merkür retrosu geçmişten birinin mesajını getirebilir")
+                .doesNotContain("mesaj atacak");
+        assertThat(result.payload().profileSignalsUsed())
+                .contains(SignalUsageRecorder.RETROGRADES, SignalUsageRecorder.RELATIONSHIP_STATUS);
+    }
+
+    @Test
+    @DisplayName("unknown relationship status never receives past-person wording")
+    void unknownStatusDoesNotReceivePastPersonScenario() {
+        PersonalPlanSignals unknown = signals(profile(null, LocalDate.of(1992, 3, 8)), false, "Aries");
+        PersonalPlanComposer.Composition result = compose(
+                unknown, List.of(transit("retro-neutral", "Merkür", "7", "Dikkat", 96)));
+
+        assertThat(result.payload().primaryAction().description())
+                .startsWith("Merkür retrosu yarım kalmış bir mesajı")
+                .doesNotContain("geçmişten birinin");
+    }
+
+    @Test
+    @DisplayName("sun-sign wording appears only when the transit targets the natal Sun")
+    void signWordingRequiresMatchingNatalTarget() {
+        PersonalPlanSignals ariesSun = PersonalPlanSignals.build(
+                77L, DATE, false, profile(null, LocalDate.of(1992, 3, 8)),
+                "Aries", "Cancer", null, true, 0, Set.of());
+        DailyTransitsDTO noRetro = dto(
+                List.of(transit("sun-family", "Mars", "4", "Dikkat", 96)), List.of());
+        PersonalPlanComposer.Composition result = composer.compose(new PersonalPlanComposer.Inputs(
+                noRetro, ariesSun, DATE, ZONE, Set.of(), List.of(), Optional.empty(), 1, Instant.now()));
+
+        assertThat(result.payload().primaryAction().description()).startsWith("Koç vurgunuz");
+        assertThat(result.payload().profileSignalsUsed()).contains(SignalUsageRecorder.SUN_SIGN);
+    }
+
+    /**
+     * The home card renders headline in its title style and body under the "key move" eyebrow,
+     * so the headline is a heading (no terminal punctuation) and the body a complete instruction.
+     */
+    @Test
+    @DisplayName("home teaser pairs a bounded heading with a complete instruction")
+    void homeTeaserIsCompleteAndBounded() {
+        PersonalPlanComposer.Composition result = compose(signals(fullProfile(), false, "Libra"), transits());
+
+        assertThat(result.payload().homeTeaser()).isNotNull();
+        assertThat(result.payload().homeTeaser().headline())
+                .isNotBlank()
+                .doesNotEndWith(".")
+                .hasSizeLessThanOrEqualTo(60);
+        assertThat(result.payload().homeTeaser().body())
+                .matches(".*[.!?]$")
+                .hasSizeLessThanOrEqualTo(160);
+    }
+
+    @Test
+    @DisplayName("user seed produces multiple variants for the same sky")
+    void differentUsersDoNotAllReceiveTheSamePlan() {
+        Set<String> descriptions = new HashSet<>();
+        for (long userId = 1; userId <= 16; userId++) {
+            PersonalPlanSignals userSignals = PersonalPlanSignals.build(
+                    userId, DATE, false, profile(null, LocalDate.of(1992, 3, 8)),
+                    "Libra", "Cancer", null, true, 1, Set.of());
+            descriptions.add(compose(userSignals, transits()).payload().primaryAction().description());
+        }
+        assertThat(descriptions).hasSizeGreaterThanOrEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("same Scorpio Sun with different natal and transit context produces semantically different plans")
+    void sameSunSignDifferentChartsProduceDifferentPlans() {
+        PersonalPlanSignals userA = PersonalPlanSignals.build(
+                101L, DATE, false, profile(null, LocalDate.of(1990, 11, 4)),
+                "Scorpio", "Taurus", "Capricorn", true, 0, Set.of());
+        PersonalPlanSignals userB = PersonalPlanSignals.build(
+                202L, DATE, false, profile(null, LocalDate.of(1992, 11, 12)),
+                "Scorpio", "Pisces", "Gemini", true, 0, Set.of());
+
+        PersonalPlanComposer.Composition planA = compose(userA, List.of(
+                transit("a-mars-7", "Mars", "7", "Dikkat", 98),
+                transit("a-venus-2", "Venüs", "2", "Destekleyici", 82),
+                transit("a-moon-4", "Ay", "4", "Destekleyici", 74)));
+        PersonalPlanComposer.Composition planB = compose(userB, List.of(
+                transit("b-saturn-10", "Satürn", "10", "Dikkat", 120),
+                transit("b-mercury-3", "Merkür", "3", "Destekleyici", 82),
+                transit("b-jupiter-9", "Jüpiter", "9", "Destekleyici", 74)));
+
+        DailyActionsDTO left = planA.payload();
+        DailyActionsDTO right = planB.payload();
+
+        assertThat(left.mainTheme().title()).isNotEqualTo(right.mainTheme().title());
+        assertThat(left.primaryAction().category()).isEqualTo("relationship");
+        assertThat(right.primaryAction().category()).isEqualTo("work");
+        assertThat(left.primaryAction().description()).isNotEqualTo(right.primaryAction().description());
+        assertThat(left.caution().description()).isNotEqualTo(right.caution().description());
+        assertThat(left.lifeAreaCards().stream().map(DailyActionsDTO.LifeAreaCard::category).toList())
+                .doesNotContainSequence(
+                        right.lifeAreaCards().stream().map(DailyActionsDTO.LifeAreaCard::category).toList());
+    }
+
+    @Test
+    @DisplayName("same Sun and sky with a relevant rising-sign ruler changes the leading life area")
+    void sameSunDifferentRisingSignChangesPlanWhereRelevant() {
+        UserPersonalContext context = profile(null, LocalDate.of(1991, 11, 8));
+        PersonalPlanSignals ariesRising = PersonalPlanSignals.build(
+                301L, DATE, false, context, "Scorpio", "Taurus", "Aries", true, 0, Set.of());
+        PersonalPlanSignals geminiRising = PersonalPlanSignals.build(
+                302L, DATE, false, context, "Scorpio", "Taurus", "Gemini", true, 0, Set.of());
+        List<DailyTransitsDTO.TransitItem> tiedSky = List.of(
+                transit("mars-7", "Mars", "7", "Dikkat", 90),
+                transit("mercury-3", "Merkür", "3", "Dikkat", 90),
+                transit("venus-2", "Venüs", "2", "Destekleyici", 76));
+
+        DailyActionsDTO ariesPlan = compose(ariesRising, tiedSky).payload();
+        DailyActionsDTO geminiPlan = compose(geminiRising, tiedSky).payload();
+
+        assertThat(ariesPlan.primaryAction().category()).isEqualTo("relationship");
+        assertThat(geminiPlan.primaryAction().category()).isEqualTo("communication");
+        assertThat(ariesPlan.primaryAction().description())
+                .isNotEqualTo(geminiPlan.primaryAction().description());
+    }
+
+    @Test
+    @DisplayName("NOT_RELEVANT feedback lowers that life area's priority without removing it from the catalog")
+    void notRelevantFeedbackLowersLifeAreaPriority() {
+        PersonalPlanSignals base = PersonalPlanSignals.build(
+                401L, DATE, false, profile(null, LocalDate.of(1991, 4, 2)),
+                "Aries", "Cancer", null, true, 0, Set.of());
+        PersonalPlanSignals adjusted = PersonalPlanSignals.build(
+                401L, DATE, false, profile(null, LocalDate.of(1991, 4, 2)),
+                "Aries", "Cancer", null, true, 0, Set.of(PlanFeedbackReason.NOT_RELEVANT),
+                Map.of(LifeArea.RELATIONSHIP, -30), Set.of());
+        List<DailyTransitsDTO.TransitItem> sky = List.of(
+                transit("mercury-7", "Merkür", "7", "Dikkat", 90),
+                transit("saturn-10", "Satürn", "10", "Dikkat", 88),
+                transit("venus-2", "Venüs", "2", "Destekleyici", 74));
+
+        DailyActionsDTO original = compose(base, sky).payload();
+        PersonalPlanComposer.Composition changed = compose(adjusted, sky);
+
+        assertThat(original.primaryAction().category()).isEqualTo("relationship");
+        assertThat(changed.payload().primaryAction().category()).isEqualTo("work");
+        assertThat(changed.payload().profileSignalsUsed()).contains(SignalUsageRecorder.PREVIOUS_FEEDBACK);
+    }
+
+    @Test
+    @DisplayName("HELPFUL feedback can favor an eligible action family while history guards still apply")
+    void helpfulFeedbackFavorsEligibleVariantFamily() {
+        PersonalPlanSignals base = signals(profile(null, LocalDate.of(1991, 4, 2)), false, null);
+        DailyActionsDTO original = compose(base, transits()).payload();
+        String originalIntent = original.primaryAction().id().substring(original.primaryAction().id().lastIndexOf('-') + 1);
+        String preferredIntent = new PersonalPlanCatalog().actionCandidates(
+                        LifeArea.RELATIONSHIP, PersonalPlanCatalog.Tone.CAUTION, PlanetRole.WORD).stream()
+                .map(PersonalPlanCatalog.CatalogEntry::actionIntent)
+                .filter(intent -> !intent.equals(originalIntent))
+                .findFirst()
+                .orElseThrow();
+        PersonalPlanSignals preferred = PersonalPlanSignals.build(
+                base.userId(), base.localDate(), base.english(), profile(null, LocalDate.of(1991, 4, 2)),
+                base.sunSign(), base.moonSign(), base.risingSign(), base.hasHouses(), base.retrogradeCount(),
+                Set.of(), Map.of(LifeArea.RELATIONSHIP, 4), Set.of(preferredIntent));
+
+        PersonalPlanComposer.Composition changed = compose(preferred, transits());
+
+        assertThat(changed.payload().primaryAction().id()).endsWith("-" + preferredIntent);
+        assertThat(changed.payload().profileSignalsUsed()).contains(SignalUsageRecorder.PREVIOUS_FEEDBACK);
+    }
+
     // ─── fixtures ───────────────────────────────────────────────────────────
 
     private PersonalPlanComposer.Composition compose(
@@ -419,11 +594,17 @@ class PersonalPlanComposerTest {
     }
 
     private DailyTransitsDTO dto(List<DailyTransitsDTO.TransitItem> items) {
+        return dto(items, List.of(new DailyTransitsDTO.RetrogradeItem("Merkür", "Merkür retrosu", "Med")));
+    }
+
+    private DailyTransitsDTO dto(
+            List<DailyTransitsDTO.TransitItem> items,
+            List<DailyTransitsDTO.RetrogradeItem> retrogrades) {
         return new DailyTransitsDTO(
                 DATE.toString(), "Bugünün Gökyüzü Etkileri",
                 new DailyTransitsDTO.Hero("Başlık", "Destek", "Sakin", 60, "moon", "purpleMist"),
                 List.of(), new DailyTransitsDTO.TodayCanDo("h", "b", "cta", "TodayActions"),
-                List.of(), List.of(new DailyTransitsDTO.RetrogradeItem("Merkür", "Merkür retrosu", "Med")),
+                List.of(), retrogrades,
                 items);
     }
 

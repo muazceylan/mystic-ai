@@ -10,11 +10,13 @@ import {
   type TrialDisplayState,
 } from '../utils/trialDisplay';
 
-export function useTrialDisplayState(product: ResolvedPaywallProduct): TrialDisplayState {
+export function useTrialDisplayState(
+  product: ResolvedPaywallProduct | null | undefined,
+): TrialDisplayState {
   const { t } = useTranslation();
   const requestIdRef = useRef(0);
   const [state, setState] = useState<TrialDisplayState>({ status: 'not_eligible' });
-  const revenueCatPackage = product.revenueCatPackage;
+  const revenueCatPackage = product?.revenueCatPackage;
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;

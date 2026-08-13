@@ -27,6 +27,7 @@ import {
   type Metrics,
 } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
+import { envConfig } from '../config/env';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
@@ -331,7 +332,7 @@ function AmplitudeBootstrap({
 }) {
   useEffect(() => {
     const adConsent = privacyResult.personalizedAdvertisingAllowed ? 'granted' : 'denied';
-    const analyticsCollectionEnabled = getAnalyticsDebugState().collectionEnabled;
+    const analyticsCollectionEnabled = envConfig.analytics.collectionEnabledByDefault;
     setAnalyticsConsent({
       analytics_storage: analyticsCollectionEnabled ? 'granted' : 'denied',
       ad_storage: adConsent,
@@ -353,9 +354,6 @@ function PrivacyBootstrap({
   const completedRef = useRef(false);
   const scheduledRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const interactionTaskRef = useRef<ReturnType<
-    typeof InteractionManager.runAfterInteractions
-  > | null>(null);
 
   const schedule = useCallback(() => {
     if (completedRef.current || scheduledRef.current || AppState.currentState !== 'active') {
@@ -363,22 +361,23 @@ function PrivacyBootstrap({
     }
 
     scheduledRef.current = true;
-    interactionTaskRef.current = InteractionManager.runAfterInteractions(() => {
-      interactionTaskRef.current = null;
-      timerRef.current = setTimeout(() => {
-        timerRef.current = null;
-        if (AppState.currentState !== 'active') {
-          scheduledRef.current = false;
-          return;
-        }
+    // Do not wait for InteractionManager here. Looping launch animations can
+    // keep its interaction queue busy indefinitely and prevent ATT from ever
+    // being requested. Apple requires the app to be active; a short timer is
+    // sufficient to let the first native frame become visible.
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      if (AppState.currentState !== 'active') {
+        scheduledRef.current = false;
+        return;
+      }
 
-        void bootstrapTrackingConsent().then((result) => {
-          completedRef.current = true;
-          scheduledRef.current = false;
-          onComplete(result);
-        });
-      }, 700);
-    });
+      void bootstrapTrackingConsent().then((result) => {
+        completedRef.current = true;
+        scheduledRef.current = false;
+        onComplete(result);
+      });
+    }, 600);
   }, [onComplete]);
 
   useEffect(() => {
@@ -391,8 +390,6 @@ function PrivacyBootstrap({
 
     return () => {
       subscription.remove();
-      interactionTaskRef.current?.cancel();
-      interactionTaskRef.current = null;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;
       scheduledRef.current = false;
@@ -770,14 +767,15 @@ function AnalyticsSubscriptionBootstrap() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const entitlements = useMonetizationStore((s) => s.entitlements);
   const paywall = useMonetizationStore((s) => s.paywall);
+  const subscription = useMonetizationStore((s) => s.subscription);
 
   useEffect(() => {
     if (!isAuthenticated) {
       return;
     }
 
-    updateSubscriptionUserProperties(entitlements, paywall);
-  }, [entitlements, isAuthenticated, paywall]);
+    updateSubscriptionUserProperties(entitlements, paywall, subscription);
+  }, [entitlements, isAuthenticated, paywall, subscription]);
 
   return null;
 }

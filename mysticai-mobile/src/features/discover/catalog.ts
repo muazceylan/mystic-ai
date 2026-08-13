@@ -120,7 +120,6 @@ const DISCOVER_MODULE_DEFINITIONS: DiscoverModuleDefinition[] = [
     icon: MODULE_ICONS.calendar,
     route: '/(tabs)/calendar',
     keywords: ['takvim', 'calendar', 'planlayıcı', 'planner', 'plan', 'hatırlatıcı', 'reminder'],
-    todayPriority: true,
   },
   {
     key: 'decision_compass',
@@ -333,9 +332,10 @@ export function buildDiscoverModules(t: Translate): DiscoverModule[] {
   }));
 }
 
+// Planlayıcı burada yok: Keşfet grid'inde "Guru Planlayıcı" kartı zaten var,
+// aynı modülün iki farklı isimle görünmemesi için hızlı erişimden çıkarıldı.
 export const TODAY_MODULE_KEYS: DiscoverModuleKey[] = [
   'today_plan',
-  'calendar',
   'decision_compass',
 ];
 

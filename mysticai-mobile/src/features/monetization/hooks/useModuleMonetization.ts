@@ -5,8 +5,8 @@ import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import { MonetizationEvents } from '../analytics/monetizationAnalytics';
 import { getAdBlockReason } from '../providers/admobUnitIds';
 import { isAdMobAvailable } from '../providers/admobInit';
-import { useEntitlements } from './useEntitlements';
 import { usePaywall } from './usePaywall';
+import { useSubscription } from './useSubscription';
 import type { ModuleRule, ActionConfig, ActionUnlockState, PremiumBehavior, EntitlementStatus } from '../types';
 
 interface ModuleMonetizationResult {
@@ -71,17 +71,21 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
   const getExposureState = useMonetizationStore((s) => s.getExposureState);
 
   const walletBalance = useGuruWalletStore((s) => s.getBalance());
-  const { snapshot } = useEntitlements();
   const { paywall } = usePaywall();
+  const subscription = useSubscription();
 
   const rule = useMemo(() => getModuleRule(moduleKey), [config, moduleKey, getModuleRule]);
   const adsEnabled = useMemo(() => isAdsEnabledForModule(moduleKey), [config, moduleKey, isAdsEnabledForModule]);
   const guruEnabled = useMemo(() => isGuruEnabledForModule(moduleKey), [config, moduleKey, isGuruEnabledForModule]);
   const shouldShowAd = useMemo(() => shouldShowAdOffer(moduleKey), [config, exposureState, moduleKey, shouldShowAdOffer]);
   const configLoaded = config !== null;
-  const premiumActive = snapshot?.premiumActive ?? paywall?.premiumActive ?? false;
-  const trialing = snapshot?.trialing ?? paywall?.trialing ?? false;
-  const entitlementStatus = (snapshot?.status ?? paywall?.entitlementStatus ?? 'NONE') as EntitlementStatus;
+  const premiumActive = subscription.isPremium;
+  const trialing = subscription.isTrialing;
+  const entitlementStatus = (
+    subscription.status === 'premium'
+      ? subscription.isTrialing ? 'TRIALING' : 'ACTIVE'
+      : paywall?.entitlementStatus ?? 'NONE'
+  ) as EntitlementStatus;
   const premiumBehavior = (rule?.premiumBehavior ?? 'NO_CHANGE') as PremiumBehavior;
   const premiumAccessActive = premiumActive || trialing;
   const premiumCanUnlock = Boolean(
@@ -90,8 +94,8 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
   );
   const premiumApplied = premiumCanUnlock && premiumBehavior !== 'NO_CHANGE';
   const tokenPurchaseAvailable = Boolean(
-    paywall?.tokenPurchaseEnabled
-    || config?.guruPurchaseEnabled,
+    (paywall?.tokenPurchaseEnabled || config?.guruPurchaseEnabled)
+    && (!premiumAccessActive || paywall?.allowPremiumAndTokenTogether !== false),
   );
   const adsSuppressedByPremium = Boolean(
     premiumAccessActive
@@ -276,7 +280,7 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
   }, [trackModuleEntry, getExposureState, moduleKey]);
 
   return {
-    isLoading: loading,
+    isLoading: loading || subscription.isLoading,
     configLoaded,
     rule,
     adsEnabled,

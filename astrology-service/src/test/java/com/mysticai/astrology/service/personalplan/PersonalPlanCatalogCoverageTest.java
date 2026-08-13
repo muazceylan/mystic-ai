@@ -26,6 +26,10 @@ class PersonalPlanCatalogCoverageTest {
     private static final int MIN_BODY_CHARS = 60;
     private static final int MAX_BODY_CHARS = 240;
 
+    /** Card headings have to read as labels, not as the advice sentence repeated. */
+    private static final int MIN_TITLE_CHARS = 12;
+    private static final int MAX_TITLE_CHARS = 44;
+
     @Test
     @DisplayName("coverage report")
     void printCoverageReport() {
@@ -147,6 +151,61 @@ class PersonalPlanCatalogCoverageTest {
     }
 
     @Test
+    @DisplayName("every variant carries a short heading in both languages")
+    void everyVariantHasAShortTitle() {
+        for (PersonalPlanCatalog.CatalogEntry entry : allEntries()) {
+            for (boolean english : List.of(false, true)) {
+                String title = entry.title(english);
+                assertThat(title)
+                        .as("%s title missing for %s", english ? "EN" : "TR", entry.actionIntent())
+                        .isNotBlank();
+                assertThat(title.length())
+                        .as("%s/%s title length out of band: %s", entry.lifeArea(), entry.actionIntent(), title)
+                        .isBetween(MIN_TITLE_CHARS, MAX_TITLE_CHARS);
+                assertThat(guard.rejectionReason(title, true))
+                        .as("%s/%s title rejected: %s", entry.lifeArea(), entry.actionIntent(), title)
+                        .isNull();
+            }
+            assertThat(entry.variant().titleTr())
+                    .as("TR and EN titles identical for %s", entry.actionIntent())
+                    .isNotEqualTo(entry.variant().titleEn());
+        }
+    }
+
+    /**
+     * The card renders heading and body together, so a heading that restates any sentence of the
+     * body prints that sentence twice — the defect these titles exist to prevent. Checking every
+     * sentence matters: a heading that duplicates the body's closing line is just as visible on
+     * the card as one that duplicates its opening line.
+     */
+    @Test
+    @DisplayName("a title never restates any sentence of its body")
+    void titlesAreNotTheBodyRepeated() {
+        for (PersonalPlanCatalog.CatalogEntry entry : allEntries()) {
+            for (boolean english : List.of(false, true)) {
+                String title = entry.title(english);
+                String body = entry.text(english);
+
+                for (String sentence : body.split("(?<=[.!?])\\s+")) {
+                    if (sentence.isBlank()) {
+                        continue;
+                    }
+                    assertThat(guard.normalize(title))
+                            .as("%s heading repeats a body sentence: %s", entry.actionIntent(), title)
+                            .isNotEqualTo(guard.normalize(sentence));
+                    assertThat(guard.isDuplicate(title, sentence))
+                            .as("%s heading reads as a paraphrase of a body sentence: %s",
+                                    entry.actionIntent(), title)
+                            .isFalse();
+                }
+                assertThat(title.length())
+                        .as("%s heading is not shorter than its body", entry.actionIntent())
+                        .isLessThan(body.length());
+            }
+        }
+    }
+
+    @Test
     @DisplayName("both languages are present for every variant")
     void bothLocalesArePopulated() {
         for (PersonalPlanCatalog.CatalogEntry entry : allEntries()) {
@@ -157,19 +216,17 @@ class PersonalPlanCatalogCoverageTest {
     }
 
     @Test
-    @DisplayName("every life area and tone has enough variants to survive the history window")
-    void noBucketCanExhaustWithinTheHistoryWindow() {
-        // The primary action is drawn from one bucket; the history window blocks reuse for
-        // `historyDays`. A bucket must therefore hold more variants than that window is long,
-        // otherwise the composer would be forced into its degraded path on a normal week.
-        int required = 3;
+    @DisplayName("every life area has enough grounded variants to survive the history window")
+    void noLifeAreaCanExhaustWithinTheHistoryWindow() {
+        // The composer may alternate supportive/caution tone for the same chart-backed area.
+        // Together those pools must cover the full configured history window without reuse.
         for (LifeArea area : LifeArea.values()) {
-            for (PersonalPlanCatalog.Tone tone : PersonalPlanCatalog.Tone.values()) {
-                long count = countBucket(catalog.allActionEntries(), area, tone);
-                assertThat(count)
-                        .as("%s/%s has only %d variants", area.slug(), tone, count)
-                        .isGreaterThanOrEqualTo(required);
-            }
+            long count = countBucket(catalog.allActionEntries(), area, PersonalPlanCatalog.Tone.SUPPORTIVE)
+                    + countBucket(catalog.allActionEntries(), area, PersonalPlanCatalog.Tone.CAUTION);
+            assertThat(count)
+                    .as("%s has only %d variants for a %d-day history window",
+                            area.slug(), count, properties.getHistoryDays())
+                    .isGreaterThan(properties.getHistoryDays());
         }
     }
 

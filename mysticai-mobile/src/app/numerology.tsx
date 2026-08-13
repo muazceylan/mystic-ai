@@ -17,6 +17,7 @@ import {
   GuruUnlockModal,
   PurchaseCatalogSheet,
   MonetizationEvents,
+  useSubscription,
 } from '../features/monetization';
 import {
   NUMEROLOGY_TUTORIAL_TARGET_KEYS,
@@ -32,7 +33,6 @@ import {
   getDominantNumber,
   getNumerologyCheckInState,
   hasNumerologyCheckInOnDate,
-  isPremiumUser,
   markNumerologyCheckIn,
 } from '../services/numerology.service';
 import { buildNumerologyViewModel } from '../services/numerology.viewmodel';
@@ -161,6 +161,7 @@ export default function NumerologyScreen() {
 
   // ── Monetization ──
   const monetization = useModuleMonetization('numerology');
+  const subscription = useSubscription();
   const advancedUnlockState = monetization.getActionUnlockState('advanced_analysis');
   const [showAdOffer, setShowAdOffer] = useState(false);
   const [showGuruModal, setShowGuruModal] = useState(false);
@@ -191,7 +192,7 @@ export default function NumerologyScreen() {
     guidancePeriod,
   });
 
-  const premium = isPremiumUser(user?.roles);
+  const premium = subscription.isPremium;
   const entryPoint = normalizeEntryPoint(searchParams.entry_point ?? searchParams.entryPoint);
   const data = numerology.data;
   const emptyConfig = getEmptyStateConfig(numerology.emptyVariant, t);

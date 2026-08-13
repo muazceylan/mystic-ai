@@ -17,6 +17,8 @@ public record DailyActionsDTO(
         Header header,
         List<ActionItem> actions,
         MiniPlan miniPlan,
+        /** Short, complete copy composed specifically for the home card; never an ellipsis. */
+        HomeTeaser homeTeaser,
 
         // ── premium personal plan (v2) ────────────────────────────────────────
         /** HIGH / MEDIUM / LOW — how much real user data backed this plan. */
@@ -35,7 +37,7 @@ public record DailyActionsDTO(
     /** Convenience factory kept for the legacy shape (tests and older call sites). */
     public static DailyActionsDTO legacy(String date, Header header, List<ActionItem> actions, MiniPlan miniPlan) {
         return new DailyActionsDTO(date, header, actions, miniPlan,
-                null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null);
     }
 
     public record Header(
@@ -58,6 +60,11 @@ public record DailyActionsDTO(
     public record MiniPlan(
             String title,
             List<String> steps
+    ) {}
+
+    public record HomeTeaser(
+            String headline,
+            String body
     ) {}
 
     /**

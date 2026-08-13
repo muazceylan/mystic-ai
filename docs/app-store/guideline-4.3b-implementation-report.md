@@ -1,245 +1,168 @@
-# Guideline 4.3(b) Farklılaştırma Uygulama Raporu
+# AstroGuru — Guideline 4.3(b) Implementation Report
 
-Tarih: 24 Temmuz 2026  
-Uygulama: AstroGuru  
-Bundle ID: `com.astroguru.mmc`
+## A. Before
 
-## 1. Kök Neden
+The earlier first-use hierarchy could read as a conventional astrology app because daily horoscope, zodiac, transit, tarot/oracle-style, and other discovery surfaces competed with the personal action experience. A reviewer could understand the app as “what does my sign say today?” before seeing any persistent, chart-specific planning loop.
 
-Önceki ürün hiyerarşisi Home’un ilk görünümünde gökyüzü, burç ve transit içeriğini öne çıkarıyor; planlama, hatırlatıcı, karar desteği, kullanıcı günlüğü ve pratik takibi gibi etkileşimli farklılaştırıcılar alt seviyede kalıyordu. Bu sunum AstroGuru’nun App Store Guideline 4.3(b) kapsamında yaygın astroloji/fortune-telling uygulamalarıyla aynı kavramsal sınıfta değerlendirilmesini kolaylaştırıyordu.
+## B. Core differentiation
 
-Çözüm astrolojiyi gizlemek veya kaldırmak değildir. Uygulamanın gerçek, kalıcı ve etkileşimli değerini ilk seviyeye taşımak; astrolojik veriyi bu araçların kişisel bağlam katmanı olarak doğru biçimde sunmaktır.
+`Personal Daily Plan` is now the first substantive personalized Home module and opens expanded. It presents a personalization badge, a chart/transit-derived main theme, one key action, an expandable plain-language reason, completion state, relevant life areas, a caution, and an evening reflection.
 
-## 2. Mevcut Mimari Analizi
+The backend composes the plan deterministically from available natal/profile signals and the active transit set. The plan is stored by user local date and locale, so reopening the app does not reshuffle it. Horoscope detail remains available as general zodiac context, but now follows that layer with the cached `Your chart today` personal plan context.
 
-İncelenen ana bounded context ve veri kaynakları:
+## C. Changed files
 
-- Home: `mysticai-mobile/src/screens/HomeScreen.tsx`; tab dosyası yalnızca bu ekranı pager üzerinden kullanır.
-- Günlük plan:
-  - `GET /api/v1/daily/transits/actions`
-  - `POST /api/v1/daily/transits/actions/{id}/done`
-  - `POST /api/v1/feedback`
-  - Mobil servis: `mysticai-mobile/src/services/daily.service.ts`
-  - React Query anahtarları kullanıcı scope’u içerir.
-- Daily Transits: `mysticai-mobile/src/app/(tabs)/daily-transits.tsx`; hero, summary, mini plan, sky data ve teknik transit kartlarını mevcut backend DTO’sundan üretir.
-- Cosmic Planner: `mysticai-mobile/src/app/(tabs)/calendar.tsx`; tarih/kategori seçimi, backend push ve local notification fallback’i olan reminder akışı mevcuttur.
-- Decision Compass: `mysticai-mobile/src/app/decision-compass.tsx`; günlük cosmic summary ve day-detail verisinden kategori temelli yapılandırılmış bağlam üretir. Serbest karar metni ve karar geçmişi modeli yoktur.
-- Dream Journal:
-  - Ekran: `mysticai-mobile/src/app/(tabs)/dreams.tsx`
-  - Store: `mysticai-mobile/src/store/useDreamStore.ts`
-  - Backend kayıtları kullanıcı, tarih, başlık, metin, durum, sembol ve yorum verilerini içerir.
-- Spiritual Practices:
-  - `mysticai-mobile/src/spiritual/screens/*`
-  - Kullanıcı scope’lu persisted Zustand journal; tamamlanan miktar, hedef, süre, tarih ve seri hesapları mevcuttur.
-- Discover:
-  - CMS-first ekran: `mysticai-mobile/src/app/(tabs)/discover.tsx`
-  - Static fallback: `mysticai-mobile/src/features/discover/catalog.ts`
-  - CMS seed: `notification-service/.../CmsBootstrapService.java`
-- Analytics: mevcut `trackEvent` servisi ve snake_case event sözleşmesi genişletildi; eski event’ler silinmedi.
-- Tema/i18n: mevcut ThemeContext ve `en.json`/`tr.json` kullanıldı.
-- Navigation: mevcut beş ana tab ve deep link’ler korundu. Yeni Journey route’u görünmez tab screen olarak Home’dan açılır.
+Backend core:
 
-## 3. Yapılan Ürün Değişiklikleri
+- `astrology-service/src/main/java/com/mysticai/astrology/config/PersonalPlanProperties.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/dto/daily/DailyActionsDTO.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/service/DailyTransitsService.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/service/personalplan/PersonalPlanCatalog.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/service/personalplan/PersonalPlanComposer.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/service/personalplan/PersonalPlanService.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/service/personalplan/PersonalPlanSignals.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/service/personalplan/PlanQualityGuard.java`
+- `astrology-service/src/main/java/com/mysticai/astrology/service/personalplan/SignalUsageRecorder.java`
+- `astrology-service/src/main/resources/application.yml`
 
-### Home ve Personal Plan
+Backend tests:
 
-- Greeting altına kullanıcının mevcut burç bağlamını açıklayan kısa, ikincil metin eklendi.
-- Home’un ilk ürün kartı gerçek daily-actions API’sinden beslenen `Today’s Personal Plan / Bugünkü Kişisel Planın` oldu.
-- Kart; tarih, kişisel tema, ilk üç aksiyon, tamamlanma oranı, doğrudan tamamla/geri al, tam plan ve planner CTA’larını içerir.
-- Loading, empty, error, retry ve optimistic rollback davranışları eklendi.
-- Transit/sky hero daha aşağı taşındı; astroloji korunurken ilk ekranı domine etmesi engellendi.
-- Gerçek aksiyon/pratik/seri verisinden Journey preview eklendi.
+- `astrology-service/src/test/java/com/mysticai/astrology/service/DailyTransitsServiceTest.java`
+- `astrology-service/src/test/java/com/mysticai/astrology/service/personalplan/PersonalPlanCatalogCoverageTest.java`
+- `astrology-service/src/test/java/com/mysticai/astrology/service/personalplan/PersonalPlanComposerTest.java`
+- `astrology-service/src/test/java/com/mysticai/astrology/service/personalplan/PersonalPlanServiceTest.java`
+- `astrology-service/src/test/java/com/mysticai/astrology/service/personalplan/PlanQualityGuardTest.java`
 
-### Daily Plan ve Daily Transits
+Mobile:
 
-- Tam plan ekranı kişisel plan diliyle güncellendi.
-- Aksiyon tamamlamada mevcut API ve optimistic rollback korundu.
-- Aksiyon feedback’i mevcut feedback API’sine gönderilir.
-- Daily Transits başlığı `Today’s Plan / Bugünkü Planın` oldu.
-- Ekranın başına önerilerin kesin gelecek sonucu veya profesyonel tavsiye olmadığına dair iki dilli açıklama eklendi.
-- Mevcut hero, odak, mini plan, sky data ve teknik transit detayları korunmuştur.
-
-### Cosmic Planner ve Decision Compass
-
-- Planner Home ve Discover’ın Daily Life grubunda ilk seviye erişimdedir.
-- Tarih, kategori ve başarılı reminder oluşturma adımları yeni ürün analitiğiyle ölçülür.
-- Permission/backend push/local fallback akışı değiştirilmedi.
-- Decision Compass Home ve Discover’da görünürdür.
-- Mevcut gerçek davranış kategori temelli yapılandırılmış değerlendirmedir. Uygulamada olmayan serbest metin ve kayıtlı karar geçmişi onboarding/Review Notes’ta iddia edilmez.
-- Eski tutorial’daki desteklenmeyen “karar girişi” ve “sonucu kaydet” ifadeleri gerçek davranışa göre düzeltildi.
-
-### Dream, Spiritual ve Journey
-
-- Dream Journal açılışı ve başarılı kullanıcı kaydı ölçülür; rüya metni analytics’e gönderilmez.
-- Spiritual home ve gerçek journal save noktalarında açılış/tamamlama event’leri eklendi; dua veya pratik içeriği analytics’e gönderilmez.
-- Yeni `My Journey / Yolculuğum` ekranı:
-  - bugünkü tamamlanan daily actions,
-  - backend Dream Journal kayıt sayısı,
-  - persisted spiritual practice kayıt sayısı,
-  - kaynaklardaki gerçek tarihlerin birleşiminden aktif gün,
-  - mevcut spiritual streak,
-  - gerçek son aktivite tarihi
-  gösterir.
-- Veri yoksa yönlendirici empty state; dream fetch başarısızsa partial-data uyarısı gösterir. Sahte seri veya hard-coded istatistik yoktur.
-
-### Discover, onboarding ve metadata dili
-
-- Discover grupları `Daily Life`, `Self Discovery`, `Relationships`, `Spiritual Practices`, `Astrological Insights` olarak yeniden kuruldu.
-- Static fallback ve Türkçe CMS seed aynı hiyerarşiye taşındı.
-- Admin tarafından değiştirilmemiş eski seed kartları yeni gruplara güvenli biçimde taşınır; admin düzenlemeleri üzerine yazılmaz.
-- Global onboarding’in ilk üç mesajı günlük plan, karar/journal farkındalığı ve rutin takibi olarak güncellendi.
-- Welcome ve doğum bilgisi açıklamaları kişisel bağlamı açıklar; kesin tahmin iddiası içermez.
-- Yeni kullanıcı metinleri Türkçe ve İngilizce eklendi.
-
-## 4. Değiştirilen Dosyalar
-
-Ana görev kapsamındaki dosyalar:
-
-- `mysticai-mobile/src/components/Home/PersonalPlanCard.tsx` — yeni
-- `mysticai-mobile/src/components/Home/JourneyPreviewCard.tsx` — yeni
-- `mysticai-mobile/src/components/Home/GreetingRow.tsx`
 - `mysticai-mobile/src/screens/HomeScreen.tsx`
-- `mysticai-mobile/src/app/(tabs)/journey.tsx` — yeni
-- `mysticai-mobile/src/app/(tabs)/_layout.tsx`
-- `mysticai-mobile/src/components/ui/surfaceUtils.ts`
+- `mysticai-mobile/src/components/Home/PersonalPlanCard.tsx`
+- `mysticai-mobile/src/components/daily/PersonalPlanSections.tsx`
 - `mysticai-mobile/src/app/(tabs)/today-actions.tsx`
-- `mysticai-mobile/src/app/(tabs)/daily-transits.tsx`
-- `mysticai-mobile/src/app/(tabs)/calendar.tsx`
-- `mysticai-mobile/src/app/decision-compass.tsx`
-- `mysticai-mobile/src/app/(tabs)/dreams.tsx`
-- `mysticai-mobile/src/spiritual/screens/SpiritualHomeScreen.tsx`
-- `mysticai-mobile/src/spiritual/screens/CounterScreen.tsx`
-- `mysticai-mobile/src/app/(tabs)/discover.tsx`
-- `mysticai-mobile/src/features/discover/catalog.ts`
-- `mysticai-mobile/src/features/discover/discoverVisuals.ts`
-- `mysticai-mobile/src/features/tutorial/registry/tutorialRegistry.ts`
-- `mysticai-mobile/src/features/tutorial/registry/tutorialRegistry.en.ts`
-- `mysticai-mobile/src/app/(auth)/welcome.tsx`
+- `mysticai-mobile/src/features/horoscope/screens/HoroscopeDetailScreen.tsx`
+- `mysticai-mobile/src/services/daily.service.ts`
+- `mysticai-mobile/src/types/daily.types.ts`
 - `mysticai-mobile/src/i18n/en.json`
 - `mysticai-mobile/src/i18n/tr.json`
-- `mysticai-mobile/scripts/qa/guideline-4.3b-static-qa.mjs` — yeni
-- `mysticai-mobile/package.json`
-- `notification-service/src/main/java/com/mysticai/notification/admin/service/CmsBootstrapService.java`
-- `docs/app-store/guideline-4.3b-resubmission.md` — yeni
-- `docs/app-store/guideline-4.3b-implementation-report.md` — yeni
 
-Repository’de bu görevden önce var olan auth, Apple Sign-In, monetization, environment ve native proje değişikliklerine dokunulmamış veya geri alınmamıştır.
+## D. Home hierarchy
 
-## 5. Backend Değişiklikleri
+Before: greeting and several astrology/discovery modules could compete for the first viewport; the personal plan could read as another utility card.
 
-- Yeni Journey endpoint’i eklenmedi. Güvenilir biçimde erişilebilen mevcut remote/local kaynaklar yeterli olduğu için paralel bir API ve veri modeli oluşturulmadı.
-- Daily Actions, done ve feedback API sözleşmeleri değişmedi.
-- `CmsBootstrapService` yeni beş Discover kategorisini ve gerçek route’lara bağlı kartları seed eder.
-- Seed güncellemesi idempotenttir.
-- `updatedByAdminId == null` olan varsayılan kartlar yeni ürün gruplarına taşınır ve seed metinleri güncellenir.
-- Admin tarafından düzenlenen kartların içerik/kategori seçimi korunur.
-- Eski category kayıtları veri kaybını önlemek için silinmez; kartı olmayan kategori mobilde gösterilmez.
+After:
 
-## 6. Analytics Değişiklikleri
+1. Personalized greeting
+2. Expanded `Today’s Personal Plan / Bugünkü Kişisel Planın`
+3. Personal theme and key action
+4. `Why your chart points here / Haritandaki neden`
+5. Completion and full-plan CTA
+6. Relevant quick actions and journey context
+7. Generic horoscope and broader discovery lower in the surface
 
-Eklenen ana event’ler:
+## E. Personalization signals
 
-- `home_personal_plan_impression`
-- `home_personal_plan_opened`
-- `personal_plan_viewed`
-- `personal_plan_action_opened`
-- `personal_plan_action_completed`
-- `personal_plan_feedback_opened`
-- `personal_plan_feedback_sent`
-- `personal_plan_retry_clicked`
-- `cosmic_planner_opened`
-- `planner_date_selected`
-- `planner_category_selected`
-- `planner_reminder_created`
-- `cosmic_planner_reminder_created`
-- `decision_compass_opened`
-- `decision_compass_started`
-- `dream_journal_opened`
-- `dream_entry_created`
-- `spiritual_practice_opened`
-- `spiritual_practice_completed`
-- `journey_summary_opened`
-- `journey_module_opened`
-- `astrology_context_opened`
+The composer can use only signals actually available in the system: Sun, Moon and rising sign; natal house availability; active transit planet and importance; transit-to-natal target/aspect metadata; affected natal house; structured retrogrades; current Moon timing when a real intraday peak is calculated; birth-date-derived age band; relationship status; seven-day plan history; and recent plan feedback.
 
-Koruma kuralları:
+`profileSignalsUsed` is decision-audited: a field is reported only when it changed ranking, filtering, wording, or variant selection. Profession, employer, office, manager, client, meeting, project, spouse/partner, house, and clock-time claims are not invented when their supporting data is absent.
 
-- Var olan event’ler silinmedi.
-- Karar metni, rüya içeriği, dua/pratik içeriği, ad, e-posta veya doğum bilgisi gönderilmez.
-- Parametreler source/surface/module/category/locale/result ve anonim teknik action identifier’larıyla sınırlandırıldı.
+## F. Duplicate prevention
 
-## 7. App Store Dokümanları
+Each deterministic variant has a canonical `semanticKey`. The response also records `lifeArea + actionIntent` fingerprints. Selection rejects:
 
-`docs/app-store/guideline-4.3b-resubmission.md` içinde:
+- a semantic key already used in the same response;
+- the same action intent in the response;
+- semantic keys and area/intent pairs found in the configured seven-day history;
+- wording above the normalized similarity threshold;
+- generic motivational phrases and tested paraphrases.
 
-- red nedeni ve yeni konumlandırma,
-- gerçek ürün değişiklikleri,
-- reviewer test adımları,
-- App Review Notes,
-- Apple limitlerine uygun EN/TR subtitle,
-- 170 karakter altı promotional text,
-- EN/TR description başlangıcı,
-- yedi ekranlık EN/TR screenshot planı,
-- App Review cevabı,
-- koşullu App Review Board appeal metni,
-- demo hesap/test verisi placeholder’ları,
-- 90 saniyelik fiziksel cihaz kayıt senaryosu
-hazırlanmıştır.
+Catalog exhaustion is explicit in plan metadata; it does not silently restore generic legacy copy.
 
-Doküman Apple’ın güncel resmi Guideline 4.3(b), metadata limitleri, Review Notes ve appeal kaynaklarına bağlantı verir.
+## G. Feedback loop
 
-## 8. Test Sonuçları
+- `TOO_GENERIC`: promotes more concrete eligible copy and permits bounded same-day regeneration.
+- `REPETITIVE`: regenerates while the current plan fingerprints and recent history block the same semantic family.
+- `NOT_RELEVANT`: applies a configurable negative score to that life area for the feedback influence window.
+- `HELPFUL`: applies a deliberately small life-area boost and favors the eligible action-intent family.
+- `NOT_USEFUL`: is retained as negative history without inventing a new user preference.
 
-| Kontrol | Sonuç | Not |
-|---|---|---|
-| TypeScript strict typecheck | Başarılı | `npx tsc --noEmit` |
-| Lokalizasyon JSON | Başarılı | `jq empty src/i18n/en.json src/i18n/tr.json` |
-| Guideline 4.3(b) static QA | Başarılı | Dil anahtarları, loading/error/empty durumları, route’lar, event’ler, hassas payload dışlama, subtitle limitleri ve doküman bölümleri |
-| Web export | Başarılı | `npm run build:web`, 3980 modül |
-| Notification service compile | Başarılı | Java 21, 251 source |
-| Notification service tests | Başarılı | 174 test, 0 failure/error/skipped |
-| Android debug compile | Başarılı | `:app:assembleDebug`, 693 task |
-| iOS simulator compile | Ortam nedeniyle tamamlanamadı | Uygulama source compile hatası raporlanmadan `expo-dev-launcher/Assets.xcassets` için `AssetCatalogSimulatorAgent` CoreSimulator FIFO handshake hatası oluştu. Generic simulator, booted iPhone 16 Pro, sandbox dışı ve device SDK denemelerinde aynı yerel Xcode/CoreSimulator hatası tekrarlandı. |
-| ESLint | Çalıştırılamadı | Projede ESLint dependency/config/script yok. |
-| React Native component unit test | Static QA ile karşılandı | Projede Jest/Vitest/Testing Library test runner’ı tanımlı değil; bağımlılık ekleyip lockfile kapsamını büyütmek yerine tekrar çalıştırılabilir sözleşme QA’sı eklendi. |
+History rules still apply after positive feedback, so the user cannot become locked into one content family. The mobile client consumes the inline replacement plan returned by regeneration, avoiding a stale-cache race.
 
-iOS hata özeti:
+## H. Same-sign differentiation test
 
-```text
-Failed to launch AssetCatalogSimulatorAgent via CoreSimulator spawn
-Failed to open FIFOs for handshaking with platform tool
-Recovery Suggestion: Try restarting your computer
-```
+The explicit regression fixture uses two Scorpio-Sun users:
 
-Bu sonuç release öncesi temiz bir macOS/Xcode oturumunda iOS archive veya simulator build gereksinimini ortadan kaldırmaz.
+- User A: Capricorn rising, Taurus Moon, Mars affecting natal house 7. The primary life area is `relationship`.
+- User B: Gemini rising, Pisces Moon, Saturn affecting natal house 10. The primary life area is `work`.
 
-## 9. Bilinen Eksikler veya Riskler
+The test requires different main-theme titles, primary categories/descriptions, caution descriptions, and life-area sequences. A second test holds the Sun and sky constant and proves that a relevant rising-sign ruler can change the leading area from relationship to communication.
 
-- Guideline 4.3(b) yoruma dayalıdır; ürün ve metadata değişiklikleri onay garantisi vermez.
-- App Store Connect metadata’sı bu çalışma kapsamında uzaktan değiştirilmedi.
-- Demo hesap, premium entitlement, seeded fictional data ve fiziksel cihaz videosu insan tarafından hazırlanmalıdır.
-- Decision Compass bu build’de serbest metin seçenek/öncelik girişi veya kayıtlı karar geçmişi sunmaz. Review Notes bu sınırı açıkça belirtir.
-- Journey uzun dönem daily-action toplamı yerine mevcut API’nin güvenilir biçimde sağladığı bugünkü tamamlanma sayısını gösterir. Dream ve spiritual geçmişi mevcut store kaynaklarından hesaplanır.
-- CMS’te admin tarafından özellikle eski kategoride bırakılmış kartlar korunur; release öncesi production CMS admin görünümü kontrol edilmelidir.
-- iOS compile yerel CoreSimulator/AssetCatalog servis sorunu nedeniyle doğrulanamadı. Mac yeniden başlatma/CoreSimulator servis yenileme sonrası tekrar denenmelidir.
-- Fiziksel iPhone ve iPad’de light/dark theme, Dynamic Type, küçük ekran, permission-denied reminder, offline ve expired-auth manuel regresyonu hâlâ gereklidir.
-- Android build’de mevcut üçüncü taraf Google Play Services/Amazon SDK D8 stack-map ve Gradle deprecation uyarıları vardır; build’i başarısız etmemiştir.
+## I. Screenshot readiness
 
-## 10. App Review İçin Son Kontrol Listesi
+Home opens the plan expanded. Without scrolling through discovery modules, the first capture can show:
 
-- [ ] Temiz macOS/Xcode oturumunda iOS Release archive veya en az simulator build başarılı.
-- [ ] Fiziksel iPhone ve iPad smoke testi tamamlandı.
-- [ ] Light/dark, TR/EN, Dynamic Type ve küçük ekran kontrol edildi.
-- [ ] Production backend ve health kontrolleri review penceresi boyunca açık.
-- [ ] CMS’te yalnızca hedeflenen beş ürün grubu ve doğru route’lar görünür.
-- [ ] Demo hesap doğrulanmış ve süresiz/inceleme süresini aşan erişime sahip.
-- [ ] Demo hesapta premium entitlement/Guru erişimi, ikinci uyum profili, dream ve spiritual test verileri hazır.
-- [ ] Bildirim izni ve gelecekteki saatle reminder akışı fiziksel cihazda çalışıyor.
-- [ ] App Store subtitle, promotional text, description, keywords ve screenshots yeni ürün hiyerarşisiyle uyumlu.
-- [ ] Premium/IAP gerektiren screenshot ve açıklamalar ek satın alma gereksinimini doğru gösteriyor.
-- [ ] Review Notes placeholder’ları dolduruldu ve 4000 byte sınırı yeniden kontrol edildi.
-- [ ] 60–120 saniyelik fiziksel cihaz videosu App Review Information’a eklendi.
-- [ ] Screenshot verilerinin tamamı kurgusal ve 4+ metadata sunumuna uygun.
-- [ ] Privacy labels, Privacy Policy URL, Support URL ve contact bilgileri güncel.
-- [ ] App Review’a önce somut yeniden gönderim cevabı verildi.
-- [ ] Yanlış anlaşılma devam ederse aynı başarısız submission için yalnızca bir App Review Board appeal gönderilecek.
+`Today’s Personal Plan` → personalization badge → main theme → key action → `Why your chart points here`.
+
+The full plan screen supplies a second capture with the rationale expanded and a third with feedback/regeneration. Demo data must remain fictional and the production review account must have a complete birth profile.
+
+## J. Tests
+
+Final verification on 2026-08-10:
+
+- Astrology service: 145 tests passed, 0 failed, 0 skipped.
+- Personal-plan focused suite includes 33 composer tests, 27 quality-guard tests, 11 service lifecycle tests, 9 catalog coverage tests, and 6 Daily Transits integration/unit tests.
+- Dedicated mobile Guideline 4.3(b) static QA passed.
+- TypeScript type-check passed.
+
+## K. Build verification
+
+- `mvn -pl astrology-service test` — passed (145 tests).
+- `npx tsc --noEmit` — passed.
+- `npm run qa:guideline-4.3b` — passed.
+- `npm run build:web` — passed; Expo exported the web bundle.
+- `git diff --check` — passed after whitespace cleanup.
+- Mobile lint — not run because this package currently has no lint script, ESLint dependency, or ESLint configuration.
+- Native iOS/Android release builds — not run; repository release scripts bump store build/version numbers as a side effect.
+
+## L. Remaining risks
+
+The implementation materially addresses product differentiation, but Apple approval remains a reviewer decision. Final review quality still depends on a reachable production backend, a non-expiring fully entitled account with fictional complete birth data, accurate screenshots/metadata, and a physical-device walkthrough. The native release archive should be verified before submission. Generic horoscope remains in the product as a secondary surface; its placement and screenshots must stay subordinate to Personal Daily Plan.
+
+## Metadata recommendations
+
+### Subtitle alternatives (30-character limit)
+
+English:
+
+1. `Personal Daily Plan` (19)
+2. `Your Chart, Your Daily Plan` (27)
+3. `Chart-Based Daily Planner` (25)
+
+Turkish:
+
+1. `Kişisel Günlük Planın` (21)
+2. `Haritandan Günlük Plan` (22)
+3. `Sana Özel Günlük Plan` (21)
+
+### Promotional text alternatives (170-character limit)
+
+1. `Build a practical daily plan from your birth chart, current transits, personal context, and past feedback—then complete actions and shape tomorrow’s plan.` (154)
+2. `See what stands out for you today, why it matters, and the one action to take. Your chart and feedback make each daily plan meaningfully personal.` (146)
+3. `Go beyond generic horoscopes with a stable daily plan, clear chart-based reasons, relevant life areas, cautions, reflection, and feedback-driven variety.` (153)
+
+### First five screenshots
+
+1. Headline: `Your personal plan for today`; subtitle: `A daily theme and one key action from your chart.`
+
+   Screen: Home with the expanded Personal Daily Plan card.
+2. Headline: `See why this action fits`; subtitle: `Understand the chart context in clear, practical language.`
+
+   Screen: Full plan with the primary action and expanded rationale.
+3. Headline: `A plan that learns from you`; subtitle: `Feedback reduces generic, repetitive, or irrelevant suggestions.`
+
+   Screen: Feedback choices and regenerated plan state.
+4. Headline: `Your chart, not only your sign`; subtitle: `General zodiac context meets your personal chart today.`
+
+   Screen: Horoscope detail with `Your chart today` card.
+5. Headline: `Reflect and build continuity`; subtitle: `Close the day with a focused question and return to a stable plan.`
+
+   Screen: Evening reflection and completed-action state.

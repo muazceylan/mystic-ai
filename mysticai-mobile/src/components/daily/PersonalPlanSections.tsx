@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -65,33 +65,44 @@ export function PersonalizationBadge({ level }: { level?: PersonalizationLevel }
 }
 
 /**
- * Collapsible plain-language justification. The technical `astrologicalBasis` payload is never
- * rendered — only the human-readable `why` the backend derives from it.
+ * Always-visible plain-language justification. The technical `astrologicalBasis` payload is
+ * never rendered — only the human-readable `why` the backend derives from it.
  */
-export function WhyDisclosure({ why, testID }: { why?: string | null; testID?: string }) {
+export function WhyDisclosure({
+  why,
+  testID,
+  onOpened,
+}: {
+  why?: string | null;
+  testID?: string;
+  onOpened?: () => void;
+}) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
-  const [expanded, setExpanded] = useState(false);
-
+  const [expanded, setExpanded] = React.useState(false);
   if (!why) return null;
 
+  const toggle = () => {
+    const next = !expanded;
+    setExpanded(next);
+    if (next) onOpened?.();
+  };
+
   return (
-    <View style={styles.whyWrap}>
+    <View style={styles.whyWrap} testID={testID}>
       <Pressable
-        onPress={() => setExpanded((current) => !current)}
+        onPress={toggle}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         accessibilityLabel={t('personalPlan.whyLabel')}
-        hitSlop={6}
-        testID={testID}
         style={({ pressed }) => [styles.whyToggle, pressed && styles.pressed]}
       >
-        <Ionicons name="help-circle-outline" size={15} color={colors.primary} />
+        <Ionicons name="planet-outline" size={15} color={colors.primary} />
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.whyToggleText}>
           {t('personalPlan.whyLabel')}
         </Text>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary} />
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={15} color={colors.primary} />
       </Pressable>
       {expanded ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.whyBody}>
@@ -105,9 +116,11 @@ export function WhyDisclosure({ why, testID }: { why?: string | null; testID?: s
 export function MainThemeCard({
   theme,
   level,
+  onWhyOpened,
 }: {
   theme: PlanMainTheme;
   level?: PersonalizationLevel;
+  onWhyOpened?: () => void;
 }) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -125,7 +138,7 @@ export function MainThemeCard({
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.themeBody}>
         {theme.description}
       </Text>
-      <WhyDisclosure why={theme.why} testID="personal-plan-theme-why" />
+      <WhyDisclosure why={theme.why} testID="personal-plan-theme-why" onOpened={onWhyOpened} />
     </View>
   );
 }
@@ -134,10 +147,12 @@ export function PrimaryActionCard({
   action,
   pending,
   onToggle,
+  onWhyOpened,
 }: {
   action: PlanPrimaryAction;
   pending?: boolean;
   onToggle: (actionId: string, nextValue: boolean) => void;
+  onWhyOpened?: () => void;
 }) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -173,7 +188,7 @@ export function PrimaryActionCard({
         {action.description}
       </Text>
 
-      <WhyDisclosure why={action.why} testID="personal-plan-primary-why" />
+      <WhyDisclosure why={action.why} testID="personal-plan-primary-why" onOpened={onWhyOpened} />
 
       <Pressable
         onPress={() => onToggle(action.id, !action.isDone)}
@@ -250,10 +265,14 @@ export function LifeAreaCardView({
   card,
   pending,
   onToggle,
+  onOpened,
+  onWhyOpened,
 }: {
   card: PlanLifeAreaCard;
   pending?: boolean;
   onToggle: (actionId: string, nextValue: boolean) => void;
+  onOpened?: () => void;
+  onWhyOpened?: () => void;
 }) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -273,7 +292,14 @@ export function LifeAreaCardView({
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.bodyText}>
         {card.description}
       </Text>
-      <WhyDisclosure why={card.why} testID={`personal-plan-area-why-${card.category}`} />
+      <WhyDisclosure
+        why={card.why}
+        testID={`personal-plan-area-why-${card.category}`}
+        onOpened={() => {
+          onOpened?.();
+          onWhyOpened?.();
+        }}
+      />
       <Pressable
         onPress={() => onToggle(card.id, !card.isDone)}
         disabled={pending}
@@ -306,7 +332,13 @@ export function LifeAreaCardView({
   );
 }
 
-export function CautionCard({ caution }: { caution: PlanCaution }) {
+export function CautionCard({
+  caution,
+  onWhyOpened,
+}: {
+  caution: PlanCaution;
+  onWhyOpened?: () => void;
+}) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors, isDark), [colors, isDark]);
@@ -333,7 +365,7 @@ export function CautionCard({ caution }: { caution: PlanCaution }) {
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.bodyText}>
         {caution.description}
       </Text>
-      <WhyDisclosure why={caution.why} testID="personal-plan-caution-why" />
+      <WhyDisclosure why={caution.why} testID="personal-plan-caution-why" onOpened={onWhyOpened} />
     </View>
   );
 }
@@ -553,16 +585,22 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
     },
     whyWrap: {
       gap: SPACING.xs,
+      padding: SPACING.smMd,
+      borderRadius: RADIUS.md,
+      backgroundColor: softBg,
+      borderLeftWidth: 3,
+      borderLeftColor: C.primary,
     },
     whyToggle: {
-      alignSelf: 'flex-start',
-      minHeight: 36,
+      alignSelf: 'stretch',
+      minHeight: 32,
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.xs,
     },
     whyToggleText: {
       ...TYPOGRAPHY.CaptionBold,
+      flex: 1,
       color: C.primary,
     },
     whyBody: {

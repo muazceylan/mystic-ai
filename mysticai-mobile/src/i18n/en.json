@@ -78,7 +78,15 @@
       "activeDescNew": "You are enjoying every Premium feature.",
       "activeBenefit": "Perks unlocked",
       "activeCta": "Premium perks are active",
-      "manageCta": "Manage Subscription"
+      "manageCta": "Manage Subscription",
+      "loading": "Checking your Premium status...",
+      "planLabel": "Plan",
+      "renewalLabel": "Renewal",
+      "planMonthly": "Monthly Premium",
+      "planYearly": "Yearly Premium",
+      "planGeneric": "Astro Guru Premium",
+      "renewsOn": "Renews on {{date}}",
+      "activeUntil": "Active until {{date}}"
     },
     "menu": {
       "nameInfo": "Name Details",
@@ -357,6 +365,8 @@
     "contextFallback": "Today's personal context",
     "fallbackTheme": "Choose one meaningful next step and keep the rest of your day intentional.",
     "progress": "{{completed}} of {{total}} steps completed",
+    "expand": "Expand today's personal plan",
+    "collapse": "Collapse today's personal plan",
     "openPlan": "View Plan",
     "planDay": "Plan My Day",
     "preparingTitle": "Your plan is being prepared",
@@ -1277,7 +1287,6 @@
     "collapse": "Collapse",
     "comingSoonTitle": "Coming soon",
     "comingSoonBadge": "Soon",
-    "oracleStatus": "Oracle active",
     "clearSearchAccessibility": "Clear search",
     "openModuleAccessibility": "Open {{module}} module",
     "cardComingSoonAccessibility": "{{module}}, coming soon",
@@ -1332,7 +1341,7 @@
         "subtitle": "This week's focus"
       },
       "calendar": {
-        "title": "Cosmic Planner",
+        "title": "Guru Planner",
         "subtitle": "Plan your day and create reminders"
       },
       "luckyHours": {
@@ -1439,7 +1448,7 @@
   },
   "auth": {
     "welcomeTitle": "Plan your day. Understand yourself.",
-    "welcomeSubtitle": "Your personal space for daily actions, reflection, and growth",
+    "welcomeSubtitle": "A personal daily plan built from your birth chart and today's sky",
     "welcomeEyebrow": "Your Personal Growth Space",
     "welcomeSignal": "Personalized, practical, and secure",
     "welcomeBlurb": "Bring your daily plan, decision support, dream journal, and spiritual practices together—with astrology as personal context.",
@@ -1481,6 +1490,7 @@
     "googleLoginError": "Could not sign in with Google.",
     "googleConfigError": "Google Sign-In is not configured for this app build. Please update the app and try again.",
     "appleLoginError": "Could not sign in with Apple.",
+    "returnToLoginConfirmation": "Would you like to return to the sign-in screen?",
     "birthDateTitle": "Your Date of Birth?",
     "birthDateSubtitle": "Choose your birth date to personalize the context behind your plan and self-discovery tools.",
     "birthDateHeroEyebrow": "Birth Date",
@@ -2456,7 +2466,9 @@
     "pendingBody": "Your purchase was received. We're syncing your Premium access now.",
     "pendingTokenBody": "Your purchase was received. Token balance may update after the verified webhook arrives.",
     "restoreSuccessTitle": "Purchase status updated",
-    "restoreSuccessBody": "Your account subscription and token status were refreshed from the store.",
+    "restoreSuccessBody": "Your Premium membership was restored from the store and activated on this account.",
+    "restoreNotFoundTitle": "No active membership found",
+    "restoreNotFoundBody": "We couldn't find an active Premium membership to restore for this store account.",
     "noPlansTitle": "Plans are not available",
     "planFallbackDescription": "Premium access for your account.",
     "trialMeta": "{{count}}-day free trial",
@@ -2495,9 +2507,11 @@
       "monthlyTitle": "Monthly Membership",
       "monthlySubtitle": "Astro Guru Premium Monthly",
       "monthlyNote": "{{count}} days free, then billed monthly",
+      "monthlyRenewalNote": "Renews monthly at the displayed price",
       "yearlyTitle": "Yearly Membership",
       "yearlySubtitle": "Astro Guru Premium Yearly",
       "yearlyNote": "{{count}} days free, then billed yearly",
+      "yearlyRenewalNote": "Renews yearly at the displayed price",
       "recommended": "Recommended",
       "loading": "Loading membership options...",
       "packageError": "Membership options could not be loaded right now. Please try again.",
@@ -2509,12 +2523,14 @@
       "benefitNatal": "Special birth chart and detailed interpretations",
       "cta": "Start {{count}}-Day Free Trial",
       "trust": "You can cancel before the trial ends.",
+      "verifiedTrialTitle": "{{duration}} Free Trial",
+      "trialCta": "Start {{duration}} Free Trial",
       "restore": "Restore Purchase",
       "purchaseCancelled": "Purchase cancelled.",
       "purchaseFailed": "Purchase could not be completed. Please try again.",
       "restoreFailed": "Purchase could not be restored. Please try again.",
-      "purchaseSuccessTitle": "Premium active",
-      "purchaseSuccessBody": "Your Premium access is now active.",
+      "purchaseSuccessTitle": "Welcome to Premium ✨",
+      "purchaseSuccessBody": "Your Astro Guru Premium membership is active. You can now use your Premium features.",
       "manageUnavailableTitle": "Subscription management unavailable",
       "manageUnavailableBody": "You can manage your subscription from your App Store or Google Play account settings."
     }
@@ -2572,13 +2588,15 @@
     "section2Title": "Accounts and Security",
     "section2Body": "You are responsible for keeping your login credentials secure and for the activity performed through your account. Please use accurate information during registration and keep your profile up to date.",
     "section3Title": "Premium Features and Billing",
-    "section3Body": "If premium plans, subscriptions, or consumable purchases are offered, pricing is shown before confirmation and billing is handled by Apple App Store or Google Play according to their store terms.",
+    "section3Body": "Subscription title, duration, localized renewal price, and any eligible free-trial terms are shown before confirmation. Subscriptions renew automatically unless canceled at least 24 hours before the current period ends. Payment and renewal are handled by Apple App Store or Google Play and can be managed in your store account settings.",
     "section4Title": "Acceptable Use",
     "section4Body": "Do not misuse the app, attempt unauthorized access, interfere with other users, or upload unlawful, harmful, or abusive content. Accounts may be limited or suspended to protect the service and community.",
     "section5Title": "Updates and Contact",
     "section5Body": "These terms may be updated as the product evolves. Continued use after an update means you accept the revised terms. Contact us for questions about the service or your account.",
     "contactEmail": "support@astroguru.app",
-    "contactAccessibility": "Contact support by email"
+    "contactAccessibility": "Contact support by email",
+    "appleEula": "Apple Standard Terms of Use (EULA)",
+    "appleEulaAccessibility": "Open Apple Standard Terms of Use"
   },
   "notifications": {
     "title": "Notifications",
@@ -2669,7 +2687,7 @@
       "globalOnboarding": "Global Onboarding",
       "home": "Home",
       "dailyTransits": "Daily Transits",
-      "cosmicPlanner": "Cosmic Planner",
+      "cosmicPlanner": "Guru Planner",
       "decisionCompass": "Decision Compass",
       "compatibility": "Compatibility",
       "birthChart": "Birth Chart",
@@ -2856,6 +2874,9 @@
     "thisWeek": "This Week",
     "goToDetail": "View Details",
     "general": "General",
+    "generalContext": "General zodiac context",
+    "yourChartToday": "Your chart today",
+    "openPersonalPlan": "Open your personal daily plan",
     "love": "Love",
     "career": "Career",
     "money": "Money",
@@ -3829,7 +3850,7 @@
     "timelineTitle": "How the day flows",
     "cautionTitle": "Watch for this today",
     "reflectionTitle": "Evening reflection",
-    "whyLabel": "Why this suggestion?",
+    "whyLabel": "Why your chart points here",
     "markCompleteAccessibility": "Mark {{title}} as done",
     "markIncompleteAccessibility": "Mark {{title}} as not done",
     "feedbackTitle": "Did this plan fit you?",
@@ -3843,6 +3864,7 @@
       "NOT_USEFUL": "Not useful"
     },
     "profileIncompleteTitle": "Sharpen your plan",
-    "profileIncompleteBody": "Add your birth time and the daily plan is calculated by house, making suggestions far more specific."
+    "profileIncompleteBody": "Add your birth time and the daily plan is calculated by house, making suggestions far more specific.",
+    "profileIncompleteCta": "Open your profile to complete birth details"
   }
 }

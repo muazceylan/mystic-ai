@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import i18n from 'i18next';
 import { useMonetizationStore } from '../store/useMonetizationStore';
+import { useSubscription } from './useSubscription';
 import { useGuruWalletStore } from '../store/useGuruWalletStore';
 import {
   claimWebReward,
@@ -59,15 +60,11 @@ function createClientEventId(): string {
 
 export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRewardedUnlockResult {
   const [status, setStatus] = useState<UnlockStatus>('idle');
-  const { config, entitlements, paywall, getModuleRule, isAdsEnabledForModule, trackAdOffer, trackAdCompleted } =
+  const { config, getModuleRule, isAdsEnabledForModule, trackAdOffer, trackAdCompleted } =
     useMonetizationStore();
   const { refreshBalance } = useGuruWalletStore();
-  const premiumAccessActive = Boolean(
-    entitlements?.premiumActive
-    || entitlements?.trialing
-    || paywall?.premiumActive
-    || paywall?.trialing,
-  );
+  const subscription = useSubscription();
+  const premiumAccessActive = subscription.isPremium;
 
   useEffect(() => {
     if (Platform.OS !== 'web') {

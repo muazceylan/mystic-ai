@@ -48,7 +48,7 @@ public class DreamService {
 
     private static final String AI_EXCHANGE = "ai.exchange";
     private static final String AI_REQUESTS_ROUTING_KEY = "ai.request";
-    public static final String DREAM_PROMPT_VERSION = "dream-analysis-v2.0";
+    public static final String DREAM_PROMPT_VERSION = "dream-analysis-v2.1";
 
     /**
      * Processes a dream text submission:
@@ -484,7 +484,10 @@ public class DreamService {
             payload.put("extractedSymbols", extractedSymbols);
             payload.put("outputPreferences", Map.of(
                     "detailLevel", "premium",
-                    "maxWords", 700,
+                    "maxWords", 400,
+                    "readingLevel", "everyday",
+                    "maxSentenceWords", 20,
+                    "avoidJargon", true,
                     "includeFollowUpQuestions", true,
                     "includeJournalPrompt", true
             ));

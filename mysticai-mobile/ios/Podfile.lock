@@ -398,6 +398,13 @@ PODS:
   - hermes-engine (0.81.5):
     - hermes-engine/Pre-built (= 0.81.5)
   - hermes-engine/Pre-built (0.81.5)
+  - IronSourceAdQualitySDK (9.4.0)
+  - IronSourceSDK (9.4.0.0):
+    - IronSourceSDK/AdQuality (= 9.4.0.0)
+    - IronSourceSDK/Ads (= 9.4.0.0)
+  - IronSourceSDK/AdQuality (9.4.0.0):
+    - IronSourceAdQualitySDK (~> 9.4.0)
+  - IronSourceSDK/Ads (9.4.0.0)
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
     - nanopb/encode (= 3.30910.0)
@@ -2576,6 +2583,29 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - unity-levelplay-mediation (9.2.0):
+    - hermes-engine
+    - IronSourceSDK (= 9.4.0.0)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -2700,6 +2730,7 @@ DEPENDENCIES:
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
+  - unity-levelplay-mediation (from `../node_modules/unity-levelplay-mediation`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -2718,6 +2749,8 @@ SPEC REPOS:
     - GoogleUtilities
     - GTMAppAuth
     - GTMSessionFetcher
+    - IronSourceAdQualitySDK
+    - IronSourceSDK
     - nanopb
     - PromisesObjC
     - PromisesSwift
@@ -2965,6 +2998,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-vector-icons"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
+  unity-levelplay-mediation:
+    :path: "../node_modules/unity-levelplay-mediation"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -3022,6 +3057,8 @@ SPEC CHECKSUMS:
   GTMAppAuth: 217a876b249c3c585a54fd6f73e6b58c4f5c4238
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: 9f4dfe93326146a1c99eb535b1cb0b857a3cd172
+  IronSourceAdQualitySDK: 7414cf810bdfbc67c3d58536469a923a3a452ac5
+  IronSourceSDK: 8112211f22915d2633a2a152d327b184fe80bf05
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
@@ -3108,6 +3145,7 @@ SPEC CHECKSUMS:
   RNSVG: ac3047fdd9c0ebac9d0b731a352bddf216af6242
   RNVectorIcons: 1db72384402bc567e995855056b8c5d7a9888780
   RNWorklets: 76fce72926e28e304afb44f0da23b2d24f2c1fa0
+  unity-levelplay-mediation: d16a6c802d757767fa38bd42c186b4163485959b
   Yoga: 65431d43277b661ebc7289c6c5d82f64ce42cfe0
 
 PODFILE CHECKSUM: a45f96171e99e4ec798a14adb8b299b66f5d89da

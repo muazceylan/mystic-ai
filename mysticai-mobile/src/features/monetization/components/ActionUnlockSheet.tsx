@@ -151,6 +151,7 @@ export function ActionUnlockSheet({
   const isBusy = optionsLoading || tokenProcessing || isRewardBusy;
   const waitingForContentUnlockOptions = sheetVisible && Boolean(contentKey) && options === null && !inlineMessage;
   const shouldRenderSheet = sheetVisible
+    && !monetization.isLoading
     && !unlockState.isFree
     && !options?.alreadyUnlocked
     && !waitingForContentUnlockOptions;

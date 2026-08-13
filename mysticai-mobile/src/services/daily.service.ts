@@ -12,12 +12,13 @@ import type {
   DailyActionsDTO,
   DailyFeedbackPayload,
   DailyTransitsDTO,
+  PlanFeedbackResponse,
 } from '../types/daily.types';
 
 const DAILY_TRANSITS_BASE = '/api/v1/daily/transits';
 const FEEDBACK_BASE = '/api/v1/feedback';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const DAILY_CACHE_VERSION = 'v2';
+const DAILY_CACHE_VERSION = 'v3';
 
 type DailyLocale = 'tr' | 'en';
 
@@ -444,7 +445,10 @@ export async function markActionDone(
   }
 }
 
-export async function sendFeedback(payload: DailyFeedbackPayload, locale?: string): Promise<void> {
+export async function sendFeedback(
+  payload: DailyFeedbackPayload,
+  locale?: string,
+): Promise<PlanFeedbackResponse> {
   const resolvedLocale = normalizeLocale(locale);
 
   if (!envConfig.isApiConfigured) {
@@ -458,11 +462,12 @@ export async function sendFeedback(payload: DailyFeedbackPayload, locale?: strin
   }
 
   try {
-    await api.post(FEEDBACK_BASE, {
+    const response = await api.post<PlanFeedbackResponse>(FEEDBACK_BASE, {
       ...payload,
       date: normalizeDate(payload.date),
       locale: resolvedLocale,
     });
+    return response.data;
   } catch (error) {
     logApiError('daily_feedback_send', error, {
       itemType: payload.itemType,

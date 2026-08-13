@@ -20,6 +20,7 @@ export type {
   CompleteRewardedAdPayload,
   RewardedAdCompleteResponse,
 } from './types';
+export type { SubscriptionSnapshot, SubscriptionResolutionStatus } from './types/billing';
 
 // Stores
 export { useMonetizationStore } from './store/useMonetizationStore';
@@ -35,6 +36,7 @@ export { usePaywall } from './hooks/usePaywall';
 export { usePurchasePremium } from './hooks/usePurchasePremium';
 export { usePurchaseTokenPack } from './hooks/usePurchaseTokenPack';
 export { useRestorePurchases } from './hooks/useRestorePurchases';
+export { useSubscription } from './hooks/useSubscription';
 
 // Services
 export {
@@ -54,6 +56,7 @@ export {
   completeRewardedAd,
 } from './api/monetization.service';
 export { openSubscriptionManagement } from './services/subscriptionManagement';
+export { resolvePremiumPlanKey } from './services/subscriptionSnapshot';
 
 // Providers
 export { getAdProvider, setAdProvider } from './providers/AdProviderAdapter';

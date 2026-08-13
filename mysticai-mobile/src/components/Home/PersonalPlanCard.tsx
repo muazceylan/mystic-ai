@@ -8,6 +8,7 @@ import { radius, shadowSubtle, spacing, typography } from '../../theme';
 import type {
   DailyActionsDTO,
   PersonalizationLevel,
+  PlanHomeTeaser,
   PlanMainTheme,
   PlanPrimaryAction,
 } from '../../types/daily.types';
@@ -20,15 +21,19 @@ interface PersonalPlanCardProps {
   theme?: string;
   /** v2 plan sections; when present the card leads with the day's theme and single key move. */
   mainTheme?: PlanMainTheme;
+  homeTeaser?: PlanHomeTeaser;
   primaryAction?: PlanPrimaryAction;
   personalizationLevel?: PersonalizationLevel;
   isLoading?: boolean;
   isError?: boolean;
   pendingActionId?: string | null;
+  journeyPreview?: React.ReactNode;
   onOpenPlan: () => void;
   onOpenPlanner: () => void;
   onRetry: () => void;
   onToggleAction: (actionId: string, nextValue: boolean) => void;
+  onExpandedChange?: (expanded: boolean) => void;
+  onWhyOpened?: () => void;
 }
 
 const MAX_FONT_SCALE = 1.3;
@@ -38,15 +43,19 @@ export function PersonalPlanCard({
   actions,
   theme,
   mainTheme,
+  homeTeaser,
   primaryAction,
   personalizationLevel,
   isLoading = false,
   isError = false,
   pendingActionId,
+  journeyPreview,
   onOpenPlan,
   onOpenPlanner,
   onRetry,
   onToggleAction,
+  onExpandedChange,
+  onWhyOpened,
 }: PersonalPlanCardProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -54,6 +63,17 @@ export function PersonalPlanCard({
   const completedCount = actions.filter((action) => action.isDone).length;
   const progress = actions.length > 0 ? completedCount / actions.length : 0;
   const visibleActions = actions.slice(0, 3);
+  const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isWhyExpanded, setIsWhyExpanded] = React.useState(false);
+  const canCollapse = !isLoading && !isError && actions.length > 0;
+  const showPlanBody = !canCollapse || isExpanded;
+
+  const handleToggleExpanded = React.useCallback(() => {
+    if (!canCollapse) return;
+    const next = !isExpanded;
+    setIsExpanded(next);
+    onExpandedChange?.(next);
+  }, [canCollapse, isExpanded, onExpandedChange]);
 
   return (
     <View
@@ -61,7 +81,17 @@ export function PersonalPlanCard({
       testID="home-personal-plan-card"
       accessibilityLabel={t('homePersonalPlan.accessibilityLabel')}
     >
-      <View style={styles.headerRow}>
+      <Pressable
+        onPress={handleToggleExpanded}
+        disabled={!canCollapse}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !canCollapse, expanded: showPlanBody }}
+        accessibilityLabel={t(
+          showPlanBody ? 'homePersonalPlan.collapse' : 'homePersonalPlan.expand',
+        )}
+        testID="home-personal-plan-toggle"
+        style={({ pressed }) => [styles.headerRow, pressed && canCollapse && styles.pressed]}
+      >
         <View style={styles.headerCopy}>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.eyebrow}>
             {dateLabel}
@@ -70,39 +100,51 @@ export function PersonalPlanCard({
             {t('homePersonalPlan.title')}
           </Text>
         </View>
-        <View style={styles.iconShell}>
-          <Ionicons name="checkmark-done-outline" size={22} color={colors.primary} />
+        <View style={styles.headerActions}>
+          <View style={styles.iconShell}>
+            <Ionicons name="checkmark-done-outline" size={22} color={colors.primary} />
+          </View>
+          {canCollapse ? (
+            <View style={styles.toggleShell}>
+              <Ionicons
+                name={showPlanBody ? 'chevron-up' : 'chevron-down'}
+                size={19}
+                color={colors.primary}
+              />
+            </View>
+          ) : null}
         </View>
-      </View>
+      </Pressable>
 
-      {isLoading ? (
-        <View style={styles.loadingWrap} testID="home-personal-plan-loading">
-          <Skeleton height={20} borderRadius={radius.sm} />
-          <Skeleton height={9} borderRadius={radius.pill} />
-          <Skeleton height={58} borderRadius={radius.md} />
-          <Skeleton height={58} borderRadius={radius.md} />
-        </View>
-      ) : isError ? (
-        <View style={styles.statusWrap} testID="home-personal-plan-error">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.statusTitle}>
-            {t('homePersonalPlan.errorTitle')}
-          </Text>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.statusBody}>
-            {t('homePersonalPlan.errorBody')}
-          </Text>
-          <Pressable
-            onPress={onRetry}
-            accessibilityRole="button"
-            accessibilityLabel={t('homePersonalPlan.retry')}
-            style={({ pressed }) => [styles.inlineButton, pressed && styles.pressed]}
-          >
-            <Ionicons name="refresh-outline" size={16} color={colors.primary} />
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.inlineButtonText}>
-              {t('homePersonalPlan.retry')}
+      {showPlanBody ? (
+        isLoading ? (
+          <View style={styles.loadingWrap} testID="home-personal-plan-loading">
+            <Skeleton height={20} borderRadius={radius.sm} />
+            <Skeleton height={9} borderRadius={radius.pill} />
+            <Skeleton height={58} borderRadius={radius.md} />
+            <Skeleton height={58} borderRadius={radius.md} />
+          </View>
+        ) : isError ? (
+          <View style={styles.statusWrap} testID="home-personal-plan-error">
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.statusTitle}>
+              {t('homePersonalPlan.errorTitle')}
             </Text>
-          </Pressable>
-        </View>
-      ) : actions.length === 0 ? (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.statusBody}>
+              {t('homePersonalPlan.errorBody')}
+            </Text>
+            <Pressable
+              onPress={onRetry}
+              accessibilityRole="button"
+              accessibilityLabel={t('homePersonalPlan.retry')}
+              style={({ pressed }) => [styles.inlineButton, pressed && styles.pressed]}
+            >
+              <Ionicons name="refresh-outline" size={16} color={colors.primary} />
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.inlineButtonText}>
+                {t('homePersonalPlan.retry')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : actions.length === 0 ? (
         <View style={styles.statusWrap} testID="home-personal-plan-empty">
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.statusTitle}>
             {t('homePersonalPlan.preparingTitle')}
@@ -124,11 +166,8 @@ export function PersonalPlanCard({
             </View>
           ) : null}
 
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={2} style={styles.planThemeTitle}>
-            {mainTheme.title}
-          </Text>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={3} style={styles.themeText}>
-            {mainTheme.description}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.planThemeTitle}>
+            {homeTeaser?.headline ?? mainTheme.title}
           </Text>
 
           {primaryAction ? (
@@ -136,8 +175,8 @@ export function PersonalPlanCard({
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryEyebrow}>
                 {t('personalPlan.primaryActionEyebrow')}
               </Text>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={3} style={styles.primaryText}>
-                {primaryAction.description}
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryText}>
+                {homeTeaser?.body ?? primaryAction.title}
               </Text>
               <Pressable
                 onPress={() => onToggleAction(primaryAction.id, !primaryAction.isDone)}
@@ -165,6 +204,40 @@ export function PersonalPlanCard({
                   {primaryAction.isDone ? t('todayActions.markedDone') : t('todayActions.markDone')}
                 </Text>
               </Pressable>
+            </View>
+          ) : (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.themeText}>
+              {homeTeaser?.body ?? mainTheme.description}
+            </Text>
+          )}
+          {primaryAction?.why ? (
+            <View style={styles.homeWhyWrap}>
+              <Pressable
+                onPress={() => {
+                  const next = !isWhyExpanded;
+                  setIsWhyExpanded(next);
+                  if (next) onWhyOpened?.();
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: isWhyExpanded }}
+                accessibilityLabel={t('personalPlan.whyLabel')}
+                style={({ pressed }) => [styles.homeWhyToggle, pressed && styles.pressed]}
+              >
+                <Ionicons name="planet-outline" size={15} color={colors.primary} />
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.homeWhyLabel}>
+                  {t('personalPlan.whyLabel')}
+                </Text>
+                <Ionicons
+                  name={isWhyExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={15}
+                  color={colors.primary}
+                />
+              </Pressable>
+              {isWhyExpanded ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.homeWhyBody}>
+                  {primaryAction.why}
+                </Text>
+              ) : null}
             </View>
           ) : null}
         </>
@@ -205,7 +278,6 @@ export function PersonalPlanCard({
                   <View style={styles.actionCopy}>
                     <Text
                       maxFontSizeMultiplier={MAX_FONT_SCALE}
-                      numberOfLines={2}
                       style={[styles.actionTitle, action.isDone && styles.actionTitleDone]}
                     >
                       {action.title}
@@ -245,34 +317,62 @@ export function PersonalPlanCard({
             })}
           </View>
         </>
+        )
+      ) : (
+        <View style={styles.collapsedSummary} testID="home-personal-plan-collapsed">
+          <View style={styles.progressHeader}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.progressLabel}>
+              {t('homePersonalPlan.progress', { completed: completedCount, total: actions.length })}
+            </Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.progressPercent}>
+              {Math.round(progress * 100)}%
+            </Text>
+          </View>
+          <View
+            style={styles.progressTrack}
+            accessibilityRole="progressbar"
+            accessibilityValue={{ min: 0, max: actions.length, now: completedCount }}
+          >
+            <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+          </View>
+        </View>
       )}
 
-      <View style={styles.ctaRow}>
-        <Pressable
-          onPress={onOpenPlan}
-          accessibilityRole="button"
-          accessibilityLabel={t('homePersonalPlan.openPlan')}
-          testID="home-personal-plan-open"
-          style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-        >
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryButtonText}>
-            {t('homePersonalPlan.openPlan')}
-          </Text>
-          <Ionicons name="arrow-forward" size={17} color={colors.white} />
-        </Pressable>
-        <Pressable
-          onPress={onOpenPlanner}
-          accessibilityRole="button"
-          accessibilityLabel={t('homePersonalPlan.planDay')}
-          testID="home-personal-plan-planner"
-          style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-        >
-          <Ionicons name="calendar-outline" size={17} color={colors.primary} />
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.secondaryButtonText}>
-            {t('homePersonalPlan.planDay')}
-          </Text>
-        </Pressable>
-      </View>
+      {showPlanBody ? (
+        <View style={styles.ctaRow}>
+          <Pressable
+            onPress={onOpenPlan}
+            accessibilityRole="button"
+            accessibilityLabel={t('homePersonalPlan.openPlan')}
+            testID="home-personal-plan-open"
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+          >
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryButtonText}>
+              {t('homePersonalPlan.openPlan')}
+            </Text>
+            <Ionicons name="arrow-forward" size={17} color={colors.white} />
+          </Pressable>
+          <Pressable
+            onPress={onOpenPlanner}
+            accessibilityRole="button"
+            accessibilityLabel={t('homePersonalPlan.planDay')}
+            testID="home-personal-plan-planner"
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+          >
+            <Ionicons name="calendar-outline" size={17} color={colors.primary} />
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.secondaryButtonText}>
+              {t('homePersonalPlan.planDay')}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {journeyPreview ? (
+        <View style={styles.journeySection}>
+          <View style={styles.sectionDivider} />
+          {journeyPreview}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -299,6 +399,11 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       flex: 1,
       gap: spacing.xxs,
     },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
     eyebrow: {
       ...typography.Caption,
       fontWeight: '700',
@@ -321,6 +426,14 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       backgroundColor: isDark ? 'rgba(168,85,247,0.16)' : C.primarySoftBg,
       borderWidth: 1,
       borderColor: C.border,
+    },
+    toggleShell: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(168,85,247,0.12)' : C.primarySoftBg,
     },
     loadingWrap: {
       gap: spacing.sm,
@@ -360,6 +473,28 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       borderWidth: 1,
       borderColor: C.border,
     },
+    homeWhyWrap: {
+      gap: spacing.xs,
+      paddingTop: spacing.xxs,
+    },
+    homeWhyToggle: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    homeWhyLabel: {
+      ...typography.Caption,
+      flex: 1,
+      fontWeight: '700',
+      color: C.primary,
+    },
+    homeWhyBody: {
+      ...typography.Body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: C.subtext,
+    },
     primaryEyebrow: {
       ...typography.Caption,
       fontWeight: '700',
@@ -368,9 +503,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       letterSpacing: 0.6,
     },
     primaryText: {
-      ...typography.Caption,
-      fontSize: 13,
-      lineHeight: 19,
+      ...typography.Body,
+      fontWeight: '700',
+      fontSize: 15,
+      lineHeight: 22,
       color: C.text,
     },
     progressHeader: {
@@ -401,6 +537,10 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       height: '100%',
       borderRadius: radius.pill,
       backgroundColor: C.primary,
+    },
+    collapsedSummary: {
+      gap: spacing.xs,
+      paddingTop: spacing.xxs,
     },
     actionList: {
       gap: spacing.sm,
@@ -542,6 +682,13 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       ...typography.Button,
       fontSize: 14,
       color: C.primary,
+    },
+    journeySection: {
+      gap: spacing.md,
+    },
+    sectionDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: C.border,
     },
     pressed: {
       opacity: 0.78,

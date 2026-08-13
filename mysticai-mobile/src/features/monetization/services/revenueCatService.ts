@@ -23,7 +23,15 @@ import type {
 } from '../types/billing';
 import { isTrialEligibilityEligible } from '../utils/trialDisplay';
 
+let revenueCatConfigured = false;
 let configuredAppUserId: string | null = null;
+let revenueCatIdentityOperation: Promise<void> = Promise.resolve();
+
+function runRevenueCatIdentityOperation(operation: () => Promise<void> | void): Promise<void> {
+  const next = revenueCatIdentityOperation.then(operation, operation);
+  revenueCatIdentityOperation = next.catch(() => {});
+  return next;
+}
 
 export const REVENUECAT_PREMIUM_ENTITLEMENT_ID = envConfig.revenueCat.premiumEntitlementId;
 export const REVENUECAT_DEFAULT_OFFERING_ID = 'default';
@@ -550,31 +558,36 @@ export async function configureRevenueCat(
     throw new Error('RevenueCat native module is not available in this build. Rebuild the development or store app after installing react-native-purchases.');
   }
 
-  if (!configuredAppUserId) {
-    Purchases.configure({
-      apiKey,
-      appUserID: appUserId,
-    });
-    configuredAppUserId = appUserId;
-    return;
-  }
+  await runRevenueCatIdentityOperation(async () => {
+    if (!revenueCatConfigured) {
+      Purchases.configure({
+        apiKey,
+        appUserID: appUserId,
+      });
+      revenueCatConfigured = true;
+      configuredAppUserId = appUserId;
+      return;
+    }
 
-  if (configuredAppUserId !== appUserId) {
-    await Purchases.logIn(appUserId);
-    configuredAppUserId = appUserId;
-  }
+    if (configuredAppUserId !== appUserId) {
+      await Purchases.logIn(appUserId);
+      configuredAppUserId = appUserId;
+    }
+  });
 }
 
 export async function logoutRevenueCat(): Promise<void> {
-  if (!configuredAppUserId) {
-    return;
-  }
+  await runRevenueCatIdentityOperation(async () => {
+    if (!revenueCatConfigured || !configuredAppUserId) {
+      return;
+    }
 
-  try {
-    await Purchases.logOut();
-  } finally {
-    configuredAppUserId = null;
-  }
+    try {
+      await Purchases.logOut();
+    } finally {
+      configuredAppUserId = null;
+    }
+  });
 }
 
 export async function getRevenueCatCustomerInfo(): Promise<CustomerInfo> {

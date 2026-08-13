@@ -6,7 +6,12 @@ import {
   type LevelPlayInitListener,
 } from 'unity-levelplay-mediation';
 import type { AdsInitializationOptions } from '../../monetization/providers/mobileAds.types';
-import { getLevelPlayConfig } from './levelPlay.config';
+import {
+  LEVELPLAY_TEST_SUITE_METADATA_KEY,
+  getLevelPlayConfig,
+  isLevelPlayDevToolsEnabled,
+  levelPlayDevLog,
+} from './levelPlay.config';
 
 export type LevelPlayInitializationState =
   | 'idle'
@@ -87,8 +92,13 @@ async function doInitialize(
     ]);
     await LevelPlay.setConsent(options.personalizedAdvertisingAllowed);
 
-    if (config.debugEnabled) {
+    // Dev-only test wiring. Both calls must happen before `LevelPlay.init()`:
+    // the native SDK decides Test Suite availability while initializing.
+    if (isLevelPlayDevToolsEnabled()) {
+      await LevelPlay.setMetaData(LEVELPLAY_TEST_SUITE_METADATA_KEY, ['enable']);
+      levelPlayDevLog('Test Suite metadata enabled');
       await LevelPlay.setAdaptersDebug(true);
+      levelPlayDevLog('Adapter debug enabled');
     }
 
     const builder = LevelPlayInitRequest.builder(config.appKey);
@@ -121,9 +131,7 @@ async function doInitialize(
     initializedUserId = initialized ? stableUserId : null;
 
     if (initialized && config.debugEnabled) {
-      void LevelPlay.validateIntegration().catch((validationError) => {
-        console.warn('[LevelPlay] Integration validation failed.', validationError);
-      });
+      void validateLevelPlayIntegration();
     }
     return initialized;
   } catch (initializationError) {
@@ -131,6 +139,36 @@ async function doInitialize(
     error = toError(initializationError, 'LevelPlay initialization failed.');
     initializedUserId = null;
     if (__DEV__) console.warn('[LevelPlay] Initialization failed.', error.message);
+    return false;
+  }
+}
+
+/**
+ * Runs the LevelPlay integration checker and prints its report to the native
+ * log (Logcat tag `IronSource`). Development-only: a no-op in production
+ * builds. Safe to call before initialization — it logs and returns instead.
+ *
+ * @returns whether the validation request reached the SDK.
+ */
+export async function validateLevelPlayIntegration(): Promise<boolean> {
+  if (!isLevelPlayDevToolsEnabled()) return false;
+
+  if (state !== 'initialized') {
+    levelPlayDevLog(
+      `Integration validation skipped — LevelPlay is not initialized (state: ${state}).`,
+    );
+    return false;
+  }
+
+  levelPlayDevLog('Integration validation started');
+  try {
+    await LevelPlay.validateIntegration();
+    levelPlayDevLog(
+      'Integration validation requested — the native SDK prints the report to Logcat (tag: IronSource).',
+    );
+    return true;
+  } catch (validationError) {
+    levelPlayDevLog('Integration validation failed.', validationError);
     return false;
   }
 }

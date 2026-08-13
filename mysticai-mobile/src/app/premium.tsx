@@ -23,6 +23,7 @@ import {
   usePurchasePremium,
   usePurchaseTokenPack,
   useRestorePurchases,
+  useSubscription,
 } from '../features/monetization';
 import { trackMonetizationEvent } from '../features/monetization/analytics/monetizationAnalytics';
 import { useTrialDisplayState } from '../features/monetization/hooks/useTrialDisplayState';
@@ -378,6 +379,7 @@ export default function PremiumScreen() {
   const premiumPurchase = usePurchasePremium();
   const tokenPurchase = usePurchaseTokenPack();
   const restorePurchases = useRestorePurchases();
+  const subscription = useSubscription();
 
   useEffect(() => {
     trackMonetizationEvent('paywall_viewed', {
@@ -462,8 +464,12 @@ export default function PremiumScreen() {
     }
 
     const result = await premiumPurchase.purchasePremium(product);
-    if (result.status === 'pending_backend') {
-      Alert.alert(t('premium.pendingTitle'), t('premium.pendingBody'));
+    if (result.status === 'success') {
+      Alert.alert(t('premium.paywall.purchaseSuccessTitle'), t('premium.paywall.purchaseSuccessBody'));
+      return;
+    }
+    if (result.status === 'failed') {
+      Alert.alert(t('common.error'), t('premium.paywall.purchaseFailed'));
     }
   };
 
@@ -488,6 +494,8 @@ export default function PremiumScreen() {
     const result = await restorePurchases.restorePurchases();
     if (result.status === 'success') {
       Alert.alert(t('premium.restoreSuccessTitle'), t('premium.restoreSuccessBody'));
+    } else if (result.status === 'not_found') {
+      Alert.alert(t('premium.restoreNotFoundTitle'), t('premium.restoreNotFoundBody'));
     }
   };
 
@@ -500,7 +508,7 @@ export default function PremiumScreen() {
     [paywallQuery.tokenProducts],
   );
 
-  const isLoading = paywallQuery.isLoading && !paywallQuery.paywall;
+  const isLoading = subscription.isLoading || (paywallQuery.isLoading && !paywallQuery.paywall);
   const isOfferingsLoading = paywallQuery.offeringsLoading;
 
   return (
@@ -525,7 +533,7 @@ export default function PremiumScreen() {
             <Text style={styles.heroTitle}>{t('premium.heroTitle')}</Text>
             <Text style={styles.heroSubtitle}>{t('premium.heroSub')}</Text>
 
-            {paywallQuery.paywall?.premiumActive ? (
+            {subscription.isPremium ? (
               <View style={styles.activePill}>
                 <Text style={styles.activePillText}>{t('premium.activeState')}</Text>
               </View>
@@ -555,25 +563,21 @@ export default function PremiumScreen() {
             </View>
           ) : null}
 
-          {paywallQuery.paywall?.premiumActive ? (
+          {subscription.isPremium ? (
             <View style={[styles.statusCard, styles.statusSuccess]}>
               <Text style={styles.statusTitle}>{t('premium.activeTitle')}</Text>
               <Text style={styles.statusBody}>
-                {paywallQuery.paywall.currentPeriodEndsAt
-                  ? t('premium.activeUntilBody', { date: paywallQuery.paywall.currentPeriodEndsAt })
+                {subscription.expirationDate
+                  ? t('premium.activeUntilBody', { date: subscription.expirationDate })
                   : t('premium.activeGenericBody')}
               </Text>
             </View>
           ) : null}
 
-          {premiumPurchase.status === 'pending_backend' || tokenPurchase.status === 'pending_backend' ? (
+          {tokenPurchase.status === 'pending_backend' ? (
             <View style={[styles.statusCard, styles.statusWarning]}>
               <Text style={styles.statusTitle}>{t('premium.pendingTitle')}</Text>
-              <Text style={styles.statusBody}>
-                {tokenPurchase.status === 'pending_backend'
-                  ? t('premium.pendingTokenBody')
-                  : t('premium.pendingBody')}
-              </Text>
+              <Text style={styles.statusBody}>{t('premium.pendingTokenBody')}</Text>
             </View>
           ) : null}
 
@@ -589,7 +593,7 @@ export default function PremiumScreen() {
             ))}
           </View>
 
-          <View style={{ gap: 12 }}>
+          {!subscription.isLoading ? <View style={{ gap: 12 }}>
             <Text style={styles.sectionTitle}>{t('premium.selectPlan')}</Text>
             {plans.length === 0 ? (
               isOfferingsLoading ? (
@@ -613,7 +617,7 @@ export default function PremiumScreen() {
                   <PremiumPlanPurchaseCard
                     key={product.productKey}
                     product={product}
-                    active={Boolean(paywallQuery.paywall?.premiumActive)}
+                    active={subscription.isPremium}
                     disabled={disabled}
                     isProcessing={premiumPurchase.isProcessing}
                     disabledMessage={purchaseDisabledMessage}
@@ -625,9 +629,10 @@ export default function PremiumScreen() {
                 );
               })
             )}
-          </View>
+          </View> : null}
 
-          {paywallQuery.paywall?.tokenPurchaseEnabled ? (
+          {!subscription.isLoading && paywallQuery.paywall?.tokenPurchaseEnabled
+            && (!subscription.isPremium || paywallQuery.paywall?.allowPremiumAndTokenTogether !== false) ? (
             <View style={{ gap: 12 }}>
               <View style={styles.rowBetween}>
                 <Text style={styles.sectionTitle}>{t('monetization.storeTitle')}</Text>

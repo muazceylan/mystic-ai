@@ -18,10 +18,11 @@ import { BottomSheet } from '../../../components/ui/BottomSheet';
 import { ACCESSIBILITY } from '../../../constants/tokens';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { trackEvent } from '../../../services/analytics';
-import { useEntitlements } from '../hooks/useEntitlements';
+import { useSubscription } from '../hooks/useSubscription';
 import { usePaywall } from '../hooks/usePaywall';
 import { usePurchasePremium } from '../hooks/usePurchasePremium';
 import { useRestorePurchases } from '../hooks/useRestorePurchases';
+import { useTrialDisplayState } from '../hooks/useTrialDisplayState';
 import {
   formatRevenueCatStorePrice,
   getRevenueCatPriceLocale,
@@ -72,8 +73,6 @@ const EXPECTED_STORE_PRODUCT_IDS_BY_PACKAGE_ID: Record<PlanId, string> = {
   [ANNUAL_PACKAGE_ID]: 'astroguru_premium_yearly',
 };
 
-const PREMIUM_TRIAL_DAYS = 3;
-
 const COLORS = {
   sheet: '#120026',
   deepPurple: '#16002F',
@@ -102,7 +101,6 @@ function toResolvedSubscriptionProduct({
   revenueCatPackage,
   configuredProduct,
   packageId,
-  trialDays,
   fallbackTitle,
   fallbackDescription,
   sortOrder,
@@ -111,7 +109,6 @@ function toResolvedSubscriptionProduct({
   revenueCatPackage: PurchasesPackage;
   configuredProduct?: ResolvedPaywallProduct | null;
   packageId: PlanId;
-  trialDays: number;
   fallbackTitle: string;
   fallbackDescription: string;
   sortOrder: number;
@@ -137,7 +134,7 @@ function toResolvedSubscriptionProduct({
     bonusTokenAmount: null,
     price: localizedPrice,
     currency: configuredProduct?.currency ?? product.currencyCode ?? null,
-    trialDurationDays: configuredProduct?.trialDurationDays ?? trialDays,
+    trialDurationDays: configuredProduct?.trialDurationDays ?? null,
     sortOrder: configuredProduct?.sortOrder ?? sortOrder,
     badge: configuredProduct?.badge ?? null,
     popular: configuredProduct?.popular ?? Boolean(recommended),
@@ -239,7 +236,7 @@ export function PremiumPaywallSheet({
   const [inlineMessage, setInlineMessage] = useState<string | null>(null);
   const openedTrackedRef = useRef(false);
   const missingPackagesWarnKeyRef = useRef<string | null>(null);
-  const entitlementState = useEntitlements();
+  const subscription = useSubscription();
   const paywallQuery = usePaywall();
   const {
     status: purchaseStatus,
@@ -257,13 +254,7 @@ export function PremiumPaywallSheet({
   } = useRestorePurchases();
 
   const paywall = paywallQuery.paywall;
-  const entitlementPremiumActive = Boolean(
-    entitlementState.premiumActive
-    || entitlementState.trialing
-    || paywall?.premiumActive
-    || paywall?.trialing,
-  );
-  const trialDays = PREMIUM_TRIAL_DAYS;
+  const entitlementPremiumActive = subscription.isPremium;
 
   const configuredMonthlyProduct = useMemo(
     () => resolveConfiguredProductForPlan(paywallQuery.subscriptionProducts, MONTHLY_PACKAGE_ID),
@@ -291,7 +282,7 @@ export function PremiumPaywallSheet({
       packageId: MONTHLY_PACKAGE_ID,
       title: t('premium.paywall.monthlyTitle'),
       subtitle: t('premium.paywall.monthlySubtitle'),
-      note: t('premium.paywall.monthlyNote', { count: trialDays }),
+      note: t('premium.paywall.monthlyRenewalNote'),
       price: formatRevenueCatStorePrice(monthlyPackage.product) ?? monthlyPackage.product.priceString,
       priceSuffix: t('premium.periodMonth'),
       iconName: 'calendar-outline',
@@ -299,13 +290,12 @@ export function PremiumPaywallSheet({
         revenueCatPackage: monthlyPackage,
         configuredProduct: configuredMonthlyProduct,
         packageId: MONTHLY_PACKAGE_ID,
-        trialDays,
         fallbackTitle: t('premium.paywall.monthlySubtitle'),
-        fallbackDescription: t('premium.paywall.monthlyNote', { count: trialDays }),
+        fallbackDescription: t('premium.paywall.monthlyRenewalNote'),
         sortOrder: 10,
       }),
     };
-  }, [configuredMonthlyProduct, monthlyPackage, t, trialDays]);
+  }, [configuredMonthlyProduct, monthlyPackage, t]);
 
   const annualPlan = useMemo<PremiumPlanModel | null>(() => {
     if (!annualPackage) {
@@ -315,7 +305,7 @@ export function PremiumPaywallSheet({
       packageId: ANNUAL_PACKAGE_ID,
       title: t('premium.paywall.yearlyTitle'),
       subtitle: t('premium.paywall.yearlySubtitle'),
-      note: t('premium.paywall.yearlyNote', { count: trialDays }),
+      note: t('premium.paywall.yearlyRenewalNote'),
       price: formatRevenueCatStorePrice(annualPackage.product) ?? annualPackage.product.priceString,
       priceSuffix: t('premium.periodYear'),
       iconName: 'calendar',
@@ -324,22 +314,29 @@ export function PremiumPaywallSheet({
         revenueCatPackage: annualPackage,
         configuredProduct: configuredAnnualProduct,
         packageId: ANNUAL_PACKAGE_ID,
-        trialDays,
         fallbackTitle: t('premium.paywall.yearlySubtitle'),
-        fallbackDescription: t('premium.paywall.yearlyNote', { count: trialDays }),
+        fallbackDescription: t('premium.paywall.yearlyRenewalNote'),
         sortOrder: 20,
         recommended: true,
       }),
     };
-  }, [annualPackage, configuredAnnualProduct, t, trialDays]);
+  }, [annualPackage, configuredAnnualProduct, t]);
 
   const selectedPlan = (selectedPackageId === ANNUAL_PACKAGE_ID ? annualPlan : monthlyPlan)
     ?? annualPlan
     ?? monthlyPlan;
+  const monthlyTrialDisplay = useTrialDisplayState(monthlyPlan?.product);
+  const annualTrialDisplay = useTrialDisplayState(annualPlan?.product);
+  const selectedTrialDisplay = selectedPlan?.packageId === ANNUAL_PACKAGE_ID
+    ? annualTrialDisplay
+    : monthlyTrialDisplay;
+  const selectedHasFreeTrial = selectedTrialDisplay.status === 'eligible';
+  const trialEligibilityLoading = selectedTrialDisplay.status === 'loading';
   const isInitialLoading = Boolean(
     visible
     && (
-      (paywallQuery.isLoading && !paywall)
+      subscription.isLoading
+      || (paywallQuery.isLoading && !paywall)
       || paywallQuery.offeringsLoading
     )
     && !monthlyPlan
@@ -398,7 +395,7 @@ export function PremiumPaywallSheet({
       trackEvent('premium_paywall_opened', {
         source,
         selected_package_id: ANNUAL_PACKAGE_ID,
-        has_free_trial: true,
+        has_free_trial: null,
       });
     }
   }, [resetPurchase, resetRestore, source, visible]);
@@ -507,13 +504,16 @@ export function PremiumPaywallSheet({
     setSelectedPackageId(packageId);
     setInlineMessage(null);
     const plan = packageId === ANNUAL_PACKAGE_ID ? annualPlan : monthlyPlan;
+    const trialDisplay = packageId === ANNUAL_PACKAGE_ID
+      ? annualTrialDisplay
+      : monthlyTrialDisplay;
     trackEvent('premium_plan_selected', {
       source,
       selected_package_id: packageId,
       product_id: normalizeStoreProductId(plan?.product.storeProductId ?? plan?.product.revenueCatProductId),
-      has_free_trial: true,
+      has_free_trial: trialDisplay.status === 'eligible',
     });
-  }, [annualPlan, monthlyPlan, selectedPackageId, source]);
+  }, [annualPlan, annualTrialDisplay, monthlyPlan, monthlyTrialDisplay, selectedPackageId, source]);
 
   const handlePurchase = useCallback(async () => {
     if (!isAuthenticated) {
@@ -521,7 +521,7 @@ export function PremiumPaywallSheet({
       return;
     }
 
-    if (!selectedPlan || purchaseDisabled) {
+    if (!selectedPlan || purchaseDisabled || trialEligibilityLoading) {
       return;
     }
 
@@ -532,27 +532,26 @@ export function PremiumPaywallSheet({
       source,
       selected_package_id: selectedPlan.packageId,
       product_id: productId,
-      has_free_trial: true,
+      has_free_trial: selectedHasFreeTrial,
     };
 
     setInlineMessage(null);
-    trackEvent('premium_trial_cta_clicked', payload);
+    if (selectedHasFreeTrial) {
+      trackEvent('premium_trial_cta_clicked', payload);
+    }
     trackEvent('premium_purchase_started', payload);
 
-    const result = await purchasePremium(selectedPlan.product);
+    const result = await purchasePremium({
+      ...selectedPlan.product,
+      verifiedTrialEligible: selectedHasFreeTrial,
+      verifiedTrialDurationIso8601: selectedTrialDisplay.status === 'eligible'
+        ? selectedTrialDisplay.durationIso8601
+        : null,
+    });
     if (result.status === 'success') {
       trackEvent('premium_purchase_success', payload);
       Alert.alert(t('premium.paywall.purchaseSuccessTitle'), t('premium.paywall.purchaseSuccessBody'));
       handleClose();
-      return;
-    }
-
-    if (result.status === 'pending_backend') {
-      trackEvent('premium_purchase_success', {
-        ...payload,
-        pending_backend: true,
-      });
-      Alert.alert(t('premium.pendingTitle'), t('premium.pendingBody'));
       return;
     }
 
@@ -573,9 +572,12 @@ export function PremiumPaywallSheet({
     purchaseError,
     purchasePremium,
     purchaseDisabled,
+    selectedHasFreeTrial,
     selectedPlan,
+    selectedTrialDisplay,
     source,
     t,
+    trialEligibilityLoading,
   ]);
 
   const handleRestore = useCallback(async () => {
@@ -592,6 +594,12 @@ export function PremiumPaywallSheet({
       return;
     }
 
+    if (result.status === 'not_found') {
+      trackEvent('premium_restore_not_found', { source });
+      Alert.alert(t('premium.restoreNotFoundTitle'), t('premium.restoreNotFoundBody'));
+      return;
+    }
+
     trackEvent('premium_restore_failed', {
       source,
       reason: result.error ?? restoreError ?? 'restore_failed',
@@ -600,7 +608,7 @@ export function PremiumPaywallSheet({
   }, [restoreError, restoreProcessing, restorePurchases, source, t]);
 
   const handleManageSubscription = useCallback(async () => {
-    const productId = entitlementState.snapshot?.productId
+    const productId = subscription.productId
       ?? selectedPlan?.product.storeProductId
       ?? selectedPlan?.product.revenueCatProductId
       ?? null;
@@ -612,7 +620,7 @@ export function PremiumPaywallSheet({
     };
 
     trackEvent('premium_manage_subscription_clicked', payload);
-    const result = await openSubscriptionManagement(productId);
+    const result = await openSubscriptionManagement(productId, subscription.managementURL);
     if (result.status === 'opened') {
       trackEvent('premium_manage_subscription_opened', payload);
       return;
@@ -624,10 +632,11 @@ export function PremiumPaywallSheet({
     });
     Alert.alert(t('premium.paywall.manageUnavailableTitle'), t('premium.paywall.manageUnavailableBody'));
   }, [
-    entitlementState.snapshot?.productId,
     selectedPackageId,
     selectedPlan,
     source,
+    subscription.managementURL,
+    subscription.productId,
     t,
   ]);
 
@@ -643,11 +652,15 @@ export function PremiumPaywallSheet({
       sheetStyle={styles.sheet}
       contentStyle={styles.sheetContent}
       dragHandleStyle={styles.dragHandle}
+      dragHandleOnly
       blurBackdrop
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled
+        directionalLockEnabled
+        keyboardShouldPersistTaps="handled"
       >
         <CosmicBackdrop />
         <TouchableOpacity
@@ -678,7 +691,7 @@ export function PremiumPaywallSheet({
           </Text>
         </View>
 
-        <LinearGradient
+        {selectedTrialDisplay.status === 'eligible' ? <LinearGradient
           colors={['rgba(255,215,106,0.15)', 'rgba(168,85,247,0.13)'] as const}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -692,13 +705,18 @@ export function PremiumPaywallSheet({
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              {t('premium.paywall.trialTitle', { count: trialDays })}
+              {t('premium.paywall.verifiedTrialTitle', {
+                duration: selectedTrialDisplay.durationText,
+              })}
             </Text>
             <Text style={styles.trialSubtitle} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-              {t('premium.paywall.cancelAnytime')}
+              {t('premium.trialMainOffer', {
+                duration: selectedTrialDisplay.durationText,
+                recurringPrice: selectedTrialDisplay.recurringPriceText,
+              })}
             </Text>
           </View>
-        </LinearGradient>
+        </LinearGradient> : null}
 
         {entitlementPremiumActive ? (
           <View style={styles.activeCard}>
@@ -742,24 +760,35 @@ export function PremiumPaywallSheet({
           </View>
         ) : null}
 
-        {!showPackageError && plans.length > 0 ? (
+        {!subscription.isLoading && !showPackageError && plans.length > 0 ? (
           <View style={styles.planStack}>
-            {plans.map((plan) => (
-              <PremiumPlanCard
-                key={plan.packageId}
-                title={plan.title}
-                subtitle={plan.subtitle}
-                note={plan.note}
-                price={plan.price}
-                priceSuffix={plan.priceSuffix}
-                iconName={plan.iconName}
-                selected={selectedPackageId === plan.packageId}
-                recommended={plan.recommended}
-                recommendedLabel={t('premium.paywall.recommended')}
-                disabled={purchaseProcessing || entitlementPremiumActive}
-                onPress={() => handleSelectPlan(plan.packageId)}
-              />
-            ))}
+            {plans.map((plan) => {
+              const trialDisplay = plan.packageId === ANNUAL_PACKAGE_ID
+                ? annualTrialDisplay
+                : monthlyTrialDisplay;
+              const note = trialDisplay.status === 'eligible'
+                ? t('premium.trialMainOffer', {
+                    duration: trialDisplay.durationText,
+                    recurringPrice: trialDisplay.recurringPriceText,
+                  })
+                : plan.note;
+              return (
+                <PremiumPlanCard
+                  key={plan.packageId}
+                  title={plan.title}
+                  subtitle={plan.subtitle}
+                  note={note}
+                  price={plan.price}
+                  priceSuffix={plan.priceSuffix}
+                  iconName={plan.iconName}
+                  selected={selectedPackageId === plan.packageId}
+                  recommended={plan.recommended}
+                  recommendedLabel={t('premium.paywall.recommended')}
+                  disabled={purchaseProcessing || entitlementPremiumActive}
+                  onPress={() => handleSelectPlan(plan.packageId)}
+                />
+              );
+            })}
           </View>
         ) : null}
 
@@ -784,18 +813,22 @@ export function PremiumPaywallSheet({
           </Text>
         ) : null}
 
-        <TouchableOpacity
+        {!subscription.isLoading ? <TouchableOpacity
           style={[
             styles.primaryCta,
-            purchaseDisabled && !entitlementPremiumActive && styles.primaryCtaDisabled,
+            (purchaseDisabled || trialEligibilityLoading)
+              && !entitlementPremiumActive
+              && styles.primaryCtaDisabled,
           ]}
           onPress={entitlementPremiumActive ? handleManageSubscription : handlePurchase}
-          disabled={!entitlementPremiumActive && purchaseDisabled}
+          disabled={!entitlementPremiumActive && (purchaseDisabled || trialEligibilityLoading)}
           accessibilityRole="button"
           accessibilityLabel={
             entitlementPremiumActive
               ? t('profile.premium.manageCta')
-              : t('premium.paywall.cta', { count: trialDays })
+              : selectedTrialDisplay.status === 'eligible'
+                ? t('premium.paywall.trialCta', { duration: selectedTrialDisplay.durationText })
+                : t('premium.continuePremium')
           }
           activeOpacity={0.86}
         >
@@ -813,13 +846,19 @@ export function PremiumPaywallSheet({
               >
                 {entitlementPremiumActive
                   ? t('profile.premium.manageCta')
-                  : t('premium.paywall.cta', { count: trialDays })}
+                  : selectedTrialDisplay.status === 'eligible'
+                    ? t('premium.paywall.trialCta', { duration: selectedTrialDisplay.durationText })
+                    : t('premium.continuePremium')}
               </Text>
             </>
           )}
-        </TouchableOpacity>
+        </TouchableOpacity> : null}
         <Text style={styles.trustText} maxFontSizeMultiplier={ACCESSIBILITY.maxFontSizeMultiplier}>
-          {t('premium.paywall.trust')}
+          {selectedTrialDisplay.status === 'eligible'
+            ? t('premium.trialRenewalFooter', {
+                recurringPrice: selectedTrialDisplay.recurringPriceText,
+              })
+            : t('premium.standardRenewalFooter')}
         </Text>
 
         <TouchableOpacity
@@ -839,6 +878,27 @@ export function PremiumPaywallSheet({
             {t('premium.paywall.restore')}
           </Text>
         </TouchableOpacity>
+
+        <View style={styles.legalRow}>
+          <TouchableOpacity
+            style={styles.legalLinkButton}
+            onPress={() => router.push('/terms')}
+            accessibilityRole="link"
+            accessibilityLabel={t('terms.title')}
+          >
+            <Text style={styles.legalLinkText}>{t('premium.termsLink')}</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalSeparator}>•</Text>
+          <TouchableOpacity
+            style={styles.legalLinkButton}
+            onPress={() => router.push('/privacy')}
+            accessibilityRole="link"
+            accessibilityLabel={t('privacy.title')}
+          >
+            <Text style={styles.legalLinkText}>{t('premium.privacyLink')}</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.legalDisclosure}>{t('premium.legalText')}</Text>
 
         <TouchableOpacity
           style={styles.closeLink}
@@ -1169,6 +1229,36 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     fontWeight: '800',
+  },
+  legalRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  legalLinkButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  legalLinkText: {
+    color: COLORS.softPurple,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+  },
+  legalDisclosure: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    lineHeight: 17,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   closeLink: {
     minHeight: 44,

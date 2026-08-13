@@ -25,6 +25,23 @@ export interface RevenueCatRuntimeState {
   diagnostics?: RevenueCatDiagnostics;
 }
 
+export type SubscriptionResolutionStatus = 'loading' | 'premium' | 'free' | 'error' | 'unavailable';
+
+export interface SubscriptionSnapshot {
+  status: SubscriptionResolutionStatus;
+  isPremium: boolean;
+  isTrialing: boolean;
+  entitlementId?: string | null;
+  productId?: string | null;
+  expirationDate?: string | null;
+  willRenew?: boolean | null;
+  managementURL?: string | null;
+  periodType?: string | null;
+  appUserId?: string | null;
+  lastUpdatedAt?: string | null;
+  error?: string | null;
+}
+
 export interface RevenueCatSdkConfig {
   iosApiKey?: string | null;
   androidApiKey?: string | null;

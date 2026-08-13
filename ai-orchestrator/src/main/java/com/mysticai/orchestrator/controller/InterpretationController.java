@@ -3,6 +3,7 @@ package com.mysticai.orchestrator.controller;
 import com.mysticai.orchestrator.dto.NumerologyGuidanceRequest;
 import com.mysticai.orchestrator.dto.DreamExpansionRequest;
 import com.mysticai.orchestrator.dto.OracleInterpretationRequest;
+import com.mysticai.orchestrator.dto.PersonalPlanRefineRequest;
 import com.mysticai.orchestrator.service.MysticalAiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -209,6 +210,32 @@ public class InterpretationController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(503).body(null);
+        }
+    }
+
+    /**
+     * POST /api/ai/plan/refine
+     *
+     * Rewords an already-composed daily personal plan for readability. Internal only — the
+     * caller supplies finished copy and re-validates everything that comes back, so a 503 here
+     * simply leaves the rule-based wording in place.
+     */
+    @PostMapping(value = "/plan/refine",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> refinePersonalPlan(
+            @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey,
+            @RequestBody PersonalPlanRefineRequest request) {
+        if (serviceKey == null || !serviceKey.equals(internalGatewayKey)) {
+            return ResponseEntity.status(403).body("{\"code\":\"FORBIDDEN\"}");
+        }
+        if (request == null || request.items() == null || request.items().isEmpty()) {
+            return ResponseEntity.badRequest().body("{\"code\":\"INVALID_REQUEST\"}");
+        }
+        try {
+            return ResponseEntity.ok(mysticalAiService.refinePersonalPlan(request));
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body("{\"code\":\"AI_UNAVAILABLE\"}");
         }
     }
 

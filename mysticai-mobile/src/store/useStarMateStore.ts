@@ -56,7 +56,6 @@ interface StarMateState {
   lastSavedAt: string | null;
   showMatchCelebration: boolean;
   lastMatchCelebration: StarMateMatch | null;
-  isPremium: boolean;
   likesPreviewUnlocked: boolean;
   profileEditHint: string | null;
 
@@ -84,7 +83,6 @@ interface StarMateState {
   swapPhotoSlots: (sourceIndex: number, targetIndex: number) => void;
   saveProfileDraftLocal: () => void;
   unlockLikesPreview: () => void;
-  setPremium: (premium: boolean) => void;
 }
 
 function uniqueById(items: StarMateProfile[]): StarMateProfile[] {
@@ -240,7 +238,6 @@ export const useStarMateStore = create<StarMateState>()(
       lastSavedAt: null,
       showMatchCelebration: false,
       lastMatchCelebration: null,
-      isPremium: false,
       likesPreviewUnlocked: false,
       profileEditHint: null,
 
@@ -555,8 +552,7 @@ export const useStarMateStore = create<StarMateState>()(
           profileEditHint: 'Profil taslagi kaydedildi',
         })),
 
-      unlockLikesPreview: () => set({ likesPreviewUnlocked: true, isPremium: true }),
-      setPremium: (premium) => set({ isPremium: premium, likesPreviewUnlocked: premium }),
+      unlockLikesPreview: () => set({ likesPreviewUnlocked: true }),
     }),
     {
       name: 'star-mate-store',
@@ -575,7 +571,6 @@ export const useStarMateStore = create<StarMateState>()(
         chats: state.chats,
         myProfileDraft: state.myProfileDraft,
         lastSavedAt: state.lastSavedAt,
-        isPremium: state.isPremium,
         likesPreviewUnlocked: state.likesPreviewUnlocked,
       }),
     },

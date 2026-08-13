@@ -24,3 +24,5 @@ export declare function initializeLevelPlay(
   options: AdsInitializationOptions,
   userId?: string | number | null,
 ): Promise<boolean>;
+
+export declare function validateLevelPlayIntegration(): Promise<boolean>;

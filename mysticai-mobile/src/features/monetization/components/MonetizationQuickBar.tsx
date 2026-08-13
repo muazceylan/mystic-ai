@@ -91,12 +91,15 @@ export function MonetizationQuickBar({ style }: MonetizationQuickBarProps) {
     || rewardStatus === 'showing_ad'
     || rewardStatus === 'processing_reward';
   const rewardAmount = monetization.rule?.guruRewardAmountPerCompletedAd ?? 1;
-  const showPackagesEntry = Boolean(config?.guruEnabled || (config?.products?.length ?? 0) > 0);
+  const showPackagesEntry = Boolean(
+    monetization.tokenPurchaseAvailable
+    && (config?.guruEnabled || (config?.products?.length ?? 0) > 0),
+  );
   const showFreeEntry = Boolean(rewardModuleKey && monetization.rewardedAdAvailable);
   const canEarnFreeGuru = Boolean(rewardModuleKey && monetization.rewardedAdAvailable && monetization.isAdReady);
   const premiumBadgeLabel = monetization.trialing ? 'TRIAL' : monetization.premiumActive ? 'PREMIUM' : null;
 
-  if (!showPackagesEntry && !showFreeEntry) {
+  if (monetization.isLoading || (!showPackagesEntry && !showFreeEntry)) {
     return null;
   }
 

@@ -1,9 +1,12 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { Linking, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { SafeScreen, TabHeader } from '../components/ui';
 import { openSupportEmail } from '../utils/supportEmail';
+
+const APPLE_STANDARD_EULA_URL =
+  'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -72,6 +75,18 @@ export default function TermsScreen() {
               <Text style={styles.sectionBody}>{t(section.bodyKey)}</Text>
             </View>
           ))}
+
+          <TouchableOpacity
+            style={styles.linkBtn}
+            onPress={() => {
+              void Linking.openURL(APPLE_STANDARD_EULA_URL);
+            }}
+            accessibilityLabel={t('terms.appleEulaAccessibility')}
+            accessibilityRole="link"
+          >
+            <Ionicons name="open-outline" size={16} color={colors.primary} />
+            <Text style={styles.linkBtnText}>{t('terms.appleEula')}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.linkBtn}

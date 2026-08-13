@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Image,
   Alert,
+  ActivityIndicator,
   Modal,
   TextInput,
   KeyboardAvoidingView,
@@ -46,7 +47,8 @@ import {
   openSubscriptionManagement,
   PremiumPaywallSheet,
   PremiumProfileCard,
-  useEntitlements,
+  resolvePremiumPlanKey,
+  useSubscription,
   useMonetizationStore,
 } from '../../features/monetization';
 import {
@@ -91,7 +93,7 @@ function getZodiacFromBirthDate(birthDate?: string): string {
 
 export function ProfileScreenContent() {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
@@ -108,7 +110,7 @@ export function ProfileScreenContent() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const entitlements = useMonetizationStore((s) => s.entitlements);
   const paywall = useMonetizationStore((s) => s.paywall);
-  const entitlementState = useEntitlements();
+  const subscription = useSubscription();
 
   const isGuest = isGuestUser(user);
   const initials = isGuest
@@ -198,12 +200,22 @@ export function ProfileScreenContent() {
     void reopenTutorialById(TUTORIAL_IDS.PROFILE_FOUNDATION, 'profile');
   }, [reopenTutorialById]);
 
-  const isPremiumActive = Boolean(
-    entitlementState.premiumActive
-    || entitlements?.premiumActive
-    || paywall?.premiumActive
-    || paywall?.trialing,
-  );
+  const isPremiumActive = subscription.isPremium;
+  const premiumPlanLabel = useMemo(() => {
+    const planKey = resolvePremiumPlanKey(subscription.productId);
+    if (planKey === 'monthly') return t('profile.premium.planMonthly');
+    if (planKey === 'yearly') return t('profile.premium.planYearly');
+    return t('profile.premium.planGeneric');
+  }, [subscription.productId, t]);
+  const premiumRenewalLabel = useMemo(() => {
+    if (!subscription.expirationDate) return null;
+    const date = new Date(subscription.expirationDate);
+    if (Number.isNaN(date.getTime())) return null;
+    const formatted = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(date);
+    return subscription.willRenew
+      ? t('profile.premium.renewsOn', { date: formatted })
+      : t('profile.premium.activeUntil', { date: formatted });
+  }, [i18n.language, subscription.expirationDate, subscription.willRenew, t]);
   const annualPremiumBadgeLabel = useMemo(() => {
     const annualProduct = paywall?.subscriptionProducts.find((product) => {
       const identifiers = [
@@ -231,14 +243,14 @@ export function ProfileScreenContent() {
 
   const handleManageSubscription = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const productId = entitlementState.snapshot?.productId ?? null;
+    const productId = subscription.productId ?? null;
     const payload = {
       source: 'profile_card',
       product_id: productId,
     };
 
     trackEvent('premium_manage_subscription_clicked', payload);
-    const result = await openSubscriptionManagement(productId);
+    const result = await openSubscriptionManagement(productId, subscription.managementURL);
     if (result.status === 'opened') {
       trackEvent('premium_manage_subscription_opened', payload);
       return;
@@ -249,7 +261,7 @@ export function ProfileScreenContent() {
       reason: result.status === 'failed' ? result.error : 'unavailable',
     });
     Alert.alert(t('premium.paywall.manageUnavailableTitle'), t('premium.paywall.manageUnavailableBody'));
-  }, [entitlementState.snapshot?.productId, t]);
+  }, [subscription.managementURL, subscription.productId, t]);
 
   const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -451,12 +463,21 @@ export function ProfileScreenContent() {
           </View>
         </View>
 
-        <PremiumProfileCard
-          isPremium={isPremiumActive}
-          annualBadgeLabel={annualPremiumBadgeLabel}
-          onManageSubscription={handleManageSubscription}
-          onPress={handlePremiumCardPress}
-        />
+        {subscription.isLoading ? (
+          <View style={S.premiumLoadingCard} accessibilityLabel={t('profile.premium.loading')}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={S.premiumLoadingText}>{t('profile.premium.loading')}</Text>
+          </View>
+        ) : (
+          <PremiumProfileCard
+            isPremium={isPremiumActive}
+            annualBadgeLabel={annualPremiumBadgeLabel}
+            planLabel={premiumPlanLabel}
+            renewalLabel={premiumRenewalLabel}
+            onManageSubscription={handleManageSubscription}
+            onPress={handlePremiumCardPress}
+          />
+        )}
 
         {/* ── Guest Banner ── */}
         {isGuestUser(user) && (
@@ -780,6 +801,23 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
     statBorderRight: { borderRightWidth: 1, borderRightColor: C.border },
     statValue: { color: C.text, fontSize: 20, fontWeight: '700', marginBottom: 4 },
     statLabel: { color: C.subtext, fontSize: 10, textAlign: 'center' },
+    premiumLoadingCard: {
+      minHeight: 120,
+      marginBottom: 18,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+    },
+    premiumLoadingText: {
+      color: C.subtext,
+      fontSize: 13,
+      lineHeight: 20,
+      fontWeight: '600',
+    },
     // Settings
     sectionTitle: { color: C.text, fontSize: 16, fontWeight: '700', marginBottom: 12 },
     sectionSubtitle: { color: C.subtext, fontSize: 12, lineHeight: 18, marginBottom: 12, marginTop: -4 },

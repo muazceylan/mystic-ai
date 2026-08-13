@@ -17,10 +17,19 @@ import org.springframework.stereotype.Component;
 public class PersonalPlanProperties {
 
     /** Bumped whenever the composition algorithm or catalog changes; part of the cache key. */
-    private String version = "pp-v1";
+    private String version = "pp-v3";
 
     /** How many previous days are compared when suppressing repeated suggestions. */
     private int historyDays = 7;
+
+    /** How long explicit relevance/helpfulness feedback may influence candidate weighting. */
+    private int feedbackInfluenceDays = 7;
+
+    /** Score reduction for a life area the user marked NOT_RELEVANT. */
+    private int notRelevantAreaPenalty = 18;
+
+    /** Small positive score for a life area the user marked HELPFUL; deliberately below penalties. */
+    private int helpfulAreaBoost = 4;
 
     /** Jaccard similarity above which two suggestions count as semantic duplicates. */
     private double semanticSimilarityThreshold = 0.82;
@@ -48,4 +57,20 @@ public class PersonalPlanProperties {
 
     /** Days a generated plan is retained before the cleanup job removes it. */
     private int retentionDays = 60;
+
+    /**
+     * Optional AI rewording pass over the composed plan. Off by default: the rule-based copy is
+     * the product baseline, and every refined field has to survive the same quality checks
+     * before it replaces one, so enabling this can only change wording, never plan content.
+     */
+    private boolean aiRefinementEnabled = false;
+
+    /** Bounded connect timeout for the ai-orchestrator refinement call. */
+    private int aiConnectTimeoutMs = 2000;
+
+    /**
+     * Bounded read timeout. A plan is composed once per user per local day, so this runs at most
+     * once a day per user; on timeout the rule-based copy is served unchanged.
+     */
+    private int aiReadTimeoutMs = 8000;
 }

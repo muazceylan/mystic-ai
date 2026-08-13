@@ -31,6 +31,14 @@ public class PlanQualityGuard {
 
     private final PersonalPlanProperties properties;
 
+    /** Product-rejected patterns: these stay banned even inside a longer sentence. */
+    private static final List<String> HARD_BANNED_PHRASES = List.of(
+            "ayni konusmada cevap vermeyin",
+            "yazili halini isteyin",
+            "sartlarin yazili halini",
+            "terms in writing first"
+    );
+
     /**
      * Phrases that carry no information on their own. A suggestion is rejected when a banned
      * phrase is essentially the whole sentence; the same words inside a longer, concrete
@@ -133,6 +141,12 @@ public class PlanQualityGuard {
         String normalized = normalize(text);
         if (normalized.isBlank()) {
             return "empty";
+        }
+
+        for (String banned : HARD_BANNED_PHRASES) {
+            if (normalized.contains(banned)) {
+                return "hard_banned_phrase:" + banned.replace(' ', '_');
+            }
         }
 
         List<String> tokens = contentTokens(normalized);

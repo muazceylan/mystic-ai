@@ -54,6 +54,8 @@ class PersonalPlanServiceTest {
     private UserFeedbackRepository feedbackRepository;
     @Mock
     private TransitCalculator transitCalculator;
+    @Mock
+    private PersonalPlanAiClient aiClient;
 
     private PersonalPlanService service;
     private PersonalPlanProperties properties;
@@ -65,8 +67,12 @@ class PersonalPlanServiceTest {
         PlanQualityGuard guard = new PlanQualityGuard(properties);
         PersonalPlanComposer composer = new PersonalPlanComposer(new PersonalPlanCatalog(), guard, properties);
 
+        // AI refinement is off by default, so these cases exercise the rule-based path.
+        PersonalPlanRefiner refiner =
+                new PersonalPlanRefiner(aiClient, guard, properties, new ObjectMapper());
+
         service = new PersonalPlanService(
-                composer, properties, personalContextClient, planRepository,
+                composer, refiner, properties, personalContextClient, planRepository,
                 actionStateRepository, feedbackRepository, transitCalculator, new ObjectMapper());
 
         savedPlans.clear();
@@ -139,6 +145,9 @@ class PersonalPlanServiceTest {
         assertThat(plan.meta().source()).isEqualTo("minimal_fallback");
         assertThat(plan.meta().degradedReason()).isEqualTo("no_usable_transit_content");
         assertThat(plan.mainTheme().title()).isEqualTo("Sakin bir gökyüzü");
+        assertThat(plan.primaryAction()).isNull();
+        assertThat(plan.homeTeaser().headline()).endsWith(".");
+        assertThat(plan.homeTeaser().body()).endsWith(".");
 
         PlanQualityGuard guard = new PlanQualityGuard(properties);
         assertThat(guard.normalize(plan.mainTheme().description()))

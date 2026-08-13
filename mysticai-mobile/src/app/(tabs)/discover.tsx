@@ -738,11 +738,6 @@ export function DiscoverScreenContent() {
                   </View>
                 </View>
               ) : null}
-
-              <View style={styles.statusRow}>
-                <View style={styles.statusDot} />
-                <Text style={[styles.statusText, { color: colors.subtext }]}>{t('discover.oracleStatus')}</Text>
-              </View>
             </>
           ) : (
             <View style={[styles.zeroWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
@@ -961,25 +956,6 @@ const styles = StyleSheet.create({
   },
   recommendedItemWrap: {
     flex: 1,
-  },
-  statusRow: {
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.md,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#2ECC71',
-  },
-  statusText: {
-    ...TYPOGRAPHY.Caption,
-    fontSize: 12,
-    fontWeight: '600',
   },
   zeroWrap: {
     marginTop: SPACING.xs,

@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import type { UserProfile } from '../store/useAuthStore';
 import type { EntitlementSnapshot, PaywallResponse } from '../features/monetization/types';
+import type { SubscriptionSnapshot } from '../features/monetization/types/billing';
 import { identifyAmplitudeUserProperties, trackAmplitudeEvent, type AnalyticsPrimitive } from './analytics';
 
 export const ProductEventName = {
@@ -128,8 +129,12 @@ export function resolveSubscriptionTier(
   paywall: PaywallResponse | null | undefined,
 ): string | null {
   const productId = entitlements?.productId ?? null;
+  return resolveSubscriptionTierFromProductId(productId, Boolean(paywall?.premiumActive));
+}
+
+function resolveSubscriptionTierFromProductId(productId: string | null, premiumActive: boolean): string | null {
   if (!productId) {
-    if (paywall?.premiumActive) {
+    if (premiumActive) {
       return 'premium';
     }
     return null;
@@ -233,11 +238,19 @@ export function updateCoreUserProperties(user: UserProfile | null | undefined): 
 export function updateSubscriptionUserProperties(
   entitlements: EntitlementSnapshot | null | undefined,
   paywall: PaywallResponse | null | undefined,
+  subscription?: SubscriptionSnapshot | null,
 ): void {
+  const revenueCatResolved = subscription?.status === 'premium' || subscription?.status === 'free';
   setProductUserProperties({
-    'Subscription Status': resolveSubscriptionStatus(entitlements, paywall),
-    'Subscription Tier': resolveSubscriptionTier(entitlements, paywall),
-    'Billing Cycle': resolveBillingCycle(entitlements?.productId),
+    'Subscription Status': revenueCatResolved
+      ? subscription?.isTrialing ? 'trialing' : subscription?.isPremium ? 'active' : 'none'
+      : resolveSubscriptionStatus(entitlements, paywall),
+    'Subscription Tier': revenueCatResolved
+      ? subscription?.isPremium
+        ? resolveSubscriptionTierFromProductId(subscription.productId ?? null, true)
+        : null
+      : resolveSubscriptionTier(entitlements, paywall),
+    'Billing Cycle': resolveBillingCycle(subscription?.productId ?? entitlements?.productId),
   });
 }
 

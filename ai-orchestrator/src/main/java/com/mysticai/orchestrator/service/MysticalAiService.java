@@ -8,6 +8,7 @@ import com.mysticai.common.event.AiAnalysisEvent;
 import com.mysticai.orchestrator.dto.NumerologyGuidanceRequest;
 import com.mysticai.orchestrator.dto.DreamExpansionRequest;
 import com.mysticai.orchestrator.dto.OracleInterpretationRequest;
+import com.mysticai.orchestrator.dto.PersonalPlanRefineRequest;
 import com.mysticai.orchestrator.prompt.MysticalPromptTemplates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -313,6 +314,92 @@ public class MysticalAiService {
                 r.lifePathNumber(), r.birthdayNumber(), r.destinyNumber(), r.soulUrgeNumber(),
                 r.personalYear(), r.personalMonth(), r.personalDay(),
                 r.dominantNumber(), r.yearPhase());
+    }
+
+    /**
+     * Rewords an already-composed daily personal plan for readability.
+     *
+     * The model is given finished copy and asked only to make it clearer. It never selects what
+     * the plan says, so the grounding the rule-based composer established — life area, transit,
+     * suggested behaviour, audience safety — is unaffected by whatever comes back. The caller
+     * re-validates every field and keeps its own copy for anything that fails, so a bad or
+     * unavailable response degrades to the rule-based wording rather than to a broken plan.
+     *
+     * Uses the simple chain: this is a rewriting task, not an interpretation task.
+     */
+    public String refinePersonalPlan(PersonalPlanRefineRequest request) {
+        String prompt = buildPersonalPlanRefinePrompt(request);
+        logger.info("Refining personal plan copy, items={}, locale={}",
+                request.items() == null ? 0 : request.items().size(), request.locale());
+        try {
+            String response = extractJsonObject(callAiModel(prompt, false));
+            logger.info("Personal plan copy refined, length: {}", response.length());
+            return response;
+        } catch (Exception e) {
+            logger.error("Personal plan refinement failed: {}", e.getMessage());
+            throw new RuntimeException("Personal plan refinement failed: " + e.getMessage(), e);
+        }
+    }
+
+    private String buildPersonalPlanRefinePrompt(PersonalPlanRefineRequest request) {
+        boolean turkish = request.locale() == null || !request.locale().startsWith("en");
+
+        StringBuilder items = new StringBuilder();
+        for (PersonalPlanRefineRequest.Item item : request.items()) {
+            items.append("- id: ").append(item.id()).append('\n')
+                    .append("  kind: ").append(item.kind()).append('\n')
+                    .append("  title: ").append(item.title()).append('\n')
+                    .append("  body: ").append(item.body()).append('\n');
+        }
+
+        if (turkish) {
+            return """
+                    Sen bir editörsün. Aşağıdaki metinleri YENİDEN YAZMIYORSUN, sadece DAHA ANLAŞILIR hale getiriyorsun.
+
+                    KESİN KURALLAR:
+                    - Anlamı değiştirme. Önerilen somut davranış aynı kalmalı.
+                    - Yeni bilgi ekleme: isim, yer, sayı, saat, tarih ekleme.
+                    - Kullanıcı hakkında varsayım yapma: meslek, işveren, ekip, müşteri, toplantı,
+                      proje, çocuk, ev halkı, sağlık durumu veya gelir hakkında hiçbir şey yazma.
+                    - Astroloji terimi, gezegen adı veya yeni bir astrolojik iddia ekleme.
+                    - Motivasyon klişesi kullanma ("sezgine güven", "kendine zaman ayır" gibi).
+                    - "siz" dilini koru.
+
+                    BİÇİM KURALLARI:
+                    - title: en fazla 44 karakter, kısa emir kipi etiket, sonunda nokta YOK.
+                    - body: 60-240 karakter, en fazla 2 kısa cümle, günlük sade Türkçe.
+                    - title, body'nin ilk cümlesinin tekrarı OLAMAZ.
+                    - Her cümle 14 kelimeyi geçmesin; iç içe yan cümle kurma.
+
+                    METİNLER:
+                    %s
+                    Sadece şu JSON'u döndür, başka hiçbir şey yazma:
+                    {"items":[{"id":"...","title":"...","body":"..."}]}
+                    """.formatted(items);
+        }
+
+        return """
+                You are an editor. You are NOT rewriting the texts below, only making them CLEARER.
+
+                HARD RULES:
+                - Do not change the meaning. The concrete suggested behaviour must stay the same.
+                - Add no new information: no names, places, numbers, times or dates.
+                - Assume nothing about the user: write nothing about profession, employer, team,
+                  client, meeting, project, children, household, health or income.
+                - Add no astrology terms, planet names or new astrological claims.
+                - Use no motivational filler ("trust your intuition", "make time for yourself").
+
+                FORMAT RULES:
+                - title: at most 44 characters, a short imperative label, no full stop at the end.
+                - body: 60-240 characters, at most 2 short sentences, plain everyday English.
+                - title must NOT repeat the first sentence of body.
+                - Keep every sentence under 14 words; avoid nested clauses.
+
+                TEXTS:
+                %s
+                Return only this JSON, nothing else:
+                {"items":[{"id":"...","title":"...","body":"..."}]}
+                """.formatted(items);
     }
 
     /**

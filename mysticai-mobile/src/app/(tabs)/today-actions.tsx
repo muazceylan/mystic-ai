@@ -27,6 +27,7 @@ import type {
 import { trackEvent } from '../../services/analytics';
 import { useSmartBackNavigation } from '../../hooks/useSmartBackNavigation';
 import { useTranslation } from 'react-i18next';
+import { router } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
 import { resolveUserScopeKey } from '../../store/userScopedPersist';
 
@@ -91,6 +92,7 @@ export default function TodayActionsScreen() {
   const queryKey = queryKeys.dailyActions(date, resolvedLocale, userScopeKey);
   const errorEventSentRef = useRef<string | null>(null);
   const loadEventSentRef = useRef<string | null>(null);
+  const reflectionEventSentRef = useRef<string | null>(null);
 
   const dailyActionsQuery = useQuery({
     queryKey,
@@ -137,6 +139,20 @@ export default function TodayActionsScreen() {
       timeline_slot_count: dailyActionsQuery.data.timeline?.length ?? 0,
       plan_source: dailyActionsQuery.data.meta?.source,
       plan_version: dailyActionsQuery.data.meta?.planVersion,
+      source: 'today_actions',
+      surface: 'today_actions',
+      locale: resolvedLocale,
+    });
+  }, [dailyActionsQuery.data, resolvedLocale]);
+
+  useEffect(() => {
+    const plan = dailyActionsQuery.data;
+    if (!plan?.eveningReflection?.question) return;
+    const eventKey = `${plan.date}:${resolvedLocale}`;
+    if (reflectionEventSentRef.current === eventKey) return;
+    reflectionEventSentRef.current = eventKey;
+    trackEvent('personal_plan_evening_reflection_viewed', {
+      date: plan.date,
       source: 'today_actions',
       surface: 'today_actions',
       locale: resolvedLocale,
@@ -211,6 +227,15 @@ export default function TodayActionsScreen() {
           surface: 'today_actions',
           locale: resolvedLocale,
         });
+        if (dailyActionsQuery.data?.primaryAction?.id === response.actionId) {
+          trackEvent('personal_plan_primary_action_completed', {
+            date: response.date,
+            action_id: response.actionId,
+            source: 'today_actions',
+            surface: 'today_actions',
+            locale: resolvedLocale,
+          });
+        }
       }
     },
     onSettled: () => {
@@ -228,7 +253,7 @@ export default function TodayActionsScreen() {
       locale: resolvedLocale,
     });
     try {
-      await sendFeedback(payload, resolvedLocale);
+      const response = await sendFeedback(payload, resolvedLocale);
       trackEvent('feedback_sent', {
         date: payload.date,
         item_type: payload.itemType,
@@ -250,6 +275,18 @@ export default function TodayActionsScreen() {
         result: 'success',
         locale: resolvedLocale,
       });
+      trackEvent('personal_plan_feedback_submitted', {
+        date: payload.date,
+        action_id: payload.itemId,
+        reason: payload.reason,
+        regenerated: response.regenerated,
+        remaining_regenerations: response.remainingRegenerations,
+        source: 'today_actions',
+        surface: 'today_actions',
+        result: 'success',
+        locale: resolvedLocale,
+      });
+      return response;
     } catch {
       trackEvent('feedback_sent', {
         date: payload.date,
@@ -270,6 +307,16 @@ export default function TodayActionsScreen() {
         result: 'fail',
         locale: resolvedLocale,
       });
+      trackEvent('personal_plan_feedback_submitted', {
+        date: payload.date,
+        action_id: payload.itemId,
+        reason: payload.reason,
+        source: 'today_actions',
+        surface: 'today_actions',
+        result: 'fail',
+        locale: resolvedLocale,
+      });
+      return null;
     }
   };
 
@@ -284,7 +331,7 @@ export default function TodayActionsScreen() {
     const regenerates = reason === 'TOO_GENERIC' || reason === 'REPETITIVE';
 
     try {
-      await sendActionFeedback({
+      const response = await sendActionFeedback({
         date: data.date,
         itemType: 'action',
         itemId: data.primaryAction?.id ?? 'personal-plan',
@@ -302,7 +349,18 @@ export default function TodayActionsScreen() {
         surface: 'today_actions',
         locale: resolvedLocale,
       });
-      if (regenerates && (data.meta?.canRegenerate ?? true)) {
+      if (response?.regenerated && response.replacementPlan) {
+        queryClient.setQueryData<DailyActionsDTO>(queryKey, response.replacementPlan);
+        trackEvent('personal_plan_regenerated', {
+          date: data.date,
+          reason,
+          generation_number: response.generationNumber ?? undefined,
+          remaining_regenerations: response.remainingRegenerations,
+          source: 'today_actions',
+          surface: 'today_actions',
+          locale: resolvedLocale,
+        });
+      } else if (regenerates && (data.meta?.canRegenerate ?? true)) {
         await queryClient.invalidateQueries({ queryKey });
       }
     } finally {
@@ -330,6 +388,16 @@ export default function TodayActionsScreen() {
   // v2 payloads carry a composed plan; older backends only send `actions`.
   const isPremiumPlan = Boolean(data?.mainTheme || data?.primaryAction);
   const isEmpty = !!data && !isPremiumPlan && data.actions.length === 0;
+  const trackWhyOpened = (section: string, category?: string) => {
+    trackEvent('personal_plan_why_opened', {
+      date: data?.date ?? date,
+      section,
+      category,
+      source: 'today_actions',
+      surface: 'today_actions',
+      locale: resolvedLocale,
+    });
+  };
 
   return (
     <SafeScreen edges={['top', 'left', 'right']} style={{ backgroundColor: colors.bg }}>
@@ -381,7 +449,43 @@ export default function TodayActionsScreen() {
         {data && isPremiumPlan ? (
           <>
             {data.mainTheme ? (
-              <MainThemeCard theme={data.mainTheme} level={data.personalizationLevel} />
+              <MainThemeCard
+                theme={data.mainTheme}
+                level={data.personalizationLevel}
+                onWhyOpened={() => trackWhyOpened('main_theme')}
+              />
+            ) : null}
+
+            {data.personalizationLevel === 'LOW' && (user?.birthTimeUnknown || !user?.birthTime) ? (
+              <Pressable
+                onPress={() => {
+                  trackEvent('personal_plan_profile_completion_opened', {
+                    date: data.date,
+                    source: 'today_actions',
+                    surface: 'today_actions',
+                    locale: resolvedLocale,
+                  });
+                  router.push('/(tabs)/profile');
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t('personalPlan.profileIncompleteCta')}
+                style={({ pressed }) => [
+                  styles.profilePrompt,
+                  { backgroundColor: isDark ? 'rgba(168,85,247,0.10)' : colors.primarySoftBg },
+                  pressed && styles.profilePromptPressed,
+                ]}
+              >
+                <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
+                <View style={styles.profilePromptCopy}>
+                  <Text style={[styles.statusTitle, { color: colors.text }]}>
+                    {t('personalPlan.profileIncompleteTitle')}
+                  </Text>
+                  <Text style={[styles.statusBody, { color: colors.subtext }]}>
+                    {t('personalPlan.profileIncompleteBody')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+              </Pressable>
             ) : null}
 
             {data.primaryAction ? (
@@ -389,6 +493,7 @@ export default function TodayActionsScreen() {
                 action={data.primaryAction}
                 pending={pendingActionId === data.primaryAction.id}
                 onToggle={(actionId, nextValue) => toggleMutation.mutate({ actionId, isDone: nextValue })}
+                onWhyOpened={() => trackWhyOpened('primary_action', data.primaryAction?.category)}
               />
             ) : null}
 
@@ -400,10 +505,25 @@ export default function TodayActionsScreen() {
                 card={card}
                 pending={pendingActionId === card.id}
                 onToggle={(actionId, nextValue) => toggleMutation.mutate({ actionId, isDone: nextValue })}
+                onOpened={() => {
+                  trackEvent('personal_plan_life_area_opened', {
+                    date: data.date,
+                    category: card.category,
+                    source: 'today_actions',
+                    surface: 'today_actions',
+                    locale: resolvedLocale,
+                  });
+                }}
+                onWhyOpened={() => trackWhyOpened('life_area', card.category)}
               />
             ))}
 
-            {data.caution ? <CautionCard caution={data.caution} /> : null}
+            {data.caution ? (
+              <CautionCard
+                caution={data.caution}
+                onWhyOpened={() => trackWhyOpened('caution')}
+              />
+            ) : null}
 
             {data.eveningReflection ? (
               <EveningReflectionCard question={data.eveningReflection.question} />
@@ -549,6 +669,21 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.BodyMid,
     fontSize: 15,
     lineHeight: 22,
+  },
+  profilePrompt: {
+    minHeight: 88,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  profilePromptCopy: {
+    flex: 1,
+    gap: SPACING.xs,
+  },
+  profilePromptPressed: {
+    opacity: 0.8,
   },
   retryBtn: {
     alignSelf: 'flex-start',

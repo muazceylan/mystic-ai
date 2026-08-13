@@ -206,6 +206,13 @@ class DailyTransitsServiceTest {
 
     @Test
     void shouldLocalizeDailyTransitsAndActionsToEnglishWhenRequested() throws Exception {
+        when(personalPlanService.buildPlan(any())).thenReturn(DailyActionsDTO.legacy(
+                "2026-04-09",
+                new DailyActionsDTO.Header("What Can You Do Today?", "A focused plan."),
+                List.of(new DailyActionsDTO.ActionItem(
+                        "a1", "Check the important message.", "Communication • Read it once more.",
+                        "chatbubble", "Bold", 5, false, null, List.of())),
+                new DailyActionsDTO.MiniPlan("Mini Plan", List.of("Check the important message"))));
         when(natalChartRepository.findFirstByUserIdOrderByCalculatedAtDescIdDesc("42"))
                 .thenReturn(Optional.of(baseChart(baseNatalPlanets(), baseHouses())));
         when(transitCalculator.calculateTransitPositions(any(LocalDate.class))).thenReturn(List.of(

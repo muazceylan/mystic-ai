@@ -14,12 +14,18 @@ package com.mysticai.astrology.service.personalplan;
  * @param audience    gate on relationship context. {@link Audience#ANY} is safe for every user;
  *                    the others are only used when the profile actually states the status.
  * @param role        which transiting-planet flavour this variant answers.
+ * @param titleTr     short imperative card heading. Deliberately NOT the first sentence of the
+ *                    body — the card renders heading and body together, so reusing the sentence
+ *                    would print it twice.
+ * @param titleEn     English counterpart of {@code titleTr}.
  */
 public record PlanVariant(
         String semanticKey,
         String intent,
         Audience audience,
         PlanetRole role,
+        String titleTr,
+        String titleEn,
         String turkish,
         String english
 ) {
@@ -39,18 +45,28 @@ public record PlanVariant(
         if (intent == null || intent.isBlank()) {
             throw new IllegalArgumentException("intent is required for semanticKey=" + semanticKey);
         }
+        if (titleTr == null || titleTr.isBlank() || titleEn == null || titleEn.isBlank()) {
+            throw new IllegalArgumentException("both titles are required for intent=" + intent);
+        }
     }
 
     public String text(boolean english) {
         return english ? this.english : turkish;
     }
 
-    static PlanVariant of(String semanticKey, String intent, PlanetRole role, String turkish, String english) {
-        return new PlanVariant(semanticKey, intent, Audience.ANY, role, turkish, english);
+    public String title(boolean english) {
+        return english ? titleEn : titleTr;
     }
 
     static PlanVariant of(
-            String semanticKey, String intent, Audience audience, PlanetRole role, String turkish, String english) {
-        return new PlanVariant(semanticKey, intent, audience, role, turkish, english);
+            String semanticKey, String intent, PlanetRole role,
+            String titleTr, String titleEn, String turkish, String english) {
+        return new PlanVariant(semanticKey, intent, Audience.ANY, role, titleTr, titleEn, turkish, english);
+    }
+
+    static PlanVariant of(
+            String semanticKey, String intent, Audience audience, PlanetRole role,
+            String titleTr, String titleEn, String turkish, String english) {
+        return new PlanVariant(semanticKey, intent, audience, role, titleTr, titleEn, turkish, english);
     }
 }

@@ -2211,7 +2211,6 @@ export function NatalChartScreenContent() {
             lazy
             deferBodyMount
             headerRight={headerRight}
-            variant="birthChart"
           >
             <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.DETAIL_ACTION}>
               <NatalChartProPanels

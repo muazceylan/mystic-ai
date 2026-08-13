@@ -47,6 +47,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useAppConfigStore } from '../../store/useAppConfigStore';
 import { useNatalChartStore } from '../../store/useNatalChartStore';
 import { useStarMateStore } from '../../store/useStarMateStore';
+import { useSubscription } from '../../features/monetization';
 import { canOpenViaDeeplink } from '../../services/appConfig.service';
 import {
   suggestCosmicAutoTags,
@@ -1339,7 +1340,7 @@ export default function StarMateTabScreen() {
   const showMatchCelebration = useStarMateStore((s) => s.showMatchCelebration);
   const lastMatchCelebration = useStarMateStore((s) => s.lastMatchCelebration);
   const lastSavedAt = useStarMateStore((s) => s.lastSavedAt);
-  const isPremium = useStarMateStore((s) => s.isPremium);
+  const { isPremium } = useSubscription();
   const likesPreviewUnlocked = useStarMateStore((s) => s.likesPreviewUnlocked);
   const profileEditHint = useStarMateStore((s) => s.profileEditHint);
 

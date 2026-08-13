@@ -345,7 +345,7 @@ function getStaticQuickActions(locale: DashboardLocale): HomeDashboardQuickActio
       },
       {
         key: 'planner',
-        title: 'Cosmic Planner',
+        title: 'Guru Planner',
         subtitle: 'Lucky timings',
         route: '/(tabs)/calendar',
         available: true,
@@ -377,7 +377,7 @@ function getStaticQuickActions(locale: DashboardLocale): HomeDashboardQuickActio
     },
     {
       key: 'planner',
-      title: 'Kozmik Planlayıcı',
+      title: 'Guru Planlayıcı',
       subtitle: 'Şanslı Günler',
       route: '/(tabs)/calendar',
       available: true,

@@ -39,7 +39,12 @@ const amplitudeEnabled = isAmplitude && Boolean(analyticsConfig.apiKey);
 const debugMode = analyticsConfig.debug;
 
 /** Mutable flag — starts from env config, can be toggled by consent / settings. */
-let collectionEnabled = analyticsConfig.collectionEnabledByDefault;
+// iOS starts privacy-closed. App screens may mount before the ATT request is
+// resolved, so analytics must remain a no-op until PrivacyBootstrap explicitly
+// applies the post-ATT collection policy.
+let collectionEnabled = Platform.OS === 'ios'
+  ? false
+  : analyticsConfig.collectionEnabledByDefault;
 
 // ── Amplitude state ─────────────────────────────────────────────────
 

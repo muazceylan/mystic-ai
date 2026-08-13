@@ -169,7 +169,7 @@ public class CmsBootstrapService implements ApplicationRunner {
                 "/(tabs)/today-actions", null, "Planı Gör",
                 true, false, 1);
         n += upsertCard("calendar_card", "daily_life_cms",
-                "Kozmik Planlayıcı",         "Gününü planla ve hatırlatıcı oluştur",
+                "Guru Planlayıcı",           "Gününü planla ve hatırlatıcı oluştur",
                 "Tarih ve kategori seçerek önerileri incele; uygun olanları hatırlatıcıya dönüştür.",
                 "/(tabs)/calendar", null, "Planlayıcıyı Aç",
                 false, false, 2);

@@ -6,6 +6,7 @@ import com.mysticai.astrology.dto.daily.UserPersonalContext;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -34,7 +35,9 @@ public record PersonalPlanSignals(
         AgeBand ageBand,
         RelationshipStatus relationshipStatus,
         int retrogradeCount,
-        Set<PlanFeedbackReason> recentNegativeReasons
+        Set<PlanFeedbackReason> recentNegativeReasons,
+        Map<LifeArea, Integer> lifeAreaWeights,
+        Set<String> preferredActionIntents
 ) {
 
     public enum AgeBand {
@@ -117,8 +120,39 @@ public record PersonalPlanSignals(
                 AgeBand.fromBirthDate(safeProfile.birthDate(), localDate),
                 RelationshipStatus.fromMaritalStatus(safeProfile.maritalStatus()),
                 retrogradeCount,
-                recentNegativeReasons == null ? Set.of() : Set.copyOf(recentNegativeReasons)
+                recentNegativeReasons == null ? Set.of() : Set.copyOf(recentNegativeReasons),
+                Map.of(),
+                Set.of()
         );
+    }
+
+    public static PersonalPlanSignals build(
+            Long userId,
+            LocalDate localDate,
+            boolean english,
+            UserPersonalContext profile,
+            String sunSign,
+            String moonSign,
+            String risingSign,
+            boolean hasHouses,
+            int retrogradeCount,
+            Set<PlanFeedbackReason> recentNegativeReasons,
+            Map<LifeArea, Integer> lifeAreaWeights,
+            Set<String> preferredActionIntents
+    ) {
+        PersonalPlanSignals base = build(
+                userId, localDate, english, profile, sunSign, moonSign, risingSign,
+                hasHouses, retrogradeCount, recentNegativeReasons);
+        return new PersonalPlanSignals(
+                base.userId(), base.localDate(), base.english(), base.sunSign(), base.moonSign(),
+                base.risingSign(), base.hasBirthTime(), base.hasHouses(), base.ageBand(),
+                base.relationshipStatus(), base.retrogradeCount(), base.recentNegativeReasons(),
+                lifeAreaWeights == null ? Map.of() : Map.copyOf(lifeAreaWeights),
+                preferredActionIntents == null ? Set.of() : Set.copyOf(preferredActionIntents));
+    }
+
+    public int lifeAreaWeight(LifeArea area) {
+        return lifeAreaWeights.getOrDefault(area, 0);
     }
 
     /**

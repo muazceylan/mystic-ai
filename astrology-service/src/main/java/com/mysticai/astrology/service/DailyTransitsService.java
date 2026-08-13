@@ -153,7 +153,8 @@ public class DailyTransitsService {
      *
      * Composition lives in {@link PersonalPlanService}; this method resolves the local day and
      * supplies the already-computed transit context so the two services stay acyclic. If
-     * composition throws, the legacy template plan is used so the screen never goes blank.
+     * composition throws, a structured minimal premium payload is used; dull legacy templates
+     * must never silently return to the screen.
      */
     public DailyActionsDTO getDailyActions(Long userId, LocalDate requestedDate, String timezoneHint, String locale) {
         PersonalPlanService.PlanRequest request = buildPlanRequest(userId, requestedDate, timezoneHint, locale);
@@ -163,10 +164,10 @@ public class DailyTransitsService {
                 return plan;
             }
         } catch (Exception e) {
-            log.warn("Personal plan composition failed for userId={} localDate={}, using legacy templates: {}",
+            log.warn("Personal plan composition failed for userId={} localDate={}, using minimal premium payload: {}",
                     userId, request.localDate(), e.toString());
         }
-        return buildLegacyDailyActions(userId, request.localDate(), request.transits(), request.english());
+        return personalPlanService.buildMinimalPlan(request.transits(), request.localDate(), request.english());
     }
 
     /**

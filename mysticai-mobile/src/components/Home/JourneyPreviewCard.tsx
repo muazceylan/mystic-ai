@@ -10,6 +10,7 @@ interface JourneyPreviewCardProps {
   practiceRecordCount: number;
   streakDays: number;
   onPress: () => void;
+  embedded?: boolean;
 }
 
 const MAX_FONT_SCALE = 1.3;
@@ -19,6 +20,7 @@ export function JourneyPreviewCard({
   practiceRecordCount,
   streakDays,
   onPress,
+  embedded = false,
 }: JourneyPreviewCardProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -31,7 +33,11 @@ export function JourneyPreviewCard({
       accessibilityRole="button"
       accessibilityLabel={t('homeJourney.openAccessibility')}
       testID="home-journey-preview"
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.card,
+        embedded && styles.embeddedCard,
+        pressed && styles.pressed,
+      ]}
     >
       <View style={styles.iconShell}>
         <Ionicons name="trail-sign-outline" size={22} color={colors.primary} />
@@ -74,6 +80,16 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       alignItems: 'center',
       gap: spacing.md,
       ...shadowSubtle,
+    },
+    embeddedCard: {
+      marginTop: 0,
+      borderRadius: radius.md,
+      backgroundColor: C.surfaceAlt,
+      shadowColor: 'transparent',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      elevation: 0,
     },
     iconShell: {
       width: 44,

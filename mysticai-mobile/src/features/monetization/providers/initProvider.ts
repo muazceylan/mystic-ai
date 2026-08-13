@@ -61,8 +61,11 @@ async function doInitializeAdProvider(
     const provider = levelPlayProvider ?? new LevelPlayRewardedProvider();
     levelPlayProvider = provider;
     setAdProvider(provider);
+    if (__DEV__) console.log('[AdProvider] LevelPlay provider set');
     if (adsEnabled) {
       await provider.initialize(options, userId);
+    } else if (__DEV__) {
+      console.log('[AdProvider] Ads disabled in config — deferring LevelPlay SDK init');
     }
     return;
   }

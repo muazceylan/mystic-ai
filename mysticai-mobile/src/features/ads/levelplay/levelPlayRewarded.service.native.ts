@@ -8,7 +8,10 @@ import {
   type LevelPlayRewardedAdListener,
 } from 'unity-levelplay-mediation';
 import type { AdResult } from '../../monetization/providers/AdProviderAdapter';
-import { getLevelPlayConfig } from './levelPlay.config';
+import {
+  LEVELPLAY_REWARDED_SERVER_PARAMS_KEY,
+  getLevelPlayConfig,
+} from './levelPlay.config';
 import { isLevelPlayInitialized } from './levelPlay.service';
 
 export type LevelPlayRewardedState =
@@ -133,7 +136,7 @@ class LevelPlayRewardedService {
   async prepareRewardSession(rewardSessionId: string): Promise<void> {
     // Session ID is delivered as a custom S2S parameter. Do not place emails,
     // names, token amounts, or other sensitive/user-controlled values here.
-    await LevelPlay.setMetaData('LevelPlay_Rewarded_Server_Params', [
+    await LevelPlay.setMetaData(LEVELPLAY_REWARDED_SERVER_PARAMS_KEY, [
       `rewardSessionId=${rewardSessionId}`,
     ]);
   }

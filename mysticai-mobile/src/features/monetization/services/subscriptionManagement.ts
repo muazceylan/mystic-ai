@@ -70,7 +70,15 @@ async function openFirstAvailableUrl(urls: readonly string[]): Promise<Subscript
 
 export async function openSubscriptionManagement(
   productId?: string | null,
+  managementURL?: string | null,
 ): Promise<SubscriptionManagementResult> {
+  if (managementURL?.trim()) {
+    const directResult = await openFirstAvailableUrl([managementURL.trim()]);
+    if (directResult.status === 'opened') {
+      return directResult;
+    }
+  }
+
   if (Platform.OS === 'ios') {
     return openFirstAvailableUrl(IOS_SUBSCRIPTION_MANAGEMENT_URLS);
   }

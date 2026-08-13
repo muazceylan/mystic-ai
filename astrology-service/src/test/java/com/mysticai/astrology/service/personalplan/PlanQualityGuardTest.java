@@ -47,7 +47,6 @@ class PlanQualityGuardTest {
     @ValueSource(strings = {
             "Akşam saatlerinde yakın olduğunuz biriyle konuşurken geçmişteki bütün sorunları açmak yerine, son günlerde sizi rahatsız eden tek davranışı açıkça ifade edin.",
             "Sizden beklenen bir sorumluluğun kapsamı belirsiz kaldıysa, kabul etmeden önce teslim zamanını ve beklenen sonucu yazılı olarak netleştirin.",
-            "Öğleden sonra size sunulan ödeme koşullarına aynı konuşmada cevap vermeyin. Önce şartların yazılı halini isteyin.",
             "Read the cancellation and renewal clause of any payment or subscription term you come across today.",
             "Before you interpret a short or delayed message today, ask what was meant."
     })
@@ -56,11 +55,11 @@ class PlanQualityGuardTest {
     }
 
     @Test
-    @DisplayName("a banned phrase inside a materially longer concrete sentence is allowed")
-    void allowsBannedPhraseAsClauseInLongerSentence() {
+    @DisplayName("product-rejected dull copy stays banned inside longer sentences")
+    void rejectsHardBannedPhraseInsideLongerSentence() {
         String text = "Öğleden sonra size sunulan ödeme veya sorumluluk koşullarına aynı konuşmada "
                 + "cevap vermeyin ve acele karar verme baskısına rağmen önce şartların yazılı halini isteyin.";
-        assertThat(guard.isAcceptable(text)).isTrue();
+        assertThat(guard.isAcceptable(text)).isFalse();
     }
 
     @Test
