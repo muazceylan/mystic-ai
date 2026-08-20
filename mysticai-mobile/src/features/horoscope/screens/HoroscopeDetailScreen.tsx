@@ -39,6 +39,13 @@ type HoroscopeSectionConfig = {
   accent: keyof Pick<ThemeColors, 'horoscopeAccent' | 'pink' | 'gold' | 'green' | 'red'>;
 };
 
+/**
+ * The daily "general" reading stays free — it is what makes the screen worth
+ * opening and what the store listing promises. Everything else (the category
+ * breakdown, the advice, and the whole weekly reading) is the premium tier.
+ */
+const FREE_SECTION_KEYS: HoroscopeSectionKey[] = ['general'];
+
 const HOROSCOPE_SECTION_CONFIG: HoroscopeSectionConfig[] = [
   { key: 'general', icon: 'sparkles-outline', accent: 'horoscopeAccent' },
   { key: 'love', icon: 'heart-outline', accent: 'pink' },
@@ -99,11 +106,20 @@ export default function HoroscopeDetailScreen() {
     toggleFavorite,
   } = useHoroscopeStore();
 
+  // The store period is persisted, so on mount it can still hold the previous
+  // value while the route asks for another one. Fetching before the two agree
+  // fires a throwaway request for the wrong period, so gate the fetch until the
+  // route period has been applied once.
+  const routePeriod: HoroscopePeriod | null =
+    periodParam === 'daily' || periodParam === 'weekly' ? periodParam : null;
+  const [routePeriodApplied, setRoutePeriodApplied] = React.useState(routePeriod === null);
+
   useEffect(() => {
-    if (periodParam === 'daily' || periodParam === 'weekly') {
-      setPeriod(periodParam);
+    if (routePeriod) {
+      setPeriod(routePeriod);
     }
-  }, [periodParam, setPeriod]);
+    setRoutePeriodApplied(true);
+  }, [routePeriod, setPeriod]);
 
   const signData = ZODIAC_MAP.get(sign);
   const signName = signData ? (lang.startsWith('en') ? signData.nameEn : signData.nameTr) : sign;
@@ -111,48 +127,47 @@ export default function HoroscopeDetailScreen() {
     () => `horoscope:${period}:${sign}:${period === 'weekly' ? getIsoWeekKey() : getLocalDateKey()}`,
     [period, sign],
   );
-  const isUnlocked = !horoscopeUnlockState.usesMonetization || unlockedContentKey === horoscopeContentKey;
+  const isPremiumUnlocked = !horoscopeUnlockState.usesMonetization
+    || unlockedContentKey === horoscopeContentKey;
+  // Weekly readings are premium end to end; daily keeps its general section free.
+  const isPremiumPeriod = period === 'weekly';
 
+  // Switching sign or period moves to a different content key, which is locked
+  // again on its own terms — never carry an open sheet across that boundary.
   useEffect(() => {
-    if (!horoscopeUnlockState.usesMonetization) {
-      setUnlockedContentKey(horoscopeContentKey);
-      setShowUnlockSheet(false);
-      return;
-    }
-    if (unlockedContentKey === horoscopeContentKey) {
-      setShowUnlockSheet(false);
-      return;
-    }
-    setShowUnlockSheet(true);
-  }, [horoscopeContentKey, horoscopeUnlockState.usesMonetization, unlockedContentKey]);
+    setShowUnlockSheet(false);
+  }, [horoscopeContentKey]);
 
+  // The free tier needs the data too, so this no longer waits for an unlock.
   useEffect(() => {
-    if (!isUnlocked) return;
+    if (!routePeriodApplied) return;
     fetchHoroscope(sign, period);
-  }, [fetchHoroscope, isUnlocked, period, sign]);
+  }, [fetchHoroscope, period, routePeriodApplied, sign]);
 
   const handleRetry = useCallback(() => {
     fetchHoroscope(sign, period);
   }, [sign, period, fetchHoroscope]);
 
   const handleOpenUnlockSheet = useCallback(() => {
-    if (!isUnlocked && horoscopeUnlockState.usesMonetization) {
-      setShowUnlockSheet(true);
-    }
-  }, [horoscopeUnlockState.usesMonetization, isUnlocked]);
+    if (isPremiumUnlocked) return;
+    trackEvent('horoscope_premium_unlock_tapped', {
+      sign,
+      period,
+      locale: lang.startsWith('en') ? 'en' : 'tr',
+      surface: 'horoscope_detail',
+    });
+    setShowUnlockSheet(true);
+  }, [isPremiumUnlocked, lang, period, sign]);
 
   const handlePeriodChange = useCallback((p: HoroscopePeriod) => {
     setPeriod(p);
-    if (horoscopeUnlockState.usesMonetization && (!isUnlocked || p !== period)) {
-      setShowUnlockSheet(true);
-    }
-  }, [horoscopeUnlockState.usesMonetization, isUnlocked, period, setPeriod]);
+  }, [setPeriod]);
 
   const favKey = `${sign}:${period}:${current?.date ?? ''}`;
   const isFav = favorites.includes(favKey);
 
   const horoscopeText = current?.sections?.general?.trim() ?? '';
-  const horoscopeSections = HOROSCOPE_SECTION_CONFIG
+  const allSections = HOROSCOPE_SECTION_CONFIG
     .map((section) => ({
       ...section,
       title: t(`horoscope.${section.key}`),
@@ -160,12 +175,27 @@ export default function HoroscopeDetailScreen() {
       accentColor: colors[section.accent],
     }))
     .filter((section) => section.content.length > 0);
-  const horoscopeShareText = horoscopeSections
+  const visibleSections = isPremiumUnlocked
+    ? allSections
+    : isPremiumPeriod
+      ? []
+      : allSections.filter((section) => FREE_SECTION_KEYS.includes(section.key));
+  const lockedSectionCount = allSections.length - visibleSections.length;
+  const showPremiumTeaser = !isPremiumUnlocked && lockedSectionCount > 0;
+
+  // A locked weekly reading would otherwise be a blank screen, so show enough of
+  // the opening to be honest about what is behind the lock.
+  const lockedPreviewText = showPremiumTeaser && isPremiumPeriod && horoscopeText.length > 0
+    ? (horoscopeText.length > 180 ? `${horoscopeText.slice(0, 180).trimEnd()}…` : horoscopeText)
+    : '';
+
+  // Share only what the user actually has access to.
+  const horoscopeShareText = visibleSections
     .map((section) => `${section.title}\n${section.content}`)
-    .join('\n\n') || horoscopeText;
+    .join('\n\n');
 
   const handleShare = useCallback(async () => {
-    if (!current) return;
+    if (!current || !horoscopeShareText) return;
     const text = `${signData?.emoji} ${signName}\n${current.date}\n\n${horoscopeShareText}\n\n— Astro Guru`;
     try {
       await Sharing.shareAsync('data:text/plain;base64,' + btoa(unescape(encodeURIComponent(text))), {
@@ -206,26 +236,13 @@ export default function HoroscopeDetailScreen() {
         />
       </View>
 
-      {!isUnlocked && (
-        <Pressable
-          onPress={handleOpenUnlockSheet}
-          style={({ pressed }) => [S.errorBox, S.unlockPrompt, pressed && S.unlockPromptPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={t('horoscope.unlockPrompt', 'Burç yorumunu görmek için kilidi aç')}
-        >
-          <Ionicons name="lock-closed-outline" size={24} color={colors.error} />
-          <Text style={S.errorText}>{t('horoscope.subtitle', 'Burç yorumunu görmek için kilidi aç')}</Text>
-          <Text style={S.unlockHintText}>{t('horoscope.unlockHint', 'Guru harca ya da video izle')}</Text>
-        </Pressable>
-      )}
-
-      {loading && isUnlocked && (
+      {loading && (
         <ScrollView contentContainerStyle={S.content}>
           <HoroscopeDetailSkeleton />
         </ScrollView>
       )}
 
-      {error && !loading && isUnlocked && (
+      {error && !loading && (
         <View style={S.errorBox}>
           <Text style={S.errorText}>{t('horoscope.error')}</Text>
           <Pressable onPress={handleRetry} style={S.retryBtn}>
@@ -234,13 +251,13 @@ export default function HoroscopeDetailScreen() {
         </View>
       )}
 
-      {current && isUnlocked && !loading && !error && (
+      {current && !loading && !error && (
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={S.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {horoscopeSections.map((section) => (
+          {visibleSections.map((section) => (
             <React.Fragment key={section.key}>
               <View style={S.card}>
                 <View style={S.cardHeader}>
@@ -287,6 +304,39 @@ export default function HoroscopeDetailScreen() {
               ) : null}
             </React.Fragment>
           ))}
+
+          {showPremiumTeaser && (
+            <Pressable
+              onPress={handleOpenUnlockSheet}
+              style={({ pressed }) => [S.premiumCard, pressed && S.premiumCardPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t('horoscope.premiumUnlockA11y')}
+            >
+              {lockedPreviewText ? (
+                <Text style={S.premiumPreviewText} numberOfLines={3}>{lockedPreviewText}</Text>
+              ) : null}
+
+              <View style={S.premiumHeaderRow}>
+                <View style={S.premiumIconWrap}>
+                  <Ionicons name="lock-closed" size={15} color={colors.gold} />
+                </View>
+                <Text style={S.premiumBadge}>{t('horoscope.premiumBadge')}</Text>
+              </View>
+
+              <Text style={S.premiumTitle}>
+                {isPremiumPeriod ? t('horoscope.premiumWeeklyTitle') : t('horoscope.premiumSectionsTitle')}
+              </Text>
+              <Text style={S.premiumBody}>
+                {isPremiumPeriod ? t('horoscope.premiumWeeklyBody') : t('horoscope.premiumSectionsBody')}
+              </Text>
+
+              <View style={S.premiumCtaRow}>
+                <Text style={S.premiumCta}>{t('horoscope.premiumCta')}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.horoscopeAccent} />
+              </View>
+              <Text style={S.unlockHintText}>{t('horoscope.unlockHint')}</Text>
+            </Pressable>
+          )}
 
           {/* Source badge */}
           {current.sources && current.sources.length > 0 && (
@@ -375,6 +425,62 @@ function makeStyles(C: ThemeColors, isDark: boolean) {
       textAlign: 'center',
       marginTop: SPACING.sm,
       marginBottom: SPACING.xs,
+    },
+    premiumCard: {
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.md,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.10)' : C.border,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : C.surface,
+      padding: SPACING.lg,
+      gap: SPACING.xs,
+    },
+    premiumCardPressed: {
+      opacity: 0.82,
+    },
+    premiumPreviewText: {
+      ...TYPOGRAPHY.Body,
+      color: C.subtext,
+      marginBottom: SPACING.sm,
+    },
+    premiumHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
+    },
+    premiumIconWrap: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: `${C.gold}1A`,
+    },
+    premiumBadge: {
+      ...TYPOGRAPHY.CaptionBold,
+      color: C.gold,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    premiumTitle: {
+      ...TYPOGRAPHY.H3,
+      color: C.text,
+      marginTop: SPACING.xs,
+    },
+    premiumBody: {
+      ...TYPOGRAPHY.Body,
+      color: C.subtext,
+    },
+    premiumCtaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
+      marginTop: SPACING.sm,
+    },
+    premiumCta: {
+      ...TYPOGRAPHY.SmallBold,
+      color: C.horoscopeAccent,
     },
     unlockPrompt: {
       marginHorizontal: SPACING.lg,

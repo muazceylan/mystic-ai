@@ -86,10 +86,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       justifyContent: 'center',
       flexDirection: 'row',
     },
-    appleButton: { backgroundColor: colors.appleBlack, borderColor: colors.appleBlack },
+    appleButton: { width: '100%', height: 50 },
     icon: { position: 'absolute', left: 20 },
     socialText: { fontSize: 16, fontWeight: '600', color: colors.text },
-    appleText: { color: colors.white },
     divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
     dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
     dividerText: { marginHorizontal: 12, fontSize: 13, color: colors.subtext },
@@ -513,10 +512,16 @@ export default function LinkAccountScreen() {
               {/* Social buttons */}
               <View style={styles.section}>
                 {Platform.OS === 'ios' && (
-                  <TouchableOpacity style={[styles.socialButton, styles.appleButton]} onPress={handleAppleLink} disabled={loading} accessibilityRole="button">
-                    <Ionicons name="logo-apple" size={22} color={colors.white} style={styles.icon} />
-                    <Text style={[styles.socialText, styles.appleText]}>{t('linkAccount.withApple')}</Text>
-                  </TouchableOpacity>
+                  <AppleAuthentication.AppleAuthenticationButton
+                    style={[styles.appleButton, loading && styles.submitButtonDisabled]}
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={14}
+                    onPress={handleAppleLink}
+                    accessibilityLabel={t('linkAccount.withApple')}
+                    accessibilityState={{ disabled: loading }}
+                    pointerEvents={loading ? 'none' : 'auto'}
+                  />
                 )}
                 <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLink} disabled={loading} accessibilityRole="button">
                   <Ionicons name="logo-google" size={22} color={colors.googleRed} style={styles.icon} />

@@ -69,6 +69,9 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             "/actuator/health",
             "/actuator/info",
             "/api/v1/analytics/",
+            // App version / force-update check runs at startup before any login exists.
+            // Without this the check 401s for logged-out users and a force update never fires.
+            "/api/v1/app-version",
             // Monetization config is public (fail-safe: app needs config before login)
             "/api/v1/monetization/config",
             "/api/v1/monetization/modules/",

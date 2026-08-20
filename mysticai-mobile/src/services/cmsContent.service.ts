@@ -14,6 +14,7 @@ export interface CmsDailyHoroscope {
   career?: string;
   money?: string;
   health?: string;
+  advice?: string;
   luckyColor?: string;
   luckyNumber?: string;
   isOverrideActive: boolean;
@@ -35,6 +36,7 @@ export interface CmsWeeklyHoroscope {
   money?: string;
   health?: string;
   social?: string;
+  advice?: string;
   luckyDay?: string;
   cautionDay?: string;
   luckyColor?: string;
@@ -70,10 +72,12 @@ export async function fetchDailyHoroscopeFromCms(
   sign: string,
   date: string,
   locale: string,
+  timeoutMs?: number,
 ): Promise<CmsDailyHoroscope | null> {
   const res = await api.get<CmsDailyHoroscope>('/api/v1/content/horoscope/daily', {
     params: { sign: sign.toUpperCase(), date, locale },
     validateStatus: (status) => status === 200 || status === 404,
+    ...(timeoutMs ? { timeout: timeoutMs } : {}),
   });
   if (res.status === 404) return null;
   return res.data;
@@ -87,10 +91,12 @@ export async function fetchWeeklyHoroscopeFromCms(
   sign: string,
   weekStart: string,
   locale: string,
+  timeoutMs?: number,
 ): Promise<CmsWeeklyHoroscope | null> {
   const res = await api.get<CmsWeeklyHoroscope>('/api/v1/content/horoscope/weekly', {
     params: { sign: sign.toUpperCase(), weekStart, locale },
     validateStatus: (status) => status === 200 || status === 404,
+    ...(timeoutMs ? { timeout: timeoutMs } : {}),
   });
   if (res.status === 404) return null;
   return res.data;

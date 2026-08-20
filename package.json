@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build:android:aab": "npm --prefix mysticai-mobile run build:android:aab"
+    "build:android:aab": "npm --prefix mysticai-mobile run build:android:aab",
+    "validate:app-store-metadata": "node scripts/validate-app-store-metadata.mjs"
   },
   "dependencies": {
     "react-native-draggable-flatlist": "^4.0.3"

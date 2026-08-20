@@ -3,6 +3,7 @@ package com.mysticai.astrology.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysticai.astrology.dto.*;
+import com.mysticai.astrology.prompt.HoroscopeFusionPrompt;
 import jakarta.annotation.PostConstruct;
 import com.mysticai.astrology.service.upstream.FreeHoroscopeApiClient;
 import com.mysticai.astrology.service.upstream.OhmandaClient;
@@ -12,14 +13,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -30,14 +34,29 @@ public class HoroscopeFusionService {
 
     private final FreeHoroscopeApiClient freeHoroscopeApiClient;
     private final OhmandaClient ohmandaClient;
+    private final HoroscopeSkyContextService skyContextService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${ai-orchestrator.url:http://localhost:8084}")
     private String orchestratorUrl;
 
-    private final RestTemplate aiRestTemplate = new RestTemplate();
+    /**
+     * Bounded, but generous: writing a full reading runs the orchestrator's complex
+     * provider chain, and the fallback for a timeout here is the older scraped-and-
+     * translated text. Without any timeout a stalled provider would hang the whole
+     * horoscope request (and the CMS ingest waiting on it) indefinitely.
+     */
+    private final RestTemplate aiRestTemplate = buildAiRestTemplate();
 
+    private static RestTemplate buildAiRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5_000);
+        factory.setReadTimeout(60_000);
+        return new RestTemplate(factory);
+    }
+
+    private static final String AI_SOURCE_NAME = "Astro Guru AI";
     private static final Duration DAILY_TTL = Duration.ofHours(6);
     private static final Duration WEEKLY_TTL = Duration.ofHours(24);
     private static final int MIN_EDITORIAL_TEXT_LENGTH = 40;
@@ -166,7 +185,15 @@ public class HoroscopeFusionService {
             log.warn("Redis read failed for {}: {}", cacheKey, e.getMessage());
         }
 
-        // 2. Fetch: Ohmanda first, FreeHoroscope as fallback
+        // 2. Primary path: write the reading with AI, grounded in real transit data.
+        HoroscopeResponse aiResponse = generateFromSky(sign, period, lang, dateLabel);
+        if (aiResponse != null) {
+            cacheResponse(cacheKey, aiResponse, period);
+            return aiResponse;
+        }
+        log.warn("AI horoscope unavailable for {} {} {} — falling back to upstream sources", sign, period, lang);
+
+        // 3. Fallback: Ohmanda first, FreeHoroscope as fallback
         List<UpstreamSource> sources = new ArrayList<>();
         String rawText = null;
 
@@ -202,14 +229,14 @@ public class HoroscopeFusionService {
             return tryStaleCache(cacheKey, sign, period, lang, dateLabel);
         }
 
-        // 3. Localize to editorial Turkish when requested
+        // 4. Localize to editorial Turkish when requested
         String finalText = rawText;
         if ("tr".equalsIgnoreCase(lang)) {
             finalText = localizeGeneralTextForTurkish(rawText, sign, period);
         }
         finalText = normalizeText(finalText);
 
-        // 4. Build response
+        // 5. Build response
         HoroscopeResponse response = normalizeResponse(HoroscopeResponse.builder()
                 .date(dateLabel)
                 .period(period)
@@ -221,15 +248,174 @@ public class HoroscopeFusionService {
                 .sources(sources)
                 .build(), sign, lang);
 
-        // 5. Cache
-        Duration ttl = period.equals("weekly") ? WEEKLY_TTL : DAILY_TTL;
+        // 6. Cache
+        cacheResponse(cacheKey, response, period);
+
+        return response;
+    }
+
+    private void cacheResponse(String cacheKey, HoroscopeResponse response, String period) {
+        Duration ttl = "weekly".equals(period) ? WEEKLY_TTL : DAILY_TTL;
         try {
             redisTemplate.opsForValue().set(cacheKey, response, ttl);
         } catch (Exception e) {
             log.warn("Redis write failed for {}: {}", cacheKey, e.getMessage());
         }
+    }
 
-        return response;
+    // ─────────────────────────────────────────────────────────────────────
+    // AI generation from real sky data (primary content path)
+    // ─────────────────────────────────────────────────────────────────────
+
+    /** Category sections that make the reading worth its premium slot. */
+    private static final String[] AI_DETAIL_SECTIONS = {"love", "career", "money", "health", "advice"};
+    private static final int MIN_AI_DETAIL_SECTIONS = 4;
+    private static final int MIN_AI_GENERAL_LENGTH = 80;
+
+    /**
+     * Writes the horoscope with AI from deterministic transit data.
+     * Returns null when the sky context, the AI call, or the quality gate fails,
+     * so the caller can fall back to the upstream sources.
+     */
+    private HoroscopeResponse generateFromSky(String sign, String period, String lang, String dateLabel) {
+        LocalDate contextDate = "weekly".equals(period)
+                ? LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                : LocalDate.now();
+
+        String skyContext = skyContextService.build(sign, period, contextDate);
+        if (!nonBlank(skyContext)) {
+            log.warn("No sky context for {} {} {} — skipping AI generation", sign, period, contextDate);
+            return null;
+        }
+
+        String rawJson = requestAiHoroscope(sign, period, dateLabel, lang, skyContext);
+        if (!nonBlank(rawJson)) {
+            return null;
+        }
+
+        return parseAiHoroscope(rawJson, sign, period, lang, dateLabel);
+    }
+
+    private String requestAiHoroscope(String sign, String period, String dateLabel, String lang, String skyContext) {
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("systemPrompt", HoroscopeFusionPrompt.SYSTEM_PROMPT);
+            payload.put("userPrompt", HoroscopeFusionPrompt.buildUserPrompt(sign, period, dateLabel, lang, skyContext));
+            payload.put("expectJsonResponse", true);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAcceptCharset(List.of(StandardCharsets.UTF_8));
+
+            HttpEntity<String> entity = new HttpEntity<>(objectMapper.writeValueAsString(payload), headers);
+            ResponseEntity<String> aiResponse = aiRestTemplate.postForEntity(
+                    orchestratorUrl + "/api/ai/horoscope/fuse", entity, String.class);
+
+            if (aiResponse.getStatusCode().is2xxSuccessful() && nonBlank(aiResponse.getBody())) {
+                return aiResponse.getBody();
+            }
+            log.warn("AI horoscope call returned {} for {} {} {}", aiResponse.getStatusCode(), sign, period, lang);
+        } catch (Exception e) {
+            log.warn("AI horoscope call failed for {} {} {}: {}", sign, period, lang, e.getMessage());
+        }
+        return null;
+    }
+
+    private HoroscopeResponse parseAiHoroscope(String rawJson, String sign, String period,
+                                               String lang, String dateLabel) {
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(rawJson);
+        } catch (Exception e) {
+            log.warn("AI horoscope JSON parse failed for {} {} {}: {}", sign, period, lang, e.getMessage());
+            return null;
+        }
+        if (root == null || !root.isObject()) {
+            log.warn("AI horoscope response was not a JSON object for {} {} {}", sign, period, lang);
+            return null;
+        }
+
+        JsonNode sectionsNode = root.path("sections");
+        String general = readAiSection(sectionsNode, "general", sign, lang);
+        if (!isUsableAiGeneral(general, sign, lang)) {
+            log.warn("AI horoscope rejected by quality gate for {} {} {}", sign, period, lang);
+            return null;
+        }
+
+        HoroscopeSections sections = HoroscopeSections.builder()
+                .general(general)
+                .love(readAiSection(sectionsNode, "love", sign, lang))
+                .career(readAiSection(sectionsNode, "career", sign, lang))
+                .money(readAiSection(sectionsNode, "money", sign, lang))
+                .health(readAiSection(sectionsNode, "health", sign, lang))
+                .advice(readAiSection(sectionsNode, "advice", sign, lang))
+                .build();
+
+        int detailCount = 0;
+        for (String key : AI_DETAIL_SECTIONS) {
+            if (nonBlank(readAiSection(sectionsNode, key, sign, lang))) detailCount++;
+        }
+        if (detailCount < MIN_AI_DETAIL_SECTIONS) {
+            log.warn("AI horoscope for {} {} {} only produced {}/{} detail sections — rejecting",
+                    sign, period, lang, detailCount, AI_DETAIL_SECTIONS.length);
+            return null;
+        }
+
+        JsonNode metaNode = root.path("meta");
+        HoroscopeMeta meta = HoroscopeMeta.builder()
+                .luckyColor(readAiText(metaNode, "lucky_color"))
+                .luckyNumber(readAiText(metaNode, "lucky_number"))
+                .compatibility(readAiText(metaNode, "compatibility"))
+                .mood(readAiText(metaNode, "mood"))
+                .build();
+
+        List<String> highlights = new ArrayList<>();
+        JsonNode highlightsNode = root.path("highlights");
+        if (highlightsNode.isArray()) {
+            for (JsonNode item : highlightsNode) {
+                String value = item.isTextual() ? item.asText().trim() : null;
+                if (nonBlank(value) && highlights.size() < 3) highlights.add(value);
+            }
+        }
+
+        log.info("Horoscope {} {} {} → SOURCE: AI (sky-grounded), {} detail sections",
+                sign, period, lang, detailCount);
+
+        return HoroscopeResponse.builder()
+                .date(dateLabel)
+                .period(period)
+                .sign(sign)
+                .language(lang)
+                .highlights(highlights)
+                .sections(sections)
+                .meta(meta)
+                .sources(List.of(UpstreamSource.builder().name(AI_SOURCE_NAME).build()))
+                .build();
+    }
+
+    private String readAiSection(JsonNode sectionsNode, String key, String sign, String lang) {
+        String value = readAiText(sectionsNode, key);
+        if (!nonBlank(value)) return null;
+        String cleaned = cleanupLocalizedText(value);
+        return nonBlank(cleaned) ? alignDirectSignReferences(cleaned, sign, lang) : null;
+    }
+
+    private String readAiText(JsonNode node, String key) {
+        if (node == null || !node.isObject()) return null;
+        JsonNode value = node.get(key);
+        if (value == null || !value.isTextual()) return null;
+        String text = value.asText().trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    /** The general section is what the CMS guard and the free tier both depend on. */
+    private boolean isUsableAiGeneral(String general, String sign, String lang) {
+        if (!nonBlank(general) || general.trim().length() < MIN_AI_GENERAL_LENGTH) return false;
+        if (!endsWithSentenceTerminator(general)) return false;
+        if ("tr".equalsIgnoreCase(lang)) {
+            return isLikelyTurkish(general) && passesTurkishQualityGate(general, sign);
+        }
+        return true;
     }
 
     private String localizeGeneralTextForTurkish(String rawText, String sign, String period) {

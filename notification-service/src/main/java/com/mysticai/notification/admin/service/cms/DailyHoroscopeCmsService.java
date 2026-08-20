@@ -84,6 +84,7 @@ public class DailyHoroscopeCmsService {
         if (updates.getCareer() != null) existing.setCareer(updates.getCareer());
         if (updates.getMoney() != null) existing.setMoney(updates.getMoney());
         if (updates.getHealth() != null) existing.setHealth(updates.getHealth());
+        if (updates.getAdvice() != null) existing.setAdvice(updates.getAdvice());
         if (updates.getLuckyColor() != null) existing.setLuckyColor(updates.getLuckyColor());
         if (updates.getLuckyNumber() != null) existing.setLuckyNumber(updates.getLuckyNumber());
         existing.setOverrideActive(updates.isOverrideActive());
@@ -144,6 +145,7 @@ public class DailyHoroscopeCmsService {
                 .locale(src.getLocale()).status(src.getStatus()).sourceType(src.getSourceType())
                 .title(src.getTitle()).shortSummary(src.getShortSummary()).fullContent(src.getFullContent())
                 .love(src.getLove()).career(src.getCareer()).money(src.getMoney()).health(src.getHealth())
+                .advice(src.getAdvice())
                 .isOverrideActive(src.isOverrideActive())
                 .build();
     }

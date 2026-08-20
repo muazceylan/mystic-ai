@@ -30,15 +30,48 @@ class HoroscopeFusionServiceTest {
 
     private final StaticFreeHoroscopeApiClient freeHoroscopeApiClient = new StaticFreeHoroscopeApiClient();
     private final StaticOhmandaClient ohmandaClient = new StaticOhmandaClient();
+    private final StaticSkyContextService skyContextService = new StaticSkyContextService();
+
+    private static final String AI_HOROSCOPE_JSON = """
+            {
+              "highlights": ["Yumusak baslangic", "Net iletisim", "Kucuk jest"],
+              "sections": {
+                "general": "Venüs'ün desteğiyle bugün ilişkilerinde yumuşak bir açılış yakalayabilirsin. Acele etmeden konuşursan karşındaki seni çok daha net duyar.",
+                "love": "Sevdiğin kişiye küçük bir jest yap.",
+                "career": "Ekip içinde tonunu yumuşatman kapı açar.",
+                "money": "Bugün büyük harcama yerine küçük bir düzenleme yeterli.",
+                "health": "Omuz ve boyun bölgeni gevşetmeye vakit ayır.",
+                "advice": "Bekleyen bir işi bugün kapat."
+              },
+              "meta": {
+                "lucky_color": "Bakır",
+                "lucky_number": "7",
+                "compatibility": "Leo",
+                "mood": "Sakin"
+              }
+            }
+            """;
+
+    private static final String AI_HOROSCOPE_JSON_MISSING_SECTIONS = """
+            {
+              "sections": {
+                "general": "Venüs'ün desteğiyle bugün ilişkilerinde yumuşak bir açılış yakalayabilirsin. Acele etmeden konuşursan karşındaki seni çok daha net duyar.",
+                "love": "Sevdiğin kişiye küçük bir jest yap."
+              }
+            }
+            """;
 
     private HoroscopeFusionService service;
     private MockRestServiceServer mockServer;
 
     @BeforeEach
     void setUp() {
+        // Default: no sky context, so these tests exercise the upstream fallback path.
+        skyContextService.next = null;
         service = new HoroscopeFusionService(
                 freeHoroscopeApiClient,
                 ohmandaClient,
+                skyContextService,
                 new RedisTemplate<>(),
                 new ObjectMapper()
         );
@@ -236,6 +269,60 @@ class HoroscopeFusionServiceTest {
         mockServer.verify();
     }
 
+    @Test
+    void shouldUseAiGeneratedHoroscopeWhenSkyContextIsAvailable() {
+        skyContextService.next = "Sign: Aries (element Fire, modality Cardinal, ruler Mars)\n- Venus in Aries 3°";
+        ohmandaClient.next = source("ohmanda", "This upstream text must not be used.");
+
+        mockServer.expect(requestTo("http://orchestrator.test/api/ai/horoscope/fuse"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(AI_HOROSCOPE_JSON, MediaType.APPLICATION_JSON));
+
+        HoroscopeResponse response = service.getHoroscope("aries", "daily", "tr");
+
+        assertEquals(
+                "Venüs'ün desteğiyle bugün ilişkilerinde yumuşak bir açılış yakalayabilirsin. "
+                        + "Acele etmeden konuşursan karşındaki seni çok daha net duyar.",
+                response.getSections().getGeneral()
+        );
+        assertEquals("Sevdiğin kişiye küçük bir jest yap.", response.getSections().getLove());
+        assertEquals("Bekleyen bir işi bugün kapat.", response.getSections().getAdvice());
+        assertEquals("Astro Guru AI", response.getSources().get(0).getName());
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldFallBackToUpstreamWhenAiSkipsTooManyDetailSections() {
+        skyContextService.next = "Sign: Aries (element Fire, modality Cardinal, ruler Mars)";
+        String turkishText = "Bugün enerjini dengeleyerek ilerlemen günün ritmini güçlendirebilir.";
+        ohmandaClient.next = source("ohmanda", turkishText);
+
+        mockServer.expect(requestTo("http://orchestrator.test/api/ai/horoscope/fuse"))
+                .andExpect(method(POST))
+                .andRespond(withSuccess(AI_HOROSCOPE_JSON_MISSING_SECTIONS, MediaType.APPLICATION_JSON));
+
+        HoroscopeResponse response = service.getHoroscope("aries", "daily", "tr");
+
+        assertEquals(turkishText, response.getSections().getGeneral());
+        mockServer.verify();
+    }
+
+    @Test
+    void shouldFallBackToUpstreamWhenAiCallFails() {
+        skyContextService.next = "Sign: Aries (element Fire, modality Cardinal, ruler Mars)";
+        String turkishText = "Bugün enerjini dengeleyerek ilerlemen günün ritmini güçlendirebilir.";
+        ohmandaClient.next = source("ohmanda", turkishText);
+
+        mockServer.expect(requestTo("http://orchestrator.test/api/ai/horoscope/fuse"))
+                .andExpect(method(POST))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        HoroscopeResponse response = service.getHoroscope("aries", "daily", "tr");
+
+        assertEquals(turkishText, response.getSections().getGeneral());
+        mockServer.verify();
+    }
+
     private static UpstreamSource source(String name, String text) {
         return UpstreamSource.builder()
                 .name(name)
@@ -257,6 +344,19 @@ class HoroscopeFusionServiceTest {
 
         @Override
         public UpstreamSource fetch(String sign, String period) {
+            return next;
+        }
+    }
+
+    private static final class StaticSkyContextService extends HoroscopeSkyContextService {
+        private String next;
+
+        StaticSkyContextService() {
+            super(null);
+        }
+
+        @Override
+        public String build(String sign, String period, java.time.LocalDate date) {
             return next;
         }
     }

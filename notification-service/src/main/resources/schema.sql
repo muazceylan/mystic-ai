@@ -295,37 +295,64 @@ CREATE TABLE IF NOT EXISTS app_version_config (
     platform VARCHAR(20) NOT NULL,
     min_supported_version VARCHAR(20) NOT NULL DEFAULT '0.0.0',
     latest_version VARCHAR(20) NOT NULL DEFAULT '0.0.0',
+    min_supported_build INTEGER NOT NULL DEFAULT 0,
+    latest_build INTEGER NOT NULL DEFAULT 0,
     force_update BOOLEAN NOT NULL DEFAULT FALSE,
+    optional_update_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     ios_store_url TEXT,
     android_store_url TEXT,
     android_web_store_url TEXT,
     message TEXT,
+    title_tr VARCHAR(200),
+    message_tr TEXT,
+    title_en VARCHAR(200),
+    message_en TEXT,
+    updated_by BIGINT,
     updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_app_version_platform UNIQUE (platform)
 );
 
+-- Seed rows only. The live policy is managed from the admin panel
+-- (Mystic Admin → Mobile App Version); never edit these values for a release.
 INSERT INTO app_version_config
-    (platform, min_supported_version, latest_version, force_update, ios_store_url, android_store_url, android_web_store_url, message)
+    (platform, min_supported_version, latest_version, min_supported_build, latest_build,
+     force_update, optional_update_enabled,
+     ios_store_url, android_store_url, android_web_store_url, message,
+     title_tr, message_tr, title_en, message_en)
 VALUES
     (
         'ios',
         '1.0.0',
         '1.0.0',
+        0,
+        0,
         false,
+        true,
         'itms-apps://apps.apple.com/app/idAPP_STORE_ID',
         null,
         null,
-        'Yeni bir sürüm mevcut. Lütfen uygulamayı güncelleyiniz.'
+        'Yeni bir sürüm mevcut. Lütfen uygulamayı güncelleyiniz.',
+        'AstroGuru''nun yeni sürümü hazır',
+        'Devam etmek için AstroGuru''yu güncelle.',
+        'A new version of AstroGuru is ready',
+        'Please update AstroGuru to continue.'
     ),
     (
         'android',
         '1.0.0',
         '1.0.0',
+        0,
+        0,
         false,
+        true,
         null,
         'market://details?id=com.astroguru.mmc',
         'https://play.google.com/store/apps/details?id=com.astroguru.mmc',
-        'Yeni bir sürüm mevcut. Lütfen uygulamayı güncelleyiniz.'
+        'Yeni bir sürüm mevcut. Lütfen uygulamayı güncelleyiniz.',
+        'AstroGuru''nun yeni sürümü hazır',
+        'Devam etmek için AstroGuru''yu güncelle.',
+        'A new version of AstroGuru is ready',
+        'Please update AstroGuru to continue.'
     )
 ON CONFLICT (platform) DO NOTHING;
 -- TODO: Replace APP_STORE_ID with actual App Store numeric ID after App Store listing is available.
@@ -382,3 +409,10 @@ CREATE INDEX IF NOT EXISTS idx_pce_user ON provider_callback_event (user_id);
 CREATE INDEX IF NOT EXISTS idx_pce_session ON provider_callback_event (reward_session_id);
 CREATE INDEX IF NOT EXISTS idx_pce_status ON provider_callback_event (status);
 CREATE INDEX IF NOT EXISTS idx_pce_received ON provider_callback_event (received_at);
+
+-- ---------------------------------------------------------------------------
+-- Horoscope CMS: AI-written readings carry an "advice" section. Runs before
+-- Hibernate's validate, so the new column exists by the time JPA checks it.
+-- ---------------------------------------------------------------------------
+ALTER TABLE IF EXISTS daily_horoscope_cms ADD COLUMN IF NOT EXISTS advice TEXT;
+ALTER TABLE IF EXISTS weekly_horoscope_cms ADD COLUMN IF NOT EXISTS advice TEXT;

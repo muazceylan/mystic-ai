@@ -611,23 +611,10 @@ function makeStyles(compact: boolean) {
     },
     appleButton: {
       width: '100%',
-      minHeight: compact ? 54 : 58,
-      borderRadius: 17,
-      backgroundColor: '#000000',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      gap: 10,
+      height: compact ? 54 : 58,
     },
     appleButtonDisabled: {
       opacity: 0.55,
-    },
-    appleButtonText: {
-      color: '#FFFFFF',
-      fontSize: compact ? 16 : 17,
-      lineHeight: 23,
-      fontWeight: '500',
-      letterSpacing: 0,
     },
     socialText: {
       fontSize: compact ? 16 : 17,
@@ -1251,21 +1238,19 @@ export default function WelcomeScreen() {
               </TouchableOpacity>
 
               {Platform.OS === 'ios' && (
-                <TouchableOpacity
+                <AppleAuthentication.AppleAuthenticationButton
                   style={[
                     styles.appleButton,
                     (loading || quickStartLoading) && styles.appleButtonDisabled,
                   ]}
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={17}
                   onPress={handleAppleLogin}
-                  disabled={loading || quickStartLoading}
                   accessibilityLabel={t('auth.loginWithApple')}
-                  accessibilityRole="button"
                   accessibilityState={{ disabled: loading || quickStartLoading }}
-                  activeOpacity={0.84}
-                >
-                  <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
-                  <Text style={styles.appleButtonText}>{t('auth.loginWithApple')}</Text>
-                </TouchableOpacity>
+                  pointerEvents={loading || quickStartLoading ? 'none' : 'auto'}
+                />
               )}
             </View>
 

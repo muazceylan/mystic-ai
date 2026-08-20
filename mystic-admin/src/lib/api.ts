@@ -3,6 +3,9 @@ import type {
   AiModelConfig,
   AppUserStats,
   AppUserSummary,
+  AppVersionPlatform,
+  AppVersionPolicy,
+  AppVersionPolicyPayload,
   IngestStatus,
   Page,
   ProductAnalyticsActiveUser,
@@ -216,6 +219,17 @@ export const numerologyConfigApi = {
       '/api/numerology/admin/config/premium',
       { enabled },
     ),
+};
+
+// ── Mobile App Version Policy ─────────────────────────────
+// notification-service owns app_version_config; the same rows back the public
+// /api/v1/app-version check the mobile app calls at startup.
+export const appVersionApi = {
+  list: () => api.get<AppVersionPolicy[]>('/api/admin/v1/app-version'),
+  get: (platform: AppVersionPlatform) =>
+    api.get<AppVersionPolicy>(`/api/admin/v1/app-version/${platform}`),
+  save: (platform: AppVersionPlatform, data: AppVersionPolicyPayload) =>
+    api.put<AppVersionPolicy>(`/api/admin/v1/app-version/${platform}`, data),
 };
 
 // ── Notification Catalog ──────────────────────────────────

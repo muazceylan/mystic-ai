@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { usePreventRemove } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,7 +11,6 @@ import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { getZodiacSign } from '../../constants/index';
 import { useTheme } from '../../context/ThemeContext';
 import { SafeScreen } from '../../components/ui';
-import { useAuthStore } from '../../store/useAuthStore';
 
 const FALLBACK_BIRTH_DATE = new Date(1995, 0, 1);
 const MINIMUM_BIRTH_DATE = new Date(1920, 0, 1);
@@ -198,11 +196,8 @@ export default function BirthDateScreen() {
   const initialBirthDate = useOnboardingStore((s) => s.birthDate);
   const setBirthDate = useOnboardingStore((s) => s.setBirthDate);
   const setZodiacSign = useOnboardingStore((s) => s.setZodiacSign);
-  const logout = useAuthStore((s) => s.logout);
 
   const [selectedDate, setSelectedDate] = useState<Date>(initialBirthDate ?? FALLBACK_BIRTH_DATE);
-  const [returnToLoginConfirmed, setReturnToLoginConfirmed] = useState(false);
-  const returnToLoginPromptVisibleRef = useRef(false);
 
   const isDark = activeTheme === 'dark';
   const isTurkish = i18n.language.toLocaleLowerCase().startsWith('tr');
@@ -228,47 +223,6 @@ export default function BirthDateScreen() {
     setZodiacSign(zodiac);
     router.push('/(auth)/birth-time');
   };
-
-  const confirmReturnToLogin = useCallback(() => {
-    if (returnToLoginPromptVisibleRef.current) return;
-
-    returnToLoginPromptVisibleRef.current = true;
-    const closePrompt = () => {
-      returnToLoginPromptVisibleRef.current = false;
-    };
-
-    Alert.alert(
-      t('auth.returnToLoginConfirmation'),
-      undefined,
-      [
-        {
-          text: t('common.no'),
-          style: 'cancel',
-          onPress: closePrompt,
-        },
-        {
-          text: t('common.yes'),
-          onPress: () => {
-            closePrompt();
-            setReturnToLoginConfirmed(true);
-          },
-        },
-      ],
-      {
-        cancelable: true,
-        onDismiss: closePrompt,
-      },
-    );
-  }, [t]);
-
-  usePreventRemove(!returnToLoginConfirmed, confirmReturnToLogin);
-
-  useEffect(() => {
-    if (!returnToLoginConfirmed) return;
-
-    logout();
-    router.replace('/(auth)/welcome');
-  }, [logout, returnToLoginConfirmed]);
 
   return (
     <SafeScreen>
@@ -314,7 +268,7 @@ export default function BirthDateScreen() {
         <View style={s.footer}>
           <TouchableOpacity
             style={s.outlineButton}
-            onPress={confirmReturnToLogin}
+            onPress={() => router.back()}
             accessibilityLabel={t('editBirthInfo.accessibilityBack')}
             accessibilityRole="button"
           >

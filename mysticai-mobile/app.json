@@ -21,7 +21,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.astroguru.mmc",
-      "buildNumber": "1",
+      "buildNumber": "16",
       "usesNonExemptEncryption": false,
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",

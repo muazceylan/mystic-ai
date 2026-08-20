@@ -44,23 +44,36 @@ public class HoroscopeIngestService {
 
     @Transactional
     public DailyHoroscopeCms ingestDaily(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale) {
-        return ingestDailyInternal(sign, date, locale, null, null, null);
+        return ingestDailyInternal(sign, date, locale, null, null, null, false);
     }
 
     @Transactional
     public DailyHoroscopeCms ingestDailyAsAdmin(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale,
                                                   Long adminId, String adminEmail, AdminUser.Role role) {
-        return ingestDailyInternal(sign, date, locale, adminId, adminEmail, role);
+        return ingestDailyAsAdmin(sign, date, locale, adminId, adminEmail, role, false);
+    }
+
+    /**
+     * @param force re-generate even when a usable PUBLISHED record already exists.
+     *              Needed to refresh content that is technically valid but stale —
+     *              an admin override is still never overwritten.
+     */
+    @Transactional
+    public DailyHoroscopeCms ingestDailyAsAdmin(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale,
+                                                  Long adminId, String adminEmail, AdminUser.Role role, boolean force) {
+        return ingestDailyInternal(sign, date, locale, adminId, adminEmail, role, force);
     }
 
     private DailyHoroscopeCms ingestDailyInternal(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate date, String locale,
-                                                    Long adminId, String adminEmail, AdminUser.Role role) {
+                                                    Long adminId, String adminEmail, AdminUser.Role role,
+                                                    boolean force) {
         // Check existing — skip if already published with complete content (admin edits are preserved)
         var existing = dailyRepo.findByZodiacSignAndDateAndLocale(sign, date, locale);
         if (existing.isPresent()) {
             DailyHoroscopeCms rec = existing.get();
             if (rec.isOverrideActive()
-                    || (rec.getStatus() == DailyHoroscopeCms.Status.PUBLISHED
+                    || (!force
+                        && rec.getStatus() == DailyHoroscopeCms.Status.PUBLISHED
                         && rec.getIngestError() == null
                         && HoroscopeContentGuard.isContentUsableForSign(rec.getFullContent(), sign, locale))) {
                 log.debug("Skipping ingest for daily {} {} {} — already published with complete content or override active", sign, date, locale);
@@ -119,6 +132,7 @@ public class HoroscopeIngestService {
             e.setCareer(response.sections() != null ? response.sections().getOrDefault("career", null) : null);
             e.setMoney(response.sections() != null ? response.sections().getOrDefault("money", null) : null);
             e.setHealth(response.sections() != null ? response.sections().getOrDefault("health", null) : null);
+            e.setAdvice(response.sections() != null ? response.sections().getOrDefault("advice", null) : null);
             e.setLuckyColor(response.meta() != null ? response.meta().getOrDefault("lucky_color", null) : null);
             e.setLuckyNumber(response.meta() != null ? response.meta().getOrDefault("lucky_number", null) : null);
             e.setExternalSnapshotJson(snapshotJson);
@@ -137,6 +151,7 @@ public class HoroscopeIngestService {
                 .career(response.sections() != null ? response.sections().getOrDefault("career", null) : null)
                 .money(response.sections() != null ? response.sections().getOrDefault("money", null) : null)
                 .health(response.sections() != null ? response.sections().getOrDefault("health", null) : null)
+                .advice(response.sections() != null ? response.sections().getOrDefault("advice", null) : null)
                 .luckyColor(response.meta() != null ? response.meta().getOrDefault("lucky_color", null) : null)
                 .luckyNumber(response.meta() != null ? response.meta().getOrDefault("lucky_number", null) : null)
                 .externalSnapshotJson(snapshotJson)
@@ -158,22 +173,32 @@ public class HoroscopeIngestService {
 
     @Transactional
     public WeeklyHoroscopeCms ingestWeekly(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate weekStart, String locale) {
-        return ingestWeeklyInternal(sign, weekStart, locale, null, null, null);
+        return ingestWeeklyInternal(sign, weekStart, locale, null, null, null, false);
     }
 
     @Transactional
     public WeeklyHoroscopeCms ingestWeeklyAsAdmin(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate weekStart,
                                                    String locale, Long adminId, String adminEmail, AdminUser.Role role) {
-        return ingestWeeklyInternal(sign, weekStart, locale, adminId, adminEmail, role);
+        return ingestWeeklyAsAdmin(sign, weekStart, locale, adminId, adminEmail, role, false);
+    }
+
+    /** @see #ingestDailyAsAdmin(WeeklyHoroscopeCms.ZodiacSign, LocalDate, String, Long, String, AdminUser.Role, boolean) */
+    @Transactional
+    public WeeklyHoroscopeCms ingestWeeklyAsAdmin(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate weekStart,
+                                                   String locale, Long adminId, String adminEmail,
+                                                   AdminUser.Role role, boolean force) {
+        return ingestWeeklyInternal(sign, weekStart, locale, adminId, adminEmail, role, force);
     }
 
     private WeeklyHoroscopeCms ingestWeeklyInternal(WeeklyHoroscopeCms.ZodiacSign sign, LocalDate weekStart,
-                                                     String locale, Long adminId, String adminEmail, AdminUser.Role role) {
+                                                     String locale, Long adminId, String adminEmail,
+                                                     AdminUser.Role role, boolean force) {
         var existing = weeklyRepo.findByZodiacSignAndWeekStartDateAndLocale(sign, weekStart, locale);
         if (existing.isPresent()) {
             WeeklyHoroscopeCms rec = existing.get();
             if (rec.isOverrideActive()
-                    || (rec.getStatus() == WeeklyHoroscopeCms.Status.PUBLISHED
+                    || (!force
+                        && rec.getStatus() == WeeklyHoroscopeCms.Status.PUBLISHED
                         && rec.getIngestError() == null
                         && HoroscopeContentGuard.isContentUsableForSign(rec.getFullContent(), sign, locale))) {
                 log.debug("Skipping ingest for weekly {} {} {} — already published with complete content or override active", sign, weekStart, locale);
@@ -232,6 +257,7 @@ public class HoroscopeIngestService {
             e.setCareer(response.sections() != null ? response.sections().getOrDefault("career", null) : null);
             e.setMoney(response.sections() != null ? response.sections().getOrDefault("money", null) : null);
             e.setHealth(response.sections() != null ? response.sections().getOrDefault("health", null) : null);
+            e.setAdvice(response.sections() != null ? response.sections().getOrDefault("advice", null) : null);
             e.setSocial(response.sections() != null ? response.sections().getOrDefault("advice", null) : null);
             e.setLuckyColor(response.meta() != null ? response.meta().getOrDefault("lucky_color", null) : null);
             e.setLuckyNumber(response.meta() != null ? response.meta().getOrDefault("lucky_number", null) : null);
@@ -251,6 +277,7 @@ public class HoroscopeIngestService {
                 .career(response.sections() != null ? response.sections().getOrDefault("career", null) : null)
                 .money(response.sections() != null ? response.sections().getOrDefault("money", null) : null)
                 .health(response.sections() != null ? response.sections().getOrDefault("health", null) : null)
+                .advice(response.sections() != null ? response.sections().getOrDefault("advice", null) : null)
                 .social(response.sections() != null ? response.sections().getOrDefault("advice", null) : null)
                 .luckyColor(response.meta() != null ? response.meta().getOrDefault("lucky_color", null) : null)
                 .luckyNumber(response.meta() != null ? response.meta().getOrDefault("lucky_number", null) : null)

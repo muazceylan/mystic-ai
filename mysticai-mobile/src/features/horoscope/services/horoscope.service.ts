@@ -6,6 +6,22 @@ import { resolveZodiacSign } from '../utils/zodiacData';
 const CACHE_TTL = 30 * 60 * 1000; // 30 min
 const cache = new Map<string, { data: HoroscopeResponse; ts: number }>();
 
+/**
+ * The CMS endpoint ingests from astrology-service (upstream fetch + AI localization)
+ * when the requested sign/date is not in the CMS DB yet. That cold path routinely
+ * exceeds the api client's default 15s timeout, which is what produced the
+ * "first open fails, second one works" behaviour. Give this one call a longer
+ * budget so a cold ingest can finish before we give up.
+ */
+const COLD_FETCH_TIMEOUT_MS = 35000;
+
+/** Axios reports request timeouts via these codes (RN XHR + node adapters). */
+function isTimeoutError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const code = (err as { code?: string }).code;
+  return code === 'ECONNABORTED' || code === 'ETIMEDOUT';
+}
+
 /** Track which date the cache belongs to — clear on day change */
 let cachedDate: string | null = null;
 
@@ -73,7 +89,9 @@ function cmsToHoroscopeResponse(
       career: cms.career ?? '',
       money: cms.money ?? '',
       health: cms.health ?? '',
-      advice: 'social' in cms ? ((cms as CmsWeeklyHoroscope).social ?? '') : '',
+      // `social` is where weekly advice used to be stored before the dedicated
+      // column existed — keep reading it so pre-existing records still render.
+      advice: cms.advice ?? ('social' in cms ? ((cms as CmsWeeklyHoroscope).social ?? '') : ''),
     },
     meta: {
       lucky_color: cms.luckyColor,
@@ -104,7 +122,7 @@ export async function fetchHoroscope(
   let cmsInfraError = false;
   try {
     if (period === 'daily') {
-      const cmsRecord = await fetchDailyHoroscopeFromCms(normalizedSign, todayStr(), lang);
+      const cmsRecord = await fetchDailyHoroscopeFromCms(normalizedSign, todayStr(), lang, COLD_FETCH_TIMEOUT_MS);
       if (cmsRecord) {
         console.log(`${tag} → SOURCE: CMS-DB | sourceType=${cmsRecord.sourceType} | id=${cmsRecord.id}`);
         return cmsToHoroscopeResponse(cmsRecord, normalizedSign, period, lang);
@@ -113,7 +131,7 @@ export async function fetchHoroscope(
       console.warn(`${tag} → CMS 404: no data in DB and ingest failed`);
       throw new Error(`No horoscope data available for ${normalizedSign}`);
     } else if (period === 'weekly') {
-      const cmsRecord = await fetchWeeklyHoroscopeFromCms(normalizedSign, currentMondayStr(), lang);
+      const cmsRecord = await fetchWeeklyHoroscopeFromCms(normalizedSign, currentMondayStr(), lang, COLD_FETCH_TIMEOUT_MS);
       if (cmsRecord) {
         console.log(`${tag} → SOURCE: CMS-DB | sourceType=${cmsRecord.sourceType} | id=${cmsRecord.id}`);
         return cmsToHoroscopeResponse(cmsRecord, normalizedSign, period, lang);
@@ -126,6 +144,15 @@ export async function fetchHoroscope(
     // Re-throw "no data" errors — these are not infrastructure failures
     if (err instanceof Error && err.message.startsWith('No horoscope data')) throw err;
     if (err instanceof Error && err.message.startsWith('Unknown period')) throw err;
+    // Timeout means the backend is still ingesting, not that CMS is down. The direct
+    // astrology-service fallback runs the exact same slow chain, so retrying it here
+    // only doubles the wait and kicks off a second ingest. Fail fast instead — the
+    // backend finishes and persists in the background, so the user's retry is served
+    // from the CMS DB.
+    if (isTimeoutError(err)) {
+      console.warn(`${tag} → CMS timed out while ingesting, skipping direct API fallback`);
+      throw new Error(`No horoscope data available for ${normalizedSign}`);
+    }
     // Real CMS infrastructure error (5xx, network, CORS) — emergency direct API fallback
     console.error(`${tag} → CMS infrastructure error, emergency API fallback:`, err);
     cmsInfraError = true;

@@ -1,42 +1,56 @@
 import { Platform, Linking } from 'react-native';
 import * as Application from 'expo-application';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
+import i18n from '../i18n';
+import { resolveUpdateStatus } from './appVersionPolicy';
+import type { AppUpdateStatus, AppVersionResponse } from './appVersionPolicy';
 
-export interface AppVersionResponse {
-  platform: string;
-  forceUpdate: boolean;
-  minSupportedVersion: string;
-  latestVersion: string;
-  message: string | null;
-  iosStoreUrl: string | null;
-  androidStoreUrl: string | null;
-  androidWebStoreUrl: string | null;
+export type { AppUpdateStatus, AppVersionResponse };
+export {
+  compareVersions,
+  evaluateStatusLocally,
+  resolveUpdateStatus,
+} from './appVersionPolicy';
+
+export interface AppVersionCheckResult {
+  status: AppUpdateStatus;
+  versionInfo: AppVersionResponse | null;
+  installedVersion: string;
+  installedBuild: number | null;
 }
 
-/** Compares two semantic version strings. Returns 1 if a > b, -1 if a < b, 0 if equal.
- *  Missing segments are treated as 0: "1.0" equals "1.0.0". */
-export function compareVersions(a: string, b: string): number {
-  const aParts = a.split('.').map((p) => parseInt(p, 10) || 0);
-  const bParts = b.split('.').map((p) => parseInt(p, 10) || 0);
-  const length = Math.max(aParts.length, bParts.length);
+const OPTIONAL_DISMISS_KEY = 'mysticai_update_prompt_dismissed_build';
 
-  for (let i = 0; i < length; i++) {
-    const aVal = aParts[i] ?? 0;
-    const bVal = bParts[i] ?? 0;
-    if (aVal > bVal) return 1;
-    if (aVal < bVal) return -1;
-  }
-  return 0;
-}
-
+/**
+ * Installed version/build come from the native package only — Android versionName/versionCode
+ * and iOS CFBundleShortVersionString/CFBundleVersion. They are never duplicated in TS, env,
+ * backend config, or the admin panel, so a release bump is the single place a version changes.
+ */
 export function getCurrentAppVersion(): string {
   return Application.nativeApplicationVersion ?? '0.0.0';
 }
 
-export async function fetchAppVersionInfo(platform: string): Promise<AppVersionResponse | null> {
+export function getCurrentAppBuild(): number | null {
+  const raw = Application.nativeBuildVersion;
+  if (raw == null) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export async function fetchAppVersionInfo(
+  platform: string,
+  installedVersion?: string,
+  installedBuild?: number | null,
+): Promise<AppVersionResponse | null> {
   try {
     const response = await api.get<AppVersionResponse>('/api/v1/app-version', {
-      params: { platform },
+      params: {
+        platform,
+        installedVersion,
+        installedBuild: installedBuild ?? undefined,
+        locale: i18n.language ?? undefined,
+      },
     });
     return response.data;
   } catch (error) {
@@ -45,36 +59,66 @@ export async function fetchAppVersionInfo(platform: string): Promise<AppVersionR
   }
 }
 
-export function isUpdateRequired(versionInfo: AppVersionResponse, currentVersion: string): boolean {
-  if (!versionInfo.forceUpdate) return false;
-  return compareVersions(currentVersion, versionInfo.minSupportedVersion) < 0;
+/** Kept for callers that only need the blocking decision. */
+export function isUpdateRequired(
+  versionInfo: AppVersionResponse,
+  installedVersion: string,
+  installedBuild: number | null = getCurrentAppBuild(),
+): boolean {
+  return resolveUpdateStatus(versionInfo, installedVersion, installedBuild) === 'FORCE_UPDATE';
 }
 
-export async function checkAppVersion(): Promise<{
-  updateRequired: boolean;
-  versionInfo: AppVersionResponse | null;
-  currentVersion: string;
-}> {
-  const currentVersion = getCurrentAppVersion();
+/**
+ * Fail-safe: a timeout, 5xx, or offline device resolves to UP_TO_DATE. A backend outage must
+ * never turn into an app-wide lockout or a permanent loading screen.
+ */
+export async function checkAppVersion(): Promise<AppVersionCheckResult> {
+  const installedVersion = getCurrentAppVersion();
+  const installedBuild = getCurrentAppBuild();
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
-  const versionInfo = await fetchAppVersionInfo(platform);
+  const versionInfo = await fetchAppVersionInfo(platform, installedVersion, installedBuild);
 
   if (!versionInfo) {
-    return { updateRequired: false, versionInfo: null, currentVersion };
+    return { status: 'UP_TO_DATE', versionInfo: null, installedVersion, installedBuild };
   }
 
-  const updateRequired = isUpdateRequired(versionInfo, currentVersion);
-  return { updateRequired, versionInfo, currentVersion };
+  return {
+    status: resolveUpdateStatus(versionInfo, installedVersion, installedBuild),
+    versionInfo,
+    installedVersion,
+    installedBuild,
+  };
+}
+
+/** Optional prompts are dismissed per latest build, so a user is nudged once per release. */
+export async function isOptionalUpdateDismissed(latestBuild: number | undefined): Promise<boolean> {
+  if (latestBuild == null) return false;
+  try {
+    const stored = await AsyncStorage.getItem(OPTIONAL_DISMISS_KEY);
+    return stored != null && Number(stored) === latestBuild;
+  } catch {
+    return false;
+  }
+}
+
+export async function dismissOptionalUpdate(latestBuild: number | undefined): Promise<void> {
+  if (latestBuild == null) return;
+  try {
+    await AsyncStorage.setItem(OPTIONAL_DISMISS_KEY, String(latestBuild));
+  } catch (error) {
+    console.warn('[AppVersionCheck] Failed to persist update dismissal:', error);
+  }
 }
 
 export async function openStore(versionInfo: AppVersionResponse): Promise<void> {
   const platform = Platform.OS;
 
   if (platform === 'ios') {
-    if (versionInfo.iosStoreUrl) {
+    const iosUrl = versionInfo.iosStoreUrl ?? versionInfo.storeUrl;
+    if (iosUrl) {
       try {
-        await Linking.openURL(versionInfo.iosStoreUrl);
+        await Linking.openURL(iosUrl);
       } catch (e) {
         console.warn('[AppVersionCheck] Failed to open iOS store URL:', e);
       }
@@ -83,6 +127,7 @@ export async function openStore(versionInfo: AppVersionResponse): Promise<void> 
   }
 
   if (platform === 'android') {
+    // market:// opens the Play app directly; fall back to the https listing when unavailable.
     if (versionInfo.androidStoreUrl) {
       try {
         const canOpen = await Linking.canOpenURL(versionInfo.androidStoreUrl);
@@ -95,9 +140,10 @@ export async function openStore(versionInfo: AppVersionResponse): Promise<void> 
       }
     }
 
-    if (versionInfo.androidWebStoreUrl) {
+    const webUrl = versionInfo.androidWebStoreUrl ?? versionInfo.storeUrl;
+    if (webUrl) {
       try {
-        await Linking.openURL(versionInfo.androidWebStoreUrl);
+        await Linking.openURL(webUrl);
       } catch (e) {
         console.warn('[AppVersionCheck] Failed to open Android web store URL:', e);
       }

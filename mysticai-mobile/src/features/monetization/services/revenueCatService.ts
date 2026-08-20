@@ -123,6 +123,11 @@ function getStoreProductPriceString(product: PurchasesStoreProduct, period: Stor
   return product.priceString;
 }
 
+// Store fiyat metni yoksa kullanilan son care bicimlendirme.
+// Sembol tahmini yapilmaz: Hermes/iOS tarafinda Intl'in `currency` secenegi her zaman
+// onurlandirilmadigi icin cihaz locale'inin varsayilan sembolu (or. en-US -> "$") TRY
+// tutarinin onune gelebiliyor ve paywall, App Store odeme sayfasindan farkli bir para
+// birimi gosteriyor. Bu yuzden tutar + ISO kodu (or. "199,99 TRY") donuluyor.
 function formatCurrencyAmount(
   amount: number | null | undefined,
   currencyCode: string | null | undefined,
@@ -137,26 +142,24 @@ function formatCurrencyAmount(
   }
 
   try {
-    return new Intl.NumberFormat(getRevenueCatPriceLocale(), {
-      style: 'currency',
-      currency,
-    }).format(amount);
+    return `${new Intl.NumberFormat(getRevenueCatPriceLocale()).format(amount)} ${currency}`;
   } catch {
-    return null;
+    return `${amount} ${currency}`;
   }
 }
 
 type StorePricePeriod = 'full' | 'week' | 'month' | 'year';
 
+// Gosterilecek fiyat icin tek dogru kaynak store'un kendi bicimlendirdigi metindir
+// (StoreKit/Play Billing storefront para birimi). Kendi bicimlendirmemiz sadece store
+// bu metni vermediginde devreye girer; aksi halde paywall ile odeme sayfasi ayrisir.
 export function formatRevenueCatStorePrice(
   product: PurchasesStoreProduct,
   period: StorePricePeriod = 'full',
 ): string | null {
-  const formatted = formatCurrencyAmount(
-    getStoreProductPrice(product, period),
-    product.currencyCode,
-  );
-  return formatted ?? getStoreProductPriceString(product, period) ?? null;
+  return getStoreProductPriceString(product, period)
+    ?? formatCurrencyAmount(getStoreProductPrice(product, period), product.currencyCode)
+    ?? null;
 }
 
 function getEnvRevenueCatConfig(): RevenueCatSdkConfig {

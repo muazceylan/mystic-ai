@@ -138,8 +138,9 @@ public class AdminDailyHoroscopeController {
             WeeklyHoroscopeCms.ZodiacSign sign = WeeklyHoroscopeCms.ZodiacSign.valueOf(signStr.toUpperCase());
             LocalDate date = LocalDate.parse(dateStr);
             AdminUser admin = adminUser(auth);
+            boolean force = Boolean.parseBoolean(body.getOrDefault("force", "false"));
             DailyHoroscopeCms result = ingestService.ingestDailyAsAdmin(
-                    sign, date, locale, admin.getId(), admin.getEmail(), admin.getRole());
+                    sign, date, locale, admin.getId(), admin.getEmail(), admin.getRole(), force);
             return result != null
                     ? ResponseEntity.ok(result)
                     : ResponseEntity.status(502).body(Map.of("error", "Astrology service unavailable"));

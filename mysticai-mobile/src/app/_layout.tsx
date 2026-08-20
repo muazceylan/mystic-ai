@@ -79,9 +79,13 @@ import ScreenCaptureGuard from '../components/security/ScreenCaptureGuard';
 import { initializeAdProvider } from '../features/monetization/providers/initProvider';
 import { warmNativeGoogleSigninConfig } from '../services/googleSignIn';
 import { getBuildInfo } from '../services/buildInfo';
-import { checkAppVersion } from '../services/appVersionCheck';
-import type { AppVersionResponse } from '../services/appVersionCheck';
-import { ForcedUpdateModal } from '../components/ui/ForcedUpdateModal';
+import {
+  checkAppVersion,
+  dismissOptionalUpdate,
+  isOptionalUpdateDismissed,
+} from '../services/appVersionCheck';
+import type { AppUpdateStatus, AppVersionResponse } from '../services/appVersionCheck';
+import { AppUpdateModal } from '../components/ui/AppUpdateModal';
 import {
   bootstrapTrackingConsent,
   type PrivacyBootstrapResult,
@@ -271,7 +275,10 @@ function useProtectedRoute(i18nReady: boolean) {
 function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
   const { colors, activeTheme } = useTheme();
   const pathname = usePathname();
-  const [forcedUpdateInfo, setForcedUpdateInfo] = useState<AppVersionResponse | null>(null);
+  const [appUpdate, setAppUpdate] = useState<{
+    status: Exclude<AppUpdateStatus, 'UP_TO_DATE'>;
+    versionInfo: AppVersionResponse;
+  } | null>(null);
   const [privacyResult, setPrivacyResult] = useState<PrivacyBootstrapResult | null>(null);
   const handlePrivacyComplete = useCallback((result: PrivacyBootstrapResult) => {
     setPrivacyResult(result);
@@ -305,7 +312,7 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
         {privacyResult ? <TutorialBootstrap /> : null}
         {privacyResult ? <GuestSessionBootstrap /> : null}
         {privacyResult ? (
-          <AppVersionBootstrap onUpdateRequired={setForcedUpdateInfo} />
+          <AppVersionBootstrap onUpdateAvailable={setAppUpdate} />
         ) : null}
         {privacyResult ? <ScreenTracker /> : null}
         {privacyResult ? <AnalyticsDebugBootstrap /> : null}
@@ -318,8 +325,16 @@ function AppNavigator({ i18nReady }: { i18nReady: boolean }) {
           })}
         />
       </RevenueCatProvider>
-      {forcedUpdateInfo && Platform.OS !== 'web' && (
-        <ForcedUpdateModal visible={true} versionInfo={forcedUpdateInfo} />
+      {appUpdate && Platform.OS !== 'web' && (
+        <AppUpdateModal
+          visible={true}
+          versionInfo={appUpdate.versionInfo}
+          mode={appUpdate.status === 'FORCE_UPDATE' ? 'force' : 'optional'}
+          onDismiss={() => {
+            void dismissOptionalUpdate(appUpdate.versionInfo.latestBuild);
+            setAppUpdate(null);
+          }}
+        />
       )}
     </>
   );
@@ -417,35 +432,51 @@ function BuildInfoBootstrap() {
 }
 
 /**
- * Checks the backend for the minimum supported app version on startup and when
- * the app returns to the foreground. If the installed version is below the minimum
- * and forceUpdate is enabled, notifies the parent via onUpdateRequired so the
- * blocking update modal is shown.
+ * Asks the backend what to do about the installed build, on startup and on every
+ * background → active return. The installed version/build come from the native package;
+ * the policy behind the decision is managed entirely from the admin panel.
  *
- * Multiple concurrent checks are prevented via the isCheckingRef guard.
- * The modal stays visible across foreground returns until the user updates.
+ * A FORCE_UPDATE never clears itself — the modal stays until the user actually updates and
+ * a later check returns UP_TO_DATE, so no restart is needed after returning from the store.
+ * An OPTIONAL_UPDATE the user dismissed is not shown again for that release.
+ *
+ * Concurrent checks are prevented via the isCheckingRef guard.
  */
 function AppVersionBootstrap({
-  onUpdateRequired,
+  onUpdateAvailable,
 }: {
-  onUpdateRequired: (info: AppVersionResponse) => void;
+  onUpdateAvailable: (
+    update: {
+      status: Exclude<AppUpdateStatus, 'UP_TO_DATE'>;
+      versionInfo: AppVersionResponse;
+    } | null,
+  ) => void;
 }) {
   const isCheckingRef = useRef(false);
-  const updateRequiredRef = useRef(false);
 
   const runCheck = useCallback(async () => {
     if (isCheckingRef.current) return;
     isCheckingRef.current = true;
     try {
-      const { updateRequired, versionInfo } = await checkAppVersion();
-      if (updateRequired && versionInfo) {
-        updateRequiredRef.current = true;
-        onUpdateRequired(versionInfo);
+      const { status, versionInfo } = await checkAppVersion();
+
+      // No policy match, or the check failed — never block on an unknown answer.
+      if (!versionInfo || status === 'UP_TO_DATE') {
+        onUpdateAvailable(null);
+        return;
       }
+
+      if (status === 'FORCE_UPDATE') {
+        onUpdateAvailable({ status, versionInfo });
+        return;
+      }
+
+      const dismissed = await isOptionalUpdateDismissed(versionInfo.latestBuild);
+      onUpdateAvailable(dismissed ? null : { status, versionInfo });
     } finally {
       isCheckingRef.current = false;
     }
-  }, [onUpdateRequired]);
+  }, [onUpdateAvailable]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;

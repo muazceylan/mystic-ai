@@ -9,7 +9,8 @@
     "lint": "eslint",
     "generate:route-manifest": "npx ts-node --project scripts/tsconfig.json scripts/generate-route-manifest.ts",
     "sync:routes:dry-run": "npx ts-node --project scripts/tsconfig.json scripts/sync-routes.ts",
-    "sync:routes:apply": "npx ts-node --project scripts/tsconfig.json scripts/sync-routes.ts --apply"
+    "sync:routes:apply": "npx ts-node --project scripts/tsconfig.json scripts/sync-routes.ts --apply",
+    "qa:app-version": "node ./scripts/qa/app-version-policy.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

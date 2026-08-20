@@ -80,7 +80,9 @@ public class AuditLog {
         ENTITLEMENT_GRANTED, ENTITLEMENT_REVOKED,
         REVENUECAT_WEBHOOK_PROCESSED, REVENUECAT_WEBHOOK_DUPLICATE,
         REVENUECAT_WEBHOOK_FAILED,
-        PURCHASE_TOKEN_GRANTED, PURCHASE_REFUND_REVERSED
+        PURCHASE_TOKEN_GRANTED, PURCHASE_REFUND_REVERSED,
+        // Mobile app version / force-update policy
+        APP_VERSION_POLICY_UPDATED
     }
 
     public enum EntityType {
@@ -91,7 +93,9 @@ public class AuditLog {
         MONETIZATION_SETTINGS, MONETIZATION_MODULE_RULE, MONETIZATION_ACTION,
         GURU_PRODUCT, GURU_WALLET,
         // Subscription / RevenueCat (Phase 2)
-        SUBSCRIPTION_ENTITLEMENT, PURCHASE_EVENT
+        SUBSCRIPTION_ENTITLEMENT, PURCHASE_EVENT,
+        // Mobile app version / force-update policy
+        APP_VERSION_CONFIG
     }
 
     @Id

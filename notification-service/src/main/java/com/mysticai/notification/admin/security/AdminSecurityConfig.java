@@ -98,6 +98,11 @@ public class AdminSecurityConfig {
                         // Monetization management: SUPER_ADMIN + PRODUCT_ADMIN
                         .requestMatchers("/api/admin/v1/monetization/**")
                                 .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
+                        // Mobile app version policy: SUPER_ADMIN + PRODUCT_ADMIN.
+                        // Raising the minimum supported build locks users out immediately,
+                        // so this stays at the same level as module/route management.
+                        .requestMatchers("/api/admin/v1/app-version/**", "/api/admin/v1/app-version")
+                                .hasAnyRole("SUPER_ADMIN", "PRODUCT_ADMIN")
                         // Public CMS content endpoints — no auth required
                         .requestMatchers("/api/v1/content/**").permitAll()
                         // Public monetization config — anonymous access allowed

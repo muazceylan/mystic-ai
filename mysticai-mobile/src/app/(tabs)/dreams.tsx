@@ -183,6 +183,23 @@ const SPEECH_RECORDING_OPTIONS = {
   },
 };
 
+// Some environments (notably the iOS Simulator) can't spin up the AAC hardware codec
+// ("AudioCodecInitialize failed" in the native logs), which makes
+// Audio.Recording.createAsync() reject with "recorder not prepared" every single time.
+// Falling back to uncompressed LinearPCM sidesteps that codec path entirely — used only
+// as a last resort after AAC has already failed twice (see startRec below).
+const SPEECH_RECORDING_OPTIONS_IOS_SIMULATOR_FALLBACK = {
+  ...SPEECH_RECORDING_OPTIONS,
+  ios: {
+    ...SPEECH_RECORDING_OPTIONS.ios,
+    extension: '.wav',
+    outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+};
+
 const stripMarkdownFence = (raw: string) => {
   let normalized = raw.trim();
   if (normalized.startsWith('```')) {
@@ -615,11 +632,21 @@ export default function DreamsScreen() {
     const active = recordingRef.current;
     if (!active) return;
     recordingRef.current = null;
+    active.setOnRecordingStatusUpdate(null);
     try {
-      active.setOnRecordingStatusUpdate(null);
       await active.stopAndUnloadAsync();
-    } catch {
-      // Ignore — native recorder may already be unloaded.
+    } catch (e) {
+      // expo-av only clears its internal "recorder exists" lock once
+      // stopAndUnloadAsync() fully succeeds. A transient native failure here
+      // (e.g. an interrupted audio session) leaves that lock stuck, which makes
+      // every future Recording.createAsync() call fail immediately — so retry
+      // once to give the lock a real chance to clear.
+      console.error('[dreams] cleanupRecording: stopAndUnloadAsync failed, retrying', e);
+      try {
+        await active.stopAndUnloadAsync();
+      } catch (retryError) {
+        console.error('[dreams] cleanupRecording: retry also failed', retryError);
+      }
     }
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
@@ -743,8 +770,33 @@ export default function DreamsScreen() {
         playThroughEarpieceAndroid: false,
         staysActiveInBackground: false,
       });
-      const { recording } = await Audio.Recording.createAsync(
-        SPEECH_RECORDING_OPTIONS);
+      const isPrepareFailure = (err: any) =>
+        typeof err?.message === 'string' && err.message.includes('recorder not prepared');
+
+      let recording: Audio.Recording;
+      try {
+        ({ recording } = await Audio.Recording.createAsync(SPEECH_RECORDING_OPTIONS));
+      } catch (firstError: any) {
+        if (!isPrepareFailure(firstError)) throw firstError;
+        // AVAudioSession sometimes hasn't finished switching to the .playAndRecord
+        // route by the time prepareToRecord() runs right after setAudioModeAsync(),
+        // so it transiently returns NO ("recorder not prepared"). A short delay +
+        // one retry lets the route finish settling before we give up on AAC.
+        console.warn('[dreams] recorder not prepared, retrying once after route settles', firstError);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        try {
+          ({ recording } = await Audio.Recording.createAsync(SPEECH_RECORDING_OPTIONS));
+        } catch (secondError: any) {
+          if (!isPrepareFailure(secondError)) throw secondError;
+          // Still failing means the AAC hardware codec itself is unavailable in this
+          // environment (seen as "AudioCodecInitialize failed" in the native logs —
+          // notably on the iOS Simulator, but `Constants.isDevice` isn't reliable
+          // enough in dev-client builds to gate on upfront). LinearPCM doesn't go
+          // through that codec path, so fall back to it as a last resort.
+          console.warn('[dreams] AAC recorder still failing, falling back to LinearPCM', secondError);
+          ({ recording } = await Audio.Recording.createAsync(SPEECH_RECORDING_OPTIONS_IOS_SIMULATOR_FALLBACK));
+        }
+      }
       recording.setProgressUpdateInterval(RECORDING_METERING_INTERVAL_MS);
       recording.setOnRecordingStatusUpdate((status) => {
         if (typeof status.metering === 'number') {
@@ -755,7 +807,20 @@ export default function DreamsScreen() {
       recordingRef.current = recording;
       recordingUri.current = null;
       setRecState('recording');
-    } catch { Alert.alert(t('common.error'), t('dreams.voiceStartError')); }
+    } catch (e: any) {
+      console.error('[dreams] startRec failed', e);
+      // expo-av's internal recorder lock only ever clears via a successful
+      // stopAndUnloadAsync(); once it's stuck, every retry fails with this
+      // exact message and only a full app restart clears it — surface that
+      // instead of the generic error so the user isn't stuck retrying blindly.
+      const isRecorderLocked = typeof e?.message === 'string'
+        && e.message.includes('Only one Recording object');
+      if (isRecorderLocked) {
+        Alert.alert(t('dreams.voiceRecorderLockedTitle'), t('dreams.voiceRecorderLockedMessage'));
+      } else {
+        Alert.alert(t('common.error'), t('dreams.voiceStartError'));
+      }
+    }
   };
 
   const stopRec = async () => {

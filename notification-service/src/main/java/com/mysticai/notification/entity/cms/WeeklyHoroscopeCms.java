@@ -88,6 +88,9 @@ public class WeeklyHoroscopeCms {
     @Column(columnDefinition = "TEXT")
     private String social;
 
+    @Column(columnDefinition = "TEXT")
+    private String advice;
+
     @Column(length = 50)
     private String luckyDay;
 

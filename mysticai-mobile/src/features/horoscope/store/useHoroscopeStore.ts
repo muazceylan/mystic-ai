@@ -6,6 +6,13 @@ import { HoroscopeResponse, HoroscopePeriod, ZodiacSign } from '../types/horosco
 import { fetchHoroscope, clearHoroscopeCache } from '../services/horoscope.service';
 import i18n from '../../../i18n';
 
+/**
+ * Only the most recent fetch may write to the store. Two fetches can overlap
+ * (mount + period sync, hub pull-to-refresh + detail open), and without this
+ * guard a slow loser overwrites the winner's data with its own error.
+ */
+let latestRequestId = 0;
+
 function todayStr(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -49,6 +56,8 @@ export const useHoroscopeStore = create<HoroscopeState>()(
       setSelectedSign: (sign) => set({ selectedSign: sign }),
 
       fetch: async (sign, period) => {
+        const requestId = ++latestRequestId;
+
         // Clear stale data if day has changed
         const { current } = get();
         if (current?.date && current.date !== todayStr()) {
@@ -60,8 +69,10 @@ export const useHoroscopeStore = create<HoroscopeState>()(
         try {
           const lang = (i18n.resolvedLanguage ?? i18n.language ?? 'tr').toLowerCase().startsWith('en') ? 'en' : 'tr';
           const data = await fetchHoroscope(sign, period, lang);
+          if (requestId !== latestRequestId) return;
           set({ current: data, loading: false, selectedSign: sign });
         } catch (e: any) {
+          if (requestId !== latestRequestId) return;
           set({ loading: false, error: e?.message ?? 'Error' });
         }
       },
@@ -75,7 +86,10 @@ export const useHoroscopeStore = create<HoroscopeState>()(
         }
       },
 
-      clear: () => set({ current: null, error: null, loading: false }),
+      clear: () => {
+        latestRequestId += 1;
+        set({ current: null, error: null, loading: false });
+      },
     }),
     {
       name: getInitialUserScopedStoreName(HOROSCOPE_STORE_NAME),

@@ -125,6 +125,30 @@ public class MonetizationBootstrapService implements ApplicationRunner {
         seedRule("share_cards", 12, 1, 3, 15);
         seedRule("natal_chart", 12, 1, 3, 15);
         seedRule("horoscope", 12, 1, 3, 15);
+        applyHoroscopePremiumTier();
+    }
+
+    /**
+     * The daily general reading is free; the category breakdown, the advice and the
+     * whole weekly reading sit behind {@code horoscope_view}. Premium subscribers get
+     * all of it without spending tokens or watching ads.
+     */
+    private void applyHoroscopePremiumTier() {
+        ruleRepository.findByModuleKeyAndConfigVersion("horoscope", PILOT_CONFIG_VERSION)
+                .ifPresent(rule -> {
+                    if (rule.getPremiumBehavior() == ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE
+                            && rule.isPremiumAdFree()
+                            && rule.isTrialUnlockEnabled()) {
+                        return;
+                    }
+                    rule.setPremiumBehavior(ModuleMonetizationRule.PremiumBehavior.UNLOCK_FREE);
+                    rule.setPremiumAdFree(true);
+                    rule.setTrialUnlockEnabled(true);
+                    rule.setAllowFreePreview(true);
+                    rule.setPreviewDepthMode(ModuleMonetizationRule.PreviewDepthMode.SUMMARY_ONLY);
+                    ruleRepository.save(rule);
+                    log.info("[MonetizationBootstrap] Horoscope rule set to premium tier (UNLOCK_FREE)");
+                });
     }
 
     private void seedRule(String moduleKey, int cooldownHours, int startEntry, int dailyCap, int weeklyCap) {
@@ -404,8 +428,8 @@ public class MonetizationBootstrapService implements ApplicationRunner {
         seedFeatureAction("birth_night_poster_view", "natal_chart", "Doğduğun gece posterini gör",
                 "Poster atölyesini açmak için 1 Guru Token kullanın.",
                 "1 Guru Token ile aç", "Video izle, Guru kazan", "BIRTH_NIGHT_POSTER_VIEW");
-        seedFeatureAction("horoscope_view", "horoscope", "Burç yorumunu gör",
-                "Burç yorumunu görüntülemek için 1 Guru Token kullanın.",
+        seedFeatureAction("horoscope_view", "horoscope", "Detaylı burç yorumunu aç",
+                "Aşk, kariyer, para ve sağlık yorumun ile günün tavsiyesi için 1 Guru Token kullanın.",
                 "1 Guru Token ile aç", "Video izle, Guru kazan", "HOROSCOPE_VIEW");
     }
 

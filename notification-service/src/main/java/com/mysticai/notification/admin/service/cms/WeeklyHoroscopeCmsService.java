@@ -91,6 +91,7 @@ public class WeeklyHoroscopeCmsService {
         if (updates.getCareer() != null) existing.setCareer(updates.getCareer());
         if (updates.getMoney() != null) existing.setMoney(updates.getMoney());
         if (updates.getHealth() != null) existing.setHealth(updates.getHealth());
+        if (updates.getAdvice() != null) existing.setAdvice(updates.getAdvice());
         if (updates.getSocial() != null) existing.setSocial(updates.getSocial());
         if (updates.getLuckyDay() != null) existing.setLuckyDay(updates.getLuckyDay());
         if (updates.getCautionDay() != null) existing.setCautionDay(updates.getCautionDay());
@@ -157,7 +158,7 @@ public class WeeklyHoroscopeCmsService {
                 .locale(src.getLocale()).status(src.getStatus()).sourceType(src.getSourceType())
                 .title(src.getTitle()).shortSummary(src.getShortSummary()).fullContent(src.getFullContent())
                 .love(src.getLove()).career(src.getCareer()).money(src.getMoney())
-                .health(src.getHealth()).social(src.getSocial())
+                .health(src.getHealth()).social(src.getSocial()).advice(src.getAdvice())
                 .luckyDay(src.getLuckyDay()).cautionDay(src.getCautionDay())
                 .isOverrideActive(src.isOverrideActive())
                 .build();

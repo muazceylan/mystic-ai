@@ -1156,3 +1156,35 @@ export interface SimulationResult {
   decisions: string[];
   warnings: string[];
 }
+
+// ── Mobile App Version Policy ─────────────────────────────
+
+export type AppVersionPlatform = 'ios' | 'android';
+
+export type AppUpdateStatus = 'UP_TO_DATE' | 'OPTIONAL_UPDATE' | 'FORCE_UPDATE';
+
+export interface AppVersionPolicy {
+  id: number | null;
+  platform: AppVersionPlatform;
+  latestVersion: string;
+  latestBuild: number;
+  minimumSupportedVersion: string;
+  minimumSupportedBuild: number;
+  forceUpdateEnabled: boolean;
+  optionalUpdateEnabled: boolean;
+  /** Canonical https store listing (App Store / Google Play). */
+  storeUrl: string | null;
+  /** Android only — optional market:// deep link tried before storeUrl. */
+  androidStoreUrl: string | null;
+  titleTr: string | null;
+  messageTr: string | null;
+  titleEn: string | null;
+  messageEn: string | null;
+  updatedAt: string | null;
+  updatedBy: number | null;
+}
+
+export type AppVersionPolicyPayload = Omit<
+  AppVersionPolicy,
+  'id' | 'platform' | 'updatedAt' | 'updatedBy'
+>;

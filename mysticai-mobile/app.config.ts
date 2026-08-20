@@ -19,6 +19,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     ...config.ios,
     infoPlist: {
       ...config.ios?.infoPlist,
+      ITSAppUsesNonExemptEncryption: false,
       NSUserTrackingUsageDescription: TRACKING_PERMISSION_DESCRIPTION,
     },
   },

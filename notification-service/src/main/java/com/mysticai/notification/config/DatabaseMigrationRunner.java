@@ -23,6 +23,7 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
         createProductAnalyticsTablesIfNeeded();
         extendMonetizationTablesIfNeeded();
         createDreamExpansionReservationTableIfNeeded();
+        extendAppVersionConfigIfNeeded();
         dropCheckConstraintIfExists("audit_logs", "action_type");
         dropCheckConstraintIfExists("audit_logs", "entity_type");
         // Notification enums evolve frequently (e.g. new NotificationType values).
@@ -54,6 +55,28 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
         dropCheckConstraintIfExists("reward_session", "status");
         dropCheckConstraintIfExists("provider_callback_event", "provider");
         dropCheckConstraintIfExists("provider_callback_event", "status");
+    }
+
+    /**
+     * Adds the build-number / localized-copy columns to an existing app_version_config table.
+     * schema.sql only covers fresh databases; deployments created before the update policy gained
+     * build numbers still need these columns before Hibernate validates the entity.
+     */
+    private void extendAppVersionConfigIfNeeded() {
+        try {
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS min_supported_build INTEGER NOT NULL DEFAULT 0");
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS latest_build INTEGER NOT NULL DEFAULT 0");
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS optional_update_enabled BOOLEAN NOT NULL DEFAULT TRUE");
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS title_tr VARCHAR(200)");
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS message_tr TEXT");
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS title_en VARCHAR(200)");
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS message_en TEXT");
+            jdbc.execute("ALTER TABLE app_version_config ADD COLUMN IF NOT EXISTS updated_by BIGINT");
+            // Carry the pre-localization single message over so existing rows still show copy.
+            jdbc.execute("UPDATE app_version_config SET message_tr = message WHERE message_tr IS NULL AND message IS NOT NULL");
+        } catch (Exception e) {
+            log.warn("Could not extend app_version_config: {}", e.getMessage());
+        }
     }
 
     private void createDreamExpansionReservationTableIfNeeded() {

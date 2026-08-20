@@ -77,6 +77,9 @@ public class DailyHoroscopeCms {
     @Column(columnDefinition = "TEXT")
     private String health;
 
+    @Column(columnDefinition = "TEXT")
+    private String advice;
+
     @Column(length = 50)
     private String luckyColor;
 

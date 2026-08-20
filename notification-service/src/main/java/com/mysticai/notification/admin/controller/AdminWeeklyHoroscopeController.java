@@ -146,8 +146,9 @@ public class AdminWeeklyHoroscopeController {
             WeeklyHoroscopeCms.ZodiacSign sign = WeeklyHoroscopeCms.ZodiacSign.valueOf(signStr.toUpperCase());
             LocalDate weekStart = LocalDate.parse(weekStartStr);
             AdminUser admin = adminUser(auth);
+            boolean force = Boolean.parseBoolean(body.getOrDefault("force", "false"));
             WeeklyHoroscopeCms result = ingestService.ingestWeeklyAsAdmin(
-                    sign, weekStart, locale, admin.getId(), admin.getEmail(), admin.getRole());
+                    sign, weekStart, locale, admin.getId(), admin.getEmail(), admin.getRole(), force);
             return result != null
                     ? ResponseEntity.ok(result)
                     : ResponseEntity.status(502).body(Map.of("error", "Astrology service unavailable"));

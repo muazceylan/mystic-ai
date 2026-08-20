@@ -636,6 +636,8 @@ export function NatalChartScreenContent() {
   const accordionFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionJumpTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const mainScrollRef = useRef<any>(null);
+  const heroShellRef = useRef<any>(null);
+  const heroShellAbsoluteYRef = useRef<number | null>(null);
   const manualAccordionControlRef = useRef(false);
   const autoAccordionFocusEnabledRef = useRef(false);
   const sectionOrderHydratedRef = useRef(false);
@@ -1710,10 +1712,34 @@ export function NatalChartScreenContent() {
     }, delayMs);
   }, [autoFocusNearestAccordion]);
 
+  const measureHeroShellPosition = useCallback(() => {
+    const node = heroShellRef.current;
+    const scrollNode = mainScrollRef.current;
+    const nativeScrollRef = scrollNode?.getNativeScrollRef?.() ?? scrollNode;
+    if (Platform.OS === 'web' || !node?.measureLayout || !nativeScrollRef) return;
+    try {
+      node.measureLayout(
+        nativeScrollRef,
+        (_x: number, yInScrollViewport: number) => {
+          heroShellAbsoluteYRef.current = Math.max(0, lastKnownScrollYRef.current + yInScrollViewport);
+        },
+        () => {
+          // ignore measurement failures; falls back to a static threshold below
+        },
+      );
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const handleNatalScroll = useCallback((event: any) => {
     const y = event?.nativeEvent?.contentOffset?.y ?? 0;
     lastKnownScrollYRef.current = y;
-    if (y > 24) {
+    // Collapse the expanded hero info only once it is about to become the
+    // pinned sticky header, so it doesn't stay expanded (and cover the
+    // sections below) while pinned, but also doesn't snap shut on a trivial scroll.
+    const pinThreshold = heroShellAbsoluteYRef.current ?? 140;
+    if (y > pinThreshold) {
       setHeroInfoExpanded((prev) => (prev ? false : prev));
     }
   }, []);
@@ -2805,8 +2831,13 @@ export function NatalChartScreenContent() {
         {!!chart && (
           <SpotlightTarget targetKey={BIRTH_CHART_TUTORIAL_TARGET_KEYS.HERO_SUMMARY}>
             <View
+              ref={heroShellRef}
+              collapsable={false}
               style={styles.stickyHeroHeaderShell}
-              onLayout={(event) => setStickyHeroHeight(event.nativeEvent.layout.height)}
+              onLayout={(event) => {
+                setStickyHeroHeight(event.nativeEvent.layout.height);
+                measureHeroShellPosition();
+              }}
             >
               <View style={styles.fixedHeroContainer}>
                 <NatalChartHeroCard

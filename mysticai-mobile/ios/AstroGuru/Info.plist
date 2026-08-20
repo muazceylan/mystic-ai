@@ -52,6 +52,8 @@
     <string>ca-app-pub-2868466577339325~1732579839</string>
     <key>GADDelayAppMeasurementInit</key>
     <true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>

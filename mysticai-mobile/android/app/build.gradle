@@ -98,7 +98,7 @@ android {
         applicationId 'com.astroguru.mmc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 51
+        versionCode 53
         versionName "1.0.0"
         // The app only ships Turkish and English UI copy. Restricting packaged
         // locale resources avoids flaky AAPT failures in bundled third-party
@@ -205,7 +205,7 @@ tasks.register('bundleReleaseVersioned') {
         def vName = android.defaultConfig.versionName
         def vCode = android.defaultConfig.versionCode
         def outDir = file("${buildDir}/outputs/bundle/release")
-        def src = new File(outDir, "app-release.kaab")
+        def src = new File(outDir, "app-release.aab")
         def dst = new File(outDir, "astroguru-${vName}-${vCode}.aab")
         if (src.exists()) {
             java.nio.file.Files.copy(
