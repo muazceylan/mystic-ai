@@ -150,6 +150,10 @@ const PUBLIC_INFO_PATHS = new Set([
 
 const DEV_PREVIEW_PATHS = new Set([
   '/dev/compare-card-preview',
+  // Ad tooling must be reachable without a session: the AdMob SDK bootstrap in
+  // this layout does not depend on `isAuthenticated`, and the monetization
+  // config endpoint is public, so the screen is useful on a fresh install.
+  '/dev/admob',
 ]);
 
 /**
@@ -668,6 +672,7 @@ function MonetizationBootstrap({
         trackingConsentStatus: privacyResult.trackingConsentStatus,
         personalizedAdvertisingAllowed: privacyResult.personalizedAdvertisingAllowed,
         tagForChildDirectedTreatment: false,
+        testDeviceIds: envConfig.admob.testDeviceIds,
       }, userId);
     });
 

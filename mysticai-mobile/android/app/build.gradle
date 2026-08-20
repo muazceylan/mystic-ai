@@ -193,6 +193,21 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // --- AdMob mediation: Unity Ads ---------------------------------------
+    // Declared here (not via an Expo config plugin) because this project uses
+    // the bare workflow: android/ is committed and `expo prebuild` never runs,
+    // so config-plugin output would be silently discarded.
+    //
+    // Adapter 4.17.0.0 pins play-services-ads 25.0.0, which is exactly the
+    // version react-native-google-mobile-ads@16.3.0 resolves. Do not bump the
+    // adapter without checking that pin: 4.18.x wants 25.2.0+ and would drag
+    // the ads SDK out from under the RN wrapper.
+    //
+    // The adapter ships without the Unity Ads SDK, so it is declared explicitly.
+    // unity-ads is on Maven Central, not Google's Maven.
+    implementation("com.google.ads.mediation:unity:4.17.0.0")
+    implementation("com.unity3d.ads:unity-ads:4.17.0")
 }
 
 apply plugin: 'com.google.gms.google-services'

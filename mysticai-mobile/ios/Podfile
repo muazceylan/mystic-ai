@@ -23,6 +23,15 @@ prepare_react_native_project!
 target 'AstroGuru' do
   use_expo_modules!
 
+  # --- AdMob mediation: Unity Ads ---------------------------------------
+  # Declared here rather than in an Expo config plugin: ios/ is committed and
+  # `expo prebuild` never runs, so plugin output would be silently discarded.
+  #
+  # 4.17.0.0 depends on Google-Mobile-Ads-SDK ~> 13.0 (project resolves 13.1.0)
+  # and pulls UnityAds 4.17.0, matching the Android adapter. 4.19.x requires
+  # ~> 13.3 and would force a Google Mobile Ads SDK upgrade.
+  pod 'GoogleMobileAdsMediationUnity', '4.17.0.0'
+
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
   else

@@ -1,12 +1,13 @@
 import { Platform } from 'react-native';
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
-import type { RequestConfiguration } from './googleMobileAdsRuntime.shared';
+import type { AdapterStatus, RequestConfiguration } from './googleMobileAdsRuntime.shared';
 import { getGoogleMobileAdsModule } from './googleMobileAdsRuntime';
 import type { AdsInitializationOptions } from './mobileAds.types';
 
 let initPromise: Promise<boolean> | null = null;
 let initSuccess = false;
 let initializationOptions: AdsInitializationOptions | null = null;
+let adapterStatuses: AdapterStatus[] = [];
 
 /**
  * Whether the AdMob SDK has been successfully initialized.
@@ -37,12 +38,20 @@ export async function initializeAdMob(
   initializationOptions = options;
   if (initPromise) return initPromise;
 
-  initPromise = doInit(testDeviceIds);
+  initPromise = doInit(testDeviceIds ?? options.testDeviceIds);
   return initPromise;
 }
 
 export function getAdMobInitializationOptions(): AdsInitializationOptions | null {
   return initializationOptions;
+}
+
+/**
+ * Mediation adapter statuses reported by the last successful SDK initialize().
+ * Empty until the SDK has initialized. Read by the dev-only AdMob console.
+ */
+export function getAdMobAdapterStatuses(): AdapterStatus[] {
+  return adapterStatuses;
 }
 
 async function doInit(testDeviceIds?: string[]): Promise<boolean> {
@@ -77,7 +86,7 @@ async function doInit(testDeviceIds?: string[]): Promise<boolean> {
     }
 
     await googleMobileAds.default().setRequestConfiguration(requestConfig);
-    const adapterStatuses = await googleMobileAds.default().initialize();
+    adapterStatuses = (await googleMobileAds.default().initialize()) ?? [];
 
     initSuccess = true;
 

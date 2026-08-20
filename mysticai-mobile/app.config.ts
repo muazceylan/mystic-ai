@@ -1,5 +1,4 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
-import withLevelPlay from './plugins/withLevelPlay.js';
 
 // AdMob App IDs — required at native build time.
 // Falls back to Google-provided test App IDs when not set.
@@ -10,8 +9,15 @@ const ADMOB_IOS_APP_ID =
 const TRACKING_PERMISSION_DESCRIPTION =
   'Cihaz tanımlayıcınız kişiselleştirilmiş reklamlar sunmak ve reklam performansını ölçmek için kullanılabilir.';
 
+// NOTE: this project uses the BARE workflow — android/ and ios/ are committed
+// and `expo prebuild` is not part of any build path, so the config plugins below
+// do NOT reach the native projects. Native AdMob settings (App IDs, mediation
+// adapters, SKAdNetwork) live in android/app/build.gradle, ios/Podfile,
+// AndroidManifest.xml and Info.plist, and are enforced at build time by
+// scripts/verify-native-ad-config.mjs. Keep this file in sync so that a future
+// `expo prebuild` reproduces the same native config instead of regressing it.
 export default ({ config }: ConfigContext): ExpoConfig =>
-  withLevelPlay({
+  ({
   ...config,
   name: config.name ?? 'Astro Guru',
   slug: config.slug ?? 'mystic',

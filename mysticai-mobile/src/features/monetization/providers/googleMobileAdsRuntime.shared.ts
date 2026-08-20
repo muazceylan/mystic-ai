@@ -1,3 +1,15 @@
+/**
+ * Mirrors `AdapterStatus` from react-native-google-mobile-ads. Re-declared here
+ * because this module must stay importable without pulling in the native
+ * package (see googleMobileAdsRuntime.native.ts).
+ */
+export type AdapterStatus = {
+  name: string;
+  description: string;
+  /** 0 = NotReady (unlikely to fill), 1 = Ready. */
+  state: number;
+};
+
 export interface RequestConfiguration {
   maxAdContentRating?: string;
   tagForChildDirectedTreatment?: boolean;
@@ -48,6 +60,12 @@ export interface GoogleMobileAdsModule {
   };
   default(): {
     setRequestConfiguration(config: RequestConfiguration): Promise<void>;
-    initialize(): Promise<unknown>;
+    initialize(): Promise<AdapterStatus[]>;
+    /**
+     * Opens AdMob's in-app Ad Inspector overlay. Only works on devices
+     * registered via `RequestConfiguration.testDeviceIdentifiers`.
+     * Resolves when the inspector is closed; rejects if it fails to open.
+     */
+    openAdInspector(): Promise<void>;
   };
 }

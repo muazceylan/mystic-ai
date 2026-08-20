@@ -227,6 +227,12 @@ const admobUseTestIdsAndroid = process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS_ANDROI
 const admobUseTestIdsIos = process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS_IOS !== undefined
   ? asBool(process.env.EXPO_PUBLIC_ADMOB_USE_TEST_IDS_IOS)
   : admobUseTestIdsGlobal;
+// Devices allowed to receive test ads and open the Ad Inspector. Google logs
+// the required ID on the first ad request ("Use RequestConfiguration...").
+const admobTestDeviceIds = (process.env.EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS ?? '')
+  .split(',')
+  .map((id: string) => id.trim())
+  .filter(Boolean);
 const admobAndroidRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_UNIT_ID ?? '').trim();
 const admobIosRewardedUnitId = (process.env.EXPO_PUBLIC_ADMOB_IOS_REWARDED_UNIT_ID ?? '').trim();
 const webGtmContainerId = (process.env.EXPO_PUBLIC_GTM_WEB_CONTAINER_ID ?? 'GTM-P48FMPJB').trim();
@@ -283,6 +289,7 @@ export const envConfig = {
     useTestIdsIos: admobUseTestIdsIos,
     androidRewardedUnitId: admobAndroidRewardedUnitId,
     iosRewardedUnitId: admobIosRewardedUnitId,
+    testDeviceIds: admobTestDeviceIds,
   },
   gtm: {
     webContainerId: webGtmContainerId,

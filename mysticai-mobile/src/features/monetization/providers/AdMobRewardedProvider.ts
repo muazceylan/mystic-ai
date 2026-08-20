@@ -32,7 +32,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
   private showing = false;
 
   async initialize(options: AdsInitializationOptions): Promise<void> {
-    await initializeAdMob(options);
+    await initializeAdMob(options, options.testDeviceIds);
   }
 
   async loadRewardedAd(adUnitId: string): Promise<boolean> {
