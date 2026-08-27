@@ -4,6 +4,7 @@ import { envConfig } from '../../../config/env';
 import { maskUnitId, resolveRewardedUnitId } from './admobUnitIds';
 import { getAdMobAdapterStatuses, isAdMobAvailable, isAdMobInitialized } from './admobInit';
 import { getGoogleMobileAdsModule } from './googleMobileAdsRuntime';
+import { getAdProvider } from './AdProviderAdapter';
 import { getConfiguredMobileAdProvider } from './providerConfig';
 import type { AdapterStatus } from './googleMobileAdsRuntime.shared';
 
@@ -68,9 +69,12 @@ export type AdInspectorResult =
  * for each ad request — the authoritative answer to "is Unity Ads actually in
  * this ad unit's waterfall?".
  *
- * Requires the device to be registered through
+ * Only opens on a test device. Emulators and simulators are registered as test
+ * devices automatically by the Google Mobile Ads SDK, so no configuration is
+ * needed there. A physical device must be listed in
  * `RequestConfiguration.testDeviceIdentifiers`, which this app populates from
- * EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS. Without that, Google refuses to open it.
+ * EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS; Google logs the required ID on the first
+ * ad request.
  */
 export async function openAdMobInspector(): Promise<AdInspectorResult> {
   if (!__DEV__) return { ok: false, reason: 'Disabled outside development builds.' };
@@ -97,13 +101,50 @@ export async function openAdMobInspector(): Promise<AdInspectorResult> {
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown error';
-    // The usual cause is an unregistered device.
     return {
       ok: false,
       reason:
         envConfig.admob.testDeviceIds.length === 0
-          ? `${message} — no test device IDs configured. Set EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS.`
+          ? `${message} — on a physical device this usually means it is not a registered ` +
+            'test device; add its ID to EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS. Emulators register automatically.'
           : message,
     };
+  }
+}
+
+export type LoadProbeResult =
+  | { ok: true; message: string }
+  | { ok: false; reason: string };
+
+/**
+ * Requests (but never shows) one rewarded ad.
+ *
+ * Its purpose is to make Google emit the device-registration log line:
+ *   "Use RequestConfiguration.Builder.setTestDeviceIds(Arrays.asList("<ID>"))"
+ * which is the only way to obtain the ID needed by the Ad Inspector.
+ *
+ * No reward can be granted here: nothing is shown, so EARNED_REWARD never fires.
+ */
+export async function loadRewardedAdProbe(): Promise<LoadProbeResult> {
+  if (!__DEV__) return { ok: false, reason: 'Disabled outside development builds.' };
+
+  if (!isAdMobInitialized()) {
+    return { ok: false, reason: 'AdMob SDK not initialized yet.' };
+  }
+
+  const resolved = resolveRewardedUnitId();
+  if (!resolved) return { ok: false, reason: 'No rewarded unit resolved.' };
+
+  try {
+    const loaded = await getAdProvider().loadRewardedAd(resolved.unitId);
+    return {
+      ok: true,
+      message: loaded
+        ? 'Ad loaded. Check logcat for the test device ID.'
+        : 'Load failed — but the request still logs the device ID. Check logcat.',
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error';
+    return { ok: false, reason: message };
   }
 }

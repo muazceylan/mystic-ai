@@ -7,6 +7,7 @@ import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants/tokens';
 import { useTheme } from '../../context/ThemeContext';
 import {
   getAdMobDevToolsStatus,
+  loadRewardedAdProbe,
   openAdMobInspector,
   type AdMobDevToolsStatus,
 } from '../../features/monetization/providers/admobDevTools';
@@ -53,6 +54,17 @@ export default function AdMobDevScreen() {
     }
   }, [refresh]);
 
+  const probeAd = useCallback(async () => {
+    setBusy(true);
+    try {
+      const result = await loadRewardedAdProbe();
+      setLastAction(result.ok ? result.message : `Probe failed: ${result.reason}`);
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  }, [refresh]);
+
   if (!__DEV__) {
     return <Redirect href="/(tabs)/home" />;
   }
@@ -79,7 +91,7 @@ export default function AdMobDevScreen() {
             value={
               status.testDeviceIdCount > 0
                 ? `${status.testDeviceIdCount} configured`
-                : 'none — inspector will refuse to open'
+                : 'none — emulators auto-register; physical devices need one'
             }
           />
         </View>
@@ -107,6 +119,14 @@ export default function AdMobDevScreen() {
           title="Open Ad Inspector"
           onPress={openInspector}
           disabled={busy}
+          fullWidth
+          style={styles.action}
+        />
+        <Button
+          title="Request ad (logs test device ID)"
+          onPress={probeAd}
+          disabled={busy}
+          variant="outline"
           fullWidth
           style={styles.action}
         />

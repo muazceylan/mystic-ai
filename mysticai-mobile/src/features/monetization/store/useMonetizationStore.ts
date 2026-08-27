@@ -140,6 +140,16 @@ function isAdsEnabledForCurrentPlatform(config: MonetizationConfig, rule: Module
   return true;
 }
 
+// Single-flight guard for loadConfig.
+//
+// `_layout.tsx` kicks off loadConfig from several effects during startup. The
+// old `if (get().loading) return;` made concurrent callers resolve IMMEDIATELY
+// with config still null, so the ad bootstrap read `config?.adsEnabled ?? false`
+// and permanently deferred SDK init for that session — rewarded ads then failed
+// silently until the next cold start. Callers must await the in-flight request
+// instead of bailing out of it.
+let configInFlight: Promise<void> | null = null;
+
 export const useMonetizationStore = create<MonetizationState>((set, get) => ({
   config: null,
   paywall: null,
@@ -151,26 +161,32 @@ export const useMonetizationStore = create<MonetizationState>((set, get) => ({
   exposureState: {},
 
   loadConfig: async () => {
-    const now = Date.now();
-    if (get().loading) return;
-    if (now - get().lastFetchedAt < CACHE_WINDOW && get().config !== null) return;
+    if (Date.now() - get().lastFetchedAt < CACHE_WINDOW && get().config !== null) return;
+    if (configInFlight) return configInFlight;
 
     set({ loading: true });
-    try {
-      const config = await fetchMonetizationConfig();
-      // Restore persisted exposure state if current state is empty
-      const currentExposure = get().exposureState;
-      if (Object.keys(currentExposure).length === 0) {
-        const restored = await restoreExposure();
-        if (restored) {
-          set({ config, lastFetchedAt: now, loading: false, exposureState: restored });
-          return;
+    configInFlight = (async () => {
+      const now = Date.now();
+      try {
+        const config = await fetchMonetizationConfig();
+        // Restore persisted exposure state if current state is empty
+        const currentExposure = get().exposureState;
+        if (Object.keys(currentExposure).length === 0) {
+          const restored = await restoreExposure();
+          if (restored) {
+            set({ config, lastFetchedAt: now, loading: false, exposureState: restored });
+            return;
+          }
         }
+        set({ config, lastFetchedAt: now, loading: false });
+      } catch {
+        set({ loading: false });
       }
-      set({ config, lastFetchedAt: now, loading: false });
-    } catch {
-      set({ loading: false });
-    }
+    })().finally(() => {
+      configInFlight = null;
+    });
+
+    return configInFlight;
   },
 
   refresh: async () => {

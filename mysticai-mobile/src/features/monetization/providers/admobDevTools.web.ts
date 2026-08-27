@@ -39,3 +39,10 @@ export async function openAdMobInspector(): Promise<AdInspectorResult> {
   // no-op: Ad Inspector ships with the native SDK, which web never loads
   return { ok: false, reason: 'Ad Inspector is unavailable on web.' };
 }
+
+export type LoadProbeResult = { ok: true; message: string } | { ok: false; reason: string };
+
+export async function loadRewardedAdProbe(): Promise<LoadProbeResult> {
+  // no-op: rewarded ads require the native SDK, which web never loads
+  return { ok: false, reason: 'Rewarded ads are unavailable on web.' };
+}

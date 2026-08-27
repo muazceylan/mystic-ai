@@ -23,3 +23,7 @@ export type AdInspectorResult = { ok: true } | { ok: false; reason: string };
 export declare function getAdMobDevToolsStatus(): AdMobDevToolsStatus;
 
 export declare function openAdMobInspector(): Promise<AdInspectorResult>;
+
+export type LoadProbeResult = { ok: true; message: string } | { ok: false; reason: string };
+
+export declare function loadRewardedAdProbe(): Promise<LoadProbeResult>;

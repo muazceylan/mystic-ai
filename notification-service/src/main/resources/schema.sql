@@ -120,20 +120,9 @@ CREATE TABLE IF NOT EXISTS guru_token_reservations (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gtr_idempotency ON guru_token_reservations (idempotency_key);
 CREATE INDEX IF NOT EXISTS idx_gtr_user_status_expires ON guru_token_reservations (user_id, status, expires_at);
 CREATE INDEX IF NOT EXISTS idx_gtr_dream_type ON guru_token_reservations (user_id, dream_id, expansion_type);
-UPDATE monetization_actions
-SET is_reward_fallback_enabled = TRUE,
-    reward_amount = CASE WHEN reward_amount <= 0 THEN 1 ELSE reward_amount END
-WHERE module_key IN ('share_cards', 'natal_chart', 'compatibility', 'horoscope')
-  AND action_key IN (
-      'shareable_card_create',
-      'natal_chart_detail_view',
-      'compatibility_view',
-      'person_add',
-      'birth_night_poster_view',
-      'horoscope_view'
-  )
-  AND is_reward_fallback_enabled = FALSE
-  AND COALESCE(updated_by_admin_id, 0) = 0;
+-- The reward-fallback backfill for monetization_actions lives in DatabaseMigrationRunner, not here.
+-- This script runs before Hibernate, so on a fresh database the table does not exist yet and a bare
+-- UPDATE would abort the whole initializer (an ALTER can use IF EXISTS; an UPDATE cannot).
 
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS is_signup_bonus_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS monetization_settings ADD COLUMN IF NOT EXISTS signup_bonus_token_amount INTEGER NOT NULL DEFAULT 10;
@@ -311,6 +300,20 @@ CREATE TABLE IF NOT EXISTS app_version_config (
     updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_app_version_platform UNIQUE (platform)
 );
+
+-- Databases created before the update policy gained build numbers and localized copy still have
+-- the original table, and CREATE TABLE IF NOT EXISTS above is a no-op for them. These columns must
+-- exist before the seed INSERT below runs and before Hibernate validates AppVersionConfig.
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS min_supported_build INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS latest_build INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS optional_update_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS title_tr VARCHAR(200);
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS message_tr TEXT;
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS title_en VARCHAR(200);
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS message_en TEXT;
+ALTER TABLE IF EXISTS app_version_config ADD COLUMN IF NOT EXISTS updated_by BIGINT;
+-- Carry the pre-localization single message over so existing rows still show copy.
+UPDATE app_version_config SET message_tr = message WHERE message_tr IS NULL AND message IS NOT NULL;
 
 -- Seed rows only. The live policy is managed from the admin panel
 -- (Mystic Admin → Mobile App Version); never edit these values for a release.

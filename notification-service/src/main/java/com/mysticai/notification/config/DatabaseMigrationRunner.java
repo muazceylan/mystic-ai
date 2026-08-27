@@ -59,8 +59,9 @@ public class DatabaseMigrationRunner implements ApplicationRunner {
 
     /**
      * Adds the build-number / localized-copy columns to an existing app_version_config table.
-     * schema.sql only covers fresh databases; deployments created before the update policy gained
-     * build numbers still need these columns before Hibernate validates the entity.
+     * schema.sql already applies the same idempotent ALTERs before its seed INSERT (it has to —
+     * that script runs first and would fail on the missing columns). Kept here as a no-op safety
+     * net for databases where the script initializer is disabled.
      */
     private void extendAppVersionConfigIfNeeded() {
         try {
