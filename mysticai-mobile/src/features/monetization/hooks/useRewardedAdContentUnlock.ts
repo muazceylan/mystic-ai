@@ -7,6 +7,7 @@ import {
 import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { getAdProvider, type AdResult } from '../providers/AdProviderAdapter';
 import { isAdMobAvailable, isAdMobInitialized } from '../providers/admobInit';
+import { ensureAdProviderReady } from '../providers/initProvider';
 import { resolveConfiguredRewardedAd } from '../providers/providerConfig';
 import type { RewardedAdCheckResponse, RewardedAdCompleteResponse } from '../types';
 
@@ -214,8 +215,29 @@ export function useRewardedAdContentUnlock(
 
     if (Platform.OS !== 'web') {
       try {
-        // Avoid resolving the native ads module before the root privacy gate.
-        if (resolved.provider === 'admob' && !isAdMobInitialized()) {
+        // Availability first: a missing native module is a build problem and
+        // must not be reported as an incomplete privacy bootstrap.
+        if (resolved.provider === 'admob' && !isAdMobAvailable()) {
+          setStatus('failed');
+          setMessage(USER_MESSAGES.adNotReady);
+          debugRewardedUnlock('sdk:unavailable', { moduleKey, actionKey, contentKey, placement });
+          trackMonetizationEvent('rewarded_unlock_failed', {
+            ...analyticsContext,
+            moduleKey,
+            actionKey,
+            contentKey,
+            reason: 'native_module_unavailable',
+            completedViews: check.completedViews,
+            requiredViews: check.requiredViews,
+            rewardedAdViewsRequired: check.requiredViews,
+          });
+          return { response: null, status: 'failed', message: USER_MESSAGES.adNotReady };
+        }
+        // The startup bootstrap skips SDK init while monetization config is
+        // still missing or says ads are off. Config can turn ads on later, so
+        // bring the SDK up on demand instead of leaving the offer dead for the
+        // rest of the session.
+        if (resolved.provider === 'admob' && !isAdMobInitialized() && !(await ensureAdProviderReady())) {
           setStatus('failed');
           setMessage(USER_MESSAGES.adNotReady);
           debugRewardedUnlock('sdk:privacy_bootstrap_incomplete', {
@@ -230,22 +252,6 @@ export function useRewardedAdContentUnlock(
             actionKey,
             contentKey,
             reason: 'privacy_bootstrap_incomplete',
-            completedViews: check.completedViews,
-            requiredViews: check.requiredViews,
-            rewardedAdViewsRequired: check.requiredViews,
-          });
-          return { response: null, status: 'failed', message: USER_MESSAGES.adNotReady };
-        }
-        if (resolved.provider === 'admob' && !isAdMobAvailable()) {
-          setStatus('failed');
-          setMessage(USER_MESSAGES.adNotReady);
-          debugRewardedUnlock('sdk:unavailable', { moduleKey, actionKey, contentKey, placement });
-          trackMonetizationEvent('rewarded_unlock_failed', {
-            ...analyticsContext,
-            moduleKey,
-            actionKey,
-            contentKey,
-            reason: 'native_module_unavailable',
             completedViews: check.completedViews,
             requiredViews: check.requiredViews,
             rewardedAdViewsRequired: check.requiredViews,

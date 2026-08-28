@@ -36,9 +36,17 @@ export async function initializeAdMob(
   testDeviceIds?: string[],
 ): Promise<boolean> {
   initializationOptions = options;
+  if (initSuccess) return true;
   if (initPromise) return initPromise;
 
-  initPromise = doInit(testDeviceIds ?? options.testDeviceIds);
+  // Only a SUCCESSFUL init is cached. A run that failed (or was skipped because
+  // the native module was not resolvable yet) must stay retryable: otherwise the
+  // first bad attempt of a session permanently disables rewarded ads, and the
+  // user just sees a dead "FREE" button.
+  initPromise = doInit(testDeviceIds ?? options.testDeviceIds).then((ok) => {
+    if (!ok) initPromise = null;
+    return ok;
+  });
   return initPromise;
 }
 
@@ -101,7 +109,6 @@ async function doInit(testDeviceIds?: string[]): Promise<boolean> {
     return true;
   } catch (error) {
     initSuccess = false;
-    initPromise = null;
 
     const message = error instanceof Error ? error.message : 'unknown';
     if (__DEV__) {

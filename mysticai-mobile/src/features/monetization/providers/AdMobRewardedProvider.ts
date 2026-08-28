@@ -79,6 +79,8 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
     this.cleanup();
 
     return new Promise<boolean>((resolve) => {
+      let detachOnTimeout: (() => void) | null = null;
+
       const timeoutId = setTimeout(() => {
         if (__DEV__) console.warn('[AdMob] Rewarded ad load timed out');
         trackMonetizationEvent('rewarded_ad_load_failed', {
@@ -87,6 +89,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
           ad_unit_mode: resolved.mode,
           platform: Platform.OS,
         });
+        detachOnTimeout?.();
         this.cleanup();
         resolve(false);
       }, AD_LOAD_TIMEOUT_MS);
@@ -111,6 +114,12 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
             !(initializationOptions?.personalizedAdvertisingAllowed ?? false),
         });
 
+        // Both load listeners must be torn down once the load settles. Leaving
+        // the error listener attached let a later show-time error run the load
+        // handler too, which called cleanup() and dropped the ad instance out
+        // from under the show flow.
+        let unsubLoadListeners = () => {};
+
         const unsubLoaded = ad.addAdEventListener(googleMobileAds.RewardedAdEventType.LOADED, () => {
           clearTimeout(timeoutId);
           this.loaded = true;
@@ -123,7 +132,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
           });
 
           if (__DEV__) console.log('[AdMob] Rewarded ad loaded');
-          unsubLoaded();
+          unsubLoadListeners();
           resolve(true);
         });
 
@@ -139,11 +148,16 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
           });
 
           if (__DEV__) console.warn('[AdMob] Rewarded ad load error:', reason);
-          unsubLoaded();
-          unsubError();
+          unsubLoadListeners();
           this.cleanup();
           resolve(false);
         });
+
+        unsubLoadListeners = () => {
+          unsubLoaded();
+          unsubError();
+        };
+        detachOnTimeout = unsubLoadListeners;
 
         ad.load();
       } catch (error) {
@@ -184,6 +198,7 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
     });
 
     return new Promise<AdResult>((resolve) => {
+      let settled = false;
       let rewarded = false;
       let rewardType = '';
       let rewardAmount = 0;
@@ -219,6 +234,8 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
       });
 
       const unsubClosed = ad.addAdEventListener(googleMobileAds.AdEventType.CLOSED, () => {
+        if (settled) return;
+        settled = true;
         unsubAll();
         this.showing = false;
         this.loaded = false;
@@ -242,6 +259,8 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
       });
 
       const unsubError = ad.addAdEventListener(googleMobileAds.AdEventType.ERROR, (error) => {
+        if (settled) return;
+        settled = true;
         unsubAll();
         this.showing = false;
         this.loaded = false;
@@ -258,15 +277,38 @@ export class AdMobRewardedProvider implements AdProviderAdapter, RewardedAdProvi
         unsubError();
       };
 
-      try {
-        ad.show();
-      } catch (error) {
+      const failShow = (error: unknown) => {
+        // show() can reject after the ad already closed cleanly; don't report
+        // that as a failure.
+        if (settled) return;
+        settled = true;
         unsubAll();
         this.showing = false;
         this.loaded = false;
         this.rewardedAd = null;
         const reason = error instanceof Error ? error.message : 'show_failed';
+
+        trackMonetizationEvent('rewarded_ad_failed', {
+          reason,
+          ad_provider: 'admob',
+          ad_unit_mode: resolved?.mode ?? 'unknown',
+          platform: Platform.OS,
+        });
+
+        if (__DEV__) console.warn('[AdMob] Rewarded ad show error:', reason);
         resolve({ completed: false, error: reason });
+      };
+
+      try {
+        // show() is async on the native side. Without catching its rejection the
+        // promise below never settled — the UI sat on its spinner and no ad ever
+        // appeared — and the rejection surfaced as an unhandled one.
+        const shown = ad.show() as unknown;
+        if (shown && typeof (shown as Promise<void>).then === 'function') {
+          (shown as Promise<void>).catch(failShow);
+        }
+      } catch (error) {
+        failShow(error);
       }
     });
   }

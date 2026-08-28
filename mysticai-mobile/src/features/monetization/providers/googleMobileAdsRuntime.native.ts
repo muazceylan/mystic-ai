@@ -46,7 +46,9 @@ export function getGoogleMobileAdsModule(reason = 'runtime access'): GoogleMobil
     ?? (NativeModules as Record<string, unknown>)[NATIVE_MODULE_NAME];
 
   if (!nativeModule) {
-    cachedModule = null;
+    // Do NOT cache this. The registry can be probed before the module is
+    // installed (early startup, reload); caching the miss would make the SDK
+    // look permanently unavailable for the rest of the session.
     warnUnavailable(reason, `${NATIVE_MODULE_NAME} native module missing`);
     return null;
   }
@@ -55,7 +57,6 @@ export function getGoogleMobileAdsModule(reason = 'runtime access'): GoogleMobil
     cachedModule = require('react-native-google-mobile-ads') as GoogleMobileAdsModule;
     return cachedModule;
   } catch (error) {
-    cachedModule = null;
     warnUnavailable(reason, error);
     return null;
   }

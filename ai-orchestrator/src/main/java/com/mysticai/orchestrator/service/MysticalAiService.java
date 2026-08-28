@@ -180,6 +180,51 @@ public class MysticalAiService {
         }
     }
 
+    /**
+     * Generates the structured natal portrait consumed by the Haritam screen.
+     *
+     * <p>Only shape is checked here — that the response is JSON and carries the sections the client
+     * renders. Whether the interpretation's claims match the chart is decided downstream by
+     * astrology-service, which owns the calculated data and can therefore actually verify them.</p>
+     *
+     * @param correction validator feedback from a rejected attempt, or null on the first pass.
+     */
+    public String generateNatalPortrait(String chartJson, String locale, String correction) {
+        String prompt = promptTemplates.getNatalPortraitPrompt(chartJson, locale, correction);
+        String raw = fallbackService.generate(prompt, true, false);
+        String json = extractJsonObject(stripMarkdown(raw));
+        try {
+            JsonNode node = objectMapper.readTree(json);
+            if (!node.isObject()
+                    || node.path("portrait").path("summary").asText().isBlank()
+                    || !node.path("aboutMe").isArray()
+                    || node.path("aboutMe").isEmpty()
+                    || !node.path("lifeAreas").isArray()
+                    || node.path("lifeAreas").isEmpty()) {
+                throw new IllegalArgumentException("Incomplete natal portrait response");
+            }
+            return objectMapper.writeValueAsString(node);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Invalid natal portrait response", ex);
+        }
+    }
+
+    /** Answers one "Haritama Sor" question against a single user's chart. */
+    public String generateNatalAnswer(String chartJson, String locale, String question) {
+        String prompt = promptTemplates.getNatalAskPrompt(chartJson, locale, question);
+        String raw = fallbackService.generate(prompt, false, false);
+        String json = extractJsonObject(stripMarkdown(raw));
+        try {
+            JsonNode node = objectMapper.readTree(json);
+            if (!node.isObject() || node.path("answer").asText().isBlank()) {
+                throw new IllegalArgumentException("Empty natal answer response");
+            }
+            return objectMapper.writeValueAsString(node);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Invalid natal answer response", ex);
+        }
+    }
+
     public String generateDreamExpansion(DreamExpansionRequest request) {
         String prompt = promptTemplates.getDreamExpansionPrompt(
                 request.expansionType(),

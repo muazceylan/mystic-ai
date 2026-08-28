@@ -297,7 +297,13 @@ export function useModuleMonetization(moduleKey: string): ModuleMonetizationResu
     premiumApplied,
     premiumCanUnlock,
     tokenPurchaseAvailable,
-    rewardedAdAvailable: adsEnabled && isAdReady && !adsSuppressedByPremium,
+    // `useRewardedUnlock` refuses every premium user outright (`premium_ad_free`),
+    // regardless of the ad-free flags `adsSuppressedByPremium` looks at. Offering
+    // the reward anyway produced a button that silently did nothing on tap.
+    // Only the two rewarded-unlock surfaces read this; the action-level
+    // `getActionUnlockState` keeps its own rule, since the content-unlock hook
+    // has no premium guard.
+    rewardedAdAvailable: adsEnabled && isAdReady && !adsSuppressedByPremium && !premiumActive,
     getAction: getActionForModule,
     getActionUnlockState,
     canAffordAction,

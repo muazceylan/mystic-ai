@@ -15,7 +15,8 @@
     "qa:guideline-4.3b": "node ./scripts/qa/guideline-4.3b-static-qa.mjs",
     "test:subscription": "node ./scripts/qa/subscription-state.test.mjs",
     "qa:app-store": "node ./scripts/qa/app-store-subscription-att.test.mjs",
-    "qa:app-version": "node ./scripts/qa/app-version-policy.test.mjs"
+    "qa:app-version": "node ./scripts/qa/app-version-policy.test.mjs",
+    "qa:natal-portrait": "node ./scripts/qa/natal-portrait.test.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.5.52",

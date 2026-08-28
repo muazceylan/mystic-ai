@@ -83,6 +83,7 @@ export function MonetizationQuickBar({ style }: MonetizationQuickBarProps) {
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
   const {
     status: rewardStatus,
+    getFailureReason,
     startRewardedUnlock,
     reset: resetRewardedUnlock,
   } = useRewardedUnlock(rewardModuleKey ?? FALLBACK_MODULE_KEY);
@@ -118,6 +119,16 @@ export function MonetizationQuickBar({ style }: MonetizationQuickBarProps) {
       Alert.alert(
         t('monetization.rewardEarnedTitle'),
         t('monetization.rewardEarnedBody', { count: rewardAmount }),
+      );
+    } else if (getFailureReason() !== 'user_dismissed') {
+      // Closing the ad early is a choice, not an error. Everything else used to
+      // fail with no feedback at all, which reads as a dead button.
+      const reason = getFailureReason();
+      Alert.alert(
+        t('monetization.rewardUnavailableTitle'),
+        __DEV__ && reason
+          ? `${t('monetization.rewardUnavailableBody')}\n\n[dev] ${reason}`
+          : t('monetization.rewardUnavailableBody'),
       );
     }
     resetRewardedUnlock();

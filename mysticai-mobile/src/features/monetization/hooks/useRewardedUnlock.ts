@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import i18n from 'i18next';
 import { useMonetizationStore } from '../store/useMonetizationStore';
@@ -14,6 +14,7 @@ import { trackMonetizationEvent } from '../analytics/monetizationAnalytics';
 import { getAdProvider } from '../providers/AdProviderAdapter';
 import { resolveConfiguredRewardedAd } from '../providers/providerConfig';
 import { isAdMobAvailable, isAdMobInitialized } from '../providers/admobInit';
+import { ensureAdProviderReady } from '../providers/initProvider';
 import { addRewardedAdListener } from '../providers/webRewardedEvents';
 import {
   destroyWebRewardedSlot,
@@ -26,6 +27,13 @@ type UnlockStatus = 'idle' | 'loading_ad' | 'showing_ad' | 'processing_reward' |
 
 interface UseRewardedUnlockResult {
   status: UnlockStatus;
+  /** Reason of the last failure (analytics reason string), null while healthy. */
+  failureReason: string | null;
+  /**
+   * Same value, read from a ref. Callers that await `startRewardedUnlock()` need
+   * this: their closure still holds the render-time `failureReason`.
+   */
+  getFailureReason: () => string | null;
   startRewardedUnlock: () => Promise<boolean>;
   reset: () => void;
 }
@@ -60,6 +68,13 @@ function createClientEventId(): string {
 
 export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRewardedUnlockResult {
   const [status, setStatus] = useState<UnlockStatus>('idle');
+  const [failureReason, setFailureReasonState] = useState<string | null>(null);
+  const failureReasonRef = useRef<string | null>(null);
+  const setFailureReason = useCallback((reason: string | null) => {
+    failureReasonRef.current = reason;
+    setFailureReasonState(reason);
+  }, []);
+  const getFailureReason = useCallback(() => failureReasonRef.current, []);
   const { config, getModuleRule, isAdsEnabledForModule, trackAdOffer, trackAdCompleted } =
     useMonetizationStore();
   const { refreshBalance } = useGuruWalletStore();
@@ -255,58 +270,68 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
       return startWebRewardedUnlock();
     }
 
+    const fail = (reason: string): false => {
+      setFailureReason(reason);
+      setStatus('failed');
+      return emitIneligible(reason, moduleKey, actionKey, configVersion);
+    };
+
+    setFailureReason(null);
+
     // ── Guard 1: config loaded ─────────────────────────────────────
     if (!config) {
-      setStatus('failed');
-      return emitIneligible('config_not_loaded', moduleKey, actionKey);
+      return fail('config_not_loaded');
     }
 
     if (premiumAccessActive) {
-      setStatus('failed');
-      return emitIneligible('premium_ad_free', moduleKey, actionKey, configVersion);
+      return fail('premium_ad_free');
     }
 
     // ── Guard 2: global ads enabled ────────────────────────────────
     if (!config.enabled || !config.adsEnabled) {
-      setStatus('failed');
-      return emitIneligible('ads_disabled_globally', moduleKey, actionKey, configVersion);
+      return fail('ads_disabled_globally');
     }
 
     // ── Guard 3: module-level ads enabled ──────────────────────────
     if (!isAdsEnabledForModule(moduleKey)) {
-      setStatus('failed');
-      return emitIneligible('ads_disabled_for_module', moduleKey, actionKey, configVersion);
+      return fail('ads_disabled_for_module');
     }
 
     // ── Guard 4: module rule exists ────────────────────────────────
     const rule = getModuleRule(moduleKey);
     if (!rule) {
-      setStatus('failed');
-      return emitIneligible('action_not_eligible', moduleKey, actionKey, configVersion);
+      return fail('action_not_eligible');
     }
 
     // ── Guard 5: ad unit ID available ──────────────────────────────
     const resolved = resolveConfiguredRewardedAd();
     if (!resolved) {
       // resolveRewardedUnitId already emits missing_ad_unit_id event
+      setFailureReason('missing_ad_unit_id');
       setStatus('failed');
       return false;
     }
 
     // ── Guard 6: native SDK available + initialized ───────────────
-    if (resolved.provider === 'admob' && !isAdMobInitialized()) {
-      setStatus('failed');
-      return emitIneligible(
-        'privacy_bootstrap_incomplete',
-        moduleKey,
-        actionKey,
-        configVersion,
-      );
-    }
+    // Availability first: a missing native module is a build problem, and
+    // reporting it as an incomplete privacy bootstrap sent us down the wrong
+    // trail before.
+    if (resolved.provider === 'admob') {
+      if (!isAdMobAvailable()) {
+        return fail('native_module_unavailable');
+      }
 
-    if (resolved.provider === 'admob' && !isAdMobAvailable()) {
-      setStatus('failed');
-      return emitIneligible('native_module_unavailable', moduleKey, actionKey, configVersion);
+      // The startup bootstrap skips SDK init when monetization config was not
+      // loaded yet (or said ads were off). Ads can be enabled by a later config
+      // refresh, so bring the SDK up on demand rather than leaving the offer
+      // dead until the next cold start.
+      if (!isAdMobInitialized()) {
+        setStatus('loading_ad');
+        const ready = await ensureAdProviderReady();
+        if (!ready) {
+          return fail('privacy_bootstrap_incomplete');
+        }
+      }
     }
 
     // ── All guards passed — proceed with ad flow ───────────────────
@@ -336,6 +361,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
           platform: Platform.OS,
           config_version: configVersion,
         });
+        setFailureReason('ad_load_failed');
         setStatus('failed');
         return false;
       }
@@ -353,6 +379,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
           platform: Platform.OS,
           config_version: configVersion,
         });
+        setFailureReason(result.error ?? 'user_dismissed');
         setStatus('failed');
         return false;
       }
@@ -405,6 +432,7 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
         platform: Platform.OS,
         config_version: configVersion,
       });
+      setFailureReason(error instanceof Error ? error.message : 'unknown');
       setStatus('failed');
       return false;
     }
@@ -416,12 +444,16 @@ export function useRewardedUnlock(moduleKey: string, actionKey?: string): UseRew
     getModuleRule,
     isAdsEnabledForModule,
     premiumAccessActive,
+    setFailureReason,
     trackAdOffer,
     trackAdCompleted,
     refreshBalance,
   ]);
 
-  const reset = useCallback(() => setStatus('idle'), []);
+  const reset = useCallback(() => {
+    setStatus('idle');
+    setFailureReason(null);
+  }, [setFailureReason]);
 
-  return { status, startRewardedUnlock, reset };
+  return { status, failureReason, getFailureReason, startRewardedUnlock, reset };
 }

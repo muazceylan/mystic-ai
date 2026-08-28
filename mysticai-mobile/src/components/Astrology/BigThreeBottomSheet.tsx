@@ -35,12 +35,49 @@ type Props = {
 type RadarMetric = {
   key: string;
   label: string;
-  value: number;
+  tier: Tier;
 };
 
-function clamp(value: number, min = 0, max = 100) {
-  return Math.max(min, Math.min(max, value));
-}
+/**
+ * Qualitative tiers, replacing the previous 0-100 readout.
+ *
+ * The old numbers looked measured but were not: a fixed constant per role (Sun always started at
+ * 86 for identity) nudged by element and modality. Two people with the same rising sign got the
+ * same "Kimlik 84" regardless of everything else in their charts, so the precision was decoration.
+ *
+ * What genuinely follows from a placement is its element and its modality — both real chart facts.
+ * Those produce a direction ("this leans strong", "this leans sensitive"), not a score, so that is
+ * what gets shown, together with the reason it was inferred.
+ */
+type Tier = 'veryStrong' | 'strong' | 'balanced' | 'sensitive';
+
+const TIER_FILL: Record<Tier, number> = {
+  veryStrong: 1,
+  strong: 0.76,
+  balanced: 0.52,
+  sensitive: 0.3,
+};
+
+/** Which qualities each element and modality genuinely amplifies. */
+const ELEMENT_EMPHASIS: Record<ElementKey, string[]> = {
+  fire: ['initiative', 'expression'],
+  earth: ['identity', 'harmony'],
+  air: ['expression', 'harmony'],
+  water: ['intuition', 'harmony'],
+};
+
+const MODALITY_EMPHASIS: Record<ModalityKey, string[]> = {
+  cardinal: ['initiative'],
+  fixed: ['identity'],
+  mutable: ['expression', 'intuition'],
+};
+
+/** Which quality each of the Big Three roles is fundamentally about. */
+const ROLE_EMPHASIS: Record<BigThreeRole, string> = {
+  sun: 'identity',
+  moon: 'intuition',
+  rising: 'expression',
+};
 
 function buildRoleRadarMetrics(
   role: BigThreeRole,
@@ -48,30 +85,30 @@ function buildRoleRadarMetrics(
   modalityKey: ModalityKey,
   labels: { identity: string; intuition: string; expression: string; harmony: string; initiative: string },
 ): RadarMetric[] {
-  const baseByRole: Record<BigThreeRole, Record<string, number>> = {
-    sun:    { identity: 86, intuition: 54, expression: 78, harmony: 58, initiative: 82 },
-    moon:   { identity: 58, intuition: 90, expression: 56, harmony: 80, initiative: 46 },
-    rising: { identity: 70, intuition: 52, expression: 74, harmony: 62, initiative: 76 },
-  };
+  const fromElement = new Set(ELEMENT_EMPHASIS[elementKey] ?? []);
+  const fromModality = new Set(MODALITY_EMPHASIS[modalityKey] ?? []);
+  const roleQuality = ROLE_EMPHASIS[role];
 
-  const score = { ...baseByRole[role] };
-
-  if (elementKey === 'fire')       { score.initiative += 10; score.expression += 7;  score.harmony -= 4;    }
-  else if (elementKey === 'water') { score.intuition  += 12; score.harmony    += 8;  score.initiative -= 5; }
-  else if (elementKey === 'air')   { score.expression += 10; score.harmony    += 5;  score.identity -= 3;   }
-  else if (elementKey === 'earth') { score.identity   += 6;  score.harmony    += 4;  score.intuition -= 3;  }
-
-  if (modalityKey === 'cardinal')     { score.initiative += 8; score.identity += 4;  }
-  else if (modalityKey === 'fixed')   { score.identity   += 7; score.harmony  += 3;  score.expression -= 2; }
-  else if (modalityKey === 'mutable') { score.expression += 6; score.intuition += 5; score.identity -= 2;   }
-
-  return [
-    { key: 'identity',   label: labels.identity,   value: clamp(score.identity)   },
-    { key: 'intuition',  label: labels.intuition,   value: clamp(score.intuition)  },
-    { key: 'expression', label: labels.expression,  value: clamp(score.expression) },
-    { key: 'harmony',    label: labels.harmony,     value: clamp(score.harmony)    },
-    { key: 'initiative', label: labels.initiative,  value: clamp(score.initiative) },
+  const keys: Array<{ key: string; label: string }> = [
+    { key: 'identity', label: labels.identity },
+    { key: 'intuition', label: labels.intuition },
+    { key: 'expression', label: labels.expression },
+    { key: 'harmony', label: labels.harmony },
+    { key: 'initiative', label: labels.initiative },
   ];
+
+  return keys.map(({ key, label }) => {
+    // Each source of support is a real chart fact, so the count of them is the tier.
+    const supports =
+      (key === roleQuality ? 1 : 0) +
+      (fromElement.has(key) ? 1 : 0) +
+      (fromModality.has(key) ? 1 : 0);
+
+    const tier: Tier =
+      supports >= 3 ? 'veryStrong' : supports === 2 ? 'strong' : supports === 1 ? 'balanced' : 'sensitive';
+
+    return { key, label, tier };
+  });
 }
 
 type TFn = (key: string, opts?: Record<string, string>) => string;
@@ -149,7 +186,7 @@ function RoleRadarMiniChart({ metrics, colors }: { metrics: RadarMetric[]; color
   );
 
   const valuePolygon = angles.map((angle, idx) => {
-    const p = polarPoint(cx, cy, radius * (metrics[idx].value / 100), angle);
+    const p = polarPoint(cx, cy, radius * TIER_FILL[metrics[idx].tier], angle);
     return `${p.x},${p.y}`;
   }).join(' ');
 
@@ -175,7 +212,7 @@ function RoleRadarMiniChart({ metrics, colors }: { metrics: RadarMetric[]; color
       })}
       <Polygon points={valuePolygon} fill={colors.violet + '2E'} stroke={colors.violet} strokeWidth={1.8} />
       {angles.map((angle, idx) => {
-        const p = polarPoint(cx, cy, radius * (metrics[idx].value / 100), angle);
+        const p = polarPoint(cx, cy, radius * TIER_FILL[metrics[idx].tier], angle);
         return <Circle key={`dot-${metrics[idx].key}`} cx={p.x} cy={p.y} r={3} fill={colors.violet} />;
       })}
       <Circle cx={cx} cy={cy} r={2.2} fill={colors.violet} />
@@ -256,6 +293,12 @@ export default function BigThreeBottomSheet({ visible, role, sign, onClose }: Pr
                 <View style={s.radarHeader}>
                   <Text style={s.radarTitle}>{t('bigThreeSheet.radarTitle')}</Text>
                   <Text style={s.radarSub}>{t('bigThreeSheet.radarSub')}</Text>
+                  <Text style={s.radarSub}>
+                    {t('bigThreeSheet.radarDerivation', {
+                      element: built.element,
+                      modality: built.modalityLabel,
+                    })}
+                  </Text>
                 </View>
                 <View style={s.radarBody}>
                   <RoleRadarMiniChart metrics={built.radarMetrics} colors={colors} />
@@ -265,9 +308,16 @@ export default function BigThreeBottomSheet({ visible, role, sign, onClose }: Pr
                         <View style={[s.radarLegendDot, { backgroundColor: colors.violet }]} />
                         <Text style={s.radarLegendLabel}>{metric.label}</Text>
                         <View style={[s.radarTrack, { backgroundColor: colors.borderLight }]}>
-                          <View style={[s.radarTrackFill, { backgroundColor: colors.violet, width: `${Math.max(8, metric.value)}%` }]} />
+                          <View
+                            style={[
+                              s.radarTrackFill,
+                              { backgroundColor: colors.violet, width: `${TIER_FILL[metric.tier] * 100}%` },
+                            ]}
+                          />
                         </View>
-                        <Text style={s.radarLegendValue}>{metric.value}</Text>
+                        <Text style={s.radarLegendValue}>
+                          {t(`natalPortrait.level.${metric.tier}`)}
+                        </Text>
                       </View>
                     ))}
                   </View>
@@ -345,7 +395,8 @@ function createStyles(C: ThemeColors) {
     radarLegendLabel: { width: 52, fontSize: 11, fontWeight: '700', color: C.textDark },
     radarTrack:       { flex: 1, height: 6, borderRadius: 999, overflow: 'hidden' },
     radarTrackFill:   { height: '100%', borderRadius: 999 },
-    radarLegendValue: { width: 22, textAlign: 'right', fontSize: 10.5, fontWeight: '700', color: C.muted },
+    // Sized for a qualitative label ("Çok Güçlü") rather than the two-digit score it replaced.
+    radarLegendValue: { width: 66, textAlign: 'right', fontSize: 10, fontWeight: '700', color: C.muted },
     cardList:         { gap: 8 },
     infoCard:         { borderRadius: 14, borderWidth: 1, padding: 12, gap: 6 },
     infoHeader:       { flexDirection: 'row', alignItems: 'center', gap: 8 },

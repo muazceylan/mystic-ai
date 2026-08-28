@@ -26,7 +26,8 @@ class InterpretationControllerTest {
     @BeforeEach
     void setUp() {
         mysticalAiService = new StubMysticalAiService();
-        InterpretationController controller = new InterpretationController(mysticalAiService);
+        InterpretationController controller =
+                new InterpretationController(mysticalAiService, new com.fasterxml.jackson.databind.ObjectMapper());
         ReflectionTestUtils.setField(controller, "internalGatewayKey", "test-internal-key");
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }

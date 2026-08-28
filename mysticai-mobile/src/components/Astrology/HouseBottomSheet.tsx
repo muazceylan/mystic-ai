@@ -24,6 +24,8 @@ import { getPlanetName, getZodiacInfo } from '../../constants/zodiac';
 import { getHouseGlossary } from '../../constants/astrology-glossary';
 import { useTheme, type ThemeColors } from '../../context/ThemeContext';
 import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
+import type { NatalHouseReading } from '../../services/natalPortrait.service';
+import { HouseReadingBody } from '../../features/natal/components/ReadingBody';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -32,6 +34,12 @@ type Props = {
   house: HousePlacement | null;
   planetsInHouse?: PlanetPosition[];
   insight?: NatalHouseComboInsight | null;
+  /**
+   * The redesigned reading: cusp sign, ruler placement and residents read as one picture.
+   * When present it replaces the legacy template lines; the glossary and degrees stay below
+   * as the technical layer. Absent for saved companion profiles, which have no portrait.
+   */
+  reading?: NatalHouseReading | null;
   onClose: () => void;
 };
 
@@ -251,7 +259,14 @@ function buildHouseLines(house: HousePlacement | null, locale: string, planetsIn
   return { info, signInfo, basicIntro, character, impact, caution, strengths, comboSummary, housePlanets };
 }
 
-export default function HouseBottomSheet({ visible, house, planetsInHouse, insight, onClose }: Props) {
+export default function HouseBottomSheet({
+  visible,
+  house,
+  planetsInHouse,
+  insight,
+  reading,
+  onClose,
+}: Props) {
   const { i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? i18n.language ?? 'tr';
   const isEnglish = locale.startsWith('en');
@@ -318,22 +333,28 @@ export default function HouseBottomSheet({ visible, house, planetsInHouse, insig
                   <Text style={s.headerTitle}>
                     {isEnglish ? `House ${house.houseNumber}` : `${house.houseNumber}. Ev`} • {lines.signInfo.symbol} {lines.signInfo.name}
                   </Text>
-                  <Text style={s.headerSub}>{introLine}</Text>
+                  <Text style={s.headerSub}>{reading?.whatItMeans ?? introLine}</Text>
                   <Text style={s.headerMeta}>{Math.floor(house.degree)}° • {isEnglish ? 'Ruler' : 'Yönetici'}: {getPlanetName(house.ruler, locale)}</Text>
                 </View>
               </View>
 
-              <View style={s.lineList}>
-                <LineItem icon="sparkles-outline" title={isEnglish ? 'Character Analysis' : 'Karakter Analizi'} text={characterLine} colors={colors} />
-                <LineItem icon="rocket-outline" title={isEnglish ? 'How It Affects You' : 'Seni Nasıl Etkiler?'} text={effectLine} colors={colors} />
-                <LineItem icon="warning-outline" title={isEnglish ? 'Watch Out For' : 'Dikkat Etmen Gerekenler'} text={cautionLine} colors={colors} />
-                <LineItem icon="star-outline" title={isEnglish ? 'Key Strengths' : 'Öne Çıkan Özellikler'} text={strengthsLine} colors={colors} />
-              </View>
+              {reading ? (
+                <HouseReadingBody reading={reading} locale={locale} />
+              ) : (
+                <>
+                  <View style={s.lineList}>
+                    <LineItem icon="sparkles-outline" title={isEnglish ? 'Character Analysis' : 'Karakter Analizi'} text={characterLine} colors={colors} />
+                    <LineItem icon="rocket-outline" title={isEnglish ? 'How It Affects You' : 'Seni Nasıl Etkiler?'} text={effectLine} colors={colors} />
+                    <LineItem icon="warning-outline" title={isEnglish ? 'Watch Out For' : 'Dikkat Etmen Gerekenler'} text={cautionLine} colors={colors} />
+                    <LineItem icon="star-outline" title={isEnglish ? 'Key Strengths' : 'Öne Çıkan Özellikler'} text={strengthsLine} colors={colors} />
+                  </View>
 
-              <View style={[s.comboBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
-                <Text style={s.comboTitle}>{isEnglish ? 'Planet + House + Sign Combination' : 'Gezegen + Ev + Burç Kombinasyonu'}</Text>
-                <Text style={s.comboText}>{comboSummary}</Text>
-              </View>
+                  <View style={[s.comboBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
+                    <Text style={s.comboTitle}>{isEnglish ? 'Planet + House + Sign Combination' : 'Gezegen + Ev + Burç Kombinasyonu'}</Text>
+                    <Text style={s.comboText}>{comboSummary}</Text>
+                  </View>
+                </>
+              )}
 
               {lines.info && (
                 <View style={[s.glossaryBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>

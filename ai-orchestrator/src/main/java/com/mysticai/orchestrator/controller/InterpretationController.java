@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class InterpretationController {
 
     private final MysticalAiService mysticalAiService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Value("${internal.gateway.key:change-me}")
     private String internalGatewayKey;
@@ -242,6 +243,68 @@ public class InterpretationController {
     /**
      * Health check for AI service
      */
+    /**
+     * POST /api/ai/natal/portrait
+     *
+     * <p>Interprets an already-calculated natal chart. The request body carries the normalized
+     * chart from astrology-service; this service never computes a placement and never receives
+     * raw birth data.</p>
+     *
+     * <p>Internal service-to-service only — not exposed through the gateway.</p>
+     */
+    @PostMapping(value = "/natal/portrait",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> natalPortrait(
+            @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey,
+            @RequestBody java.util.Map<String, Object> body) {
+        if (serviceKey == null || !serviceKey.equals(internalGatewayKey)) {
+            return ResponseEntity.status(403).body("{\"code\":\"FORBIDDEN\"}");
+        }
+        Object chart = body.get("chart");
+        if (chart == null) {
+            return ResponseEntity.badRequest().body("{\"code\":\"INVALID_REQUEST\"}");
+        }
+        String locale = (String) body.getOrDefault("locale", "tr");
+        String correction = (String) body.get("correction");
+        try {
+            String chartJson = objectMapper.writeValueAsString(chart);
+            return ResponseEntity.ok(
+                    mysticalAiService.generateNatalPortrait(chartJson, locale, correction));
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body("{\"code\":\"AI_UNAVAILABLE\"}");
+        }
+    }
+
+    /**
+     * POST /api/ai/natal/ask
+     *
+     * <p>Answers a single free-text question against one user's chart. Internal only.</p>
+     */
+    @PostMapping(value = "/natal/ask",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> natalAsk(
+            @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey,
+            @RequestBody java.util.Map<String, Object> body) {
+        if (serviceKey == null || !serviceKey.equals(internalGatewayKey)) {
+            return ResponseEntity.status(403).body("{\"code\":\"FORBIDDEN\"}");
+        }
+        Object chart = body.get("chart");
+        String question = (String) body.get("question");
+        if (chart == null || question == null || question.isBlank()) {
+            return ResponseEntity.badRequest().body("{\"code\":\"INVALID_REQUEST\"}");
+        }
+        String locale = (String) body.getOrDefault("locale", "tr");
+        try {
+            String chartJson = objectMapper.writeValueAsString(chart);
+            return ResponseEntity.ok(
+                    mysticalAiService.generateNatalAnswer(chartJson, locale, question));
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body("{\"code\":\"AI_UNAVAILABLE\"}");
+        }
+    }
+
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("AI Orchestrator is running");

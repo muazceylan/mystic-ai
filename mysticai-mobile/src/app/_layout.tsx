@@ -647,6 +647,10 @@ function MonetizationBootstrap({
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const userId = useAuthStore((s) => s.user?.id);
+  // The very first bootstrap can run before monetization config is available
+  // (offline start, slow or failing fetch). Ads then look disabled and SDK init
+  // is skipped, so re-run it once a later config refresh turns ads on.
+  const adsEnabledInConfig = useMonetizationStore((s) => s.config?.adsEnabled ?? false);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -677,7 +681,7 @@ function MonetizationBootstrap({
     });
 
     return () => task.cancel();
-  }, [isHydrated, privacyResult, userId]);
+  }, [isHydrated, privacyResult, userId, adsEnabledInConfig]);
 
   useEffect(() => {
     if (!isHydrated) return;

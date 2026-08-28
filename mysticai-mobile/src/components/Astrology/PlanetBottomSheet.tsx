@@ -24,6 +24,8 @@ import {
 } from '../../constants/astrology-glossary';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import { useBottomSheetDragGesture } from '../ui/useBottomSheetDragGesture';
+import type { NatalPlacementReading } from '../../services/natalPortrait.service';
+import { PlacementReadingBody } from '../../features/natal/components/ReadingBody';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -31,6 +33,14 @@ interface PlanetBottomSheetProps {
   visible: boolean;
   planet: PlanetPosition | null;
   insight?: NatalPlanetComboInsight | null;
+  /**
+   * The redesigned meaning-first reading. When present it replaces the legacy template body:
+   * plain-language meaning, then how the sign and house shape it, then the synthesis, with the
+   * degrees and aspect data kept below as the technical layer.
+   *
+   * Absent for saved companion profiles, which have no portrait — those keep the previous body.
+   */
+  reading?: NatalPlacementReading | null;
   onClose: () => void;
 }
 
@@ -90,7 +100,13 @@ function LineInfo({ title, text, accent }: { title: string; text: string; accent
   );
 }
 
-export default function PlanetBottomSheet({ visible, planet, insight, onClose }: PlanetBottomSheetProps) {
+export default function PlanetBottomSheet({
+  visible,
+  planet,
+  insight,
+  reading,
+  onClose,
+}: PlanetBottomSheetProps) {
   const { colors }  = useTheme();
   const { t, i18n } = useTranslation();
   const s = createStyles(colors);
@@ -170,7 +186,9 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
                   <View style={s.headerLeft}>
                     <Text style={s.planetEmoji}>{signInfo.symbol}</Text>
                     <View>
-                      <Text style={s.planetTitle}>{t('planetSheet.positionAnalysis', { planet: planetName })}</Text>
+                      <Text style={s.planetTitle}>
+                        {reading?.title ?? t('planetSheet.positionAnalysis', { planet: planetName })}
+                      </Text>
                       <Text style={s.planetSubtitle}>
                         {t('planetSheet.positionSubtitle', {
                           sign: signInfo.name,
@@ -194,19 +212,27 @@ export default function PlanetBottomSheet({ visible, planet, insight, onClose }:
                   </View>
                 </View>
 
-                <Text style={s.personalizedText}>{personalizedText}</Text>
+                {reading ? null : (
+                  <Text style={s.personalizedText}>{personalizedText}</Text>
+                )}
               </View>
 
-              <LineInfo title={t('planetSheet.cardCharacter')} text={characterText} accent={colors.violet} />
-              <LineInfo title={t('planetSheet.cardEffect')}    text={effectText} accent={colors.blue} />
-              <LineInfo title={t('planetSheet.cardCaution')}   text={cautionText} accent={colors.warning} />
-              <LineInfo
-                title={t('planetSheet.cardStrengths')}
-                text={strengthsText}
-                accent={colors.goldDark}
-              />
+              {reading ? (
+                <PlacementReadingBody reading={reading} locale={locale} />
+              ) : (
+                <>
+                  <LineInfo title={t('planetSheet.cardCharacter')} text={characterText} accent={colors.violet} />
+                  <LineInfo title={t('planetSheet.cardEffect')}    text={effectText} accent={colors.blue} />
+                  <LineInfo title={t('planetSheet.cardCaution')}   text={cautionText} accent={colors.warning} />
+                  <LineInfo
+                    title={t('planetSheet.cardStrengths')}
+                    text={strengthsText}
+                    accent={colors.goldDark}
+                  />
+                </>
+              )}
 
-              {houseGlossary && (
+              {!reading && houseGlossary && (
                 <View style={[s.beginnerBox, { backgroundColor: colors.primaryTint, borderColor: colors.border }]}>
                   <Text style={s.beginnerTitle}>{t('planetSheet.houseBoxTitle')}</Text>
                   <Text style={s.beginnerText}>

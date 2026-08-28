@@ -112,6 +112,10 @@ import {
   useTutorial,
   useTutorialTrigger,
 } from '../../features/tutorial';
+import NatalPortraitExperience from '../../features/natal/components/NatalPortraitExperience';
+import type { BigThreeCardData } from '../../features/natal/components/BigThreeStrip';
+import { useNatalChartContext, useNatalPortrait } from '../../features/natal/hooks/useNatalPortrait';
+import natalAnalytics from '../../features/natal/analytics';
 import MatchResultScreen from '../../screens/match/MatchResultScreen';
 import SynastryProPanel from '../../components/Astrology/SynastryProPanel';
 import {
@@ -233,6 +237,37 @@ const DEFAULT_NATAL_SECTION_ORDER: DraggableNatalSectionKey[] = [
   'ai_interpretation',
   'night_poster',
 ];
+
+/**
+ * Sections that belong under "Astrolojik Detaylar".
+ *
+ * These are the wheel, the tables, the degrees and the matrices: real value for someone who reads
+ * charts, and noise for someone who does not. They are not removed — they are moved below the
+ * interpretation so a beginner reaches meaning first and an advanced user still loses nothing.
+ */
+const ADVANCED_NATAL_SECTION_KEYS = new Set<DraggableNatalSectionKey>([
+  'natal_chart_visual',
+  'aspect_matrix_table',
+  'cosmic_position_details',
+  'cosmic_balance',
+  'planet_positions',
+  'aspect_list',
+  'house_positions',
+]);
+
+/**
+ * Sections the redesigned portrait replaces outright.
+ *
+ * Each of these said the same thing as a card in the new experience — the old Big Three strip, the
+ * cosmic hotspot list, and the long "Guru Yorum" accordion whose sections (Kozmik Portre, İç
+ * Çatışmalar, Kariyer, İlişki Dinamikleri) are now first-class topics. They stay available for
+ * saved companion profiles, which the portrait endpoint does not cover.
+ */
+const PORTRAIT_SUPERSEDED_SECTION_KEYS = new Set<DraggableNatalSectionKey>([
+  'big_three',
+  'hotspots',
+  'ai_interpretation',
+]);
 
 const GATED_NATAL_DETAIL_KEYS = new Set<NatalAccordionKey>([
   'natal_chart_visual',
@@ -1540,6 +1575,11 @@ export function NatalChartScreenContent() {
         setShowDetailUnlockSheet(true);
         return prev;
       }
+      // Tracks real engagement with "Astrolojik Detaylar" — how many readers go past the
+      // interpretation into the technical layer.
+      if (ADVANCED_NATAL_SECTION_KEYS.has(typedKey as DraggableNatalSectionKey)) {
+        natalAnalytics.advancedOpened({ section: typedKey, locale: portraitLocale });
+      }
       return typedKey;
     });
   }, [detailSectionsUnlocked, natalDetailUnlockState.usesMonetization]);
@@ -1790,6 +1830,67 @@ export function NatalChartScreenContent() {
     },
     [chart?.aspects],
   );
+  // ── Redesigned Haritam experience ────────────────────────────────
+  // Scoped to the signed-in user's own chart: the portrait endpoint is keyed by X-User-Id, so a
+  // saved companion profile keeps the previous accordion surface rather than showing someone
+  // else's reading.
+  const portraitEnabled = !activeProfileIsSaved && !!chart;
+  const {
+    portrait,
+    locale: portraitLocale,
+    isLoading: portraitLoading,
+    isError: portraitError,
+    isFallback: portraitIsFallback,
+    retry: retryPortrait,
+  } = useNatalPortrait();
+  const { data: natalContext } = useNatalChartContext(portraitEnabled);
+
+  const bigThreeLine = useMemo(() => {
+    if (!chart) return '';
+    const parts = [
+      chart.sunSign ? `${getZodiacInfo(chart.sunSign, resolvedLocale).name} ${t('natalChart.sun')}` : null,
+      chart.moonSign ? `${getZodiacInfo(chart.moonSign, resolvedLocale).name} ${t('natalChart.moon')}` : null,
+      chart.risingSign ? `${getZodiacInfo(chart.risingSign, resolvedLocale).name} ${t('natalChart.rising')}` : null,
+    ].filter(Boolean);
+    return parts.join(' · ');
+  }, [chart, resolvedLocale, t]);
+
+  const bigThreeCards = useMemo<BigThreeCardData[]>(() => {
+    if (!chart) return [];
+    return [
+      {
+        role: 'sun',
+        symbol: '\u2609',
+        sign: chart.sunSign ? getZodiacInfo(chart.sunSign, resolvedLocale).name : null,
+        roleLabel: portrait?.bigThree?.sun?.roleLabel ?? t('natalPortrait.bigThreeSunRole'),
+      },
+      {
+        role: 'moon',
+        symbol: '\u263D',
+        sign: chart.moonSign ? getZodiacInfo(chart.moonSign, resolvedLocale).name : null,
+        roleLabel: portrait?.bigThree?.moon?.roleLabel ?? t('natalPortrait.bigThreeMoonRole'),
+      },
+      {
+        role: 'ascendant',
+        symbol: '\u2191',
+        sign: chart.risingSign ? getZodiacInfo(chart.risingSign, resolvedLocale).name : null,
+        roleLabel: portrait?.bigThree?.ascendant?.roleLabel ?? t('natalPortrait.bigThreeRisingRole'),
+      },
+    ];
+  }, [chart, resolvedLocale, portrait?.bigThree, t]);
+
+  // One open event per chart view, not per render.
+  const portraitViewLoggedRef = useRef(false);
+  useEffect(() => {
+    if (!portraitEnabled || portraitViewLoggedRef.current) return;
+    portraitViewLoggedRef.current = true;
+    natalAnalytics.chartOpened({
+      entry_point: 'tab',
+      locale: portraitLocale,
+      has_birth_time: chart?.birthTimeKnown ?? !!chart?.birthTime,
+    });
+  }, [portraitEnabled, portraitLocale, chart?.birthTimeKnown, chart?.birthTime]);
+
   const visibleDraggableSectionKeys = useMemo<DraggableNatalSectionKey[]>(() => {
     const visibleMap: Record<DraggableNatalSectionKey, boolean> = {
       night_poster: !!chart,
@@ -1805,10 +1906,30 @@ export function NatalChartScreenContent() {
       ai_interpretation: !activeProfileIsSaved && !!chart,
     };
 
+    // The portrait replaces these outright; showing both would give the user two readings of the
+    // same placements under different headings, which is the duplication this redesign removes.
+    if (portraitEnabled) {
+      PORTRAIT_SUPERSEDED_SECTION_KEYS.forEach((key) => {
+        visibleMap[key] = false;
+      });
+    }
+
     const orderedVisible = sectionOrder.filter((key) => visibleMap[key]);
     const missingVisible = DEFAULT_NATAL_SECTION_ORDER.filter((key) => visibleMap[key] && !orderedVisible.includes(key));
     return [...orderedVisible, ...missingVisible];
-  }, [sectionOrder, chart, hotspotAspects.length, activeProfileIsSaved]);
+  }, [sectionOrder, chart, hotspotAspects.length, activeProfileIsSaved, portraitEnabled]);
+
+  /** Technical sections, kept in the user's chosen order but grouped under one heading. */
+  const advancedSectionKeys = useMemo(
+    () => visibleDraggableSectionKeys.filter((key) => ADVANCED_NATAL_SECTION_KEYS.has(key)),
+    [visibleDraggableSectionKeys],
+  );
+
+  /** Everything that is not technical — rendered above "Astrolojik Detaylar". */
+  const primarySectionKeys = useMemo(
+    () => visibleDraggableSectionKeys.filter((key) => !ADVANCED_NATAL_SECTION_KEYS.has(key)),
+    [visibleDraggableSectionKeys],
+  );
 
   const handleSectionReorder = useCallback((visibleOrderedKeys: DraggableNatalSectionKey[]) => {
     const visibleSet = new Set(visibleOrderedKeys);
@@ -2997,6 +3118,22 @@ export function NatalChartScreenContent() {
           exiting={FadeOut.duration(160)}
           style={{ gap: 20 }}
         >
+          {portraitEnabled ? (
+            <NatalPortraitExperience
+              portrait={portrait}
+              context={natalContext}
+              loading={portraitLoading}
+              isError={portraitError}
+              isFallback={portraitIsFallback}
+              locale={portraitLocale}
+              bigThreeLine={bigThreeLine}
+              bigThreeCards={bigThreeCards}
+              onRetry={retryPortrait}
+              detailUnlocked={detailSectionsUnlocked || !natalDetailUnlockState.usesMonetization}
+              onRequestUnlock={() => setShowDetailUnlockSheet(true)}
+            />
+          ) : null}
+
           {ENABLE_SECTION_DND ? (
             <NestableDraggableFlatList
               data={visibleDraggableSectionKeys}
@@ -3014,7 +3151,7 @@ export function NatalChartScreenContent() {
                 accordionListBaseYRef.current = event.nativeEvent.layout.y;
               }}
             >
-              {visibleDraggableSectionKeys.map((item) => (
+              {primarySectionKeys.map((item) => (
                 <View
                   key={`static-section-${item}`}
                   ref={(node) => {
@@ -3030,6 +3167,39 @@ export function NatalChartScreenContent() {
                   {renderAccordionSectionByKey(item, () => {}, false)}
                 </View>
               ))}
+
+              {advancedSectionKeys.length ? (
+                <View style={styles.advancedSectionGroup}>
+                  <View style={styles.advancedSectionHeader}>
+                    <Ionicons name="telescope-outline" size={15} color={colors.birthChart.textMuted} />
+                    <View style={styles.advancedSectionHeaderText}>
+                      <Text style={styles.advancedSectionTitle}>
+                        {t('natalPortrait.advancedSectionTitle')}
+                      </Text>
+                      <Text style={styles.advancedSectionSubtitle}>
+                        {t('natalPortrait.advancedSectionSubtitle')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {advancedSectionKeys.map((item) => (
+                    <View
+                      key={`static-section-${item}`}
+                      ref={(node) => {
+                        accordionItemRefsRef.current[item] = node;
+                      }}
+                      collapsable={false}
+                      style={styles.draggableSectionItemWrap}
+                      onLayout={(event) => {
+                        const { y, height } = event.nativeEvent.layout;
+                        registerAccordionItemWrapperLayout(item, y, height);
+                      }}
+                    >
+                      {renderAccordionSectionByKey(item, () => {}, false)}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
           )}
 
@@ -3488,6 +3658,9 @@ export function NatalChartScreenContent() {
             item.house === selectedPlanet.house &&
             item.sign === selectedPlanet.sign,
         ) ?? null : null}
+        reading={selectedPlanet
+          ? (portrait?.planetReadings ?? []).find((r) => r.planet === selectedPlanet.planet) ?? null
+          : null}
         onClose={closePlanetSheet}
       />
 
@@ -3503,6 +3676,9 @@ export function NatalChartScreenContent() {
         house={selectedHouse}
         planetsInHouse={selectedHouse ? (chart?.planets ?? []).filter((p) => p.house === selectedHouse.houseNumber) : []}
         insight={selectedHouse ? (chart?.houseComboInsights ?? []).find((item) => item.houseNumber === selectedHouse.houseNumber) ?? null : null}
+        reading={selectedHouse
+          ? (portrait?.houseReadings ?? []).find((r) => r.houseNumber === selectedHouse.houseNumber) ?? null
+          : null}
         onClose={closeHouseSheet}
       />
 
@@ -3651,6 +3827,38 @@ function makeStyles(C: ReturnType<typeof useTheme>['colors']) {
   },
   draggableSectionItemWrap: {
     borderRadius: 18,
+  },
+  // "Astrolojik Detaylar" — visually set apart so it reads as an advanced drawer rather than
+  // another peer section competing with the interpretation above it.
+  advancedSectionGroup: {
+    marginTop: 24,
+    gap: 12,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.birthChart.cardBorder,
+  },
+  advancedSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  advancedSectionHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  advancedSectionTitle: {
+    color: C.birthChart.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  advancedSectionSubtitle: {
+    color: C.birthChart.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    opacity: 0.85,
   },
   draggableSectionItemWrapActive: {
     opacity: 0.94,
